@@ -1,0 +1,112 @@
+## Centralized debug logging configuration.
+## Toggle flags to enable/disable debug output per system.
+## Registered as Autoload "DebugConfig".
+extends Node
+
+# ===== SYSTEM FLAGS =====
+# Set these to true to enable debug logs for that system
+
+# Grid & Tilemap
+var tilemap_sync: bool = false
+var grid_manager: bool = false
+var z_index: bool = false
+
+# Units
+var unit_movement: bool = false
+var unit_health: bool = false
+var unit_init: bool = false
+
+# Combat
+var combat: bool = false
+var ai: bool = false
+var status_effects: bool = false
+
+# Input & State
+var input: bool = false
+var game_state: bool = false
+
+# UI
+var action_menu: bool = true
+var icons: bool = false
+var combat_preview: bool = false
+var pixel_perfect_ui: bool = false
+
+# Turn Management
+var turn_manager: bool = false
+
+
+# ===== HELPER METHODS =====
+
+## Log only if the specified flag is enabled.
+func log(flag: bool, message: String) -> void:
+	if flag:
+		print(message)
+
+
+## LogWarning only if the specified flag is enabled.
+func log_warning(flag: bool, message: String) -> void:
+	if flag:
+		push_warning(message)
+
+
+## LogError always logs (errors should never be suppressed).
+func log_error(message: String) -> void:
+	push_error(message)
+
+
+# ===== CONVENIENCE METHODS =====
+
+func log_tilemap(message: String) -> void:
+	log(tilemap_sync, message)
+
+func log_grid(message: String) -> void:
+	log(grid_manager, message)
+
+func log_z_index(message: String) -> void:
+	log(z_index, message)
+
+func log_unit_move(message: String) -> void:
+	log(unit_movement, message)
+
+func log_unit_health(message: String) -> void:
+	log(unit_health, message)
+
+func log_unit_init(message: String) -> void:
+	log(unit_init, message)
+
+func log_combat(message: String) -> void:
+	log(combat, message)
+
+func log_ai(message: String) -> void:
+	log(ai, message)
+
+func log_status(message: String) -> void:
+	log(status_effects, message)
+
+func log_input(message: String) -> void:
+	log(input, message)
+
+func log_state(message: String) -> void:
+	log(game_state, message)
+
+func log_action_menu(message: String) -> void:
+	log(action_menu, message)
+
+func log_icons(message: String) -> void:
+	log(icons, message)
+
+func log_turn(message: String) -> void:
+	log(turn_manager, message)
+
+func log_combat_preview(message: String) -> void:
+	log(combat_preview, message)
+
+func log_pixel_perfect_ui(message: String) -> void:
+	log(pixel_perfect_ui, message)
+
+# Warning variants
+func warn_tilemap(message: String) -> void:
+	log_warning(tilemap_sync, message)
+
+func warn_grid(message: String) -> void:
+	log_warning(grid_manager, message)
