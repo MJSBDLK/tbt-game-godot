@@ -16,5 +16,31 @@
 		"damageType": "Special",
 		"elementType": "Simple",
 		"targetType": "Single"
+	},
+	"Flame Strike": {
+		"description": "A fiery physical attack that may burn the target.",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 5,
+		"damageType": "Physical",
+		"elementType": "Fire",
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Burn",
+			"chance": 0.5
+		}
+	},
+	"Vine Lash": {
+		"description": "Lashing vines that may root the target in place.",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 4,
+		"damageType": "Special",
+		"elementType": "Plant",
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Rooted",
+			"chance": 0.3
+		}
 	}
 }

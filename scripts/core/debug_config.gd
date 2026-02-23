@@ -12,14 +12,14 @@ var grid_manager: bool = false
 var z_index: bool = false
 
 # Units
-var unit_movement: bool = false
+var unit_movement: bool = true
 var unit_health: bool = false
-var unit_init: bool = false
+var unit_init: bool = true
 
 # Combat
-var combat: bool = false
+var combat: bool = true
 var ai: bool = false
-var status_effects: bool = false
+var status_effects: bool = true
 
 # Input & State
 var input: bool = false

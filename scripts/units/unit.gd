@@ -1,6 +1,6 @@
 ## A unit on the battle grid — player, enemy, or neutral.
 ## Satisfies GridManager's duck-typed interface for movement range and pathfinding.
-## Ported from Unity's Unit.cs (pre-combat section, ~873 lines).
+## Ported from Unity's Unit.cs.
 class_name Unit
 extends Node2D
 
@@ -16,6 +16,9 @@ signal movement_completed(unit: Unit)
 signal movement_cancelled(unit: Unit)
 signal health_changed(unit: Unit, new_hp: int, max_hp: int)
 signal unit_defeated(unit: Unit)
+signal combat_started(attacker: Unit, defender: Unit)
+signal combat_hit(attacker: Unit, defender: Unit, damage: int)
+signal combat_completed(attacker: Unit, defender: Unit)
 
 
 # =============================================================================
@@ -24,6 +27,7 @@ signal unit_defeated(unit: Unit)
 
 const MOVEMENT_SCALE: int = 2
 const MOVE_SPEED: float = 200.0  # Pixels per second
+const HIT_DELAY: float = 0.3  # Seconds between combat hits
 
 
 # =============================================================================
@@ -58,8 +62,10 @@ var max_movement_range: int:
 var is_selected: bool = false
 var can_act: bool = true
 var is_moving: bool = false
+var is_defeated_flag: bool = false
 var current_hp: int = 0
-var assigned_move: Move = null  # Phase 3: currently selected move for targeting
+var assigned_move: Move = null
+var active_status_effects: Array = []  # Array of StatusEffect
 
 var _start_tile_before_move: Tile = null
 var _selection_tween: Tween = null
@@ -218,6 +224,7 @@ func move_to_tile(new_tile: Tile) -> void:
 	current_tile = new_tile
 	if current_tile != null:
 		current_tile.set_unit(self)
+		global_position = current_tile.global_position
 	_update_z_index()
 
 
@@ -317,7 +324,8 @@ func take_damage(amount: int) -> void:
 	current_hp = maxi(0, current_hp - amount)
 	_update_health_bar()
 	health_changed.emit(self, current_hp, character_data.max_hp)
-	if current_hp <= 0:
+	if current_hp <= 0 and not is_defeated_flag:
+		is_defeated_flag = true
 		unit_defeated.emit(self)
 
 
@@ -335,6 +343,168 @@ func _update_health_bar() -> void:
 	var health_percent := float(current_hp) / float(character_data.max_hp)
 	_health_bar_fill.scale.x = health_percent
 	_health_bar_fill.color = GameColors.get_health_color(health_percent)
+
+
+# =============================================================================
+# COMBAT — MOVE ASSIGNMENT
+# =============================================================================
+
+func assign_move(move: Move) -> void:
+	assigned_move = move
+
+
+func auto_assign_first_usable_move() -> void:
+	if character_data == null:
+		return
+	for move: Move in character_data.equipped_moves:
+		if move.has_uses_remaining() and not StatusEffectSystem.is_move_locked(self, character_data.equipped_moves.find(move)):
+			assigned_move = move
+			return
+	assigned_move = null
+
+
+func is_defeated() -> bool:
+	return current_hp <= 0
+
+
+# =============================================================================
+# COMBAT — SEQUENCE EXECUTION
+# =============================================================================
+
+## Execute a full combat sequence: attacker hits, counter-attacks, bonus hits.
+## This is an async method — caller must await it.
+func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
+	if defender == null or attacker_move == null:
+		return
+
+	combat_started.emit(self, defender)
+	DebugConfig.log_combat("Combat: %s (move=%s) vs %s" % [unit_name, attacker_move.move_name, defender.unit_name])
+
+	var attacker_hits := DamageCalculator.calculate_attack_count(self, defender)
+	var defender_can_counter := DamageCalculator.can_counter_attack(defender, self)
+	var defender_hits := 0
+	if defender_can_counter:
+		defender_hits = DamageCalculator.calculate_attack_count(defender, self)
+
+	# Consume PP once per combatant
+	attacker_move.consume_use()
+	if defender_can_counter and defender.assigned_move != null:
+		defender.assigned_move.consume_use()
+
+	# === Hit 1: Attacker ===
+	await _execute_single_hit(defender, attacker_move, true)
+	if defender.is_defeated():
+		await defender._handle_defeat()
+		combat_completed.emit(self, defender)
+		return
+
+	# === Counter 1: Defender ===
+	if defender_can_counter and not defender.is_defeated():
+		await get_tree().create_timer(HIT_DELAY).timeout
+		await defender._execute_single_hit(self, defender.assigned_move, true)
+		if is_defeated():
+			await _handle_defeat()
+			combat_completed.emit(self, defender)
+			return
+
+	# === Bonus attacker hits (2nd through Nth) ===
+	for i: int in range(1, attacker_hits):
+		if defender.is_defeated():
+			break
+		await get_tree().create_timer(HIT_DELAY).timeout
+		await _execute_single_hit(defender, attacker_move, false)
+
+	if defender.is_defeated() and not defender.is_defeated_flag:
+		await defender._handle_defeat()
+
+	# === Bonus defender counters (2nd through Nth) ===
+	if defender_can_counter:
+		for i: int in range(1, defender_hits):
+			if is_defeated() or defender.is_defeated():
+				break
+			await get_tree().create_timer(HIT_DELAY).timeout
+			await defender._execute_single_hit(self, defender.assigned_move, false)
+
+	if is_defeated() and not is_defeated_flag:
+		await _handle_defeat()
+
+	combat_completed.emit(self, defender)
+	DebugConfig.log_combat("Combat complete: %s HP=%d, %s HP=%d" % [
+		unit_name, current_hp, defender.unit_name, defender.current_hp])
+
+
+## Execute a single hit against a target. Calculates damage, spawns popup, optionally applies status.
+func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
+	# Stub attack animation
+	if move.damage_type == Enums.DamageType.PHYSICAL:
+		await _play_physical_attack_stub()
+	else:
+		await _play_special_attack_stub()
+
+	var damage := DamageCalculator.calculate_damage(self, target, move)
+	var type_multiplier := DamageCalculator.get_type_effectiveness(self, target, move)
+	var effectiveness_text := TypeChart.get_effectiveness_text(type_multiplier)
+
+	target.take_damage(damage)
+	combat_hit.emit(self, target, damage)
+
+	# Spawn damage popup
+	_spawn_damage_popup(target, damage, effectiveness_text, type_multiplier)
+
+	DebugConfig.log_combat("Hit: %s -> %s for %d damage (x%.2f %s)" % [
+		unit_name, target.unit_name, damage, type_multiplier, effectiveness_text])
+
+	# Apply status effect on first hit only
+	if apply_status and move.status_effect_type != Enums.StatusEffectType.NONE:
+		StatusEffectSystem.apply_status_effect(self, target, move)
+
+
+func _play_physical_attack_stub() -> void:
+	# Quick bump animation toward target direction
+	await get_tree().create_timer(0.15).timeout
+
+
+func _play_special_attack_stub() -> void:
+	# Slightly longer delay for special attacks
+	await get_tree().create_timer(0.25).timeout
+
+
+func _spawn_damage_popup(target: Unit, damage: int, effectiveness_text: String, multiplier: float) -> void:
+	var popup_scene := preload("res://scenes/ui/damage_popup.tscn")
+	var popup: Node2D = popup_scene.instantiate()
+	popup.global_position = target.global_position + Vector2(0, -8)
+	get_tree().current_scene.add_child(popup)
+	if popup.has_method("initialize"):
+		popup.call("initialize", damage, effectiveness_text, multiplier)
+
+
+## Handle unit defeat: gray out, fade, clear tile.
+func _handle_defeat() -> void:
+	is_defeated_flag = true
+	DebugConfig.log_combat("Unit defeated: %s" % unit_name)
+
+	# Stop any selection effects
+	_stop_selection_pulse()
+
+	# Gray out
+	if _sprite != null:
+		_sprite.modulate = GameColors.UNIT_ACTED
+
+	# Hide health bar
+	if _health_bar_background != null:
+		_health_bar_background.visible = false
+	if _health_bar_fill != null:
+		_health_bar_fill.visible = false
+
+	# Fade out over 1 second
+	var tween := create_tween()
+	tween.tween_property(self, "modulate:a", 0.0, 1.0)
+	await tween.finished
+
+	# Clear tile occupancy
+	if current_tile != null:
+		current_tile.clear_unit()
+		current_tile = null
 
 
 # =============================================================================

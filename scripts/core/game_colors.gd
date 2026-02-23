@@ -196,6 +196,22 @@ static func get_health_color(health_percent: float) -> Color:
 		return HEALTH_CRITICAL
 
 
+## Returns the appropriate color for a type effectiveness multiplier.
+static func get_effectiveness_color(effectiveness: float, is_heal: bool = false) -> Color:
+	if is_heal:
+		return HEALTH_FULL
+	if effectiveness >= 4.0:
+		return MULTIPLIER_X4_LIGHT
+	elif effectiveness >= 2.0:
+		return MULTIPLIER_X2_LIGHT
+	elif effectiveness == 1.0:
+		return MULTIPLIER_X1_LIGHT
+	elif effectiveness > 0.0:
+		return MULTIPLIER_HALF_LIGHT
+	else:
+		return MULTIPLIER_X0_LIGHT
+
+
 ## Returns text color based on damage amount.
 static func get_damage_text_color(damage: int, is_critical: bool = false) -> Color:
 	if is_critical:

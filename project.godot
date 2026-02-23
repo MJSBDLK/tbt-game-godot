@@ -24,6 +24,8 @@ config/features=PackedStringArray("4.6", "Forward Plus")
 DebugConfig="*res://scripts/core/debug_config.gd"
 TerrainDataManager="*res://scripts/grid/terrain_data_manager.gd"
 GridManager="*res://scripts/grid/grid_manager.gd"
+TypeChartManager="*res://scripts/combat/type_chart_manager.gd"
+StatusEffectSystem="*res://scripts/combat/status_effect_system.gd"
 
 [display]
 

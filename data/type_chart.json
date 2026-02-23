@@ -1,0 +1,27 @@
+{
+	"description": "Type effectiveness matchups. Unlisted pairs default to 1.0x.",
+	"matchups": [
+		{ "attacking": "Fire", "defending": "Plant", "multiplier": 2.0 },
+		{ "attacking": "Plant", "defending": "Electric", "multiplier": 2.0 },
+		{ "attacking": "Electric", "defending": "Fire", "multiplier": 2.0 },
+		{ "attacking": "Void", "defending": "Chivalric", "multiplier": 2.0 },
+		{ "attacking": "Chivalric", "defending": "Occult", "multiplier": 2.0 },
+		{ "attacking": "Occult", "defending": "Void", "multiplier": 2.0 },
+		{ "attacking": "Gravity", "defending": "Obsidian", "multiplier": 2.0 },
+		{ "attacking": "Electric", "defending": "Void", "multiplier": 0.0 },
+		{ "attacking": "Simple", "defending": "Robo", "multiplier": 0.5 },
+		{ "attacking": "Fire", "defending": "Obsidian", "multiplier": 0.5 },
+		{ "attacking": "Air", "defending": "Obsidian", "multiplier": 0.5 },
+		{ "attacking": "Chivalric", "defending": "Obsidian", "multiplier": 0.5 },
+		{ "attacking": "Cold", "defending": "Obsidian", "multiplier": 0.5 },
+		{ "attacking": "Electric", "defending": "Obsidian", "multiplier": 0.5 },
+		{ "attacking": "Gentry", "defending": "Obsidian", "multiplier": 0.5 },
+		{ "attacking": "Heraldic", "defending": "Obsidian", "multiplier": 0.5 },
+		{ "attacking": "Occult", "defending": "Obsidian", "multiplier": 0.5 },
+		{ "attacking": "Plant", "defending": "Obsidian", "multiplier": 0.5 },
+		{ "attacking": "Robo", "defending": "Obsidian", "multiplier": 0.5 },
+		{ "attacking": "Simple", "defending": "Obsidian", "multiplier": 0.5 },
+		{ "attacking": "Void", "defending": "Obsidian", "multiplier": 0.5 },
+		{ "attacking": "Obsidian", "defending": "Obsidian", "multiplier": 0.5 }
+	]
+}
