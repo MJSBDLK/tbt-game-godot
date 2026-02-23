@@ -7,8 +7,8 @@ extends Node
 # Set these to true to enable debug logs for that system
 
 # Grid & Tilemap
-var tilemap_sync: bool = false
-var grid_manager: bool = false
+var tilemap_sync: bool = true
+var grid_manager: bool = true
 var z_index: bool = false
 
 # Units
@@ -38,7 +38,7 @@ var turn_manager: bool = false
 # ===== HELPER METHODS =====
 
 ## Log only if the specified flag is enabled.
-func log(flag: bool, message: String) -> void:
+func log_if(flag: bool, message: String) -> void:
 	if flag:
 		print(message)
 
@@ -57,52 +57,52 @@ func log_error(message: String) -> void:
 # ===== CONVENIENCE METHODS =====
 
 func log_tilemap(message: String) -> void:
-	log(tilemap_sync, message)
+	log_if(tilemap_sync, message)
 
 func log_grid(message: String) -> void:
-	log(grid_manager, message)
+	log_if(grid_manager, message)
 
 func log_z_index(message: String) -> void:
-	log(z_index, message)
+	log_if(z_index, message)
 
 func log_unit_move(message: String) -> void:
-	log(unit_movement, message)
+	log_if(unit_movement, message)
 
 func log_unit_health(message: String) -> void:
-	log(unit_health, message)
+	log_if(unit_health, message)
 
 func log_unit_init(message: String) -> void:
-	log(unit_init, message)
+	log_if(unit_init, message)
 
 func log_combat(message: String) -> void:
-	log(combat, message)
+	log_if(combat, message)
 
 func log_ai(message: String) -> void:
-	log(ai, message)
+	log_if(ai, message)
 
 func log_status(message: String) -> void:
-	log(status_effects, message)
+	log_if(status_effects, message)
 
 func log_input(message: String) -> void:
-	log(input, message)
+	log_if(input, message)
 
 func log_state(message: String) -> void:
-	log(game_state, message)
+	log_if(game_state, message)
 
 func log_action_menu(message: String) -> void:
-	log(action_menu, message)
+	log_if(action_menu, message)
 
 func log_icons(message: String) -> void:
-	log(icons, message)
+	log_if(icons, message)
 
 func log_turn(message: String) -> void:
-	log(turn_manager, message)
+	log_if(turn_manager, message)
 
 func log_combat_preview(message: String) -> void:
-	log(combat_preview, message)
+	log_if(combat_preview, message)
 
 func log_pixel_perfect_ui(message: String) -> void:
-	log(pixel_perfect_ui, message)
+	log_if(pixel_perfect_ui, message)
 
 # Warning variants
 func warn_tilemap(message: String) -> void:

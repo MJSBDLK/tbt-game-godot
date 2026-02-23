@@ -6,7 +6,10 @@
 texture = ExtResource("1_06p61")
 texture_region_size = Vector2i(32, 32)
 0:0/0 = 0
+0:0/0/custom_data_0 = "Plains"
 
 [resource]
 tile_size = Vector2i(32, 32)
+custom_data_layer_0/name = "terrain_type"
+custom_data_layer_0/type = 4
 sources/0 = SubResource("TileSetAtlasSource_h00sm")

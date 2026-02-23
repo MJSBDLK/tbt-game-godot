@@ -35,7 +35,7 @@ enum ZIndexLayer {
 ## [param grid_height] Total height of the grid (for validation)
 ## [param layer] Type of object being sorted
 ## [param fine] Fine adjustment (0-9) for granular control
-static func calculate_sorting_order(row_index: int, grid_height: int, layer: ZIndexLayer, fine: int = 0) -> int:
+static func calculate_sorting_order(row_index: int, _grid_height: int, layer: ZIndexLayer, fine: int = 0) -> int:
 	# Validate and clamp row index to 0-99 range
 	if row_index < 0:
 		row_index = 0
@@ -65,7 +65,8 @@ static func decode_z_index(z: int) -> String:
 		return "Underground layer (z_index: %d)" % z
 
 	var layer_value: int = z % 10
-	var row_component: int = z / 10
+	@warning_ignore("integer_division")
+	var row_component: int = (z - layer_value) / 10
 	var row_index: int = 99 - row_component
 
 	var layer_name: String = "Unknown"

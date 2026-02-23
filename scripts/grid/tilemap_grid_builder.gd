@@ -17,8 +17,8 @@ class_name TilemapGridBuilder
 extends Node2D
 
 
-@export var floor_layer_path: NodePath = ^"FloorLayer"
-@export var modifier_layer_path: NodePath = ^"ModifierLayer"
+@export var floor_layer_path: NodePath = ^"TerrainTileLayer"
+@export var modifier_layer_path: NodePath = ^"ModifierTileLayer"
 @export var tile_scene: PackedScene = null
 
 var _floor_layer: TileMapLayer = null
@@ -100,7 +100,8 @@ func _build_grid() -> void:
 		var grid_x := cell.x
 		var grid_y := -cell.y  # Flip Y: Godot tilemap Y-down -> game grid Y-up
 
-		tile.position = Vector2(grid_x, grid_y)
+		var tile_size: int = _floor_layer.tile_set.tile_size.x
+		tile.position = Vector2(grid_x * tile_size, grid_y * tile_size)
 		tile.terrain_type_name = terrain_type
 		tile.initialize(grid_x, grid_y)
 
