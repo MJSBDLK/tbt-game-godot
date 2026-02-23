@@ -1,8 +1,8 @@
 # Unity → Godot Migration Plan
 
-**Status**: Phase 0 Complete, Phase 1 Next
+**Status**: Phase 1 Complete, Phase 2 Next
 **Last Updated**: 2026-02-22
-**Unity Source**: `../tbt-game/`
+**Unity Source**: `../tbt-game-unity/`
 
 ---
 
@@ -17,8 +17,8 @@ Porting ~110 C# scripts (~50k lines) from Unity 6.3 to Godot 4.x with GDScript. 
 | Phase | Description | Status | Commit |
 |-------|-------------|--------|--------|
 | **0** | Project scaffolding | **COMPLETE** | `da1fb32` |
-| **1** | Grid & Tile system | **NEXT** | — |
-| 2 | Unit system & movement | pending | — |
+| **1** | Grid & Tile system | **COMPLETE** | — |
+| **2** | Unit system & movement | **NEXT** | — |
 | 3 | Combat & type system | pending | — |
 | 4 | Game state, input, turns | pending | — |
 | 5 | UI system | pending | — |
@@ -30,9 +30,9 @@ Porting ~110 C# scripts (~50k lines) from Unity 6.3 to Godot 4.x with GDScript. 
 ```
 Phase 0 (Scaffolding)  ✅
     │
-Phase 1 (Grid + Tiles)  ← NEXT
+Phase 1 (Grid + Tiles)  ✅
     │
-Phase 2 (Units + Movement)
+Phase 2 (Units + Movement) ← NEXT
     │
     ├── Phase 3 (Combat) ←──┐
     │                        ├── can parallel
@@ -62,7 +62,7 @@ Created:
 
 ---
 
-## Phase 1: Grid & Tile System — NEXT
+## Phase 1: Grid & Tile System — COMPLETE
 
 **Effort**: Medium | **Depends on**: Phase 0
 
@@ -92,6 +92,21 @@ Unity's approach was a 1253-line `TilemapToGameObjectSync` using reflection hack
 **Editor tool**: `z_index_inspector.gd` (@tool) — decode z_index values in inspector
 
 **Verify**: Paint tilemap in editor, run, see grid with z-ordering. `GridManager.get_tile(x, y)` works.
+
+### Completed Files
+- `scripts/grid/terrain_data_manager.gd` — Autoload, JSON parser, unit-type-conditional lookups
+- `scripts/grid/tile.gd` + `scenes/battle/tile.tscn` — Node2D tile with terrain property queries
+- `scripts/grid/grid_manager.gd` — Autoload, Dictionary-based grid, BFS movement range, A* pathfinding
+- `scripts/grid/path_node.gd` — A* data class
+- `scripts/grid/grid_z_index_handler.gd` — Row-based z_index management
+- `scripts/grid/tilemap_grid_builder.gd` — Reads TileMapLayer at runtime, spawns Tile nodes, three-tier rule
+- `scripts/editor/z_index_inspector.gd` — @tool EditorScript for decoding z_index
+- `data/terrain_data.json` — Copied from Unity project
+
+### Still Needs (Editor Setup by User)
+- TileSet with custom data layer `terrain_type` (String)
+- TileMapLayer nodes painted in test_scene.tscn
+- Tile sprite assigned in tile.tscn
 
 ---
 

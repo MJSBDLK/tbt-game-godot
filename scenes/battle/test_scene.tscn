@@ -1,7 +1,7 @@
-[gd_scene load_steps=1 format=3 uid="uid://test_scene"]
+[gd_scene format=3 uid="uid://b5rknbvkn68gl"]
 
-[node name="TestScene" type="Node2D"]
+[node name="TestScene" type="Node2D" unique_id=1555423109]
 
-[node name="Camera2D" type="Camera2D" parent="."]
+[node name="Camera2D" type="Camera2D" parent="." unique_id=577626626]
 position = Vector2(160, 90)
 zoom = Vector2(2, 2)

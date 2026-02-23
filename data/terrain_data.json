@@ -1,0 +1,216 @@
+{
+  "_doc": {
+    "version": "2.0",
+    "description": "TBT-Game terrain definitions with immunity-based status effects",
+    "usage": "Each terrain type defines conditional properties based on unit ElementalType",
+    "properties": {
+      "walkable": "Boolean (1/0) - can units enter this terrain? Supports unit-type overrides",
+      "movePenalty": "Float - movement cost multiplier (1.0 = normal, 2.0 = double cost, 0.5 = half cost)",
+      "attackMultiplier": "Float - damage multiplier when attacking from this terrain",
+      "defenseModifier": "Float - defense bonus when standing on this terrain",
+      "avoidModifier": "Float - avoid/dodge bonus when standing on this terrain",
+      "terrainStatusImmunity": "Array of status effect names this terrain blocks",
+      "description": "String - flavor text description of the terrain"
+    },
+    "unit_types": [
+      "Air",
+      "Chivalric",
+      "Electric",
+      "Fire",
+      "Gentry",
+      "Gravity",
+      "Heraldic",
+      "Ice",
+      "Obsidian",
+      "Occult",
+      "Plant",
+      "Simple",
+      "Void"
+    ],
+    "terrain_status_effects": [
+      "Distortion",
+      "Electric",
+      "Flood",
+      "GravityWell",
+      "Rain",
+      "Scorch",
+      "Snow",
+      "Tornado",
+      "Wind"
+    ],
+    "examples": {
+      "conditional_movement": "Forest has movePenalty 2 for most units, 1 for Plant units",
+      "terrain_immunity": "Water terrain immune to Scorch/Ignite (fire can't burn water)",
+      "combat_bonuses": "Chivalric units get 1.4x attack multiplier in Castle terrain"
+    },
+    "design_notes": [
+      "Default vulnerability: All terrains affected by all status effects unless listed in terrainStatusImmunity",
+      "Unit typing: Uses ElementalType.ToString() from CharacterData.primaryType",
+      "Terrain hierarchy: Plains (basic) -> specialized terrains with conditional bonuses",
+      "Weather integration: Terrain status effects double as weather conditions"
+    ]
+  },
+  "Agriculture": {
+    "_doc": "Farmland, vulnerable to fire, neutral defensive properties, slight bonuses to Plant units"
+  },
+  "Bridge": {
+    "walkable": { "default": true },
+    "movePenalty": { "default": 1 },
+    "attackMultiplier": { "default": 1 },
+    "terrainStatusImmunity": [],
+    "defenseModifier": { "default": 0 },
+    "avoidModifier": { "default": -10 }
+  },
+  "Castle": {
+    "walkable": { "default": true },
+    "movePenalty": { "default": 1, "Chivalric": 1, "Heraldic": 1 },
+    "attackMultiplier": { "default": 1, "Chivalric": 1.4, "Heraldic": 1.2 },
+    "terrainStatusImmunity": ["Electric", "Flood", "Scorch"],
+    "defenseModifier": { "default": 3, "Chivalric": 4, "Gentry": 4 },
+    "avoidModifier": { "default": 20, "Chivalric": 25 }
+  },
+  "Coast": {
+    "walkable": { "default": true },
+    "movePenalty": { "default": 2, "Air": 1 },
+    "attackMultiplier": { "default": 1, "Ice": 1.2 },
+    "terrainStatusImmunity": [],
+    "defenseModifier": { "default": 0 },
+    "avoidModifier": { "default": -1 }
+  },
+  "ColdDesert": {
+    "walkable": { "default": true },
+    "movePenalty": { "default": 2, "Ice": 1 },
+    "attackMultiplier": { "default": 1, "Fire": 0.8, "Ice": 1.2 },
+    "terrainStatusImmunity": ["Scorch", "Flood"],
+    "defenseModifier": { "default": 0 },
+    "avoidModifier": { "default": 0, "Fire": 5 }
+  },
+  "Crater": {
+    "doc": "Rough terrain that applies a defensive penalty to grounded units, fliers can traverse with normal movement cost and without defensive penalties.",
+    "walkable": { "default": true },
+    "movePenalty": { "default": 2, "Air": 1 },
+    "attackMultiplier": { "default": 1, "Gravity": 1.3 },
+    "terrainStatusImmunity": ["Electric", "Scorch"],
+    "defenseModifier": { "default": 1 },
+    "avoidModifier": { "default": -10 }
+  },
+  "Desert": {
+    "_doc": "Dry, sandy; avoid penalty for grounded units",
+    "walkable": { "default": true },
+    "movePenalty": { "default": 2 },
+    "attackMultiplier": { "default": 1 },
+    "terrainStatusImmunity": ["Scorch", "Flood"],
+    "defenseModifier": { "default": 0 },
+    "avoidModifier": { "default": 0 }
+  },
+  "EcoHazard": {
+    "_doc": "Toxic terrain, hazardous to most units except Obsidian, Occult, and Void types"
+  },
+  "EcoMass": {
+    "_doc": "Solid mass of corrupted earth, hazardous to most units except Obsidian, Occult, and Void types"
+  },
+  "Forest": {
+    "_doc": "Forest floor without plant cover, neutral defensive properties, slight bonuses to Plant units, vulnerable to fire"
+  },
+	"Grass": {
+		"_doc": "Basic grassy terrain, vulnerable to fire, no cover bonuses, we may just replace plains with this. tbd"
+	},
+  "Ground": {
+    "_doc": "Basic ground terrain, grounds electric attacks, no cover bonuses"
+  },
+  "HotForest": {
+    "_doc": "Forest floor without plant cover, in a hot climate. Resistant to fire, neutral defensive properties, slight bonuses to Plant units"
+  },
+  "IceStructures": {
+    "_doc": "Natural ice formations, extremely difficult to traverse, cold slightly impedes flying units as well. Immune to freezing effects, massive bonus to ice attacks"
+  },
+  "Junk": {
+    "_doc": "Robot scrap yard. Slight movement penalty, bonuses to robo units. Resistant to fire and electricity."
+  },
+  "Marsh": {
+    "_doc": "Wet, swampy terrain. High movement cost for grounded units. Slight defense bonus, heavy avoid penalty. Vulnerable to electricity."
+  },
+  "Obsidian": {
+    "_doc": "Heavily resistant"
+  },
+  "Plains": {
+    "walkable": { "default": true },
+    "movePenalty": { "default": 1 },
+    "attackMultiplier": { "default": 1 },
+    "terrainStatusImmunity": [],
+    "defenseModifier": { "default": 0 },
+    "avoidModifier": { "default": 0 }
+  },
+  "Plant": {
+    "walkable": { "default": true },
+    "movePenalty": { "Plant": 1, "default": 2 },
+    "attackMultiplier": { "default": 1, "Plant": 1.2 },
+    "terrainStatusImmunity": [],
+    "defenseModifier": { "default": 0, "Plant": 1 },
+    "avoidModifier": { "default": 1, "Air": 0, "Fire": 0 }
+  },
+  "PolarIce": {
+    "_doc": "Ice-covered terrain, difficult to traverse, cold slightly impedes flying units as well. Immune to freezing effects, amplifies Ice and Electric attacks"
+  },
+  "RainForest": {},
+  "Road": {
+    "walkable": { "default": true },
+    "movePenalty": { "default": 0.5, "Air": 1 },
+    "attackMultiplier": { "default": 1 },
+    "terrainStatusImmunity": [],
+    "defenseModifier": { "default": 0 },
+    "avoidModifier": { "default": 0 }
+  },
+  "Rock": {
+    "walkable": { "default": true },
+    "movePenalty": { "default": 2, "Air": 1 },
+    "attackMultiplier": { "default": 1 },
+    "terrainStatusImmunity": ["Electric", "Scorch"],
+    "defenseModifier": { "default": 2 },
+    "avoidModifier": { "default": 10, "Air": 0 }
+  },
+  "Runes": {},
+  "Sky": {},
+  "SpaceShip": {
+    "_doc": "Defensive bonus to grounded units, fliers can traverse with normal movement cost but without defensive bonuses.",
+    "walkable": { "default": true },
+    "movePenalty": { "default": 2, "Air": 1 },
+    "attackMultiplier": { "default": 1, "Robo": 1.2 },
+    "terrainStatusImmunity": ["Scorch"],
+    "defenseModifier": { "default": 2, "Air": 0 },
+    "avoidModifier": { "default": 10, "Air": 0 }
+  },
+  "StoneEdifice": {
+    "_doc": "Stone buildings, resistant to fire, strong defensive properties, bonuses to Gentry units"
+  },
+  "Taiga": {},
+  "Tarpit": {
+    "walkable": { "default": true },
+    "movePenalty": { "default": 3, "Plant": 2, "Void": 1 },
+    "attackMultiplier": { "default": 1, "Plant": 0.8 },
+    "terrainStatusImmunity": [],
+    "defenseModifier": { "default": 0 },
+    "avoidModifier": { "default": 5, "Void": 10 }
+  },
+  "Tundra": {},
+  "Void": {
+    "walkable": { "default": false, "Void": true },
+    "movePenalty": { "default": 99, "Void": 1 },
+    "attackMultiplier": { "default": 1, "Void": 1.5 },
+    "terrainStatusImmunity": ["Electric", "Rain", "Tornado", "Wind"],
+    "defenseModifier": { "default": 0, "Void": 2 },
+    "avoidModifier": { "default": 0, "Void": 10 }
+  },
+  "Volcano": {},
+  "Water": {
+    "walkable": { "default": false, "Air": true, "Ice": true },
+    "movePenalty": { "default": 1, "Ice": 2 },
+    "attackMultiplier": { "default": 1, "Ice": 1.2 },
+    "terrainStatusImmunity": [],
+    "defenseModifier": { "default": -1, "Ice": 0 },
+    "avoidModifier": { "default": 0 }
+  },
+  "WoodenEdifice": {
+    "_doc": "Wooden buildings, vulnerable to fire, moderate defensive properties, slight bonus to Heraldic units"
+  }
+}
