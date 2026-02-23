@@ -7,8 +7,8 @@ extends Node
 # Set these to true to enable debug logs for that system
 
 # Grid & Tilemap
-var tilemap_sync: bool = true
-var grid_manager: bool = true
+var tilemap_sync: bool = false
+var grid_manager: bool = false
 var z_index: bool = false
 
 # Units

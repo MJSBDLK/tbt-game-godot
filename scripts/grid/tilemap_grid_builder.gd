@@ -77,6 +77,7 @@ func _build_grid() -> void:
 				modifier_cells[cell] = terrain_type
 
 	# Build tiles
+	var tile_size: int = _floor_layer.tile_set.tile_size.x
 	var tile_count := 0
 	for cell: Vector2i in floor_cells:
 		var terrain_type: String
@@ -99,8 +100,6 @@ func _build_grid() -> void:
 		# We negate the Y coordinate to match our convention.
 		var grid_x := cell.x
 		var grid_y := -cell.y  # Flip Y: Godot tilemap Y-down -> game grid Y-up
-
-		var tile_size: int = _floor_layer.tile_set.tile_size.x
 		tile.position = Vector2(grid_x * tile_size, grid_y * tile_size)
 		tile.terrain_type_name = terrain_type
 		tile.initialize(grid_x, grid_y)
@@ -121,7 +120,7 @@ func _build_grid() -> void:
 		_modifier_layer.visible = false
 
 	# Finalize grid
-	GridManager.set_grid_bounds(grid_width, grid_height, min_x, -max_y)
+	GridManager.set_grid_bounds(grid_width, grid_height, min_x, -max_y, tile_size)
 
 	DebugConfig.log_tilemap("TilemapGridBuilder: Created %d tile nodes" % tile_count)
 

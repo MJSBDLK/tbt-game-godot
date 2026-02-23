@@ -1,0 +1,32 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/units/unit.gd" id="1_unit"]
+[ext_resource type="Texture2D" path="res://art/sprites/units/placeholder_unit.png" id="2_sprite"]
+[ext_resource type="Script" path="res://scripts/units/path_visualizer.gd" id="3_pathvis"]
+
+[node name="Unit" type="Node2D"]
+script = ExtResource("1_unit")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("2_sprite")
+
+[node name="HealthBar" type="Node2D" parent="."]
+position = Vector2(0, -10)
+
+[node name="Background" type="ColorRect" parent="HealthBar"]
+offset_left = -7.0
+offset_top = -1.0
+offset_right = 7.0
+offset_bottom = 1.0
+color = Color(0.2, 0.2, 0.2, 1)
+
+[node name="Fill" type="ColorRect" parent="HealthBar"]
+offset_left = -7.0
+offset_top = -1.0
+offset_right = 7.0
+offset_bottom = 1.0
+color = Color(0.0, 0.8, 0.0, 1)
+
+[node name="PathVisualizer" type="Node2D" parent="."]
+top_level = true
+script = ExtResource("3_pathvis")

@@ -1,0 +1,20 @@
+{
+	"Bonk": {
+		"description": "A simple physical strike.",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 3,
+		"damageType": "Physical",
+		"elementType": "Simple",
+		"targetType": "Single"
+	},
+	"Laser": {
+		"description": "A focused energy beam.",
+		"range": 2,
+		"areaOfEffect": 0,
+		"basePower": 4,
+		"damageType": "Special",
+		"elementType": "Simple",
+		"targetType": "Single"
+	}
+}

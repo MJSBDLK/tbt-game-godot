@@ -1,0 +1,39 @@
+{
+	"characterName": "Spaceman",
+	"primaryType": "Simple",
+	"secondaryType": "None",
+	"currentClass": "Spaceman",
+	"specialization": "None",
+
+	"baseStats": {
+		"maxHP": 20,
+		"strength": 5,
+		"special": 4,
+		"skill": 5,
+		"agility": 5,
+		"athleticism": 5,
+		"defense": 4,
+		"resistance": 4
+	},
+
+	"growthRates": {
+		"hp": 80,
+		"strength": 40,
+		"special": 30,
+		"skill": 45,
+		"agility": 40,
+		"athleticism": 35,
+		"defense": 35,
+		"resistance": 30
+	},
+
+	"physicalAttributes": {
+		"moveDistance": 3,
+		"constitution": 5,
+		"carry": 8
+	},
+
+	"level": 1,
+	"basePoolMoves": ["Bonk", "Laser"],
+	"basePoolPassives": ["Impetuous"]
+}

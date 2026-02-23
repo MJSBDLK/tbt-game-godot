@@ -16,6 +16,7 @@ var _grid_width: int = 0
 var _grid_height: int = 0
 var _grid_offset_x: int = 0
 var _grid_offset_y: int = 0
+var _tile_size: int = 16
 
 # Visual state
 var _hovered_tile: Tile = null
@@ -32,6 +33,8 @@ var grid_offset_x: int:
 	get: return _grid_offset_x
 var grid_offset_y: int:
 	get: return _grid_offset_y
+var tile_size: int:
+	get: return _tile_size
 
 
 # =============================================================================
@@ -45,13 +48,14 @@ func register_tile(tile: Tile) -> void:
 
 
 ## Finalize grid dimensions after all tiles are registered.
-func set_grid_bounds(width: int, height: int, offset_x: int = 0, offset_y: int = 0) -> void:
+func set_grid_bounds(width: int, height: int, offset_x: int = 0, offset_y: int = 0, p_tile_size: int = 16) -> void:
 	_grid_width = width
 	_grid_height = height
 	_grid_offset_x = offset_x
 	_grid_offset_y = offset_y
-	DebugConfig.log_grid("GridManager: Grid ready — %dx%d, offset (%d,%d), %d tiles" % [
-		width, height, offset_x, offset_y, _grid.size()])
+	_tile_size = p_tile_size
+	DebugConfig.log_grid("GridManager: Grid ready — %dx%d, offset (%d,%d), tile_size=%d, %d tiles" % [
+		width, height, offset_x, offset_y, p_tile_size, _grid.size()])
 	grid_ready.emit()
 
 
@@ -82,10 +86,10 @@ func get_tile(x: int, y: int) -> Tile:
 	return _grid.get(key, null) as Tile
 
 
-## Get the tile at a world position (snaps to nearest integer coordinate).
+## Get the tile at a world position (converts pixel coords to grid coords).
 func get_tile_at_position(world_position: Vector2) -> Tile:
-	var tile_x := roundi(world_position.x)
-	var tile_y := roundi(world_position.y)
+	var tile_x := roundi(world_position.x / float(_tile_size))
+	var tile_y := roundi(world_position.y / float(_tile_size))
 	return get_tile(tile_x, tile_y)
 
 
