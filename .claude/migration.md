@@ -1,7 +1,7 @@
 # Unity → Godot Migration Plan
 
-**Status**: Phase 1 Complete, Phase 2 Next
-**Last Updated**: 2026-02-22
+**Status**: Phase 3 Complete, Phase 4 Next
+**Last Updated**: 2026-02-23
 **Unity Source**: `../tbt-game-unity/`
 
 ---
@@ -17,10 +17,10 @@ Porting ~110 C# scripts (~50k lines) from Unity 6.3 to Godot 4.x with GDScript. 
 | Phase | Description | Status | Commit |
 |-------|-------------|--------|--------|
 | **0** | Project scaffolding | **COMPLETE** | `da1fb32` |
-| **1** | Grid & Tile system | **COMPLETE** | — |
-| **2** | Unit system & movement | **NEXT** | — |
-| 3 | Combat & type system | pending | — |
-| 4 | Game state, input, turns | pending | — |
+| **1** | Grid & Tile system | **COMPLETE** | `406a8b4` |
+| **2** | Unit system & movement | **COMPLETE** | `b202efa` |
+| **3** | Combat & type system | **COMPLETE** | `ebf9f43` |
+| 4 | Game state, input, turns | **NEXT** | — |
 | 5 | UI system | pending | — |
 | 6 | Map pipeline & authoring | pending | — |
 | 7 | Missing Alpha features | pending | — |
@@ -32,13 +32,13 @@ Phase 0 (Scaffolding)  ✅
     │
 Phase 1 (Grid + Tiles)  ✅
     │
-Phase 2 (Units + Movement) ← NEXT
+Phase 2 (Units + Movement)  ✅
     │
-    ├── Phase 3 (Combat) ←──┐
+    ├── Phase 3 (Combat)  ✅
     │                        ├── can parallel
     └── Phase 5 (UI) ←──────┘
             │
-        Phase 4 (State + Input + Turns) ← needs both 3 and 5
+        Phase 4 (State + Input + Turns) ← NEXT
             │
         Phase 6 (Maps + Authoring)
             │
@@ -110,43 +110,48 @@ Unity's approach was a 1253-line `TilemapToGameObjectSync` using reflection hack
 
 ---
 
-## Phase 2: Unit System & Movement
+## Phase 2: Unit System & Movement — COMPLETE
 
 **Effort**: Large | **Depends on**: Phase 1
 
-| Unity Source | Godot Target |
-|---|---|
-| `CharacterData.cs` (510 lines) | `scripts/units/character_data.gd` (Resource) |
-| `CharacterDataLoader.cs` + `CharacterDataJson.cs` | `scripts/units/character_data_loader.gd` |
-| `Unit.cs` (1617 lines) | `scripts/units/unit.gd` + `scenes/battle/unit.tscn` |
-| `Waypoint.cs` | `scripts/units/waypoint.gd` |
-| `PathVisualizer.cs` | `scripts/units/path_visualizer.gd` |
-| `Move.cs` | `scripts/combat/move.gd` (Resource) |
-| `MoveData.cs` + `MoveDataJson.cs` | `scripts/combat/move_data.gd` |
-
-Key pattern: All Unity coroutines → `await` + `create_tween()`
-
-**Verify**: Place units, click to select, see movement range, waypoints, animated movement.
+### Completed Files
+- `scripts/units/character_data.gd` — 8-stat Resource with computed properties, status_modifier_* fields
+- `scripts/units/character_data_loader.gd` — JSON loader for character definitions
+- `scripts/units/unit.gd` + `scenes/battle/unit.tscn` — Node2D unit with faction colors, health bar, selection pulse
+- `scripts/units/waypoint.gd` — Waypoint data class
+- `scripts/units/path_visualizer.gd` — Path arrow visualization (needs arrow sprite — TODO)
+- `scripts/combat/move.gd` — Move Resource with PP, range, damage type, status effect
+- `scripts/combat/move_data.gd` — JSON loader for move bank
+- `data/characters/spaceman.json` — Test player character
+- `data/moves/basic_move_bank.json` — Bonk, Zap, Flame Strike, Vine Lash
+- `scripts/test/phase2_test_driver.gd` — Unit spawn + movement test
 
 ---
 
-## Phase 3: Combat & Type System
+## Phase 3: Combat & Type System — COMPLETE
 
 **Effort**: Medium | **Depends on**: Phase 2 | **Can parallel with Phase 5**
 
-| Unity Source | Godot Target |
-|---|---|
-| `TypeChart.cs` | `scripts/combat/type_chart.gd` (Resource) |
-| `TypeChartManager.cs` | `scripts/combat/type_chart_manager.gd` (Autoload) |
-| `StatusEffectSystem.cs` (555 lines) | `scripts/combat/status_effect_system.gd` (Autoload) |
-| `StatusEffectConfig.cs` + `StatusEffectDatabase.cs` | `scripts/combat/status_effect_data.gd` |
-| `MoveDatabase_V2.cs` | `scripts/combat/move_database.gd` |
-| `DamagePopup.cs` | `scripts/ui/damage_popup.gd` + scene |
-| `SimpleAttackEffects.cs` | `scripts/combat/attack_effects.gd` |
+### Completed Files
+- `data/type_chart.json` — 22 type matchups (string-based keys)
+- `scripts/combat/type_chart.gd` — TypeChart Resource with string-key effectiveness cache
+- `scripts/combat/type_chart_manager.gd` — Autoload, dual-type combined effectiveness
+- `scripts/combat/status_effect.gd` — StatusEffect RefCounted data class
+- `scripts/combat/status_effect_data.gd` — Template configs for 7 effects (burn, poison, rooted, freeze, gravity, void, subversion)
+- `scripts/combat/status_effect_system.gd` — Autoload, apply/process/remove effects, DoT, stat modifiers
+- `scripts/combat/damage_calculator.gd` — Static damage formula, multi-hit (athleticism ratio), counter-attack eligibility
+- `scripts/ui/damage_popup.gd` + `scenes/ui/damage_popup.tscn` — Pop-scale + rise + fade with effectiveness colors
+- `data/characters/fire_warrior.json` — Test enemy character (Fire type, high athleticism)
+- `scripts/test/phase3_test_driver.gd` — Full combat test (select, assign move, attack, status effects, type chart)
+- Modified: `unit.gd` (combat sequences, defeat handling), `game_colors.gd` (effectiveness colors)
 
-**Editor tools**: `type_chart_editor.gd`, `move_database_inspector.gd`, `move_data_editor.gd`
+### Not Ported (deferred)
+- `SimpleAttackEffects.cs` → deferred to Phase 7 (placeholder stub animations used)
+- Editor tools (`type_chart_editor`, `move_database_inspector`, `move_data_editor`) → deferred to Phase 6
 
-**Verify**: Attack deals correct damage with type multiplier, multi-hit plays, counter-attacks fire.
+### Known TODOs
+- Path arrow sprite needed — Artist Lawrence to design, placeholder upward arrow with rotation + 0.5 alpha in meantime
+- Attack animations are stub delays (0.15s physical, 0.25s special) — real effects in Phase 7
 
 ---
 
