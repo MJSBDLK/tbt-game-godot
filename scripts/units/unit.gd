@@ -198,7 +198,9 @@ func execute_planned_movement() -> void:
 
 	is_moving = false
 	planned_waypoints.clear()
-	_start_tile_before_move = null
+	# NOTE: _start_tile_before_move is intentionally kept alive here.
+	# It persists until set_acted() or cancel_movement() so the player
+	# can press Escape to snap back after moving but before acting.
 	movement_completed.emit(self)
 
 
@@ -312,6 +314,7 @@ func refresh_unit() -> void:
 
 func set_acted() -> void:
 	can_act = false
+	_start_tile_before_move = null
 	if _sprite != null:
 		_sprite.modulate = GameColors.UNIT_ACTED
 
