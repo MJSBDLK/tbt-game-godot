@@ -35,6 +35,10 @@ var _controls_label: Label = null
 
 var _tracked_unit: Unit = null
 
+## Set to true to show the debug move list / controls panel on the right side.
+## Disabled by default since Phase 4 ActionMenuManager handles move selection.
+var show_debug_move_panel: bool = false
+
 
 func _ready() -> void:
 	layer = 10
@@ -117,6 +121,9 @@ func hide_terrain_info() -> void:
 
 
 func update_move_list(unit: Unit) -> void:
+	if not show_debug_move_panel:
+		_hide_right_panel()
+		return
 	if unit == null or unit.character_data == null:
 		_hide_right_panel()
 		return

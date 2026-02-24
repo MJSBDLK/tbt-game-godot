@@ -298,8 +298,7 @@ func _stop_selection_pulse() -> void:
 	if can_act:
 		_apply_faction_color()
 	else:
-		if _sprite != null:
-			_sprite.modulate = GameColors.UNIT_ACTED
+		_apply_acted_color()
 
 
 # =============================================================================
@@ -315,8 +314,7 @@ func refresh_unit() -> void:
 func set_acted() -> void:
 	can_act = false
 	_start_tile_before_move = null
-	if _sprite != null:
-		_sprite.modulate = GameColors.UNIT_ACTED
+	_apply_acted_color()
 
 
 # =============================================================================
@@ -364,6 +362,17 @@ func auto_assign_first_usable_move() -> void:
 			assigned_move = move
 			return
 	assigned_move = null
+
+
+func get_usable_moves() -> Array[Move]:
+	var usable: Array[Move] = []
+	if character_data == null:
+		return usable
+	for index: int in range(character_data.equipped_moves.size()):
+		var move: Move = character_data.equipped_moves[index]
+		if move.has_uses_remaining() and not StatusEffectSystem.is_move_locked(self, index):
+			usable.append(move)
+	return usable
 
 
 func is_defeated() -> bool:
@@ -524,6 +533,18 @@ func _apply_faction_color() -> void:
 			_sprite.modulate = GameColors.ENEMY_UNIT
 		Enums.UnitFaction.NEUTRAL:
 			_sprite.modulate = GameColors.NEUTRAL_UNIT
+
+
+func _apply_acted_color() -> void:
+	if _sprite == null:
+		return
+	match faction:
+		Enums.UnitFaction.PLAYER:
+			_sprite.modulate = GameColors.PLAYER_UNIT_ACTED
+		Enums.UnitFaction.ENEMY:
+			_sprite.modulate = GameColors.ENEMY_UNIT_ACTED
+		_:
+			_sprite.modulate = GameColors.UNIT_ACTED
 
 
 func _update_z_index() -> void:

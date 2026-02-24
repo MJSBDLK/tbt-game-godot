@@ -28,11 +28,17 @@ static var ATTACK_RANGE_HOVERED: Color:
 # =============================================================================
 
 static var PLAYER_UNIT: Color:
-	get: return Color.WHITE
+	get: return Color(0.45, 0.65, 1.0)  # Bright blue
 static var ENEMY_UNIT: Color:
-	get: return GameColorPalette.get_color("Red", 8)
+	get: return Color(1.0, 0.4, 0.35)  # Bright red
 static var NEUTRAL_UNIT: Color:
-	get: return GameColorPalette.get_color("Gray", 8)
+	get: return Color(0.75, 0.75, 0.75)  # Light gray
+
+# Dimmed versions for units that have acted (desaturated + darker)
+static var PLAYER_UNIT_ACTED: Color:
+	get: return Color(0.3, 0.35, 0.45)  # Dark muted blue
+static var ENEMY_UNIT_ACTED: Color:
+	get: return Color(0.45, 0.28, 0.28)  # Dark muted red
 
 
 # =============================================================================
@@ -44,7 +50,7 @@ static var UNIT_SELECTED: Color:
 static var UNIT_HOVERED: Color:
 	get: return GameColorPalette.get_color("Blue", 9)
 static var UNIT_ACTED: Color:
-	get: return GameColorPalette.get_color("Gray", 6)
+	get: return Color(0.35, 0.35, 0.35)  # Generic fallback gray
 
 
 # =============================================================================
