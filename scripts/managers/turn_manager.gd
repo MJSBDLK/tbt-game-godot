@@ -16,15 +16,6 @@ var _enemy_units: Array[Unit] = []
 var _is_processing_phase: bool = false
 var _battle_ended: bool = false
 
-# Phase overlay (dev quality, code-built)
-var _overlay_layer: CanvasLayer = null
-var _phase_label: Label = null
-var _result_label: Label = null
-
-
-func _ready() -> void:
-	_build_phase_overlay()
-
 
 # =============================================================================
 # PUBLIC API
@@ -114,7 +105,10 @@ func start_player_phase() -> void:
 		input_manager.disable_input()
 
 	DebugConfig.log_turn("TurnManager: === PLAYER PHASE (Turn %d) ===" % turn_count)
-	await _show_phase_overlay("PLAYER PHASE - Turn %d" % turn_count, GameColors.PLAYER_UNIT)
+
+	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	if ui_manager != null:
+		await ui_manager.show_phase_transition("PLAYER PHASE - Turn %d" % turn_count, GameColors.PLAYER_UNIT)
 
 	_process_status_effects(_player_units)
 	_refresh_units(_player_units)
@@ -150,7 +144,10 @@ func start_enemy_phase() -> void:
 	await get_tree().create_timer(0.25).timeout
 
 	DebugConfig.log_turn("TurnManager: === ENEMY PHASE ===")
-	await _show_phase_overlay("ENEMY PHASE", GameColors.ENEMY_UNIT)
+
+	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	if ui_manager != null:
+		await ui_manager.show_phase_transition("ENEMY PHASE", GameColors.ENEMY_UNIT)
 
 	_process_status_effects(_enemy_units)
 	_refresh_units(_enemy_units)
@@ -222,12 +219,23 @@ func _end_battle(is_victory: bool) -> void:
 		input_manager.disable_input()
 
 	var result_text := "VICTORY!" if is_victory else "DEFEAT!"
-	var result_color := GameColors.TEXT_SUCCESS if is_victory else GameColors.TEXT_DANGER
 	DebugConfig.log_turn("TurnManager: Battle ended — %s (Turn %d)" % [result_text, turn_count])
 
-	_result_label.text = result_text
-	_result_label.add_theme_color_override("font_color", result_color)
-	_result_label.visible = true
+	# Calculate battle stats
+	var player_units_lost: int = 0
+	for unit: Unit in _player_units:
+		if unit.is_defeated():
+			player_units_lost += 1
+
+	var enemies_defeated: int = 0
+	for unit: Unit in _enemy_units:
+		if unit.is_defeated():
+			enemies_defeated += 1
+
+	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	if ui_manager != null:
+		ui_manager.show_battle_result(is_victory, turn_count, player_units_lost,
+			enemies_defeated, _player_units.size(), _enemy_units.size())
 
 	battle_ended.emit(is_victory)
 
@@ -253,48 +261,3 @@ func _process_status_effects(units: Array[Unit]) -> void:
 	for unit: Unit in units:
 		if not unit.is_defeated():
 			status_system.process_turn_start_effects(unit)
-
-
-# =============================================================================
-# PHASE OVERLAY
-# =============================================================================
-
-func _show_phase_overlay(text: String, color: Color) -> void:
-	_phase_label.text = text
-	_phase_label.add_theme_color_override("font_color", color)
-
-	var tween := create_tween()
-	_phase_label.modulate.a = 0.0
-	_phase_label.visible = true
-	tween.tween_property(_phase_label, "modulate:a", 1.0, 0.3)
-	tween.tween_interval(0.7)
-	tween.tween_property(_phase_label, "modulate:a", 0.0, 0.3)
-	await tween.finished
-	_phase_label.visible = false
-
-
-func _build_phase_overlay() -> void:
-	_overlay_layer = CanvasLayer.new()
-	_overlay_layer.layer = 11
-	add_child(_overlay_layer)
-
-	# Phase transition label
-	_phase_label = Label.new()
-	_phase_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_phase_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_phase_label.anchors_preset = Control.PRESET_FULL_RECT
-	_phase_label.add_theme_font_size_override("font_size", 16)
-	_phase_label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
-	_phase_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_phase_label.visible = false
-	_overlay_layer.add_child(_phase_label)
-
-	# Battle result label (persists on screen)
-	_result_label = Label.new()
-	_result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_result_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_result_label.anchors_preset = Control.PRESET_FULL_RECT
-	_result_label.add_theme_font_size_override("font_size", 20)
-	_result_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_result_label.visible = false
-	_overlay_layer.add_child(_result_label)

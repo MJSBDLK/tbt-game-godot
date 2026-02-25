@@ -48,9 +48,9 @@ func select_unit(unit: Unit) -> void:
 	GridManager.set_selected_tile(unit.current_tile)
 	GridManager.display_movement_range(_selected_unit)
 
-	var battle_hud: Node = _get_battle_hud()
-	if battle_hud != null:
-		battle_hud.show_unit_info(unit)
+	var ui_manager: Node = _get_ui_manager()
+	if ui_manager != null:
+		ui_manager.show_unit_info(unit)
 
 	var state_manager: Node = get_node("/root/GameStateManager")
 	state_manager.change_state(Enums.InputState.UNIT_SELECTED, unit)
@@ -67,9 +67,9 @@ func deselect_unit() -> void:
 	_selected_unit = null
 	_unit_has_moved = false
 
-	var battle_hud: Node = _get_battle_hud()
-	if battle_hud != null:
-		battle_hud.hide_unit_info()
+	var ui_manager: Node = _get_ui_manager()
+	if ui_manager != null:
+		ui_manager.hide_unit_info()
 
 
 func start_attack_targeting(attacker: Unit, move: Move) -> void:
@@ -92,6 +92,10 @@ func cancel_attack_targeting() -> void:
 	_attack_move = null
 	_attackable_tiles.clear()
 	GridManager.clear_attack_range()
+
+	var ui_manager: Node = _get_ui_manager()
+	if ui_manager != null:
+		ui_manager.hide_combat_preview()
 
 	var action_menu_manager: Node = get_node_or_null("/root/ActionMenuManager")
 	if action_menu_manager != null and _selected_unit != null:
@@ -151,9 +155,29 @@ func _update_hover() -> void:
 		_hovered_tile = tile
 		GridManager.set_hovered_tile(tile)
 
-		var battle_hud: Node = _get_battle_hud()
-		if battle_hud != null:
-			battle_hud.show_terrain_info(tile)
+		var ui_manager: Node = _get_ui_manager()
+		if ui_manager != null:
+			ui_manager.show_terrain_info(tile)
+
+		# Combat preview during attack targeting
+		_update_combat_preview(tile)
+
+
+func _update_combat_preview(tile: Tile) -> void:
+	var ui_manager: Node = _get_ui_manager()
+	if ui_manager == null:
+		return
+
+	if not _is_selecting_attack_target or _attacking_unit == null or _attack_move == null:
+		return
+
+	if tile != null and tile.current_unit != null and tile.current_unit is Unit:
+		var target := tile.current_unit as Unit
+		if target.faction != _attacking_unit.faction and not target.is_defeated():
+			ui_manager.show_combat_preview(_attacking_unit, target, _attack_move)
+			return
+
+	ui_manager.hide_combat_preview()
 
 
 # =============================================================================
@@ -209,9 +233,9 @@ func _handle_default_click() -> void:
 			select_unit(clicked_unit)
 		else:
 			# Show enemy/neutral info without selecting
-			var battle_hud: Node = _get_battle_hud()
-			if battle_hud != null:
-				battle_hud.show_unit_info(clicked_unit)
+			var ui_manager: Node = _get_ui_manager()
+			if ui_manager != null:
+				ui_manager.show_unit_info(clicked_unit)
 
 
 func _handle_movement_planning_click() -> void:
@@ -242,9 +266,9 @@ func _handle_movement_planning_click() -> void:
 			return
 
 		# Click enemy/neutral → show info
-		var battle_hud: Node = _get_battle_hud()
-		if battle_hud != null:
-			battle_hud.show_unit_info(clicked_unit)
+		var ui_manager: Node = _get_ui_manager()
+		if ui_manager != null:
+			ui_manager.show_unit_info(clicked_unit)
 		return
 
 	# Click on empty tile with unit selected
@@ -346,15 +370,18 @@ func _execute_attack(target: Unit) -> void:
 	_attackable_tiles.clear()
 	GridManager.clear_attack_range()
 
+	var ui_manager: Node = _get_ui_manager()
+	if ui_manager != null:
+		ui_manager.hide_combat_preview()
+
 	var action_menu_manager: Node = get_node_or_null("/root/ActionMenuManager")
 	if action_menu_manager != null:
 		action_menu_manager.clear_selected_move()
 
 	await attacker.execute_combat_sequence(target, move)
 
-	var battle_hud: Node = _get_battle_hud()
-	if battle_hud != null:
-		battle_hud.refresh()
+	if ui_manager != null:
+		ui_manager.refresh()
 
 	_attacking_unit = null
 	_attack_move = null
@@ -369,9 +396,9 @@ func _finish_unit_action() -> void:
 	_unit_has_moved = false
 	GridManager.clear_selected_tile()
 
-	var battle_hud: Node = _get_battle_hud()
-	if battle_hud != null:
-		battle_hud.hide_unit_info()
+	var ui_manager: Node = _get_ui_manager()
+	if ui_manager != null:
+		ui_manager.hide_unit_info()
 
 	var state_manager: Node = get_node("/root/GameStateManager")
 	state_manager.change_state(Enums.InputState.DEFAULT)
@@ -408,11 +435,8 @@ func _get_valid_attack_tiles(attacker: Unit, move: Move) -> Array[Tile]:
 	return tiles
 
 
-func _get_battle_hud() -> Node:
-	var scene: Node = get_tree().current_scene
-	if scene != null and scene.has_method("get_battle_hud"):
-		return scene.call("get_battle_hud")
-	return null
+func _get_ui_manager() -> Node:
+	return get_node_or_null("/root/UIManager")
 
 
 func _get_world_mouse_position() -> Vector2:

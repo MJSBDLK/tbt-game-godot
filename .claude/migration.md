@@ -1,7 +1,7 @@
 # Unity → Godot Migration Plan
 
-**Status**: Phase 3 Complete, Phase 4 Next
-**Last Updated**: 2026-02-23
+**Status**: Phase 5 Complete, Phase 6 Next
+**Last Updated**: 2026-02-24
 **Unity Source**: `../tbt-game-unity/`
 
 ---
@@ -20,9 +20,9 @@ Porting ~110 C# scripts (~50k lines) from Unity 6.3 to Godot 4.x with GDScript. 
 | **1** | Grid & Tile system | **COMPLETE** | `406a8b4` |
 | **2** | Unit system & movement | **COMPLETE** | `b202efa` |
 | **3** | Combat & type system | **COMPLETE** | `ebf9f43` |
-| 4 | Game state, input, turns | **NEXT** | — |
-| 5 | UI system | pending | — |
-| 6 | Map pipeline & authoring | pending | — |
+| **4** | Game state, input, turns | **COMPLETE** | — |
+| **5** | UI system | **COMPLETE** | — |
+| 6 | Map pipeline & authoring | **NEXT** | — |
 | 7 | Missing Alpha features | pending | — |
 | 8 | Polish & Steam Deck | pending | — |
 
@@ -36,11 +36,11 @@ Phase 2 (Units + Movement)  ✅
     │
     ├── Phase 3 (Combat)  ✅
     │                        ├── can parallel
-    └── Phase 5 (UI) ←──────┘
+    └── Phase 5 (UI) ←──────┘  ✅
             │
-        Phase 4 (State + Input + Turns) ← NEXT
+        Phase 4 (State + Input + Turns)  ✅
             │
-        Phase 6 (Maps + Authoring)
+        Phase 6 (Maps + Authoring) ← NEXT
             │
         Phase 7 (Missing Alpha Features)
             │
@@ -155,51 +155,77 @@ Unity's approach was a 1253-line `TilemapToGameObjectSync` using reflection hack
 
 ---
 
-## Phase 4: Game State, Input & Turn Loop
+## Phase 4: Game State, Input & Turn Loop — COMPLETE
 
 **Effort**: Medium | **Depends on**: Phase 3 + Phase 5
 
-| Unity Source | Godot Target |
-|---|---|
-| `GameState.cs` | `scripts/managers/game_state_manager.gd` (Autoload) |
-| `InputManager.cs` (662 lines) | `scripts/managers/input_manager.gd` (Autoload) |
-| `TurnManager.cs` (627 lines) | `scripts/managers/turn_manager.gd` (Autoload) |
-| `EnemyAI.cs` (279 lines) | `scripts/combat/enemy_ai.gd` |
-| `ActionMenuManager.cs` + `ActionMenu.cs` | `scripts/managers/action_menu_manager.gd` + scene |
-| `CameraController.cs` (360 lines) | `scripts/managers/camera_controller.gd` (Camera2D) |
-| `GameInitializer.cs` | `scripts/managers/game_initializer.gd` |
+### Completed Files
+- `scripts/managers/game_state_manager.gd` — Autoload, InputState state machine with enter/exit hooks
+- `scripts/managers/input_manager.gd` — Autoload, central click/key routing per game state
+- `scripts/managers/turn_manager.gd` — Autoload, player/enemy phase cycle, victory/defeat, phase overlay
+- `scripts/managers/action_menu_manager.gd` — Autoload, code-built action menu (moves, assign, wait, cancel)
+- `scripts/combat/enemy_ai.gd` — EnemyAI node, target scoring + move-toward + attack, 3 behavior types
+- `scripts/managers/camera_controller.gd` — CameraController on Camera2D, WASD/scroll/drag, smooth lerp
+- `scripts/managers/battle_scene.gd` — Scene root, unit spawning, turn loop initialization
+- Modified: `unit.gd` (get_usable_moves, faction-specific acted colors), `game_colors.gd` (blue/red faction colors)
+- Renamed: `test_scene.tscn` → `battle_scene.tscn`
 
-**Verify**: Full battle loop — select unit → move → attack → enemy phase → victory/defeat.
+### Not Ported (deferred)
+- `GameInitializer.cs` — Replaced by battle_scene.gd (hardcoded spawning, Phase 6 handles map-driven spawning)
+- Full ActionMenu UI — dev-quality code-built menu used; Phase 5 builds the real one
 
 ---
 
-## Phase 5: UI System
+## Phase 5: UI System — COMPLETE
 
 **Effort**: Medium | **Depends on**: Phase 2 | **Can parallel with Phase 3**
 
-Godot UI layout (replaces Unity Canvas):
+Replaced dev-quality code-built UI (BattleHUD, ActionMenuManager UI, TurnManager overlays) with a proper pixel-perfect UI system using scenes, code-built Theme, and pixel fonts.
+
+### Architecture
 ```
-CanvasLayer
-  Control (full screen)
-    HBoxContainer (140-360-140)
-      PanelContainer (left, min_width=140)
-      Control (center, expand_fill)
-      PanelContainer (right, min_width=140)
-    OverlayContainer (full screen, hidden)
+UIManager (CanvasLayer layer 10, Autoload)
+  MainLayout (Control, full_rect, MOUSE_FILTER_IGNORE)
+    LeftPanel (VBoxContainer, anchored left, 140px)
+      UnitInfoPanel (.tscn, 140×220)
+      TerrainInfoPanel (.tscn, 140×140)
+    CenterArea (Control, expand_fill, MOUSE_FILTER_IGNORE)
+    RightPanel (VBoxContainer, anchored right, 140px)
+      ActionMenuPanel (.tscn, dynamic height)
+      CombatPreviewPanel (.tscn, fills remaining space)
+  OverlayLayer (CanvasLayer layer 11)
+    PhaseTransitionOverlay (.tscn)
+    BattleResultOverlay (.tscn)
+
+VisualFeedbackManager (Node, Autoload)
+  — pulse/flash effects on units, cancel hint
 ```
 
-Pixel-perfect rendering is FREE in Godot — `canvas_items` stretch + nearest filter. No custom renderer needed.
+### Completed Files — Created
+- `scripts/ui/ui_manager.gd` — Autoload, CanvasLayer layer 10, builds 140-360-140 layout, loads pixel fonts at runtime with `FontFile.new()`, code-built Theme, panel lifecycle API
+- `scripts/ui/panels/unit_info_panel.gd` + `scenes/ui/panels/unit_info_panel.tscn` — PDA-styled panel: unit name, HP bar, stats grid, move, status effects
+- `scripts/ui/panels/terrain_info_panel.gd` + `scenes/ui/panels/terrain_info_panel.tscn` — PDA-styled panel: terrain name, move cost (color-coded), defense modifier
+- `scripts/ui/panels/action_menu_panel.gd` + `scenes/ui/panels/action_menu_panel.tscn` — Dynamic button menu with signals, main menu + assign submenu modes
+- `scripts/ui/panels/combat_preview_panel.gd` + `scenes/ui/panels/combat_preview_panel.tscn` — NEW: attacker/defender preview with DMG/HIT/counter using DamageCalculator
+- `scripts/ui/overlays/phase_transition_overlay.gd` + `scenes/ui/overlays/phase_transition_overlay.tscn` — Async fade in/hold/fade out phase banner
+- `scripts/ui/overlays/battle_result_overlay.gd` + `scenes/ui/overlays/battle_result_overlay.tscn` — Victory/defeat stats + Continue button
+- `scripts/ui/visual_feedback_manager.gd` — Autoload, pulse/flash/cancel hint effects
 
-| Unity Source | Godot Target |
-|---|---|
-| `UIManager.cs` (490 lines) | `scripts/ui/ui_manager.gd` (Autoload) + scene |
-| `UnitInfoPanel.cs` | `scripts/ui/panels/unit_info_panel.gd` + scene |
-| `TerrainInfoPanel.cs` | `scripts/ui/panels/terrain_info_panel.gd` + scene |
-| `CombatPreviewPanel.cs` | `scripts/ui/panels/combat_preview_panel.gd` + scene |
-| `PhaseTransitionOverlay` | `scripts/ui/overlays/phase_transition_overlay.gd` |
-| `BattleResultOverlay` | `scripts/ui/overlays/battle_result_overlay.gd` |
-| `VisualFeedbackManager.cs` | `scripts/ui/visual_feedback_manager.gd` (Autoload) |
-| `FontManager.cs` | Theme resource — no script needed |
+### Completed Files — Modified
+- `project.godot` — Added UIManager + VisualFeedbackManager autoloads
+- `scripts/managers/input_manager.gd` — Replaced `_get_battle_hud()` → `_get_ui_manager()`, added combat preview on attack targeting hover
+- `scripts/managers/action_menu_manager.gd` — Removed code-built UI, delegates visuals to UIManager/ActionMenuPanel, connects panel signals
+- `scripts/managers/turn_manager.gd` — Removed code-built overlay, delegates to UIManager for phase transitions and battle results
+- `scripts/managers/battle_scene.gd` — Removed BattleHUD creation
+
+### Completed Files — Deleted
+- `scripts/ui/battle_hud.gd` — Replaced by UIManager + UnitInfoPanel + TerrainInfoPanel
+
+### Key Decisions
+- **Font loading**: Runtime `FontFile.new()` with raw byte data, not import pipeline — guarantees pixel-perfect rendering
+- **Theme**: Built in code within UIManager (not .tres) for full control over pixel font sizes
+- **Panel separation**: UI rendering in panel scripts, business logic stays in manager autoloads
+- **Combat preview**: Real-time DamageCalculator integration during attack targeting hover
 
 ---
 

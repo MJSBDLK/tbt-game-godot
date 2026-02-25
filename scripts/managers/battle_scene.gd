@@ -6,7 +6,6 @@ extends Node2D
 
 var _unit_scene: PackedScene = preload("res://scenes/battle/unit.tscn")
 var _units_container: Node2D = null
-var _battle_hud: Node = null
 
 
 func _ready() -> void:
@@ -14,18 +13,10 @@ func _ready() -> void:
 	_units_container.name = "Units"
 	add_child(_units_container)
 
-	var hud_script: GDScript = load("res://scripts/ui/battle_hud.gd")
-	_battle_hud = hud_script.new()
-	add_child(_battle_hud)
-
 	if GridManager.is_grid_ready():
 		_on_grid_ready()
 	else:
 		GridManager.grid_ready.connect(_on_grid_ready)
-
-
-func get_battle_hud() -> Node:
-	return _battle_hud
 
 
 func _on_grid_ready() -> void:
