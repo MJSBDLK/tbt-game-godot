@@ -36,6 +36,7 @@ func initialize(x: int, y: int) -> void:
 	grid_y = y
 	name = "Tile_%d_%d" % [x, y]
 	refresh_terrain_properties()
+	_load_terrain_sprite()
 
 
 ## Reload terrain properties from TerrainDataManager for the current terrain type.
@@ -118,6 +119,14 @@ func clear_unit() -> void:
 # =============================================================================
 # VISUAL
 # =============================================================================
+
+func _load_terrain_sprite() -> void:
+	if _sprite == null:
+		return
+	var sprite_path := "res://art/sprites/tiles/terrain_%s.png" % terrain_type_name.to_lower()
+	if ResourceLoader.exists(sprite_path):
+		_sprite.texture = load(sprite_path)
+
 
 func set_color(color: Color) -> void:
 	if _sprite != null:

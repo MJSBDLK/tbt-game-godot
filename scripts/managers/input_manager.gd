@@ -289,8 +289,8 @@ func _handle_movement_planning_click() -> void:
 
 		# Click outside range → deselect
 		_cancel_and_deselect()
-		var state_manager: Node = get_node("/root/GameStateManager")
-		state_manager.change_state(Enums.InputState.DEFAULT)
+		var state_mgr: Node = get_node("/root/GameStateManager")
+		state_mgr.change_state(Enums.InputState.DEFAULT)
 
 
 func _handle_attack_target_click() -> void:

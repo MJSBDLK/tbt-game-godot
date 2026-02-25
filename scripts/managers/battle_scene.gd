@@ -1,8 +1,10 @@
-## Battle scene root script. Spawns test units and kicks off the turn loop.
-## Replaces the temporary phase3_test_driver.gd.
-## Unit spawning is hardcoded for Phase 4 — Phase 6 handles map-driven spawning.
+## Battle scene root script. Spawns units from map data JSON and kicks off the turn loop.
+## Set map_data_path in the inspector to point to your map's JSON file.
+## Falls back to hardcoded test spawns if no map data is provided.
 extends Node2D
 
+
+@export var map_data_path: String = ""
 
 var _unit_scene: PackedScene = preload("res://scenes/battle/unit.tscn")
 var _units_container: Node2D = null
@@ -20,8 +22,23 @@ func _ready() -> void:
 
 
 func _on_grid_ready() -> void:
-	var player_units := _spawn_player_units()
-	var enemy_units := _spawn_enemy_units()
+	var player_units: Array[Unit] = []
+	var enemy_units: Array[Unit] = []
+
+	if map_data_path != "":
+		var map_data := MapDataLoader.load_map_data(map_data_path)
+		if map_data != null:
+			player_units = _spawn_units_from_data(map_data.player_spawns)
+			enemy_units = _spawn_units_from_data(map_data.enemy_spawns)
+			DebugConfig.log_unit_init("BattleScene: Spawned %d players + %d enemies from '%s'" % [
+				player_units.size(), enemy_units.size(), map_data.map_name])
+		else:
+			push_warning("BattleScene: Failed to load '%s', using fallback spawns" % map_data_path)
+			player_units = _spawn_fallback_players()
+			enemy_units = _spawn_fallback_enemies()
+	else:
+		player_units = _spawn_fallback_players()
+		enemy_units = _spawn_fallback_enemies()
 
 	var turn_manager: Node = get_node_or_null("/root/TurnManager")
 	if turn_manager != null:
@@ -30,7 +47,34 @@ func _on_grid_ready() -> void:
 		push_warning("BattleScene: TurnManager not found — running without turn loop")
 
 
-func _spawn_player_units() -> Array[Unit]:
+# =============================================================================
+# MAP-DRIVEN SPAWNING
+# =============================================================================
+
+func _spawn_units_from_data(spawns: Array) -> Array[Unit]:
+	var units: Array[Unit] = []
+	for spawn_entry: Variant in spawns:
+		var spawn := spawn_entry as MapDataLoader.SpawnData
+		if spawn == null:
+			continue
+
+		var tile := GridManager.get_tile(spawn.grid_x, spawn.grid_y)
+		if tile == null:
+			push_warning("BattleScene: No tile at (%d, %d) for spawn" % [spawn.grid_x, spawn.grid_y])
+			continue
+
+		var unit := _create_unit(spawn.character_json_path, spawn.faction, tile, spawn.ai_behavior)
+		if unit != null:
+			units.append(unit)
+
+	return units
+
+
+# =============================================================================
+# FALLBACK SPAWNING (no map data)
+# =============================================================================
+
+func _spawn_fallback_players() -> Array[Unit]:
 	var units: Array[Unit] = []
 	var offset_x := GridManager.grid_offset_x
 	var offset_y := GridManager.grid_offset_y
@@ -48,7 +92,7 @@ func _spawn_player_units() -> Array[Unit]:
 	return units
 
 
-func _spawn_enemy_units() -> Array[Unit]:
+func _spawn_fallback_enemies() -> Array[Unit]:
 	var units: Array[Unit] = []
 	var offset_x := GridManager.grid_offset_x
 	var offset_y := GridManager.grid_offset_y
@@ -66,7 +110,12 @@ func _spawn_enemy_units() -> Array[Unit]:
 	return units
 
 
-func _create_unit(json_path: String, faction: Enums.UnitFaction, tile: Tile) -> Unit:
+# =============================================================================
+# UNIT CREATION
+# =============================================================================
+
+func _create_unit(json_path: String, faction: Enums.UnitFaction, tile: Tile,
+		ai_behavior: Enums.AIBehaviorType = Enums.AIBehaviorType.AGGRESSIVE) -> Unit:
 	var unit: Unit = _unit_scene.instantiate() as Unit
 	unit.character_json_path = json_path
 	unit.faction = faction
@@ -78,6 +127,7 @@ func _create_unit(json_path: String, faction: Enums.UnitFaction, tile: Tile) -> 
 	if faction == Enums.UnitFaction.ENEMY:
 		var enemy_ai := EnemyAI.new()
 		enemy_ai.name = "EnemyAI"
+		enemy_ai.behavior_type = ai_behavior
 		unit.add_child(enemy_ai)
 
 	return unit

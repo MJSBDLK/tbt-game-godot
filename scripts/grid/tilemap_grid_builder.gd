@@ -9,6 +9,7 @@
 ## 2. Add two TileMapLayer children to this node:
 ##    - "FloorLayer" — Tier 1 base terrain
 ##    - "ModifierLayer" — Tier 2 modifiers (COMPLETELY REPLACE floor properties)
+##    - "DecorationLayer" (optional) — Tier 3 visual-only (stays visible at runtime)
 ## 3. Paint tiles in the editor. Run the scene. Grid is built automatically.
 ##
 ## Three-tier rule: If a modifier exists at (x,y), its terrain_type COMPLETELY
@@ -19,16 +20,19 @@ extends Node2D
 
 @export var floor_layer_path: NodePath = ^"TerrainTileLayer"
 @export var modifier_layer_path: NodePath = ^"ModifierTileLayer"
+@export var decoration_layer_path: NodePath = ^"DecorationTileLayer"
 @export var tile_scene: PackedScene = null
 
 var _floor_layer: TileMapLayer = null
 var _modifier_layer: TileMapLayer = null
+var _decoration_layer: TileMapLayer = null
 var _tile_container: Node2D = null
 
 
 func _ready() -> void:
 	_floor_layer = get_node_or_null(floor_layer_path) as TileMapLayer
 	_modifier_layer = get_node_or_null(modifier_layer_path) as TileMapLayer
+	_decoration_layer = get_node_or_null(decoration_layer_path) as TileMapLayer
 
 	if _floor_layer == null:
 		DebugConfig.log_error("TilemapGridBuilder: FloorLayer not found at '%s'" % str(floor_layer_path))
@@ -45,6 +49,9 @@ func _ready() -> void:
 
 
 func _build_grid() -> void:
+	# Clear any previous grid state (supports scene transitions between maps)
+	GridManager.clear_grid()
+
 	var floor_cells := _floor_layer.get_used_cells()
 	if floor_cells.is_empty():
 		DebugConfig.log_error("TilemapGridBuilder: FloorLayer has no painted cells")
@@ -114,10 +121,13 @@ func _build_grid() -> void:
 		GridManager.register_tile(tile)
 		tile_count += 1
 
-	# Hide the TileMapLayers — the Tile nodes are the visual representation now
+	# Hide gameplay TileMapLayers — the Tile nodes are the visual representation now
+	# Decoration layer stays visible (Tier 3: visual-only, no gameplay impact)
 	_floor_layer.visible = false
 	if _modifier_layer != null:
 		_modifier_layer.visible = false
+	if _decoration_layer != null:
+		_decoration_layer.z_index = 3  # Above floor tiles, below units
 
 	# Finalize grid
 	GridManager.set_grid_bounds(grid_width, grid_height, min_x, -max_y, tile_size)

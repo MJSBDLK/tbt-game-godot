@@ -1,15 +1,81 @@
 [gd_resource type="TileSet" format=3 uid="uid://cgxe6s4agw8ll"]
 
-[ext_resource type="Texture2D" uid="uid://encanw7vrr8p" path="res://art/sprites/tiles/placeholder_tile.png" id="1_06p61"]
+[ext_resource type="Texture2D" path="res://art/sprites/tiles/terrain_plains.png" id="1_plains"]
+[ext_resource type="Texture2D" path="res://art/sprites/tiles/terrain_plant.png" id="2_plant"]
+[ext_resource type="Texture2D" path="res://art/sprites/tiles/terrain_water.png" id="3_water"]
+[ext_resource type="Texture2D" path="res://art/sprites/tiles/terrain_castle.png" id="4_castle"]
+[ext_resource type="Texture2D" path="res://art/sprites/tiles/terrain_rock.png" id="5_rock"]
+[ext_resource type="Texture2D" path="res://art/sprites/tiles/terrain_road.png" id="6_road"]
+[ext_resource type="Texture2D" path="res://art/sprites/tiles/terrain_desert.png" id="7_desert"]
+[ext_resource type="Texture2D" path="res://art/sprites/tiles/terrain_bridge.png" id="8_bridge"]
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_h00sm"]
-texture = ExtResource("1_06p61")
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_plains"]
+texture = ExtResource("1_plains")
 texture_region_size = Vector2i(32, 32)
 0:0/0 = 0
 0:0/0/custom_data_0 = "Plains"
+0:0/0/custom_data_1 = false
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_plant"]
+texture = ExtResource("2_plant")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/custom_data_0 = "Plant"
+0:0/0/custom_data_1 = true
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_water"]
+texture = ExtResource("3_water")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/custom_data_0 = "Water"
+0:0/0/custom_data_1 = false
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_castle"]
+texture = ExtResource("4_castle")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/custom_data_0 = "Castle"
+0:0/0/custom_data_1 = true
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_rock"]
+texture = ExtResource("5_rock")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/custom_data_0 = "Rock"
+0:0/0/custom_data_1 = false
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_road"]
+texture = ExtResource("6_road")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/custom_data_0 = "Road"
+0:0/0/custom_data_1 = false
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_desert"]
+texture = ExtResource("7_desert")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/custom_data_0 = "Desert"
+0:0/0/custom_data_1 = false
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_bridge"]
+texture = ExtResource("8_bridge")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/custom_data_0 = "Bridge"
+0:0/0/custom_data_1 = true
 
 [resource]
 tile_size = Vector2i(32, 32)
 custom_data_layer_0/name = "terrain_type"
 custom_data_layer_0/type = 4
-sources/0 = SubResource("TileSetAtlasSource_h00sm")
+custom_data_layer_1/name = "is_modifier"
+custom_data_layer_1/type = 1
+sources/0 = SubResource("TileSetAtlasSource_plains")
+sources/1 = SubResource("TileSetAtlasSource_plant")
+sources/2 = SubResource("TileSetAtlasSource_water")
+sources/3 = SubResource("TileSetAtlasSource_castle")
+sources/4 = SubResource("TileSetAtlasSource_rock")
+sources/5 = SubResource("TileSetAtlasSource_road")
+sources/6 = SubResource("TileSetAtlasSource_desert")
+sources/7 = SubResource("TileSetAtlasSource_bridge")

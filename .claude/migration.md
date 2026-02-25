@@ -1,7 +1,7 @@
 # Unity → Godot Migration Plan
 
-**Status**: Phase 5 Complete, Phase 6 Next
-**Last Updated**: 2026-02-24
+**Status**: Phase 6 Complete, Phase 7 Next
+**Last Updated**: 2026-02-25
 **Unity Source**: `../tbt-game-unity/`
 
 ---
@@ -22,8 +22,8 @@ Porting ~110 C# scripts (~50k lines) from Unity 6.3 to Godot 4.x with GDScript. 
 | **3** | Combat & type system | **COMPLETE** | `ebf9f43` |
 | **4** | Game state, input, turns | **COMPLETE** | — |
 | **5** | UI system | **COMPLETE** | — |
-| 6 | Map pipeline & authoring | **NEXT** | — |
-| 7 | Missing Alpha features | pending | — |
+| **6** | Map pipeline & authoring | **COMPLETE** | — |
+| 7 | Missing Alpha features | **NEXT** | — |
 | 8 | Polish & Steam Deck | pending | — |
 
 ### Phase Dependency Graph
@@ -40,9 +40,9 @@ Phase 2 (Units + Movement)  ✅
             │
         Phase 4 (State + Input + Turns)  ✅
             │
-        Phase 6 (Maps + Authoring) ← NEXT
+        Phase 6 (Maps + Authoring)  ✅
             │
-        Phase 7 (Missing Alpha Features)
+        Phase 7 (Missing Alpha Features) ← NEXT
             │
         Phase 8 (Polish + Steam Deck)
 ```
@@ -229,16 +229,47 @@ VisualFeedbackManager (Node, Autoload)
 
 ---
 
-## Phase 6: Map Pipeline & Level Authoring
+## Phase 6: Map Pipeline & Level Authoring — COMPLETE
 
 **Effort**: Medium | **Depends on**: Phase 4
 
-- TileSet resource with custom data layers for terrain types
-- Map scene template (TileMapLayers + Units + Camera + UI)
-- Decoration system (third TileMapLayer or scatter script)
-- First test map: 10x10, mixed terrain, 2 player + 3 enemy units
+### Architecture
 
-**Editor tools**: `tilemap_setup_wizard.gd`, `decoration_placer_editor.gd`
+Each map = a `.tscn` scene (painted terrain) + a `.json` file (spawn data & metadata):
+```
+scenes/battle/maps/test_map_01.tscn    ← painted TileMapLayers
+data/maps/test_map_01.json             ← unit spawns, metadata
+```
+
+Map scene node hierarchy:
+```
+MapRoot (Node2D) [battle_scene.gd, @export map_data_path]
+  TilemapBuilder (Node2D) [tilemap_grid_builder.gd]
+    TerrainTileLayer (TileMapLayer)     ← Tier 1 floor
+    ModifierTileLayer (TileMapLayer)    ← Tier 2 modifiers (replace floor)
+    DecorationTileLayer (TileMapLayer)  ← Tier 3 visual-only (stays visible)
+  Camera2D [camera_controller.gd]
+```
+
+### Completed Files — Created
+- `art/sprites/tiles/terrain_*.png` (8 files) — 32x32 colored placeholder sprites with 1px border
+- `scripts/grid/map_data_loader.gd` — Static JSON loader for map definitions (MapData, SpawnData inner classes)
+- `data/maps/test_map_01.json` — First test map: "Training Grounds", 10x10, 2 player + 3 enemy spawns
+- `scenes/battle/maps/test_map_01.tscn` — Painted terrain: Plains dominant, Plant/Castle modifiers, Water/Rock/Desert/Road variety
+- `scripts/editor/tilemap_setup_wizard.gd` — @tool EditorScript to create new map scenes with correct hierarchy + stub JSON
+
+### Completed Files — Modified
+- `resources/battle_tileset.tres` — Added `is_modifier` bool layer, 8 terrain atlas sources (Plains, Plant, Water, Castle, Rock, Road, Desert, Bridge)
+- `scripts/managers/battle_scene.gd` — `@export map_data_path`, JSON-driven spawning via MapDataLoader, fallback to hardcoded spawns
+- `scripts/grid/tilemap_grid_builder.gd` — Added `decoration_layer_path` export, Tier 3 decoration layer stays visible at runtime
+- `project.godot` — Main scene updated to `res://scenes/battle/maps/test_map_01.tscn`
+
+### Key Decisions
+- **Map = scene + JSON**: Scene has painted tiles (visual), JSON has spawn data (logic). Easy to duplicate for new maps.
+- **Three-tier TileMapLayers**: Floor (always), Modifier (replaces floor properties), Decoration (visual-only, no Tile nodes)
+- **MapDataLoader mirrors CharacterDataLoader**: Same static load pattern, inner data classes, error handling
+- **Backward compatible**: battle_scene.gd falls back to hardcoded spawns if `map_data_path` is empty
+- **Editor wizard**: Creates new map with correct hierarchy in one click
 
 ---
 

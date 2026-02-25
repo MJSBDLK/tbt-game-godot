@@ -240,7 +240,7 @@ func _end_battle(is_victory: bool) -> void:
 	battle_ended.emit(is_victory)
 
 
-func _on_unit_defeated(unit: Unit) -> void:
+func _on_unit_defeated(_unit: Unit) -> void:
 	_check_victory_conditions()
 
 

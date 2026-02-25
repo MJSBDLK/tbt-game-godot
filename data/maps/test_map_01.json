@@ -1,0 +1,42 @@
+{
+	"map_name": "Training Grounds",
+	"map_id": "test_map_01",
+	"description": "A small field with mixed terrain. Perfect for learning the basics.",
+	"scene_path": "res://scenes/battle/maps/test_map_01.tscn",
+	"grid_size": { "width": 10, "height": 10 },
+	"recommended_level": 5,
+	"player_spawns": [
+		{
+			"grid_x": 1,
+			"grid_y": 2,
+			"character_json_path": "res://data/characters/spaceman.json",
+			"required": true
+		},
+		{
+			"grid_x": 1,
+			"grid_y": 5,
+			"character_json_path": "res://data/characters/spaceman.json",
+			"required": true
+		}
+	],
+	"enemy_spawns": [
+		{
+			"grid_x": 7,
+			"grid_y": 2,
+			"character_json_path": "res://data/characters/fire_warrior.json",
+			"ai_behavior": "Aggressive"
+		},
+		{
+			"grid_x": 8,
+			"grid_y": 5,
+			"character_json_path": "res://data/characters/fire_warrior.json",
+			"ai_behavior": "Tactical"
+		},
+		{
+			"grid_x": 7,
+			"grid_y": 7,
+			"character_json_path": "res://data/characters/fire_warrior.json",
+			"ai_behavior": "Defensive"
+		}
+	]
+}

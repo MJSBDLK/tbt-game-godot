@@ -212,6 +212,7 @@ func _calculate_dot_damage(effect: StatusEffect, character_data: Variant) -> int
 	if character_data == null:
 		return 1
 	var max_hp: int = character_data.get("max_hp")
+	@warning_ignore("integer_division")
 	return maxi(1, effect.caster_level + max_hp / 10)
 
 
