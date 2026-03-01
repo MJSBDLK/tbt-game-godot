@@ -29,7 +29,11 @@ func _ready() -> void:
 
 	var ui_manager: Node = get_node_or_null("/root/UIManager")
 	if ui_manager != null:
-		add_theme_stylebox_override("panel", ui_manager.create_pda_style())
+		var border: Variant = ui_manager.create_unit_info_border()
+		if border != null:
+			add_theme_stylebox_override("panel", border)
+		else:
+			add_theme_stylebox_override("panel", ui_manager.create_pda_style())
 
 	_build_content()
 	visible = false
@@ -93,7 +97,7 @@ func _update_hp(unit: Unit) -> void:
 	var max_hp: int = unit.character_data.max_hp
 	var health_percent: float = float(current_hp) / float(max_hp) if max_hp > 0 else 0.0
 
-	var bar_width: int = PANEL_WIDTH - 12  # Account for panel margins + border
+	var bar_width: int = PANEL_WIDTH - 24  # Account for border (10px) + content padding (2px) per side
 	_hp_bar_fill.size.x = int(health_percent * bar_width)
 	_hp_bar_fill.color = GameColors.get_health_color(health_percent)
 	_hp_label.text = "HP: %d/%d" % [current_hp, max_hp]
@@ -165,7 +169,7 @@ func _build_content() -> void:
 	hp_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	container.add_child(hp_container)
 
-	var bar_width: int = PANEL_WIDTH - 12
+	var bar_width: int = PANEL_WIDTH - 24
 	_hp_bar_background = ColorRect.new()
 	_hp_bar_background.color = Color(0.1, 0.1, 0.15, 1.0)
 	_hp_bar_background.size = Vector2(bar_width, 6)

@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://ltbgabigkn2r"]
+
+[ext_resource type="Theme" uid="uid://bnh2yr771pqm5" path="res://resources/game_theme.tres" id="1_fwl6s"]
+[ext_resource type="Script" uid="uid://mx0872xckvrs" path="res://scripts/ui/components/glow_label.gd" id="2_m46vp"]
+
+[node name="ValuesPercentagesAndMultipliersContainer" type="MarginContainer" unique_id=117188558]
+offset_left = 1.0
+offset_top = 10.0
+offset_right = 32.0
+offset_bottom = 20.0
+theme = ExtResource("1_fwl6s")
+
+[node name="GlowLabel" type="Label" parent="." unique_id=2047832228]
+layout_mode = 2
+size_flags_horizontal = 4
+theme = ExtResource("1_fwl6s")
+theme_override_colors/font_color = Color(1, 0.90588236, 0.5921569, 1)
+text = "0"
+script = ExtResource("2_m46vp")
+glow_color = Color(0.49019608, 0.25490198, 0.5058824, 1)
+metadata/_custom_type_script = "uid://mx0872xckvrs"

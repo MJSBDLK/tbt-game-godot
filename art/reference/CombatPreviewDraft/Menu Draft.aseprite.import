@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://5tdpojx6kgx3"
+path="res://.godot/imported/Menu Draft.aseprite-fe2d0572c7cfea7c277d824cca19505d.res"
+
+[deps]
+
+source_file="res://art/reference/CombatPreviewDraft/Menu Draft.aseprite"
+dest_files=["res://.godot/imported/Menu Draft.aseprite-fe2d0572c7cfea7c277d824cca19505d.res"]
+
+[params]
+

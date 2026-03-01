@@ -1,0 +1,28 @@
+[gd_scene format=3 uid="uid://b4ngymd7vmpqv"]
+
+[ext_resource type="Theme" uid="uid://bnh2yr771pqm5" path="res://resources/game_theme.tres" id="1_1b87f"]
+[ext_resource type="FontFile" uid="uid://c2582x6qucr0u" path="res://fonts/UndeadPixelLight8.ttf" id="1_2x3wx"]
+[ext_resource type="Material" uid="uid://d3rfhbptxbold" path="res://resources/hud_glow.tres" id="1_fhjg7"]
+[ext_resource type="Script" uid="uid://mx0872xckvrs" path="res://scripts/ui/components/glow_label.gd" id="3_rvax1"]
+
+[node name="MarginContainer" type="MarginContainer" unique_id=1691056733]
+offset_left = -57.0
+offset_top = -15.0
+offset_right = -28.0
+offset_bottom = 14.0
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_top = 2
+
+[node name="Label" type="Label" parent="." unique_id=1878820360]
+material = ExtResource("1_fhjg7")
+layout_mode = 2
+theme = ExtResource("1_1b87f")
+theme_override_colors/font_color = Color(1, 0.90588236, 0.5921569, 1)
+theme_override_fonts/font = ExtResource("1_2x3wx")
+theme_override_font_sizes/font_size = 8
+text = "DMG"
+horizontal_alignment = 1
+vertical_alignment = 1
+script = ExtResource("3_rvax1")
+glow_color = Color(0.49019608, 0.25490198, 0.5058824, 1)
+metadata/_custom_type_script = "uid://mx0872xckvrs"

@@ -20,7 +20,11 @@ func _ready() -> void:
 
 	var ui_manager: Node = get_node_or_null("/root/UIManager")
 	if ui_manager != null:
-		add_theme_stylebox_override("panel", ui_manager.create_pda_style())
+		var border: Variant = ui_manager.create_terrain_info_border()
+		if border != null:
+			add_theme_stylebox_override("panel", border)
+		else:
+			add_theme_stylebox_override("panel", ui_manager.create_pda_style())
 
 	_build_content()
 	visible = false

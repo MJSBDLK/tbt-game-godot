@@ -1,7 +1,7 @@
 # Unity → Godot Migration Plan
 
 **Status**: Phase 6 Complete, Phase 7 Next
-**Last Updated**: 2026-02-25
+**Last Updated**: 2026-02-25 (Phase 7 renumbered; old 7→8, old 8→9)
 **Unity Source**: `../tbt-game-unity/`
 
 ---
@@ -23,8 +23,9 @@ Porting ~110 C# scripts (~50k lines) from Unity 6.3 to Godot 4.x with GDScript. 
 | **4** | Game state, input, turns | **COMPLETE** | — |
 | **5** | UI system | **COMPLETE** | — |
 | **6** | Map pipeline & authoring | **COMPLETE** | — |
-| 7 | Missing Alpha features | **NEXT** | — |
-| 8 | Polish & Steam Deck | pending | — |
+| 7 | Visual identity & HUD | **NEXT** | — |
+| 8 | Missing Alpha features | pending | — |
+| 9 | Polish & Steam Deck | pending | — |
 
 ### Phase Dependency Graph
 ```
@@ -42,9 +43,11 @@ Phase 2 (Units + Movement)  ✅
             │
         Phase 6 (Maps + Authoring)  ✅
             │
-        Phase 7 (Missing Alpha Features) ← NEXT
+        Phase 7 (Visual Identity & HUD) ← NEXT
             │
-        Phase 8 (Polish + Steam Deck)
+        Phase 8 (Missing Alpha Features)
+            │
+        Phase 9 (Polish + Steam Deck)
 ```
 
 ---
@@ -252,7 +255,7 @@ MapRoot (Node2D) [battle_scene.gd, @export map_data_path]
 ```
 
 ### Completed Files — Created
-- `art/sprites/tiles/terrain_*.png` (8 files) — 32x32 colored placeholder sprites with 1px border
+- `art/sprites/terrain/terrain_*.png` (8 files) — 32x32 colored placeholder sprites with 1px border
 - `scripts/grid/map_data_loader.gd` — Static JSON loader for map definitions (MapData, SpawnData inner classes)
 - `data/maps/test_map_01.json` — First test map: "Training Grounds", 10x10, 2 player + 3 enemy spawns
 - `scenes/battle/maps/test_map_01.tscn` — Painted terrain: Plains dominant, Plant/Castle modifiers, Water/Rock/Desert/Road variety
@@ -273,9 +276,28 @@ MapRoot (Node2D) [battle_scene.gd, @export map_data_path]
 
 ---
 
-## Phase 7: Missing Alpha Features (New Development)
+## Phase 7: Visual Identity & HUD — NEXT
 
-**Effort**: Large | **Depends on**: Phase 6
+**Effort**: Medium | **Depends on**: Phase 6
+
+Establish the game's visual style before building new screens in Phase 8, so everything is built in the correct style from the start.
+
+| Area | Work |
+|---|---|
+| HUD panels | Apply Artist Lawrence's designs to UnitInfoPanel, TerrainInfoPanel, ActionMenuPanel, CombatPreviewPanel |
+| Phase/result overlays | Style phase transition and victory/defeat overlays |
+| Terrain sprites | Replace colored placeholders with real art (or improved placeholders) |
+| Unit sprites | Replace colored rectangles with character art (or improved placeholders) |
+| Damage popups & feedback | Style numbers, "Super Effective!" flash, effectiveness colors |
+| Status effect indicators | Icons above units, turn countdown display |
+| Cancel/confirm hints | Visual style for input hints |
+| UI style guide | Document colors, fonts, spacing, panel patterns for Phase 8 consistency |
+
+---
+
+## Phase 8: Missing Alpha Features (New Development)
+
+**Effort**: Large | **Depends on**: Phase 7
 
 These were never built in Unity — fresh GDScript:
 
@@ -289,13 +311,12 @@ These were never built in Unity — fresh GDScript:
 | Passive system | Real PassiveData with bonuses |
 | Move database (20+) | 2-3 per element type minimum |
 | Type effectiveness feedback | "Super Effective!" flash |
-| Status effect indicators | Icons, turn countdown |
 
 ---
 
-## Phase 8: Polish & Steam Deck
+## Phase 9: Polish & Steam Deck
 
-**Effort**: Medium | **Depends on**: Phase 7
+**Effort**: Medium | **Depends on**: Phase 8
 
 - Controller support (D-pad cursor, A/B/X/Y)
 - Scene flow (menu → select → prep → battle → result → loop)

@@ -10,6 +10,12 @@ var font_11px: FontFile = null
 var font_5px: FontFile = null
 var battle_theme: Theme = null
 
+# Panel border textures (Lawrence's designs)
+var _border_small: Texture2D = null       # 140x140 clean gray border
+var _border_tall_left: Texture2D = null   # 140x218 with rivets (top-right, bottom-left)
+var _border_tall_right: Texture2D = null  # 140x218 with rivets (bottom-left, top-left)
+const BORDER_MARGIN: int = 10             # All borders are 10px on each side
+
 # Layout containers
 var _main_layout: Control = null
 var _left_panel: VBoxContainer = null
@@ -31,6 +37,7 @@ var _battle_result_overlay: Node = null
 func _ready() -> void:
 	layer = 10
 	_load_pixel_fonts()
+	_load_border_textures()
 	_build_theme()
 	_build_layout()
 	_build_overlay_layer()
@@ -313,10 +320,43 @@ func _instantiate_overlays() -> void:
 
 
 # =============================================================================
-# HELPERS
+# BORDER TEXTURE LOADING
 # =============================================================================
 
-## Create a PDA-styled StyleBoxFlat for info panels.
+func _load_border_textures() -> void:
+	_border_small = _load_texture("res://art/sprites/ui/panel_border_small.png")
+	_border_tall_left = _load_texture("res://art/sprites/ui/panel_border_tall.png")
+	_border_tall_right = _load_texture("res://art/sprites/ui/panel_border_tall_right.png")
+
+
+func _load_texture(path: String) -> Texture2D:
+	if ResourceLoader.exists(path):
+		return load(path)
+	push_warning("UIManager: Missing border texture '%s'" % path)
+	return null
+
+
+# =============================================================================
+# HELPERS — PANEL STYLES
+# =============================================================================
+
+## Create a StyleBoxTexture from a border texture with 10px margins.
+## The border frame is drawn by the texture; center is transparent (content area).
+func _create_border_style(texture: Texture2D) -> StyleBoxTexture:
+	var style := StyleBoxTexture.new()
+	style.texture = texture
+	style.texture_margin_left = BORDER_MARGIN
+	style.texture_margin_right = BORDER_MARGIN
+	style.texture_margin_top = BORDER_MARGIN
+	style.texture_margin_bottom = BORDER_MARGIN
+	style.content_margin_left = BORDER_MARGIN + 2
+	style.content_margin_right = BORDER_MARGIN + 2
+	style.content_margin_top = BORDER_MARGIN + 2
+	style.content_margin_bottom = BORDER_MARGIN + 2
+	return style
+
+
+## Create a PDA-styled StyleBoxFlat fallback (used when border textures are missing).
 func create_pda_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = GameColors.PDA_BACKGROUND
@@ -329,7 +369,7 @@ func create_pda_style() -> StyleBoxFlat:
 	return style
 
 
-## Create a dark menu-styled StyleBoxFlat for action menus.
+## Create a dark menu-styled StyleBoxFlat fallback.
 func create_menu_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = GameColors.MENU_BACKGROUND
@@ -340,3 +380,31 @@ func create_menu_style() -> StyleBoxFlat:
 	style.content_margin_top = 4
 	style.content_margin_bottom = 4
 	return style
+
+
+## Border style for unit info panel (left, tall, with rivets).
+func create_unit_info_border() -> StyleBoxTexture:
+	if _border_tall_left != null:
+		return _create_border_style(_border_tall_left)
+	return null
+
+
+## Border style for terrain info panel (left, small, clean).
+func create_terrain_info_border() -> StyleBoxTexture:
+	if _border_small != null:
+		return _create_border_style(_border_small)
+	return null
+
+
+## Border style for action menu panel (right, 9-patch stretchable).
+func create_action_menu_border() -> StyleBoxTexture:
+	if _border_small != null:
+		return _create_border_style(_border_small)
+	return null
+
+
+## Border style for combat preview panel (right, 9-patch stretchable).
+func create_combat_preview_border() -> StyleBoxTexture:
+	if _border_small != null:
+		return _create_border_style(_border_small)
+	return null

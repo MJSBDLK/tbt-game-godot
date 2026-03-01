@@ -20,12 +20,16 @@ var _active_unit: Unit = null
 
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(130, 0)
+	custom_minimum_size = Vector2(140, 0)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 
 	var ui_manager: Node = get_node_or_null("/root/UIManager")
 	if ui_manager != null:
-		add_theme_stylebox_override("panel", ui_manager.create_menu_style())
+		var border: Variant = ui_manager.create_action_menu_border()
+		if border != null:
+			add_theme_stylebox_override("panel", border)
+		else:
+			add_theme_stylebox_override("panel", ui_manager.create_menu_style())
 
 	_button_container = VBoxContainer.new()
 	_button_container.add_theme_constant_override("separation", 2)

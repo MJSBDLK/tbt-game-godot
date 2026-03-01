@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://tile_scene"]
 
 [ext_resource type="Script" path="res://scripts/grid/tile.gd" id="1_tile"]
-[ext_resource type="Texture2D" uid="uid://encanw7vrr8p" path="res://art/sprites/tiles/placeholder_tile.png" id="2_placeholder"]
+[ext_resource type="Texture2D" uid="uid://encanw7vrr8p" path="res://art/sprites/placeholder_terrain/placeholder_tile.png" id="2_placeholder"]
 
 [node name="Tile" type="Node2D"]
 script = ExtResource("1_tile")

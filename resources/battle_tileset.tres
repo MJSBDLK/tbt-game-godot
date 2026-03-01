@@ -1,65 +1,60 @@
 [gd_resource type="TileSet" format=3 uid="uid://cgxe6s4agw8ll"]
 
-[ext_resource type="Texture2D" path="res://art/sprites/tiles/terrain_plains.png" id="1_plains"]
-[ext_resource type="Texture2D" path="res://art/sprites/tiles/terrain_plant.png" id="2_plant"]
-[ext_resource type="Texture2D" path="res://art/sprites/tiles/terrain_water.png" id="3_water"]
-[ext_resource type="Texture2D" path="res://art/sprites/tiles/terrain_castle.png" id="4_castle"]
-[ext_resource type="Texture2D" path="res://art/sprites/tiles/terrain_rock.png" id="5_rock"]
-[ext_resource type="Texture2D" path="res://art/sprites/tiles/terrain_road.png" id="6_road"]
-[ext_resource type="Texture2D" path="res://art/sprites/tiles/terrain_desert.png" id="7_desert"]
-[ext_resource type="Texture2D" path="res://art/sprites/tiles/terrain_bridge.png" id="8_bridge"]
+[ext_resource type="Texture2D" uid="uid://b7uxmlsqmh3hw" path="res://art/sprites/placeholder_terrain/terrain_plains.png" id="1_oowi2"]
+[ext_resource type="Texture2D" uid="uid://dwg3l26bgmufa" path="res://art/sprites/placeholder_terrain/terrain_plant.png" id="2_76nrr"]
+[ext_resource type="Texture2D" uid="uid://x20joqwbu62b" path="res://art/sprites/placeholder_terrain/terrain_water.png" id="3_lfpqc"]
+[ext_resource type="Texture2D" uid="uid://c1i3kp2miufph" path="res://art/sprites/placeholder_terrain/terrain_castle.png" id="4_7q4t7"]
+[ext_resource type="Texture2D" uid="uid://dafcqdvvqaqea" path="res://art/sprites/placeholder_terrain/terrain_rock.png" id="5_4u2l7"]
+[ext_resource type="Texture2D" uid="uid://7l8anwlqwb0l" path="res://art/sprites/placeholder_terrain/terrain_road.png" id="6_f5mrn"]
+[ext_resource type="Texture2D" uid="uid://7y5yoyndgml7" path="res://art/sprites/placeholder_terrain/terrain_desert.png" id="7_p7w3w"]
+[ext_resource type="Texture2D" uid="uid://cx2pe4iklndtn" path="res://art/sprites/placeholder_terrain/terrain_bridge.png" id="8_tices"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_plains"]
-texture = ExtResource("1_plains")
+texture = ExtResource("1_oowi2")
 texture_region_size = Vector2i(32, 32)
 0:0/0 = 0
 0:0/0/custom_data_0 = "Plains"
-0:0/0/custom_data_1 = false
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_plant"]
-texture = ExtResource("2_plant")
+texture = ExtResource("2_76nrr")
 texture_region_size = Vector2i(32, 32)
 0:0/0 = 0
 0:0/0/custom_data_0 = "Plant"
 0:0/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_water"]
-texture = ExtResource("3_water")
+texture = ExtResource("3_lfpqc")
 texture_region_size = Vector2i(32, 32)
 0:0/0 = 0
 0:0/0/custom_data_0 = "Water"
-0:0/0/custom_data_1 = false
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_castle"]
-texture = ExtResource("4_castle")
+texture = ExtResource("4_7q4t7")
 texture_region_size = Vector2i(32, 32)
 0:0/0 = 0
 0:0/0/custom_data_0 = "Castle"
 0:0/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_rock"]
-texture = ExtResource("5_rock")
+texture = ExtResource("5_4u2l7")
 texture_region_size = Vector2i(32, 32)
 0:0/0 = 0
 0:0/0/custom_data_0 = "Rock"
-0:0/0/custom_data_1 = false
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_road"]
-texture = ExtResource("6_road")
+texture = ExtResource("6_f5mrn")
 texture_region_size = Vector2i(32, 32)
 0:0/0 = 0
 0:0/0/custom_data_0 = "Road"
-0:0/0/custom_data_1 = false
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_desert"]
-texture = ExtResource("7_desert")
+texture = ExtResource("7_p7w3w")
 texture_region_size = Vector2i(32, 32)
 0:0/0 = 0
 0:0/0/custom_data_0 = "Desert"
-0:0/0/custom_data_1 = false
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_bridge"]
-texture = ExtResource("8_bridge")
+texture = ExtResource("8_tices")
 texture_region_size = Vector2i(32, 32)
 0:0/0 = 0
 0:0/0/custom_data_0 = "Bridge"

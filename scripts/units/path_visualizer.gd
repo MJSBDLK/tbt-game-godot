@@ -8,7 +8,7 @@ extends Node2D
 const ARROW_ALPHA: float = 0.8
 const WAYPOINT_ALPHA: float = 0.9
 
-var _arrow_texture: Texture2D = preload("res://art/sprites/tiles/placeholder_arrow.png")
+var _arrow_texture: Texture2D = preload("res://art/sprites/ui/placeholder_arrow.png")
 
 ## Each entry: { tile: Tile, rotation: float }
 var _path_entries: Array[Dictionary] = []

@@ -32,8 +32,9 @@ The Alpha milestone is being achieved through the Godot port. Each migration pha
 | 4 | Game state, input, turns | PENDING | Full battle loop, enemy AI |
 | 5 | UI system | PENDING | Panels, overlays, combat preview |
 | 6 | Map pipeline & authoring | PENDING | TileSet workflow, test maps |
-| 7 | Missing Alpha features | PENDING | Map select, prep screen, passives, auto-leveling |
-| 8 | Polish & Steam Deck | PENDING | Controller support, save/load, performance |
+| 7 | Visual identity & HUD | PENDING | Artist Lawrence designs, terrain/unit sprites, UI style guide |
+| 8 | Missing Alpha features | PENDING | Map select, prep screen, passives, auto-leveling |
+| 9 | Polish & Steam Deck | PENDING | Controller support, save/load, performance |
 
 **Full migration plan**: [migration.md](migration.md)
 
@@ -93,7 +94,7 @@ The Alpha milestone is being achieved through the Godot port. Each migration pha
 **Done when**: A battle feels satisfying from start to finish with clear feedback.
 
 ### Phase B: Progression Systems
-**Delivered by**: Migration Phase 7 (partial)
+**Delivered by**: Migration Phase 8 (partial)
 
 - [ ] Move database populated with 20+ moves
 - [ ] Passive system designed and implemented
@@ -104,7 +105,7 @@ The Alpha milestone is being achieved through the Godot port. Each migration pha
 **Done when**: Units have meaningful customization options.
 
 ### Phase C: Pre-Battle Experience
-**Delivered by**: Migration Phase 7 (partial)
+**Delivered by**: Migration Phase 8 (partial)
 
 - [ ] Preparation screen with squad selection
 - [ ] Move assignment interface
@@ -114,7 +115,7 @@ The Alpha milestone is being achieved through the Godot port. Each migration pha
 **Done when**: Preparation screen is functional and intuitive.
 
 ### Phase D: Battle Selection
-**Delivered by**: Migration Phase 7 (partial)
+**Delivered by**: Migration Phase 8 (partial)
 
 - [ ] Map select screen with level selection
 - [ ] At least 2 test maps
@@ -123,7 +124,7 @@ The Alpha milestone is being achieved through the Godot port. Each migration pha
 **Done when**: Complete game loop works seamlessly.
 
 ### Phase E: Polish
-**Delivered by**: Migration Phase 8
+**Delivered by**: Migration Phase 9
 
 - [ ] Controller/keyboard input on Steam Deck
 - [ ] Balance tuning

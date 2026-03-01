@@ -123,7 +123,7 @@ func clear_unit() -> void:
 func _load_terrain_sprite() -> void:
 	if _sprite == null:
 		return
-	var sprite_path := "res://art/sprites/tiles/terrain_%s.png" % terrain_type_name.to_lower()
+	var sprite_path := "res://art/sprites/placeholder_terrain/terrain_%s.png" % terrain_type_name.to_lower()
 	if ResourceLoader.exists(sprite_path):
 		_sprite.texture = load(sprite_path)
 

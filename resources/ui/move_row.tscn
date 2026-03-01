@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://cc3tjb8y5peqe"]
+
+[ext_resource type="PackedScene" uid="uid://dnhdopaxrtt3f" path="res://resources/ui/unit_row.tscn" id="1_8svt7"]
+
+[node name="UnitRow" unique_id=746814425 instance=ExtResource("1_8svt7")]
+
+[node name="Label" parent="HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(1648475676) index="0" unique_id=179177607]
+theme_override_colors/font_color = Color(1, 0.90588236, 0.5921569, 1)
+text = "MoveName"
+glow_color = Color(0.49019608, 0.25490198, 0.5058824, 1)

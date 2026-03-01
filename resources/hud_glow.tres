@@ -1,0 +1,7 @@
+[gd_resource type="ShaderMaterial" format=3 uid="uid://d3rfhbptxbold"]
+
+[ext_resource type="Shader" uid="uid://cdo1w4hnh5wud" path="res://shaders/orthogonal_glow.gdshader" id="1_lv7em"]
+
+[resource]
+shader = ExtResource("1_lv7em")
+shader_parameter/glow_color = Color(0.29803923, 0.54901963, 0.73333335, 1)
