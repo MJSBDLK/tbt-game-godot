@@ -1,193 +1,252 @@
 [gd_scene format=3 uid="uid://c5vkqgnd20fyd"]
 
 [ext_resource type="Texture2D" uid="uid://dcof24vdp4j8e" path="res://art/sprites/ui/hud_panel/combat_preview_mockup.png" id="1_8sgb2"]
-[ext_resource type="PackedScene" uid="uid://dnhdopaxrtt3f" path="res://resources/ui/unit_row.tscn" id="2_4ndkf"]
 [ext_resource type="PackedScene" uid="uid://b4ngymd7vmpqv" path="res://art/sprites/ui/ui_text_container.tscn" id="2_glt31"]
-[ext_resource type="PackedScene" uid="uid://ltbgabigkn2r" path="res://resources/ui/values_percentages_and_multipliers_container.tscn" id="3_2ot0e"]
-[ext_resource type="Material" uid="uid://d3rfhbptxbold" path="res://resources/hud_glow.tres" id="4_c5mbi"]
+[ext_resource type="PackedScene" uid="uid://n6pi2hurox1g" path="res://scenes/ui/panels/combat_preview_panel/unit_container.tscn" id="2_t3try"]
+[ext_resource type="Texture2D" uid="uid://c0w305qolbplg" path="res://art/sprites/ui/hud_panel/combat_preview_panel_border.png" id="2_tv2id"]
+[ext_resource type="Texture2D" uid="uid://bv8nhivnjfyqv" path="res://art/sprites/ui/hud_panel/down-arrow.png" id="4_q86j2"]
+[ext_resource type="Material" uid="uid://d3rfhbptxbold" path="res://resources/hud_glow.tres" id="4_tc1jp"]
+[ext_resource type="Texture2D" uid="uid://bbvrhtkflr6fb" path="res://art/sprites/ui/hud_panel/up-arrow.png" id="5_tv2id"]
 
 [node name="Root" type="Control" unique_id=421222680]
 layout_mode = 3
-anchors_preset = 15
+anchors_preset = 1
+anchor_left = 1.0
 anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+grow_horizontal = 0
 
 [node name="Control" type="Control" parent="." unique_id=1597166200]
 layout_mode = 1
-anchors_preset = 15
+anchors_preset = 1
+anchor_left = 1.0
 anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+grow_horizontal = 0
 
 [node name="ColorRect" type="ColorRect" parent="Control" unique_id=597994429]
-layout_mode = 0
-offset_left = 6.0
-offset_top = 5.0
-offset_right = 134.0
-offset_bottom = 133.0
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -134.0
+offset_top = 6.0
+offset_right = -6.0
+offset_bottom = 134.0
+grow_horizontal = 0
 color = Color(0, 0, 0, 1)
 
 [node name="Sprite2D" type="Sprite2D" parent="Control" unique_id=1973793947]
+visible = false
 position = Vector2(70, 70)
 texture = ExtResource("1_8sgb2")
 region_enabled = true
 region_rect = Rect2(0, 128, 140, 140)
 
-[node name="UnitContainer" type="Control" parent="Control" unique_id=531896299]
-anchors_preset = 0
-offset_left = 11.0
-offset_top = 11.0
-offset_right = 106.0
-offset_bottom = 55.0
+[node name="Sprite2D2" type="Sprite2D" parent="Control" unique_id=346026792]
+position = Vector2(-70, 70)
+texture = ExtResource("2_tv2id")
 
-[node name="UnitRow" parent="Control/UnitContainer" unique_id=746814425 instance=ExtResource("2_4ndkf")]
-layout_mode = 0
-
-[node name="MarginContainer2" parent="Control/UnitContainer/UnitRow/HBoxContainer" parent_id_path=PackedInt32Array(746814425, 760266391) index="3" unique_id=1691056733]
-visible = false
-
-[node name="MoveRow" parent="Control/UnitContainer" unique_id=1849148960 instance=ExtResource("2_4ndkf")]
-layout_mode = 0
-offset_top = 12.0
-offset_bottom = 24.0
-
-[node name="Label" parent="Control/UnitContainer/MoveRow/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(1849148960, 1648475676) index="0" unique_id=179177607]
-theme_override_colors/font_color = Color(1, 0.90588236, 0.5921569, 1)
-text = "MoveName"
-glow_color = Color(0.49019608, 0.25490198, 0.5058824, 1)
-
-[node name="UnitTypeIconContainer2" parent="Control/UnitContainer/MoveRow/HBoxContainer" parent_id_path=PackedInt32Array(1849148960, 760266391) index="2" unique_id=703941886]
-visible = false
-
-[node name="PercentageAndMultipliersSection" type="Control" parent="Control/UnitContainer" unique_id=2066872125]
+[node name="Contents" type="Control" parent="Control" unique_id=1469669233]
 layout_mode = 1
-anchors_preset = 0
-offset_left = 1.0
-offset_top = 24.0
-offset_right = 92.0
-offset_bottom = 44.0
-
-[node name="DamageValueContainer" parent="Control/UnitContainer/PercentageAndMultipliersSection" unique_id=117188558 instance=ExtResource("3_2ot0e")]
-layout_mode = 1
-anchors_preset = 2
-anchor_top = 1.0
-anchor_bottom = 1.0
-offset_left = 0.0
-offset_top = -10.0
-offset_right = 31.0
-offset_bottom = 0.0
-grow_vertical = 0
-
-[node name="GlowLabel" parent="Control/UnitContainer/PercentageAndMultipliersSection/DamageValueContainer" index="0" unique_id=2047832228]
-material = ExtResource("4_c5mbi")
-
-[node name="HitPercentageContainer" parent="Control/UnitContainer/PercentageAndMultipliersSection" unique_id=895673502 instance=ExtResource("3_2ot0e")]
-layout_mode = 1
-anchors_preset = 7
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -15.5
-offset_top = -10.0
-offset_right = 15.5
-offset_bottom = 0.0
-grow_horizontal = 2
-grow_vertical = 0
-
-[node name="GlowLabel" parent="Control/UnitContainer/PercentageAndMultipliersSection/HitPercentageContainer" index="0" unique_id=2047832228]
-material = ExtResource("4_c5mbi")
-text = "0%"
-
-[node name="SecondaryChanceContainer" parent="Control/UnitContainer/PercentageAndMultipliersSection" unique_id=1467433591 instance=ExtResource("3_2ot0e")]
-layout_mode = 1
-anchors_preset = 3
+anchors_preset = 1
 anchor_left = 1.0
-anchor_top = 1.0
 anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -31.0
-offset_top = -10.0
-offset_right = 0.0
-offset_bottom = 0.0
+offset_left = -130.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = 129.0
 grow_horizontal = 0
-grow_vertical = 0
 
-[node name="GlowLabel" parent="Control/UnitContainer/PercentageAndMultipliersSection/SecondaryChanceContainer" index="0" unique_id=2047832228]
-material = ExtResource("4_c5mbi")
-text = "0%"
-
-[node name="DamageMultiplierContainer" parent="Control/UnitContainer/PercentageAndMultipliersSection" unique_id=1655317453 instance=ExtResource("3_2ot0e")]
+[node name="UnitContainer" parent="Control/Contents" unique_id=2135526747 instance=ExtResource("2_t3try")]
 layout_mode = 1
 offset_left = 0.0
 offset_top = 0.0
-offset_right = 31.0
-offset_bottom = 10.0
+offset_right = 95.0
+offset_bottom = 44.0
 
-[node name="GlowLabel" parent="Control/UnitContainer/PercentageAndMultipliersSection/DamageMultiplierContainer" index="0" unique_id=2047832228]
-material = ExtResource("4_c5mbi")
-text = "x1"
+[node name="UnitRow" parent="Control/Contents/UnitContainer" index="0" unique_id=746814425]
+offset_left = 1.0
+offset_right = 87.0
+offset_bottom = 14.0
 
-[node name="CenterRow" type="Control" parent="Control" unique_id=649124729]
+[node name="TextureRect" parent="Control/Contents/UnitContainer/UnitRow/LeadingIconContainer" parent_id_path=PackedInt32Array(2135526747, 746814425, 294529385) index="0" unique_id=1808369178]
+material = ExtResource("4_tc1jp")
+glow_color = Color(0.29803923, 0.54901963, 0.73333335, 1)
+
+[node name="MoveRow" parent="Control/Contents/UnitContainer" index="1" unique_id=1296890746]
+offset_left = 1.0
+offset_right = 87.0
+offset_bottom = 26.0
+
+[node name="TextureRect" parent="Control/Contents/UnitContainer/MoveRow/LeadingIconContainer" parent_id_path=PackedInt32Array(2135526747, 1296890746, 294529385) index="0" unique_id=1808369178]
+material = ExtResource("4_tc1jp")
+texture = ExtResource("4_q86j2")
+stretch_mode = 5
+glow_color = Color(0.49019608, 0.25490198, 0.5058824, 1)
+
+[node name="PercentageAndMultipliersSection" parent="Control/Contents/UnitContainer" index="2" unique_id=2107325973]
+layout_mode = 0
+offset_left = 2.0
+offset_top = 25.0
+offset_right = 93.0
+offset_bottom = 45.0
+
+[node name="CenterRow" type="Control" parent="Control/Contents" unique_id=649124729]
 anchors_preset = 0
-offset_left = 13.0
-offset_top = 55.0
-offset_right = 125.0
-offset_bottom = 84.0
+offset_left = 3.0
+offset_top = 45.0
+offset_right = 115.0
+offset_bottom = 74.0
 
-[node name="DmgContainer" parent="Control/CenterRow" unique_id=1611508412 instance=ExtResource("2_glt31")]
+[node name="DmgContainer" parent="Control/Contents/CenterRow" unique_id=1611508412 instance=ExtResource("2_glt31")]
 layout_mode = 0
 offset_left = 0.0
 offset_top = 0.0
 offset_right = 29.0
 offset_bottom = 29.0
 
-[node name="HitContainer" parent="Control/CenterRow" unique_id=1283935299 instance=ExtResource("2_glt31")]
+[node name="HitContainer" parent="Control/Contents/CenterRow" unique_id=1283935299 instance=ExtResource("2_glt31")]
 layout_mode = 0
 offset_left = 30.0
 offset_top = 0.0
 offset_right = 59.0
 offset_bottom = 29.0
 
-[node name="Label" parent="Control/CenterRow/HitContainer" index="0" unique_id=1878820360]
+[node name="Label" parent="Control/Contents/CenterRow/HitContainer" index="0" unique_id=1878820360]
 text = "HIT"
 
-[node name="2ndContainer" parent="Control/CenterRow" unique_id=188422953 instance=ExtResource("2_glt31")]
+[node name="2ndContainer" parent="Control/Contents/CenterRow" unique_id=188422953 instance=ExtResource("2_glt31")]
 layout_mode = 0
 offset_left = 60.0
 offset_top = 0.0
 offset_right = 89.0
 offset_bottom = 29.0
 
-[node name="Label" parent="Control/CenterRow/2ndContainer" index="0" unique_id=1878820360]
+[node name="Label" parent="Control/Contents/CenterRow/2ndContainer" index="0" unique_id=1878820360]
 text = "2nd"
 
-[node name="HPContainer" parent="Control/CenterRow" unique_id=1829543566 instance=ExtResource("2_glt31")]
+[node name="HPContainer" parent="Control/Contents/CenterRow" unique_id=1829543566 instance=ExtResource("2_glt31")]
 layout_mode = 0
 offset_left = 91.0
 offset_top = 4.0
 offset_right = 112.0
 offset_bottom = 25.0
 
-[node name="Label" parent="Control/CenterRow/HPContainer" index="0" unique_id=1878820360]
+[node name="Label" parent="Control/Contents/CenterRow/HPContainer" index="0" unique_id=1878820360]
 text = "HP"
 
-[editable path="Control/UnitContainer/UnitRow"]
-[editable path="Control/UnitContainer/UnitRow/HBoxContainer/UnitTypeIconContainer"]
-[editable path="Control/UnitContainer/UnitRow/HBoxContainer/UnitTypeIconContainer2"]
-[editable path="Control/UnitContainer/UnitRow/HBoxContainer/MarginContainer2"]
-[editable path="Control/UnitContainer/MoveRow"]
-[editable path="Control/UnitContainer/MoveRow/HBoxContainer/UnitTypeIconContainer"]
-[editable path="Control/UnitContainer/MoveRow/HBoxContainer/UnitTypeIconContainer2"]
-[editable path="Control/UnitContainer/MoveRow/HBoxContainer/MarginContainer2"]
-[editable path="Control/UnitContainer/PercentageAndMultipliersSection/DamageValueContainer"]
-[editable path="Control/UnitContainer/PercentageAndMultipliersSection/HitPercentageContainer"]
-[editable path="Control/UnitContainer/PercentageAndMultipliersSection/SecondaryChanceContainer"]
-[editable path="Control/UnitContainer/PercentageAndMultipliersSection/DamageMultiplierContainer"]
-[editable path="Control/CenterRow/DmgContainer"]
-[editable path="Control/CenterRow/HitContainer"]
-[editable path="Control/CenterRow/2ndContainer"]
-[editable path="Control/CenterRow/HPContainer"]
+[node name="UnitContainer2" parent="Control/Contents" unique_id=1049506822 instance=ExtResource("2_t3try")]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = -45.0
+offset_right = 95.0
+offset_bottom = -1.0
+grow_vertical = 0
+
+[node name="UnitRow" parent="Control/Contents/UnitContainer2" index="0" unique_id=746814425]
+offset_left = 1.0
+offset_top = 31.0
+offset_right = 87.0
+offset_bottom = 45.0
+
+[node name="LeadingIconContainer" parent="Control/Contents/UnitContainer2/UnitRow" index="0" unique_id=294529385]
+theme_override_constants/margin_left = 1
+theme_override_constants/margin_top = 2
+theme_override_constants/margin_bottom = 1
+
+[node name="TextureRect" parent="Control/Contents/UnitContainer2/UnitRow/LeadingIconContainer" index="0" unique_id=1808369178]
+material = ExtResource("4_tc1jp")
+stretch_mode = 5
+glow_color = Color(0.29803923, 0.54901963, 0.73333335, 1)
+
+[node name="MoveRow" parent="Control/Contents/UnitContainer2" index="1" unique_id=1296890746]
+offset_left = 1.0
+offset_top = 20.0
+offset_right = 87.0
+offset_bottom = 32.0
+
+[node name="LeadingIconContainer" parent="Control/Contents/UnitContainer2/MoveRow" index="0" unique_id=294529385]
+theme_override_constants/margin_left = 1
+theme_override_constants/margin_top = 2
+theme_override_constants/margin_bottom = 1
+
+[node name="TextureRect" parent="Control/Contents/UnitContainer2/MoveRow/LeadingIconContainer" index="0" unique_id=1808369178]
+material = ExtResource("4_tc1jp")
+custom_minimum_size = Vector2(7, 9)
+size_flags_horizontal = 4
+size_flags_vertical = 4
+texture = ExtResource("5_tv2id")
+stretch_mode = 3
+glow_color = Color(0.49019608, 0.25490198, 0.5058824, 1)
+
+[node name="PercentageAndMultipliersSection" parent="Control/Contents/UnitContainer2" index="2" unique_id=2107325973]
+layout_mode = 0
+offset_left = 2.0
+offset_top = 0.0
+offset_right = 93.0
+offset_bottom = 20.0
+
+[node name="DamageValueContainer" parent="Control/Contents/UnitContainer2/PercentageAndMultipliersSection" index="0" unique_id=117188558]
+anchors_preset = 0
+anchor_top = 0.0
+anchor_bottom = 0.0
+offset_top = 0.0
+offset_bottom = 10.0
+grow_vertical = 1
+
+[node name="HitPercentageContainer" parent="Control/Contents/UnitContainer2/PercentageAndMultipliersSection" index="1" unique_id=1213821576]
+anchors_preset = 5
+anchor_top = 0.0
+anchor_bottom = 0.0
+offset_top = 0.0
+offset_bottom = 10.0
+grow_vertical = 1
+
+[node name="SecondaryChanceContainer" parent="Control/Contents/UnitContainer2/PercentageAndMultipliersSection" index="2" unique_id=758497613]
+anchors_preset = 1
+anchor_top = 0.0
+anchor_bottom = 0.0
+offset_top = 0.0
+offset_bottom = 10.0
+grow_vertical = 1
+
+[node name="DamageMultiplierContainer" parent="Control/Contents/UnitContainer2/PercentageAndMultipliersSection" index="3" unique_id=1233193718]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -10.0
+offset_bottom = 0.0
+grow_vertical = 0
+
+[editable path="Control/Contents/UnitContainer"]
+[editable path="Control/Contents/UnitContainer/UnitRow"]
+[editable path="Control/Contents/UnitContainer/UnitRow/HBoxContainer/UnitTypeIconContainer"]
+[editable path="Control/Contents/UnitContainer/UnitRow/HBoxContainer/UnitTypeIconContainer2"]
+[editable path="Control/Contents/UnitContainer/UnitRow/HBoxContainer/MarginContainer2"]
+[editable path="Control/Contents/UnitContainer/MoveRow"]
+[editable path="Control/Contents/UnitContainer/MoveRow/HBoxContainer/UnitTypeIconContainer"]
+[editable path="Control/Contents/UnitContainer/MoveRow/HBoxContainer/UnitTypeIconContainer2"]
+[editable path="Control/Contents/UnitContainer/MoveRow/HBoxContainer/MarginContainer2"]
+[editable path="Control/Contents/UnitContainer/PercentageAndMultipliersSection/DamageValueContainer"]
+[editable path="Control/Contents/UnitContainer/PercentageAndMultipliersSection/HitPercentageContainer"]
+[editable path="Control/Contents/UnitContainer/PercentageAndMultipliersSection/SecondaryChanceContainer"]
+[editable path="Control/Contents/UnitContainer/PercentageAndMultipliersSection/DamageMultiplierContainer"]
+[editable path="Control/Contents/CenterRow/DmgContainer"]
+[editable path="Control/Contents/CenterRow/HitContainer"]
+[editable path="Control/Contents/CenterRow/2ndContainer"]
+[editable path="Control/Contents/CenterRow/HPContainer"]
+[editable path="Control/Contents/UnitContainer2"]
+[editable path="Control/Contents/UnitContainer2/UnitRow"]
+[editable path="Control/Contents/UnitContainer2/UnitRow/HBoxContainer/UnitTypeIconContainer"]
+[editable path="Control/Contents/UnitContainer2/UnitRow/HBoxContainer/UnitTypeIconContainer2"]
+[editable path="Control/Contents/UnitContainer2/UnitRow/HBoxContainer/MarginContainer2"]
+[editable path="Control/Contents/UnitContainer2/MoveRow"]
+[editable path="Control/Contents/UnitContainer2/MoveRow/HBoxContainer/UnitTypeIconContainer"]
+[editable path="Control/Contents/UnitContainer2/MoveRow/HBoxContainer/UnitTypeIconContainer2"]
+[editable path="Control/Contents/UnitContainer2/MoveRow/HBoxContainer/MarginContainer2"]
+[editable path="Control/Contents/UnitContainer2/PercentageAndMultipliersSection/DamageValueContainer"]
+[editable path="Control/Contents/UnitContainer2/PercentageAndMultipliersSection/HitPercentageContainer"]
+[editable path="Control/Contents/UnitContainer2/PercentageAndMultipliersSection/SecondaryChanceContainer"]
+[editable path="Control/Contents/UnitContainer2/PercentageAndMultipliersSection/DamageMultiplierContainer"]

@@ -1,0 +1,120 @@
+[gd_scene format=3 uid="uid://n6pi2hurox1g"]
+
+[ext_resource type="PackedScene" uid="uid://dnhdopaxrtt3f" path="res://resources/ui/unit_row.tscn" id="1_5vy8l"]
+[ext_resource type="PackedScene" uid="uid://ltbgabigkn2r" path="res://resources/ui/values_percentages_and_multipliers_container.tscn" id="2_n2jcg"]
+[ext_resource type="Material" uid="uid://d3rfhbptxbold" path="res://resources/hud_glow.tres" id="3_d73ax"]
+
+[node name="UnitContainer" type="Control" unique_id=2135526747]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 11.0
+offset_top = 11.0
+offset_right = 106.0
+offset_bottom = 55.0
+
+[node name="UnitRow" parent="." unique_id=746814425 instance=ExtResource("1_5vy8l")]
+layout_mode = 0
+
+[node name="MarginContainer2" parent="UnitRow/HBoxContainer" parent_id_path=PackedInt32Array(746814425, 760266391) index="3" unique_id=1691056733]
+visible = false
+
+[node name="MoveRow" parent="." unique_id=1296890746 instance=ExtResource("1_5vy8l")]
+layout_mode = 0
+offset_top = 12.0
+offset_bottom = 24.0
+
+[node name="Label" parent="MoveRow/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(1296890746, 1648475676) index="0" unique_id=179177607]
+theme_override_colors/font_color = Color(1, 0.90588236, 0.5921569, 1)
+text = "MoveName"
+glow_color = Color(0.49019608, 0.25490198, 0.5058824, 1)
+
+[node name="UnitTypeIconContainer2" parent="MoveRow/HBoxContainer" parent_id_path=PackedInt32Array(1296890746, 760266391) index="2" unique_id=703941886]
+visible = false
+
+[node name="Label" parent="MoveRow/HBoxContainer/MarginContainer2" parent_id_path=PackedInt32Array(1296890746, 1691056733) index="0" unique_id=1878820360]
+theme_override_colors/font_color = Color(0.9607843, 0.8039216, 0.39607844, 1)
+glow_color = Color(0.3764706, 0.22745098, 0.05882353, 1)
+
+[node name="PercentageAndMultipliersSection" type="Control" parent="." unique_id=2107325973]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 1.0
+offset_top = 24.0
+offset_right = 92.0
+offset_bottom = 44.0
+
+[node name="DamageValueContainer" parent="PercentageAndMultipliersSection" unique_id=117188558 instance=ExtResource("2_n2jcg")]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = -10.0
+offset_right = 31.0
+offset_bottom = 0.0
+grow_vertical = 0
+
+[node name="GlowLabel" parent="PercentageAndMultipliersSection/DamageValueContainer" index="0" unique_id=2047832228]
+material = ExtResource("3_d73ax")
+
+[node name="HitPercentageContainer" parent="PercentageAndMultipliersSection" unique_id=1213821576 instance=ExtResource("2_n2jcg")]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -15.5
+offset_top = -10.0
+offset_right = 15.5
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="GlowLabel" parent="PercentageAndMultipliersSection/HitPercentageContainer" index="0" unique_id=2047832228]
+material = ExtResource("3_d73ax")
+text = "0%"
+
+[node name="SecondaryChanceContainer" parent="PercentageAndMultipliersSection" unique_id=758497613 instance=ExtResource("2_n2jcg")]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -31.0
+offset_top = -10.0
+offset_right = 0.0
+offset_bottom = 0.0
+grow_horizontal = 0
+grow_vertical = 0
+
+[node name="GlowLabel" parent="PercentageAndMultipliersSection/SecondaryChanceContainer" index="0" unique_id=2047832228]
+material = ExtResource("3_d73ax")
+text = "0%"
+
+[node name="DamageMultiplierContainer" parent="PercentageAndMultipliersSection" unique_id=1233193718 instance=ExtResource("2_n2jcg")]
+layout_mode = 1
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 31.0
+offset_bottom = 10.0
+
+[node name="GlowLabel" parent="PercentageAndMultipliersSection/DamageMultiplierContainer" index="0" unique_id=2047832228]
+material = ExtResource("3_d73ax")
+theme_override_colors/font_color = Color(0.9607843, 0.8039216, 0.39607844, 1)
+text = "x1"
+glow_color = Color(0.3764706, 0.22745098, 0.05882353, 1)
+
+[editable path="UnitRow"]
+[editable path="UnitRow/HBoxContainer/UnitTypeIconContainer"]
+[editable path="UnitRow/HBoxContainer/UnitTypeIconContainer2"]
+[editable path="UnitRow/HBoxContainer/MarginContainer2"]
+[editable path="MoveRow"]
+[editable path="MoveRow/HBoxContainer/UnitTypeIconContainer"]
+[editable path="MoveRow/HBoxContainer/UnitTypeIconContainer2"]
+[editable path="MoveRow/HBoxContainer/MarginContainer2"]
+[editable path="PercentageAndMultipliersSection/DamageValueContainer"]
+[editable path="PercentageAndMultipliersSection/HitPercentageContainer"]
+[editable path="PercentageAndMultipliersSection/SecondaryChanceContainer"]
+[editable path="PercentageAndMultipliersSection/DamageMultiplierContainer"]

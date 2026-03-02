@@ -1,7 +1,9 @@
 [gd_scene format=3 uid="uid://dnhdopaxrtt3f"]
 
 [ext_resource type="Theme" uid="uid://bnh2yr771pqm5" path="res://resources/game_theme.tres" id="1_kvtle"]
+[ext_resource type="Texture2D" uid="uid://bberuwedvmtid" path="res://art/sprites/ui/hud_panel/leading_colon.png" id="1_rnhhg"]
 [ext_resource type="Material" uid="uid://d3rfhbptxbold" path="res://resources/hud_glow.tres" id="2_buyf6"]
+[ext_resource type="Script" uid="uid://bkmxi7xbiyjd8" path="res://scripts/ui/components/glow_texture_rect.gd" id="2_s8gvl"]
 [ext_resource type="Script" uid="uid://mx0872xckvrs" path="res://scripts/ui/components/glow_label.gd" id="3_cygpb"]
 [ext_resource type="PackedScene" uid="uid://djbrel7jn6rjc" path="res://resources/ui/unit_type_icon_container.tscn" id="4_ccdv2"]
 [ext_resource type="Texture2D" uid="uid://dum58nx11jcom" path="res://art/sprites/ui/elemental_type_icons_10x10/simple.png" id="5_ccdv2"]
@@ -23,6 +25,8 @@ theme_override_constants/margin_bottom = 3
 [node name="TextureRect" type="TextureRect" parent="LeadingIconContainer" unique_id=1808369178]
 custom_minimum_size = Vector2(5, 6)
 layout_mode = 2
+texture = ExtResource("1_rnhhg")
+script = ExtResource("2_s8gvl")
 
 [node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=760266391]
 custom_minimum_size = Vector2(12, 12)

@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://c5j7dov86gm4i"
+path="res://.godot/imported/down-arrow.aseprite-0648b82765276dad93b49435a9bbf56d.res"
+
+[deps]
+
+source_file="res://art/sprites/ui/hud_panel/down-arrow.aseprite"
+dest_files=["res://.godot/imported/down-arrow.aseprite-0648b82765276dad93b49435a9bbf56d.res"]
+
+[params]
+
