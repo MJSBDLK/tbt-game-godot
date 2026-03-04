@@ -100,6 +100,22 @@ static var HEALTH_LOW: Color:
 static var HEALTH_CRITICAL: Color:
 	get: return GameColorPalette.get_color("Red", 5)
 
+# Glow variants for the health pip bar
+static var HEALTH_FULL_GLOW: Color:
+	get: return GameColorPalette.get_color("Green", 3)
+static var HEALTH_HALF_GLOW: Color:
+	get: return GameColorPalette.get_color("Yellow", 3)
+static var HEALTH_LOW_GLOW: Color:
+	get: return GameColorPalette.get_color("Orange", 3)
+static var HEALTH_CRITICAL_GLOW: Color:
+	get: return GameColorPalette.get_color("Red", 3)
+
+# Damage preview section (pulsing zone in combat preview)
+static var HEALTH_DAMAGE_PREVIEW: Color:
+	get: return GameColorPalette.get_color("Gray", 6)
+static var HEALTH_DAMAGE_PREVIEW_GLOW: Color:
+	get: return GameColorPalette.get_color("Gray", 3)
+
 
 # =============================================================================
 # STATUS EFFECT COLORS

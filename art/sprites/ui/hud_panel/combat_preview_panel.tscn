@@ -7,6 +7,10 @@
 [ext_resource type="Texture2D" uid="uid://bv8nhivnjfyqv" path="res://art/sprites/ui/hud_panel/down-arrow.png" id="4_q86j2"]
 [ext_resource type="Material" uid="uid://d3rfhbptxbold" path="res://resources/hud_glow.tres" id="4_tc1jp"]
 [ext_resource type="Texture2D" uid="uid://bbvrhtkflr6fb" path="res://art/sprites/ui/hud_panel/up-arrow.png" id="5_tv2id"]
+[ext_resource type="Texture2D" uid="uid://b4d8ackdx45ps" path="res://art/sprites/ui/hud_panel/bottom_health_pips.png" id="6_botpip"]
+[ext_resource type="Material" path="res://resources/health_pip_bar.tres" id="6_hpmat"]
+[ext_resource type="Script" uid="uid://c6g7mrkvwf5ph" path="res://scripts/ui/components/health_pip_bar.gd" id="6_hpscr"]
+[ext_resource type="Texture2D" uid="uid://cdo584xnpunrn" path="res://art/sprites/ui/hud_panel/top_health_pips.png" id="6_toppip"]
 
 [node name="Root" type="Control" unique_id=421222680]
 layout_mode = 3
@@ -133,6 +137,37 @@ offset_bottom = 25.0
 
 [node name="Label" parent="Control/Contents/CenterRow/HPContainer" index="0" unique_id=1878820360]
 text = "HP"
+
+[node name="TopHealthPips" type="TextureRect" parent="Control/Contents" unique_id=1767899884]
+material = ExtResource("6_hpmat")
+layout_mode = 0
+offset_left = 100.0
+offset_top = 11.0
+offset_right = 109.0
+offset_bottom = 49.0
+texture = ExtResource("6_toppip")
+stretch_mode = 4
+script = ExtResource("6_hpscr")
+health_fill = 0.8
+damage_fill = 0.3
+filled_color = Color(0.576, 0.82, 0.961, 1)
+filled_glow = Color(0.176, 0.42, 0.612, 1)
+
+[node name="BottomHealthPips" type="TextureRect" parent="Control/Contents" unique_id=216638169]
+material = ExtResource("6_hpmat")
+layout_mode = 0
+offset_left = 100.0
+offset_top = 70.0
+offset_right = 109.0
+offset_bottom = 108.0
+texture = ExtResource("6_botpip")
+stretch_mode = 4
+script = ExtResource("6_hpscr")
+health_fill = 0.8
+damage_fill = 0.3
+filled_color = Color(0.863, 0.388, 0.31, 1)
+filled_glow = Color(0.557, 0.145, 0.094, 1)
+inverted = true
 
 [node name="UnitContainer2" parent="Control/Contents" unique_id=1049506822 instance=ExtResource("2_t3try")]
 layout_mode = 1
