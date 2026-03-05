@@ -32,7 +32,9 @@
       "WebFetch(domain:docs.godotengine.org)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(convert --version)",
-      "Bash(magick --version)"
+      "Bash(magick --version)",
+      "Bash(git checkout -- resources/ui/unit_row.tscn art/sprites/ui/ui_text_container.tscn scenes/ui/panels/combat_preview_panel/unit_container.tscn)",
+      "Bash(git reset HEAD .claude/settings.local.json)"
     ]
   }
 }

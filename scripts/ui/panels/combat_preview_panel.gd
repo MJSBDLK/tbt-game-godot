@@ -36,6 +36,8 @@ const _MULTIPLIER_VALUE_PATH = "PercentageAndMultipliersSection/DamageMultiplier
 @onready var _defender_section: Control = %DefenderContainer
 @onready var _top_health_pips: HealthPipBar = %AttackerHealthPips
 @onready var _bottom_health_pips: HealthPipBar = %DefenderHealthPips
+@onready var _attacker_arrow: TextureRect = _top_health_pips.get_node("AttackerHealthBarArrow")
+@onready var _defender_arrow: TextureRect = _bottom_health_pips.get_node("DefenderHealthBarArrow")
 
 # Labels resolved relative to their section — @onready runs in declaration order,
 # so _attacker_section and _defender_section are already set when these resolve.
@@ -96,7 +98,7 @@ func _update_attacker_section(attacker: Node, defender: Node, move: Move) -> voi
 	var damage_per_hit := DamageCalculator.calculate_damage(attacker, defender, move)
 	var hit_count := DamageCalculator.calculate_attack_count(attacker, defender)
 	_attacker_damage_label.text = str(damage_per_hit)
-	_attacker_hits_label.text = "x%d" % hit_count
+	_set_hits_label(_attacker_hits_label, hit_count)
 
 	# Secondary chance — status effect proc chance from the move
 	if move.status_effect_chance > 0.0 and move.status_effect_type != Enums.StatusEffectType.NONE:
@@ -106,8 +108,7 @@ func _update_attacker_section(attacker: Node, defender: Node, move: Move) -> voi
 
 	# Type effectiveness multiplier
 	var effectiveness := DamageCalculator.get_type_effectiveness(attacker, defender, move)
-	_attacker_multiplier_label.text = _format_multiplier(effectiveness)
-	_color_multiplier_label(_attacker_multiplier_label, effectiveness)
+	_set_multiplier_label(_attacker_multiplier_label, effectiveness)
 
 	DebugConfig.log_combat_preview("Preview: %s uses %s → %d dmg x%d (%.1fx)" % [
 		attacker_name, move.move_name, damage_per_hit, hit_count, effectiveness])
@@ -129,7 +130,7 @@ func _update_defender_section(attacker: Node, defender: Node, move: Move) -> voi
 		var counter_damage := DamageCalculator.calculate_damage(defender, attacker, counter_move)
 		var counter_hits := DamageCalculator.calculate_attack_count(defender, attacker)
 		_defender_damage_label.text = str(counter_damage)
-		_defender_hits_label.text = "x%d" % counter_hits
+		_set_hits_label(_defender_hits_label, counter_hits)
 
 		if counter_move.status_effect_chance > 0.0 and counter_move.status_effect_type != Enums.StatusEffectType.NONE:
 			_defender_secondary_label.text = "%d%%" % int(counter_move.status_effect_chance * 100)
@@ -138,15 +139,14 @@ func _update_defender_section(attacker: Node, defender: Node, move: Move) -> voi
 
 		var counter_effectiveness := DamageCalculator.get_type_effectiveness(
 			defender, attacker, counter_move)
-		_defender_multiplier_label.text = _format_multiplier(counter_effectiveness)
-		_color_multiplier_label(_defender_multiplier_label, counter_effectiveness)
+		_set_multiplier_label(_defender_multiplier_label, counter_effectiveness)
 	else:
 		_defender_move_label.text = "No Counter"
-		_defender_hits_label.text = ""
+		_set_hits_label(_defender_hits_label, 0)
 		_defender_damage_label.text = "0"
 		_defender_hit_label.text = "--"
 		_defender_secondary_label.text = "--"
-		_defender_multiplier_label.text = "--"
+		_set_multiplier_label(_defender_multiplier_label, 0.0)
 
 
 # =============================================================================
@@ -187,6 +187,35 @@ func _update_health_pips(attacker: Node, defender: Node, move: Move) -> void:
 	_bottom_health_pips.health_fill = float(defender_projected) / float(defender_max_hp)
 	_bottom_health_pips.damage_fill = float(defender_hp - defender_projected) / float(defender_max_hp)
 
+	# Position arrows at the projected health boundary
+	var attacker_health_ratio := _top_health_pips.health_fill
+	_position_arrow(_attacker_arrow, _top_health_pips, attacker_health_ratio, false)
+
+	var defender_health_ratio := _bottom_health_pips.health_fill
+	_position_arrow(_defender_arrow, _bottom_health_pips, defender_health_ratio, true)
+
+
+# =============================================================================
+# ARROW POSITIONING — slide arrows to the projected health boundary
+# =============================================================================
+# The arrow centers on the line between the filled zone and the damage zone.
+# Normal bar (attacker): fills bottom-to-top, boundary at UV.y = 1.0 - health_fill
+# Inverted bar (defender): fills top-to-bottom, boundary at UV.y = health_fill
+
+func _position_arrow(arrow: TextureRect, pip_bar: HealthPipBar, health_ratio: float, inverted: bool) -> void:
+	var bar_height := pip_bar.size.y
+	var arrow_height := arrow.size.y
+
+	# Boundary position in pixels from the top of the bar
+	var boundary_y: float
+	if inverted:
+		boundary_y = health_ratio * bar_height
+	else:
+		boundary_y = (1.0 - health_ratio) * bar_height
+
+	# Center the arrow on the boundary
+	arrow.position.y = boundary_y - arrow_height * 0.5
+
 
 # =============================================================================
 # HELPERS
@@ -216,6 +245,23 @@ const _MULTIPLIER_COLORS := {
 	"half": [Color(0.573, 0.788, 0.549), Color(0.176, 0.310, 0.180)],   # Green
 	"qtr":  [Color(0.271, 0.796, 0.808), Color(0.000, 0.302, 0.337)],   # Cyan
 }
+
+
+func _set_hits_label(label: Label, hit_count: int) -> void:
+	if hit_count <= 1:
+		label.get_parent().visible = false
+	else:
+		label.get_parent().visible = true
+		label.text = "x%d" % hit_count
+
+
+func _set_multiplier_label(label: Label, effectiveness: float) -> void:
+	if effectiveness == 1.0 or effectiveness == 0.0:
+		label.get_parent().visible = false
+	else:
+		label.get_parent().visible = true
+		label.text = _format_multiplier(effectiveness)
+		_color_multiplier_label(label, effectiveness)
 
 
 func _color_multiplier_label(label: Label, effectiveness: float) -> void:
