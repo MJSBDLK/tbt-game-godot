@@ -62,7 +62,9 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# No manual node lookup needed — @onready + % handles it automatically.
 	# When this node enters the scene tree, Godot resolves all the %Names above.
-	visible = false
+	# Stay visible when previewing this scene standalone (F6)
+	if get_tree().current_scene != self:
+		visible = false
 
 
 # =============================================================================
