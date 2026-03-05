@@ -7,6 +7,7 @@ extends Resource
 
 # Identity
 @export var move_name: String = ""
+@export var abbrev_name: String = ""
 @export var move_id: String = ""
 @export var description: String = ""
 

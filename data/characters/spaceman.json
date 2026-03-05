@@ -34,6 +34,6 @@
 	},
 
 	"level": 1,
-	"basePoolMoves": ["Bonk", "Laser"],
+	"basePoolMoves": ["Bonk", "Laser", "Megaton Punch"],
 	"basePoolPassives": ["Impetuous"]
 }

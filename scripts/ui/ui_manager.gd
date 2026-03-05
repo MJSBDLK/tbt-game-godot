@@ -299,7 +299,7 @@ func _instantiate_panels() -> void:
 		_right_panel.add_child(_action_menu_panel)
 
 	# Combat preview panel (right, below action menu)
-	var combat_preview_scene := load("res://scenes/ui/panels/combat_preview_panel.tscn")
+	var combat_preview_scene := load("res://scenes/ui/panels/combat_preview_panel/combat_preview_panel.tscn")
 	if combat_preview_scene != null:
 		_combat_preview_panel = combat_preview_scene.instantiate()
 		_right_panel.add_child(_combat_preview_panel)
