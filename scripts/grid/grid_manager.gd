@@ -87,10 +87,11 @@ func get_tile(x: int, y: int) -> Tile:
 
 
 ## Get the tile at a world position (converts pixel coords to grid coords).
+## Pixel space uses TileMapLayer convention (Y-down), game grid uses Y-up.
 func get_tile_at_position(world_position: Vector2) -> Tile:
-	var tile_x := roundi(world_position.x / float(_tile_size))
-	var tile_y := roundi(world_position.y / float(_tile_size))
-	return get_tile(tile_x, tile_y)
+	var cell_x := floori(world_position.x / float(_tile_size))
+	var cell_y := floori(world_position.y / float(_tile_size))
+	return get_tile(cell_x, -cell_y)  # Flip Y: TileMapLayer Y-down -> game grid Y-up
 
 
 ## Get the 4-directional neighbors of a tile (up, right, down, left).

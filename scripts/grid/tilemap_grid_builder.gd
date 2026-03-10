@@ -100,14 +100,13 @@ func _build_grid() -> void:
 		var tile: Tile = tile_scene.instantiate() as Tile
 		_tile_container.add_child(tile)
 
-		# Godot TileMapLayer uses cell coordinates directly
-		# In our isometric-free setup, cell coords = world integer coords
-		# Note: TileMapLayer Y axis may be inverted compared to our grid.
-		# Godot's TileMapLayer Y increases downward, but our game grid Y increases upward.
-		# We negate the Y coordinate to match our convention.
+		# Game grid uses Y-up; TileMapLayer uses Y-down.  We keep both:
+		# - grid_x/grid_y: game-logic coordinates (Y-up, integer)
+		# - tile.position: pixel position matching TileMapLayer cell CENTER
 		var grid_x := cell.x
 		var grid_y := -cell.y  # Flip Y: Godot tilemap Y-down -> game grid Y-up
-		tile.position = Vector2(grid_x * tile_size, grid_y * tile_size)
+		var half_tile := tile_size / 2
+		tile.position = Vector2(cell.x * tile_size + half_tile, cell.y * tile_size + half_tile)
 		tile.terrain_type_name = terrain_type
 		tile.initialize(grid_x, grid_y)
 
