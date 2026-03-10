@@ -65,8 +65,6 @@ offset_right = 95.0
 offset_bottom = 44.0
 
 [node name="UnitRow" parent="Control/Contents/AttackerContainer" index="0" unique_id=746814425]
-offset_left = 1.0
-offset_right = 87.0
 offset_bottom = 14.0
 
 [node name="TextureRect" parent="Control/Contents/AttackerContainer/UnitRow/LeadingIconContainer" parent_id_path=PackedInt32Array(2135526747, 746814425, 294529385) index="0" unique_id=1808369178]
@@ -74,8 +72,7 @@ material = ExtResource("4_tc1jp")
 glow_color = Color(0.29803923, 0.54901963, 0.73333335, 1)
 
 [node name="MoveRow" parent="Control/Contents/AttackerContainer" index="1" unique_id=1296890746]
-offset_left = 1.0
-offset_right = 87.0
+offset_right = 96.0
 offset_bottom = 26.0
 
 [node name="TextureRect" parent="Control/Contents/AttackerContainer/MoveRow/LeadingIconContainer" parent_id_path=PackedInt32Array(2135526747, 1296890746, 294529385) index="0" unique_id=1808369178]
@@ -83,6 +80,9 @@ material = ExtResource("4_tc1jp")
 texture = ExtResource("4_q86j2")
 stretch_mode = 5
 glow_color = Color(0.49019608, 0.25490198, 0.5058824, 1)
+
+[node name="Label" parent="Control/Contents/AttackerContainer/MoveRow/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(2135526747, 1296890746, 1648475676) index="0" unique_id=179177607]
+text = "Long ass mo"
 
 [node name="Label" parent="Control/Contents/AttackerContainer/MoveRow/HBoxContainer/MarginContainer2" parent_id_path=PackedInt32Array(2135526747, 1296890746, 1691056733) index="0" unique_id=1878820360]
 text = "x4"
