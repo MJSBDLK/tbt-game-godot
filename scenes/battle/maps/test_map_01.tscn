@@ -17,10 +17,13 @@ tile_map_data = PackedByteArray("AAAAAAAABwAAAAAAAAABAAAABgABAAIAAAACAAAABgACAAA
 tile_set = ExtResource("2_tileset")
 
 [node name="ModifierTileLayer" type="TileMapLayer" parent="TilemapBuilder" unique_id=1342461552]
-tile_map_data = PackedByteArray("AAACAPv/AQAAAAAAAAADAPv/AQAAAAAAAAACAPr/AQAAAAAAAAADAPr/AQAAAAAAAAAFAP3/AwAAAAAAAAAGAP3/AwAAAAAAAAAFAPz/AwAAAAAAAAAGAPz/AwAAAAAAAAA=")
 tile_set = ExtResource("2_tileset")
 
 [node name="DecorationTileLayer" type="TileMapLayer" parent="TilemapBuilder" unique_id=1675077987]
+tile_set = ExtResource("2_tileset")
+
+[node name="SpawnTileLayer" type="TileMapLayer" parent="TilemapBuilder"]
+tile_map_data = PackedByteArray("AAABAP7/BwABAAAAAAABAPv/BwABAAAAAAAHAP7/BwACAAAAAAAIAPv/BwACAAAAAAAHAPn/BwACAAAAAAA=")
 tile_set = ExtResource("2_tileset")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1875369592]

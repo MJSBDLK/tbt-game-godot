@@ -108,7 +108,8 @@ func initialize(starting_tile: Tile) -> void:
 	current_hp = character_data.max_hp
 
 	# Visuals
-	_apply_faction_color()
+	_load_character_sprite()
+	_apply_faction_healthbar()
 	_update_z_index()
 	_update_health_bar()
 
@@ -286,9 +287,9 @@ func _start_selection_pulse() -> void:
 	_stop_selection_pulse()
 	_selection_tween = create_tween().set_loops()
 	_selection_tween.tween_property(_sprite, "modulate",
-		GameColors.UNIT_SELECTED, 0.4)
+		Color(1.3, 1.3, 1.3, 1.0), 0.4)
 	_selection_tween.tween_property(_sprite, "modulate",
-		GameColors.brightened(GameColors.UNIT_SELECTED, 1.3), 0.4)
+		Color.WHITE, 0.4)
 
 
 func _stop_selection_pulse() -> void:
@@ -296,9 +297,9 @@ func _stop_selection_pulse() -> void:
 		_selection_tween.kill()
 		_selection_tween = null
 	if can_act:
-		_apply_faction_color()
+		_apply_active_modulate()
 	else:
-		_apply_acted_color()
+		_apply_acted_modulate()
 
 
 # =============================================================================
@@ -308,13 +309,13 @@ func _stop_selection_pulse() -> void:
 func refresh_unit() -> void:
 	can_act = true
 	_start_tile_before_move = current_tile
-	_apply_faction_color()
+	_apply_active_modulate()
 
 
 func set_acted() -> void:
 	can_act = false
 	_start_tile_before_move = null
-	_apply_acted_color()
+	_apply_acted_modulate()
 
 
 # =============================================================================
@@ -500,7 +501,7 @@ func _handle_defeat() -> void:
 
 	# Gray out
 	if _sprite != null:
-		_sprite.modulate = GameColors.UNIT_ACTED
+		_sprite.modulate = Color(0.4, 0.4, 0.4, 1.0)
 
 	# Hide health bar
 	if _health_bar_background != null:
@@ -523,28 +524,58 @@ func _handle_defeat() -> void:
 # VISUAL HELPERS
 # =============================================================================
 
-func _apply_faction_color() -> void:
-	if _sprite == null:
+## Load the character's sprite from an Aseprite atlas spritesheet.
+## Falls back to the placeholder texture if no sprite data is configured.
+func _load_character_sprite() -> void:
+	if _sprite == null or character_data == null:
+		return
+	if character_data.sprite_sheet_path == "" or character_data.sprite_atlas_path == "":
+		return
+
+	var atlas_texture := SpriteAtlasLoader.get_frame_texture(
+		character_data.sprite_sheet_path,
+		character_data.sprite_atlas_path,
+		character_data.sprite_frame_index)
+	if atlas_texture == null:
+		return
+
+	_sprite.texture = atlas_texture
+
+	# Apply trim offset so the sprite aligns correctly with tile center.
+	var trim_offset := SpriteAtlasLoader.get_frame_offset(
+		character_data.sprite_atlas_path,
+		character_data.sprite_frame_index)
+	_sprite.offset = trim_offset
+
+
+## Set health bar background to faction color for visual identification.
+func _apply_faction_healthbar() -> void:
+	if _health_bar_background == null:
 		return
 	match faction:
 		Enums.UnitFaction.PLAYER:
-			_sprite.modulate = GameColors.PLAYER_UNIT
+			_health_bar_background.color = GameColors.FACTION_HEALTHBAR_PLAYER
 		Enums.UnitFaction.ENEMY:
-			_sprite.modulate = GameColors.ENEMY_UNIT
+			_health_bar_background.color = GameColors.FACTION_HEALTHBAR_ENEMY
+		Enums.UnitFaction.ALLY:
+			_health_bar_background.color = GameColors.FACTION_HEALTHBAR_ALLY
 		Enums.UnitFaction.NEUTRAL:
-			_sprite.modulate = GameColors.NEUTRAL_UNIT
+			_health_bar_background.color = GameColors.FACTION_HEALTHBAR_NEUTRAL
 
 
-func _apply_acted_color() -> void:
+## Reset sprite modulate to full color (active unit).
+func _apply_active_modulate() -> void:
 	if _sprite == null:
 		return
-	match faction:
-		Enums.UnitFaction.PLAYER:
-			_sprite.modulate = GameColors.PLAYER_UNIT_ACTED
-		Enums.UnitFaction.ENEMY:
-			_sprite.modulate = GameColors.ENEMY_UNIT_ACTED
-		_:
-			_sprite.modulate = GameColors.UNIT_ACTED
+	_sprite.modulate = Color.WHITE
+
+
+## Darken and desaturate sprite to show the unit has acted.
+func _apply_acted_modulate() -> void:
+	if _sprite == null:
+		return
+	# Desaturated + darkened — works with any sprite art
+	_sprite.modulate = Color(0.5, 0.5, 0.5, 1.0)
 
 
 func _update_z_index() -> void:

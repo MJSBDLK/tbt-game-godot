@@ -33,12 +33,30 @@ static var ENEMY_UNIT: Color:
 	get: return Color(1.0, 0.4, 0.35)  # Bright red
 static var NEUTRAL_UNIT: Color:
 	get: return Color(0.75, 0.75, 0.75)  # Light gray
+static var ALLY_UNIT: Color:
+	get: return Color(1.0, 0.95, 0.4)  # Bright yellow
 
 # Dimmed versions for units that have acted (desaturated + darker)
 static var PLAYER_UNIT_ACTED: Color:
 	get: return Color(0.3, 0.35, 0.45)  # Dark muted blue
 static var ENEMY_UNIT_ACTED: Color:
 	get: return Color(0.45, 0.28, 0.28)  # Dark muted red
+static var ALLY_UNIT_ACTED: Color:
+	get: return Color(0.4, 0.4, 0.28)  # Dark muted yellow
+
+
+# =============================================================================
+# FACTION HEALTH BAR BACKGROUNDS
+# =============================================================================
+
+static var FACTION_HEALTHBAR_PLAYER: Color:
+	get: return GameColorPalette.get_color("Azure", 6)
+static var FACTION_HEALTHBAR_ENEMY: Color:
+	get: return GameColorPalette.get_color("Red", 5)
+static var FACTION_HEALTHBAR_NEUTRAL: Color:
+	get: return GameColorPalette.get_color("Green", 6)
+static var FACTION_HEALTHBAR_ALLY: Color:
+	get: return GameColorPalette.get_color("Yellow", 7)
 
 
 # =============================================================================

@@ -53,13 +53,13 @@ func _spawn_test_units() -> void:
 	# 2 enemy units (Fire Warrior) — first one adjacent to player for combat testing
 	var enemy_tile_1 := GridManager.get_tile(offset_x + 2, offset_y + 1)
 	if enemy_tile_1 != null:
-		var unit := _create_unit("res://data/characters/fire_warrior.json", Enums.UnitFaction.ENEMY, enemy_tile_1)
+		var unit := _create_unit("res://data/characters/grunt.json", Enums.UnitFaction.ENEMY, enemy_tile_1)
 		unit.auto_assign_first_usable_move()
 		print("Phase3Test: Spawned enemy '%s' at %s" % [unit.unit_name, enemy_tile_1.get_coordinates()])
 
 	var enemy_tile_2 := GridManager.get_tile(offset_x + 3, offset_y + 3)
 	if enemy_tile_2 != null:
-		var unit := _create_unit("res://data/characters/fire_warrior.json", Enums.UnitFaction.ENEMY, enemy_tile_2)
+		var unit := _create_unit("res://data/characters/grunt.json", Enums.UnitFaction.ENEMY, enemy_tile_2)
 		unit.auto_assign_first_usable_move()
 		print("Phase3Test: Spawned enemy '%s' at %s" % [unit.unit_name, enemy_tile_2.get_coordinates()])
 

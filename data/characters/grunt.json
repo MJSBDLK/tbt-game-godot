@@ -1,5 +1,5 @@
 {
-	"characterName": "Spaceman",
+	"characterName": "Grunt",
 	"primaryType": "Simple",
 	"secondaryType": "None",
 	"currentClass": "Spaceman",
@@ -8,29 +8,29 @@
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
 		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",
-		"frameIndex": 0
+		"frameIndex": 7
 	},
 
 	"baseStats": {
-		"maxHP": 20,
-		"strength": 5,
-		"special": 4,
-		"skill": 5,
-		"agility": 5,
+		"maxHP": 18,
+		"strength": 6,
+		"special": 3,
+		"skill": 4,
+		"agility": 4,
 		"athleticism": 5,
 		"defense": 4,
-		"resistance": 4
+		"resistance": 3
 	},
 
 	"growthRates": {
-		"hp": 80,
-		"strength": 40,
-		"special": 30,
-		"skill": 45,
-		"agility": 40,
-		"athleticism": 35,
+		"hp": 70,
+		"strength": 45,
+		"special": 20,
+		"skill": 35,
+		"agility": 35,
+		"athleticism": 40,
 		"defense": 35,
-		"resistance": 30
+		"resistance": 25
 	},
 
 	"physicalAttributes": {
@@ -40,6 +40,6 @@
 	},
 
 	"level": 1,
-	"basePoolMoves": ["Bonk", "Laser", "Megaton Punch"],
-	"basePoolPassives": ["Impetuous"]
+	"basePoolMoves": ["Bonk", "Flame Strike", "Megaton Punch"],
+	"basePoolPassives": []
 }

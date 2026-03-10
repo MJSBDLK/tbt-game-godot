@@ -10,6 +10,8 @@
 ## - Creates a terrain set with 7 terrains (one per atlas, for painting)
 ## - Assigns correct peering bits to all 47 tiles in each atlas
 ## - Sets custom_data_0 (terrain_type) on every tile
+## - Sets custom_data_1 (is_modifier) on modifier tiles
+## - Sets custom_data_2 (spawn_faction) on spawn tiles
 ##
 ## NOTE: This will invalidate any existing painted TileMapLayers that
 ## reference old source IDs. Maps will need repainting.
@@ -36,13 +38,15 @@ const AUTOTILE_CONFIGS: Array = [
 
 # Stamp tiles: single 32x32 tiles with no autotiling, placed manually.
 # Combined into one atlas (stamp_tiles.png). Each entry is one column.
-# Each entry: [col, terrain_type, is_modifier]
+# Each entry: [col, terrain_type, is_modifier, spawn_faction]
+# spawn_faction: "" = not a spawn, "Player" or "Enemy" = spawn marker
 # To add more stamp tiles: add the 32x32 sprite to the next column in
 # stamp_tiles.png and append an entry here.
 const STAMP_TILE_ATLAS := "res://art/sprites/tilesets/stamp_tiles.png"
 const STAMP_TILES: Array = [
-	[0, "Regolith", false],
-	# Future: [1, "Plant", true], [2, "Castle", true], etc.
+	[0, "Regolith", false, ""],
+	[1, "",         false, "Player"],
+	[2, "",         false, "Enemy"],
 ]
 
 
@@ -135,6 +139,20 @@ func _run() -> void:
 		tileset.remove_source(source_id)
 	print("Removed %d old atlas sources" % old_ids.size())
 
+	# ── Step 1b: Ensure custom data layers exist ─────────────────────────
+	# Layer 0: terrain_type (String)
+	# Layer 1: is_modifier (bool)
+	# Layer 2: spawn_faction (String)
+	while tileset.get_custom_data_layers_count() < 3:
+		tileset.add_custom_data_layer()
+	tileset.set_custom_data_layer_name(0, "terrain_type")
+	tileset.set_custom_data_layer_type(0, TYPE_STRING)
+	tileset.set_custom_data_layer_name(1, "is_modifier")
+	tileset.set_custom_data_layer_type(1, TYPE_BOOL)
+	tileset.set_custom_data_layer_name(2, "spawn_faction")
+	tileset.set_custom_data_layer_type(2, TYPE_STRING)
+	print("Ensured 3 custom data layers: terrain_type, is_modifier, spawn_faction")
+
 	# ── Step 2: Remove existing terrain sets and recreate ───────────────
 	# Clear all terrain sets
 	while tileset.get_terrain_sets_count() > 0:
@@ -200,11 +218,15 @@ func _run() -> void:
 			var col: int = entry[0]
 			var terrain_type: String = entry[1]
 			var is_modifier: bool = entry[2]
+			var spawn_faction: String = entry[3]
 			stamp_source.create_tile(Vector2i(col, 0))
 			var tile_data: TileData = stamp_source.get_tile_data(Vector2i(col, 0), 0)
-			tile_data.set_custom_data("terrain_type", terrain_type)
+			if terrain_type != "":
+				tile_data.set_custom_data("terrain_type", terrain_type)
 			if is_modifier:
 				tile_data.set_custom_data("is_modifier", true)
+			if spawn_faction != "":
+				tile_data.set_custom_data("spawn_faction", spawn_faction)
 
 		print("Added stamp tile source %d: %d tiles (no autotiling)" % [stamp_source_id, STAMP_TILES.size()])
 

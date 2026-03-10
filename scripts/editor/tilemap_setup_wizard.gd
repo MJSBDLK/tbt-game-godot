@@ -77,6 +77,14 @@ func _run() -> void:
 	tilemap_builder.add_child(decoration_layer)
 	decoration_layer.owner = root
 
+	# SpawnTileLayer
+	var spawn_layer := TileMapLayer.new()
+	spawn_layer.name = "SpawnTileLayer"
+	if tileset != null:
+		spawn_layer.tile_set = tileset
+	tilemap_builder.add_child(spawn_layer)
+	spawn_layer.owner = root
+
 	# Camera2D
 	var camera := Camera2D.new()
 	camera.name = "Camera2D"
@@ -118,7 +126,7 @@ func _run() -> void:
 			{
 				"grid_x": 8,
 				"grid_y": 2,
-				"character_json_path": "res://data/characters/fire_warrior.json",
+				"character_json_path": "res://data/characters/grunt.json",
 				"faction": "enemy",
 				"ai_behavior": "aggressive"
 			}
@@ -143,5 +151,5 @@ func _run() -> void:
 	print("  2. Paint terrain on TerrainTileLayer (Tier 1 floor)")
 	print("  3. Paint modifiers on ModifierTileLayer (Tier 2, replaces floor)")
 	print("  4. Paint decorations on DecorationTileLayer (Tier 3, visual-only)")
-	print("  5. Edit the JSON to set spawn positions and metadata")
+	print("  5. Paint spawn points on SpawnTileLayer (blue P = player, red E = enemy)")
 	print("  6. Run the scene to test")

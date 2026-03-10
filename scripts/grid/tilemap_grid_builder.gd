@@ -21,11 +21,13 @@ extends Node2D
 @export var floor_layer_path: NodePath = ^"TerrainTileLayer"
 @export var modifier_layer_path: NodePath = ^"ModifierTileLayer"
 @export var decoration_layer_path: NodePath = ^"DecorationTileLayer"
+@export var spawn_layer_path: NodePath = ^"SpawnTileLayer"
 @export var tile_scene: PackedScene = null
 
 var _floor_layer: TileMapLayer = null
 var _modifier_layer: TileMapLayer = null
 var _decoration_layer: TileMapLayer = null
+var _spawn_layer: TileMapLayer = null
 var _tile_container: Node2D = null
 
 
@@ -33,6 +35,7 @@ func _ready() -> void:
 	_floor_layer = get_node_or_null(floor_layer_path) as TileMapLayer
 	_modifier_layer = get_node_or_null(modifier_layer_path) as TileMapLayer
 	_decoration_layer = get_node_or_null(decoration_layer_path) as TileMapLayer
+	_spawn_layer = get_node_or_null(spawn_layer_path) as TileMapLayer
 
 	if _floor_layer == null:
 		DebugConfig.log_error("TilemapGridBuilder: FloorLayer not found at '%s'" % str(floor_layer_path))
@@ -126,6 +129,8 @@ func _build_grid() -> void:
 	# Tile node's terrain_type_name (three-tier replacement).
 	if _modifier_layer != null:
 		_modifier_layer.visible = false
+	if _spawn_layer != null:
+		_spawn_layer.visible = false
 	if _decoration_layer != null:
 		_decoration_layer.z_index = 3  # Above floor tiles, below units
 
@@ -145,3 +150,32 @@ func _get_terrain_type_from_layer(layer: TileMapLayer, cell: Vector2i) -> String
 		return terrain_type
 
 	return ""
+
+
+## Returns spawn points from the SpawnTileLayer, grouped by faction.
+## Keys: "Player", "Enemy". Values: Array of Vector2i in game-grid coordinates (Y-up).
+## Returns empty dictionary if no spawn layer or no spawn tiles painted.
+func get_spawn_points() -> Dictionary:
+	var result: Dictionary = {"Player": [], "Enemy": []}
+
+	if _spawn_layer == null:
+		return result
+
+	for cell: Vector2i in _spawn_layer.get_used_cells():
+		var tile_data := _spawn_layer.get_cell_tile_data(cell)
+		if tile_data == null:
+			continue
+
+		var spawn_faction: Variant = tile_data.get_custom_data("spawn_faction")
+		if spawn_faction is String and spawn_faction != "":
+			var grid_x := cell.x
+			var grid_y := -cell.y  # Flip Y: Godot tilemap Y-down -> game grid Y-up
+			if result.has(spawn_faction):
+				result[spawn_faction].append(Vector2i(grid_x, grid_y))
+			else:
+				push_warning("TilemapGridBuilder: Unknown spawn_faction '%s' at cell %s" % [spawn_faction, cell])
+
+	DebugConfig.log_tilemap("TilemapGridBuilder: Found %d player spawns, %d enemy spawns" % [
+		result["Player"].size(), result["Enemy"].size()])
+
+	return result
