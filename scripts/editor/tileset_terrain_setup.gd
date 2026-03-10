@@ -1,27 +1,56 @@
-## EditorScript: Assigns terrain peering bits to all tiles in an atlas source.
+## EditorScript: Rebuilds battle_tileset.tres with all 7 Webtyler tilesets.
 ##
 ## HOW TO USE:
-## 1. Open battle_tileset.tres in the TileSet editor
-## 2. Make sure the Terrain Set (index 0) exists with mode "Match Corners and Sides"
-## 3. Make sure at least one Terrain exists within it (e.g., "Plains" at index 0)
-## 4. Run this script: Project > Tools > Run (or Ctrl+Shift+X)
+## 1. Open this script in the Script Editor
+## 2. Run via File > Run (or Ctrl+Shift+X)
 ##
 ## WHAT IT DOES:
-## All 7 Webtyler tilesets (384x128, 12x4 grid of 32x32 tiles) use the same
-## foreground/background edge pattern. This script assigns the correct terrain
-## peering bits to every tile so that Godot's terrain painting auto-picks the
-## right edge/corner/fill tile.
+## - Removes all existing atlas sources from the tileset
+## - Creates 7 atlas sources (one per Webtyler tileset image)
+## - Creates a terrain set with 7 terrains (one per atlas, for painting)
+## - Assigns correct peering bits to all 47 tiles in each atlas
+## - Sets custom_data_0 (terrain_type) on every tile
 ##
-## The peering data comes from Webtyler's own bitmask reference image
-## (github.com/wareya/webtyler/blob/main/etc/out%20bitmask.png).
+## NOTE: This will invalidate any existing painted TileMapLayers that
+## reference old source IDs. Maps will need repainting.
 @tool
 extends EditorScript
 
 
-# Peering bit data for the standard Webtyler 12x4 Godot-style tileset layout.
+# ── Tileset configurations ──────────────────────────────────────────────────
+# Each entry: [texture_path, terrain_name, terrain_type, terrain_color, is_modifier]
+# - terrain_name: what appears in Godot's terrain painting dropdown
+# - terrain_type: the gameplay type stored in custom_data_0 (matches terrain_data.json)
+# - is_modifier: whether this is a Tier 2 modifier (custom_data_1)
+# Autotile sources: Webtyler-generated 12x4 tilesets with terrain peering bits.
+# Each entry: [texture_path, terrain_name, terrain_type, terrain_color, is_modifier]
+const AUTOTILE_CONFIGS: Array = [
+	["res://art/sprites/tilesets/blue_sand.png",            "Blue Sand / Regolith",        "Sand",  Color(0.4, 0.6, 0.9),  false],
+	["res://art/sprites/tilesets/orange_sand.png",          "Orange Sand / Regolith",      "Sand",  Color(0.9, 0.6, 0.3),  false],
+	["res://art/sprites/tilesets/black_sand.png",           "Black Sand / Regolith",       "Sand",  Color(0.3, 0.3, 0.3),  false],
+	["res://art/sprites/tilesets/orange_purple_sand.png",   "Orange Sand / Purple Sand",   "Sand",  Color(0.7, 0.4, 0.7),  false],
+	["res://art/sprites/tilesets/water.png",                "Water / Regolith",            "Water", Color(0.2, 0.4, 0.9),  false],
+	["res://art/sprites/tilesets/mountain.png",             "Mountain / Regolith",         "Rock",  Color(0.5, 0.5, 0.5),  false],
+	["res://art/sprites/tilesets/road.png",                 "Road / Regolith",             "Road",  Color(0.6, 0.5, 0.4),  false],
+]
+
+# Stamp tiles: single 32x32 tiles with no autotiling, placed manually.
+# Combined into one atlas (stamp_tiles.png). Each entry is one column.
+# Each entry: [col, terrain_type, is_modifier]
+# To add more stamp tiles: add the 32x32 sprite to the next column in
+# stamp_tiles.png and append an entry here.
+const STAMP_TILE_ATLAS := "res://art/sprites/tilesets/stamp_tiles.png"
+const STAMP_TILES: Array = [
+	[0, "Regolith", false],
+	# Future: [1, "Plant", true], [2, "Castle", true], etc.
+]
+
+
+# ── Peering bit data ────────────────────────────────────────────────────────
+# Standard Webtyler 12x4 Godot-style tileset layout.
 # Each entry: [col, row, bitmask_string] where bits are TL T TR L R BL B BR
 # 1 = neighbor is same terrain (foreground), 0 = neighbor is different (background)
-# Source: Webtyler bitmask reference (etc/out bitmask.png)
+# Source: Webtyler bitmask reference (github.com/wareya/webtyler/blob/main/etc/out%20bitmask.png)
 const TILE_PEERING_DATA: Array = [
 	# Row 0
 	[0, 0, "00000010"],
@@ -97,76 +126,134 @@ func _run() -> void:
 		printerr("Could not load battle_tileset.tres")
 		return
 
-	var terrain_set := 0
-	var terrain_id := 0
+	# ── Step 1: Remove all existing atlas sources ───────────────────────
+	var old_count := tileset.get_source_count()
+	var old_ids: Array[int] = []
+	for i in range(old_count):
+		old_ids.append(tileset.get_source_id(i))
+	for source_id in old_ids:
+		tileset.remove_source(source_id)
+	print("Removed %d old atlas sources" % old_ids.size())
 
-	# Create terrain set if it doesn't exist
-	if tileset.get_terrain_sets_count() == 0:
-		tileset.add_terrain_set()
-		print("Created terrain set 0")
-	tileset.set_terrain_set_mode(terrain_set, TileSet.TERRAIN_MODE_MATCH_CORNERS_AND_SIDES)
+	# ── Step 2: Remove existing terrain sets and recreate ───────────────
+	# Clear all terrain sets
+	while tileset.get_terrain_sets_count() > 0:
+		tileset.remove_terrain_set(0)
 
-	# Create terrain within the set if it doesn't exist
-	if tileset.get_terrains_count(terrain_set) == 0:
-		tileset.add_terrain(terrain_set)
-		print("Created terrain 0 in terrain set 0")
-	tileset.set_terrain_name(terrain_set, terrain_id, "Plains")
-	tileset.set_terrain_color(terrain_set, terrain_id, Color(0.8, 0.5, 0.2))  # Orange
+	# Create terrain set 0 with Match Corners and Sides mode
+	tileset.add_terrain_set()
+	tileset.set_terrain_set_mode(0, TileSet.TERRAIN_MODE_MATCH_CORNERS_AND_SIDES)
+	print("Created terrain set 0 (Match Corners and Sides)")
 
-	# Apply peering bits to every atlas source in the tileset
-	var source_count := tileset.get_source_count()
-	for source_index in range(source_count):
-		var source_id := tileset.get_source_id(source_index)
-		var source := tileset.get_source(source_id) as TileSetAtlasSource
-		if source == null:
+	# Create one terrain per autotile config
+	for i in range(AUTOTILE_CONFIGS.size()):
+		var config: Array = AUTOTILE_CONFIGS[i]
+		var terrain_name: String = config[1]
+		var terrain_color: Color = config[3]
+		tileset.add_terrain(0)
+		tileset.set_terrain_name(0, i, terrain_name)
+		tileset.set_terrain_color(0, i, terrain_color)
+		print("  Created terrain %d: %s" % [i, terrain_name])
+
+	# ── Step 3a: Create autotile atlas sources ──────────────────────────
+	for i in range(AUTOTILE_CONFIGS.size()):
+		var config: Array = AUTOTILE_CONFIGS[i]
+		var texture_path: String = config[0]
+		var terrain_name: String = config[1]
+		var terrain_type: String = config[2]
+		var is_modifier: bool = config[4]
+
+		var texture: Texture2D = load(texture_path)
+		if texture == null:
+			printerr("Could not load texture: %s" % texture_path)
 			continue
 
-		var atlas_size := source.get_atlas_grid_size()
-		# Only process multi-tile atlases (skip single-tile placeholders)
-		if atlas_size.x <= 1 and atlas_size.y <= 1:
-			print("  Skipping source %d (single tile, likely placeholder)" % source_id)
-			continue
+		var source := TileSetAtlasSource.new()
+		source.texture = texture
+		source.texture_region_size = Vector2i(32, 32)
+		tileset.add_source(source, i)
 
-		print("Processing source %d: %dx%d grid" % [source_id, atlas_size.x, atlas_size.y])
-		_apply_peering_bits(source, terrain_set, terrain_id)
+		# Create all 47 tiles in the 12x4 Webtyler grid
+		for row in range(4):
+			for col in range(12):
+				if col == 10 and row == 1:
+					continue  # Empty cell in Webtyler layout
+				source.create_tile(Vector2i(col, row))
 
-	# Save the resource
+		_apply_peering_bits(source, i)
+		_apply_custom_data_grid(source, terrain_type, is_modifier, 12, 4)
+		print("Added autotile source %d: %s → %s (%d tiles)" % [i, terrain_name, terrain_type, source.get_tiles_count()])
+
+	# ── Step 3b: Create stamp tile atlas source ─────────────────────────
+	var stamp_texture: Texture2D = load(STAMP_TILE_ATLAS)
+	if stamp_texture == null:
+		printerr("Could not load stamp tile atlas: %s" % STAMP_TILE_ATLAS)
+	else:
+		var stamp_source := TileSetAtlasSource.new()
+		stamp_source.texture = stamp_texture
+		stamp_source.texture_region_size = Vector2i(32, 32)
+		# Use source ID after the autotile sources
+		var stamp_source_id := AUTOTILE_CONFIGS.size()
+		tileset.add_source(stamp_source, stamp_source_id)
+
+		for entry in STAMP_TILES:
+			var col: int = entry[0]
+			var terrain_type: String = entry[1]
+			var is_modifier: bool = entry[2]
+			stamp_source.create_tile(Vector2i(col, 0))
+			var tile_data: TileData = stamp_source.get_tile_data(Vector2i(col, 0), 0)
+			tile_data.set_custom_data("terrain_type", terrain_type)
+			if is_modifier:
+				tile_data.set_custom_data("is_modifier", true)
+
+		print("Added stamp tile source %d: %d tiles (no autotiling)" % [stamp_source_id, STAMP_TILES.size()])
+
+	# ── Step 4: Save ────────────────────────────────────────────────────
 	ResourceSaver.save(tileset, "res://resources/battle_tileset.tres")
-	print("Done! Terrain peering bits saved to battle_tileset.tres")
+	print("")
+	print("Done! Rebuilt battle_tileset.tres:")
+	print("  %d autotile sources (terrain painting)" % AUTOTILE_CONFIGS.size())
+	print("  1 stamp tile source (manual placement)")
 	print("Reload the TileSet editor to see changes.")
+	print("NOTE: Existing painted maps will need repainting.")
 
 
-func _apply_peering_bits(source: TileSetAtlasSource, terrain_set: int, terrain_id: int) -> void:
-	var tiles_set := 0
-
+func _apply_peering_bits(source: TileSetAtlasSource, terrain_index: int) -> void:
 	for entry in TILE_PEERING_DATA:
 		var col: int = entry[0]
 		var row: int = entry[1]
 		var bitmask: String = entry[2]
 		var coords := Vector2i(col, row)
 
-		# Check the tile exists in this atlas
 		if not source.has_tile(coords):
-			# Try to create it (some tiles may not be auto-created)
-			print("  Tile %s not found, skipping" % str(coords))
 			continue
 
 		var tile_data: TileData = source.get_tile_data(coords, 0)
 		if tile_data == null:
 			continue
 
-		# Set this tile as belonging to the terrain set and terrain
-		tile_data.terrain_set = terrain_set
-		tile_data.terrain = terrain_id
+		tile_data.terrain_set = 0
+		tile_data.terrain = terrain_index
 
-		# Set each peering bit
 		for bit_index in range(8):
 			var neighbor: TileSet.CellNeighbor = BIT_TO_NEIGHBOR[bit_index]
 			if bitmask[bit_index] == "1":
-				tile_data.set_terrain_peering_bit(neighbor, terrain_id)
+				tile_data.set_terrain_peering_bit(neighbor, terrain_index)
 			else:
 				tile_data.set_terrain_peering_bit(neighbor, -1)
 
-		tiles_set += 1
 
-	print("  Set peering bits on %d tiles" % tiles_set)
+func _apply_custom_data_grid(source: TileSetAtlasSource, terrain_type: String, is_modifier: bool, cols: int, rows: int) -> void:
+	for row in range(rows):
+		for col in range(cols):
+			if col == 10 and row == 1:
+				continue
+			var coords := Vector2i(col, row)
+			if not source.has_tile(coords):
+				continue
+			var tile_data: TileData = source.get_tile_data(coords, 0)
+			if tile_data == null:
+				continue
+			tile_data.set_custom_data("terrain_type", terrain_type)
+			if is_modifier:
+				tile_data.set_custom_data("is_modifier", true)

@@ -95,9 +95,9 @@
     "avoidModifier": { "default": -10 }
   },
   "Desert": {
-    "_doc": "Dry, sandy; avoid penalty for grounded units",
+    "_doc": "Arid desert landscape, no movement impediment. Immune to fire and flood.",
     "walkable": { "default": true },
-    "movePenalty": { "default": 2 },
+    "movePenalty": { "default": 1 },
     "attackMultiplier": { "default": 1 },
     "terrainStatusImmunity": ["Scorch", "Flood"],
     "defenseModifier": { "default": 0 },
@@ -153,11 +153,29 @@
     "_doc": "Ice-covered terrain, difficult to traverse, cold slightly impedes flying units as well. Immune to freezing effects, amplifies Ice and Electric attacks"
   },
   "RainForest": {},
+  "Regolith": {
+    "_doc": "Moon dust terrain, neutral default for lunar maps. Slight Gravity bonus.",
+    "walkable": { "default": true },
+    "movePenalty": { "default": 1 },
+    "attackMultiplier": { "default": 1, "Gravity": 1.1 },
+    "terrainStatusImmunity": [],
+    "defenseModifier": { "default": 0 },
+    "avoidModifier": { "default": 0 }
+  },
   "Road": {
     "walkable": { "default": true },
     "movePenalty": { "default": 0.5, "Air": 1 },
     "attackMultiplier": { "default": 1 },
     "terrainStatusImmunity": [],
+    "defenseModifier": { "default": 0 },
+    "avoidModifier": { "default": 0 }
+  },
+  "Sand": {
+    "_doc": "Loose sandy ground, slight movement penalty. Visual variants: blue_sand, orange_sand, black_sand, orange_purple_sand.",
+    "walkable": { "default": true },
+    "movePenalty": { "default": 2 },
+    "attackMultiplier": { "default": 1 },
+    "terrainStatusImmunity": ["Scorch", "Flood"],
     "defenseModifier": { "default": 0 },
     "avoidModifier": { "default": 0 }
   },
