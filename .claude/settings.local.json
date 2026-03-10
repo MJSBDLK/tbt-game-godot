@@ -34,7 +34,19 @@
       "Bash(convert --version)",
       "Bash(magick --version)",
       "Bash(git checkout -- resources/ui/unit_row.tscn art/sprites/ui/ui_text_container.tscn scenes/ui/panels/combat_preview_panel/unit_container.tscn)",
-      "Bash(git reset HEAD .claude/settings.local.json)"
+      "Bash(git reset HEAD .claude/settings.local.json)",
+      "Read(//home/mjsbdlk/Documents/Projects/tbt-game/Assets/Art/Sprites/**)",
+      "WebSearch",
+      "WebFetch(domain:www.imaginaryrobots.net)",
+      "WebFetch(domain:godotforums.org)",
+      "Read(//home/mjsbdlk/Documents/Projects/tbt-game/Assets/Art/**)",
+      "Read(//home/mjsbdlk/Documents/Projects/tbt-game/Assets/**)",
+      "Bash(sort -k2)",
+      "Bash(md5sum \"../tbt-game-unity/Assets/Art/Tiles/Godot-Style Tilesets/\"*.png)",
+      "Bash(for f:*)",
+      "Bash(do echo:*)",
+      "Read(//home/mjsbdlk/Documents/Projects/tbt-game-godot/**)",
+      "Bash(done)"
     ]
   }
 }

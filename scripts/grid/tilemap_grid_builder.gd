@@ -121,9 +121,10 @@ func _build_grid() -> void:
 		GridManager.register_tile(tile)
 		tile_count += 1
 
-	# Hide gameplay TileMapLayers — the Tile nodes are the visual representation now
-	# Decoration layer stays visible (Tier 3: visual-only, no gameplay impact)
-	_floor_layer.visible = false
+	# Keep TileMapLayers visible — they display the actual tileset art.
+	# Tile nodes are invisible gameplay objects (selection, occupancy, terrain queries).
+	# Modifier layer is hidden because its gameplay effect is already baked into the
+	# Tile node's terrain_type_name (three-tier replacement).
 	if _modifier_layer != null:
 		_modifier_layer.visible = false
 	if _decoration_layer != null:

@@ -121,16 +121,23 @@ func clear_unit() -> void:
 # =============================================================================
 
 func _load_terrain_sprite() -> void:
-	if _sprite == null:
-		return
-	var sprite_path := "res://art/sprites/placeholder_terrain/terrain_%s.png" % terrain_type_name.to_lower()
-	if ResourceLoader.exists(sprite_path):
-		_sprite.texture = load(sprite_path)
+	# The TileMapLayer displays the actual tileset art. The Tile sprite is only
+	# used as a color overlay for highlights (movement range, selection, hover).
+	# Start fully transparent so it doesn't overdraw the tilemap.
+	if _sprite != null:
+		_sprite.modulate = Color.TRANSPARENT
 
 
 func set_color(color: Color) -> void:
-	if _sprite != null:
-		_sprite.modulate = color
+	if _sprite == null:
+		return
+	# TILE_DEFAULT (white) means "no highlight" — make the overlay fully transparent.
+	# Any other color is a highlight (movement range, attack range, hover, selected)
+	# shown as a semi-transparent overlay on top of the TileMapLayer art.
+	if color == Color.WHITE:
+		_sprite.modulate = Color.TRANSPARENT
+	else:
+		_sprite.modulate = Color(color, 0.45)
 
 
 # =============================================================================
