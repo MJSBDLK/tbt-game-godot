@@ -6,5 +6,9 @@
 - [ ] The palette ColorPicker currently doesn't support alpha - must fix
 
 ## Misc
-- [ ] Color code the map health bars according to faction
+- [x] Color code the map health bars according to faction
 - [ ] Fix the color and alpha values of the ColorRect in the combat preview panel
+
+## For Lawrence (Art!)
+- [ ] 
+

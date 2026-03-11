@@ -324,15 +324,15 @@ func _instantiate_overlays() -> void:
 # =============================================================================
 
 func _load_border_textures() -> void:
-	_border_small = _load_texture("res://art/sprites/ui/panel_border_small.png")
-	_border_tall_left = _load_texture("res://art/sprites/ui/panel_border_tall.png")
-	_border_tall_right = _load_texture("res://art/sprites/ui/panel_border_tall_right.png")
+	_border_small = _load_texture("res://art/sprites/ui/hud_panel/panel_border_small.png")
+	_border_tall_left = _load_texture("res://art/sprites/ui/hud_panel/panel_border_tall.png")
+	_border_tall_right = _load_texture("res://art/sprites/ui/hud_panel/panel_border_tall_right.png")
 
 
 func _load_texture(path: String) -> Texture2D:
 	if ResourceLoader.exists(path):
 		return load(path)
-	push_warning("UIManager: Missing border texture '%s'" % path)
+	DebugConfig.log_ui("UIManager: Missing border texture '%s'" % path)
 	return null
 
 

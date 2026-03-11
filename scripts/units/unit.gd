@@ -73,6 +73,7 @@ var _selection_tween: Tween = null
 
 # Child node references
 var _sprite: Sprite2D = null
+var _health_bar: Node2D = null
 var _health_bar_background: ColorRect = null
 var _health_bar_fill: ColorRect = null
 var _path_visualizer: Node2D = null  # PathVisualizer
@@ -84,6 +85,7 @@ var _path_visualizer: Node2D = null  # PathVisualizer
 
 func _ready() -> void:
 	_sprite = $Sprite2D as Sprite2D
+	_health_bar = $HealthBar as Node2D
 	_health_bar_background = $HealthBar/Background as ColorRect
 	_health_bar_fill = $HealthBar/Fill as ColorRect
 	if has_node("PathVisualizer"):
@@ -111,6 +113,7 @@ func initialize(starting_tile: Tile) -> void:
 	# Visuals
 	_load_character_sprite()
 	_apply_faction_healthbar()
+	_update_healthbar_position()
 	_update_z_index()
 	_update_health_bar()
 
@@ -345,7 +348,6 @@ func _update_health_bar() -> void:
 		return
 	var health_percent := float(current_hp) / float(character_data.max_hp)
 	_health_bar_fill.scale.x = health_percent
-	_health_bar_fill.color = GameColors.get_health_color(health_percent)
 
 
 # =============================================================================
@@ -550,19 +552,28 @@ func _load_character_sprite() -> void:
 	_sprite.offset = trim_offset
 
 
-## Set health bar background to faction color for visual identification.
+## Set health bar fill to faction color. Background stays dark for contrast.
 func _apply_faction_healthbar() -> void:
-	if _health_bar_background == null:
+	if _health_bar_background == null or _health_bar_fill == null:
 		return
+	_health_bar_background.color = Color(0.1, 0.1, 0.1, 1.0)
 	match faction:
 		Enums.UnitFaction.PLAYER:
-			_health_bar_background.color = GameColors.FACTION_HEALTHBAR_PLAYER
+			_health_bar_fill.color = GameColors.FACTION_HEALTHBAR_PLAYER
 		Enums.UnitFaction.ENEMY:
-			_health_bar_background.color = GameColors.FACTION_HEALTHBAR_ENEMY
+			_health_bar_fill.color = GameColors.FACTION_HEALTHBAR_ENEMY
 		Enums.UnitFaction.ALLY:
-			_health_bar_background.color = GameColors.FACTION_HEALTHBAR_ALLY
+			_health_bar_fill.color = GameColors.FACTION_HEALTHBAR_ALLY
 		Enums.UnitFaction.NEUTRAL:
-			_health_bar_background.color = GameColors.FACTION_HEALTHBAR_NEUTRAL
+			_health_bar_fill.color = GameColors.FACTION_HEALTHBAR_NEUTRAL
+
+
+## Position the health bar just above the topmost pixel of the sprite.
+func _update_healthbar_position() -> void:
+	if _health_bar == null or _sprite == null or _sprite.texture == null:
+		return
+	var sprite_top := _sprite.offset.y - _sprite.texture.get_height() / 2.0
+	_health_bar.position.y = sprite_top - 3.0
 
 
 ## Reset sprite modulate to full color (active unit).
@@ -576,8 +587,15 @@ func _apply_active_modulate() -> void:
 func _apply_acted_modulate() -> void:
 	if _sprite == null:
 		return
-	# Desaturated + darkened — works with any sprite art
-	_sprite.modulate = Color(0.5, 0.5, 0.5, 1.0)
+	match faction:
+		Enums.UnitFaction.PLAYER:
+			_sprite.modulate = GameColors.PLAYER_UNIT_ACTED
+		Enums.UnitFaction.ENEMY:
+			_sprite.modulate = GameColors.ENEMY_UNIT_ACTED
+		Enums.UnitFaction.ALLY:
+			_sprite.modulate = GameColors.ALLY_UNIT_ACTED
+		_:
+			_sprite.modulate = Color(0.5, 0.5, 0.5, 1.0)
 
 
 func _update_z_index() -> void:
