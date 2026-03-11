@@ -116,7 +116,7 @@ func _build_grid() -> void:
 		# Z-index setup
 		var z_handler := GridZIndexHandler.new()
 		z_handler.layer = ZIndexCalculator.ZIndexLayer.FLOOR_TILES
-		z_handler.row_override = (min_y * -1 + grid_height - 1) - grid_y  # Convert to row index
+		z_handler.row_override = max_y + grid_y  # Front row (cell.y=max_y) → index 0 (highest z)
 		tile.add_child(z_handler)
 
 		# Register with GridManager

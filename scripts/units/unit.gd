@@ -28,6 +28,7 @@ signal combat_completed(attacker: Unit, defender: Unit)
 const MOVEMENT_SCALE: int = 2
 const MOVE_SPEED: float = 200.0  # Pixels per second
 const HIT_DELAY: float = 0.3  # Seconds between combat hits
+const BOOP_DISTANCE: float = 8.0  # Pixels the sprite bumps toward target during attack
 
 
 # =============================================================================
@@ -448,11 +449,7 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 
 ## Execute a single hit against a target. Calculates damage, spawns popup, optionally applies status.
 func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
-	# Stub attack animation
-	if move.damage_type == Enums.DamageType.PHYSICAL:
-		await _play_physical_attack_stub()
-	else:
-		await _play_special_attack_stub()
+	await _play_attack_animation(target)
 
 	var damage := DamageCalculator.calculate_damage(self, target, move)
 	var type_multiplier := DamageCalculator.get_type_effectiveness(self, target, move)
@@ -472,20 +469,25 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 		StatusEffectSystem.apply_status_effect(self, target, move)
 
 
-func _play_physical_attack_stub() -> void:
-	# Quick bump animation toward target direction
-	await get_tree().create_timer(0.15).timeout
-
-
-func _play_special_attack_stub() -> void:
-	# Slightly longer delay for special attacks
-	await get_tree().create_timer(0.25).timeout
+## Boop animation: sprite bumps toward the target and snaps back.
+## Used as a placeholder until real attack animations are added.
+func _play_attack_animation(target: Unit) -> void:
+	if _sprite == null or target == null:
+		await get_tree().create_timer(0.15).timeout
+		return
+	var direction := (target.global_position - global_position).normalized()
+	var boop_offset := direction * BOOP_DISTANCE
+	var tween := create_tween()
+	tween.tween_property(_sprite, "position", boop_offset, 0.08).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_sprite, "position", Vector2.ZERO, 0.12).set_ease(Tween.EASE_IN)
+	await tween.finished
 
 
 func _spawn_damage_popup(target: Unit, damage: int, effectiveness_text: String, multiplier: float) -> void:
 	var popup_scene := preload("res://scenes/ui/damage_popup.tscn")
 	var popup: Node2D = popup_scene.instantiate()
 	popup.global_position = target.global_position + Vector2(0, -8)
+	popup.z_index = target.z_index + 2  # UNITS layer + 2 = UI layer, always above defending unit
 	get_tree().current_scene.add_child(popup)
 	if popup.has_method("initialize"):
 		popup.call("initialize", damage, effectiveness_text, multiplier)
@@ -588,5 +590,5 @@ func _update_z_index() -> void:
 		return
 	var offset_y: int = grid_manager.grid_offset_y
 	var height: int = grid_manager.grid_height
-	var row_index: int = (offset_y + height - 1) - current_tile.grid_y
+	var row_index: int = current_tile.grid_y - offset_y  # Front row (lowest grid_y) → index 0 (highest z)
 	z_index = ZIndexCalculator.calculate_sorting_order(row_index, 100, ZIndexCalculator.ZIndexLayer.UNITS)
