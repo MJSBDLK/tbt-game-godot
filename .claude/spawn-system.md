@@ -29,11 +29,9 @@ Visual, editor-paintable spawn system using a 4th TileMapLayer ("SpawnTileLayer"
 
 ## Testing TODO
 
-- [ ] Run `tileset_terrain_setup.gd` editor script (Ctrl+Shift+X) to rebuild tileset with `spawn_faction` custom_data
-- [ ] Open `test_map_01.tscn` — verify spawn markers are visible on SpawnTileLayer in editor
-- [ ] F5/F6 — spawn tiles hidden at runtime, units spawn at painted positions
-- [ ] Verify fallback: remove spawn tiles → should fall back to JSON spawns
-- [ ] Verify fallback: remove JSON path → should fall back to hardcoded spawns
+- [x] Run `tileset_terrain_setup.gd` editor script (Ctrl+Shift+X) to rebuild tileset with `spawn_faction` custom_data
+- [x] Open `test_map_01.tscn` — verify spawn markers are visible on SpawnTileLayer in editor
+- [x] F5/F6 — spawn tiles hidden at runtime, units spawn at painted positions
 
 ## Key Details
 

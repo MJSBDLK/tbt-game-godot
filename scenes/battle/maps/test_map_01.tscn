@@ -7,7 +7,6 @@
 
 [node name="TestMap01" type="Node2D" unique_id=89991757]
 script = ExtResource("3_battle")
-map_data_path = "res://data/maps/test_map_01.json"
 
 [node name="TilemapBuilder" type="Node2D" parent="." unique_id=1418653410]
 script = ExtResource("1_builder")
@@ -22,8 +21,8 @@ tile_set = ExtResource("2_tileset")
 [node name="DecorationTileLayer" type="TileMapLayer" parent="TilemapBuilder" unique_id=1675077987]
 tile_set = ExtResource("2_tileset")
 
-[node name="SpawnTileLayer" type="TileMapLayer" parent="TilemapBuilder"]
-tile_map_data = PackedByteArray("AAABAP7/BwABAAAAAAABAPv/BwABAAAAAAAHAP7/BwACAAAAAAAIAPv/BwACAAAAAAAHAPn/BwACAAAAAAA=")
+[node name="SpawnTileLayer" type="TileMapLayer" parent="TilemapBuilder" unique_id=151676986]
+tile_map_data = PackedByteArray("AAABAP7/BwABAAAAAAABAPv/BwABAAAAAAAFAP//BwACAAAAAAAFAPr/BwACAAAAAAAHAP3/BwACAAAAAAA=")
 tile_set = ExtResource("2_tileset")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1875369592]

@@ -9,7 +9,7 @@
 [ext_resource type="Texture2D" uid="uid://dcfcps0iehfc" path="res://art/sprites/tilesets/road.png" id="7_4u2l7"]
 [ext_resource type="Texture2D" uid="uid://dfricg00mp1ss" path="res://art/sprites/tilesets/stamp_tiles.png" id="8_oowi2"]
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_76nrr"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_oowi2"]
 texture = ExtResource("1_oowi2")
 texture_region_size = Vector2i(32, 32)
 0:0/0 = 0
@@ -389,7 +389,7 @@ texture_region_size = Vector2i(32, 32)
 11:3/0/terrains_peering_bit/top_side = 0
 11:3/0/custom_data_0 = "Sand"
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_lfpqc"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_76nrr"]
 texture = ExtResource("2_rg47j")
 texture_region_size = Vector2i(32, 32)
 0:0/0 = 0
@@ -769,7 +769,7 @@ texture_region_size = Vector2i(32, 32)
 11:3/0/terrains_peering_bit/top_side = 1
 11:3/0/custom_data_0 = "Sand"
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_7q4t7"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_lfpqc"]
 texture = ExtResource("3_oowi2")
 texture_region_size = Vector2i(32, 32)
 0:0/0 = 0
@@ -1149,7 +1149,7 @@ texture_region_size = Vector2i(32, 32)
 11:3/0/terrains_peering_bit/top_side = 2
 11:3/0/custom_data_0 = "Sand"
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_4u2l7"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_7q4t7"]
 texture = ExtResource("4_76nrr")
 texture_region_size = Vector2i(32, 32)
 0:0/0 = 0
@@ -1529,7 +1529,7 @@ texture_region_size = Vector2i(32, 32)
 11:3/0/terrains_peering_bit/top_side = 3
 11:3/0/custom_data_0 = "Sand"
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_f5mrn"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_4u2l7"]
 texture = ExtResource("5_lfpqc")
 texture_region_size = Vector2i(32, 32)
 0:0/0 = 0
@@ -1909,7 +1909,7 @@ texture_region_size = Vector2i(32, 32)
 11:3/0/terrains_peering_bit/top_side = 4
 11:3/0/custom_data_0 = "Water"
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_p7w3w"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_f5mrn"]
 texture = ExtResource("6_7q4t7")
 texture_region_size = Vector2i(32, 32)
 0:0/0 = 0
@@ -2289,7 +2289,7 @@ texture_region_size = Vector2i(32, 32)
 11:3/0/terrains_peering_bit/top_side = 5
 11:3/0/custom_data_0 = "Rock"
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_tices"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_p7w3w"]
 texture = ExtResource("7_4u2l7")
 texture_region_size = Vector2i(32, 32)
 0:0/0 = 0
@@ -2669,11 +2669,15 @@ texture_region_size = Vector2i(32, 32)
 11:3/0/terrains_peering_bit/top_side = 6
 11:3/0/custom_data_0 = "Road"
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_2hqrx"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_tices"]
 texture = ExtResource("8_oowi2")
 texture_region_size = Vector2i(32, 32)
 0:0/0 = 0
 0:0/0/custom_data_0 = "Regolith"
+1:0/0 = 0
+1:0/0/custom_data_2 = "Player"
+2:0/0 = 0
+2:0/0/custom_data_2 = "Enemy"
 
 [resource]
 tile_size = Vector2i(32, 32)
@@ -2696,11 +2700,13 @@ custom_data_layer_0/name = "terrain_type"
 custom_data_layer_0/type = 4
 custom_data_layer_1/name = "is_modifier"
 custom_data_layer_1/type = 1
-sources/0 = SubResource("TileSetAtlasSource_76nrr")
-sources/1 = SubResource("TileSetAtlasSource_lfpqc")
-sources/2 = SubResource("TileSetAtlasSource_7q4t7")
-sources/3 = SubResource("TileSetAtlasSource_4u2l7")
-sources/4 = SubResource("TileSetAtlasSource_f5mrn")
-sources/5 = SubResource("TileSetAtlasSource_p7w3w")
-sources/6 = SubResource("TileSetAtlasSource_tices")
-sources/7 = SubResource("TileSetAtlasSource_2hqrx")
+custom_data_layer_2/name = "spawn_faction"
+custom_data_layer_2/type = 4
+sources/0 = SubResource("TileSetAtlasSource_oowi2")
+sources/1 = SubResource("TileSetAtlasSource_76nrr")
+sources/2 = SubResource("TileSetAtlasSource_lfpqc")
+sources/3 = SubResource("TileSetAtlasSource_7q4t7")
+sources/4 = SubResource("TileSetAtlasSource_4u2l7")
+sources/5 = SubResource("TileSetAtlasSource_f5mrn")
+sources/6 = SubResource("TileSetAtlasSource_p7w3w")
+sources/7 = SubResource("TileSetAtlasSource_tices")
