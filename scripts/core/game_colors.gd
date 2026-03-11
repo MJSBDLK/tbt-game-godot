@@ -75,6 +75,8 @@ static var UNIT_ACTED: Color:
 # UI COLORS
 # =============================================================================
 
+static var HUD_PANEL_BACKGROUND: Color:
+	get: return Color("#302d27d9")  # #302d27 @ 85% — standard background for all HUD panels
 static var MENU_BACKGROUND: Color:
 	get: return with_alpha(GameColorPalette.get_color("Blue", 3), 0.9)
 static var MENU_BORDER: Color:
@@ -94,9 +96,13 @@ static var BUTTON_PRESSED: Color:
 # =============================================================================
 
 static var TEXT_PRIMARY: Color:
-	get: return GameColorPalette.get_color("Gray", 10)
+	get: return GameColorPalette.get_color("Azure", 9)   # #dbf3ff
+static var TEXT_PRIMARY_GLOW: Color:
+	get: return GameColorPalette.get_color("Azure", 5)   # #4c8cbb
 static var TEXT_SECONDARY: Color:
-	get: return GameColorPalette.get_color("Gray", 7)
+	get: return GameColorPalette.get_color("YellowOrange", 8)  # #ffe797
+static var TEXT_SECONDARY_GLOW: Color:
+	get: return GameColorPalette.get_color("Magenta", 4)  # #7d4181
 static var TEXT_SUCCESS: Color:
 	get: return GameColorPalette.get_color("Green", 6)
 static var TEXT_WARNING: Color:
@@ -184,25 +190,29 @@ static var PDA_TEXT_HIGHLIGHT: Color:
 # =============================================================================
 
 static var MULTIPLIER_X4_LIGHT: Color:
-	get: return GameColorPalette.get_color("Red", 9)
+	get: return GameColorPalette.get_color("Red", 6)
 static var MULTIPLIER_X4_DARK: Color:
-	get: return GameColorPalette.get_color("Red", 4)
+	get: return GameColorPalette.get_color("Red", 2)
+static var MULTIPLIER_X3_LIGHT: Color:
+	get: return GameColorPalette.get_color("Orange", 6)
+static var MULTIPLIER_X3_DARK: Color:
+	get: return GameColorPalette.get_color("Orange", 3)
 static var MULTIPLIER_X2_LIGHT: Color:
-	get: return GameColorPalette.get_color("Orange", 9)
+	get: return GameColorPalette.get_color("YellowOrange", 7)
 static var MULTIPLIER_X2_DARK: Color:
-	get: return GameColorPalette.get_color("Orange", 5)
+	get: return GameColorPalette.get_color("YellowOrange", 3)
 static var MULTIPLIER_X1_LIGHT: Color:
-	get: return GameColorPalette.get_color("Gray", 9)
+	get: return GameColorPalette.get_color("Yellow", 7)
 static var MULTIPLIER_X1_DARK: Color:
-	get: return GameColorPalette.get_color("Gray", 5)
+	get: return GameColorPalette.get_color("Yellow", 4)
 static var MULTIPLIER_HALF_LIGHT: Color:
-	get: return GameColorPalette.get_color("Cyan", 9)
+	get: return GameColorPalette.get_color("Green", 7)
 static var MULTIPLIER_HALF_DARK: Color:
-	get: return GameColorPalette.get_color("Cyan", 5)
+	get: return GameColorPalette.get_color("Green", 3)
 static var MULTIPLIER_X0_LIGHT: Color:
-	get: return GameColorPalette.get_color("Gray", 9)
+	get: return GameColorPalette.get_color("Cyan", 7)
 static var MULTIPLIER_X0_DARK: Color:
-	get: return GameColorPalette.get_color("Gray", 3)
+	get: return GameColorPalette.get_color("Cyan", 3)
 
 
 # =============================================================================
@@ -242,6 +252,8 @@ static func get_effectiveness_color(effectiveness: float, is_heal: bool = false)
 		return HEALTH_FULL
 	if effectiveness >= 4.0:
 		return MULTIPLIER_X4_LIGHT
+	elif effectiveness >= 3.0:
+		return MULTIPLIER_X3_LIGHT
 	elif effectiveness >= 2.0:
 		return MULTIPLIER_X2_LIGHT
 	elif effectiveness == 1.0:
