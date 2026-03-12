@@ -30,16 +30,12 @@ anchor_right = 1.0
 grow_horizontal = 0
 
 [node name="ColorRect" type="ColorRect" parent="Control" unique_id=597994429]
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
+layout_mode = 0
 offset_left = -134.0
-offset_top = 6.0
+offset_top = 5.0
 offset_right = -6.0
-offset_bottom = 134.0
-grow_horizontal = 0
-color = Color(0, 0, 0, 1)
+offset_bottom = 133.0
+color = Color(0.09019608, 0.08235294, 0.07058824, 0.85)
 
 [node name="Sprite2D2" type="Sprite2D" parent="Control" unique_id=346026792]
 position = Vector2(-70, 70)
