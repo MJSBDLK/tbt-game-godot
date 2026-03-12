@@ -47,6 +47,7 @@ const STAMP_TILES: Array = [
 	[0, "Regolith", false, ""],
 	[1, "",         false, "Player"],
 	[2, "",         false, "Enemy"],
+	[3, "",         false, "Boundary"],
 ]
 
 

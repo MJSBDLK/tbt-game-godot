@@ -63,6 +63,20 @@ func is_grid_ready() -> bool:
 	return _grid.size() > 0
 
 
+## Remove all tiles outside the given game-grid rect (inclusive).
+## Used when boundary corner markers define a smaller playable area.
+## Movement and pathfinding stop naturally at tiles missing from _grid.
+func trim_to_bounds(min_x: int, min_y: int, max_x: int, max_y: int) -> void:
+	var keys_to_remove: Array[Vector2i] = []
+	for coord: Vector2i in _grid:
+		if coord.x < min_x or coord.x > max_x or coord.y < min_y or coord.y > max_y:
+			keys_to_remove.append(coord)
+	for coord: Vector2i in keys_to_remove:
+		_grid.erase(coord)
+	DebugConfig.log_grid("GridManager: trim_to_bounds [%d,%d]->[%d,%d] removed %d tiles, %d remain" % [
+		min_x, min_y, max_x, max_y, keys_to_remove.size(), _grid.size()])
+
+
 ## Clear the entire grid (used when loading a new map).
 func clear_grid() -> void:
 	_grid.clear()

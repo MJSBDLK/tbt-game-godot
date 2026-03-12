@@ -81,6 +81,10 @@ func start_attack_targeting(attacker: Unit, move: Move) -> void:
 	GridManager.clear_movement_range()
 	GridManager.display_attack_range(_attackable_tiles)
 
+	var ui_manager: Node = _get_ui_manager()
+	if ui_manager != null:
+		ui_manager.hide_unit_info()
+
 	var state_manager: Node = get_node("/root/GameStateManager")
 	state_manager.change_state(Enums.InputState.ATTACK_TARGETING, attacker)
 	DebugConfig.log_input("InputManager: Attack targeting with '%s' (%d valid tiles)" % [
@@ -97,6 +101,8 @@ func cancel_attack_targeting() -> void:
 	var ui_manager: Node = _get_ui_manager()
 	if ui_manager != null:
 		ui_manager.hide_combat_preview()
+		if _selected_unit != null:
+			ui_manager.show_unit_info(_selected_unit)
 
 	var action_menu_manager: Node = get_node_or_null("/root/ActionMenuManager")
 	if action_menu_manager != null and _selected_unit != null:
