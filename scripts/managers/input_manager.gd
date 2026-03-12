@@ -9,6 +9,7 @@ var input_enabled: bool = true
 var _hovered_tile: Tile = null
 var _selected_unit: Unit = null
 var _unit_has_moved: bool = false
+var _camera_precentered: bool = false
 
 # Attack targeting state
 var _is_selecting_attack_target: bool = false
@@ -335,6 +336,10 @@ func _execute_movement() -> void:
 	GridManager.clear_movement_range()
 	await _selected_unit.execute_planned_movement()
 	_unit_has_moved = true
+	var cam := _get_camera()
+	if cam:
+		cam.center_on(_get_post_move_camera_target(_selected_unit))
+	_camera_precentered = true
 	_show_action_menu_for_unit(_selected_unit)
 
 
@@ -344,6 +349,7 @@ func _cancel_and_deselect() -> void:
 	if _unit_has_moved:
 		_selected_unit.cancel_movement()
 		_unit_has_moved = false
+	_camera_precentered = false
 	deselect_unit()
 
 
@@ -355,6 +361,9 @@ func _execute_direct_combat(target: Unit) -> void:
 	if _selected_unit == null or _selected_unit.assigned_move == null:
 		return
 	GridManager.clear_movement_range()
+	var cam := _get_camera()
+	if cam:
+		cam.center_on((_selected_unit.global_position + target.global_position) / 2.0)
 	await _selected_unit.execute_combat_sequence(target, _selected_unit.assigned_move)
 	_finish_unit_action()
 
@@ -378,6 +387,11 @@ func _execute_attack(target: Unit) -> void:
 	if action_menu_manager != null:
 		action_menu_manager.clear_selected_move()
 
+	if not _camera_precentered:
+		var cam := _get_camera()
+		if cam:
+			cam.center_on((attacker.global_position + target.global_position) / 2.0)
+
 	await attacker.execute_combat_sequence(target, move)
 
 	if ui_manager != null:
@@ -394,6 +408,7 @@ func _finish_unit_action() -> void:
 		_selected_unit.set_selected(false)
 	_selected_unit = null
 	_unit_has_moved = false
+	_camera_precentered = false
 	GridManager.clear_selected_tile()
 
 	var ui_manager: Node = _get_ui_manager()
@@ -422,6 +437,24 @@ func _show_action_menu_for_unit(unit: Unit) -> void:
 # HELPERS
 # =============================================================================
 
+func _get_post_move_camera_target(unit: Unit) -> Vector2:
+	## After movement, pan to the bounding box center of the unit and all reachable targets.
+	## Falls back to the unit's own position if no targets are in range.
+	var positions: Array[Vector2] = [unit.global_position]
+	for move: Move in unit.get_usable_moves():
+		for tile: Tile in _get_valid_attack_tiles(unit, move):
+			if tile.current_unit != null:
+				positions.append(tile.current_unit.global_position)
+	if positions.size() == 1:
+		return unit.global_position
+	var min_pos := positions[0]
+	var max_pos := positions[0]
+	for pos: Vector2 in positions:
+		min_pos = min_pos.min(pos)
+		max_pos = max_pos.max(pos)
+	return (min_pos + max_pos) / 2.0
+
+
 func _get_valid_attack_tiles(attacker: Unit, move: Move) -> Array[Tile]:
 	var tiles: Array[Tile] = []
 	if attacker == null or move == null or attacker.current_tile == null:
@@ -437,6 +470,10 @@ func _get_valid_attack_tiles(attacker: Unit, move: Move) -> Array[Tile]:
 
 func _get_ui_manager() -> Node:
 	return get_node_or_null("/root/UIManager")
+
+
+func _get_camera() -> CameraController:
+	return get_viewport().get_camera_2d() as CameraController
 
 
 func _get_world_mouse_position() -> Vector2:
