@@ -40,6 +40,6 @@
 	},
 
 	"level": 1,
-	"basePoolMoves": ["Bonk", "Flame Strike", "Megaton Punch"],
+	"basePoolMoves": ["Bonk", "Klunk", "Flame Strike", "Shock", "Megaton Punch"],
 	"basePoolPassives": []
 }

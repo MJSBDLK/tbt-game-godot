@@ -1,30 +1,166 @@
 {
 	"Bonk": {
-		"description": "A simple physical strike.",
+		"description": "A reliable physical strike. Never runs out.",
 		"abbrevName": "Bonk",
 		"range": 1,
 		"areaOfEffect": 0,
 		"basePower": 3,
 		"damageType": "Physical",
 		"elementType": "Simple",
+		"targetType": "Single",
+		"usagesOffset": 69
+	},
+	"Klunk": {
+		"description": "An overhead fist slam. Hits hard.",
+		"abbrevName": "Klunk",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 7,
+		"damageType": "Physical",
+		"elementType": "Simple",
 		"targetType": "Single"
 	},
-	"Laser": {
-		"description": "A focused energy beam.",
-		"abbrevName": "Laser",
+	"Uppercut": {
+		"description": "A rising strike that knocks the target off balance.",
+		"abbrevName": "Uppercut",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 5,
+		"damageType": "Physical",
+		"elementType": "Simple",
+		"targetType": "Single"
+	},
+
+	"Compressed Air": {
+		"description": "A pressurized burst of air fired at range.",
+		"abbrevName": "Comp Air",
+		"range": 3,
+		"areaOfEffect": 0,
+		"basePower": 4,
+		"damageType": "Special",
+		"elementType": "Air",
+		"targetType": "Single"
+	},
+	"Cyclone": {
+		"description": "A concentrated vortex of cutting air.",
+		"abbrevName": "Cyclone",
+		"range": 2,
+		"areaOfEffect": 0,
+		"basePower": 8,
+		"damageType": "Special",
+		"elementType": "Air",
+		"targetType": "Single"
+	},
+
+	"Lance": {
+		"description": "A precise thrusting strike at close-to-mid range.",
+		"abbrevName": "Lance",
+		"range": 2,
+		"areaOfEffect": 0,
+		"basePower": 7,
+		"damageType": "Physical",
+		"elementType": "Chivalric",
+		"targetType": "Single"
+	},
+	"Guard Break": {
+		"description": "A strike aimed at punching through the target's defenses.",
+		"abbrevName": "Grd Break",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 5,
+		"damageType": "Physical",
+		"elementType": "Chivalric",
+		"targetType": "Single"
+	},
+
+	"Snap Freeze": {
+		"description": "A flash of cold that may freeze the target solid.",
+		"abbrevName": "Snap Frz",
+		"range": 2,
+		"areaOfEffect": 0,
+		"basePower": 5,
+		"damageType": "Special",
+		"elementType": "Cold",
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Freeze",
+			"chance": 0.5
+		}
+	},
+	"Glacier": {
+		"description": "A crushing wave of ice. Slow to thaw.",
+		"abbrevName": "Glacier",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 9,
+		"damageType": "Special",
+		"elementType": "Cold",
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Freeze",
+			"chance": 0.3
+		}
+	},
+
+	"Zap": {
+		"description": "A quick electric jolt. Reliable and cheap.",
+		"abbrevName": "Zap",
 		"range": 2,
 		"areaOfEffect": 0,
 		"basePower": 4,
 		"damageType": "Special",
-		"elementType": "Simple",
+		"elementType": "Electric",
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Shocked",
+			"chance": 0.3
+		}
+	},
+	"Shock": {
+		"description": "A sustained electric discharge. High chance to shock.",
+		"abbrevName": "Shock",
+		"range": 2,
+		"areaOfEffect": 0,
+		"basePower": 6,
+		"damageType": "Special",
+		"elementType": "Electric",
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Shocked",
+			"chance": 0.5
+		}
+	},
+	"Thunder Bolt": {
+		"description": "A long-range bolt of lightning. No frills.",
+		"abbrevName": "Thndr Blt",
+		"range": 3,
+		"areaOfEffect": 0,
+		"basePower": 9,
+		"damageType": "Special",
+		"elementType": "Electric",
 		"targetType": "Single"
+	},
+
+	"Scorch": {
+		"description": "A ranged burst of flame that may ignite the target.",
+		"abbrevName": "Scorch",
+		"range": 2,
+		"areaOfEffect": 0,
+		"basePower": 5,
+		"damageType": "Special",
+		"elementType": "Fire",
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Burn",
+			"chance": 0.3
+		}
 	},
 	"Flame Strike": {
 		"description": "A fiery physical attack that may burn the target.",
-		"abbrevName": "Flam Strk",
+		"abbrevName": "Flm Strk",
 		"range": 1,
 		"areaOfEffect": 0,
-		"basePower": 5,
+		"basePower": 8,
 		"damageType": "Physical",
 		"elementType": "Fire",
 		"targetType": "Single",
@@ -33,6 +169,113 @@
 			"chance": 0.5
 		}
 	},
+	"Blaze": {
+		"description": "An intense column of fire. Burns almost guaranteed.",
+		"abbrevName": "Blaze",
+		"range": 2,
+		"areaOfEffect": 0,
+		"basePower": 11,
+		"damageType": "Special",
+		"elementType": "Fire",
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Burn",
+			"chance": 0.4
+		}
+	},
+
+	"Feint": {
+		"description": "A deceptive quick strike. Cheap to use.",
+		"abbrevName": "Feint",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 4,
+		"damageType": "Physical",
+		"elementType": "Gentry",
+		"targetType": "Single"
+	},
+	"Backstab": {
+		"description": "Hits where it hurts. A lot.",
+		"abbrevName": "Backstab",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 9,
+		"damageType": "Physical",
+		"elementType": "Gentry",
+		"targetType": "Single"
+	},
+
+	"Gravity Well": {
+		"description": "A localized gravity distortion. Hard to move through.",
+		"abbrevName": "Grv Well",
+		"range": 2,
+		"areaOfEffect": 0,
+		"basePower": 5,
+		"damageType": "Special",
+		"elementType": "Gravity",
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Gravity",
+			"chance": 0.5
+		}
+	},
+	"Impact": {
+		"description": "A brutal gravitational slam at close range.",
+		"abbrevName": "Impact",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 9,
+		"damageType": "Physical",
+		"elementType": "Gravity",
+		"targetType": "Single"
+	},
+
+	"March": {
+		"description": "A disciplined formation strike.",
+		"abbrevName": "March",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 5,
+		"damageType": "Physical",
+		"elementType": "Heraldic",
+		"targetType": "Single"
+	},
+	"Volley": {
+		"description": "A coordinated ranged attack from multiple angles.",
+		"abbrevName": "Volley",
+		"range": 3,
+		"areaOfEffect": 0,
+		"basePower": 6,
+		"damageType": "Physical",
+		"elementType": "Heraldic",
+		"targetType": "Single"
+	},
+
+	"Wither": {
+		"description": "A draining curse that leaves the target more vulnerable to damage.",
+		"abbrevName": "Wither",
+		"range": 2,
+		"areaOfEffect": 0,
+		"basePower": 4,
+		"damageType": "Special",
+		"elementType": "Occult",
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Vulnerable",
+			"chance": 0.5
+		}
+	},
+	"Leech": {
+		"description": "Drains vitality on contact.",
+		"abbrevName": "Leech",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 6,
+		"damageType": "Physical",
+		"elementType": "Occult",
+		"targetType": "Single"
+	},
+
 	"Vine Lash": {
 		"description": "Lashing vines that may root the target in place.",
 		"abbrevName": "Vine Lash",
@@ -47,9 +290,109 @@
 			"chance": 0.3
 		}
 	},
+	"Root": {
+		"description": "Entangling roots erupt from the ground at range.",
+		"abbrevName": "Root",
+		"range": 2,
+		"areaOfEffect": 0,
+		"basePower": 5,
+		"damageType": "Special",
+		"elementType": "Plant",
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Rooted",
+			"chance": 0.5
+		}
+	},
+	"Strangle": {
+		"description": "Crushing vines that pin the target in place.",
+		"abbrevName": "Strangle",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 9,
+		"damageType": "Physical",
+		"elementType": "Plant",
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Rooted",
+			"chance": 0.4
+		}
+	},
+
+	"Laser": {
+		"description": "A focused energy beam fired at range.",
+		"abbrevName": "Laser",
+		"range": 3,
+		"areaOfEffect": 0,
+		"basePower": 4,
+		"damageType": "Special",
+		"elementType": "Robo",
+		"targetType": "Single"
+	},
+	"Overload": {
+		"description": "Blasts the target with a surge of electrical discharge.",
+		"abbrevName": "Overload",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 9,
+		"damageType": "Special",
+		"elementType": "Robo",
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Shocked",
+			"chance": 0.6
+		}
+	},
+
+	"Void Touch": {
+		"description": "A touch that disrupts the target's abilities.",
+		"abbrevName": "Void Tch",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 4,
+		"damageType": "Special",
+		"elementType": "Void",
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Void",
+			"chance": 0.4
+		}
+	},
+	"Erase": {
+		"description": "A precise void strike that unmakes what it hits.",
+		"abbrevName": "Erase",
+		"range": 2,
+		"areaOfEffect": 0,
+		"basePower": 8,
+		"damageType": "Special",
+		"elementType": "Void",
+		"targetType": "Single"
+	},
+
+	"Dark Energy": {
+		"description": "A dense wave of obsidian-charged energy.",
+		"abbrevName": "Dark Enrg",
+		"range": 2,
+		"areaOfEffect": 0,
+		"basePower": 11,
+		"damageType": "Special",
+		"elementType": "Obsidian",
+		"targetType": "Single"
+	},
+	"Mass Shift": {
+		"description": "Slams the target with a sudden shift in mass.",
+		"abbrevName": "Mass Shft",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 7,
+		"damageType": "Physical",
+		"elementType": "Obsidian",
+		"targetType": "Single"
+	},
+
 	"Megaton Punch": {
-		"description": "A devastating blow that obliterates the target. For testing.",
-		"abbrevName": "Megatn Pnc",
+		"description": "A devastating blow. For testing only.",
+		"abbrevName": "Megatn",
 		"range": 1,
 		"areaOfEffect": 0,
 		"basePower": 50,
