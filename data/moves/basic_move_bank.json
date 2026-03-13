@@ -390,6 +390,28 @@
 		"targetType": "Single"
 	},
 
+	"Backhand": {
+		"description": "A sweeping strike with the mechanical arm. Hits with full weight and momentum.",
+		"abbrevName": "Bckhand",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 8,
+		"damageType": "Physical",
+		"elementType": "Robo",
+		"targetType": "Single"
+	},
+
+	"Sidearm": {
+		"description": "A practiced shot from a service pistol. Reliable at range.",
+		"abbrevName": "Sidearm",
+		"range": 3,
+		"areaOfEffect": 0,
+		"basePower": 4,
+		"damageType": "Special",
+		"elementType": "Simple",
+		"targetType": "Single"
+	},
+
 	"Megaton Punch": {
 		"description": "A devastating blow. For testing only.",
 		"abbrevName": "Megatn",
