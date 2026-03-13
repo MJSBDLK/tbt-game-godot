@@ -1,50 +1,74 @@
 ## Shows combat preview during attack targeting.
-## Displays attacker/defender info, damage, hit count, counter status, projected HP.
+## Displays attacker/defender stats, damage preview, and projected HP.
 ## Located in the right panel, shown when hovering over valid targets.
+##
+## HOW THE WIRING WORKS:
+## This script attaches to the root node of combat_preview_panel.tscn.
+## In _ready(), we walk the scene tree to find each label/pip bar by its path.
+## Then show_preview() just sets .text on those labels with live combat data.
+## UIManager calls show_preview() / hide_panel() — we never touch the visuals.
 class_name CombatPreviewPanel
-extends PanelContainer
-
-
-const PANEL_WIDTH: int = 140
-
-# Attacker section
-var _attacker_name_label: Label = null
-var _attacker_move_label: Label = null
-var _attacker_damage_label: Label = null
-var _attacker_hits_label: Label = null
-var _effectiveness_label: Label = null
-
-# Separator
-var _separator: ColorRect = null
-
-# Defender section
-var _defender_name_label: Label = null
-var _defender_hp_label: Label = null
-var _defender_hp_bar_background: ColorRect = null
-var _defender_hp_bar_current: ColorRect = null
-var _defender_hp_bar_projected: ColorRect = null
-var _counter_label: Label = null
-var _counter_damage_label: Label = null
-
-
-func _ready() -> void:
-	custom_minimum_size = Vector2(PANEL_WIDTH, 0)
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
-	if ui_manager != null:
-		var border: Variant = ui_manager.create_combat_preview_border()
-		if border != null:
-			add_theme_stylebox_override("panel", border)
-		else:
-			add_theme_stylebox_override("panel", ui_manager.create_pda_style())
-
-	_build_content()
-	visible = false
+extends Control
 
 
 # =============================================================================
-# PUBLIC API
+# NODE REFERENCES — hybrid approach (% unique names + relative paths)
+# =============================================================================
+# The 4 container-level nodes get unique names (%) so they survive reparenting.
+# The labels INSIDE use relative paths from their container, because they live
+# in a shared sub-scene (unit_container.tscn) — renaming them would affect
+# every instance. Since both containers use the same sub-scene, the internal
+# paths are identical, stored as constants.
+#
+# To set a unique name: right-click a node → "Access as Unique Name"
+
+# Shared paths within each UnitContainer instance (same sub-scene structure)
+const _NAME_LABEL_PATH = "UnitRow/HBoxContainer/MarginContainer/Label"
+const _MOVE_LABEL_PATH = "MoveRow/HBoxContainer/MarginContainer/Label"
+const _MOVE_HITS_PATH = "MoveRow/HBoxContainer/MarginContainer2/Label"
+const _DAMAGE_VALUE_PATH = "PercentageAndMultipliersSection/DamageValueContainer/GlowLabel"
+const _HIT_VALUE_PATH = "PercentageAndMultipliersSection/HitPercentageContainer/GlowLabel"
+const _SECONDARY_VALUE_PATH = "PercentageAndMultipliersSection/SecondaryChanceContainer/GlowLabel"
+const _MULTIPLIER_VALUE_PATH = "PercentageAndMultipliersSection/DamageMultiplierContainer/GlowLabel"
+
+# 4 unique-named containers (set "Access as Unique Name" on these in the editor)
+@onready var _attacker_section: Control = %AttackerContainer
+@onready var _defender_section: Control = %DefenderContainer
+@onready var _top_health_pips: HealthPipBar = %AttackerHealthPips
+@onready var _bottom_health_pips: HealthPipBar = %DefenderHealthPips
+@onready var _attacker_arrow: TextureRect = _top_health_pips.get_node("AttackerHealthBarArrow")
+@onready var _defender_arrow: TextureRect = _bottom_health_pips.get_node("DefenderHealthBarArrow")
+
+# Labels resolved relative to their section — @onready runs in declaration order,
+# so _attacker_section and _defender_section are already set when these resolve.
+@onready var _attacker_name_label: Label = _attacker_section.get_node(_NAME_LABEL_PATH)
+@onready var _attacker_move_label: Label = _attacker_section.get_node(_MOVE_LABEL_PATH)
+@onready var _attacker_damage_label: Label = _attacker_section.get_node(_DAMAGE_VALUE_PATH)
+@onready var _attacker_hit_label: Label = _attacker_section.get_node(_HIT_VALUE_PATH)
+@onready var _attacker_secondary_label: Label = _attacker_section.get_node(_SECONDARY_VALUE_PATH)
+@onready var _attacker_multiplier_label: Label = _attacker_section.get_node(_MULTIPLIER_VALUE_PATH)
+@onready var _attacker_hits_label: Label = _attacker_section.get_node(_MOVE_HITS_PATH)
+
+@onready var _defender_name_label: Label = _defender_section.get_node(_NAME_LABEL_PATH)
+@onready var _defender_move_label: Label = _defender_section.get_node(_MOVE_LABEL_PATH)
+@onready var _defender_damage_label: Label = _defender_section.get_node(_DAMAGE_VALUE_PATH)
+@onready var _defender_hit_label: Label = _defender_section.get_node(_HIT_VALUE_PATH)
+@onready var _defender_secondary_label: Label = _defender_section.get_node(_SECONDARY_VALUE_PATH)
+@onready var _defender_multiplier_label: Label = _defender_section.get_node(_MULTIPLIER_VALUE_PATH)
+@onready var _defender_hits_label: Label = _defender_section.get_node(_MOVE_HITS_PATH)
+
+
+func _ready() -> void:
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# No manual node lookup needed — @onready + % handles it automatically.
+	# When this node enters the scene tree, Godot resolves all the %Names above.
+	# Stay visible when previewing this scene standalone (F6)
+	if get_tree().current_scene != self:
+		visible = false
+
+
+# =============================================================================
+# PUBLIC API — called by UIManager, which is called by InputManager
 # =============================================================================
 
 func show_preview(attacker: Node, defender: Node, move: Move) -> void:
@@ -55,6 +79,7 @@ func show_preview(attacker: Node, defender: Node, move: Move) -> void:
 	visible = true
 	_update_attacker_section(attacker, defender, move)
 	_update_defender_section(attacker, defender, move)
+	_update_health_pips(attacker, defender, move)
 
 
 func hide_panel() -> void:
@@ -62,195 +87,203 @@ func hide_panel() -> void:
 
 
 # =============================================================================
-# ATTACKER SECTION
+# ATTACKER SECTION — populate the top half with attack stats
 # =============================================================================
 
 func _update_attacker_section(attacker: Node, defender: Node, move: Move) -> void:
 	var attacker_name: String = attacker.get("unit_name") if attacker.get("unit_name") else "???"
-	var attacker_faction: Enums.UnitFaction = attacker.get("faction")
-	_attacker_name_label.text = attacker_name
-	_attacker_name_label.add_theme_color_override("font_color", _get_faction_color(attacker_faction))
+	_attacker_name_label.text = _truncate(attacker_name)
 
-	_attacker_move_label.text = move.move_name
+	_attacker_move_label.text = _truncate(move.abbrev_name)
 
-	# Damage per hit
+	# Damage per hit and hit count (from athleticism comparison)
 	var damage_per_hit := DamageCalculator.calculate_damage(attacker, defender, move)
 	var hit_count := DamageCalculator.calculate_attack_count(attacker, defender)
-	_attacker_damage_label.text = "DMG: %d" % damage_per_hit
-	_attacker_hits_label.text = "Hits: %d" % hit_count
+	_attacker_damage_label.text = str(damage_per_hit)
+	_set_hits_label(_attacker_hits_label, hit_count)
 
-	# Type effectiveness
-	var effectiveness := DamageCalculator.get_type_effectiveness(attacker, defender, move)
-	if effectiveness >= 4.0:
-		_effectiveness_label.text = "4x Super Effective!"
-		_effectiveness_label.add_theme_color_override("font_color", GameColors.MULTIPLIER_X4_LIGHT)
-	elif effectiveness >= 2.0:
-		_effectiveness_label.text = "2x Super Effective"
-		_effectiveness_label.add_theme_color_override("font_color", GameColors.MULTIPLIER_X2_LIGHT)
-	elif effectiveness == 1.0:
-		_effectiveness_label.text = ""
-	elif effectiveness > 0.0:
-		_effectiveness_label.text = "Not Very Effective"
-		_effectiveness_label.add_theme_color_override("font_color", GameColors.MULTIPLIER_HALF_LIGHT)
+	# Secondary chance — status effect proc chance from the move
+	if move.status_effect_chance > 0.0 and move.status_effect_type != Enums.StatusEffectType.NONE:
+		_attacker_secondary_label.text = "%d%%" % int(move.status_effect_chance * 100)
 	else:
-		_effectiveness_label.text = "No Effect"
-		_effectiveness_label.add_theme_color_override("font_color", GameColors.MULTIPLIER_X0_LIGHT)
+		_attacker_secondary_label.text = "--"
+
+	# Type effectiveness multiplier
+	var effectiveness := DamageCalculator.get_type_effectiveness(attacker, defender, move)
+	_set_multiplier_label(_attacker_multiplier_label, effectiveness)
 
 	DebugConfig.log_combat_preview("Preview: %s uses %s → %d dmg x%d (%.1fx)" % [
 		attacker_name, move.move_name, damage_per_hit, hit_count, effectiveness])
 
 
 # =============================================================================
-# DEFENDER SECTION
+# DEFENDER SECTION — populate the bottom half with counter-attack stats
 # =============================================================================
 
 func _update_defender_section(attacker: Node, defender: Node, move: Move) -> void:
 	var defender_name: String = defender.get("unit_name") if defender.get("unit_name") else "???"
-	var defender_faction: Enums.UnitFaction = defender.get("faction")
-	_defender_name_label.text = defender_name
-	_defender_name_label.add_theme_color_override("font_color", _get_faction_color(defender_faction))
+	_defender_name_label.text = _truncate(defender_name)
 
-	# Current and projected HP
-	var current_hp: int = defender.get("current_hp")
+	var can_counter := DamageCalculator.can_counter_attack(defender, attacker)
+	if can_counter:
+		var counter_move: Move = defender.get("assigned_move")
+		_defender_move_label.text = _truncate(counter_move.abbrev_name)
+
+		var counter_damage := DamageCalculator.calculate_damage(defender, attacker, counter_move)
+		var counter_hits := DamageCalculator.calculate_attack_count(defender, attacker)
+		_defender_damage_label.text = str(counter_damage)
+		_set_hits_label(_defender_hits_label, counter_hits)
+
+		if counter_move.status_effect_chance > 0.0 and counter_move.status_effect_type != Enums.StatusEffectType.NONE:
+			_defender_secondary_label.text = "%d%%" % int(counter_move.status_effect_chance * 100)
+		else:
+			_defender_secondary_label.text = "--"
+
+		var counter_effectiveness := DamageCalculator.get_type_effectiveness(
+			defender, attacker, counter_move)
+		_set_multiplier_label(_defender_multiplier_label, counter_effectiveness)
+	else:
+		_defender_move_label.text = "No Counter"
+		_set_hits_label(_defender_hits_label, 0)
+		_defender_damage_label.text = "0"
+		_defender_hit_label.text = "--"
+		_defender_secondary_label.text = "--"
+		_set_multiplier_label(_defender_multiplier_label, 0.0)
+
+
+# =============================================================================
+# HEALTH PIPS — shader-driven HP bars with damage preview
+# =============================================================================
+# HealthPipBar uses two values:
+#   health_fill = projected HP after damage (the green/healthy portion)
+#   damage_fill = HP that will be lost (the pulsing damage preview band)
+# The shader renders three zones from bottom: filled, damage preview, empty.
+
+func _update_health_pips(attacker: Node, defender: Node, move: Move) -> void:
+	var attacker_data: CharacterData = attacker.get("character_data")
+	var attacker_hp: int = attacker.get("current_hp")
+	var attacker_max_hp: int = attacker_data.max_hp if attacker_data else 1
+
 	var defender_data: CharacterData = defender.get("character_data")
-	var max_hp: int = defender_data.max_hp if defender_data != null else 1
+	var defender_hp: int = defender.get("current_hp")
+	var defender_max_hp: int = defender_data.max_hp if defender_data else 1
 
-	var damage_per_hit := DamageCalculator.calculate_damage(attacker, defender, move)
-	var hit_count := DamageCalculator.calculate_attack_count(attacker, defender)
-	var total_damage := damage_per_hit * hit_count
-	var projected_hp := maxi(0, current_hp - total_damage)
-
-	_defender_hp_label.text = "HP: %d → %d" % [current_hp, projected_hp]
-
-	# HP bar visualization
-	var bar_width: int = PANEL_WIDTH - 24
-	var current_percent: float = float(current_hp) / float(max_hp) if max_hp > 0 else 0.0
-	var projected_percent: float = float(projected_hp) / float(max_hp) if max_hp > 0 else 0.0
-
-	_defender_hp_bar_current.size.x = int(current_percent * bar_width)
-	_defender_hp_bar_current.color = GameColors.get_health_color(current_percent)
-
-	_defender_hp_bar_projected.size.x = int(projected_percent * bar_width)
-	_defender_hp_bar_projected.color = GameColors.get_health_color(projected_percent)
-
-	# Counter-attack info
+	# Attacker HP — show counter-attack damage preview if defender can counter
 	var can_counter := DamageCalculator.can_counter_attack(defender, attacker)
 	if can_counter:
 		var counter_move: Move = defender.get("assigned_move")
 		var counter_damage := DamageCalculator.calculate_damage(defender, attacker, counter_move)
 		var counter_hits := DamageCalculator.calculate_attack_count(defender, attacker)
-		_counter_label.text = "Counter: %s" % counter_move.move_name
-		_counter_label.add_theme_color_override("font_color", GameColors.TEXT_WARNING)
-		_counter_damage_label.text = "DMG: %d x%d" % [counter_damage, counter_hits]
-		_counter_damage_label.visible = true
+		var attacker_projected := maxi(0, attacker_hp - counter_damage * counter_hits)
+		_top_health_pips.health_fill = float(attacker_projected) / float(attacker_max_hp)
+		_top_health_pips.damage_fill = float(attacker_hp - attacker_projected) / float(attacker_max_hp)
 	else:
-		_counter_label.text = "No Counter"
-		_counter_label.add_theme_color_override("font_color", GameColors.TEXT_SECONDARY)
-		_counter_damage_label.visible = false
+		_top_health_pips.health_fill = float(attacker_hp) / float(attacker_max_hp)
+		_top_health_pips.damage_fill = 0.0
+
+	# Defender HP — show incoming attack damage preview
+	var damage_per_hit := DamageCalculator.calculate_damage(attacker, defender, move)
+	var hit_count := DamageCalculator.calculate_attack_count(attacker, defender)
+	var defender_projected := maxi(0, defender_hp - damage_per_hit * hit_count)
+
+	_bottom_health_pips.health_fill = float(defender_projected) / float(defender_max_hp)
+	_bottom_health_pips.damage_fill = float(defender_hp - defender_projected) / float(defender_max_hp)
+
+	# Position arrows at the projected health boundary
+	var attacker_health_ratio := _top_health_pips.health_fill
+	_position_arrow(_attacker_arrow, _top_health_pips, attacker_health_ratio, false)
+
+	var defender_health_ratio := _bottom_health_pips.health_fill
+	_position_arrow(_defender_arrow, _bottom_health_pips, defender_health_ratio, true)
 
 
 # =============================================================================
-# BUILD CONTENT
+# ARROW POSITIONING — slide arrows to the projected health boundary
+# =============================================================================
+# The arrow centers on the line between the filled zone and the damage zone.
+# Normal bar (attacker): fills bottom-to-top, boundary at UV.y = 1.0 - health_fill
+# Inverted bar (defender): fills top-to-bottom, boundary at UV.y = health_fill
+
+func _position_arrow(arrow: TextureRect, pip_bar: HealthPipBar, health_ratio: float, inverted: bool) -> void:
+	var bar_height := pip_bar.size.y
+	var arrow_height := arrow.size.y
+
+	# Boundary position in pixels from the top of the bar
+	var boundary_y: float
+	if inverted:
+		boundary_y = health_ratio * bar_height
+	else:
+		boundary_y = (1.0 - health_ratio) * bar_height
+
+	# Center the arrow on the boundary
+	arrow.position.y = boundary_y - arrow_height * 0.5
+
+
+# =============================================================================
+# HELPERS
 # =============================================================================
 
-func _build_content() -> void:
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
-
-	var container := VBoxContainer.new()
-	container.add_theme_constant_override("separation", 2)
-	add_child(container)
-
-	# -- ATTACKER SECTION --
-	_attacker_name_label = _create_label_8px(ui_manager)
-	container.add_child(_attacker_name_label)
-
-	_attacker_move_label = _create_label_5px(ui_manager)
-	container.add_child(_attacker_move_label)
-
-	_attacker_damage_label = _create_label_5px(ui_manager)
-	container.add_child(_attacker_damage_label)
-
-	_attacker_hits_label = _create_label_5px(ui_manager)
-	container.add_child(_attacker_hits_label)
-
-	_effectiveness_label = _create_label_5px(ui_manager)
-	container.add_child(_effectiveness_label)
-
-	# -- SEPARATOR --
-	_separator = ColorRect.new()
-	_separator.custom_minimum_size = Vector2(0, 1)
-	_separator.color = GameColors.PDA_BORDER_GLOW
-	_separator.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	container.add_child(_separator)
-
-	# -- DEFENDER SECTION --
-	_defender_name_label = _create_label_8px(ui_manager)
-	container.add_child(_defender_name_label)
-
-	_defender_hp_label = _create_label_5px(ui_manager)
-	container.add_child(_defender_hp_label)
-
-	# HP bar with current (behind) and projected (in front)
-	var hp_bar_container := Control.new()
-	hp_bar_container.custom_minimum_size = Vector2(0, 6)
-	hp_bar_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	container.add_child(hp_bar_container)
-
-	var bar_width: int = PANEL_WIDTH - 24
-	_defender_hp_bar_background = ColorRect.new()
-	_defender_hp_bar_background.color = Color(0.1, 0.1, 0.15, 1.0)
-	_defender_hp_bar_background.size = Vector2(bar_width, 4)
-	_defender_hp_bar_background.position = Vector2(0, 1)
-	_defender_hp_bar_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hp_bar_container.add_child(_defender_hp_bar_background)
-
-	_defender_hp_bar_current = ColorRect.new()
-	_defender_hp_bar_current.color = GameColors.HEALTH_FULL
-	_defender_hp_bar_current.size = Vector2(bar_width, 4)
-	_defender_hp_bar_current.position = Vector2(0, 1)
-	_defender_hp_bar_current.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hp_bar_container.add_child(_defender_hp_bar_current)
-
-	_defender_hp_bar_projected = ColorRect.new()
-	_defender_hp_bar_projected.color = GameColors.HEALTH_CRITICAL
-	_defender_hp_bar_projected.size = Vector2(bar_width, 4)
-	_defender_hp_bar_projected.position = Vector2(0, 1)
-	_defender_hp_bar_projected.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hp_bar_container.add_child(_defender_hp_bar_projected)
-
-	# Counter info
-	_counter_label = _create_label_5px(ui_manager)
-	container.add_child(_counter_label)
-
-	_counter_damage_label = _create_label_5px(ui_manager)
-	container.add_child(_counter_damage_label)
+const _MAX_LABEL_LENGTH := 10
 
 
-func _create_label_8px(ui_manager: Node) -> Label:
-	var label := Label.new()
-	if ui_manager != null:
-		label.add_theme_font_override("font", ui_manager.font_8px)
-		label.add_theme_font_size_override("font_size", 8)
-	label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return label
+func _truncate(text: String) -> String:
+	if text.length() > _MAX_LABEL_LENGTH:
+		return text.left(_MAX_LABEL_LENGTH)
+	return text
 
 
-func _create_label_5px(ui_manager: Node) -> Label:
-	var label := Label.new()
-	if ui_manager != null:
-		label.add_theme_font_override("font", ui_manager.font_5px)
-		label.add_theme_font_size_override("font_size", 5)
-	label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return label
+func _format_multiplier(effectiveness: float) -> String:
+	if effectiveness == int(effectiveness):
+		return "x%d" % int(effectiveness)
+	return "x%.1f" % effectiveness
 
 
-func _get_faction_color(faction: Enums.UnitFaction) -> Color:
-	match faction:
-		Enums.UnitFaction.PLAYER:
-			return GameColors.PLAYER_UNIT
-		Enums.UnitFaction.ENEMY:
-			return GameColors.ENEMY_UNIT
-		_:
-			return GameColors.NEUTRAL_UNIT
+# Multiplier color pairs from Lawrence's spec (text color + glow color per ramp)
+const _MULTIPLIER_COLORS := {
+	"x4":   [Color(0.863, 0.388, 0.310), Color(0.322, 0.035, 0.016)],   # Red
+	"x3":   [Color(0.788, 0.553, 0.278), Color(0.345, 0.149, 0.051)],   # Orange
+	"x2":   [Color(0.961, 0.804, 0.396), Color(0.376, 0.227, 0.059)],   # YellowOrange
+	"x1":   [Color(0.824, 0.808, 0.416), Color(0.494, 0.427, 0.141)],   # Yellow
+	"half": [Color(0.573, 0.788, 0.549), Color(0.176, 0.310, 0.180)],   # Green
+	"qtr":  [Color(0.271, 0.796, 0.808), Color(0.000, 0.302, 0.337)],   # Cyan
+}
+
+
+func _set_hits_label(label: Label, hit_count: int) -> void:
+	if hit_count <= 1:
+		label.get_parent().visible = false
+	else:
+		label.get_parent().visible = true
+		label.text = "x%d" % hit_count
+
+
+func _set_multiplier_label(label: Label, effectiveness: float) -> void:
+	if effectiveness == 1.0 or effectiveness == 0.0:
+		label.get_parent().visible = false
+	else:
+		label.get_parent().visible = true
+		label.text = _format_multiplier(effectiveness)
+		_color_multiplier_label(label, effectiveness)
+
+
+func _color_multiplier_label(label: Label, effectiveness: float) -> void:
+	var colors: Array
+	if effectiveness >= 4.0:
+		colors = _MULTIPLIER_COLORS["x4"]
+	elif effectiveness >= 3.0:
+		colors = _MULTIPLIER_COLORS["x3"]
+	elif effectiveness >= 2.0:
+		colors = _MULTIPLIER_COLORS["x2"]
+	elif effectiveness == 1.0:
+		colors = _MULTIPLIER_COLORS["x1"]
+	elif effectiveness >= 0.5:
+		colors = _MULTIPLIER_COLORS["half"]
+	elif effectiveness > 0.0:
+		colors = _MULTIPLIER_COLORS["qtr"]
+	else:
+		colors = _MULTIPLIER_COLORS["qtr"]
+
+	label.add_theme_color_override("font_color", colors[0])
+	# GlowLabel exposes glow_color for the shader — set it if available
+	if label.has_method("_apply_glow_color"):
+		label.set("glow_color", colors[1])

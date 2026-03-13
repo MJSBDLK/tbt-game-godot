@@ -1,0 +1,45 @@
+{
+	"characterName": "Ma'am",
+	"primaryType": "Gentry",
+	"secondaryType": "None",
+	"currentClass": "Spaceman",
+	"specialization": "None",
+
+	"sprite": {
+		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
+		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",
+		"frameIndex": 2
+	},
+
+	"baseStats": {
+		"maxHP": 16,
+		"strength": 4,
+		"special": 5,
+		"skill": 8,
+		"agility": 8,
+		"athleticism": 6,
+		"defense": 3,
+		"resistance": 3
+	},
+
+	"growthRates": {
+		"hp": 35,
+		"strength": 20,
+		"special": 40,
+		"skill": 65,
+		"agility": 65,
+		"athleticism": 45,
+		"defense": 25,
+		"resistance": 25
+	},
+
+	"physicalAttributes": {
+		"moveDistance": 4,
+		"constitution": 4,
+		"carry": 6
+	},
+
+	"level": 1,
+	"basePoolMoves": ["Feint", "Backstab", "Sidearm"],
+	"basePoolPassives": ["Ghost", "Low Profile"]
+}

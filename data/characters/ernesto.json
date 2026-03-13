@@ -1,0 +1,45 @@
+{
+	"characterName": "Ernesto",
+	"primaryType": "Robo",
+	"secondaryType": "Simple",
+	"currentClass": "Spaceman",
+	"specialization": "None",
+
+	"sprite": {
+		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
+		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",
+		"frameIndex": 1
+	},
+
+	"baseStats": {
+		"maxHP": 22,
+		"strength": 9,
+		"special": 4,
+		"skill": 7,
+		"agility": 2,
+		"athleticism": 4,
+		"defense": 5,
+		"resistance": 3
+	},
+
+	"growthRates": {
+		"hp": 60,
+		"strength": 45,
+		"special": 20,
+		"skill": 55,
+		"agility": 20,
+		"athleticism": 35,
+		"defense": 55,
+		"resistance": 30
+	},
+
+	"physicalAttributes": {
+		"moveDistance": 3,
+		"constitution": 7,
+		"carry": 12
+	},
+
+	"level": 1,
+	"basePoolMoves": ["Backhand", "Overload", "Laser", "Compressed Air"],
+	"basePoolPassives": ["Jury Rig", "Reliable", "Waste Not"]
+}

@@ -28,6 +28,7 @@ signal combat_completed(attacker: Unit, defender: Unit)
 const MOVEMENT_SCALE: int = 2
 const MOVE_SPEED: float = 200.0  # Pixels per second
 const HIT_DELAY: float = 0.3  # Seconds between combat hits
+const BOOP_DISTANCE: float = 8.0  # Pixels the sprite bumps toward target during attack
 
 
 # =============================================================================
@@ -72,6 +73,7 @@ var _selection_tween: Tween = null
 
 # Child node references
 var _sprite: Sprite2D = null
+var _health_bar: Node2D = null
 var _health_bar_background: ColorRect = null
 var _health_bar_fill: ColorRect = null
 var _path_visualizer: Node2D = null  # PathVisualizer
@@ -83,6 +85,7 @@ var _path_visualizer: Node2D = null  # PathVisualizer
 
 func _ready() -> void:
 	_sprite = $Sprite2D as Sprite2D
+	_health_bar = $HealthBar as Node2D
 	_health_bar_background = $HealthBar/Background as ColorRect
 	_health_bar_fill = $HealthBar/Fill as ColorRect
 	if has_node("PathVisualizer"):
@@ -108,7 +111,9 @@ func initialize(starting_tile: Tile) -> void:
 	current_hp = character_data.max_hp
 
 	# Visuals
-	_apply_faction_color()
+	_load_character_sprite()
+	_apply_faction_healthbar()
+	_update_healthbar_position()
 	_update_z_index()
 	_update_health_bar()
 
@@ -286,9 +291,9 @@ func _start_selection_pulse() -> void:
 	_stop_selection_pulse()
 	_selection_tween = create_tween().set_loops()
 	_selection_tween.tween_property(_sprite, "modulate",
-		GameColors.UNIT_SELECTED, 0.4)
+		Color(1.3, 1.3, 1.3, 1.0), 0.4)
 	_selection_tween.tween_property(_sprite, "modulate",
-		GameColors.brightened(GameColors.UNIT_SELECTED, 1.3), 0.4)
+		Color.WHITE, 0.4)
 
 
 func _stop_selection_pulse() -> void:
@@ -296,9 +301,9 @@ func _stop_selection_pulse() -> void:
 		_selection_tween.kill()
 		_selection_tween = null
 	if can_act:
-		_apply_faction_color()
+		_apply_active_modulate()
 	else:
-		_apply_acted_color()
+		_apply_acted_modulate()
 
 
 # =============================================================================
@@ -308,13 +313,13 @@ func _stop_selection_pulse() -> void:
 func refresh_unit() -> void:
 	can_act = true
 	_start_tile_before_move = current_tile
-	_apply_faction_color()
+	_apply_active_modulate()
 
 
 func set_acted() -> void:
 	can_act = false
 	_start_tile_before_move = null
-	_apply_acted_color()
+	_apply_acted_modulate()
 
 
 # =============================================================================
@@ -343,7 +348,6 @@ func _update_health_bar() -> void:
 		return
 	var health_percent := float(current_hp) / float(character_data.max_hp)
 	_health_bar_fill.scale.x = health_percent
-	_health_bar_fill.color = GameColors.get_health_color(health_percent)
 
 
 # =============================================================================
@@ -447,11 +451,7 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 
 ## Execute a single hit against a target. Calculates damage, spawns popup, optionally applies status.
 func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
-	# Stub attack animation
-	if move.damage_type == Enums.DamageType.PHYSICAL:
-		await _play_physical_attack_stub()
-	else:
-		await _play_special_attack_stub()
+	await _play_attack_animation(target)
 
 	var damage := DamageCalculator.calculate_damage(self, target, move)
 	var type_multiplier := DamageCalculator.get_type_effectiveness(self, target, move)
@@ -471,20 +471,25 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 		StatusEffectSystem.apply_status_effect(self, target, move)
 
 
-func _play_physical_attack_stub() -> void:
-	# Quick bump animation toward target direction
-	await get_tree().create_timer(0.15).timeout
-
-
-func _play_special_attack_stub() -> void:
-	# Slightly longer delay for special attacks
-	await get_tree().create_timer(0.25).timeout
+## Boop animation: sprite bumps toward the target and snaps back.
+## Used as a placeholder until real attack animations are added.
+func _play_attack_animation(target: Unit) -> void:
+	if _sprite == null or target == null:
+		await get_tree().create_timer(0.15).timeout
+		return
+	var direction := (target.global_position - global_position).normalized()
+	var boop_offset := direction * BOOP_DISTANCE
+	var tween := create_tween()
+	tween.tween_property(_sprite, "position", boop_offset, 0.08).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_sprite, "position", Vector2.ZERO, 0.12).set_ease(Tween.EASE_IN)
+	await tween.finished
 
 
 func _spawn_damage_popup(target: Unit, damage: int, effectiveness_text: String, multiplier: float) -> void:
 	var popup_scene := preload("res://scenes/ui/damage_popup.tscn")
 	var popup: Node2D = popup_scene.instantiate()
 	popup.global_position = target.global_position + Vector2(0, -8)
+	popup.z_index = target.z_index + 2  # UNITS layer + 2 = UI layer, always above defending unit
 	get_tree().current_scene.add_child(popup)
 	if popup.has_method("initialize"):
 		popup.call("initialize", damage, effectiveness_text, multiplier)
@@ -500,7 +505,7 @@ func _handle_defeat() -> void:
 
 	# Gray out
 	if _sprite != null:
-		_sprite.modulate = GameColors.UNIT_ACTED
+		_sprite.modulate = Color(0.4, 0.4, 0.4, 1.0)
 
 	# Hide health bar
 	if _health_bar_background != null:
@@ -523,19 +528,63 @@ func _handle_defeat() -> void:
 # VISUAL HELPERS
 # =============================================================================
 
-func _apply_faction_color() -> void:
-	if _sprite == null:
+## Load the character's sprite from an Aseprite atlas spritesheet.
+## Falls back to the placeholder texture if no sprite data is configured.
+func _load_character_sprite() -> void:
+	if _sprite == null or character_data == null:
 		return
+	if character_data.sprite_sheet_path == "" or character_data.sprite_atlas_path == "":
+		return
+
+	var atlas_texture := SpriteAtlasLoader.get_frame_texture(
+		character_data.sprite_sheet_path,
+		character_data.sprite_atlas_path,
+		character_data.sprite_frame_index)
+	if atlas_texture == null:
+		return
+
+	_sprite.texture = atlas_texture
+
+	# Apply trim offset so the sprite aligns correctly with tile center.
+	var trim_offset := SpriteAtlasLoader.get_frame_offset(
+		character_data.sprite_atlas_path,
+		character_data.sprite_frame_index)
+	_sprite.offset = trim_offset
+
+
+## Set health bar fill to faction color. Background stays dark for contrast.
+func _apply_faction_healthbar() -> void:
+	if _health_bar_background == null or _health_bar_fill == null:
+		return
+	_health_bar_background.color = Color(0.1, 0.1, 0.1, 1.0)
 	match faction:
 		Enums.UnitFaction.PLAYER:
-			_sprite.modulate = GameColors.PLAYER_UNIT
+			_health_bar_fill.color = GameColors.FACTION_HEALTHBAR_PLAYER
 		Enums.UnitFaction.ENEMY:
-			_sprite.modulate = GameColors.ENEMY_UNIT
+			_health_bar_fill.color = GameColors.FACTION_HEALTHBAR_ENEMY
+		Enums.UnitFaction.ALLY:
+			_health_bar_fill.color = GameColors.FACTION_HEALTHBAR_ALLY
 		Enums.UnitFaction.NEUTRAL:
-			_sprite.modulate = GameColors.NEUTRAL_UNIT
+			_health_bar_fill.color = GameColors.FACTION_HEALTHBAR_NEUTRAL
 
 
-func _apply_acted_color() -> void:
+## Position the health bar just above the topmost pixel of the sprite.
+func _update_healthbar_position() -> void:
+	if _health_bar == null or _sprite == null or _sprite.texture == null:
+		return
+	var sprite_top := _sprite.offset.y - _sprite.texture.get_height() / 2.0
+	_health_bar.position.y = sprite_top - 3.0
+
+
+## Reset sprite modulate to full color (active unit).
+func _apply_active_modulate() -> void:
+	if _sprite == null:
+		return
+	_sprite.modulate = Color.WHITE
+
+
+## Darken and desaturate sprite to show the unit has acted.
+func _apply_acted_modulate() -> void:
 	if _sprite == null:
 		return
 	match faction:
@@ -543,8 +592,10 @@ func _apply_acted_color() -> void:
 			_sprite.modulate = GameColors.PLAYER_UNIT_ACTED
 		Enums.UnitFaction.ENEMY:
 			_sprite.modulate = GameColors.ENEMY_UNIT_ACTED
+		Enums.UnitFaction.ALLY:
+			_sprite.modulate = GameColors.ALLY_UNIT_ACTED
 		_:
-			_sprite.modulate = GameColors.UNIT_ACTED
+			_sprite.modulate = Color(0.5, 0.5, 0.5, 1.0)
 
 
 func _update_z_index() -> void:
@@ -557,5 +608,5 @@ func _update_z_index() -> void:
 		return
 	var offset_y: int = grid_manager.grid_offset_y
 	var height: int = grid_manager.grid_height
-	var row_index: int = (offset_y + height - 1) - current_tile.grid_y
+	var row_index: int = current_tile.grid_y - offset_y  # Front row (lowest grid_y) → index 0 (highest z)
 	z_index = ZIndexCalculator.calculate_sorting_order(row_index, 100, ZIndexCalculator.ZIndexLayer.UNITS)

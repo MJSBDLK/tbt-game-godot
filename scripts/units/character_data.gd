@@ -17,6 +17,11 @@ extends Resource
 @export var level: int = 1
 @export var experience: int = 0
 
+# Sprite sheet reference (Aseprite JSON atlas)
+@export var sprite_sheet_path: String = ""
+@export var sprite_atlas_path: String = ""
+@export var sprite_frame_index: int = 0
+
 
 # =============================================================================
 # BASE STATS (from JSON, never modified at runtime)

@@ -21,11 +21,13 @@ extends Node2D
 @export var floor_layer_path: NodePath = ^"TerrainTileLayer"
 @export var modifier_layer_path: NodePath = ^"ModifierTileLayer"
 @export var decoration_layer_path: NodePath = ^"DecorationTileLayer"
+@export var spawn_layer_path: NodePath = ^"SpawnTileLayer"
 @export var tile_scene: PackedScene = null
 
 var _floor_layer: TileMapLayer = null
 var _modifier_layer: TileMapLayer = null
 var _decoration_layer: TileMapLayer = null
+var _spawn_layer: TileMapLayer = null
 var _tile_container: Node2D = null
 
 
@@ -33,6 +35,7 @@ func _ready() -> void:
 	_floor_layer = get_node_or_null(floor_layer_path) as TileMapLayer
 	_modifier_layer = get_node_or_null(modifier_layer_path) as TileMapLayer
 	_decoration_layer = get_node_or_null(decoration_layer_path) as TileMapLayer
+	_spawn_layer = get_node_or_null(spawn_layer_path) as TileMapLayer
 
 	if _floor_layer == null:
 		DebugConfig.log_error("TilemapGridBuilder: FloorLayer not found at '%s'" % str(floor_layer_path))
@@ -100,37 +103,48 @@ func _build_grid() -> void:
 		var tile: Tile = tile_scene.instantiate() as Tile
 		_tile_container.add_child(tile)
 
-		# Godot TileMapLayer uses cell coordinates directly
-		# In our isometric-free setup, cell coords = world integer coords
-		# Note: TileMapLayer Y axis may be inverted compared to our grid.
-		# Godot's TileMapLayer Y increases downward, but our game grid Y increases upward.
-		# We negate the Y coordinate to match our convention.
+		# Game grid uses Y-up; TileMapLayer uses Y-down.  We keep both:
+		# - grid_x/grid_y: game-logic coordinates (Y-up, integer)
+		# - tile.position: pixel position matching TileMapLayer cell CENTER
 		var grid_x := cell.x
 		var grid_y := -cell.y  # Flip Y: Godot tilemap Y-down -> game grid Y-up
-		tile.position = Vector2(grid_x * tile_size, grid_y * tile_size)
+		var half_tile := tile_size / 2
+		tile.position = Vector2(cell.x * tile_size + half_tile, cell.y * tile_size + half_tile)
 		tile.terrain_type_name = terrain_type
 		tile.initialize(grid_x, grid_y)
 
 		# Z-index setup
 		var z_handler := GridZIndexHandler.new()
 		z_handler.layer = ZIndexCalculator.ZIndexLayer.FLOOR_TILES
-		z_handler.row_override = (min_y * -1 + grid_height - 1) - grid_y  # Convert to row index
+		z_handler.row_override = max_y + grid_y  # Front row (cell.y=max_y) → index 0 (highest z)
 		tile.add_child(z_handler)
 
 		# Register with GridManager
 		GridManager.register_tile(tile)
 		tile_count += 1
 
-	# Hide gameplay TileMapLayers — the Tile nodes are the visual representation now
-	# Decoration layer stays visible (Tier 3: visual-only, no gameplay impact)
-	_floor_layer.visible = false
+	# Keep TileMapLayers visible — they display the actual tileset art.
+	# Tile nodes are invisible gameplay objects (selection, occupancy, terrain queries).
+	# Modifier layer is hidden because its gameplay effect is already baked into the
+	# Tile node's terrain_type_name (three-tier replacement).
 	if _modifier_layer != null:
 		_modifier_layer.visible = false
+	if _spawn_layer != null:
+		_spawn_layer.visible = false
 	if _decoration_layer != null:
 		_decoration_layer.z_index = 3  # Above floor tiles, below units
 
-	# Finalize grid
-	GridManager.set_grid_bounds(grid_width, grid_height, min_x, -max_y, tile_size)
+	# Apply boundary markers if any were placed
+	var boundary := get_boundary_rect()
+	if boundary.has_area():
+		GridManager.trim_to_bounds(boundary.position.x, boundary.position.y,
+			boundary.position.x + boundary.size.x - 1,
+			boundary.position.y + boundary.size.y - 1)
+		GridManager.set_grid_bounds(boundary.size.x, boundary.size.y,
+			boundary.position.x, boundary.position.y, tile_size)
+		DebugConfig.log_tilemap("TilemapGridBuilder: Boundary markers found — trimmed to %s" % str(boundary))
+	else:
+		GridManager.set_grid_bounds(grid_width, grid_height, min_x, -max_y, tile_size)
 
 	DebugConfig.log_tilemap("TilemapGridBuilder: Created %d tile nodes" % tile_count)
 
@@ -145,3 +159,67 @@ func _get_terrain_type_from_layer(layer: TileMapLayer, cell: Vector2i) -> String
 		return terrain_type
 
 	return ""
+
+
+## Returns spawn points from the SpawnTileLayer, grouped by faction.
+## Keys: "Player", "Enemy". Values: Array of Vector2i in game-grid coordinates (Y-up).
+## Returns empty dictionary if no spawn layer or no spawn tiles painted.
+func get_spawn_points() -> Dictionary:
+	var result: Dictionary = {"Player": [], "Enemy": []}
+
+	if _spawn_layer == null:
+		return result
+
+	for cell: Vector2i in _spawn_layer.get_used_cells():
+		var tile_data := _spawn_layer.get_cell_tile_data(cell)
+		if tile_data == null:
+			continue
+
+		var spawn_faction: Variant = tile_data.get_custom_data("spawn_faction")
+		if spawn_faction is String and spawn_faction != "":
+			if spawn_faction == "Boundary":
+				continue  # Boundary markers are not spawn points
+			var grid_x := cell.x
+			var grid_y := -cell.y  # Flip Y: Godot tilemap Y-down -> game grid Y-up
+			if result.has(spawn_faction):
+				result[spawn_faction].append(Vector2i(grid_x, grid_y))
+			else:
+				push_warning("TilemapGridBuilder: Unknown spawn_faction '%s' at cell %s" % [spawn_faction, cell])
+
+	DebugConfig.log_tilemap("TilemapGridBuilder: Found %d player spawns, %d enemy spawns" % [
+		result["Player"].size(), result["Enemy"].size()])
+
+	return result
+
+
+## Returns the playable boundary as a Rect2i in game-grid coords (Y-up).
+## Reads all spawn layer cells whose spawn_faction == "Boundary" and
+## computes the bounding rect of those corners.
+## Returns an empty Rect2i if no boundary corner tiles are placed.
+func get_boundary_rect() -> Rect2i:
+	if _spawn_layer == null:
+		return Rect2i()
+
+	var boundary_cells: Array[Vector2i] = []
+	for cell: Vector2i in _spawn_layer.get_used_cells():
+		var tile_data := _spawn_layer.get_cell_tile_data(cell)
+		if tile_data == null:
+			continue
+		var spawn_faction: Variant = tile_data.get_custom_data("spawn_faction")
+		if spawn_faction is String and spawn_faction == "Boundary":
+			boundary_cells.append(cell)
+
+	if boundary_cells.size() == 0:
+		return Rect2i()
+
+	var min_x := boundary_cells[0].x
+	var max_x := boundary_cells[0].x
+	var min_y := -boundary_cells[0].y   # Y-flip: tilemap Y-down -> game grid Y-up
+	var max_y := -boundary_cells[0].y
+	for cell: Vector2i in boundary_cells:
+		min_x = mini(min_x, cell.x)
+		max_x = maxi(max_x, cell.x)
+		min_y = mini(min_y, -cell.y)
+		max_y = maxi(max_y, -cell.y)
+
+	return Rect2i(min_x, min_y, max_x - min_x + 1, max_y - min_y + 1)

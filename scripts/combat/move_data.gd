@@ -44,6 +44,7 @@ static func get_move(move_name: String) -> Move:
 static func _parse_move_entry(move_name: String, data: Dictionary) -> Move:
 	var move := Move.new()
 	move.move_name = move_name
+	move.abbrev_name = data.get("abbrevName", move_name)
 	move.move_id = data.get("moveId", move_name.to_lower().replace(" ", "_"))
 	move.description = data.get("description", "")
 	move.attack_range = int(data.get("range", 1))

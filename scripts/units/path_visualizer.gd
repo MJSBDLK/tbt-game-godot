@@ -108,6 +108,6 @@ func _get_rotation_toward(from_tile: Tile, to_tile: Tile) -> float:
 	elif direction_x == -1:
 		return -PI / 2.0
 	elif direction_y == 1:
-		return PI
+		return 0.0  # Game Y-up = screen Y-up (arrow points up)
 	else:
-		return 0.0
+		return PI  # Game Y-down = screen Y-down (arrow points down)

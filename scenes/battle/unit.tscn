@@ -11,7 +11,6 @@ script = ExtResource("1_unit")
 texture = ExtResource("2_sprite")
 
 [node name="HealthBar" type="Node2D" parent="."]
-position = Vector2(0, -10)
 
 [node name="Background" type="ColorRect" parent="HealthBar"]
 offset_left = -7.0
@@ -19,7 +18,7 @@ offset_top = -1.0
 offset_right = 7.0
 offset_bottom = 1.0
 mouse_filter = 2
-color = Color(0.2, 0.2, 0.2, 1)
+color = Color(0.1, 0.1, 0.1, 1)
 
 [node name="Fill" type="ColorRect" parent="HealthBar"]
 offset_left = -7.0
@@ -27,7 +26,7 @@ offset_top = -1.0
 offset_right = 7.0
 offset_bottom = 1.0
 mouse_filter = 2
-color = Color(0.0, 0.8, 0.0, 1)
+color = Color(0.45, 0.65, 1.0, 1)
 
 [node name="PathVisualizer" type="Node2D" parent="."]
 top_level = true

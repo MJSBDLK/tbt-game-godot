@@ -63,6 +63,20 @@ func is_grid_ready() -> bool:
 	return _grid.size() > 0
 
 
+## Remove all tiles outside the given game-grid rect (inclusive).
+## Used when boundary corner markers define a smaller playable area.
+## Movement and pathfinding stop naturally at tiles missing from _grid.
+func trim_to_bounds(min_x: int, min_y: int, max_x: int, max_y: int) -> void:
+	var keys_to_remove: Array[Vector2i] = []
+	for coord: Vector2i in _grid:
+		if coord.x < min_x or coord.x > max_x or coord.y < min_y or coord.y > max_y:
+			keys_to_remove.append(coord)
+	for coord: Vector2i in keys_to_remove:
+		_grid.erase(coord)
+	DebugConfig.log_grid("GridManager: trim_to_bounds [%d,%d]->[%d,%d] removed %d tiles, %d remain" % [
+		min_x, min_y, max_x, max_y, keys_to_remove.size(), _grid.size()])
+
+
 ## Clear the entire grid (used when loading a new map).
 func clear_grid() -> void:
 	_grid.clear()
@@ -87,10 +101,11 @@ func get_tile(x: int, y: int) -> Tile:
 
 
 ## Get the tile at a world position (converts pixel coords to grid coords).
+## Pixel space uses TileMapLayer convention (Y-down), game grid uses Y-up.
 func get_tile_at_position(world_position: Vector2) -> Tile:
-	var tile_x := roundi(world_position.x / float(_tile_size))
-	var tile_y := roundi(world_position.y / float(_tile_size))
-	return get_tile(tile_x, tile_y)
+	var cell_x := floori(world_position.x / float(_tile_size))
+	var cell_y := floori(world_position.y / float(_tile_size))
+	return get_tile(cell_x, -cell_y)  # Flip Y: TileMapLayer Y-down -> game grid Y-up
 
 
 ## Get the 4-directional neighbors of a tile (up, right, down, left).

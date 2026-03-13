@@ -5,25 +5,31 @@
 	"currentClass": "Spaceman",
 	"specialization": "None",
 
+	"sprite": {
+		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
+		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",
+		"frameIndex": 0
+	},
+
 	"baseStats": {
-		"maxHP": 20,
-		"strength": 5,
-		"special": 4,
-		"skill": 5,
+		"maxHP": 21,
+		"strength": 6,
+		"special": 5,
+		"skill": 3,
 		"agility": 5,
 		"athleticism": 5,
-		"defense": 4,
+		"defense": 3,
 		"resistance": 4
 	},
 
 	"growthRates": {
-		"hp": 80,
-		"strength": 40,
-		"special": 30,
-		"skill": 45,
-		"agility": 40,
-		"athleticism": 35,
-		"defense": 35,
+		"hp": 70,
+		"strength": 55,
+		"special": 40,
+		"skill": 65,
+		"agility": 55,
+		"athleticism": 55,
+		"defense": 40,
 		"resistance": 30
 	},
 
@@ -34,6 +40,6 @@
 	},
 
 	"level": 1,
-	"basePoolMoves": ["Bonk", "Laser"],
+	"basePoolMoves": ["Bonk", "Laser", "Klunk", "Uppercut", "Overload", "Megaton Punch"],
 	"basePoolPassives": ["Impetuous"]
 }

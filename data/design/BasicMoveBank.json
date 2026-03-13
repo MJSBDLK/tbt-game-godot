@@ -1,0 +1,779 @@
+{
+  "moves": [
+    {
+      "id": "air_peck",
+      "name": "Peck",
+      "elementalType": "Air",
+      "damageType": "Physical",
+      "power": 3,
+      "usagesOffset": null,
+      "secondaryEffect": {
+        "effect": "knockback",
+        "pushDistance": 1
+      }
+    },
+    {
+      "id": "air_compressed_air",
+      "name": "Compressed Air",
+      "elementalType": "Air",
+      "damageType": "Special",
+      "power": 3,
+      "description": "Basic air attack for Ernesto et al",
+      "usagesOffset": null,
+      "secondaryEffect": {
+        "effect": "knockback",
+        "pushDistance": 1
+      }
+    },
+    {
+      "id": "air_vortex",
+      "name": "Vortex",
+      "elementalType": "Air",
+      "damageType": "Special",
+      "power": 7,
+      "usagesOffset": null,
+      "secondaryEffect": {
+        "effect": "splash",
+        "splashRadius": 1,
+        "splashDamagePercent": 0.5
+      }
+    },
+    {
+      "id": "air_vacuum",
+      "name": "Vacuum",
+      "elementalType": "Air",
+      "damageType": "Special",
+      "power": 11,
+      "usagesOffset": null,
+      "repositioningEffect": {
+        "type": "pull",
+        "distance": 3,
+        "description": "Pulls target 3 tiles toward caster"
+      },
+      "secondaryEffect": {
+        "effect": "knockback",
+        "pushDistance": 2,
+        "description": "After pull, knockback 2 tiles (net 1 tile pull)"
+      }
+    },
+    {
+      "id": "chivalric_joust",
+      "name": "Joust",
+      "elementalType": "Chivalric",
+      "damageType": "Physical",
+      "power": 3,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "vulnerable",
+        "chance": 0.1
+      }
+    },
+    {
+      "id": "chivalric_lance",
+      "name": "Lance",
+      "elementalType": "Chivalric",
+      "damageType": "Physical",
+      "power": 7,
+      "usagesOffset": null,
+      "secondaryEffect": {
+        "effect": "piercing",
+        "percentDefenseIgnored": 0.3
+      }
+    },
+    {
+      "id": "chivalric_charge",
+      "name": "Charge",
+      "elementalType": "Chivalric",
+      "damageType": "Physical",
+      "power": 11,
+      "usagesOffset": null,
+      "secondaryEffect": {
+        "effect": "knockback",
+        "pushDistance": 2
+      }
+    },
+    {
+      "id": "chivalric_rend",
+      "name": "Rend",
+      "elementalType": "Chivalric",
+      "damageType": "Physical",
+      "power": 13,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "bleed",
+        "chance": 0.3,
+        "stacksApplied": 2
+      }
+    },
+    {
+      "id": "cold_cold_hands",
+      "name": "Cold Hands",
+      "elementalType": "Cold",
+      "damageType": "Physical",
+      "power": 3,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "freeze",
+        "chance": 0.1
+      }
+    },
+    {
+      "id": "cold_ice_pick",
+      "name": "Ice Pick",
+      "elementalType": "Cold",
+      "damageType": "Physical",
+      "power": 7,
+      "usagesOffset": null,
+      "secondaryEffect": {
+        "effect": "piercing",
+        "percentDefenseIgnored": 0.3
+      }
+    },
+    {
+      "id": "cold_shatter",
+      "name": "Shatter",
+      "elementalType": "Cold",
+      "damageType": "Physical",
+      "power": 11,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "freeze",
+        "chance": 0.2
+      },
+      "conditionalEffect": {
+        "condition": "targetHasStatus",
+        "requiredStatus": "freeze",
+        "bonusDamageMultiplier": 0.5,
+        "description": "+50% damage if target is frozen"
+      }
+    },
+    {
+      "id": "cold_coolant",
+      "name": "Coolant",
+      "elementalType": "Cold",
+      "damageType": "Special",
+      "power": 3,
+      "description": "Robots/Engineers - basic cold attack",
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "freeze",
+        "chance": 0.1
+      }
+    },
+    {
+      "id": "cold_freeze",
+      "name": "Freeze",
+      "elementalType": "Cold",
+      "damageType": "Special",
+      "power": 7,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "freeze",
+        "chance": 0.5
+      }
+    },
+    {
+      "id": "cold_permafrost",
+      "name": "Permafrost",
+      "elementalType": "Cold",
+      "damageType": "Special",
+      "power": 11,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "freeze",
+        "chance": 0.7
+      }
+    },
+    {
+      "id": "electric_esd",
+      "name": "ESD",
+      "elementalType": "Electric",
+      "damageType": "Physical",
+      "power": 3,
+      "description": "Electrostatic discharge",
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "shocked",
+        "chance": 0.1
+      }
+    },
+    {
+      "id": "electric_direct_current",
+      "name": "Direct Current",
+      "elementalType": "Electric",
+      "damageType": "Physical",
+      "power": 7,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "shocked",
+        "chance": 0.2
+      }
+    },
+    {
+      "id": "electric_shock",
+      "name": "Shock",
+      "elementalType": "Electric",
+      "damageType": "Special",
+      "power": 3,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "shocked",
+        "chance": 0.1
+      }
+    },
+    {
+      "id": "electric_zap",
+      "name": "Zap",
+      "elementalType": "Electric",
+      "damageType": "Special",
+      "power": 7,
+      "description": "Workhorse electric attack, medium damage, good status chance",
+      "usagesOffset": -2,
+      "statusEffect": {
+        "effect": "shocked",
+        "chance": 0.25
+      }
+    },
+    {
+      "id": "electric_arc_lightning",
+      "name": "Arc Lightning",
+      "elementalType": "Electric",
+      "damageType": "Special",
+      "power": 11,
+      "usagesOffset": null,
+      "secondaryEffect": {
+        "effect": "chain_lightning",
+        "magnitude": 3
+      }
+    },
+    {
+      "id": "fire_weld",
+      "name": "Weld",
+      "elementalType": "Fire",
+      "damageType": "Physical",
+      "power": 3,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "burn",
+        "chance": 0.1
+      }
+    },
+    {
+      "id": "fire_plasma_cutter",
+      "name": "Plasma Cutter",
+      "elementalType": "Fire",
+      "damageType": "Physical",
+      "power": 7,
+      "description": "Robo/Engineer",
+      "usagesOffset": null,
+      "secondaryEffect": {
+        "effect": "piercing",
+        "percentDefenseIgnored": 0.5
+      }
+    },
+    {
+      "id": "fire_plasma",
+      "name": "Plasma",
+      "elementalType": "Fire",
+      "damageType": "Physical",
+      "power": 11,
+      "description": "Chain lightning effect",
+      "usagesOffset": -4,
+      "secondaryEffect": {
+        "effect": "chain_lightning",
+        "magnitude": 2
+      }
+    },
+    {
+      "id": "fire_scorch",
+      "name": "Scorch",
+      "elementalType": "Fire",
+      "damageType": "Special",
+      "power": 7,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "burn",
+        "chance": 0.25
+      }
+    },
+    {
+      "id": "fire_immolate",
+      "name": "Immolate",
+      "elementalType": "Fire",
+      "damageType": "Special",
+      "power": 11,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "burn",
+        "chance": 0.3
+      }
+    },
+    {
+      "id": "gentry_fisticuffs",
+      "name": "Fisticuffs",
+      "elementalType": "Gentry",
+      "damageType": "Physical",
+      "power": 3,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "vulnerable",
+        "chance": 0.1
+      }
+    },
+    {
+      "id": "gentry_epee",
+      "name": "Epée",
+      "elementalType": "Gentry",
+      "damageType": "Physical",
+      "power": 7,
+      "usagesOffset": null,
+      "secondaryEffect": {
+        "effect": "piercing",
+        "percentDefenseIgnored": 0.5
+      }
+    },
+    {
+      "id": "gentry_riposte",
+      "name": "Riposte",
+      "elementalType": "Gentry",
+      "damageType": "Physical",
+      "power": 11,
+      "description": "Always moves second. Critical damage if enemy misses",
+      "usagesOffset": 3,
+      "counterEffect": {
+        "moveSecond": true,
+        "bonusDamageOnEnemyMiss": 1.5,
+        "description": "Moves second. +150% damage if enemy missed"
+      }
+    },
+    {
+      "id": "gentry_extort",
+      "name": "Extort",
+      "elementalType": "Gentry",
+      "damageType": "Special",
+      "power": 7,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "wither",
+        "chance": 0.2
+      }
+    },
+    {
+      "id": "heraldic_march",
+      "name": "March",
+      "elementalType": "Heraldic",
+      "damageType": "Physical",
+      "power": 3,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "bugle",
+        "chance": 0.1
+      }
+    },
+    {
+      "id": "heraldic_flank",
+      "name": "Flank",
+      "elementalType": "Heraldic",
+      "damageType": "Physical",
+      "power": 7,
+      "description": "+50% for side attack, +100% for backstab",
+      "usagesOffset": -3,
+      "positionalEffect": {
+        "sideDamageBonus": 0.5,
+        "backstabDamageBonus": 1.0,
+        "description": "+50% damage from side, +100% from behind"
+      }
+    },
+    {
+      "id": "gravity_impact",
+      "name": "Impact",
+      "elementalType": "Gravity",
+      "damageType": "Physical",
+      "power": 7,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "gravity",
+        "chance": 0.2
+      }
+    },
+    {
+      "id": "gravity_meteorite",
+      "name": "Meteorite",
+      "elementalType": "Gravity",
+      "damageType": "Physical",
+      "power": 11,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "gravity",
+        "chance": 0.3
+      }
+    },
+    {
+      "id": "gravity_pull",
+      "name": "Pull",
+      "elementalType": "Gravity",
+      "damageType": "Special",
+      "power": 3,
+      "description": "Movement/repositioning",
+      "usagesOffset": null,
+      "repositioningEffect": {
+        "type": "pull",
+        "distance": 2,
+        "description": "Pulls target 2 tiles toward caster"
+      }
+    },
+    {
+      "id": "gravity_lash",
+      "name": "Lash",
+      "elementalType": "Gravity",
+      "damageType": "Special",
+      "power": 7,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "gravity",
+        "chance": 0.25
+      }
+    },
+    {
+      "id": "gravity_singularity",
+      "name": "Singularity",
+      "elementalType": "Gravity",
+      "damageType": "Special",
+      "power": 11,
+      "description": "Low damage, wide AoE crowd control - heavy damage at epicenter",
+      "usagesOffset": -5,
+      "statusEffect": {
+        "effect": "gravity",
+        "chance": 0.7
+      },
+      "aoeEffect": {
+        "shape": "circle",
+        "radius": 3,
+        "epicenterDamageMultiplier": 2.0,
+        "falloffDamagePercent": 0.3,
+        "description": "3-tile radius AoE. 200% damage at epicenter, 30% at edges"
+      },
+      "repositioningEffect": {
+        "type": "pull_aoe",
+        "distance": 1,
+        "description": "All targets pulled 1 tile toward epicenter"
+      }
+    },
+    {
+      "id": "occult_pinprick",
+      "name": "Pinprick",
+      "elementalType": "Occult",
+      "damageType": "Physical",
+      "power": 3,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "bleed",
+        "chance": 0.1
+      }
+    },
+    {
+      "id": "occult_siphon",
+      "name": "Siphon",
+      "elementalType": "Occult",
+      "damageType": "Physical",
+      "power": 7,
+      "description": "Drains stats/resources",
+      "usagesOffset": -2,
+      "secondaryEffect": {
+        "effect": "lifesteal",
+        "healPercentOfDamage": 0.5
+      }
+    },
+    {
+      "id": "occult_screech",
+      "name": "Screech",
+      "elementalType": "Occult",
+      "damageType": "Special",
+      "power": 3,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "vulnerable",
+        "chance": 0.2
+      }
+    },
+    {
+      "id": "occult_hex",
+      "name": "Hex",
+      "elementalType": "Occult",
+      "damageType": "Special",
+      "power": 7,
+      "description": "Apply random status",
+      "usagesOffset": -3,
+      "randomStatusEffect": {
+        "chance": 0.7,
+        "statusPool": ["burn", "freeze", "poison", "shocked", "wither", "vulnerable"],
+        "description": "70% chance to apply random debuff"
+      }
+    },
+    {
+      "id": "occult_hemorrhage",
+      "name": "Hemorrhage",
+      "elementalType": "Occult",
+      "damageType": "Special",
+      "power": 11,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "bleed",
+        "chance": 0.5,
+        "stacksApplied": 2
+      }
+    },
+    {
+      "id": "plant_root",
+      "name": "Root",
+      "elementalType": "Plant",
+      "damageType": "Physical",
+      "power": 3,
+      "description": "Roots/immobilizes",
+      "usagesOffset": -2,
+      "statusEffect": {
+        "effect": "rooted",
+        "chance": 0.5
+      }
+    },
+    {
+      "id": "plant_vines",
+      "name": "Vines",
+      "elementalType": "Plant",
+      "damageType": "Physical",
+      "power": 7,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "rooted",
+        "chance": 0.2
+      }
+    },
+    {
+      "id": "plant_strangle",
+      "name": "Strangle",
+      "elementalType": "Plant",
+      "damageType": "Physical",
+      "power": 11,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "rooted",
+        "chance": 0.3
+      }
+    },
+    {
+      "id": "plant_sap",
+      "name": "Sap",
+      "elementalType": "Plant",
+      "damageType": "Special",
+      "power": 3,
+      "description": "Drains/weakens",
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "wither",
+        "chance": 0.2
+      }
+    },
+    {
+      "id": "plant_spores",
+      "name": "Spores",
+      "elementalType": "Plant",
+      "damageType": "Special",
+      "power": 7,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "poison",
+        "chance": 0.3
+      }
+    },
+    {
+      "id": "plant_acid",
+      "name": "Acid",
+      "elementalType": "Plant",
+      "damageType": "Special",
+      "power": 11,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "poison",
+        "chance": 0.5
+      }
+    },
+    {
+      "id": "robo_backhand",
+      "name": "Backhand",
+      "elementalType": "Robo",
+      "damageType": "Physical",
+      "power": 7,
+      "description": "Ernesto's robo-fist, hits front space and two adjacent cells",
+      "usagesOffset": -3,
+      "aoeEffect": {
+        "shape": "frontal_arc",
+        "width": 3,
+        "description": "Hits 3 cells in front (center + 2 adjacent)"
+      },
+      "secondaryEffect": {
+        "effect": "knockback",
+        "pushDistance": 1
+      }
+    },
+    {
+      "id": "robo_laser",
+      "name": "Laser",
+      "elementalType": "Robo",
+      "damageType": "Special",
+      "power": 3,
+      "description": "Basic robotic attack",
+      "usagesOffset": null,
+      "secondaryEffect": {
+        "effect": "piercing",
+        "percentDefenseIgnored": 0.2
+      }
+    },
+    {
+      "id": "robo_turret_attack",
+      "name": "Turret attack",
+      "elementalType": "Robo",
+      "damageType": "Special",
+      "power": 7,
+      "description": "Fires laser from deployed turret",
+      "usagesOffset": null,
+      "accuracyBonus": 0.2,
+      "secondaryEffect": {
+        "effect": "piercing",
+        "percentDefenseIgnored": 0.3
+      }
+    },
+    {
+      "id": "simple_bonk",
+      "name": "Bonk",
+      "elementalType": "Simple",
+      "damageType": "Physical",
+      "power": 3,
+      "description": "Default/basic attack with infinite uses",
+      "usagesOffset": null
+    },
+    {
+      "id": "simple_hook",
+      "name": "Hook",
+      "elementalType": "Simple",
+      "damageType": "Physical",
+      "power": 7,
+      "usagesOffset": null,
+      "repositioningEffect": {
+        "type": "pull",
+        "distance": 1,
+        "description": "Pulls target 1 tile toward caster"
+      }
+    },
+    {
+      "id": "simple_dropkick",
+      "name": "Dropkick",
+      "elementalType": "Simple",
+      "damageType": "Physical",
+      "power": 11,
+      "description": "Heavy attack, applies one turn vulnerable to self",
+      "usagesOffset": 5,
+      "selfInflictedStatus": {
+        "effect": "vulnerable",
+        "chance": 1.0,
+        "stacksApplied": 1,
+        "description": "100% chance to apply 1 stack vulnerable to self"
+      }
+    },
+    {
+      "id": "void_tear",
+      "name": "Tear",
+      "elementalType": "Void",
+      "damageType": "Physical",
+      "power": 7,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "void",
+        "chance": 0.2
+      }
+    },
+    {
+      "id": "void_shear",
+      "name": "Shear",
+      "elementalType": "Void",
+      "damageType": "Physical",
+      "power": 6,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "bleed",
+        "chance": 1.0
+      }
+    },
+    {
+      "id": "void_dissolve",
+      "name": "Dissolve",
+      "elementalType": "Void",
+      "damageType": "Physical",
+      "power": 11,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "void",
+        "chance": 0.3
+      }
+    },
+    {
+      "id": "void_distort",
+      "name": "Distort",
+      "elementalType": "Void",
+      "damageType": "Special",
+      "power": 7,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "void",
+        "chance": 0.25
+      }
+    },
+    {
+      "id": "void_erase",
+      "name": "Erase",
+      "elementalType": "Void",
+      "damageType": "Special",
+      "power": 11,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "void",
+        "chance": 0.5
+      }
+    },
+    {
+      "id": "obsidian_mass_shift",
+      "name": "Mass Shift",
+      "elementalType": "Obsidian",
+      "damageType": "Physical",
+      "power": 7,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "gravity",
+        "chance": 0.3
+      }
+    },
+    {
+      "id": "obsidian_monomolecular_edge",
+      "name": "Monomolecular Edge",
+      "elementalType": "Obsidian",
+      "damageType": "Physical",
+      "power": 11,
+      "usagesOffset": null,
+      "secondaryEffect": {
+        "effect": "piercing",
+        "percentDefenseIgnored": 1.0
+      }
+    },
+    {
+      "id": "obsidian_dark_energy",
+      "name": "Dark Energy",
+      "elementalType": "Obsidian",
+      "damageType": "Special",
+      "power": 11,
+      "usagesOffset": null,
+      "statusEffect": {
+        "effect": "void",
+        "chance": 0.3
+      }
+    }
+  ]
+}

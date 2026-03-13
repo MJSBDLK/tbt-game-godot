@@ -29,6 +29,12 @@ static func _parse_character_json(data: Dictionary) -> CharacterData:
 	character.specialization = _parse_specialization(data.get("specialization", "None"))
 	character.level = int(data.get("level", 1))
 
+	# Sprite data
+	var sprite_data: Dictionary = data.get("sprite", {})
+	character.sprite_sheet_path = sprite_data.get("sheetPath", "")
+	character.sprite_atlas_path = sprite_data.get("atlasPath", "")
+	character.sprite_frame_index = int(sprite_data.get("frameIndex", 0))
+
 	# Base stats
 	var stats: Dictionary = data.get("baseStats", {})
 	character.base_max_hp = int(stats.get("maxHP", 20))

@@ -82,8 +82,8 @@ func _build_cancel_hint() -> void:
 	_cancel_hint_label = Label.new()
 	_cancel_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_cancel_hint_label.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	_cancel_hint_label.position = Vector2(0, 340)
-	_cancel_hint_label.size = Vector2(640, 20)
+	_cancel_hint_label.offset_top = -20
+	_cancel_hint_label.offset_bottom = 0
 
 	var ui_manager: Node = get_node_or_null("/root/UIManager")
 	if ui_manager != null and ui_manager.font_5px != null:

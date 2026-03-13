@@ -1,0 +1,45 @@
+{
+	"characterName": "Grunt",
+	"primaryType": "Simple",
+	"secondaryType": "None",
+	"currentClass": "Spaceman",
+	"specialization": "None",
+
+	"sprite": {
+		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
+		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",
+		"frameIndex": 7
+	},
+
+	"baseStats": {
+		"maxHP": 18,
+		"strength": 6,
+		"special": 3,
+		"skill": 4,
+		"agility": 4,
+		"athleticism": 5,
+		"defense": 4,
+		"resistance": 3
+	},
+
+	"growthRates": {
+		"hp": 70,
+		"strength": 45,
+		"special": 20,
+		"skill": 35,
+		"agility": 35,
+		"athleticism": 40,
+		"defense": 35,
+		"resistance": 25
+	},
+
+	"physicalAttributes": {
+		"moveDistance": 3,
+		"constitution": 5,
+		"carry": 8
+	},
+
+	"level": 1,
+	"basePoolMoves": ["Bonk", "Klunk", "Flame Strike", "Shock", "Megaton Punch"],
+	"basePoolPassives": []
+}

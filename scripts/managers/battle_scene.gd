@@ -1,10 +1,10 @@
-## Battle scene root script. Spawns units from map data JSON and kicks off the turn loop.
-## Set map_data_path in the inspector to point to your map's JSON file.
-## Falls back to hardcoded test spawns if no map data is provided.
+## Battle scene root script. Spawns units from SpawnTileLayer and kicks off the turn loop.
+## Each map scene must have a TilemapGridBuilder with a painted SpawnTileLayer.
 extends Node2D
 
 
-@export var map_data_path: String = ""
+@export var default_player_character: String = "res://data/characters/spaceman.json"
+@export var default_enemy_character: String = "res://data/characters/grunt.json"
 
 var _unit_scene: PackedScene = preload("res://scenes/battle/unit.tscn")
 var _units_container: Node2D = null
@@ -22,23 +22,15 @@ func _ready() -> void:
 
 
 func _on_grid_ready() -> void:
-	var player_units: Array[Unit] = []
-	var enemy_units: Array[Unit] = []
+	var spawn_points := _get_tile_spawn_points()
+	var player_units := _spawn_units_from_tiles(spawn_points["Player"], Enums.UnitFaction.PLAYER, default_player_character)
+	var enemy_units := _spawn_units_from_tiles(spawn_points["Enemy"], Enums.UnitFaction.ENEMY, default_enemy_character)
 
-	if map_data_path != "":
-		var map_data := MapDataLoader.load_map_data(map_data_path)
-		if map_data != null:
-			player_units = _spawn_units_from_data(map_data.player_spawns)
-			enemy_units = _spawn_units_from_data(map_data.enemy_spawns)
-			DebugConfig.log_unit_init("BattleScene: Spawned %d players + %d enemies from '%s'" % [
-				player_units.size(), enemy_units.size(), map_data.map_name])
-		else:
-			push_warning("BattleScene: Failed to load '%s', using fallback spawns" % map_data_path)
-			player_units = _spawn_fallback_players()
-			enemy_units = _spawn_fallback_enemies()
-	else:
-		player_units = _spawn_fallback_players()
-		enemy_units = _spawn_fallback_enemies()
+	if player_units.is_empty() and enemy_units.is_empty():
+		push_warning("BattleScene: No spawn tiles found — paint Player/Enemy tiles on SpawnTileLayer")
+
+	DebugConfig.log_unit_init("BattleScene: Spawned %d players + %d enemies from tile spawns" % [
+		player_units.size(), enemy_units.size()])
 
 	var turn_manager: Node = get_node_or_null("/root/TurnManager")
 	if turn_manager != null:
@@ -48,65 +40,38 @@ func _on_grid_ready() -> void:
 
 
 # =============================================================================
-# MAP-DRIVEN SPAWNING
+# TILE-BASED SPAWNING (SpawnTileLayer)
 # =============================================================================
 
-func _spawn_units_from_data(spawns: Array) -> Array[Unit]:
+func _get_tile_spawn_points() -> Dictionary:
+	var grid_builder := _find_grid_builder()
+	if grid_builder == null:
+		return {"Player": [], "Enemy": []}
+	return grid_builder.get_spawn_points()
+
+
+func _find_grid_builder() -> TilemapGridBuilder:
+	for child: Node in get_children():
+		if child is TilemapGridBuilder:
+			return child as TilemapGridBuilder
+	if get_parent() != null:
+		for child: Node in get_parent().get_children():
+			if child is TilemapGridBuilder:
+				return child as TilemapGridBuilder
+	return null
+
+
+func _spawn_units_from_tiles(positions: Array, faction: Enums.UnitFaction, character_path: String) -> Array[Unit]:
 	var units: Array[Unit] = []
-	for spawn_entry: Variant in spawns:
-		var spawn := spawn_entry as MapDataLoader.SpawnData
-		if spawn == null:
-			continue
-
-		var tile := GridManager.get_tile(spawn.grid_x, spawn.grid_y)
+	for position: Variant in positions:
+		var grid_pos := position as Vector2i
+		var tile := GridManager.get_tile(grid_pos.x, grid_pos.y)
 		if tile == null:
-			push_warning("BattleScene: No tile at (%d, %d) for spawn" % [spawn.grid_x, spawn.grid_y])
+			push_warning("BattleScene: No tile at (%d, %d) for spawn" % [grid_pos.x, grid_pos.y])
 			continue
-
-		var unit := _create_unit(spawn.character_json_path, spawn.faction, tile, spawn.ai_behavior)
+		var unit := _create_unit(character_path, faction, tile)
 		if unit != null:
 			units.append(unit)
-
-	return units
-
-
-# =============================================================================
-# FALLBACK SPAWNING (no map data)
-# =============================================================================
-
-func _spawn_fallback_players() -> Array[Unit]:
-	var units: Array[Unit] = []
-	var offset_x := GridManager.grid_offset_x
-	var offset_y := GridManager.grid_offset_y
-
-	var tile_1 := GridManager.get_tile(offset_x + 1, offset_y + 1)
-	if tile_1 != null:
-		units.append(_create_unit("res://data/characters/spaceman.json",
-			Enums.UnitFaction.PLAYER, tile_1))
-
-	var tile_2 := GridManager.get_tile(offset_x + 1, offset_y + 3)
-	if tile_2 != null:
-		units.append(_create_unit("res://data/characters/spaceman.json",
-			Enums.UnitFaction.PLAYER, tile_2))
-
-	return units
-
-
-func _spawn_fallback_enemies() -> Array[Unit]:
-	var units: Array[Unit] = []
-	var offset_x := GridManager.grid_offset_x
-	var offset_y := GridManager.grid_offset_y
-
-	var tile_1 := GridManager.get_tile(offset_x + 3, offset_y + 1)
-	if tile_1 != null:
-		units.append(_create_unit("res://data/characters/fire_warrior.json",
-			Enums.UnitFaction.ENEMY, tile_1))
-
-	var tile_2 := GridManager.get_tile(offset_x + 5, offset_y + 3)
-	if tile_2 != null:
-		units.append(_create_unit("res://data/characters/fire_warrior.json",
-			Enums.UnitFaction.ENEMY, tile_2))
-
 	return units
 
 
@@ -123,7 +88,6 @@ func _create_unit(json_path: String, faction: Enums.UnitFaction, tile: Tile,
 	unit.initialize(tile)
 	unit.auto_assign_first_usable_move()
 
-	# Add EnemyAI to enemy units
 	if faction == Enums.UnitFaction.ENEMY:
 		var enemy_ai := EnemyAI.new()
 		enemy_ai.name = "EnemyAI"

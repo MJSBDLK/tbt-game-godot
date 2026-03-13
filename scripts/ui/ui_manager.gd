@@ -23,10 +23,13 @@ var _center_area: Control = null
 var _right_panel: VBoxContainer = null
 
 # Panels
-var _unit_info_panel: Node = null
-var _terrain_info_panel: Node = null
-var _action_menu_panel: Node = null
-var _combat_preview_panel: Node = null
+var _unit_info_panel: UnitInfoPanel = null
+var _terrain_info_panel: TerrainInfoPanel = null
+var _action_menu_panel: ActionMenuPanel = null
+var _combat_preview_panel: CombatPreviewPanel = null
+
+# Panel side state: when true, action/combat panels are on the left, info panels on the right.
+var _action_panels_on_left: bool = false
 
 # Overlays
 var _overlay_layer: CanvasLayer = null
@@ -51,13 +54,17 @@ func _ready() -> void:
 # =============================================================================
 
 func show_unit_info(unit: Node) -> void:
-	if _unit_info_panel != null and _unit_info_panel.has_method("show_unit"):
-		_unit_info_panel.show_unit(unit)
+	if _unit_info_panel == null:
+		return
+	if _is_action_ui_open():
+		return
+	_unit_info_panel.show_unit(unit as Unit)
 
 
 func hide_unit_info() -> void:
-	if _unit_info_panel != null and _unit_info_panel.has_method("hide_panel"):
-		_unit_info_panel.hide_panel()
+	if _unit_info_panel == null:
+		return
+	_unit_info_panel.hide_panel()
 
 
 # =============================================================================
@@ -65,13 +72,18 @@ func hide_unit_info() -> void:
 # =============================================================================
 
 func show_terrain_info(tile: Variant) -> void:
-	if _terrain_info_panel != null and _terrain_info_panel.has_method("show_tile"):
-		_terrain_info_panel.show_tile(tile)
+	if _terrain_info_panel == null:
+		return
+	# Terrain info is suppressed while the action menu or combat preview is active.
+	if _is_action_ui_open():
+		return
+	_terrain_info_panel.show_tile(tile)
 
 
 func hide_terrain_info() -> void:
-	if _terrain_info_panel != null and _terrain_info_panel.has_method("hide_panel"):
-		_terrain_info_panel.hide_panel()
+	if _terrain_info_panel == null:
+		return
+	_terrain_info_panel.hide_panel()
 
 
 # =============================================================================
@@ -79,13 +91,22 @@ func hide_terrain_info() -> void:
 # =============================================================================
 
 func show_action_menu(unit: Node) -> void:
-	if _action_menu_panel != null and _action_menu_panel.has_method("show_menu"):
-		_action_menu_panel.show_menu(unit)
+	if _action_menu_panel == null:
+		return
+	# Unit info and terrain info never show alongside the action menu or combat preview
+	if _unit_info_panel != null:
+		_unit_info_panel.hide_panel()
+	if _terrain_info_panel != null:
+		_terrain_info_panel.hide_panel()
+	if unit != null:
+		_place_action_panels(_unit_is_in_right_half(unit))
+	_action_menu_panel.show_menu(unit as Unit)
 
 
 func hide_action_menu() -> void:
-	if _action_menu_panel != null and _action_menu_panel.has_method("hide_menu"):
-		_action_menu_panel.hide_menu()
+	if _action_menu_panel == null:
+		return
+	_action_menu_panel.hide_menu()
 
 
 func get_action_menu_panel() -> Node:
@@ -97,13 +118,22 @@ func get_action_menu_panel() -> Node:
 # =============================================================================
 
 func show_combat_preview(attacker: Node, defender: Node, move: Move) -> void:
-	if _combat_preview_panel != null and _combat_preview_panel.has_method("show_preview"):
-		_combat_preview_panel.show_preview(attacker, defender, move)
+	if _combat_preview_panel == null:
+		return
+	# Unit info and terrain info never show alongside the action menu or combat preview
+	if _unit_info_panel != null:
+		_unit_info_panel.hide_panel()
+	if _terrain_info_panel != null:
+		_terrain_info_panel.hide_panel()
+	if attacker != null:
+		_place_action_panels(_unit_is_in_right_half(attacker))
+	_combat_preview_panel.show_preview(attacker as Unit, defender as Unit, move)
 
 
 func hide_combat_preview() -> void:
-	if _combat_preview_panel != null and _combat_preview_panel.has_method("hide_panel"):
-		_combat_preview_panel.hide_panel()
+	if _combat_preview_panel == null:
+		return
+	_combat_preview_panel.hide_panel()
 
 
 # =============================================================================
@@ -132,7 +162,7 @@ func hide_battle_result() -> void:
 # =============================================================================
 
 func refresh() -> void:
-	if _unit_info_panel != null and _unit_info_panel.has_method("refresh"):
+	if _unit_info_panel != null:
 		_unit_info_panel.refresh()
 
 
@@ -283,25 +313,25 @@ func _instantiate_panels() -> void:
 	# Unit info panel (left, top)
 	var unit_info_scene := load("res://scenes/ui/panels/unit_info_panel.tscn")
 	if unit_info_scene != null:
-		_unit_info_panel = unit_info_scene.instantiate()
+		_unit_info_panel = unit_info_scene.instantiate() as UnitInfoPanel
 		_left_panel.add_child(_unit_info_panel)
 
 	# Terrain info panel (left, bottom)
 	var terrain_info_scene := load("res://scenes/ui/panels/terrain_info_panel.tscn")
 	if terrain_info_scene != null:
-		_terrain_info_panel = terrain_info_scene.instantiate()
+		_terrain_info_panel = terrain_info_scene.instantiate() as TerrainInfoPanel
 		_left_panel.add_child(_terrain_info_panel)
 
 	# Action menu panel (right, top)
 	var action_menu_scene := load("res://scenes/ui/panels/action_menu_panel.tscn")
 	if action_menu_scene != null:
-		_action_menu_panel = action_menu_scene.instantiate()
+		_action_menu_panel = action_menu_scene.instantiate() as ActionMenuPanel
 		_right_panel.add_child(_action_menu_panel)
 
 	# Combat preview panel (right, below action menu)
-	var combat_preview_scene := load("res://scenes/ui/panels/combat_preview_panel.tscn")
+	var combat_preview_scene := load("res://scenes/ui/panels/combat_preview_panel/combat_preview_panel.tscn")
 	if combat_preview_scene != null:
-		_combat_preview_panel = combat_preview_scene.instantiate()
+		_combat_preview_panel = combat_preview_scene.instantiate() as CombatPreviewPanel
 		_right_panel.add_child(_combat_preview_panel)
 
 
@@ -320,19 +350,92 @@ func _instantiate_overlays() -> void:
 
 
 # =============================================================================
+# PANEL SIDE MANAGEMENT
+# =============================================================================
+
+## Move the action/combat panels to the left or right side based on where the
+## active unit will appear after the camera finishes panning.
+func _place_action_panels(on_left: bool) -> void:
+	if on_left == _action_panels_on_left:
+		return
+	_action_panels_on_left = on_left
+
+	if on_left:
+		# Action panels move to left side; info panels move to right side.
+		_right_panel.anchor_left = 0.0
+		_right_panel.anchor_right = 0.0
+		_right_panel.offset_left = 0
+		_right_panel.offset_right = 140
+		_left_panel.anchor_left = 1.0
+		_left_panel.anchor_right = 1.0
+		_left_panel.offset_left = -140
+		_left_panel.offset_right = 0
+	else:
+		# Restore default: info panels on left, action panels on right.
+		_left_panel.anchor_left = 0.0
+		_left_panel.anchor_right = 0.0
+		_left_panel.offset_left = 0
+		_left_panel.offset_right = 140
+		_right_panel.anchor_left = 1.0
+		_right_panel.anchor_right = 1.0
+		_right_panel.offset_left = -140
+		_right_panel.offset_right = 0
+
+
+## Returns true if the unit's world position will appear in the right half of the
+## screen after the camera finishes panning (uses target_position, not current).
+func _unit_is_in_right_half(unit: Node) -> bool:
+	var cam := _get_camera()
+	var node2d := unit as Node2D
+	if cam == null or node2d == null:
+		return false
+	var viewport_width: float = get_viewport().get_visible_rect().size.x
+	var screen_x: float = (node2d.global_position.x - cam.target_position.x) * cam.zoom.x + viewport_width / 2.0
+	return screen_x > viewport_width / 2.0
+
+
+func _get_camera() -> CameraController:
+	var viewport := get_viewport()
+	if viewport == null:
+		return null
+	return viewport.get_camera_2d() as CameraController
+
+
+## Returns true when info panels (unit info, terrain info) should be suppressed.
+## True when the action menu or combat preview is visible, OR we're in
+## ATTACK_TARGETING state (combat preview may not be shown on every hover tile).
+func _is_action_ui_open() -> bool:
+	if _action_menu_panel != null and _action_menu_panel.visible:
+		return true
+	if _combat_preview_panel != null and _combat_preview_panel.visible:
+		return true
+	var state_manager := get_node_or_null("/root/GameStateManager")
+	if state_manager != null and state_manager.current_state == Enums.InputState.ATTACK_TARGETING:
+		return true
+	return false
+
+
+## Hides a panel node by setting visible = false directly.
+## Use this instead of calling hide_panel() to avoid dependency on method names.
+func _hide_panel_node(panel: Node) -> void:
+	if panel != null:
+		panel.visible = false
+
+
+# =============================================================================
 # BORDER TEXTURE LOADING
 # =============================================================================
 
 func _load_border_textures() -> void:
-	_border_small = _load_texture("res://art/sprites/ui/panel_border_small.png")
-	_border_tall_left = _load_texture("res://art/sprites/ui/panel_border_tall.png")
-	_border_tall_right = _load_texture("res://art/sprites/ui/panel_border_tall_right.png")
+	_border_small = _load_texture("res://art/sprites/ui/hud_panel/panel_border_small.png")
+	_border_tall_left = _load_texture("res://art/sprites/ui/hud_panel/panel_border_tall.png")
+	_border_tall_right = _load_texture("res://art/sprites/ui/hud_panel/panel_border_tall_right.png")
 
 
 func _load_texture(path: String) -> Texture2D:
 	if ResourceLoader.exists(path):
 		return load(path)
-	push_warning("UIManager: Missing border texture '%s'" % path)
+	DebugConfig.log_ui("UIManager: Missing border texture '%s'" % path)
 	return null
 
 

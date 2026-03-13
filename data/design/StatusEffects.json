@@ -1,0 +1,173 @@
+{
+  "_comment": "NOTE FOR AI AGENTS: Status Description Tone Guidelines - This game uses simple, nonpretentious language that matches the protagonist's practical character. Descriptions should be: (1) Simple and direct, (2) Functional - tells you what it does, (3) No flowery fantasy language, (4) What a practical person would say. GOOD: 'Burns weaken attacks', 'Moves cost extra', 'Builds up to critical dose'. BAD: 'Searing flames weaken your resolve', 'The icy grip saps your strength', 'Toxins course through your veins'. Think: what would a straightforward person call this? Keep mechanicsDetails accurate and detailed, but description concise and unpretentious.",
+  "statusEffects": [
+    {
+      "id": "burn",
+      "name": "Burn",
+      "category": "DoT",
+      "maxStacks": 4,
+      "effectTiming": "startOfTurn",
+      "decayRate": 1,
+      "damagePercentMaxHP": 0.05,
+      "stackScaling": false,
+      "minimumDamage": 1,
+      "statModifiers": {
+        "physicalAttack": -0.2
+      },
+      "description": "Burns weaken attacks",
+      "mechanicsDetails": "Deals 6.25% max HP damage per turn (does not scale with stacks). Reduces physical attack by 20% per stack. Minimum 1 damage.",
+      "visualEffect": "fire_particles",
+      "icon": "status_burn",
+      "notes": "Consistent damage, stacks mainly affect debuff and duration"
+    },
+    {
+      "id": "bleed",
+      "name": "Bleed",
+      "category": "DoT",
+      "maxStacks": 4,
+      "effectTiming": "startOfTurn",
+      "decayRate": 1,
+      "damagePercentMaxHP": 0.03125,
+      "stackScaling": true,
+      "minimumDamage": 1,
+      "description": "3.125% max HP damage per stack per turn. Scales with stacks (max: 12.5% at 4 stacks)",
+      "visualEffect": "blood_drip",
+      "icon": "status_bleed",
+      "notes": "Lower initial damage but scales hard with stacks"
+    },
+    {
+      "id": "freeze",
+      "name": "Freeze",
+      "category": "crowdControl",
+      "maxStacks": 4,
+      "effectTiming": "passive",
+      "decayRate": 1,
+      "movementPenalty": 0.0625,
+      "moveUsageCostMultiplier": [1, 2, 3, 4, 5],
+      "description": "Minor movement penalty (6.25% per stack). Moves consume 2/3/4/5x usage based on stacks (0/1/2/3/4 stacks)",
+      "visualEffect": "ice_crystals",
+      "icon": "status_freeze",
+      "notes": "Resource drain mechanic - you can still act but burn through move uses faster"
+    },
+    {
+      "id": "rooted",
+      "name": "Rooted",
+      "category": "crowdControl",
+      "maxStacks": 4,
+      "effectTiming": "startOfTurn",
+      "decayRate": 1,
+      "movementPenalty": 1,
+      "description": "Cannot move while rooted.",
+      "visualEffect": "vine_wrap",
+      "icon": "status_rooted",
+			"notes": "can still attack while rooted"
+    },
+    {
+      "id": "gravity",
+      "name": "Gravity",
+      "category": "crowdControl",
+      "maxStacks": 4,
+      "effectTiming": "startOfTurn",
+      "decayRate": 1,
+      "movementPenalty": 0.25,
+      "statModifiers": {
+        "accuracy": -0.125,
+        "agility": -0.125
+      },
+      "description": "Slows movement by 25% per stack, hampers attacks (accuracy -12.5%, agility -12.5%)",
+      "visualEffect": "gravity_distortion",
+      "icon": "status_gravity",
+			"notes": "slows game speed and sounds by movementPenalty/2 when hovering affected unit(s)"
+    },
+    {
+      "id": "void",
+      "name": "Void",
+      "category": "debuff",
+      "maxStacks": 4,
+      "effectTiming": "startOfTurn",
+      "decayRate": 1,
+      "locksMovePerStack": true,
+      "locksPassiveAtStack": 3,
+      "description": "Locks a random move per stack. At 3+ stacks, also locks a passive ability",
+      "visualEffect": "void_energy",
+      "icon": "status_void",
+      "notes": "Original design had max 3 stacks, updated to 4 for consistency"
+    },
+    {
+      "id": "bugle",
+      "name": "Bugle",
+      "category": "debuff",
+      "maxStacks": 4,
+      "effectTiming": "passive",
+      "decayRate": 1,
+      "description": "Take 1 extra damage per stack from Heraldic-type moves",
+      "visualEffect": "bugle",
+      "icon": "status_herald"
+    },
+    {
+      "id": "poison",
+      "name": "Poison",
+      "category": "DoT",
+      "maxStacks": 4,
+      "effectTiming": "onMaxStacks",
+      "decayRate": 1,
+      "damagePercentMaxHP": 0,
+      "burstDamageAtMaxStacks": 0.25,
+      "stackScaling": false,
+      "minimumDamage": 1,
+			"statModifiers": {
+				"agility": -0.125,
+				"movementSpeed": -0.125,
+				"strength": -0.125
+			},
+			"description": "Reduces agility, movement speed, and strength by 12.5% per stack. At 4 stacks: critical dose triggers 25% max HP pure damage and clears the status",
+      "visualEffect": "poison_bubbles",
+      "icon": "status_poison",
+      "notes": "Kinda like Dark Souls bleed - no DoT until max stacks, then big burst"
+    },
+    {
+      "id": "shocked",
+      "name": "Shocked",
+      "category": "debuff",
+      "maxStacks": 4,
+      "effectTiming": "onAction",
+      "decayRate": 1,
+      "actionFailureChance": 0.25,
+      "statModifiers": {
+        "movementSpeed": -0.125
+      },
+      "description": "Attacks may fail, slows movement",
+      "mechanicsDetails": "25% chance per stack to fail when attempting an action (max 100% at 4 stacks). Reduces movement speed by 12.5% per stack.",
+      "visualEffect": "electric_sparks",
+      "icon": "status_shocked"
+    },
+    {
+      "id": "wither",
+      "name": "Wither",
+      "category": "debuff",
+      "maxStacks": 4,
+      "effectTiming": "startOfTurn",
+      "decayRate": 1,
+      "statModifiers": {
+        "maxHP": -0.125
+      },
+      "description": "Reduces max HP by 12.5% per stack",
+      "visualEffect": "decay_aura",
+      "icon": "status_wither",
+      "notes": "Occult-themed debuff - currentHP does not regenerate after effect clears"
+    },
+    {
+      "id": "vulnerable",
+      "name": "Vulnerable",
+      "category": "debuff",
+      "maxStacks": 4,
+      "effectTiming": "passive",
+      "decayRate": 1,
+      "damageMultiplierReceived": 0.125,
+      "description": "Take 12.5% extra damage per stack from physical sources",
+      "visualEffect": "crack_overlay",
+      "icon": "status_vulnerable",
+      "notes": "Used by Dropkick (self-inflicted)"
+    }
+  ]
+}

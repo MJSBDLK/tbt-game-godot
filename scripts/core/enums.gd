@@ -150,6 +150,7 @@ enum UnitFaction {
 	PLAYER,
 	ENEMY,
 	NEUTRAL,
+	ALLY,
 }
 
 
