@@ -15,4 +15,10 @@ Ideas for passive abilities:
 - Reliable - massive accuracy boost (+70% or something, effectively 100% hit rate) (Ernesto)
 - Waste Not - recovers PP by defeating enemies
 	(Ernesto)
+- Anti-Gravity - debuffs have a 50% chance to clear each turn they tick down
+	(Max Stellar)
+- Maximum - status effects cannot lower this unit's stats below base values
+	(Max Stellar)
+- Stellar - grants the Maximum effect to all allied units within 2 tiles. High-level, endgame passive.
+	(Max Stellar)
 - Zone Control - enemies suffer movement and accuracy penalty within a 3x3 grid around unit, allies are buffed

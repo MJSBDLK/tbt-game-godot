@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://cc3tjb8y5peqe"]
 
-[ext_resource type="PackedScene" uid="uid://dnhdopaxrtt3f" path="res://resources/ui/unit_row.tscn" id="1_8svt7"]
+[ext_resource type="PackedScene" uid="uid://dnhdopaxrtt3f" path="res://scenes/ui/panels/unit_row.tscn" id="1_8svt7"]
 
 [node name="UnitRow" unique_id=746814425 instance=ExtResource("1_8svt7")]
 

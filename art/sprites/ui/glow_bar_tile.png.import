@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://twwak3g6lkde"
-path="res://.godot/imported/elemental_type_icons.png-642560fcb83f13d39fe44404a230c0d4.ctex"
+uid="uid://6edhqwj2uq0l"
+path="res://.godot/imported/glow_bar_tile.png-696cc39a9a4c35dd0baf6a6bd61d5f0e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/sprites/elemental_type_icons.png"
-dest_files=["res://.godot/imported/elemental_type_icons.png-642560fcb83f13d39fe44404a230c0d4.ctex"]
+source_file="res://art/sprites/ui/glow_bar_tile.png"
+dest_files=["res://.godot/imported/glow_bar_tile.png-696cc39a9a4c35dd0baf6a6bd61d5f0e.ctex"]
 
 [params]
 

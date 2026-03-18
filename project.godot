@@ -50,6 +50,10 @@ project/assembly_name="TBT Game"
 
 enabled=PackedStringArray("res://addons/AsepriteWizard/plugin.cfg", "res://addons/aseprite_tag_exporter/plugin.cfg", "res://addons/codeandweb.texturepacker/plugin.cfg", "res://addons/palette_color_picker/plugin.cfg")
 
+[gui]
+
+theme/custom="uid://bnh2yr771pqm5"
+
 [input]
 
 ui_accept={

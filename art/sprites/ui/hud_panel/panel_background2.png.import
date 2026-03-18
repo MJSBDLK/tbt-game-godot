@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b2hwio0jkf07u"
-path="res://.godot/imported/ernesto_portrait.png-f65e4a79b19a04d9c943cab4384d7bfb.ctex"
+uid="uid://qbwbcyfi38x7"
+path="res://.godot/imported/panel_background2.png-08759a6af00b98e8c201677568157a7f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/portraits/ernesto_portrait.png"
-dest_files=["res://.godot/imported/ernesto_portrait.png-f65e4a79b19a04d9c943cab4384d7bfb.ctex"]
+source_file="res://art/sprites/ui/hud_panel/panel_background2.png"
+dest_files=["res://.godot/imported/panel_background2.png-08759a6af00b98e8c201677568157a7f.ctex"]
 
 [params]
 

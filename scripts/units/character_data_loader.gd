@@ -26,8 +26,11 @@ static func _parse_character_json(data: Dictionary) -> CharacterData:
 	character.primary_type = Enums.string_to_elemental_type(data.get("primaryType", "None"))
 	character.secondary_type = Enums.string_to_elemental_type(data.get("secondaryType", "None"))
 	character.current_class = _parse_character_class(data.get("currentClass", "Spaceman"))
-	character.specialization = _parse_specialization(data.get("specialization", "None"))
+	# character.specialization = _parse_specialization(data.get("specialization", "None"))
 	character.level = int(data.get("level", 1))
+
+	# Portrait
+	character.portrait_path = data.get("portraitPath", "")
 
 	# Sprite data
 	var sprite_data: Dictionary = data.get("sprite", {})
@@ -90,9 +93,10 @@ static func _parse_character_class(class_string: String) -> Enums.CharacterClass
 	return Enums.CharacterClass.SPACEMAN
 
 
-static func _parse_specialization(spec_string: String) -> Enums.Specialization:
-	var upper := spec_string.to_upper().replace(" ", "_")
-	for key: String in Enums.Specialization.keys():
-		if key == upper:
-			return Enums.Specialization[key]
-	return Enums.Specialization.NONE
+# Commented out pending specialization redesign (free-form ±10% stat picks)
+#static func _parse_specialization(spec_string: String) -> Enums.Specialization:
+#	var upper := spec_string.to_upper().replace(" ", "_")
+#	for key: String in Enums.Specialization.keys():
+#		if key == upper:
+#			return Enums.Specialization[key]
+#	return Enums.Specialization.NONE

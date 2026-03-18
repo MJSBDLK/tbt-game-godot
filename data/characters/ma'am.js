@@ -416,7 +416,9 @@ export const maam = {
 				sound. Good work." [realizes she stuttered, composes herself] "Carry on."`,
 
 			`Dying: "Pull back. That's an order." OR "Well, shit."
-				[matter-of-fact acceptance]`
+				[matter-of-fact acceptance]`,
+			
+			`You need to get that anti-gravity out of your attitude, mister`
 		]
 	}
 };

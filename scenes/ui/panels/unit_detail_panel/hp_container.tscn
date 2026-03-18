@@ -1,0 +1,34 @@
+[gd_scene format=3 uid="uid://c7kjsj5b8efcw"]
+
+[ext_resource type="PackedScene" uid="uid://df3xfvf5lh7mq" path="res://scenes/ui/panels/unit_detail_panel/stat_container.tscn" id="1_1ocb4"]
+
+[node name="StatContainer" unique_id=346892882 instance=ExtResource("1_1ocb4")]
+
+[node name="Label" parent="HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(781430797) index="0" unique_id=1042415212]
+theme_override_colors/font_color = Color(1, 0.90588236, 0.5921569, 1)
+text = "HP"
+glow_color = Color(0.49019608, 0.25490198, 0.5058824, 1)
+
+[node name="StatBarBackground" parent="HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(1041254443) index="0" unique_id=895120483]
+color = Color(0.2, 0.2, 0.2, 1)
+glow_color = Color(0.101960786, 0.101960786, 0.101960786, 0.85)
+
+[node name="StatBonusBar" parent="HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(1041254443) index="1" unique_id=65183140]
+visible = false
+
+[node name="StatBar" parent="HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(1041254443) index="2" unique_id=1676632343]
+offset_right = 37.0
+color = Color(0.27058825, 0.79607844, 0.80784315, 1)
+glow_color = Color(0, 0.4117647, 0.44313726, 0.85)
+
+[node name="Label" parent="HBoxContainer/StatValue" parent_id_path=PackedInt32Array(1823085028) index="0" unique_id=1042415212]
+theme_override_colors/font_color = Color(0.27058825, 0.79607844, 0.80784315, 1)
+text = "21"
+glow_color = Color(0, 0.4117647, 0.44313726, 1)
+
+[node name="Label" parent="HBoxContainer/StatModifier" parent_id_path=PackedInt32Array(1158092266) index="0" unique_id=1042415212]
+text = "/25"
+
+[editable path="HBoxContainer/MarginContainer"]
+[editable path="HBoxContainer/StatValue"]
+[editable path="HBoxContainer/StatModifier"]

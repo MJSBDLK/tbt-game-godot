@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b2hwio0jkf07u"
-path="res://.godot/imported/ernesto_portrait.png-f65e4a79b19a04d9c943cab4384d7bfb.ctex"
+uid="uid://dueko4xkylxsa"
+path="res://.godot/imported/max_stellar_portrait.png-d69552e07c8f67cd5c8bceca64044ea0.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/portraits/ernesto_portrait.png"
-dest_files=["res://.godot/imported/ernesto_portrait.png-f65e4a79b19a04d9c943cab4384d7bfb.ctex"]
+source_file="res://art/portraits/max_stellar_portrait.png"
+dest_files=["res://.godot/imported/max_stellar_portrait.png-d69552e07c8f67cd5c8bceca64044ea0.ctex"]
 
 [params]
 

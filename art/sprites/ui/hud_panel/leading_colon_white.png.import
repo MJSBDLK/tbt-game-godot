@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bbbkepkih85s1"
-path="res://.godot/imported/ma'am.png-68255e9c60c8620c153ef478328f3818.ctex"
+uid="uid://cdywvg8e4nbn"
+path="res://.godot/imported/leading_colon_white.png-a10bbcdea12b854a052059a7f7d33ae0.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/portraits/ma'am.png"
-dest_files=["res://.godot/imported/ma'am.png-68255e9c60c8620c153ef478328f3818.ctex"]
+source_file="res://art/sprites/ui/hud_panel/leading_colon_white.png"
+dest_files=["res://.godot/imported/leading_colon_white.png-a10bbcdea12b854a052059a7f7d33ae0.ctex"]
 
 [params]
 

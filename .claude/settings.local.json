@@ -70,7 +70,11 @@
       "Bash(cp /home/mjsbdlk/Documents/Projects/tbt-game-unity/Assets/Docs/Design/BasicMoveBank.json /home/mjsbdlk/Documents/Projects/tbt-game-godot/data/design/BasicMoveBank.json)",
       "Bash(cp /home/mjsbdlk/Documents/Projects/tbt-game-unity/Assets/Docs/Design/StatusEffects.json /home/mjsbdlk/Documents/Projects/tbt-game-godot/data/design/StatusEffects.json)",
       "Bash(cp /home/mjsbdlk/Documents/Projects/tbt-game-unity/Assets/Docs/Design/future-ideas.md /home/mjsbdlk/Documents/Projects/tbt-game-godot/data/design/future-ideas.md)",
-      "Bash(cp /home/mjsbdlk/Documents/Projects/tbt-game-unity/Assets/Docs/Design/ideas-and-brainstorming.md /home/mjsbdlk/Documents/Projects/tbt-game-godot/data/design/ideas-and-brainstorming.md)"
+      "Bash(cp /home/mjsbdlk/Documents/Projects/tbt-game-unity/Assets/Docs/Design/ideas-and-brainstorming.md /home/mjsbdlk/Documents/Projects/tbt-game-godot/data/design/ideas-and-brainstorming.md)",
+      "WebFetch(domain:skills.sh)",
+      "Bash(file art/sprites/ui/hud_panel/panel_border*.png)",
+      "Bash(git show:*)",
+      "Bash(grep -r panel_background --include=*.gd --include=*.tscn --include=*.tres)"
     ]
   }
 }

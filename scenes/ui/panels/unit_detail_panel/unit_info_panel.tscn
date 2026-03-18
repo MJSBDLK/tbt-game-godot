@@ -1,0 +1,986 @@
+[gd_scene format=3 uid="uid://berwbhyipiu0t"]
+
+[ext_resource type="Texture2D" uid="uid://dueko4xkylxsa" path="res://art/portraits/max_stellar_portrait.png" id="1_c3gtm"]
+[ext_resource type="Texture2D" uid="uid://dbilco533sxyh" path="res://art/sprites/ui/hud_panel/portrait_border.png" id="2_0trau"]
+[ext_resource type="PackedScene" uid="uid://dnhdopaxrtt3f" path="res://scenes/ui/panels/unit_row.tscn" id="2_r5h6j"]
+[ext_resource type="PackedScene" uid="uid://df3xfvf5lh7mq" path="res://scenes/ui/panels/unit_detail_panel/stat_container.tscn" id="3_6fycp"]
+[ext_resource type="Texture2D" uid="uid://cdywvg8e4nbn" path="res://art/sprites/ui/hud_panel/leading_colon_white.png" id="3_c3gtm"]
+[ext_resource type="PackedScene" uid="uid://c7kjsj5b8efcw" path="res://scenes/ui/panels/unit_detail_panel/hp_container.tscn" id="4_1wkfw"]
+[ext_resource type="PackedScene" uid="uid://dd24vss0p725t" path="res://scenes/ui/panels/unit_detail_panel/panel_container.tscn" id="6_m0525"]
+[ext_resource type="PackedScene" uid="uid://bnln2wsfjk1qo" path="res://scenes/ui/panels/ui_text.tscn" id="6_p6yto"]
+[ext_resource type="Texture2D" uid="uid://bujqegsipf2wm" path="res://art/sprites/ui/elemental_type_icons_10x10/robo.png" id="7_tddys"]
+[ext_resource type="PackedScene" uid="uid://djwxelxu8cncd" path="res://scenes/ui/panels/unit_detail_panel/panel_container_secondary.tscn" id="8_tddys"]
+[ext_resource type="Texture2D" uid="uid://br8io0fgw5clb" path="res://art/sprites/ui/elemental_type_icons_10x10/fire.png" id="9_4tjpj"]
+[ext_resource type="Texture2D" path="res://resources/ui/icons/type_plant.tres" id="11_w53tl"]
+[ext_resource type="Texture2D" path="res://resources/ui/icons/type_cold.tres" id="12_0trau"]
+[ext_resource type="Texture2D" uid="uid://bw33qaxyfq4ak" path="res://art/sprites/ui/elemental_type_icons_10x10/chivalric.png" id="13_grsx0"]
+[ext_resource type="Texture2D" uid="uid://dum58nx11jcom" path="res://art/sprites/ui/elemental_type_icons_10x10/simple.png" id="15_7ir6r"]
+[ext_resource type="Texture2D" uid="uid://cqrs6raotgn6d" path="res://art/sprites/ui/elemental_type_icons_10x10/obsidian.png" id="16_2518s"]
+[ext_resource type="PackedScene" uid="uid://dmhftfupyer7o" path="res://scenes/ui/panels/ui_text_centered.tscn" id="17_0oxyw"]
+[ext_resource type="Texture2D" uid="uid://b2prl0dowptix" path="res://art/sprites/ui/elemental_type_icons_10x10/electric.png" id="18_boarq"]
+[ext_resource type="Script" path="res://scripts/ui/panels/unit_detail_panel.gd" id="19_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4tjpj"]
+content_margin_left = 3.0
+content_margin_top = 1.0
+content_margin_right = 3.0
+content_margin_bottom = 1.0
+bg_color = Color(0, 0.0627451, 0.13333334, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1fikk"]
+content_margin_left = 3.0
+content_margin_top = 1.0
+content_margin_right = 3.0
+content_margin_bottom = 1.0
+bg_color = Color(0.2509804, 0.13725491, 0.039215688, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_45eaq"]
+bg_color = Color(1, 1, 1, 0)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[node name="UnitInfoPanel" type="PanelContainer" unique_id=2021930050]
+script = ExtResource("19_script")
+offset_right = 640.0
+offset_bottom = 360.0
+size_flags_horizontal = 0
+size_flags_vertical = 0
+
+[node name="MainRow" type="HBoxContainer" parent="." unique_id=1324647530]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="LeftColumnMargin" type="MarginContainer" parent="MainRow" unique_id=1240712771]
+layout_mode = 2
+theme_override_constants/margin_left = 13
+theme_override_constants/margin_top = 13
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 13
+
+[node name="LeftColumn" type="VBoxContainer" parent="MainRow/LeftColumnMargin" unique_id=102261179]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="MarginContainer" type="MarginContainer" parent="MainRow/LeftColumnMargin/LeftColumn" unique_id=758794715]
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 2
+theme_override_constants/margin_left = 0
+theme_override_constants/margin_top = 0
+theme_override_constants/margin_right = 0
+theme_override_constants/margin_bottom = 0
+
+[node name="Portrait" type="TextureRect" parent="MainRow/LeftColumnMargin/LeftColumn/MarginContainer" unique_id=1040903751]
+custom_minimum_size = Vector2(92, 92)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+texture = ExtResource("1_c3gtm")
+expand_mode = 1
+
+[node name="TextureRect" type="TextureRect" parent="MainRow/LeftColumnMargin/LeftColumn/MarginContainer" unique_id=1568563781]
+layout_mode = 2
+texture = ExtResource("2_0trau")
+stretch_mode = 5
+
+[node name="SpacerY3" type="Control" parent="MainRow/LeftColumnMargin/LeftColumn" unique_id=1350047301]
+custom_minimum_size = Vector2(0, 3)
+layout_mode = 2
+
+[node name="UnitNameAndTypes" parent="MainRow/LeftColumnMargin/LeftColumn" unique_id=746814425 instance=ExtResource("2_r5h6j")]
+layout_mode = 2
+
+[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/UnitNameAndTypes/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(746814425, 781430797) index="0" unique_id=1042415212]
+text = "Max Stellar"
+
+[node name="MarginContainer2" parent="MainRow/LeftColumnMargin/LeftColumn/UnitNameAndTypes/HBoxContainer" parent_id_path=PackedInt32Array(746814425, 760266391) index="3" unique_id=1691056733]
+visible = false
+
+[node name="ClassName" parent="MainRow/LeftColumnMargin/LeftColumn" unique_id=748231240 instance=ExtResource("2_r5h6j")]
+layout_mode = 2
+
+[node name="TextureRect" parent="MainRow/LeftColumnMargin/LeftColumn/ClassName/LeadingIconContainer" parent_id_path=PackedInt32Array(748231240, 294529385) index="0" unique_id=1808369178]
+self_modulate = Color(1, 0.90588236, 0.5921569, 1)
+texture = ExtResource("3_c3gtm")
+glow_color = Color(0.49019608, 0.25490198, 0.5058824, 1)
+
+[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/ClassName/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(748231240, 781430797) index="0" unique_id=1042415212]
+theme_override_colors/font_color = Color(1, 0.90588236, 0.5921569, 1)
+text = "Spaceman"
+glow_color = Color(0.49019608, 0.25490198, 0.5058824, 1)
+
+[node name="UnitTypeIconContainer" parent="MainRow/LeftColumnMargin/LeftColumn/ClassName/HBoxContainer" parent_id_path=PackedInt32Array(748231240, 760266391) index="1" unique_id=779435640]
+visible = false
+
+[node name="UnitTypeIconContainer2" parent="MainRow/LeftColumnMargin/LeftColumn/ClassName/HBoxContainer" parent_id_path=PackedInt32Array(748231240, 760266391) index="2" unique_id=703941886]
+visible = false
+
+[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/ClassName/HBoxContainer/MarginContainer2" parent_id_path=PackedInt32Array(748231240, 1691056733) index="0" unique_id=1878820360]
+text = "lv.1"
+
+[node name="SpacerY1" type="Control" parent="MainRow/LeftColumnMargin/LeftColumn" unique_id=503796296]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="StatsContainer" type="VBoxContainer" parent="MainRow/LeftColumnMargin/LeftColumn" unique_id=2077928184]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="HPContainer" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer" unique_id=346892882 instance=ExtResource("4_1wkfw")]
+layout_mode = 2
+
+[node name="StatBar" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/HPContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(346892882, 1041254443) index="2" unique_id=1676632343]
+color = Color(0.57254905, 0.7882353, 0.54901963, 1)
+
+[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/HPContainer/HBoxContainer/StatValue" parent_id_path=PackedInt32Array(346892882, 1823085028) index="0" unique_id=1042415212]
+theme_override_colors/font_color = Color(0.57254905, 0.7882353, 0.54901963, 1)
+
+[node name="StrContainer" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer" unique_id=1025052311 instance=ExtResource("3_6fycp")]
+layout_mode = 2
+
+[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/StrContainer/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(1025052311, 781430797) index="0" unique_id=1042415212]
+text = "Str"
+
+[node name="StatBarBackground" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/StrContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(1025052311, 1041254443) index="0" unique_id=895120483]
+offset_top = -1.0
+offset_right = -19.0
+offset_bottom = 1.0
+glow_color = Color(0.07058824, 0.07450981, 0.22745098, 0.85)
+
+[node name="StatBonusBar" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/StrContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(1025052311, 1041254443) index="1" unique_id=65183140]
+offset_left = 7.0
+offset_right = 13.0
+
+[node name="StatBar" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/StrContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(1025052311, 1041254443) index="2" unique_id=1676632343]
+offset_right = 8.0
+
+[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/StrContainer/HBoxContainer/StatValue" parent_id_path=PackedInt32Array(1025052311, 1823085028) index="0" unique_id=1042415212]
+text = "6"
+
+[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/StrContainer/HBoxContainer/StatModifier" parent_id_path=PackedInt32Array(1025052311, 1158092266) index="0" unique_id=1042415212]
+text = "+4"
+
+[node name="SpeContainer" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer" unique_id=338171143 instance=ExtResource("3_6fycp")]
+layout_mode = 2
+
+[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/SpeContainer/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(338171143, 781430797) index="0" unique_id=1042415212]
+text = "Spc"
+
+[node name="StatBarBackground" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/SpeContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(338171143, 1041254443) index="0" unique_id=895120483]
+offset_top = -1.0
+offset_right = -19.0
+offset_bottom = 1.0
+glow_color = Color(0.07058824, 0.07450981, 0.22745098, 0.85)
+
+[node name="StatBonusBar" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/SpeContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(338171143, 1041254443) index="1" unique_id=65183140]
+offset_left = 5.0
+offset_right = 9.0
+
+[node name="StatBar" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/SpeContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(338171143, 1041254443) index="2" unique_id=1676632343]
+offset_right = 6.0
+
+[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/SpeContainer/HBoxContainer/StatValue" parent_id_path=PackedInt32Array(338171143, 1823085028) index="0" unique_id=1042415212]
+text = "4"
+
+[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/SpeContainer/HBoxContainer/StatModifier" parent_id_path=PackedInt32Array(338171143, 1158092266) index="0" unique_id=1042415212]
+text = "+2"
+
+[node name="SklContainer" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer" unique_id=1281385357 instance=ExtResource("3_6fycp")]
+layout_mode = 2
+
+[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/SklContainer/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(1281385357, 781430797) index="0" unique_id=1042415212]
+text = "Skl"
+
+[node name="StatBarBackground" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/SklContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(1281385357, 1041254443) index="0" unique_id=895120483]
+offset_top = -1.0
+offset_right = -14.0
+offset_bottom = 1.0
+glow_color = Color(0.07058824, 0.07450981, 0.22745098, 0.85)
+
+[node name="StatBonusBar" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/SklContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(1281385357, 1041254443) index="1" unique_id=65183140]
+offset_left = 5.0
+offset_right = 13.0
+
+[node name="StatBar" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/SklContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(1281385357, 1041254443) index="2" unique_id=1676632343]
+offset_right = 5.0
+
+[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/SklContainer/HBoxContainer/StatValue" parent_id_path=PackedInt32Array(1281385357, 1823085028) index="0" unique_id=1042415212]
+text = "3"
+
+[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/SklContainer/HBoxContainer/StatModifier" parent_id_path=PackedInt32Array(1281385357, 1158092266) index="0" unique_id=1042415212]
+text = "+6"
+
+[node name="AglContainer" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer" unique_id=1179964894 instance=ExtResource("3_6fycp")]
+layout_mode = 2
+
+[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/AglContainer/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(1179964894, 781430797) index="0" unique_id=1042415212]
+text = "Agl"
+
+[node name="StatBarBackground" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/AglContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(1179964894, 1041254443) index="0" unique_id=895120483]
+offset_top = -1.0
+offset_right = -14.0
+offset_bottom = 1.0
+glow_color = Color(0.07058824, 0.07450981, 0.22745098, 0.85)
+
+[node name="StatBonusBar" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/AglContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(1179964894, 1041254443) index="1" unique_id=65183140]
+visible = false
+
+[node name="StatBar" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/AglContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(1179964894, 1041254443) index="2" unique_id=1676632343]
+offset_right = 10.0
+
+[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/AglContainer/HBoxContainer/StatValue" parent_id_path=PackedInt32Array(1179964894, 1823085028) index="0" unique_id=1042415212]
+text = "8"
+
+[node name="StatModifier" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/AglContainer/HBoxContainer" parent_id_path=PackedInt32Array(1179964894, 1773057470) index="4" unique_id=1158092266]
+visible = false
+
+[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/AglContainer/HBoxContainer/StatModifier" index="0" unique_id=1042415212]
+text = "+0"
+
+[node name="AthContainer" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer" unique_id=1844143752 instance=ExtResource("3_6fycp")]
+layout_mode = 2
+
+[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/AthContainer/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(1844143752, 781430797) index="0" unique_id=1042415212]
+text = "Ath"
+
+[node name="StatBarBackground" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/AthContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(1844143752, 1041254443) index="0" unique_id=895120483]
+offset_top = -1.0
+offset_right = -16.0
+offset_bottom = 1.0
+glow_color = Color(0.07058824, 0.07450981, 0.22745098, 0.85)
+
+[node name="StatBonusBar" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/AthContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(1844143752, 1041254443) index="1" unique_id=65183140]
+offset_left = 9.0
+offset_right = 12.0
+
+[node name="StatBar" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/AthContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(1844143752, 1041254443) index="2" unique_id=1676632343]
+offset_right = 10.0
+
+[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/AthContainer/HBoxContainer/StatValue" parent_id_path=PackedInt32Array(1844143752, 1823085028) index="0" unique_id=1042415212]
+text = "8"
+
+[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/AthContainer/HBoxContainer/StatModifier" parent_id_path=PackedInt32Array(1844143752, 1158092266) index="0" unique_id=1042415212]
+text = "+1"
+
+[node name="DefContainer" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer" unique_id=1291422490 instance=ExtResource("3_6fycp")]
+layout_mode = 2
+
+[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/DefContainer/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(1291422490, 781430797) index="0" unique_id=1042415212]
+text = "Def"
+
+[node name="StatBarBackground" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/DefContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(1291422490, 1041254443) index="0" unique_id=895120483]
+offset_top = -1.0
+offset_right = -19.0
+offset_bottom = 1.0
+glow_color = Color(0.07058824, 0.07450981, 0.22745098, 0.85)
+
+[node name="StatBonusBar" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/DefContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(1291422490, 1041254443) index="1" unique_id=65183140]
+visible = false
+
+[node name="StatBar" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/DefContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(1291422490, 1041254443) index="2" unique_id=1676632343]
+offset_right = 7.0
+
+[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/DefContainer/HBoxContainer/StatValue" parent_id_path=PackedInt32Array(1291422490, 1823085028) index="0" unique_id=1042415212]
+text = "5"
+
+[node name="StatModifier" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/DefContainer/HBoxContainer" parent_id_path=PackedInt32Array(1291422490, 1773057470) index="4" unique_id=1158092266]
+visible = false
+
+[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/DefContainer/HBoxContainer/StatModifier" index="0" unique_id=1042415212]
+text = "+0"
+
+[node name="ResContainer" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer" unique_id=961404449 instance=ExtResource("3_6fycp")]
+layout_mode = 2
+
+[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/ResContainer/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(961404449, 781430797) index="0" unique_id=1042415212]
+text = "Res"
+
+[node name="StatBarBackground" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/ResContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(961404449, 1041254443) index="0" unique_id=895120483]
+offset_top = -1.0
+offset_right = -24.0
+offset_bottom = 1.0
+glow_color = Color(0.07058824, 0.07450981, 0.22745098, 0.85)
+
+[node name="StatBonusBar" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/ResContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(961404449, 1041254443) index="1" unique_id=65183140]
+visible = false
+
+[node name="StatBar" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/ResContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(961404449, 1041254443) index="2" unique_id=1676632343]
+offset_right = 9.0
+
+[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/ResContainer/HBoxContainer/StatValue" parent_id_path=PackedInt32Array(961404449, 1823085028) index="0" unique_id=1042415212]
+text = "7"
+
+[node name="StatModifier" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/ResContainer/HBoxContainer" parent_id_path=PackedInt32Array(961404449, 1773057470) index="4" unique_id=1158092266]
+visible = false
+
+[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/ResContainer/HBoxContainer/StatModifier" index="0" unique_id=1042415212]
+text = "+0"
+
+[node name="CenterColumnMargin" type="MarginContainer" parent="MainRow" unique_id=1253581003]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 13
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 13
+
+[node name="CenterColumn" type="VBoxContainer" parent="MainRow/CenterColumnMargin" unique_id=135762426]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="MovesSection" type="VBoxContainer" parent="MainRow/CenterColumnMargin/CenterColumn" unique_id=1179530202]
+layout_mode = 2
+
+[node name="MovesHeader" parent="MainRow/CenterColumnMargin/CenterColumn/MovesSection" unique_id=781430797 instance=ExtResource("6_p6yto")]
+layout_mode = 2
+
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/MovesSection/MovesHeader" index="0" unique_id=1042415212]
+text = "Moves"
+uppercase = false
+
+[node name="MovePanel" parent="MainRow/CenterColumnMargin/CenterColumn/MovesSection" unique_id=1519042325 instance=ExtResource("6_m0525")]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_4tjpj")
+
+[node name="MovePanel2" parent="MainRow/CenterColumnMargin/CenterColumn/MovesSection" unique_id=88712947 instance=ExtResource("6_m0525")]
+layout_mode = 2
+
+[node name="TextureRect" parent="MainRow/CenterColumnMargin/CenterColumn/MovesSection/MovePanel2/HBoxContainer/ElemetalTypeIconContainer" parent_id_path=PackedInt32Array(88712947, 490212) index="0" unique_id=1278191071]
+texture = ExtResource("7_tddys")
+
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/MovesSection/MovePanel2/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(88712947, 781430797) index="0" unique_id=1042415212]
+text = "Laser"
+
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/MovesSection/MovePanel2/HBoxContainer/UsagesContainer" parent_id_path=PackedInt32Array(88712947, 1394778763) index="0" unique_id=1042415212]
+text = "15/15"
+
+[node name="MovePanel3" parent="MainRow/CenterColumnMargin/CenterColumn/MovesSection" unique_id=497655623 instance=ExtResource("6_m0525")]
+layout_mode = 2
+
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/MovesSection/MovePanel3/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(497655623, 781430797) index="0" unique_id=1042415212]
+text = "Dropkick"
+
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/MovesSection/MovePanel3/HBoxContainer/UsagesContainer" parent_id_path=PackedInt32Array(497655623, 1394778763) index="0" unique_id=1042415212]
+text = "10/10"
+
+[node name="MovePanel4" parent="MainRow/CenterColumnMargin/CenterColumn/MovesSection" unique_id=150386530 instance=ExtResource("6_m0525")]
+layout_mode = 2
+
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/MovesSection/MovePanel4/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(150386530, 781430797) index="0" unique_id=1042415212]
+text = "Swing for the Fences"
+
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/MovesSection/MovePanel4/HBoxContainer/UsagesContainer" parent_id_path=PackedInt32Array(150386530, 1394778763) index="0" unique_id=1042415212]
+text = "4/5"
+
+[node name="PassivesSection" type="VBoxContainer" parent="MainRow/CenterColumnMargin/CenterColumn" unique_id=391085913]
+layout_mode = 2
+
+[node name="PassivesHeader" parent="MainRow/CenterColumnMargin/CenterColumn/PassivesSection" unique_id=627514606 instance=ExtResource("6_p6yto")]
+layout_mode = 2
+
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/PassivesSection/PassivesHeader" index="0" unique_id=1042415212]
+theme_override_colors/font_color = Color(1, 0.90588236, 0.5921569, 1)
+text = "Passives"
+uppercase = false
+glow_color = Color(0.49019608, 0.25490198, 0.5058824, 1)
+
+[node name="PassivePanel1" parent="MainRow/CenterColumnMargin/CenterColumn/PassivesSection" unique_id=2023272720 instance=ExtResource("8_tddys")]
+layout_mode = 2
+
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/PassivesSection/PassivePanel1/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(2023272720, 781430797) index="0" unique_id=1042415212]
+text = "Impetuous"
+
+[node name="PassivePanel2" parent="MainRow/CenterColumnMargin/CenterColumn/PassivesSection" unique_id=1432769662 instance=ExtResource("8_tddys")]
+layout_mode = 2
+
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/PassivesSection/PassivePanel2/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(1432769662, 781430797) index="0" unique_id=1042415212]
+text = "Anti-Gravity"
+
+[node name="PassivePanel3" parent="MainRow/CenterColumnMargin/CenterColumn/PassivesSection" unique_id=1970803515 instance=ExtResource("8_tddys")]
+layout_mode = 2
+
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/PassivesSection/PassivePanel3/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(1970803515, 781430797) index="0" unique_id=1042415212]
+text = "Maximum"
+
+[node name="PassivePanel4" parent="MainRow/CenterColumnMargin/CenterColumn/PassivesSection" unique_id=1141019160 instance=ExtResource("8_tddys")]
+layout_mode = 2
+
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/PassivesSection/PassivePanel4/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(1141019160, 781430797) index="0" unique_id=1042415212]
+text = "Stellar"
+
+[node name="StatusSection" type="VBoxContainer" parent="MainRow/CenterColumnMargin/CenterColumn" unique_id=722223065]
+layout_mode = 2
+
+[node name="StatusHeader" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection" unique_id=381200958 instance=ExtResource("6_p6yto")]
+layout_mode = 2
+
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusHeader" index="0" unique_id=1042415212]
+theme_override_colors/font_color = Color(1, 0.90588236, 0.5921569, 1)
+text = "Status"
+uppercase = false
+glow_color = Color(0.5568628, 0.14509805, 0.09411765, 1)
+
+[node name="StatusPanel1" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection" unique_id=1226398933 instance=ExtResource("8_tddys")]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_1fikk")
+
+[node name="Control2" type="Control" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel1/HBoxContainer" parent_id_path=PackedInt32Array(1226398933, 596906299) index="0" unique_id=479709986]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ElemetalTypeIconContainer" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel1/HBoxContainer" parent_id_path=PackedInt32Array(1226398933, 596906299) index="1" unique_id=490212]
+visible = true
+
+[node name="TextureRect" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel1/HBoxContainer/ElemetalTypeIconContainer" index="0" unique_id=1278191071]
+texture = ExtResource("9_4tjpj")
+
+[node name="MarginContainer" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel1/HBoxContainer" parent_id_path=PackedInt32Array(1226398933, 596906299) index="2" unique_id=781430797]
+size_flags_horizontal = 1
+
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel1/HBoxContainer/MarginContainer" index="0" unique_id=1042415212]
+text = "Burn"
+glow_color = Color(0.5568628, 0.14509805, 0.09411765, 1)
+
+[node name="Control" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel1/HBoxContainer" parent_id_path=PackedInt32Array(1226398933, 596906299) index="3" unique_id=1542727817]
+visible = true
+
+[node name="StatusPanel2" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection" unique_id=78460901 instance=ExtResource("8_tddys")]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_1fikk")
+
+[node name="Control2" type="Control" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel2/HBoxContainer" parent_id_path=PackedInt32Array(78460901, 596906299) index="0" unique_id=1975525596]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ElemetalTypeIconContainer" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel2/HBoxContainer" parent_id_path=PackedInt32Array(78460901, 596906299) index="1" unique_id=490212]
+visible = true
+
+[node name="TextureRect" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel2/HBoxContainer/ElemetalTypeIconContainer" index="0" unique_id=1278191071]
+texture = ExtResource("11_w53tl")
+
+[node name="MarginContainer" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel2/HBoxContainer" parent_id_path=PackedInt32Array(78460901, 596906299) index="2" unique_id=781430797]
+size_flags_horizontal = 1
+
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel2/HBoxContainer/MarginContainer" index="0" unique_id=1042415212]
+text = "Rooted"
+glow_color = Color(0.5568628, 0.14509805, 0.09411765, 1)
+
+[node name="Control" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel2/HBoxContainer" parent_id_path=PackedInt32Array(78460901, 596906299) index="3" unique_id=1542727817]
+visible = true
+
+[node name="StatusPanel3" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection" unique_id=669822751 instance=ExtResource("8_tddys")]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_1fikk")
+
+[node name="Control2" type="Control" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel3/HBoxContainer" parent_id_path=PackedInt32Array(669822751, 596906299) index="0" unique_id=1744950174]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ElemetalTypeIconContainer" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel3/HBoxContainer" parent_id_path=PackedInt32Array(669822751, 596906299) index="1" unique_id=490212]
+visible = true
+
+[node name="TextureRect" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel3/HBoxContainer/ElemetalTypeIconContainer" index="0" unique_id=1278191071]
+texture = ExtResource("12_0trau")
+
+[node name="MarginContainer" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel3/HBoxContainer" parent_id_path=PackedInt32Array(669822751, 596906299) index="2" unique_id=781430797]
+size_flags_horizontal = 1
+
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel3/HBoxContainer/MarginContainer" index="0" unique_id=1042415212]
+text = "Frozen"
+glow_color = Color(0.5568628, 0.14509805, 0.09411765, 1)
+
+[node name="Control" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel3/HBoxContainer" parent_id_path=PackedInt32Array(669822751, 596906299) index="3" unique_id=1542727817]
+visible = true
+
+[node name="StatusPanel4" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection" unique_id=1352442921 instance=ExtResource("8_tddys")]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_1fikk")
+
+[node name="Control2" type="Control" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel4/HBoxContainer" parent_id_path=PackedInt32Array(1352442921, 596906299) index="0" unique_id=56691820]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ElemetalTypeIconContainer" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel4/HBoxContainer" parent_id_path=PackedInt32Array(1352442921, 596906299) index="1" unique_id=490212]
+visible = true
+
+[node name="TextureRect" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel4/HBoxContainer/ElemetalTypeIconContainer" index="0" unique_id=1278191071]
+texture = ExtResource("13_grsx0")
+
+[node name="MarginContainer" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel4/HBoxContainer" parent_id_path=PackedInt32Array(1352442921, 596906299) index="2" unique_id=781430797]
+size_flags_horizontal = 1
+
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel4/HBoxContainer/MarginContainer" index="0" unique_id=1042415212]
+text = "Challenged"
+glow_color = Color(0.5568628, 0.14509805, 0.09411765, 1)
+
+[node name="Control" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel4/HBoxContainer" parent_id_path=PackedInt32Array(1352442921, 596906299) index="3" unique_id=1542727817]
+visible = true
+
+[node name="RightColumnMargin" type="MarginContainer" parent="MainRow" unique_id=557670575]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 13
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 13
+
+[node name="MovePassiveStatusParent" type="VBoxContainer" parent="MainRow/RightColumnMargin" unique_id=1015651314]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="MoveDescription" type="VBoxContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent" unique_id=1553341187]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="MoveContainer" type="HBoxContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription" unique_id=317730493]
+layout_mode = 2
+
+[node name="MarginContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/MoveContainer" unique_id=471661104 instance=ExtResource("6_p6yto")]
+layout_mode = 2
+
+[node name="Label" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/MoveContainer/MarginContainer" index="0" unique_id=1042415212]
+text = "Bonk"
+
+[node name="Control" type="Control" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/MoveContainer" unique_id=80673788]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ElementalTypeContainer" type="MarginContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/MoveContainer" unique_id=1181272993]
+layout_mode = 2
+theme_override_constants/margin_top = 0
+
+[node name="TextureRect" type="TextureRect" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/MoveContainer/ElementalTypeContainer" unique_id=1385990423]
+layout_mode = 2
+texture = ExtResource("15_7ir6r")
+
+[node name="MoveTypeContainer" type="MarginContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/MoveContainer" unique_id=1683762268]
+layout_mode = 2
+theme_override_constants/margin_top = 0
+
+[node name="TextureRect" type="TextureRect" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/MoveContainer/MoveTypeContainer" unique_id=1158001500]
+layout_mode = 2
+texture = ExtResource("16_2518s")
+
+[node name="PowerAccUsgContainer" type="HBoxContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription" unique_id=908821707]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="PowerPanelContainer" type="PanelContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerAccUsgContainer" unique_id=156125151]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_45eaq")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerAccUsgContainer/PowerPanelContainer" unique_id=1644185368]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="MarginContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerAccUsgContainer/PowerPanelContainer/VBoxContainer" unique_id=1807915540 instance=ExtResource("6_p6yto")]
+layout_mode = 2
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_right = 8
+
+[node name="Label" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerAccUsgContainer/PowerPanelContainer/VBoxContainer/MarginContainer" index="0" unique_id=1042415212]
+text = "Power"
+uppercase = false
+
+[node name="MarginContainer2" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerAccUsgContainer/PowerPanelContainer/VBoxContainer" unique_id=2006483729 instance=ExtResource("17_0oxyw")]
+layout_mode = 2
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_right = 2
+
+[node name="Label" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerAccUsgContainer/PowerPanelContainer/VBoxContainer/MarginContainer2" index="0" unique_id=1042415212]
+theme_override_colors/font_color = Color(1, 0.90588236, 0.5921569, 1)
+theme_override_font_sizes/font_size = 16
+text = "4"
+glow_color = Color(0.49019608, 0.25490198, 0.5058824, 1)
+
+[node name="AccuracyPanelContainer" type="PanelContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerAccUsgContainer" unique_id=1020046313]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_45eaq")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerAccUsgContainer/AccuracyPanelContainer" unique_id=780570762]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="MarginContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerAccUsgContainer/AccuracyPanelContainer/VBoxContainer" unique_id=227200983 instance=ExtResource("6_p6yto")]
+layout_mode = 2
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_right = 8
+
+[node name="Label" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerAccUsgContainer/AccuracyPanelContainer/VBoxContainer/MarginContainer" index="0" unique_id=1042415212]
+text = "Acc."
+uppercase = false
+
+[node name="MarginContainer2" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerAccUsgContainer/AccuracyPanelContainer/VBoxContainer" unique_id=5696234 instance=ExtResource("17_0oxyw")]
+layout_mode = 2
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_right = 2
+
+[node name="Label" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerAccUsgContainer/AccuracyPanelContainer/VBoxContainer/MarginContainer2" index="0" unique_id=1042415212]
+theme_override_colors/font_color = Color(1, 0.90588236, 0.5921569, 1)
+theme_override_font_sizes/font_size = 16
+text = "100%"
+glow_color = Color(0.49019608, 0.25490198, 0.5058824, 1)
+
+[node name="UsagePanelContainer" type="PanelContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerAccUsgContainer" unique_id=1849277293]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_45eaq")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerAccUsgContainer/UsagePanelContainer" unique_id=1319398633]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="MarginContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerAccUsgContainer/UsagePanelContainer/VBoxContainer" unique_id=1734084335 instance=ExtResource("6_p6yto")]
+layout_mode = 2
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_right = 8
+
+[node name="Label" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerAccUsgContainer/UsagePanelContainer/VBoxContainer/MarginContainer" index="0" unique_id=1042415212]
+text = "Usg."
+uppercase = false
+
+[node name="MarginContainer2" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerAccUsgContainer/UsagePanelContainer/VBoxContainer" unique_id=747070210 instance=ExtResource("17_0oxyw")]
+layout_mode = 2
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_right = 2
+
+[node name="Label" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerAccUsgContainer/UsagePanelContainer/VBoxContainer/MarginContainer2" index="0" unique_id=1042415212]
+theme_override_colors/font_color = Color(1, 0.90588236, 0.5921569, 1)
+theme_override_font_sizes/font_size = 16
+text = "15/15"
+glow_color = Color(0.49019608, 0.25490198, 0.5058824, 1)
+
+[node name="PowerPanelContainer" type="PanelContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription" unique_id=604043134]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_45eaq")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerPanelContainer" unique_id=1329748370]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerPanelContainer/VBoxContainer" unique_id=375591879]
+layout_mode = 2
+
+[node name="MarginContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerPanelContainer/VBoxContainer/HBoxContainer" unique_id=299313189 instance=ExtResource("6_p6yto")]
+layout_mode = 2
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_right = 2
+
+[node name="Label" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerPanelContainer/VBoxContainer/HBoxContainer/MarginContainer" index="0" unique_id=1042415212]
+text = "Secondary Effect:"
+uppercase = false
+
+[node name="EffectChanceContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerPanelContainer/VBoxContainer/HBoxContainer" unique_id=953077399 instance=ExtResource("17_0oxyw")]
+layout_mode = 2
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_right = 2
+
+[node name="Label" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerPanelContainer/VBoxContainer/HBoxContainer/EffectChanceContainer" index="0" unique_id=1042415212]
+theme_override_colors/font_color = Color(1, 0.90588236, 0.5921569, 1)
+text = "15%"
+glow_color = Color(0.49019608, 0.25490198, 0.5058824, 1)
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerPanelContainer/VBoxContainer" unique_id=673715135]
+layout_mode = 2
+
+[node name="Spacer" type="Control" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerPanelContainer/VBoxContainer/HBoxContainer2" unique_id=1357699542]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ElemetalTypeIconContainer" type="MarginContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerPanelContainer/VBoxContainer/HBoxContainer2" unique_id=1075772031]
+layout_mode = 2
+theme_override_constants/margin_top = 1
+theme_override_constants/margin_right = 1
+theme_override_constants/margin_bottom = 1
+
+[node name="TextureRect" type="TextureRect" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerPanelContainer/VBoxContainer/HBoxContainer2/ElemetalTypeIconContainer" unique_id=2052101755]
+layout_mode = 2
+texture = ExtResource("18_boarq")
+
+[node name="MarginContainer2" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerPanelContainer/VBoxContainer/HBoxContainer2" unique_id=1430785143 instance=ExtResource("17_0oxyw")]
+layout_mode = 2
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_right = 2
+
+[node name="Label" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerPanelContainer/VBoxContainer/HBoxContainer2/MarginContainer2" index="0" unique_id=1042415212]
+theme_override_colors/font_color = Color(1, 0.90588236, 0.5921569, 1)
+text = "CRITICAL"
+glow_color = Color(0.49019608, 0.25490198, 0.5058824, 1)
+
+[node name="Spacer2" type="Control" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerPanelContainer/VBoxContainer/HBoxContainer2" unique_id=1953805935]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PowerPanelContainer2" type="PanelContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription" unique_id=946281221]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_45eaq")
+
+[node name="MarginContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerPanelContainer2" unique_id=1243906845 instance=ExtResource("6_p6yto")]
+layout_mode = 2
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_right = 2
+theme_override_constants/margin_bottom = 2
+
+[node name="Label" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerPanelContainer2/MarginContainer" index="0" unique_id=1042415212]
+custom_minimum_size = Vector2(96, 0)
+text = "Bonk 'em one good."
+horizontal_alignment = 1
+autowrap_mode = 3
+uppercase = false
+
+[node name="PassiveDescription" type="VBoxContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent" unique_id=389041651]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="PassivesHeader" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/PassiveDescription" unique_id=1955608488 instance=ExtResource("6_p6yto")]
+layout_mode = 2
+
+[node name="Label" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/PassiveDescription/PassivesHeader" index="0" unique_id=1042415212]
+theme_override_colors/font_color = Color(1, 0.90588236, 0.5921569, 1)
+text = "IMPETUOUS"
+uppercase = false
+glow_color = Color(0.49019608, 0.25490198, 0.5058824, 1)
+
+[node name="PowerPanelContainer2" type="PanelContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/PassiveDescription" unique_id=1296631842]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_45eaq")
+
+[node name="MarginContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/PassiveDescription/PowerPanelContainer2" unique_id=166342779 instance=ExtResource("6_p6yto")]
+layout_mode = 2
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_right = 2
+theme_override_constants/margin_bottom = 2
+
+[node name="Label" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/PassiveDescription/PowerPanelContainer2/MarginContainer" index="0" unique_id=1042415212]
+custom_minimum_size = Vector2(96, 0)
+theme_override_colors/font_color = Color(1, 0.90588236, 0.5921569, 1)
+text = "+20% damage on first attack each turn.
+-10% damage for each attack after."
+horizontal_alignment = 1
+autowrap_mode = 3
+uppercase = false
+glow_color = Color(0.49019608, 0.25490198, 0.5058824, 1)
+
+[node name="PowerPanelContainer3" type="PanelContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/PassiveDescription" unique_id=143873958]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_45eaq")
+
+[node name="MarginContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/PassiveDescription/PowerPanelContainer3" unique_id=264234033 instance=ExtResource("6_p6yto")]
+layout_mode = 2
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_right = 2
+theme_override_constants/margin_bottom = 2
+
+[node name="Label" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/PassiveDescription/PowerPanelContainer3/MarginContainer" index="0" unique_id=1042415212]
+custom_minimum_size = Vector2(96, 0)
+theme_override_colors/font_color = Color(1, 0.90588236, 0.5921569, 1)
+text = "Full send, party grem."
+horizontal_alignment = 1
+autowrap_mode = 3
+uppercase = false
+glow_color = Color(0.49019608, 0.25490198, 0.5058824, 1)
+
+[node name="StatusDescription" type="VBoxContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent" unique_id=1097117077]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription" unique_id=1923018401]
+layout_mode = 2
+
+[node name="StatusHeader" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/HBoxContainer" unique_id=243227715 instance=ExtResource("6_p6yto")]
+layout_mode = 2
+
+[node name="Label" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/HBoxContainer/StatusHeader" index="0" unique_id=1042415212]
+theme_override_colors/font_color = Color(1, 0.90588236, 0.5921569, 1)
+text = "BURN"
+uppercase = false
+glow_color = Color(0.5568628, 0.14509805, 0.09411765, 1)
+
+[node name="Spacer" type="Control" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/HBoxContainer" unique_id=1600909116]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TextureRect" type="TextureRect" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/HBoxContainer" unique_id=548901552]
+layout_mode = 2
+texture = ExtResource("9_4tjpj")
+stretch_mode = 5
+
+[node name="PowerPanelContainer2" type="PanelContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription" unique_id=730843398]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_45eaq")
+
+[node name="MarginContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/PowerPanelContainer2" unique_id=132207025 instance=ExtResource("6_p6yto")]
+layout_mode = 2
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_right = 2
+theme_override_constants/margin_bottom = 2
+
+[node name="Label" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/PowerPanelContainer2/MarginContainer" index="0" unique_id=1042415212]
+custom_minimum_size = Vector2(96, 0)
+theme_override_colors/font_color = Color(1, 0.90588236, 0.5921569, 1)
+text = "Take fire damage each turn.
+Lowers physical attack per stack."
+horizontal_alignment = 1
+autowrap_mode = 3
+uppercase = false
+glow_color = Color(0.5568628, 0.14509805, 0.09411765, 1)
+
+[node name="PowerPanelContainer3" type="PanelContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription" unique_id=324083837]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_45eaq")
+
+[node name="MarginContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/PowerPanelContainer3" unique_id=898697828 instance=ExtResource("6_p6yto")]
+layout_mode = 2
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_right = 2
+theme_override_constants/margin_bottom = 2
+
+[node name="Label" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/PowerPanelContainer3/MarginContainer" index="0" unique_id=1042415212]
+visible = false
+custom_minimum_size = Vector2(96, 0)
+theme_override_colors/font_color = Color(0.9607843, 0.8039216, 0.39607844, 1)
+text = ""
+horizontal_alignment = 1
+autowrap_mode = 3
+uppercase = false
+glow_color = Color(0.5568628, 0.14509805, 0.09411765, 1)
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/PowerPanelContainer3/MarginContainer" unique_id=1356091656]
+layout_mode = 2
+alignment = 1
+
+[node name="TextureRect" type="TextureRect" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/PowerPanelContainer3/MarginContainer/HBoxContainer" unique_id=1569758876]
+layout_mode = 2
+texture = ExtResource("9_4tjpj")
+stretch_mode = 5
+
+[node name="TextureRect2" type="TextureRect" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/PowerPanelContainer3/MarginContainer/HBoxContainer" unique_id=1260831413]
+layout_mode = 2
+texture = ExtResource("9_4tjpj")
+stretch_mode = 5
+
+[node name="TextureRect3" type="TextureRect" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/PowerPanelContainer3/MarginContainer/HBoxContainer" unique_id=1168884809]
+layout_mode = 2
+texture = ExtResource("9_4tjpj")
+stretch_mode = 5
+
+[editable path="MainRow/LeftColumnMargin/LeftColumn/UnitNameAndTypes"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/UnitNameAndTypes/HBoxContainer/MarginContainer"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/UnitNameAndTypes/HBoxContainer/UnitTypeIconContainer"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/UnitNameAndTypes/HBoxContainer/UnitTypeIconContainer2"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/UnitNameAndTypes/HBoxContainer/MarginContainer2"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/ClassName"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/ClassName/HBoxContainer/MarginContainer"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/ClassName/HBoxContainer/UnitTypeIconContainer"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/ClassName/HBoxContainer/UnitTypeIconContainer2"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/ClassName/HBoxContainer/MarginContainer2"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/HPContainer"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/HPContainer/HBoxContainer/MarginContainer"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/HPContainer/HBoxContainer/StatValue"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/HPContainer/HBoxContainer/StatModifier"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/StrContainer"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/StrContainer/HBoxContainer/MarginContainer"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/StrContainer/HBoxContainer/StatValue"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/StrContainer/HBoxContainer/StatModifier"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/SpeContainer"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/SpeContainer/HBoxContainer/MarginContainer"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/SpeContainer/HBoxContainer/StatValue"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/SpeContainer/HBoxContainer/StatModifier"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/SklContainer"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/SklContainer/HBoxContainer/MarginContainer"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/SklContainer/HBoxContainer/StatValue"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/SklContainer/HBoxContainer/StatModifier"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/AglContainer"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/AglContainer/HBoxContainer/MarginContainer"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/AglContainer/HBoxContainer/StatValue"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/AglContainer/HBoxContainer/StatModifier"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/AthContainer"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/AthContainer/HBoxContainer/MarginContainer"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/AthContainer/HBoxContainer/StatValue"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/AthContainer/HBoxContainer/StatModifier"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/DefContainer"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/DefContainer/HBoxContainer/MarginContainer"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/DefContainer/HBoxContainer/StatValue"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/DefContainer/HBoxContainer/StatModifier"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/ResContainer"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/ResContainer/HBoxContainer/MarginContainer"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/ResContainer/HBoxContainer/StatValue"]
+[editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/ResContainer/HBoxContainer/StatModifier"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/MovesSection/MovesHeader"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/MovesSection/MovePanel"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/MovesSection/MovePanel/HBoxContainer/MarginContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/MovesSection/MovePanel/HBoxContainer/UsagesContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/MovesSection/MovePanel2"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/MovesSection/MovePanel2/HBoxContainer/MarginContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/MovesSection/MovePanel2/HBoxContainer/UsagesContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/MovesSection/MovePanel3"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/MovesSection/MovePanel3/HBoxContainer/MarginContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/MovesSection/MovePanel3/HBoxContainer/UsagesContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/MovesSection/MovePanel4"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/MovesSection/MovePanel4/HBoxContainer/MarginContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/MovesSection/MovePanel4/HBoxContainer/UsagesContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/PassivesSection/PassivesHeader"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/PassivesSection/PassivePanel1"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/PassivesSection/PassivePanel1/HBoxContainer/MarginContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/PassivesSection/PassivePanel1/HBoxContainer/UsagesContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/PassivesSection/PassivePanel2"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/PassivesSection/PassivePanel2/HBoxContainer/MarginContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/PassivesSection/PassivePanel2/HBoxContainer/UsagesContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/PassivesSection/PassivePanel3"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/PassivesSection/PassivePanel3/HBoxContainer/MarginContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/PassivesSection/PassivePanel3/HBoxContainer/UsagesContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/PassivesSection/PassivePanel4"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/PassivesSection/PassivePanel4/HBoxContainer/MarginContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/PassivesSection/PassivePanel4/HBoxContainer/UsagesContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusHeader"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel1"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel1/HBoxContainer/MarginContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel1/HBoxContainer/UsagesContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel2"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel2/HBoxContainer/MarginContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel2/HBoxContainer/UsagesContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel3"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel3/HBoxContainer/MarginContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel3/HBoxContainer/UsagesContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel4"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel4/HBoxContainer/MarginContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel4/HBoxContainer/UsagesContainer"]
+[editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/MoveContainer/MarginContainer"]
+[editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerAccUsgContainer/PowerPanelContainer/VBoxContainer/MarginContainer"]
+[editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerAccUsgContainer/PowerPanelContainer/VBoxContainer/MarginContainer2"]
+[editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerAccUsgContainer/AccuracyPanelContainer/VBoxContainer/MarginContainer"]
+[editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerAccUsgContainer/AccuracyPanelContainer/VBoxContainer/MarginContainer2"]
+[editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerAccUsgContainer/UsagePanelContainer/VBoxContainer/MarginContainer"]
+[editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerAccUsgContainer/UsagePanelContainer/VBoxContainer/MarginContainer2"]
+[editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerPanelContainer/VBoxContainer/HBoxContainer/MarginContainer"]
+[editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerPanelContainer/VBoxContainer/HBoxContainer/EffectChanceContainer"]
+[editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerPanelContainer/VBoxContainer/HBoxContainer2/MarginContainer2"]
+[editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerPanelContainer2/MarginContainer"]
+[editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/PassiveDescription/PassivesHeader"]
+[editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/PassiveDescription/PowerPanelContainer2/MarginContainer"]
+[editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/PassiveDescription/PowerPanelContainer3/MarginContainer"]
+[editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/HBoxContainer/StatusHeader"]
+[editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/PowerPanelContainer2/MarginContainer"]
+[editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/PowerPanelContainer3/MarginContainer"]

@@ -5,6 +5,8 @@
 	"currentClass": "Spaceman",
 	"specialization": "None",
 
+	"portraitPath": "res://art/portraits/max_stellar_portrait.png",
+
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
 		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",
@@ -41,5 +43,5 @@
 
 	"level": 1,
 	"basePoolMoves": ["Bonk", "Laser", "Klunk", "Uppercut", "Overload", "Megaton Punch"],
-	"basePoolPassives": ["Impetuous"]
+	"basePoolPassives": ["Anti-Gravity", "Impetuous", "Maximum", "Stellar"]
 }

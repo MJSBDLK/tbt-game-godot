@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://cr5c1xtdh0de7"
+path="res://.godot/imported/portrait_border.aseprite-b6b3de48afc80d1188c8ea8f95f56e91.res"
+
+[deps]
+
+source_file="res://art/sprites/ui/hud_panel/portrait_border.aseprite"
+dest_files=["res://.godot/imported/portrait_border.aseprite-b6b3de48afc80d1188c8ea8f95f56e91.res"]
+
+[params]
+

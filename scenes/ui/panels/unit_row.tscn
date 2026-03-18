@@ -1,11 +1,10 @@
 [gd_scene format=3 uid="uid://dnhdopaxrtt3f"]
 
-[ext_resource type="Theme" uid="uid://bnh2yr771pqm5" path="res://resources/game_theme.tres" id="1_kvtle"]
 [ext_resource type="Texture2D" uid="uid://bberuwedvmtid" path="res://art/sprites/ui/hud_panel/leading_colon.png" id="1_rnhhg"]
 [ext_resource type="Material" uid="uid://d3rfhbptxbold" path="res://resources/hud_glow.tres" id="2_buyf6"]
 [ext_resource type="Script" uid="uid://bkmxi7xbiyjd8" path="res://scripts/ui/components/glow_texture_rect.gd" id="2_s8gvl"]
-[ext_resource type="Script" uid="uid://mx0872xckvrs" path="res://scripts/ui/components/glow_label.gd" id="3_cygpb"]
-[ext_resource type="PackedScene" uid="uid://djbrel7jn6rjc" path="res://resources/ui/unit_type_icon_container.tscn" id="4_ccdv2"]
+[ext_resource type="PackedScene" uid="uid://djbrel7jn6rjc" path="res://scenes/ui/panels/combat_preview_panel/unit_type_icon_container.tscn" id="4_ccdv2"]
+[ext_resource type="PackedScene" uid="uid://bnln2wsfjk1qo" path="res://scenes/ui/panels/ui_text.tscn" id="4_jttur"]
 [ext_resource type="Texture2D" uid="uid://dum58nx11jcom" path="res://art/sprites/ui/elemental_type_icons_10x10/simple.png" id="5_ccdv2"]
 [ext_resource type="PackedScene" uid="uid://b4ngymd7vmpqv" path="res://art/sprites/ui/ui_text_container.tscn" id="6_ccdv2"]
 [ext_resource type="Texture2D" uid="uid://cqrs6raotgn6d" path="res://art/sprites/ui/elemental_type_icons_10x10/obsidian.png" id="6_kto7d"]
@@ -23,32 +22,20 @@ theme_override_constants/margin_right = 2
 theme_override_constants/margin_bottom = 3
 
 [node name="TextureRect" type="TextureRect" parent="LeadingIconContainer" unique_id=1808369178]
+material = ExtResource("2_buyf6")
 custom_minimum_size = Vector2(5, 6)
 layout_mode = 2
 texture = ExtResource("1_rnhhg")
 script = ExtResource("2_s8gvl")
+glow_color = Color(0.29803923, 0.54901963, 0.73333335, 1)
 
 [node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=760266391]
 custom_minimum_size = Vector2(12, 12)
 layout_mode = 2
 theme_override_constants/separation = 1
 
-[node name="MarginContainer" type="MarginContainer" parent="HBoxContainer" unique_id=1648475676]
+[node name="MarginContainer" parent="HBoxContainer" unique_id=781430797 instance=ExtResource("4_jttur")]
 layout_mode = 2
-theme = ExtResource("1_kvtle")
-theme_override_constants/margin_top = 2
-
-[node name="Label" type="Label" parent="HBoxContainer/MarginContainer" unique_id=179177607]
-material = ExtResource("2_buyf6")
-layout_mode = 2
-theme = ExtResource("1_kvtle")
-theme_override_colors/font_color = Color(0.85882354, 0.9529412, 1, 1)
-text = "UnitName"
-vertical_alignment = 1
-uppercase = true
-script = ExtResource("3_cygpb")
-glow_color = Color(0.29803923, 0.54901963, 0.73333335, 1)
-metadata/_custom_type_script = "uid://mx0872xckvrs"
 
 [node name="UnitTypeIconContainer" parent="HBoxContainer" unique_id=779435640 instance=ExtResource("4_ccdv2")]
 layout_mode = 2

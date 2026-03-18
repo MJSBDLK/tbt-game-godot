@@ -1,0 +1,41 @@
+[gd_scene format=3 uid="uid://djwxelxu8cncd"]
+
+[ext_resource type="PackedScene" uid="uid://dd24vss0p725t" path="res://scenes/ui/panels/unit_detail_panel/panel_container.tscn" id="1_sjvdo"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_p5ybr"]
+content_margin_left = 3.0
+content_margin_top = 1.0
+content_margin_right = 3.0
+content_margin_bottom = 1.0
+bg_color = Color(0.101960786, 0.0627451, 0.07450981, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[node name="PanelContainer" unique_id=1519042325 instance=ExtResource("1_sjvdo")]
+theme_override_styles/panel = SubResource("StyleBoxFlat_p5ybr")
+
+[node name="ElemetalTypeIconContainer" parent="HBoxContainer" parent_id_path=PackedInt32Array(596906299) index="0" unique_id=490212]
+visible = false
+
+[node name="MarginContainer" parent="HBoxContainer" parent_id_path=PackedInt32Array(596906299) index="1" unique_id=781430797]
+size_flags_horizontal = 3
+
+[node name="Label" parent="HBoxContainer/MarginContainer" index="0" unique_id=1042415212]
+theme_override_colors/font_color = Color(1, 0.90588236, 0.5921569, 1)
+glow_color = Color(0.49019608, 0.25490198, 0.5058824, 1)
+
+[node name="Control" parent="HBoxContainer" parent_id_path=PackedInt32Array(596906299) index="2" unique_id=1542727817]
+visible = false
+
+[node name="UsagesContainer" parent="HBoxContainer" parent_id_path=PackedInt32Array(596906299) index="3" unique_id=1394778763]
+visible = false
+
+[editable path="HBoxContainer/MarginContainer"]
+[editable path="HBoxContainer/UsagesContainer"]

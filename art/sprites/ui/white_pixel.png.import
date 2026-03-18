@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dthw4t1l2lpec"
-path="res://.godot/imported/max-stellar-portrait.png-a2084eff27e0aa51f95dacc3e91554e6.ctex"
+uid="uid://c1p8od0b2f34k"
+path="res://.godot/imported/white_pixel.png-fd03d398d7ce083d9d013c4c78f54687.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/portraits/max-stellar-portrait.png"
-dest_files=["res://.godot/imported/max-stellar-portrait.png-a2084eff27e0aa51f95dacc3e91554e6.ctex"]
+source_file="res://art/sprites/ui/white_pixel.png"
+dest_files=["res://.godot/imported/white_pixel.png-fd03d398d7ce083d9d013c4c78f54687.ctex"]
 
 [params]
 
