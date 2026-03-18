@@ -65,6 +65,9 @@ func _ready() -> void:
 	_build_overlay_layer()
 	_instantiate_panels()
 	_instantiate_overlays()
+	var state_manager := get_node_or_null("/root/GameStateManager")
+	if state_manager != null:
+		state_manager.state_changed.connect(_on_state_changed)
 	DebugConfig.log_pixel_perfect_ui("UIManager: Initialized with 140-360-140 layout")
 
 
@@ -395,6 +398,7 @@ func _instantiate_overlays() -> void:
 		_unit_detail_panel.position = Vector2(10, 10)  # Border offset
 		_unit_detail_panel.visible = false
 		_overlay_layer.add_child(_unit_detail_panel)
+		_unit_detail_panel.closed.connect(_on_unit_detail_closed)
 
 
 # =============================================================================
@@ -450,17 +454,50 @@ func _get_camera() -> CameraController:
 
 
 ## Returns true when info panels (unit info, terrain info) should be suppressed.
-## True when the action menu or combat preview is visible, OR we're in
-## ATTACK_TARGETING state (combat preview may not be shown on every hover tile).
 func _is_action_ui_open() -> bool:
-	if _action_menu_panel != null and _action_menu_panel.visible:
-		return true
-	if _combat_preview_panel != null and _combat_preview_panel.visible:
-		return true
 	var state_manager := get_node_or_null("/root/GameStateManager")
-	if state_manager != null and state_manager.current_state == Enums.InputState.ATTACK_TARGETING:
-		return true
-	return false
+	if state_manager == null:
+		return false
+	return state_manager.current_state in [
+		Enums.InputState.ACTION_MENU_OPEN,
+		Enums.InputState.ATTACK_TARGETING,
+		Enums.InputState.UNIT_DETAIL,
+	]
+
+
+# =============================================================================
+# STATE MACHINE — panel visibility driven by GameStateManager
+# =============================================================================
+
+func _on_state_changed(_old_state: Enums.InputState, new_state: Enums.InputState) -> void:
+	match new_state:
+		Enums.InputState.DEFAULT, Enums.InputState.UNIT_SELECTED, Enums.InputState.MOVEMENT_PLANNING:
+			hide_action_menu()
+			hide_combat_preview()
+			hide_unit_detail()
+		Enums.InputState.ACTION_MENU_OPEN:
+			hide_unit_info()
+			hide_terrain_info()
+			hide_combat_preview()
+			hide_unit_detail()
+		Enums.InputState.ATTACK_TARGETING:
+			hide_unit_info()
+			hide_terrain_info()
+			hide_action_menu()
+			hide_unit_detail()
+		Enums.InputState.UNIT_DETAIL:
+			hide_unit_info()
+			hide_terrain_info()
+			hide_action_menu()
+			hide_combat_preview()
+
+
+func _on_unit_detail_closed() -> void:
+	var state_manager := get_node_or_null("/root/GameStateManager")
+	# Guard: only pop if we're actually in UNIT_DETAIL state.
+	# The state handler also calls hide_unit_detail() which re-emits closed.
+	if state_manager != null and state_manager.current_state == Enums.InputState.UNIT_DETAIL:
+		state_manager.pop_state()
 
 
 ## Hides a panel node by setting visible = false directly.

@@ -140,6 +140,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 
+	# Unit info hotkey (I key / Y button)
+	if event.is_action_pressed("unit_info"):
+		_handle_unit_info_hotkey()
+		get_viewport().set_input_as_handled()
+		return
+
 	# Mouse clicks
 	if event is InputEventMouseButton and event.pressed:
 		var mouse_event := event as InputEventMouseButton
@@ -211,6 +217,21 @@ func _handle_right_click() -> void:
 		state_manager.change_state(Enums.InputState.DEFAULT)
 
 
+func _handle_unit_info_hotkey() -> void:
+	var unit: Unit = null
+	if _selected_unit != null:
+		unit = _selected_unit
+	elif _hovered_tile != null and _hovered_tile.current_unit is Unit:
+		unit = _hovered_tile.current_unit as Unit
+	if unit == null:
+		return
+	var state_manager: Node = get_node("/root/GameStateManager")
+	state_manager.push_state(Enums.InputState.UNIT_DETAIL, unit)
+	var ui_manager: Node = _get_ui_manager()
+	if ui_manager != null:
+		ui_manager.show_unit_detail(unit)
+
+
 func _handle_escape() -> void:
 	var state_manager: Node = get_node("/root/GameStateManager")
 	var state: Enums.InputState = state_manager.current_state
@@ -220,6 +241,7 @@ func _handle_escape() -> void:
 			cancel_attack_targeting()
 		Enums.InputState.UNIT_SELECTED, Enums.InputState.MOVEMENT_PLANNING:
 			_cancel_and_deselect()
+			state_manager.clear_state_stack()
 			state_manager.change_state(Enums.InputState.DEFAULT)
 		Enums.InputState.DEFAULT:
 			pass
@@ -422,6 +444,7 @@ func _finish_unit_action() -> void:
 		ui_manager.hide_unit_info()
 
 	var state_manager: Node = get_node("/root/GameStateManager")
+	state_manager.clear_state_stack()
 	state_manager.change_state(Enums.InputState.DEFAULT)
 
 	var turn_manager: Node = get_node_or_null("/root/TurnManager")

@@ -103,6 +103,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel") or event.is_action_pressed("unit_info"):
 		hide_panel()
 		get_viewport().set_input_as_handled()
+	elif event is InputEventMouseButton and event.pressed:
+		var mouse_event := event as InputEventMouseButton
+		if mouse_event.button_index == MOUSE_BUTTON_LEFT or mouse_event.button_index == MOUSE_BUTTON_RIGHT:
+			if not get_global_rect().has_point(mouse_event.position):
+				hide_panel()
+				get_viewport().set_input_as_handled()
 
 
 func _add_border_overlay() -> void:
