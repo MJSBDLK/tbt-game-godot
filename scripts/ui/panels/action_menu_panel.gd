@@ -10,6 +10,7 @@ signal wait_selected()
 signal cancel_selected()
 signal assign_submenu_requested()
 signal assign_move_selected(move: Move)
+signal unit_info_requested()
 
 const BUTTON_HEIGHT: int = 20
 const BUTTON_WIDTH: int = 120
@@ -93,6 +94,9 @@ func _populate_main_menu(unit: Unit) -> void:
 			var button_text := "%s%s (%d/%d)" % [prefix, move.move_name, move.current_uses, move.max_uses]
 			var captured_move := move
 			_create_button(button_text, func() -> void: move_selected.emit(captured_move))
+
+	# Unit info
+	_create_button("Unit Info", func() -> void: unit_info_requested.emit())
 
 	# Assign move
 	_create_button("Assign Move", func() -> void: assign_submenu_requested.emit())

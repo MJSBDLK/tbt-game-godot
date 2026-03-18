@@ -4,6 +4,16 @@ class_name StatusEffect
 extends RefCounted
 
 
+static var EMPTY: StatusEffect:
+	get:
+		var effect := StatusEffect.new()
+		effect.effect_type_name = "—"
+		effect.affected_stat = ""
+		effect.modifier = 0
+		effect.remaining_turns = 0
+		return effect
+
+
 var effect_type_name: String = ""
 var affected_stat: String = ""
 var modifier: int = 0

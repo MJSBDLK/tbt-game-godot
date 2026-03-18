@@ -30,6 +30,18 @@ var current_uses: int = 0
 @export var status_effect_chance: float = 0.0
 
 
+static var EMPTY: Move:
+	get:
+		var move := Move.new()
+		move.move_name = "—"
+		move.abbrev_name = "—"
+		move.move_id = "empty"
+		move.description = "No move equipped."
+		move.max_uses = 0
+		move.current_uses = 0
+		return move
+
+
 func _init() -> void:
 	current_uses = max_uses
 

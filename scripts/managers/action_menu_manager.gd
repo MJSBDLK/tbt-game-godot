@@ -67,6 +67,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		_on_cancel()
 		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("unit_info"):
+		_on_unit_info_requested()
+		get_viewport().set_input_as_handled()
 
 
 # =============================================================================
@@ -85,6 +88,7 @@ func _connect_panel_signals(ui_manager: Node) -> void:
 	panel.cancel_selected.connect(_on_cancel)
 	panel.assign_submenu_requested.connect(_on_assign_submenu)
 	panel.assign_move_selected.connect(_on_assign_move_selected)
+	panel.unit_info_requested.connect(_on_unit_info_requested)
 	_panel_connected = true
 
 
@@ -128,6 +132,16 @@ func _on_assign_move_selected(move: Move) -> void:
 		var panel: Node = ui_manager.get_action_menu_panel()
 		if panel != null and panel.has_method("show_main_menu"):
 			panel.show_main_menu()
+
+
+func _on_unit_info_requested() -> void:
+	if _active_unit == null:
+		return
+	hide_action_menu()
+	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	if ui_manager != null:
+		ui_manager.show_unit_detail(_active_unit)
+	DebugConfig.log_action_menu("ActionMenu: Unit Info requested for '%s'" % _active_unit.unit_name)
 
 
 func _on_wait() -> void:

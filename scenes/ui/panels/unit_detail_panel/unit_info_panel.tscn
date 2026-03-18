@@ -6,10 +6,13 @@
 [ext_resource type="PackedScene" uid="uid://df3xfvf5lh7mq" path="res://scenes/ui/panels/unit_detail_panel/stat_container.tscn" id="3_6fycp"]
 [ext_resource type="Texture2D" uid="uid://cdywvg8e4nbn" path="res://art/sprites/ui/hud_panel/leading_colon_white.png" id="3_c3gtm"]
 [ext_resource type="PackedScene" uid="uid://c7kjsj5b8efcw" path="res://scenes/ui/panels/unit_detail_panel/hp_container.tscn" id="4_1wkfw"]
+[ext_resource type="Material" uid="uid://d3rfhbptxbold" path="res://resources/hud_glow.tres" id="5_o3ofy"]
 [ext_resource type="PackedScene" uid="uid://dd24vss0p725t" path="res://scenes/ui/panels/unit_detail_panel/panel_container.tscn" id="6_m0525"]
 [ext_resource type="PackedScene" uid="uid://bnln2wsfjk1qo" path="res://scenes/ui/panels/ui_text.tscn" id="6_p6yto"]
+[ext_resource type="Script" uid="uid://bkmxi7xbiyjd8" path="res://scripts/ui/components/glow_texture_rect.gd" id="7_3cqu2"]
 [ext_resource type="Texture2D" uid="uid://bujqegsipf2wm" path="res://art/sprites/ui/elemental_type_icons_10x10/robo.png" id="7_tddys"]
 [ext_resource type="PackedScene" uid="uid://djwxelxu8cncd" path="res://scenes/ui/panels/unit_detail_panel/panel_container_secondary.tscn" id="8_tddys"]
+[ext_resource type="Script" uid="uid://mx0872xckvrs" path="res://scripts/ui/components/glow_label.gd" id="8_ywfd3"]
 [ext_resource type="Texture2D" uid="uid://br8io0fgw5clb" path="res://art/sprites/ui/elemental_type_icons_10x10/fire.png" id="9_4tjpj"]
 [ext_resource type="Texture2D" path="res://resources/ui/icons/type_plant.tres" id="11_w53tl"]
 [ext_resource type="Texture2D" path="res://resources/ui/icons/type_cold.tres" id="12_0trau"]
@@ -18,7 +21,7 @@
 [ext_resource type="Texture2D" uid="uid://cqrs6raotgn6d" path="res://art/sprites/ui/elemental_type_icons_10x10/obsidian.png" id="16_2518s"]
 [ext_resource type="PackedScene" uid="uid://dmhftfupyer7o" path="res://scenes/ui/panels/ui_text_centered.tscn" id="17_0oxyw"]
 [ext_resource type="Texture2D" uid="uid://b2prl0dowptix" path="res://art/sprites/ui/elemental_type_icons_10x10/electric.png" id="18_boarq"]
-[ext_resource type="Script" path="res://scripts/ui/panels/unit_detail_panel.gd" id="19_script"]
+[ext_resource type="Script" uid="uid://dssao01a5a5gn" path="res://scripts/ui/panels/unit_detail_panel.gd" id="19_script"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4tjpj"]
 content_margin_left = 3.0
@@ -65,11 +68,9 @@ corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
 [node name="UnitInfoPanel" type="PanelContainer" unique_id=2021930050]
-script = ExtResource("19_script")
-offset_right = 640.0
-offset_bottom = 360.0
 size_flags_horizontal = 0
 size_flags_vertical = 0
+script = ExtResource("19_script")
 
 [node name="MainRow" type="HBoxContainer" parent="." unique_id=1324647530]
 layout_mode = 2
@@ -77,10 +78,10 @@ theme_override_constants/separation = 1
 
 [node name="LeftColumnMargin" type="MarginContainer" parent="MainRow" unique_id=1240712771]
 layout_mode = 2
-theme_override_constants/margin_left = 13
-theme_override_constants/margin_top = 13
+theme_override_constants/margin_left = 23
+theme_override_constants/margin_top = 23
 theme_override_constants/margin_right = 6
-theme_override_constants/margin_bottom = 13
+theme_override_constants/margin_bottom = 42
 
 [node name="LeftColumn" type="VBoxContainer" parent="MainRow/LeftColumnMargin" unique_id=102261179]
 layout_mode = 2
@@ -120,27 +121,35 @@ text = "Max Stellar"
 [node name="MarginContainer2" parent="MainRow/LeftColumnMargin/LeftColumn/UnitNameAndTypes/HBoxContainer" parent_id_path=PackedInt32Array(746814425, 760266391) index="3" unique_id=1691056733]
 visible = false
 
-[node name="ClassName" parent="MainRow/LeftColumnMargin/LeftColumn" unique_id=748231240 instance=ExtResource("2_r5h6j")]
+[node name="ClassNameAndLevel" type="HBoxContainer" parent="MainRow/LeftColumnMargin/LeftColumn" unique_id=1815911924]
 layout_mode = 2
 
-[node name="TextureRect" parent="MainRow/LeftColumnMargin/LeftColumn/ClassName/LeadingIconContainer" parent_id_path=PackedInt32Array(748231240, 294529385) index="0" unique_id=1808369178]
+[node name="LeadingIconContainer" type="MarginContainer" parent="MainRow/LeftColumnMargin/LeftColumn/ClassNameAndLevel" unique_id=576139300]
+layout_mode = 2
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_right = 2
+theme_override_constants/margin_bottom = 2
+
+[node name="GlowTextureRect" type="TextureRect" parent="MainRow/LeftColumnMargin/LeftColumn/ClassNameAndLevel/LeadingIconContainer" unique_id=1326699618]
 self_modulate = Color(1, 0.90588236, 0.5921569, 1)
+material = ExtResource("5_o3ofy")
+layout_mode = 2
 texture = ExtResource("3_c3gtm")
+script = ExtResource("7_3cqu2")
 glow_color = Color(0.49019608, 0.25490198, 0.5058824, 1)
+metadata/_custom_type_script = "uid://bkmxi7xbiyjd8"
 
-[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/ClassName/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(748231240, 781430797) index="0" unique_id=1042415212]
+[node name="MarginContainer2" type="MarginContainer" parent="MainRow/LeftColumnMargin/LeftColumn/ClassNameAndLevel" unique_id=53973999]
+layout_mode = 2
+
+[node name="GlowLabel" type="Label" parent="MainRow/LeftColumnMargin/LeftColumn/ClassNameAndLevel/MarginContainer2" unique_id=1251955679]
+material = ExtResource("5_o3ofy")
+layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.90588236, 0.5921569, 1)
-text = "Spaceman"
+text = "SPACEMAN Lv.1"
+script = ExtResource("8_ywfd3")
 glow_color = Color(0.49019608, 0.25490198, 0.5058824, 1)
-
-[node name="UnitTypeIconContainer" parent="MainRow/LeftColumnMargin/LeftColumn/ClassName/HBoxContainer" parent_id_path=PackedInt32Array(748231240, 760266391) index="1" unique_id=779435640]
-visible = false
-
-[node name="UnitTypeIconContainer2" parent="MainRow/LeftColumnMargin/LeftColumn/ClassName/HBoxContainer" parent_id_path=PackedInt32Array(748231240, 760266391) index="2" unique_id=703941886]
-visible = false
-
-[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/ClassName/HBoxContainer/MarginContainer2" parent_id_path=PackedInt32Array(748231240, 1691056733) index="0" unique_id=1878820360]
-text = "lv.1"
+metadata/_custom_type_script = "uid://mx0872xckvrs"
 
 [node name="SpacerY1" type="Control" parent="MainRow/LeftColumnMargin/LeftColumn" unique_id=503796296]
 custom_minimum_size = Vector2(0, 1)
@@ -344,9 +353,9 @@ text = "+0"
 [node name="CenterColumnMargin" type="MarginContainer" parent="MainRow" unique_id=1253581003]
 layout_mode = 2
 theme_override_constants/margin_left = 6
-theme_override_constants/margin_top = 13
+theme_override_constants/margin_top = 23
 theme_override_constants/margin_right = 6
-theme_override_constants/margin_bottom = 13
+theme_override_constants/margin_bottom = 42
 
 [node name="CenterColumn" type="VBoxContainer" parent="MainRow/CenterColumnMargin" unique_id=135762426]
 layout_mode = 2
@@ -543,9 +552,9 @@ visible = true
 [node name="RightColumnMargin" type="MarginContainer" parent="MainRow" unique_id=557670575]
 layout_mode = 2
 theme_override_constants/margin_left = 6
-theme_override_constants/margin_top = 13
-theme_override_constants/margin_right = 6
-theme_override_constants/margin_bottom = 13
+theme_override_constants/margin_top = 23
+theme_override_constants/margin_right = 23
+theme_override_constants/margin_bottom = 42
 
 [node name="MovePassiveStatusParent" type="VBoxContainer" parent="MainRow/RightColumnMargin" unique_id=1015651314]
 layout_mode = 2
@@ -891,11 +900,6 @@ stretch_mode = 5
 [editable path="MainRow/LeftColumnMargin/LeftColumn/UnitNameAndTypes/HBoxContainer/UnitTypeIconContainer"]
 [editable path="MainRow/LeftColumnMargin/LeftColumn/UnitNameAndTypes/HBoxContainer/UnitTypeIconContainer2"]
 [editable path="MainRow/LeftColumnMargin/LeftColumn/UnitNameAndTypes/HBoxContainer/MarginContainer2"]
-[editable path="MainRow/LeftColumnMargin/LeftColumn/ClassName"]
-[editable path="MainRow/LeftColumnMargin/LeftColumn/ClassName/HBoxContainer/MarginContainer"]
-[editable path="MainRow/LeftColumnMargin/LeftColumn/ClassName/HBoxContainer/UnitTypeIconContainer"]
-[editable path="MainRow/LeftColumnMargin/LeftColumn/ClassName/HBoxContainer/UnitTypeIconContainer2"]
-[editable path="MainRow/LeftColumnMargin/LeftColumn/ClassName/HBoxContainer/MarginContainer2"]
 [editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/HPContainer"]
 [editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/HPContainer/HBoxContainer/MarginContainer"]
 [editable path="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/HPContainer/HBoxContainer/StatValue"]

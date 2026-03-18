@@ -44,12 +44,15 @@ var _type_icon_secondary: TextureRect = null
 var _hp_bar: ColorRect = null
 var _hp_bar_background: ColorRect = null
 var _hp_label: Label = null
+var _hp_max_label: Label = null  # Reuses StatModifier node to show "/max_hp"
 var _stat_rows: Dictionary = {}  # display_key -> { bar_base, bar_bonus, bar_bg, value_label, modifier_label, name_label }
 
 # Center column tablets
 var _move_panels: Array[PanelContainer] = []
 var _passive_panels: Array[PanelContainer] = []
 var _status_panels: Array[PanelContainer] = []
+var _passives_section: VBoxContainer = null
+var _status_section: VBoxContainer = null
 
 # Right column detail containers
 var _move_description: VBoxContainer = null
@@ -65,6 +68,9 @@ var _move_detail_accuracy_label: Label = null
 var _move_detail_usage_label: Label = null
 var _move_detail_effect_label: Label = null
 var _move_detail_effect_chance_label: Label = null
+var _move_detail_effect_icon: TextureRect = null
+var _move_detail_effect_name_label: Label = null
+var _move_detail_effect_panel: PanelContainer = null
 var _move_detail_flavor_label: Label = null
 
 # Passive detail labels
@@ -88,6 +94,22 @@ func _ready() -> void:
 	_cache_node_references()
 	_setup_tablet_input()
 	_hide_all_details()
+	_add_border_overlay()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible:
+		return
+	if event.is_action_pressed("ui_cancel") or event.is_action_pressed("unit_info"):
+		hide_panel()
+		get_viewport().set_input_as_handled()
+
+
+func _add_border_overlay() -> void:
+	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	if ui_manager != null and ui_manager.has_method("create_fullscreen_border_overlay"):
+		var overlay: PanelBorderOverlay = ui_manager.create_fullscreen_border_overlay()
+		add_child(overlay)
 
 
 # =============================================================================
@@ -109,7 +131,7 @@ func show_unit(unit: Variant) -> void:
 		return
 
 	_update_all()
-	_select(SelectionType.MOVE, 0)
+	_deselect_all()
 	visible = true
 
 
@@ -141,8 +163,8 @@ func _cache_node_references() -> void:
 	_type_icon_primary = _find_type_icon(unit_name_row, 0)
 	_type_icon_secondary = _find_type_icon(unit_name_row, 1)
 
-	# Class name
-	var class_row: Control = left_column.get_node("ClassName")
+	# Class name and level
+	var class_row: Control = left_column.get_node("ClassNameAndLevel")
 	_class_label = _find_label_in_row(class_row)
 
 	# HP
@@ -152,6 +174,7 @@ func _cache_node_references() -> void:
 	_hp_bar_background = hp_bar_container.get_node("StatBarBackground") if hp_bar_container.has_node("StatBarBackground") else null
 	_hp_bar = hp_bar_container.get_node("StatBar")
 	_hp_label = _find_label_in_node(hp_hbox.get_node("StatValue"))
+	_hp_max_label = _find_label_in_node(hp_hbox.get_node("StatModifier"))  # Repurposed as "/max_hp"
 
 	# Stat rows
 	var stats_container: VBoxContainer = left_column.get_node("StatsContainer")
@@ -179,14 +202,14 @@ func _cache_node_references() -> void:
 			_move_panels.append(child as PanelContainer)
 
 	# Center column — passive panels
-	var passives_section: VBoxContainer = center_column.get_node("PassivesSection")
-	for child: Node in passives_section.get_children():
+	_passives_section = center_column.get_node("PassivesSection")
+	for child: Node in _passives_section.get_children():
 		if child.name.begins_with("PassivePanel") and child is PanelContainer:
 			_passive_panels.append(child as PanelContainer)
 
 	# Center column — status panels
-	var status_section: VBoxContainer = center_column.get_node("StatusSection")
-	for child: Node in status_section.get_children():
+	_status_section = center_column.get_node("StatusSection")
+	for child: Node in _status_section.get_children():
 		if child.name.begins_with("StatusPanel") and child is PanelContainer:
 			_status_panels.append(child as PanelContainer)
 
@@ -209,11 +232,15 @@ func _cache_node_references() -> void:
 	_move_detail_usage_label = _find_label_in_panel(power_acc_usg.get_node("UsagePanelContainer"), 1)
 
 	# Secondary effect panel
-	var effect_panel: PanelContainer = _move_description.get_node("PowerPanelContainer")
-	var effect_vbox: VBoxContainer = effect_panel.get_node("VBoxContainer")
+	_move_detail_effect_panel = _move_description.get_node("PowerPanelContainer")
+	var effect_vbox: VBoxContainer = _move_detail_effect_panel.get_node("VBoxContainer")
 	var effect_hbox: HBoxContainer = effect_vbox.get_node("HBoxContainer")
 	_move_detail_effect_label = _find_label_in_node(effect_hbox.get_node("MarginContainer"))
 	_move_detail_effect_chance_label = _find_label_in_node(effect_hbox.get_node("EffectChanceContainer"))
+	# Effect icon + name row (HBoxContainer2)
+	var effect_name_row: HBoxContainer = effect_vbox.get_node("HBoxContainer2")
+	_move_detail_effect_icon = effect_name_row.get_node("ElemetalTypeIconContainer/TextureRect")
+	_move_detail_effect_name_label = _find_label_in_node(effect_name_row.get_node("MarginContainer2"))
 
 	# Flavor text panel
 	var flavor_panel: PanelContainer = _move_description.get_node("PowerPanelContainer2")
@@ -242,6 +269,8 @@ func _cache_node_references() -> void:
 func _setup_tablet_input() -> void:
 	for i: int in range(_move_panels.size()):
 		var index := i
+		_ensure_unique_style(_move_panels[i])
+		_set_children_mouse_pass(_move_panels[i])
 		_move_panels[i].gui_input.connect(func(event: InputEvent):
 			if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 				_select(SelectionType.MOVE, index)
@@ -250,6 +279,8 @@ func _setup_tablet_input() -> void:
 
 	for i: int in range(_passive_panels.size()):
 		var index := i
+		_ensure_unique_style(_passive_panels[i])
+		_set_children_mouse_pass(_passive_panels[i])
 		_passive_panels[i].gui_input.connect(func(event: InputEvent):
 			if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 				_select(SelectionType.PASSIVE, index)
@@ -258,11 +289,29 @@ func _setup_tablet_input() -> void:
 
 	for i: int in range(_status_panels.size()):
 		var index := i
+		_ensure_unique_style(_status_panels[i])
+		_set_children_mouse_pass(_status_panels[i])
 		_status_panels[i].gui_input.connect(func(event: InputEvent):
 			if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 				_select(SelectionType.STATUS, index)
 		)
 		_status_panels[i].mouse_filter = Control.MOUSE_FILTER_STOP
+
+
+func _ensure_unique_style(panel: PanelContainer) -> void:
+	## Duplicate the panel's StyleBox so modifying it doesn't affect other panels
+	## that share the same resource.
+	var style: StyleBox = panel.get_theme_stylebox("panel")
+	if style != null:
+		panel.add_theme_stylebox_override("panel", style.duplicate())
+
+
+func _set_children_mouse_pass(panel: Control) -> void:
+	## Set all descendants to MOUSE_FILTER_PASS so clicks fall through to the panel.
+	for child: Node in panel.get_children():
+		if child is Control:
+			child.mouse_filter = Control.MOUSE_FILTER_PASS
+			_set_children_mouse_pass(child)
 
 
 func _select(type: SelectionType, index: int) -> void:
@@ -390,7 +439,9 @@ func _update_hp() -> void:
 	var max_hp: int = _character_data.max_hp
 
 	if _hp_label:
-		_hp_label.text = "%d /%d" % [current_hp, max_hp]
+		_hp_label.text = str(current_hp)
+	if _hp_max_label:
+		_hp_max_label.text = "/%d" % max_hp
 
 	if _hp_bar and _hp_bar_background:
 		var fill_ratio: float = clampf(float(current_hp) / float(max_hp), 0.0, 1.0) if max_hp > 0 else 0.0
@@ -515,6 +566,9 @@ func _update_passive_tablets() -> void:
 		else:
 			panel.visible = false
 
+	if _passives_section:
+		_passives_section.visible = not passive_names.is_empty()
+
 
 func _update_status_tablets() -> void:
 	var effects: Array = _unit.active_status_effects if _unit != null else []
@@ -544,13 +598,16 @@ func _update_status_tablets() -> void:
 		else:
 			panel.visible = false
 
+	if _status_section:
+		_status_section.visible = not effects.is_empty()
+
 
 # =============================================================================
 # DETAIL PANEL DISPLAY
 # =============================================================================
 
 func _show_move_detail(index: int) -> void:
-	if index < 0 or index >= _character_data.equipped_moves.size():
+	if _character_data == null or index < 0 or index >= _character_data.equipped_moves.size():
 		return
 
 	var move: Move = _character_data.equipped_moves[index]
@@ -573,23 +630,30 @@ func _show_move_detail(index: int) -> void:
 		_move_detail_usage_label.text = "%d/%d" % [move.current_uses, move.max_uses]
 
 	# Secondary effect
-	if _move_detail_effect_label:
-		if move.status_effect_type != Enums.StatusEffectType.NONE:
-			var effect_name: String = Enums.StatusEffectType.keys()[move.status_effect_type]
-			_move_detail_effect_label.text = "Secondary Effect: %d%%" % roundi(move.status_effect_chance * 100)
-			if _move_detail_effect_chance_label:
-				_move_detail_effect_chance_label.text = effect_name
-				_move_detail_effect_chance_label.visible = true
-			_move_detail_effect_label.get_parent().get_parent().visible = true
-		else:
-			_move_detail_effect_label.get_parent().get_parent().visible = false
+	var has_effect: bool = move.status_effect_type != Enums.StatusEffectType.NONE
+	if _move_detail_effect_panel:
+		_move_detail_effect_panel.visible = has_effect
+	if has_effect:
+		var effect_name: String = Enums.StatusEffectType.keys()[move.status_effect_type]
+		if _move_detail_effect_chance_label:
+			_move_detail_effect_chance_label.text = "%d%%" % roundi(move.status_effect_chance * 100)
+		if _move_detail_effect_name_label:
+			_move_detail_effect_name_label.text = effect_name
+		if _move_detail_effect_icon:
+			var icon: Texture2D = _get_status_effect_icon(move.status_effect_type)
+			_move_detail_effect_icon.texture = icon
+			_move_detail_effect_icon.get_parent().visible = icon != null
 
+	# Flavor text
+	var has_flavor: bool = not move.description.is_empty()
 	if _move_detail_flavor_label:
-		_move_detail_flavor_label.text = move.description if not move.description.is_empty() else ""
-		_move_detail_flavor_label.get_parent().visible = not move.description.is_empty()
+		_move_detail_flavor_label.text = move.description if has_flavor else ""
+		_move_detail_flavor_label.get_parent().visible = has_flavor
 
 
 func _show_passive_detail(index: int) -> void:
+	if _character_data == null:
+		return
 	var passive_names: Array = []
 	if not _character_data.equipped_passives.is_empty():
 		for passive: Variant in _character_data.equipped_passives:
@@ -642,6 +706,11 @@ func _show_status_detail(index: int) -> void:
 # =============================================================================
 # HELPERS
 # =============================================================================
+
+func _get_status_effect_icon(_effect_type: Enums.StatusEffectType) -> Texture2D:
+	# TODO: Load from art/sprites/ui/status_icons/ once icons are created
+	return null
+
 
 func _get_elemental_icon(element_type: Enums.ElementalType) -> Texture2D:
 	if element_type == Enums.ElementalType.NONE:
