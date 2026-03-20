@@ -168,14 +168,12 @@ func _update_move_chip(chip: ColorRect, move: Move) -> void:
 		icon.visible = move.element_type != Enums.ElementalType.NONE
 
 	# Set fill percent and colors via MoveChip script exports
-	# DEBUG: randomize fill for visual testing
-	var fill: float = randf_range(0.1, 0.9)
+	var fill: float = float(move.current_uses) / float(move.max_uses) if move.max_uses > 0 else 0.0
+	# DEBUG: uncomment to randomize fill for visual testing
+	#fill = randf_range(0.1, 0.9)
 	var bright_color: Color = GameColors.get_move_chip_fill(move.element_type)
 	var dark_color: Color = GameColors.get_move_chip_empty(move.element_type)
 
-	print("MoveChip [%s] type=%s fill=%.2f bright=%s dark=%s" % [
-		move.move_name, Enums.elemental_type_to_string(move.element_type),
-		fill, bright_color, dark_color])
 	chip.set("fill_color", bright_color)
 	chip.set("empty_color", dark_color)
 	chip.set("fill_percent", fill)
