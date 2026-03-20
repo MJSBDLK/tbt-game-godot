@@ -1,0 +1,549 @@
+[gd_scene format=3 uid="uid://bthv3anysx78a"]
+
+[ext_resource type="Texture2D" uid="uid://cpjc2y8havpey" path="res://art/sprites/ui/hud_panel/panel_border_tall.png" id="2_1in3x"]
+[ext_resource type="Texture2D" uid="uid://bbsipj42qbwqu" path="res://art/portraits/maam_portrait.png" id="3_b2vn0"]
+[ext_resource type="Texture2D" uid="uid://dum58nx11jcom" path="res://art/sprites/ui/elemental_type_icons_10x10/simple.png" id="4_caeep"]
+[ext_resource type="Texture2D" uid="uid://bw33qaxyfq4ak" path="res://art/sprites/ui/elemental_type_icons_10x10/chivalric.png" id="5_q2q7x"]
+[ext_resource type="PackedScene" uid="uid://bnln2wsfjk1qo" path="res://scenes/ui/panels/ui_text.tscn" id="6_6gye5"]
+[ext_resource type="PackedScene" uid="uid://brwuwlg5n6h6q" path="res://scenes/ui/panels/ui_text_secondary.tscn" id="7_1in3x"]
+[ext_resource type="Material" uid="uid://d3rfhbptxbold" path="res://resources/hud_glow.tres" id="8_caeep"]
+[ext_resource type="PackedScene" uid="uid://c5ru5qu6xedcy" path="res://scenes/ui/spacer_horizontal_expand.tscn" id="9_6gye5"]
+[ext_resource type="Material" uid="uid://c61ryqlgsahsx" path="res://resources/move_chip_fill.tres" id="9_hnhj3"]
+[ext_resource type="Script" uid="uid://ctyqqhodhdp85" path="res://scripts/ui/components/glow_color_rect.gd" id="9_q2q7x"]
+[ext_resource type="Texture2D" path="res://resources/ui/icons/type_plant.tres" id="10_hnhj3"]
+[ext_resource type="Script" uid="uid://d3icbg3mtvwqo" path="res://scripts/ui/components/move_chip.gd" id="10_k7j8h"]
+[ext_resource type="Shader" uid="uid://73x5snsmw5ew" path="res://resources/shaders/move_chip_fill.gdshader" id="13_kslfy"]
+[ext_resource type="Texture2D" uid="uid://b2prl0dowptix" path="res://art/sprites/ui/elemental_type_icons_10x10/electric.png" id="14_au0g8"]
+[ext_resource type="Texture2D" path="res://resources/ui/icons/type_cold.tres" id="15_tv8aq"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_deend"]
+shader = ExtResource("13_kslfy")
+shader_parameter/fill_color = Color(0.5294118, 0.33333334, 0.08627451, 1)
+shader_parameter/empty_color = Color(0.015686275, 0.15294118, 0.28627452, 1)
+shader_parameter/border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
+shader_parameter/fill_percent = 0.33
+shader_parameter/skew_amount = 0.05
+shader_parameter/border_px = 1.0
+shader_parameter/radius_px = 2.0
+shader_parameter/rect_size = Vector2(113, 14)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_j0n4j"]
+shader = ExtResource("13_kslfy")
+shader_parameter/fill_color = Color(0.1764706, 0.41960785, 0.6117647, 1)
+shader_parameter/empty_color = Color(0.2509804, 0.13725491, 0.039215688, 1)
+shader_parameter/border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
+shader_parameter/fill_percent = 0.285
+shader_parameter/skew_amount = 0.05
+shader_parameter/border_px = 1.0
+shader_parameter/radius_px = 2.0
+shader_parameter/rect_size = Vector2(113, 14)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_k0vg6"]
+shader = ExtResource("13_kslfy")
+shader_parameter/fill_color = Color(0.1764706, 0.41960785, 0.6117647, 1)
+shader_parameter/empty_color = Color(0.015686275, 0.15294118, 0.28627452, 1)
+shader_parameter/border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
+shader_parameter/fill_percent = 0.83
+shader_parameter/skew_amount = 0.05
+shader_parameter/border_px = 1.0
+shader_parameter/radius_px = 2.0
+shader_parameter/rect_size = Vector2(113, 14)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_kslfy"]
+shader = ExtResource("13_kslfy")
+shader_parameter/fill_color = Color(0.078431375, 0.05490196, 0.12156863, 0)
+shader_parameter/empty_color = Color(0.03529412, 0.05882353, 0.12941177, 1)
+shader_parameter/border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
+shader_parameter/fill_percent = 0.0
+shader_parameter/skew_amount = 0.0
+shader_parameter/border_px = 1.0
+shader_parameter/radius_px = 2.0
+shader_parameter/rect_size = Vector2(56, 12)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_au0g8"]
+shader = ExtResource("13_kslfy")
+shader_parameter/fill_color = Color(0.078431375, 0.05490196, 0.12156863, 0)
+shader_parameter/empty_color = Color(0.03529412, 0.05882353, 0.12941177, 1)
+shader_parameter/border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
+shader_parameter/fill_percent = 0.0
+shader_parameter/skew_amount = 0.0
+shader_parameter/border_px = 1.0
+shader_parameter/radius_px = 2.0
+shader_parameter/rect_size = Vector2(55, 12)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_tv8aq"]
+shader = ExtResource("13_kslfy")
+shader_parameter/fill_color = Color(0.078431375, 0.05490196, 0.12156863, 0)
+shader_parameter/empty_color = Color(0.03529412, 0.05882353, 0.12941177, 1)
+shader_parameter/border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
+shader_parameter/fill_percent = 0.0
+shader_parameter/skew_amount = 0.0
+shader_parameter/border_px = 1.0
+shader_parameter/radius_px = 2.0
+shader_parameter/rect_size = Vector2(56, 12)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_yyibq"]
+shader = ExtResource("13_kslfy")
+shader_parameter/fill_color = Color(0.078431375, 0.05490196, 0.12156863, 0)
+shader_parameter/empty_color = Color(0.03529412, 0.05882353, 0.12941177, 1)
+shader_parameter/border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
+shader_parameter/fill_percent = 0.0
+shader_parameter/skew_amount = 0.0
+shader_parameter/border_px = 1.0
+shader_parameter/radius_px = 2.0
+shader_parameter/rect_size = Vector2(55, 12)
+
+[node name="UnitPreviewPanel" type="PanelContainer" unique_id=440793166]
+
+[node name="TextureRect" type="TextureRect" parent="." unique_id=1706855432]
+layout_mode = 2
+texture = ExtResource("2_1in3x")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=474777207]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1198052653]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=229967530]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="TextureRect" type="TextureRect" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=1194855625]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+size_flags_horizontal = 2
+texture = ExtResource("3_b2vn0")
+expand_mode = 2
+stretch_mode = 5
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=55277471]
+layout_mode = 2
+size_flags_horizontal = 2
+theme_override_constants/separation = 2
+
+[node name="Spacer" type="Control" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer" unique_id=1484332549]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer" unique_id=1594270584]
+layout_mode = 2
+
+[node name="TextureRect" type="TextureRect" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer/HBoxContainer" unique_id=1156780049]
+layout_mode = 2
+texture = ExtResource("4_caeep")
+
+[node name="TextureRect2" type="TextureRect" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer/HBoxContainer" unique_id=893728128]
+layout_mode = 2
+texture = ExtResource("5_q2q7x")
+
+[node name="MarginContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer" unique_id=781430797 instance=ExtResource("6_6gye5")]
+layout_mode = 2
+size_flags_horizontal = 0
+
+[node name="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer/MarginContainer" index="0" unique_id=1042415212]
+text = "ReallyLongName"
+uppercase = false
+
+[node name="MarginContainer2" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer" unique_id=1880517630 instance=ExtResource("7_1in3x")]
+layout_mode = 2
+
+[node name="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer/MarginContainer2" index="0" unique_id=1042415212]
+text = "ClassName Lv.99"
+uppercase = false
+
+[node name="Spacer" type="Control" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=2039216322]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer" unique_id=1069117238]
+visible = false
+layout_mode = 2
+
+[node name="HPBar" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=1291938487]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="HPBarContainer" type="Control" parent="MarginContainer/VBoxContainer/HPBar" unique_id=1211788273]
+material = ExtResource("8_caeep")
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+
+[node name="HpBackground" type="ColorRect" parent="MarginContainer/VBoxContainer/HPBar/HPBarContainer" unique_id=525501166]
+material = ExtResource("8_caeep")
+layout_mode = 1
+anchors_preset = 14
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_top = -1.0
+offset_bottom = 3.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+color = Color(0.2, 0.2, 0.2, 1)
+script = ExtResource("9_q2q7x")
+glow_color = Color(0.101960786, 0.101960786, 0.101960786, 0.85)
+
+[node name="HPFill" type="ColorRect" parent="MarginContainer/VBoxContainer/HPBar/HPBarContainer" unique_id=229378229]
+material = ExtResource("8_caeep")
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_top = -1.0
+offset_right = 55.0
+offset_bottom = 3.0
+grow_vertical = 2
+size_flags_horizontal = 3
+color = Color(0.5137255, 0.7921569, 0.6784314, 1)
+script = ExtResource("9_q2q7x")
+glow_color = Color(0.14509805, 0.6666667, 0.6862745, 1)
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/HPBar" unique_id=374724354]
+layout_mode = 2
+
+[node name="MarginContainer" parent="MarginContainer/VBoxContainer/HPBar/HBoxContainer" unique_id=356274934 instance=ExtResource("6_6gye5")]
+layout_mode = 2
+
+[node name="Label" parent="MarginContainer/VBoxContainer/HPBar/HBoxContainer/MarginContainer" index="0" unique_id=1042415212]
+theme_override_colors/font_color = Color(0.5137255, 0.7921569, 0.6784314, 1)
+text = "21"
+glow_color = Color(0, 0.4117647, 0.44313726, 1)
+
+[node name="MarginContainer2" parent="MarginContainer/VBoxContainer/HPBar/HBoxContainer" unique_id=324859855 instance=ExtResource("7_1in3x")]
+layout_mode = 2
+
+[node name="Label" parent="MarginContainer/VBoxContainer/HPBar/HBoxContainer/MarginContainer2" index="0" unique_id=1042415212]
+text = "/25"
+
+[node name="HSeparator2" type="HSeparator" parent="MarginContainer/VBoxContainer" unique_id=575434552]
+visible = false
+layout_mode = 2
+
+[node name="MovesContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=2059731599]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="MoveContainer" type="ColorRect" parent="MarginContainer/VBoxContainer/MovesContainer" unique_id=1888031594]
+material = ExtResource("9_hnhj3")
+custom_minimum_size = Vector2(0, 14)
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("10_k7j8h")
+fill_color = Color(0.24313726, 0.40784314, 0.24705882, 1)
+empty_color = Color(0.11764706, 0.21568628, 0.12941177, 1)
+border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
+radius_px = 2.0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer" unique_id=442468961]
+layout_mode = 0
+offset_top = 2.0
+offset_right = 113.0
+offset_bottom = 12.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MoveName" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer/HBoxContainer" unique_id=1986450679 instance=ExtResource("6_6gye5")]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+
+[node name="Label" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer/HBoxContainer/MoveName" index="0" unique_id=1042415212]
+text = "Vines"
+uppercase = false
+
+[node name="SpacerHorizontalExpand" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer/HBoxContainer" unique_id=84782848 instance=ExtResource("9_6gye5")]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer/HBoxContainer" unique_id=1022671173]
+layout_mode = 2
+theme_override_constants/margin_left = 1
+theme_override_constants/margin_top = 1
+theme_override_constants/margin_right = 2
+theme_override_constants/margin_bottom = 1
+
+[node name="TextureRect" type="TextureRect" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer/HBoxContainer/MarginContainer" unique_id=609645665]
+layout_mode = 2
+texture = ExtResource("10_hnhj3")
+
+[node name="MoveContainer2" type="ColorRect" parent="MarginContainer/VBoxContainer/MovesContainer" unique_id=664060225]
+material = SubResource("ShaderMaterial_deend")
+custom_minimum_size = Vector2(0, 14)
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("10_k7j8h")
+fill_color = Color(0.5294118, 0.33333334, 0.08627451, 1)
+empty_color = Color(0.015686275, 0.15294118, 0.28627452, 1)
+border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
+fill_percent = 0.33
+radius_px = 2.0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer2" unique_id=728483110]
+layout_mode = 0
+offset_top = 2.0
+offset_right = 113.0
+offset_bottom = 12.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MoveName" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer2/HBoxContainer" unique_id=1961722932 instance=ExtResource("6_6gye5")]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+
+[node name="Label" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer2/HBoxContainer/MoveName" index="0" unique_id=1042415212]
+text = "Lance"
+uppercase = false
+
+[node name="SpacerHorizontalExpand" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer2/HBoxContainer" unique_id=1439227734 instance=ExtResource("9_6gye5")]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer2/HBoxContainer" unique_id=568409421]
+layout_mode = 2
+theme_override_constants/margin_left = 1
+theme_override_constants/margin_top = 1
+theme_override_constants/margin_right = 2
+theme_override_constants/margin_bottom = 1
+
+[node name="TextureRect" type="TextureRect" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer2/HBoxContainer/MarginContainer" unique_id=1103644048]
+layout_mode = 2
+texture = ExtResource("5_q2q7x")
+
+[node name="MoveContainer3" type="ColorRect" parent="MarginContainer/VBoxContainer/MovesContainer" unique_id=2073146478]
+material = SubResource("ShaderMaterial_j0n4j")
+custom_minimum_size = Vector2(0, 14)
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("10_k7j8h")
+fill_color = Color(0.1764706, 0.41960785, 0.6117647, 1)
+empty_color = Color(0.2509804, 0.13725491, 0.039215688, 1)
+border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
+fill_percent = 0.285
+radius_px = 2.0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer3" unique_id=183991543]
+layout_mode = 0
+offset_top = 2.0
+offset_right = 113.0
+offset_bottom = 12.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MoveName" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer3/HBoxContainer" unique_id=1807530384 instance=ExtResource("6_6gye5")]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+
+[node name="Label" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer3/HBoxContainer/MoveName" index="0" unique_id=1042415212]
+text = "Zap Motherfucker"
+uppercase = false
+
+[node name="SpacerHorizontalExpand" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer3/HBoxContainer" unique_id=797794415 instance=ExtResource("9_6gye5")]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer3/HBoxContainer" unique_id=1013267649]
+layout_mode = 2
+theme_override_constants/margin_left = 1
+theme_override_constants/margin_top = 1
+theme_override_constants/margin_right = 2
+theme_override_constants/margin_bottom = 1
+
+[node name="TextureRect" type="TextureRect" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer3/HBoxContainer/MarginContainer" unique_id=1115995049]
+layout_mode = 2
+texture = ExtResource("14_au0g8")
+
+[node name="MoveContainer4" type="ColorRect" parent="MarginContainer/VBoxContainer/MovesContainer" unique_id=410010954]
+material = SubResource("ShaderMaterial_k0vg6")
+custom_minimum_size = Vector2(0, 14)
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("10_k7j8h")
+fill_color = Color(0.1764706, 0.41960785, 0.6117647, 1)
+empty_color = Color(0.015686275, 0.15294118, 0.28627452, 1)
+border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
+fill_percent = 0.83
+radius_px = 2.0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer4" unique_id=432485514]
+layout_mode = 0
+offset_top = 2.0
+offset_right = 113.0
+offset_bottom = 12.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MoveName" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer4/HBoxContainer" unique_id=1117994467 instance=ExtResource("6_6gye5")]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+
+[node name="Label" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer4/HBoxContainer/MoveName" index="0" unique_id=1042415212]
+text = "Brr Very Cold"
+uppercase = false
+
+[node name="SpacerHorizontalExpand" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer4/HBoxContainer" unique_id=1501943686 instance=ExtResource("9_6gye5")]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer4/HBoxContainer" unique_id=2076386976]
+layout_mode = 2
+theme_override_constants/margin_left = 1
+theme_override_constants/margin_top = 1
+theme_override_constants/margin_right = 2
+theme_override_constants/margin_bottom = 1
+
+[node name="TextureRect" type="TextureRect" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer4/HBoxContainer/MarginContainer" unique_id=190925085]
+layout_mode = 2
+texture = ExtResource("15_tv8aq")
+
+[node name="PassivesContainer" type="GridContainer" parent="MarginContainer/VBoxContainer" unique_id=988390445]
+layout_mode = 2
+theme_override_constants/h_separation = 2
+theme_override_constants/v_separation = 2
+columns = 2
+
+[node name="PassiveContainer" type="ColorRect" parent="MarginContainer/VBoxContainer/PassivesContainer" unique_id=577357463]
+material = SubResource("ShaderMaterial_kslfy")
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("10_k7j8h")
+fill_color = Color(0.078431375, 0.05490196, 0.12156863, 0)
+empty_color = Color(0.03529412, 0.05882353, 0.12941177, 1)
+border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
+fill_percent = 0.0
+skew_amount = 0.0
+radius_px = 2.0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/PassivesContainer/PassiveContainer" unique_id=613460351]
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_top = -5.0
+offset_right = 113.0
+offset_bottom = 5.0
+grow_vertical = 2
+
+[node name="PassiveName" parent="MarginContainer/VBoxContainer/PassivesContainer/PassiveContainer/HBoxContainer" unique_id=248654569 instance=ExtResource("7_1in3x")]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+
+[node name="Label" parent="MarginContainer/VBoxContainer/PassivesContainer/PassiveContainer/HBoxContainer/PassiveName" index="0" unique_id=1042415212]
+text = "Angery"
+uppercase = false
+
+[node name="PassiveContainer2" type="ColorRect" parent="MarginContainer/VBoxContainer/PassivesContainer" unique_id=1279026747]
+material = SubResource("ShaderMaterial_au0g8")
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("10_k7j8h")
+fill_color = Color(0.078431375, 0.05490196, 0.12156863, 0)
+empty_color = Color(0.03529412, 0.05882353, 0.12941177, 1)
+border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
+fill_percent = 0.0
+skew_amount = 0.0
+radius_px = 2.0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/PassivesContainer/PassiveContainer2" unique_id=770774947]
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_top = -5.0
+offset_right = 113.0
+offset_bottom = 5.0
+grow_vertical = 2
+
+[node name="PassiveName" parent="MarginContainer/VBoxContainer/PassivesContainer/PassiveContainer2/HBoxContainer" unique_id=760886349 instance=ExtResource("7_1in3x")]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+
+[node name="Label" parent="MarginContainer/VBoxContainer/PassivesContainer/PassiveContainer2/HBoxContainer/PassiveName" index="0" unique_id=1042415212]
+text = "Mad"
+uppercase = false
+
+[node name="PassiveContainer3" type="ColorRect" parent="MarginContainer/VBoxContainer/PassivesContainer" unique_id=1737839952]
+material = SubResource("ShaderMaterial_tv8aq")
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("10_k7j8h")
+fill_color = Color(0.078431375, 0.05490196, 0.12156863, 0)
+empty_color = Color(0.03529412, 0.05882353, 0.12941177, 1)
+border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
+fill_percent = 0.0
+skew_amount = 0.0
+radius_px = 2.0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/PassivesContainer/PassiveContainer3" unique_id=1053567462]
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_top = -5.0
+offset_right = 113.0
+offset_bottom = 5.0
+grow_vertical = 2
+
+[node name="PassiveName" parent="MarginContainer/VBoxContainer/PassivesContainer/PassiveContainer3/HBoxContainer" unique_id=1332373108 instance=ExtResource("7_1in3x")]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+
+[node name="Label" parent="MarginContainer/VBoxContainer/PassivesContainer/PassiveContainer3/HBoxContainer/PassiveName" index="0" unique_id=1042415212]
+text = "Furious"
+uppercase = false
+
+[node name="PassiveContainer4" type="ColorRect" parent="MarginContainer/VBoxContainer/PassivesContainer" unique_id=1536126449]
+material = SubResource("ShaderMaterial_yyibq")
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("10_k7j8h")
+fill_color = Color(0.078431375, 0.05490196, 0.12156863, 0)
+empty_color = Color(0.03529412, 0.05882353, 0.12941177, 1)
+border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
+fill_percent = 0.0
+skew_amount = 0.0
+radius_px = 2.0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/PassivesContainer/PassiveContainer4" unique_id=1931425681]
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_top = -5.0
+offset_right = 113.0
+offset_bottom = 5.0
+grow_vertical = 2
+
+[node name="PassiveName" parent="MarginContainer/VBoxContainer/PassivesContainer/PassiveContainer4/HBoxContainer" unique_id=459029950 instance=ExtResource("7_1in3x")]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+
+[node name="Label" parent="MarginContainer/VBoxContainer/PassivesContainer/PassiveContainer4/HBoxContainer/PassiveName" index="0" unique_id=1042415212]
+text = "So mad"
+uppercase = false
+
+[node name="StatusContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=1892310329]
+layout_mode = 2
+
+[editable path="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer/MarginContainer"]
+[editable path="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer/MarginContainer2"]
+[editable path="MarginContainer/VBoxContainer/HPBar/HBoxContainer/MarginContainer"]
+[editable path="MarginContainer/VBoxContainer/HPBar/HBoxContainer/MarginContainer2"]
+[editable path="MarginContainer/VBoxContainer/MovesContainer/MoveContainer/HBoxContainer/MoveName"]
+[editable path="MarginContainer/VBoxContainer/MovesContainer/MoveContainer2/HBoxContainer/MoveName"]
+[editable path="MarginContainer/VBoxContainer/MovesContainer/MoveContainer3/HBoxContainer/MoveName"]
+[editable path="MarginContainer/VBoxContainer/MovesContainer/MoveContainer4/HBoxContainer/MoveName"]
+[editable path="MarginContainer/VBoxContainer/PassivesContainer/PassiveContainer/HBoxContainer/PassiveName"]
+[editable path="MarginContainer/VBoxContainer/PassivesContainer/PassiveContainer2/HBoxContainer/PassiveName"]
+[editable path="MarginContainer/VBoxContainer/PassivesContainer/PassiveContainer3/HBoxContainer/PassiveName"]
+[editable path="MarginContainer/VBoxContainer/PassivesContainer/PassiveContainer4/HBoxContainer/PassiveName"]

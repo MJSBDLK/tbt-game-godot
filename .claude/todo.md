@@ -1,12 +1,12 @@
 # Todo
 
-## [ ] UI State Machine
+## [x] UI State Machine
 - Replace ad-hoc panel visibility management with a proper state machine
 - Define transitions: MAP → ACTION_MENU → UNIT_DETAIL → ACTION_MENU, MAP → UNIT_DETAIL → MAP, etc.
 - Each state knows which panels are visible and what "back" means
 - Eliminates "opened from where?" tracking and prevents spaghetti as more panels are added
 
-## [ ] RQD - Test the Importality workflow with the turn transition screens
+## [x] RQD - Test the Importality workflow with the turn transition screens
 
 ## Art Pipeline
 - [ ] Figure out how normal maps work with the Aseprite -> Aseprite Wizard -> Godot workflow

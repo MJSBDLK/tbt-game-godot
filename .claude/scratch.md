@@ -65,3 +65,6 @@ DEF     5              0        5        25     4          —           —
 RES     4              0        4        25     3          —           —
 
 Also: CON 5, CAR 8, Move Distance 3.
+
+Health bar colors (parametric 0.85):
+#6e150d, #8e371e, #a7532d, #c17b3e, #dca452, #f4cc65, #d3cc72, #afcb80, #8cc991, #6dcbac, #45cbce
