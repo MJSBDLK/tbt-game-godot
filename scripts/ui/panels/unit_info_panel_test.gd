@@ -1,7 +1,7 @@
 ## Displays selected unit info in the left panel: name, HP, stats, move, status.
 ## PDA-style dark blue background with faction-colored text.
 ## 140x220px at reference resolution.
-class_name UnitInfoPanel
+class_name UnitInfoPanelTest
 extends PanelContainer
 
 

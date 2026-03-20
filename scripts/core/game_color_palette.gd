@@ -171,8 +171,8 @@ static func get_elemental_type_color(element_type: Enums.ElementalType, intensit
 		Enums.ElementalType.GENTRY: return get_color("Gray", intensity)
 		Enums.ElementalType.ROBO: return get_color("TealGray", intensity)
 		Enums.ElementalType.OBSIDIAN: return get_color("Gray", 1)
-		Enums.ElementalType.SIMPLE: return get_color("Gray", 5)
-		_: return get_color("Gray", 5)
+		Enums.ElementalType.SIMPLE: return get_color("Gray", intensity)
+		_: return get_color("Gray", intensity)
 
 
 ## Force reload the palette (useful after updating the GPL file).

@@ -41,7 +41,7 @@ var _center_area: Control = null
 var _right_panel: VBoxContainer = null
 
 # Panels
-var _unit_info_panel: UnitInfoPanel = null
+var _unit_info_panel: UnitPreviewPanel = null
 var _terrain_info_panel: TerrainInfoPanel = null
 var _action_menu_panel: ActionMenuPanel = null
 var _combat_preview_panel: CombatPreviewPanel = null
@@ -353,9 +353,9 @@ func _build_overlay_layer() -> void:
 
 func _instantiate_panels() -> void:
 	# Unit info panel (left, top)
-	var unit_info_scene := load("res://scenes/ui/panels/unit_info_panel.tscn")
+	var unit_info_scene := load("res://scenes/ui/panels/unit_preview_panel/unit_preview_panel.tscn")
 	if unit_info_scene != null:
-		_unit_info_panel = unit_info_scene.instantiate() as UnitInfoPanel
+		_unit_info_panel = unit_info_scene.instantiate() as UnitPreviewPanel
 		_left_panel.add_child(_unit_info_panel)
 
 	# Terrain info panel (left, bottom)
