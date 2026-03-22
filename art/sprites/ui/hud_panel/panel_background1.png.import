@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c5j7dov86gm4i"
-valid=false
+uid="uid://c8dr1vromymwi"
+path="res://.godot/imported/panel_background1.png-a06c96a01cbb76022f76688a112abfb4.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
-source_file="res://art/sprites/ui/hud_panel/down-arrow.aseprite"
+source_file="res://art/sprites/ui/hud_panel/panel_background1.png"
+dest_files=["res://.godot/imported/panel_background1.png-a06c96a01cbb76022f76688a112abfb4.ctex"]
 
 [params]
 
