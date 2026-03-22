@@ -48,7 +48,7 @@ project/assembly_name="TBT Game"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/AsepriteWizard/plugin.cfg", "res://addons/aseprite_tag_exporter/plugin.cfg", "res://addons/codeandweb.texturepacker/plugin.cfg", "res://addons/palette_color_picker/plugin.cfg")
+enabled=PackedStringArray("res://addons/AsepriteWizard/plugin.cfg", "res://addons/aseprite_tag_exporter/plugin.cfg", "res://addons/codeandweb.texturepacker/plugin.cfg", "res://addons/nklbdev.importality/plugin.cfg", "res://addons/palette_color_picker/plugin.cfg")
 
 [gui]
 
