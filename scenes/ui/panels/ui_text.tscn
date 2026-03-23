@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://bnln2wsfjk1qo"]
+
+[ext_resource type="Theme" uid="uid://bnh2yr771pqm5" path="res://resources/game_theme.tres" id="1_q52c2"]
+[ext_resource type="Material" uid="uid://d3rfhbptxbold" path="res://resources/hud_glow.tres" id="2_dtufe"]
+[ext_resource type="Script" uid="uid://mx0872xckvrs" path="res://scripts/ui/components/glow_label.gd" id="3_kkhng"]
+
+[node name="MarginContainer" type="MarginContainer" unique_id=781430797]
+theme = ExtResource("1_q52c2")
+theme_override_constants/margin_top = 2
+
+[node name="Label" type="Label" parent="." unique_id=1042415212]
+material = ExtResource("2_dtufe")
+layout_mode = 2
+theme = ExtResource("1_q52c2")
+theme_override_colors/font_color = Color(0.85882354, 0.9529412, 1, 1)
+text = "UnitName"
+vertical_alignment = 1
+uppercase = true
+script = ExtResource("3_kkhng")
+glow_color = Color(0.29803923, 0.54901963, 0.73333335, 1)
+metadata/_custom_type_script = "uid://mx0872xckvrs"

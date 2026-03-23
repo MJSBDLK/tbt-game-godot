@@ -36,7 +36,9 @@ static func get_move(move_name: String) -> Move:
 	if not _is_loaded:
 		load_move_bank()
 	if _move_database.has(move_name):
-		return _move_database[move_name].duplicate() as Move
+		var move: Move = _move_database[move_name].duplicate() as Move
+		move.current_uses = move.max_uses  # duplicate() skips non-exported vars
+		return move
 	push_warning("MoveData: Unknown move '%s'" % move_name)
 	return null
 

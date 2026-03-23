@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://wv3eq3wk14pj"]
+
+[ext_resource type="PackedScene" uid="uid://bnln2wsfjk1qo" path="res://scenes/ui/panels/ui_text.tscn" id="1_r5wap"]
+
+[node name="MarginContainer" unique_id=781430797 instance=ExtResource("1_r5wap")]
+
+[node name="Label" parent="." index="0" unique_id=1042415212]
+theme_override_colors/font_color = Color(0.9607843, 0.8039216, 0.39607844, 1)
+text = "Status"
+uppercase = false
+glow_color = Color(0.5568628, 0.14509805, 0.09411765, 1)

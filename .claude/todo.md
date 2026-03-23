@@ -1,13 +1,21 @@
 # Todo
+- [ ] Style the action menu panel
+- [x] Style the combat preview panel
+- [x] Phase transition
+- [ ] battle result overlays
+- [ ] Terrain sprites (replace colored placeholders with real art)
+- [ ] Unit sprites (replace colored rectangles)
+- [ ] Damage popups & effectiveness feedback styling
+- [ ] Status effect indicators on units (icons + turn countdown)
+- [ ] Cancel/confirm input hints
+- [ ] UI style guide doc
+
 
 ## Art Pipeline
 - [ ] Figure out how normal maps work with the Aseprite -> Aseprite Wizard -> Godot workflow
 - [ ] Understand how timing on frames works within the Aseprite -> Aseprite Wizard -> Godot workflow
-- [x] The palette ColorPicker currently doesn't support alpha - must fix
 
 ## Misc
-- [x] Color code the map health bars according to faction
-- [x] Fix the color and alpha values of the ColorRect in the combat preview panel
 - [ ] Optimize controls for touchscreen
 
 ## For Lawrence (Art!)
@@ -28,14 +36,15 @@ Panel background: #302d27 @ 85% opacity. See `art/reference/combat_preview_panel
 - Should have room for stat readout (turns taken, units lost, enemies defeated) — see `scenes/ui/overlays/battle_result_overlay.tscn` for text node layout
 - Save to: `art/sprites/ui/overlays/battle_result_victory.png` and `battle_result_defeat.png`
 
-### Status Effect Icons
-**Phase 1 — mockup first**: Design one icon (pick the one which requires the most detail first) displayed next to the health bar above a unit.
-Units are 32–48px tall; the health bar is added programmatically and has no fixed size.
-This mockup establishes icon size and layout.
+### MoveType
++ [x] Physical (probably just repurpose that fist)
++ [x] Special (Pokémon uses a ripple for this, ours just needs to distill 'nonphysical attack')
++ [x] Support - a move that helps your team, maybe just a green plus or something?
 
-**Phase 2 — full set** (once size is confirmed): One icon per status effect:
-  BLEED, BUGLE, BURN, CHAIN_LIGHTNING, CHALLENGED, CRITICAL,
-  FREEZE, GRAVITY, POISON, ROOTED, SHOCKED, SUBVERSION, VOID, VULNERABLE, WITHER
-- Match the elemental type theme where applicable (BURN=fire, FREEZE=cold, SHOCKED=electric, etc.)
-- Save to: `art/sprites/ui/status_icons/` using snake_case filenames (e.g. `bleed.png`, `chain_lightning.png`)
+### Terrain Attributes
++ [ ] Movement cost — boot/footprint
++ [ ] Defense modifier — shield
++ [ ] Avoid modifier — dodging figure
++ [ ] Attack multiplier — sword / crosshair
 
+### Health bar background glow

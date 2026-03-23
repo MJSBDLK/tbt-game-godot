@@ -1,0 +1,83 @@
+[gd_scene format=3 uid="uid://dnhdopaxrtt3f"]
+
+[ext_resource type="Texture2D" uid="uid://bberuwedvmtid" path="res://art/sprites/ui/hud_panel/leading_colon.png" id="1_rnhhg"]
+[ext_resource type="Material" uid="uid://d3rfhbptxbold" path="res://resources/hud_glow.tres" id="2_buyf6"]
+[ext_resource type="Script" uid="uid://bkmxi7xbiyjd8" path="res://scripts/ui/components/glow_texture_rect.gd" id="2_s8gvl"]
+[ext_resource type="PackedScene" uid="uid://djbrel7jn6rjc" path="res://scenes/ui/panels/combat_preview_panel/unit_type_icon_container.tscn" id="4_ccdv2"]
+[ext_resource type="PackedScene" uid="uid://bnln2wsfjk1qo" path="res://scenes/ui/panels/ui_text.tscn" id="4_jttur"]
+[ext_resource type="Texture2D" uid="uid://dum58nx11jcom" path="res://art/sprites/ui/elemental_type_icons_10x10/simple.png" id="5_ccdv2"]
+[ext_resource type="PackedScene" uid="uid://b4ngymd7vmpqv" path="res://art/sprites/ui/ui_text_container.tscn" id="6_ccdv2"]
+[ext_resource type="Texture2D" uid="uid://cqrs6raotgn6d" path="res://art/sprites/ui/elemental_type_icons_10x10/obsidian.png" id="6_kto7d"]
+
+[node name="UnitRow" type="HBoxContainer" unique_id=746814425]
+offset_right = 86.0
+offset_bottom = 12.0
+theme_override_constants/separation = 0
+
+[node name="LeadingIconContainer" type="MarginContainer" parent="." unique_id=294529385]
+layout_mode = 2
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_top = 3
+theme_override_constants/margin_right = 2
+theme_override_constants/margin_bottom = 3
+
+[node name="TextureRect" type="TextureRect" parent="LeadingIconContainer" unique_id=1808369178]
+material = ExtResource("2_buyf6")
+custom_minimum_size = Vector2(5, 6)
+layout_mode = 2
+texture = ExtResource("1_rnhhg")
+script = ExtResource("2_s8gvl")
+glow_color = Color(0.29803923, 0.54901963, 0.73333335, 1)
+
+[node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=760266391]
+custom_minimum_size = Vector2(12, 12)
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="MarginContainer" parent="HBoxContainer" unique_id=781430797 instance=ExtResource("4_jttur")]
+layout_mode = 2
+
+[node name="UnitTypeIconContainer" parent="HBoxContainer" unique_id=779435640 instance=ExtResource("4_ccdv2")]
+layout_mode = 2
+
+[node name="TextureRect" parent="HBoxContainer/UnitTypeIconContainer" index="0" unique_id=1922221654]
+texture = ExtResource("5_ccdv2")
+stretch_mode = 3
+metadata/_aseprite_wizard_interface_config_ = {
+"layer_section": true,
+"pending_changes": {
+"convert_fps_field": 60.0,
+"convert_ms_field": 16.0,
+"convert_to_fps": false,
+"embed_tex": true,
+"i_mode": 0,
+"keep_anim_length": false,
+"layers": [],
+"o_ex_p": "",
+"o_folder": "",
+"o_name": "",
+"only_visible": false,
+"player": "",
+"scale": "1.0",
+"slice": "",
+"source": "",
+"source_uid": -1
+}
+}
+
+[node name="UnitTypeIconContainer2" parent="HBoxContainer" unique_id=703941886 instance=ExtResource("4_ccdv2")]
+layout_mode = 2
+
+[node name="TextureRect" parent="HBoxContainer/UnitTypeIconContainer2" index="0" unique_id=1922221654]
+texture = ExtResource("6_kto7d")
+stretch_mode = 3
+
+[node name="MarginContainer2" parent="HBoxContainer" unique_id=1691056733 instance=ExtResource("6_ccdv2")]
+layout_mode = 2
+
+[node name="Label" parent="HBoxContainer/MarginContainer2" index="0" unique_id=1878820360]
+text = "x1"
+
+[editable path="HBoxContainer/UnitTypeIconContainer"]
+[editable path="HBoxContainer/UnitTypeIconContainer2"]
+[editable path="HBoxContainer/MarginContainer2"]

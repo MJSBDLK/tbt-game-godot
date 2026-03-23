@@ -57,6 +57,22 @@ func _open_palette():
 	var outer_vbox = VBoxContainer.new()
 	outer_vbox.add_theme_constant_override("separation", 4)
 
+	# --- Color info labels (created early so closures can reference them) ---
+	var color_name_label = Label.new()
+	color_name_label.add_theme_font_size_override("font_size", 11)
+	color_name_label.text = ""
+
+	var hex_label = Label.new()
+	hex_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	hex_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hex_label.add_theme_font_size_override("font_size", 11)
+	var initial_color = get_edited_object()[get_edited_property()]
+	if initial_color is Color:
+		hex_label.text = "#" + initial_color.to_html(not no_alpha)
+		color_name_label.text = _find_palette_name(initial_color)
+	else:
+		hex_label.text = "#000000"
+
 	# Scrollable area containing all collapsible sections
 	var scroll = ScrollContainer.new()
 	scroll.custom_minimum_size = Vector2(11 * 17 + 8, 420)
@@ -77,7 +93,7 @@ func _open_palette():
 	for ramp_name: String in GameColorPalette.RAMP_NAMES:
 		for shade in range(11):
 			var color = GameColorPalette.get_color(ramp_name, shade)
-			raw_grid.add_child(_make_swatch(color, "%s %d" % [ramp_name, shade], popup))
+			raw_grid.add_child(_make_swatch(color, "%s %d" % [ramp_name, shade], popup, hex_label, color_name_label))
 	inner_vbox.add_child(_make_section("Raw Palette", raw_grid, true))
 
 	# --- GameColors semantic sections (collapsed by default) ---
@@ -91,7 +107,7 @@ func _open_palette():
 		for var_name: String in section["vars"]:
 			var color = gc_script.get(var_name)
 			if color is Color:
-				section_grid.add_child(_make_swatch(color, var_name, popup))
+				section_grid.add_child(_make_swatch(color, var_name, popup, hex_label, color_name_label))
 		if section_grid.get_child_count() > 0:
 			inner_vbox.add_child(_make_section(section["name"], section_grid, false))
 
@@ -131,7 +147,9 @@ func _open_palette():
 			alpha_spinbox.set_value_no_signal(roundi(val * 100))
 			var color_now = get_edited_object()[get_edited_property()]
 			if color_now is Color:
-				emit_changed(get_edited_property(), Color(color_now.r, color_now.g, color_now.b, val))
+				var new_color = Color(color_now.r, color_now.g, color_now.b, val)
+				emit_changed(get_edited_property(), new_color)
+				hex_label.text = "#" + new_color.to_html(true)
 				update_property()
 		)
 
@@ -139,13 +157,22 @@ func _open_palette():
 			alpha_slider.set_value_no_signal(val / 100.0)
 			var color_now = get_edited_object()[get_edited_property()]
 			if color_now is Color:
-				emit_changed(get_edited_property(), Color(color_now.r, color_now.g, color_now.b, val / 100.0))
+				var new_color = Color(color_now.r, color_now.g, color_now.b, val / 100.0)
+				emit_changed(get_edited_property(), new_color)
+				hex_label.text = "#" + new_color.to_html(true)
 				update_property()
 		)
 
 		alpha_row.add_child(alpha_slider)
 		alpha_row.add_child(alpha_spinbox)
 		outer_vbox.add_child(alpha_row)
+
+	# --- Color info row (always visible, below alpha or scroll) ---
+	var color_info_row = HBoxContainer.new()
+	color_info_row.add_theme_constant_override("separation", 4)
+	color_info_row.add_child(color_name_label)
+	color_info_row.add_child(hex_label)
+	outer_vbox.add_child(color_info_row)
 
 	margin.add_child(outer_vbox)
 	popup.add_child(margin)
@@ -224,7 +251,19 @@ func _parse_game_colors_sections() -> Array:
 	return result
 
 
-func _make_swatch(color: Color, tooltip: String, popup: PopupPanel) -> Control:
+func _find_palette_name(color: Color) -> String:
+	## Find the palette name for a color by matching RGB (ignoring alpha).
+	if not GameColorPalette._loaded:
+		GameColorPalette.load_palette()
+	for ramp_name: String in GameColorPalette.RAMP_NAMES:
+		for shade in range(11):
+			var palette_color = GameColorPalette.get_color(ramp_name, shade)
+			if is_equal_approx(color.r, palette_color.r) and is_equal_approx(color.g, palette_color.g) and is_equal_approx(color.b, palette_color.b):
+				return "%s %d" % [ramp_name, shade]
+	return ""
+
+
+func _make_swatch(color: Color, tooltip: String, popup: PopupPanel, hex_label: Label, color_name_label: Label) -> Control:
 	var panel = PanelContainer.new()
 	panel.custom_minimum_size = Vector2(16, 16)
 	panel.tooltip_text = tooltip
@@ -247,6 +286,8 @@ func _make_swatch(color: Color, tooltip: String, popup: PopupPanel) -> Control:
 
 	panel.mouse_entered.connect(func():
 		border_overlay.border_color = Color.WHITE
+		color_name_label.text = tooltip
+		hex_label.text = "#" + color.to_html(false)
 	)
 	panel.mouse_exited.connect(func():
 		border_overlay.border_color = Color.TRANSPARENT
@@ -258,7 +299,10 @@ func _make_swatch(color: Color, tooltip: String, popup: PopupPanel) -> Control:
 				var current = get_edited_object()[get_edited_property()]
 				if current is Color:
 					alpha = current.a
-			emit_changed(get_edited_property(), Color(color.r, color.g, color.b, alpha))
+			var new_color = Color(color.r, color.g, color.b, alpha)
+			emit_changed(get_edited_property(), new_color)
+			color_name_label.text = tooltip
+			hex_label.text = "#" + new_color.to_html(not no_alpha)
 			update_property()
 			popup.hide()
 	)

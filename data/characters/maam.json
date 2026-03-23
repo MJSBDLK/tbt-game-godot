@@ -5,6 +5,8 @@
 	"currentClass": "Spaceman",
 	"specialization": "None",
 
+	"portraitPath": "res://art/portraits/maam_portrait.png",
+
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
 		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",

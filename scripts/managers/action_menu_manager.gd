@@ -13,6 +13,12 @@ var _is_visible: bool = false
 var _panel_connected: bool = false
 
 
+func _ready() -> void:
+	var state_manager := get_node_or_null("/root/GameStateManager")
+	if state_manager != null:
+		state_manager.state_changed.connect(_on_game_state_changed)
+
+
 # =============================================================================
 # PUBLIC API
 # =============================================================================
@@ -67,6 +73,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		_on_cancel()
 		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("unit_info"):
+		_on_unit_info_requested()
+		get_viewport().set_input_as_handled()
 
 
 # =============================================================================
@@ -85,6 +94,7 @@ func _connect_panel_signals(ui_manager: Node) -> void:
 	panel.cancel_selected.connect(_on_cancel)
 	panel.assign_submenu_requested.connect(_on_assign_submenu)
 	panel.assign_move_selected.connect(_on_assign_move_selected)
+	panel.unit_info_requested.connect(_on_unit_info_requested)
 	_panel_connected = true
 
 
@@ -130,6 +140,20 @@ func _on_assign_move_selected(move: Move) -> void:
 			panel.show_main_menu()
 
 
+func _on_unit_info_requested() -> void:
+	if _active_unit == null:
+		return
+	# Hide the menu visually but preserve _active_unit for re-entry
+	hide_action_menu()
+	# Push state so "back" returns to ACTION_MENU_OPEN
+	var state_manager: Node = get_node("/root/GameStateManager")
+	state_manager.push_state(Enums.InputState.UNIT_DETAIL, _active_unit)
+	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	if ui_manager != null:
+		ui_manager.show_unit_detail(_active_unit)
+	DebugConfig.log_action_menu("ActionMenu: Unit Info requested for '%s'" % _active_unit.unit_name)
+
+
 func _on_wait() -> void:
 	if _active_unit == null:
 		return
@@ -146,11 +170,8 @@ func _on_wait() -> void:
 	input_manager.deselect_unit()
 
 	var state_manager: Node = get_node("/root/GameStateManager")
+	state_manager.clear_state_stack()
 	state_manager.change_state(Enums.InputState.DEFAULT)
-
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
-	if ui_manager != null:
-		ui_manager.hide_unit_info()
 
 	var turn_manager: Node = get_node_or_null("/root/TurnManager")
 	if turn_manager != null:
@@ -177,8 +198,28 @@ func _on_cancel() -> void:
 	# Snap back to pre-movement position
 	unit.cancel_movement()
 
+	var state_manager: Node = get_node("/root/GameStateManager")
+	state_manager.clear_state_stack()
+
 	var input_manager: Node = get_node("/root/InputManager")
 	input_manager.enable_input()
 	input_manager.select_unit(unit)
 
 	DebugConfig.log_action_menu("ActionMenu: '%s' cancelled, snapping back" % unit.unit_name)
+
+
+# =============================================================================
+# STATE MACHINE LISTENER
+# =============================================================================
+
+func _on_game_state_changed(old_state: Enums.InputState, new_state: Enums.InputState) -> void:
+	# Re-entering ACTION_MENU_OPEN from an overlay (e.g., returning from unit detail)
+	if new_state == Enums.InputState.ACTION_MENU_OPEN \
+			and old_state == Enums.InputState.UNIT_DETAIL \
+			and _active_unit != null:
+		var ui_manager: Node = get_node_or_null("/root/UIManager")
+		if ui_manager != null:
+			_connect_panel_signals(ui_manager)
+			ui_manager.show_action_menu(_active_unit)
+		_is_visible = true
+		DebugConfig.log_action_menu("ActionMenu: Restored for '%s'" % _active_unit.unit_name)

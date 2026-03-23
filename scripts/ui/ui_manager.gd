@@ -14,6 +14,24 @@ var battle_theme: Theme = null
 var _border_small: Texture2D = null       # 140x140 clean gray border
 var _border_tall_left: Texture2D = null   # 140x218 with rivets (top-right, bottom-left)
 var _border_tall_right: Texture2D = null  # 140x218 with rivets (bottom-left, top-left)
+# 8-piece chopped border for arbitrary-size panels
+var _border_corner_top_left: Texture2D = null
+var _border_corner_top_right: Texture2D = null
+var _border_corner_bottom_left: Texture2D = null
+var _border_corner_bottom_right: Texture2D = null
+var _border_edge_top: Texture2D = null
+var _border_edge_right: Texture2D = null
+var _border_edge_bottom: Texture2D = null
+var _border_edge_left: Texture2D = null
+# 8-piece fullscreen border for large/arbitrary-size panels
+var _fullscreen_corner_top_left: Texture2D = null
+var _fullscreen_corner_top_right: Texture2D = null
+var _fullscreen_corner_bottom_left: Texture2D = null
+var _fullscreen_corner_bottom_right: Texture2D = null
+var _fullscreen_edge_top: Texture2D = null
+var _fullscreen_edge_right: Texture2D = null
+var _fullscreen_edge_bottom: Texture2D = null
+var _fullscreen_edge_left: Texture2D = null
 const BORDER_MARGIN: int = 10             # All borders are 10px on each side
 
 # Layout containers
@@ -23,8 +41,8 @@ var _center_area: Control = null
 var _right_panel: VBoxContainer = null
 
 # Panels
-var _unit_info_panel: UnitInfoPanel = null
-var _terrain_info_panel: TerrainInfoPanel = null
+var _unit_info_panel: UnitPreviewPanel = null
+var _terrain_info_panel: TerrainPreviewPanel = null
 var _action_menu_panel: ActionMenuPanel = null
 var _combat_preview_panel: CombatPreviewPanel = null
 
@@ -35,6 +53,7 @@ var _action_panels_on_left: bool = false
 var _overlay_layer: CanvasLayer = null
 var _phase_transition_overlay: Node = null
 var _battle_result_overlay: Node = null
+var _unit_detail_panel: UnitDetailPanel = null
 
 
 func _ready() -> void:
@@ -46,6 +65,9 @@ func _ready() -> void:
 	_build_overlay_layer()
 	_instantiate_panels()
 	_instantiate_overlays()
+	var state_manager := get_node_or_null("/root/GameStateManager")
+	if state_manager != null:
+		state_manager.state_changed.connect(_on_state_changed)
 	DebugConfig.log_pixel_perfect_ui("UIManager: Initialized with 140-360-140 layout")
 
 
@@ -134,6 +156,26 @@ func hide_combat_preview() -> void:
 	if _combat_preview_panel == null:
 		return
 	_combat_preview_panel.hide_panel()
+
+
+# =============================================================================
+# PUBLIC API — UNIT DETAIL
+# =============================================================================
+
+func show_unit_detail(unit: Unit) -> void:
+	if _unit_detail_panel == null:
+		return
+	_unit_detail_panel.show_unit(unit)
+
+
+func hide_unit_detail() -> void:
+	if _unit_detail_panel == null:
+		return
+	_unit_detail_panel.hide_panel()
+
+
+func is_unit_detail_visible() -> bool:
+	return _unit_detail_panel != null and _unit_detail_panel.visible
 
 
 # =============================================================================
@@ -311,15 +353,15 @@ func _build_overlay_layer() -> void:
 
 func _instantiate_panels() -> void:
 	# Unit info panel (left, top)
-	var unit_info_scene := load("res://scenes/ui/panels/unit_info_panel.tscn")
+	var unit_info_scene := load("res://scenes/ui/panels/unit_preview_panel/unit_preview_panel.tscn")
 	if unit_info_scene != null:
-		_unit_info_panel = unit_info_scene.instantiate() as UnitInfoPanel
+		_unit_info_panel = unit_info_scene.instantiate() as UnitPreviewPanel
 		_left_panel.add_child(_unit_info_panel)
 
-	# Terrain info panel (left, bottom)
-	var terrain_info_scene := load("res://scenes/ui/panels/terrain_info_panel.tscn")
+	# Terrain preview panel (left, bottom)
+	var terrain_info_scene := load("res://scenes/ui/panels/terrain_preview_panel/terrain_preview_panel.tscn")
 	if terrain_info_scene != null:
-		_terrain_info_panel = terrain_info_scene.instantiate() as TerrainInfoPanel
+		_terrain_info_panel = terrain_info_scene.instantiate() as TerrainPreviewPanel
 		_left_panel.add_child(_terrain_info_panel)
 
 	# Action menu panel (right, top)
@@ -347,6 +389,16 @@ func _instantiate_overlays() -> void:
 	if result_scene != null:
 		_battle_result_overlay = result_scene.instantiate()
 		_overlay_layer.add_child(_battle_result_overlay)
+
+	# Unit detail panel (fullscreen overlay)
+	var unit_detail_scene := load("res://scenes/ui/panels/unit_detail_panel/unit_info_panel.tscn")
+	if unit_detail_scene != null:
+		_unit_detail_panel = unit_detail_scene.instantiate() as UnitDetailPanel
+		_unit_detail_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		_unit_detail_panel.position = Vector2(10, 10)  # Border offset
+		_unit_detail_panel.visible = false
+		_overlay_layer.add_child(_unit_detail_panel)
+		_unit_detail_panel.closed.connect(_on_unit_detail_closed)
 
 
 # =============================================================================
@@ -402,17 +454,50 @@ func _get_camera() -> CameraController:
 
 
 ## Returns true when info panels (unit info, terrain info) should be suppressed.
-## True when the action menu or combat preview is visible, OR we're in
-## ATTACK_TARGETING state (combat preview may not be shown on every hover tile).
 func _is_action_ui_open() -> bool:
-	if _action_menu_panel != null and _action_menu_panel.visible:
-		return true
-	if _combat_preview_panel != null and _combat_preview_panel.visible:
-		return true
 	var state_manager := get_node_or_null("/root/GameStateManager")
-	if state_manager != null and state_manager.current_state == Enums.InputState.ATTACK_TARGETING:
-		return true
-	return false
+	if state_manager == null:
+		return false
+	return state_manager.current_state in [
+		Enums.InputState.ACTION_MENU_OPEN,
+		Enums.InputState.ATTACK_TARGETING,
+		Enums.InputState.UNIT_DETAIL,
+	]
+
+
+# =============================================================================
+# STATE MACHINE — panel visibility driven by GameStateManager
+# =============================================================================
+
+func _on_state_changed(_old_state: Enums.InputState, new_state: Enums.InputState) -> void:
+	match new_state:
+		Enums.InputState.DEFAULT, Enums.InputState.UNIT_SELECTED, Enums.InputState.MOVEMENT_PLANNING:
+			hide_action_menu()
+			hide_combat_preview()
+			hide_unit_detail()
+		Enums.InputState.ACTION_MENU_OPEN:
+			hide_unit_info()
+			hide_terrain_info()
+			hide_combat_preview()
+			hide_unit_detail()
+		Enums.InputState.ATTACK_TARGETING:
+			hide_unit_info()
+			hide_terrain_info()
+			hide_action_menu()
+			hide_unit_detail()
+		Enums.InputState.UNIT_DETAIL:
+			hide_unit_info()
+			hide_terrain_info()
+			hide_action_menu()
+			hide_combat_preview()
+
+
+func _on_unit_detail_closed() -> void:
+	var state_manager := get_node_or_null("/root/GameStateManager")
+	# Guard: only pop if we're actually in UNIT_DETAIL state.
+	# The state handler also calls hide_unit_detail() which re-emits closed.
+	if state_manager != null and state_manager.current_state == Enums.InputState.UNIT_DETAIL:
+		state_manager.pop_state()
 
 
 ## Hides a panel node by setting visible = false directly.
@@ -430,12 +515,30 @@ func _load_border_textures() -> void:
 	_border_small = _load_texture("res://art/sprites/ui/hud_panel/panel_border_small.png")
 	_border_tall_left = _load_texture("res://art/sprites/ui/hud_panel/panel_border_tall.png")
 	_border_tall_right = _load_texture("res://art/sprites/ui/hud_panel/panel_border_tall_right.png")
+	# 8-piece chopped border for arbitrary-size panels
+	_border_corner_top_left = _load_texture("res://art/sprites/ui/hud_panel/hud_panel_top_left.png")
+	_border_corner_top_right = _load_texture("res://art/sprites/ui/hud_panel/hud_panel_top_right.png")
+	_border_corner_bottom_left = _load_texture("res://art/sprites/ui/hud_panel/hud_panel_bottom_left.png")
+	_border_corner_bottom_right = _load_texture("res://art/sprites/ui/hud_panel/hud_panel_bottom_right.png")
+	_border_edge_top = _load_texture("res://art/sprites/ui/hud_panel/hud_panel_top.png")
+	_border_edge_right = _load_texture("res://art/sprites/ui/hud_panel/hud_panel_right.png")
+	_border_edge_bottom = _load_texture("res://art/sprites/ui/hud_panel/hud_panel_bottom.png")
+	_border_edge_left = _load_texture("res://art/sprites/ui/hud_panel/hud_panel_left.png")
+	# 8-piece fullscreen border
+	_fullscreen_corner_top_left = _load_texture("res://art/sprites/ui/hud_panel_fullscreen/hud_border_top_left.png")
+	_fullscreen_corner_top_right = _load_texture("res://art/sprites/ui/hud_panel_fullscreen/hud_border_top_right.png")
+	_fullscreen_corner_bottom_left = _load_texture("res://art/sprites/ui/hud_panel_fullscreen/hud_border_bottom_left.png")
+	_fullscreen_corner_bottom_right = _load_texture("res://art/sprites/ui/hud_panel_fullscreen/hud_border_bottom_right.png")
+	_fullscreen_edge_top = _load_texture("res://art/sprites/ui/hud_panel_fullscreen/hud_border_top.png")
+	_fullscreen_edge_right = _load_texture("res://art/sprites/ui/hud_panel_fullscreen/hud_border_right.png")
+	_fullscreen_edge_bottom = _load_texture("res://art/sprites/ui/hud_panel_fullscreen/hud_border_bottom.png")
+	_fullscreen_edge_left = _load_texture("res://art/sprites/ui/hud_panel_fullscreen/hud_border_left.png")
 
 
 func _load_texture(path: String) -> Texture2D:
 	if ResourceLoader.exists(path):
 		return load(path)
-	DebugConfig.log_ui("UIManager: Missing border texture '%s'" % path)
+	push_warning("UIManager: Missing border texture '%s'" % path)
 	return null
 
 
@@ -511,3 +614,37 @@ func create_combat_preview_border() -> StyleBoxTexture:
 	if _border_small != null:
 		return _create_border_style(_border_small)
 	return null
+
+
+func create_panel_border_overlay() -> PanelBorderOverlay:
+	## Returns a PanelBorderOverlay configured with the 8-piece chopped border.
+	## Add as a child of any Control with Full Rect anchors.
+	var overlay := PanelBorderOverlay.new()
+	overlay.corner_top_left = _border_corner_top_left
+	overlay.corner_top_right = _border_corner_top_right
+	overlay.corner_bottom_left = _border_corner_bottom_left
+	overlay.corner_bottom_right = _border_corner_bottom_right
+	overlay.edge_top = _border_edge_top
+	overlay.edge_right = _border_edge_right
+	overlay.edge_bottom = _border_edge_bottom
+	overlay.edge_left = _border_edge_left
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return overlay
+
+
+func create_fullscreen_border_overlay() -> PanelBorderOverlay:
+	## Returns a PanelBorderOverlay configured with the fullscreen border pieces.
+	## Designed for large panels like the unit detail panel.
+	var overlay := PanelBorderOverlay.new()
+	overlay.corner_top_left = _fullscreen_corner_top_left
+	overlay.corner_top_right = _fullscreen_corner_top_right
+	overlay.corner_bottom_left = _fullscreen_corner_bottom_left
+	overlay.corner_bottom_right = _fullscreen_corner_bottom_right
+	overlay.edge_top = _fullscreen_edge_top
+	overlay.edge_right = _fullscreen_edge_right
+	overlay.edge_bottom = _fullscreen_edge_bottom
+	overlay.edge_left = _fullscreen_edge_left
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return overlay

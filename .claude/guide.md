@@ -132,7 +132,7 @@ HP, Strength, Special, Skill, Agility, Athleticism, Defense, Resistance
 - Physical moves: Strength vs Defense
 - Special moves: Special vs Resistance
 - Athleticism: Terrain movement bonus
-- Final Stat = Base + Growth Gains + Allocated Stat Ups + Support Bonuses + Passive Bonuses + Status Modifiers
+- Final Stat = Base + Growth Gains + Allocated Stat Ups + Bond Bonuses + Passive Bonuses + Status Modifiers
 
 ### Combat Formulas
 ```

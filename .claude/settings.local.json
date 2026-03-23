@@ -70,7 +70,21 @@
       "Bash(cp /home/mjsbdlk/Documents/Projects/tbt-game-unity/Assets/Docs/Design/BasicMoveBank.json /home/mjsbdlk/Documents/Projects/tbt-game-godot/data/design/BasicMoveBank.json)",
       "Bash(cp /home/mjsbdlk/Documents/Projects/tbt-game-unity/Assets/Docs/Design/StatusEffects.json /home/mjsbdlk/Documents/Projects/tbt-game-godot/data/design/StatusEffects.json)",
       "Bash(cp /home/mjsbdlk/Documents/Projects/tbt-game-unity/Assets/Docs/Design/future-ideas.md /home/mjsbdlk/Documents/Projects/tbt-game-godot/data/design/future-ideas.md)",
-      "Bash(cp /home/mjsbdlk/Documents/Projects/tbt-game-unity/Assets/Docs/Design/ideas-and-brainstorming.md /home/mjsbdlk/Documents/Projects/tbt-game-godot/data/design/ideas-and-brainstorming.md)"
+      "Bash(cp /home/mjsbdlk/Documents/Projects/tbt-game-unity/Assets/Docs/Design/ideas-and-brainstorming.md /home/mjsbdlk/Documents/Projects/tbt-game-godot/data/design/ideas-and-brainstorming.md)",
+      "WebFetch(domain:skills.sh)",
+      "Bash(file art/sprites/ui/hud_panel/panel_border*.png)",
+      "Bash(git show:*)",
+      "Bash(grep -r panel_background --include=*.gd --include=*.tscn --include=*.tres)",
+      "Bash(/home/mjsbdlk/aseprite/build/bin/aseprite -b art/sprites/ui/status_effect_icons_6x6.aseprite --all-layers --split-layers --trim --save-as \"art/sprites/ui/status_effect_icons/{layer}.png\")",
+      "Bash(mkdir -p /home/mjsbdlk/Documents/Projects/tbt-game-godot/art/sprites/ui/elemental_type_icons_10x10/_backup)",
+      "Bash(cp /home/mjsbdlk/Documents/Projects/tbt-game-godot/art/sprites/ui/elemental_type_icons_10x10/*.png /home/mjsbdlk/Documents/Projects/tbt-game-godot/art/sprites/ui/elemental_type_icons_10x10/_backup/)",
+      "Bash(/home/mjsbdlk/aseprite/build/bin/aseprite -b \"/home/mjsbdlk/Documents/Projects/tbt-game-godot/art/sprites/ui/elemental_type_icons_10x10.aseprite\" --all-layers --split-layers --trim --save-as \"/home/mjsbdlk/Documents/Projects/tbt-game-godot/art/sprites/ui/elemental_type_icons_10x10/{layer}.png\")",
+      "Bash(/home/mjsbdlk/aseprite/build/bin/aseprite -b /home/mjsbdlk/Documents/Projects/tbt-game-godot/art/sprites/ui/elemental_type_icons_10x10.aseprite --list-tags)",
+      "Bash(/home/mjsbdlk/aseprite/build/bin/aseprite -b /home/mjsbdlk/Documents/Projects/tbt-game-godot/art/sprites/ui/status_effect_icons_6x6.aseprite --list-tags)",
+      "Bash(grep -E \"\\\\.\\(tres|res\\)$\")",
+      "Bash(/home/mjsbdlk/aseprite/build/bin/aseprite -b \"art/sprites/ui/turn_transition_overlay_stars.aseprite\" --all-layers --split-layers --trim --save-as \"/tmp/star_layers/{layer}.png\")",
+      "Read(//tmp/star_layers/**)",
+      "Bash(/home/mjsbdlk/aseprite/build/bin/aseprite -b \"art/sprites/ui/turn_transition_overlay_stars.aseprite\" --all-layers --split-layers --save-as \"art/sprites/ui/turn_transition_overlay_stars/{layer}.png\")"
     ]
   }
 }

@@ -95,7 +95,7 @@ Character data is stored in JSON files for easy bulk editing and version control
 
 ### Stat Calculation Formula
 ```
-Final Stat = Base Stat + Growth Gains + Allocated Stat Ups + Support Bonuses + Passive Bonuses + Status Modifiers
+Final Stat = Base Stat + Growth Gains + Allocated Stat Ups + Bond Bonuses + Passive Bonuses + Status Modifiers
 ```
 
 ### Progression Mechanics
@@ -149,6 +149,14 @@ Each class provides access to a unique "library" of learnable passives:
   - New passive access
   - Allocation point for stats
 
+### Specialization (Free-Form Stat Picks)
+- **Class Level 2**: Choose one stat at +10% and one stat at −10%
+- **Class Level 3**: Choose another +10%/−10% pair (can stack on same stats)
+- **Flat modifier**: ±10% of current stat value (scales naturally with growth)
+- **No named archetypes**: Players shape builds organically
+- **Encourages strengths**: Building into high stats yields bigger bonuses
+- **Nonstandard builds viable**: Movesets and passives can complement unusual stat spreads
+
 ---
 
 ## Combat Mechanics
@@ -168,7 +176,7 @@ Final Damage = Base Damage × Type Effectiveness × Other Modifiers
 Minimum Damage = 1 (always deal at least 1 damage)
 ```
 
-### Support Bonuses
+### Bond Bonuses
 - **Adjacent Allies**: Small stat bonuses based on elemental type synergy
 - **Support Rank**: Bonus magnitude based on relationship level
 - **Type Combinations**: Different elemental pairings provide unique effects

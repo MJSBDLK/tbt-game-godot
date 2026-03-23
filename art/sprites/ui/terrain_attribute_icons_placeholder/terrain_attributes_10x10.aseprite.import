@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://bilx4b1dj68ow"
+path="res://.godot/imported/terrain_attributes_10x10.aseprite-1b0641d13d069de4f81057fdef4bbbf2.res"
+
+[deps]
+
+source_file="res://art/sprites/ui/terrain_attribute_icons_placeholder/terrain_attributes_10x10.aseprite"
+dest_files=["res://.godot/imported/terrain_attributes_10x10.aseprite-1b0641d13d069de4f81057fdef4bbbf2.res"]
+
+[params]
+

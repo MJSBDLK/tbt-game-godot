@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://n6pi2hurox1g"]
 
-[ext_resource type="PackedScene" uid="uid://dnhdopaxrtt3f" path="res://resources/ui/unit_row.tscn" id="1_5vy8l"]
-[ext_resource type="PackedScene" uid="uid://ltbgabigkn2r" path="res://resources/ui/values_percentages_and_multipliers_container.tscn" id="2_n2jcg"]
+[ext_resource type="PackedScene" uid="uid://dnhdopaxrtt3f" path="res://scenes/ui/panels/unit_row.tscn" id="1_5vy8l"]
+[ext_resource type="PackedScene" uid="uid://ltbgabigkn2r" path="res://scenes/ui/panels/combat_preview_panel/values_percentages_and_multipliers_container.tscn" id="2_n2jcg"]
 [ext_resource type="Material" uid="uid://d3rfhbptxbold" path="res://resources/hud_glow.tres" id="3_d73ax"]
 
 [node name="UnitContainer" type="Control" unique_id=2135526747]

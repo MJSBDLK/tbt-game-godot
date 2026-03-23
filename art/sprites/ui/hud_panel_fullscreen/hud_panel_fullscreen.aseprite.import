@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://dhdyup3c7b23q"
+path="res://.godot/imported/hud_panel_fullscreen.aseprite-01af0753866253e1737a9498a7c17570.res"
+
+[deps]
+
+source_file="res://art/sprites/ui/hud_panel_fullscreen/hud_panel_fullscreen.aseprite"
+dest_files=["res://.godot/imported/hud_panel_fullscreen.aseprite-01af0753866253e1737a9498a7c17570.res"]
+
+[params]
+

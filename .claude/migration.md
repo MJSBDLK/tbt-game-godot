@@ -1,7 +1,7 @@
 # Unity → Godot Migration Plan
 
-**Status**: Phase 6 Complete, Phase 7 Next
-**Last Updated**: 2026-02-25 (Phase 7 renumbered; old 7→8, old 8→9)
+**Status**: Phase 7 In Progress
+**Last Updated**: 2026-03-23
 **Unity Source**: `../tbt-game-unity/`
 
 ---
@@ -23,7 +23,7 @@ Porting ~110 C# scripts (~50k lines) from Unity 6.3 to Godot 4.x with GDScript. 
 | **4** | Game state, input, turns | **COMPLETE** | — |
 | **5** | UI system | **COMPLETE** | — |
 | **6** | Map pipeline & authoring | **COMPLETE** | — |
-| 7 | Visual identity & HUD | **NEXT** | — |
+| 7 | Visual identity & HUD | **IN PROGRESS** | — |
 | 8 | Missing Alpha features | pending | — |
 | 9 | Polish & Steam Deck | pending | — |
 
@@ -276,18 +276,32 @@ MapRoot (Node2D) [battle_scene.gd, @export map_data_path]
 
 ---
 
-## Phase 7: Visual Identity & HUD — NEXT
+## Phase 7: Visual Identity & HUD — IN PROGRESS
 
 **Effort**: Medium | **Depends on**: Phase 6
 
 Establish the game's visual style before building new screens in Phase 8, so everything is built in the correct style from the start.
 
+### Completed
+- Unit preview panel (replaces old unit_info_panel) — name, types, class/level, HP bar, move chips with SDF shader, passives grid, status effects
+- Move chip shader — SDF rounded rect with diagonal fill edge, per-element colors
+- Terrain preview panel — stat grid with color-coded multipliers, per-type overrides, status immunities
+- Terrain data converted from flat bonuses to multipliers (def/avoid)
+- Health ramp colors converted to palette lookups (GameColorPalette.get_color)
+- Per-element chip colors (fill + empty) using cross-ramp palette combos
+- Terrain modifier color system — non-linear thresholds centered around 1.0
+- Icon exports — elemental type (10x10), status effect (6x6), terrain attribute (10x10), move type (10x10)
+- Health ramp debug scene for artist review
+- UI state machine — push/pop state stack on GameStateManager for overlay transitions
+- Terrain sprites — real art from Lawrence available, colored placeholders can be deprecated
+
+### Remaining
+
 | Area | Work |
 |---|---|
-| HUD panels | Apply Artist Lawrence's designs to UnitInfoPanel, TerrainInfoPanel, ActionMenuPanel, CombatPreviewPanel |
 | Phase/result overlays | Style phase transition and victory/defeat overlays |
-| Terrain sprites | Replace colored placeholders with real art (or improved placeholders) |
 | Unit sprites | Replace colored rectangles with character art (or improved placeholders) |
+| Action menu & combat preview | Apply visual style to ActionMenuPanel, CombatPreviewPanel |
 | Damage popups & feedback | Style numbers, "Super Effective!" flash, effectiveness colors |
 | Status effect indicators | Icons above units, turn countdown display |
 | Cancel/confirm hints | Visual style for input hints |

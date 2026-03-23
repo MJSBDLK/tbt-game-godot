@@ -32,6 +32,7 @@ enum ElementalType {
 enum DamageType {
 	PHYSICAL,
 	SPECIAL,
+	SUPPORT,
 }
 
 enum StatusEffectType {
@@ -47,7 +48,7 @@ enum StatusEffectType {
 	POISON,           # DoT, damage over time
 	ROOTED,           # Stops movement
 	SHOCKED,          # Reduced accuracy, chance to skip turn
-	SUBVERSION,       # Lowers defenses by 1/3, allies' by 1/4 in range. Nullifies support bonuses
+	SUBVERSION,       # Lowers defenses by 1/3, allies' by 1/4 in range. Nullifies bond bonuses
 	VOID,             # Locks a random move or passive per stack, up to 3
 	VULNERABLE,       # Takes increased damage
 	WITHER,           # Reduced stats, weakened
@@ -119,14 +120,16 @@ const CLASS_INFO: Dictionary = {
 	CharacterClass.VOID_KNIGHT: { "tier": 3, "display_name": "Void Knight" },
 }
 
-enum Specialization {
-	NONE,
-	TANK,
-	WALL,
-	GLASS_CANNON,
-	SCOUT,
-	BERSERKER,
-}
+# Specialization enum — commented out pending redesign as free-form ±10% stat picks
+# at class levels 2 and 3, rather than named archetypes.
+#enum Specialization {
+#	NONE,
+#	TANK,
+#	WALL,
+#	GLASS_CANNON,
+#	SCOUT,
+#	BERSERKER,
+#}
 
 enum RewardType {
 	STAT_UP,
@@ -164,6 +167,7 @@ enum InputState {
 	MOVEMENT_PLANNING,
 	ACTION_MENU_OPEN,
 	ATTACK_TARGETING,
+	UNIT_DETAIL,
 	DIALOGUE,
 	PAUSED,
 }

@@ -199,6 +199,7 @@ func _is_input_blocked() -> bool:
 		return false
 	var state: Enums.InputState = state_manager.current_state
 	return state == Enums.InputState.ACTION_MENU_OPEN or \
+		state == Enums.InputState.UNIT_DETAIL or \
 		state == Enums.InputState.DIALOGUE or \
 		state == Enums.InputState.PAUSED
 

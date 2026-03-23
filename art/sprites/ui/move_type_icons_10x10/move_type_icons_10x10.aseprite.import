@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://sagvb66bkguw"
+path="res://.godot/imported/move_type_icons_10x10.aseprite-912ef0282778dd4c866f52a644ae7fee.res"
+
+[deps]
+
+source_file="res://art/sprites/ui/move_type_icons_10x10/move_type_icons_10x10.aseprite"
+dest_files=["res://.godot/imported/move_type_icons_10x10.aseprite-912ef0282778dd4c866f52a644ae7fee.res"]
+
+[params]
+
