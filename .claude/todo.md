@@ -1,21 +1,21 @@
 # Todo
+- [ ] Style the action menu panel
+- [x] Style the combat preview panel
+- [x] Phase transition
+- [ ] battle result overlays
+- [ ] Terrain sprites (replace colored placeholders with real art)
+- [ ] Unit sprites (replace colored rectangles)
+- [ ] Damage popups & effectiveness feedback styling
+- [ ] Status effect indicators on units (icons + turn countdown)
+- [ ] Cancel/confirm input hints
+- [ ] UI style guide doc
 
-## [x] UI State Machine
-- Replace ad-hoc panel visibility management with a proper state machine
-- Define transitions: MAP → ACTION_MENU → UNIT_DETAIL → ACTION_MENU, MAP → UNIT_DETAIL → MAP, etc.
-- Each state knows which panels are visible and what "back" means
-- Eliminates "opened from where?" tracking and prevents spaghetti as more panels are added
-
-## [x] RQD - Test the Importality workflow with the turn transition screens
 
 ## Art Pipeline
 - [ ] Figure out how normal maps work with the Aseprite -> Aseprite Wizard -> Godot workflow
 - [ ] Understand how timing on frames works within the Aseprite -> Aseprite Wizard -> Godot workflow
-- [x] The palette ColorPicker currently doesn't support alpha - must fix
 
 ## Misc
-- [x] Color code the map health bars according to faction
-- [x] Fix the color and alpha values of the ColorRect in the combat preview panel
 - [ ] Optimize controls for touchscreen
 
 ## For Lawrence (Art!)

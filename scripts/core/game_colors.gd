@@ -44,6 +44,39 @@ static var ENEMY_UNIT_ACTED: Color:
 static var ALLY_UNIT_ACTED: Color:
 	get: return Color(0.4, 0.4, 0.28)  # Dark muted yellow
 
+# =============================================================================
+# PHASE TRANSITION BANNER COLORS
+# =============================================================================
+# CIELAB luminance matched across factions (L*≈88 / 45 / 14).
+
+static var PHASE_PLAYER_TEXT: Color:
+	get: return GameColorPalette.get_color("Azure", 8)              # #b7e5ff
+static var PHASE_PLAYER_ACCENT: Color:
+	get: return GameColorPalette.get_color("Azure", 4)              # #2d6b9c
+static var PHASE_PLAYER_GLOW: Color:
+	get: return GameColorPalette.get_color("StylizedVillage", 2)    # #1b1d3d
+
+static var PHASE_ENEMY_TEXT: Color:
+	get: return GameColorPalette.get_color("Red", 9)                # #fbd5ce
+static var PHASE_ENEMY_ACCENT: Color:
+	get: return GameColorPalette.get_color("Red", 5)                # #b94231
+static var PHASE_ENEMY_GLOW: Color:
+	get: return GameColorPalette.get_color("RedViolet", 2)          # #3f1525
+
+static var PHASE_NEUTRAL_TEXT: Color:
+	get: return GameColorPalette.get_color("TealGray", 8)           # #c3e6dc
+static var PHASE_NEUTRAL_ACCENT: Color:
+	get: return GameColorPalette.get_color("WarmNature", 4)         # #59754c
+static var PHASE_NEUTRAL_GLOW: Color:
+	get: return GameColorPalette.get_color("Teal", 2)               # #102e25
+
+static var PHASE_ALLY_TEXT: Color:
+	get: return GameColorPalette.get_color("Straw2", 8)             # #e7dfb0
+static var PHASE_ALLY_ACCENT: Color:
+	get: return GameColorPalette.get_color("Yellow", 4)             # #7e6d24
+static var PHASE_ALLY_GLOW: Color:
+	get: return GameColorPalette.get_color("Straw", 2)              # #322317
+
 
 # =============================================================================
 # FACTION HEALTH BAR BACKGROUNDS

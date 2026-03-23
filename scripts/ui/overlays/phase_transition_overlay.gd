@@ -193,18 +193,13 @@ func _build_content() -> void:
 
 ## Resolve faction color into a text/accent/glow trio for the phase banner.
 func _get_phase_colors(faction_color: Color) -> Dictionary:
-	# Detect faction by comparing to known colors (red channel dominant = enemy).
-	if faction_color.r > faction_color.b:
-		# Enemy — Lawrence's red trio.
-		return {
-			text = Color("#fbd5ce"),
-			accent = Color("#b94231"),
-			glow = Color("#3f1525"),
-		}
-	else:
-		# Player — blue trio matched to same CIELAB luminance.
-		return {
-			text = Color("#b7e5ff"),
-			accent = Color("#2d6b9c"),
-			glow = Color("#1b1d3d"),
-		}
+	if faction_color == GameColors.PLAYER_UNIT:
+		return { text = GameColors.PHASE_PLAYER_TEXT, accent = GameColors.PHASE_PLAYER_ACCENT, glow = GameColors.PHASE_PLAYER_GLOW }
+	elif faction_color == GameColors.ENEMY_UNIT:
+		return { text = GameColors.PHASE_ENEMY_TEXT, accent = GameColors.PHASE_ENEMY_ACCENT, glow = GameColors.PHASE_ENEMY_GLOW }
+	elif faction_color == GameColors.ALLY_UNIT:
+		return { text = GameColors.PHASE_ALLY_TEXT, accent = GameColors.PHASE_ALLY_ACCENT, glow = GameColors.PHASE_ALLY_GLOW }
+	elif faction_color == GameColors.NEUTRAL_UNIT:
+		return { text = GameColors.PHASE_NEUTRAL_TEXT, accent = GameColors.PHASE_NEUTRAL_ACCENT, glow = GameColors.PHASE_NEUTRAL_GLOW }
+	# Fallback — use the raw color.
+	return { text = faction_color, accent = faction_color, glow = Color.BLACK }
