@@ -112,27 +112,54 @@ static var TEXT_DANGER: Color:
 
 
 # =============================================================================
-# HEALTH BAR COLORS
+# HEALTH BAR COLORS — 11-step ramp from critical (0%) to full (100%)
 # =============================================================================
 
-static var HEALTH_FULL: Color:
-	get: return GameColorPalette.get_color("Green", 6)
-static var HEALTH_HALF: Color:
-	get: return GameColorPalette.get_color("Yellow", 5)
-static var HEALTH_LOW: Color:
-	get: return GameColorPalette.get_color("Orange", 5)
-static var HEALTH_CRITICAL: Color:
-	get: return GameColorPalette.get_color("Red", 5)
+# Index 0 = 0% HP (critical), index 10 = 100% HP (full)
+# Lawrence's blended hex values (may revisit):
+#   0: #6e150d, 1: #8e371e, 2: #a7532d, 3: #c17b3e, 4: #dca452,
+#   5: #f4cc65, 6: #d3cc72, 7: #afcb80, 8: #8cc991, 9: #6dcbac, 10: #45cbce
+static var HEALTH_RAMP: Array[Color] = [
+	GameColorPalette.get_color("Red", 3),           # 0  — critical red
+	GameColorPalette.get_color("PoppyRed", 4),      # 1
+	GameColorPalette.get_color("PoppyRed", 5),      # 2
+	GameColorPalette.get_color("PoppyRed", 6),      # 3
+	GameColorPalette.get_color("PoppyRed", 7),      # 4
+	GameColorPalette.get_color("YellowOrange", 7),  # 5  — mid yellow
+	GameColorPalette.get_color("Yellow", 7),         # 6
+	GameColorPalette.get_color("Chartreuse", 7),     # 7
+	GameColorPalette.get_color("Green", 7),          # 8
+	GameColorPalette.get_color("Teal", 7),           # 9
+	GameColorPalette.get_color("Cyan", 7),           # 10 — full health teal
+]
 
-# Glow variants for the health pip bar
-static var HEALTH_FULL_GLOW: Color:
-	get: return GameColorPalette.get_color("Green", 3)
-static var HEALTH_HALF_GLOW: Color:
-	get: return GameColorPalette.get_color("Yellow", 3)
-static var HEALTH_LOW_GLOW: Color:
-	get: return GameColorPalette.get_color("Orange", 3)
-static var HEALTH_CRITICAL_GLOW: Color:
-	get: return GameColorPalette.get_color("Red", 3)
+# Background/glow colors for each health ramp step (placeholder — Lawrence to finalize)
+# Placeholder hex values (not in palette):
+#   0: #2d0805, 1: #3d1508, 2: #4d200e, 3: #5c3012, 4: #6b4518,
+#   5: #6b5a10, 6: #4a4a15, 7: #3a5c1e, 8: #1e5c38, 9: #0e5c52, 10: #006971
+static var HEALTH_RAMP_BG: Array[Color] = [
+	GameColorPalette.get_color("Red", 1),            # 0  — deep blood red
+	GameColorPalette.get_color("PoppyRed", 2),       # 1
+	GameColorPalette.get_color("Orange", 3),         # 2
+	GameColorPalette.get_color("YellowOrange", 3),   # 3
+	GameColorPalette.get_color("Yellow", 3),         # 4
+	GameColorPalette.get_color("Yellow", 3),         # 5  — dark gold (same as 4, nearest match)
+	GameColorPalette.get_color("Chartreuse", 3),     # 6
+	GameColorPalette.get_color("Green", 3),          # 7
+	GameColorPalette.get_color("Green", 3),          # 8  — (same as 7, nearest match)
+	GameColorPalette.get_color("Cyan", 3),           # 9
+	GameColorPalette.get_color("Cyan", 4),           # 10 — confirmed dark teal (EXACT)
+]
+
+# Legacy accessors for code that references specific thresholds
+static var HEALTH_FULL: Color:
+	get: return HEALTH_RAMP[10]
+static var HEALTH_HALF: Color:
+	get: return HEALTH_RAMP[5]
+static var HEALTH_LOW: Color:
+	get: return HEALTH_RAMP[2]
+static var HEALTH_CRITICAL: Color:
+	get: return HEALTH_RAMP[0]
 
 # Damage preview section (pulsing zone in combat preview)
 static var HEALTH_DAMAGE_PREVIEW: Color:
@@ -153,6 +180,12 @@ static var STATUS_BUFF: Color:
 	get: return GameColorPalette.get_color("Blue", 6)
 static var STATUS_DEBUFF: Color:
 	get: return GameColorPalette.get_color("Magenta", 5)
+static var STATUS_ICON_BACKGROUND: Color:
+	get: return Color("#40230a")
+static var STATUS_TEXT: Color:
+	get: return GameColorPalette.get_color("YellowOrange", 7)
+static var STATUS_TEXT_GLOW: Color:
+	get: return GameColorPalette.get_color("Red", 4)
 
 
 # =============================================================================
@@ -258,6 +291,69 @@ static func get_move_chip_empty(element_type: Enums.ElementalType) -> Color:
 
 
 # =============================================================================
+# TERRAIN MODIFIER COLORS — uses HEALTH_RAMP with non-linear thresholds
+# =============================================================================
+
+# Thresholds for terrain multiplier → ramp index mapping.
+# Fine detail around 1.0 (neutral), wider steps at extremes.
+const TERRAIN_MODIFIER_THRESHOLDS: Array[float] = [
+	0.0, 0.5, 0.7, 0.85, 0.95, 1.0, 1.05, 1.15, 1.3, 1.5, 2.0,
+]
+
+## Returns a color from the health ramp based on a terrain modifier value.
+## Values near 1.0 (neutral) get fine-grained color steps.
+## Below 1.0 = red/orange (bad), 1.0 = yellow (neutral), above 1.0 = green/teal (good).
+static func get_terrain_modifier_color(value: float) -> Color:
+	for i: int in range(TERRAIN_MODIFIER_THRESHOLDS.size() - 1, -1, -1):
+		if value >= TERRAIN_MODIFIER_THRESHOLDS[i]:
+			return HEALTH_RAMP[i]
+	return HEALTH_RAMP[0]
+
+
+## Returns the background/glow color matching a terrain modifier value.
+static func get_terrain_modifier_bg_color(value: float) -> Color:
+	for i: int in range(TERRAIN_MODIFIER_THRESHOLDS.size() - 1, -1, -1):
+		if value >= TERRAIN_MODIFIER_THRESHOLDS[i]:
+			return HEALTH_RAMP_BG[i]
+	return HEALTH_RAMP_BG[0]
+
+
+## Returns a color for movement cost (inverted: lower cost = better/teal).
+## 0.5 = index 10, 1 = index 5, 2 = index 4, 3 = index 3, 4 = index 2, 5+ = index 0.
+static func get_movement_cost_color(cost: float) -> Color:
+	if cost <= 0.5:
+		return HEALTH_RAMP[10]
+	elif cost <= 1.0:
+		return HEALTH_RAMP[5]
+	elif cost <= 2.0:
+		return HEALTH_RAMP[4]
+	elif cost <= 3.0:
+		return HEALTH_RAMP[3]
+	elif cost <= 4.0:
+		return HEALTH_RAMP[2]
+	elif cost <= 5.0:
+		return HEALTH_RAMP[1]
+	return HEALTH_RAMP[0]
+
+
+## Returns the background/glow color for movement cost.
+static func get_movement_cost_bg_color(cost: float) -> Color:
+	if cost <= 0.5:
+		return HEALTH_RAMP_BG[10]
+	elif cost <= 1.0:
+		return HEALTH_RAMP_BG[5]
+	elif cost <= 2.0:
+		return HEALTH_RAMP_BG[4]
+	elif cost <= 3.0:
+		return HEALTH_RAMP_BG[3]
+	elif cost <= 4.0:
+		return HEALTH_RAMP_BG[2]
+	elif cost <= 5.0:
+		return HEALTH_RAMP_BG[1]
+	return HEALTH_RAMP_BG[0]
+
+
+# =============================================================================
 # HELPER FUNCTIONS
 # =============================================================================
 
@@ -276,16 +372,32 @@ static func brightened(color: Color, factor: float = 1.2) -> Color:
 	)
 
 
-## Returns a health bar color based on current HP percentage.
+## 0 = snap to nearest ramp step, 1 = smooth interpolation between steps.
+static var smooth_health_ramp: int = 0
+
+## Returns a health bar color from the 11-step ramp.
+## 0.0 = critical (index 0), 1.0 = full (index 10).
 static func get_health_color(health_percent: float) -> Color:
-	if health_percent >= 0.75:
-		return HEALTH_FULL
-	elif health_percent >= 0.5:
-		return HEALTH_HALF
-	elif health_percent >= 0.25:
-		return HEALTH_LOW
-	else:
-		return HEALTH_CRITICAL
+	var clamped: float = clampf(health_percent, 0.0, 1.0)
+	var index: float = clamped * 10.0
+	var lower: int = int(index)
+	if smooth_health_ramp:
+		var upper: int = mini(lower + 1, 10)
+		var t: float = index - float(lower)
+		return HEALTH_RAMP[lower].lerp(HEALTH_RAMP[upper], t)
+	return HEALTH_RAMP[mini(lower, 10)]
+
+
+## Returns the background color for the health bar at the given HP percentage.
+static func get_health_bg_color(health_percent: float) -> Color:
+	var clamped: float = clampf(health_percent, 0.0, 1.0)
+	var index: float = clamped * 10.0
+	var lower: int = int(index)
+	if smooth_health_ramp:
+		var upper: int = mini(lower + 1, 10)
+		var t: float = index - float(lower)
+		return HEALTH_RAMP_BG[lower].lerp(HEALTH_RAMP_BG[upper], t)
+	return HEALTH_RAMP_BG[mini(lower, 10)]
 
 
 ## Returns the appropriate color for a type effectiveness multiplier.

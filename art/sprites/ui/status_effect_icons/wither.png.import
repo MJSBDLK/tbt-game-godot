@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://twwak3g6lkde"
-path="res://.godot/imported/elemental_type_icons.png-a29c7ac2e98876ee7644f84c7fc42573.ctex"
+uid="uid://b46g452w7r160"
+path="res://.godot/imported/wither.png-f054edc03fcce6074f1c484af6343124.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/sprites/ui/elemental_type_icons_10x10/elemental_type_icons.png"
-dest_files=["res://.godot/imported/elemental_type_icons.png-a29c7ac2e98876ee7644f84c7fc42573.ctex"]
+source_file="res://art/sprites/ui/status_effect_icons/wither.png"
+dest_files=["res://.godot/imported/wither.png-f054edc03fcce6074f1c484af6343124.ctex"]
 
 [params]
 

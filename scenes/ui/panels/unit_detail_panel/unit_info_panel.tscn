@@ -13,15 +13,15 @@
 [ext_resource type="Texture2D" uid="uid://bujqegsipf2wm" path="res://art/sprites/ui/elemental_type_icons_10x10/robo.png" id="7_tddys"]
 [ext_resource type="PackedScene" uid="uid://djwxelxu8cncd" path="res://scenes/ui/panels/unit_detail_panel/panel_container_secondary.tscn" id="8_tddys"]
 [ext_resource type="Script" uid="uid://mx0872xckvrs" path="res://scripts/ui/components/glow_label.gd" id="8_ywfd3"]
-[ext_resource type="Texture2D" uid="uid://br8io0fgw5clb" path="res://art/sprites/ui/elemental_type_icons_10x10/fire.png" id="9_4tjpj"]
-[ext_resource type="Texture2D" path="res://resources/ui/icons/type_plant.tres" id="11_w53tl"]
-[ext_resource type="Texture2D" path="res://resources/ui/icons/type_cold.tres" id="12_0trau"]
-[ext_resource type="Texture2D" uid="uid://bw33qaxyfq4ak" path="res://art/sprites/ui/elemental_type_icons_10x10/chivalric.png" id="13_grsx0"]
 [ext_resource type="Texture2D" uid="uid://dum58nx11jcom" path="res://art/sprites/ui/elemental_type_icons_10x10/simple.png" id="15_7ir6r"]
+[ext_resource type="Texture2D" uid="uid://0q8h7ynjwlnj" path="res://art/sprites/ui/status_effect_icons/burn.png" id="15_o3ofy"]
+[ext_resource type="Texture2D" uid="uid://1738pmwtyeww" path="res://art/sprites/ui/status_effect_icons/rooted.png" id="16_3cqu2"]
 [ext_resource type="Texture2D" uid="uid://cqrs6raotgn6d" path="res://art/sprites/ui/elemental_type_icons_10x10/obsidian.png" id="16_2518s"]
 [ext_resource type="PackedScene" uid="uid://dmhftfupyer7o" path="res://scenes/ui/panels/ui_text_centered.tscn" id="17_0oxyw"]
-[ext_resource type="Texture2D" uid="uid://b2prl0dowptix" path="res://art/sprites/ui/elemental_type_icons_10x10/electric.png" id="18_boarq"]
+[ext_resource type="Texture2D" uid="uid://kp12o3qgqk55" path="res://art/sprites/ui/status_effect_icons/freeze.png" id="17_ywfd3"]
+[ext_resource type="Texture2D" uid="uid://cwhv7tr2sownv" path="res://art/sprites/ui/status_effect_icons/challenged.png" id="18_pqajl"]
 [ext_resource type="Script" uid="uid://dssao01a5a5gn" path="res://scripts/ui/panels/unit_detail_panel.gd" id="19_script"]
+[ext_resource type="Texture2D" uid="uid://dxqehrjh25e5" path="res://art/sprites/ui/status_effect_icons/critical.png" id="22_o06yo"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4tjpj"]
 content_margin_left = 3.0
@@ -465,7 +465,7 @@ size_flags_horizontal = 3
 visible = true
 
 [node name="TextureRect" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel1/HBoxContainer/ElemetalTypeIconContainer" index="0" unique_id=1278191071]
-texture = ExtResource("9_4tjpj")
+texture = ExtResource("15_o3ofy")
 
 [node name="MarginContainer" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel1/HBoxContainer" parent_id_path=PackedInt32Array(1226398933, 596906299) index="2" unique_id=781430797]
 size_flags_horizontal = 1
@@ -489,7 +489,7 @@ size_flags_horizontal = 3
 visible = true
 
 [node name="TextureRect" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel2/HBoxContainer/ElemetalTypeIconContainer" index="0" unique_id=1278191071]
-texture = ExtResource("11_w53tl")
+texture = ExtResource("16_3cqu2")
 
 [node name="MarginContainer" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel2/HBoxContainer" parent_id_path=PackedInt32Array(78460901, 596906299) index="2" unique_id=781430797]
 size_flags_horizontal = 1
@@ -513,7 +513,7 @@ size_flags_horizontal = 3
 visible = true
 
 [node name="TextureRect" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel3/HBoxContainer/ElemetalTypeIconContainer" index="0" unique_id=1278191071]
-texture = ExtResource("12_0trau")
+texture = ExtResource("17_ywfd3")
 
 [node name="MarginContainer" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel3/HBoxContainer" parent_id_path=PackedInt32Array(669822751, 596906299) index="2" unique_id=781430797]
 size_flags_horizontal = 1
@@ -537,7 +537,7 @@ size_flags_horizontal = 3
 visible = true
 
 [node name="TextureRect" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel4/HBoxContainer/ElemetalTypeIconContainer" index="0" unique_id=1278191071]
-texture = ExtResource("13_grsx0")
+texture = ExtResource("18_pqajl")
 
 [node name="MarginContainer" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel4/HBoxContainer" parent_id_path=PackedInt32Array(1352442921, 596906299) index="2" unique_id=781430797]
 size_flags_horizontal = 1
@@ -726,7 +726,7 @@ theme_override_constants/margin_bottom = 1
 
 [node name="TextureRect" type="TextureRect" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerPanelContainer/VBoxContainer/HBoxContainer2/ElemetalTypeIconContainer" unique_id=2052101755]
 layout_mode = 2
-texture = ExtResource("18_boarq")
+texture = ExtResource("22_o06yo")
 
 [node name="MarginContainer2" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerPanelContainer/VBoxContainer/HBoxContainer2" unique_id=1430785143 instance=ExtResource("17_0oxyw")]
 layout_mode = 2
@@ -833,7 +833,7 @@ size_flags_horizontal = 3
 
 [node name="TextureRect" type="TextureRect" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/HBoxContainer" unique_id=548901552]
 layout_mode = 2
-texture = ExtResource("9_4tjpj")
+texture = ExtResource("15_o3ofy")
 stretch_mode = 5
 
 [node name="PowerPanelContainer2" type="PanelContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription" unique_id=730843398]
@@ -882,17 +882,17 @@ alignment = 1
 
 [node name="TextureRect" type="TextureRect" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/PowerPanelContainer3/MarginContainer/HBoxContainer" unique_id=1569758876]
 layout_mode = 2
-texture = ExtResource("9_4tjpj")
+texture = ExtResource("15_o3ofy")
 stretch_mode = 5
 
 [node name="TextureRect2" type="TextureRect" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/PowerPanelContainer3/MarginContainer/HBoxContainer" unique_id=1260831413]
 layout_mode = 2
-texture = ExtResource("9_4tjpj")
+texture = ExtResource("15_o3ofy")
 stretch_mode = 5
 
 [node name="TextureRect3" type="TextureRect" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/PowerPanelContainer3/MarginContainer/HBoxContainer" unique_id=1168884809]
 layout_mode = 2
-texture = ExtResource("9_4tjpj")
+texture = ExtResource("15_o3ofy")
 stretch_mode = 5
 
 [editable path="MainRow/LeftColumnMargin/LeftColumn/UnitNameAndTypes"]

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body { background: #1a1a1a; font-family: monospace; color: white; padding: 20px; }
+h2 { margin-top: 30px; }
+.row { display: flex; align-items: center; margin: 4px 0; }
+.swatch { width: 60px; height: 30px; display: inline-block; border: 1px solid #555; }
+.bar { display: flex; height: 30px; border: 1px solid #555; width: 200px; }
+.bar-fill { height: 100%; }
+.bar-bg { height: 100%; flex: 1; }
+.label { width: 220px; font-size: 13px; color: #ccc; }
+.hex { width: 160px; font-size: 12px; color: #999; }
+</style>
+</head>
+<body>
+<h1>Health Ramp — Palette Colors for Lawrence Review</h1>
+<p style="color:#888">Fill = text/bar color, BG = glow/background. Replace any that don't look right.</p>
+
+<h2>Index 0 — Critical (0% HP)</h2>
+<div class="row">
+  <div class="label">Fill: Red 3</div>
+  <div class="hex">#6E150C</div>
+  <div class="swatch" style="background:#6E150C"></div>
+</div>
+<div class="row">
+  <div class="label">BG: Red 1</div>
+  <div class="hex">#170602</div>
+  <div class="swatch" style="background:#170602"></div>
+</div>
+<div class="row">
+  <div class="label">Together:</div>
+  <div class="hex"></div>
+  <div class="bar"><div class="bar-fill" style="background:#6E150C;width:15%"></div><div class="bar-bg" style="background:#170602"></div></div>
+</div>
+
+<h2>Index 1 — ~10% HP</h2>
+<div class="row">
+  <div class="label">Fill: PoppyRed 4</div>
+  <div class="hex">#883E1D</div>
+  <div class="swatch" style="background:#883E1D"></div>
+</div>
+<div class="row">
+  <div class="label">BG: PoppyRed 2</div>
+  <div class="hex">#3F1208</div>
+  <div class="swatch" style="background:#3F1208"></div>
+</div>
+<div class="row">
+  <div class="label">Together:</div>
+  <div class="hex"></div>
+  <div class="bar"><div class="bar-fill" style="background:#883E1D;width:15%"></div><div class="bar-bg" style="background:#3F1208"></div></div>
+</div>
+
+<h2>Index 2 — ~20% HP</h2>
+<div class="row">
+  <div class="label">Fill: PoppyRed 5</div>
+  <div class="hex">#AC592F</div>
+  <div class="swatch" style="background:#AC592F"></div>
+</div>
+<div class="row">
+  <div class="label">BG: Orange 3</div>
+  <div class="hex">#351306</div>
+  <div class="swatch" style="background:#351306"></div>
+</div>
+<div class="row">
+  <div class="label">Together:</div>
+  <div class="hex"></div>
+  <div class="bar"><div class="bar-fill" style="background:#AC592F;width:25%"></div><div class="bar-bg" style="background:#351306"></div></div>
+</div>
+
+<h2>Index 3 — ~30% HP</h2>
+<div class="row">
+  <div class="label">Fill: PoppyRed 6</div>
+  <div class="hex">#CF7542</div>
+  <div class="swatch" style="background:#CF7542"></div>
+</div>
+<div class="row">
+  <div class="label">BG: YellowOrange 3</div>
+  <div class="hex">#614F18</div>
+  <div class="swatch" style="background:#614F18"></div>
+</div>
+<div class="row">
+  <div class="label">Together:</div>
+  <div class="hex"></div>
+  <div class="bar"><div class="bar-fill" style="background:#CF7542;width:35%"></div><div class="bar-bg" style="background:#614F18"></div></div>
+</div>
+
+<h2>Index 4 — ~40% HP</h2>
+<div class="row">
+  <div class="label">Fill: PoppyRed 7</div>
+  <div class="hex">#EE9660</div>
+  <div class="swatch" style="background:#EE9660"></div>
+</div>
+<div class="row">
+  <div class="label">BG: Yellow 3</div>
+  <div class="hex">#42340F</div>
+  <div class="swatch" style="background:#42340F"></div>
+</div>
+<div class="row">
+  <div class="label">Together:</div>
+  <div class="hex"></div>
+  <div class="bar"><div class="bar-fill" style="background:#EE9660;width:45%"></div><div class="bar-bg" style="background:#42340F"></div></div>
+</div>
+
+<h2>Index 5 — 50% HP (mid)</h2>
+<div class="row">
+  <div class="label">Fill: YellowOrange 7</div>
+  <div class="hex">#F5CD65</div>
+  <div class="swatch" style="background:#F5CD65"></div>
+</div>
+<div class="row">
+  <div class="label">BG: Yellow 3</div>
+  <div class="hex">#42340F</div>
+  <div class="swatch" style="background:#42340F"></div>
+</div>
+<div class="row">
+  <div class="label">Together:</div>
+  <div class="hex"></div>
+  <div class="bar"><div class="bar-fill" style="background:#F5CD65;width:55%"></div><div class="bar-bg" style="background:#42340F"></div></div>
+</div>
+
+<h2>Index 6 — ~60% HP</h2>
+<div class="row">
+  <div class="label">Fill: Yellow 7</div>
+  <div class="hex">#EBE898</div>
+  <div class="swatch" style="background:#EBE898"></div>
+</div>
+<div class="row">
+  <div class="label">BG: Chartreuse 3</div>
+  <div class="hex">#282C12</div>
+  <div class="swatch" style="background:#282C12"></div>
+</div>
+<div class="row">
+  <div class="label">Together:</div>
+  <div class="hex"></div>
+  <div class="bar"><div class="bar-fill" style="background:#EBE898;width:65%"></div><div class="bar-bg" style="background:#282C12"></div></div>
+</div>
+
+<h2>Index 7 — ~70% HP</h2>
+<div class="row">
+  <div class="label">Fill: Chartreuse 7</div>
+  <div class="hex">#B0C97E</div>
+  <div class="swatch" style="background:#B0C97E"></div>
+</div>
+<div class="row">
+  <div class="label">BG: Green 3</div>
+  <div class="hex">#1E3721</div>
+  <div class="swatch" style="background:#1E3721"></div>
+</div>
+<div class="row">
+  <div class="label">Together:</div>
+  <div class="hex"></div>
+  <div class="bar"><div class="bar-fill" style="background:#B0C97E;width:75%"></div><div class="bar-bg" style="background:#1E3721"></div></div>
+</div>
+
+<h2>Index 8 — ~80% HP</h2>
+<div class="row">
+  <div class="label">Fill: Green 7</div>
+  <div class="hex">#BAE2B5</div>
+  <div class="swatch" style="background:#BAE2B5"></div>
+</div>
+<div class="row">
+  <div class="label">BG: Green 3</div>
+  <div class="hex">#1E3721</div>
+  <div class="swatch" style="background:#1E3721"></div>
+</div>
+<div class="row">
+  <div class="label">Together:</div>
+  <div class="hex"></div>
+  <div class="bar"><div class="bar-fill" style="background:#BAE2B5;width:85%"></div><div class="bar-bg" style="background:#1E3721"></div></div>
+</div>
+
+<h2>Index 9 — ~90% HP</h2>
+<div class="row">
+  <div class="label">Fill: Teal 7</div>
+  <div class="hex">#83CAAD</div>
+  <div class="swatch" style="background:#83CAAD"></div>
+</div>
+<div class="row">
+  <div class="label">BG: Cyan 3</div>
+  <div class="hex">#00333B</div>
+  <div class="swatch" style="background:#00333B"></div>
+</div>
+<div class="row">
+  <div class="label">Together:</div>
+  <div class="hex"></div>
+  <div class="bar"><div class="bar-fill" style="background:#83CAAD;width:92%"></div><div class="bar-bg" style="background:#00333B"></div></div>
+</div>
+
+<h2>Index 10 — Full HP (100%)</h2>
+<div class="row">
+  <div class="label">Fill: Cyan 7</div>
+  <div class="hex">#91E1E2</div>
+  <div class="swatch" style="background:#91E1E2"></div>
+</div>
+<div class="row">
+  <div class="label">BG: Cyan 4</div>
+  <div class="hex">#004D56</div>
+  <div class="swatch" style="background:#004D56"></div>
+</div>
+<div class="row">
+  <div class="label">Together:</div>
+  <div class="hex"></div>
+  <div class="bar"><div class="bar-fill" style="background:#91E1E2;width:100%"></div><div class="bar-bg" style="background:#004D56"></div></div>
+</div>
+
+<hr style="margin-top:40px">
+<h2>Full Ramp Side-by-Side</h2>
+<table style="border-collapse:collapse">
+<tr><th style="padding:4px 8px">Idx</th><th>Fill</th><th>BG</th><th>Bar Preview</th><th>Palette Lookup</th></tr>
+<tr><td>0</td><td><div class="swatch" style="width:40px;height:20px;background:#6E150C"></div></td><td><div class="swatch" style="width:40px;height:20px;background:#170602"></div></td><td><div class="bar" style="width:150px;height:20px"><div class="bar-fill" style="background:#6E150C;width:5%"></div><div class="bar-bg" style="background:#170602"></div></div></td><td style="font-size:11px;color:#888">Red 3 / Red 1</td></tr>
+<tr><td>1</td><td><div class="swatch" style="width:40px;height:20px;background:#883E1D"></div></td><td><div class="swatch" style="width:40px;height:20px;background:#3F1208"></div></td><td><div class="bar" style="width:150px;height:20px"><div class="bar-fill" style="background:#883E1D;width:15%"></div><div class="bar-bg" style="background:#3F1208"></div></div></td><td style="font-size:11px;color:#888">PoppyRed 4 / PoppyRed 2</td></tr>
+<tr><td>2</td><td><div class="swatch" style="width:40px;height:20px;background:#AC592F"></div></td><td><div class="swatch" style="width:40px;height:20px;background:#351306"></div></td><td><div class="bar" style="width:150px;height:20px"><div class="bar-fill" style="background:#AC592F;width:25%"></div><div class="bar-bg" style="background:#351306"></div></div></td><td style="font-size:11px;color:#888">PoppyRed 5 / Orange 3</td></tr>
+<tr><td>3</td><td><div class="swatch" style="width:40px;height:20px;background:#CF7542"></div></td><td><div class="swatch" style="width:40px;height:20px;background:#614F18"></div></td><td><div class="bar" style="width:150px;height:20px"><div class="bar-fill" style="background:#CF7542;width:35%"></div><div class="bar-bg" style="background:#614F18"></div></div></td><td style="font-size:11px;color:#888">PoppyRed 6 / YellowOrange 3</td></tr>
+<tr><td>4</td><td><div class="swatch" style="width:40px;height:20px;background:#EE9660"></div></td><td><div class="swatch" style="width:40px;height:20px;background:#42340F"></div></td><td><div class="bar" style="width:150px;height:20px"><div class="bar-fill" style="background:#EE9660;width:45%"></div><div class="bar-bg" style="background:#42340F"></div></div></td><td style="font-size:11px;color:#888">PoppyRed 7 / Yellow 3</td></tr>
+<tr><td>5</td><td><div class="swatch" style="width:40px;height:20px;background:#F5CD65"></div></td><td><div class="swatch" style="width:40px;height:20px;background:#42340F"></div></td><td><div class="bar" style="width:150px;height:20px"><div class="bar-fill" style="background:#F5CD65;width:55%"></div><div class="bar-bg" style="background:#42340F"></div></div></td><td style="font-size:11px;color:#888">YellowOrange 7 / Yellow 3</td></tr>
+<tr><td>6</td><td><div class="swatch" style="width:40px;height:20px;background:#EBE898"></div></td><td><div class="swatch" style="width:40px;height:20px;background:#282C12"></div></td><td><div class="bar" style="width:150px;height:20px"><div class="bar-fill" style="background:#EBE898;width:65%"></div><div class="bar-bg" style="background:#282C12"></div></div></td><td style="font-size:11px;color:#888">Yellow 7 / Chartreuse 3</td></tr>
+<tr><td>7</td><td><div class="swatch" style="width:40px;height:20px;background:#B0C97E"></div></td><td><div class="swatch" style="width:40px;height:20px;background:#1E3721"></div></td><td><div class="bar" style="width:150px;height:20px"><div class="bar-fill" style="background:#B0C97E;width:75%"></div><div class="bar-bg" style="background:#1E3721"></div></div></td><td style="font-size:11px;color:#888">Chartreuse 7 / Green 3</td></tr>
+<tr><td>8</td><td><div class="swatch" style="width:40px;height:20px;background:#BAE2B5"></div></td><td><div class="swatch" style="width:40px;height:20px;background:#1E3721"></div></td><td><div class="bar" style="width:150px;height:20px"><div class="bar-fill" style="background:#BAE2B5;width:85%"></div><div class="bar-bg" style="background:#1E3721"></div></div></td><td style="font-size:11px;color:#888">Green 7 / Green 3</td></tr>
+<tr><td>9</td><td><div class="swatch" style="width:40px;height:20px;background:#83CAAD"></div></td><td><div class="swatch" style="width:40px;height:20px;background:#00333B"></div></td><td><div class="bar" style="width:150px;height:20px"><div class="bar-fill" style="background:#83CAAD;width:92%"></div><div class="bar-bg" style="background:#00333B"></div></div></td><td style="font-size:11px;color:#888">Teal 7 / Cyan 3</td></tr>
+<tr><td>10</td><td><div class="swatch" style="width:40px;height:20px;background:#91E1E2"></div></td><td><div class="swatch" style="width:40px;height:20px;background:#004D56"></div></td><td><div class="bar" style="width:150px;height:20px"><div class="bar-fill" style="background:#91E1E2;width:100%"></div><div class="bar-bg" style="background:#004D56"></div></div></td><td style="font-size:11px;color:#888">Cyan 7 / Cyan 4</td></tr>
+</table>
+
+</body>
+</html>

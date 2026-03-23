@@ -15,6 +15,7 @@ var _name_label: Label = null
 var _class_level_label: Label = null
 
 # HP
+var _hp_background: ColorRect = null
 var _hp_fill: ColorRect = null
 var _hp_value_label: Label = null
 var _hp_max_label: Label = null
@@ -22,7 +23,7 @@ var _hp_max_label: Label = null
 # Sections
 var _moves_container: VBoxContainer = null
 var _passives_container: GridContainer = null
-var _status_container: VBoxContainer = null
+var _status_container: GridContainer = null
 
 
 func _ready() -> void:
@@ -45,13 +46,14 @@ func _resolve_nodes() -> void:
 	_class_level_label = info_vbox.get_node("MarginContainer2/Label") as Label
 
 	var hp_bar: HBoxContainer = vbox.get_node("HPBar")
+	_hp_background = hp_bar.get_node("HPBarContainer/HpBackground") as ColorRect
 	_hp_fill = hp_bar.get_node("HPBarContainer/HPFill") as ColorRect
 	_hp_value_label = hp_bar.get_node("HBoxContainer/MarginContainer/Label") as Label
 	_hp_max_label = hp_bar.get_node("HBoxContainer/MarginContainer2/Label") as Label
 
 	_moves_container = vbox.get_node("MovesContainer") as VBoxContainer
 	_passives_container = vbox.get_node("PassivesContainer") as GridContainer
-	_status_container = vbox.get_node("StatusContainer") as VBoxContainer
+	_status_container = vbox.get_node("StatusContainer") as GridContainer
 
 
 # =============================================================================
@@ -124,14 +126,26 @@ func _update_hp(unit: Unit) -> void:
 	var max_hp: int = unit.character_data.max_hp
 	var health_percent: float = float(current_hp) / float(max_hp) if max_hp > 0 else 0.0
 
+	var health_color: Color = GameColors.get_health_color(health_percent)
+	var health_bg_color: Color = GameColors.get_health_bg_color(health_percent)
+
 	# Fill bar via anchors — zero offsets so only anchors control size
 	_hp_fill.offset_right = 0.0
 	_hp_fill.anchor_right = health_percent
-	_hp_fill.color = GameColors.get_health_color(health_percent)
+	_hp_fill.color = health_color
+	if _hp_fill.has_method("_apply_glow_color"):
+		_hp_fill.glow_color = health_bg_color
+
+	# Background tracks health color too
+	_hp_background.color = health_bg_color
+	if _hp_background.has_method("_apply_glow_color"):
+		_hp_background.glow_color = health_bg_color
 
 	# Labels
 	_hp_value_label.text = str(current_hp)
-	_hp_value_label.add_theme_color_override("font_color", GameColors.get_health_color(health_percent))
+	_hp_value_label.add_theme_color_override("font_color", health_color)
+	if _hp_value_label is GlowLabel:
+		_hp_value_label.glow_color = health_bg_color
 	_hp_max_label.text = "/%d" % max_hp
 
 

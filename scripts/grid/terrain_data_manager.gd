@@ -67,10 +67,10 @@ func _parse_terrain_database(data: Dictionary) -> void:
 			definition.move_penalty = _parse_terrain_property(terrain_dict["movePenalty"])
 		if terrain_dict.has("attackMultiplier"):
 			definition.attack_multiplier = _parse_terrain_property(terrain_dict["attackMultiplier"])
-		if terrain_dict.has("defenseModifier"):
-			definition.defense_modifier = _parse_terrain_property(terrain_dict["defenseModifier"])
-		if terrain_dict.has("avoidModifier"):
-			definition.avoid_modifier = _parse_terrain_property(terrain_dict["avoidModifier"])
+		if terrain_dict.has("defenseMultiplier"):
+			definition.defense_multiplier = _parse_terrain_property(terrain_dict["defenseMultiplier"])
+		if terrain_dict.has("avoidMultiplier"):
+			definition.avoid_multiplier = _parse_terrain_property(terrain_dict["avoidMultiplier"])
 		if terrain_dict.has("terrainStatusImmunity"):
 			var immunities: Array = terrain_dict["terrainStatusImmunity"]
 			for immunity: Variant in immunities:
@@ -80,7 +80,7 @@ func _parse_terrain_database(data: Dictionary) -> void:
 
 
 func _has_terrain_properties(terrain_dict: Dictionary) -> bool:
-	var property_keys := ["walkable", "movePenalty", "attackMultiplier", "defenseModifier", "avoidModifier"]
+	var property_keys := ["walkable", "movePenalty", "attackMultiplier", "defenseMultiplier", "avoidMultiplier"]
 	for key: String in property_keys:
 		if terrain_dict.has(key):
 			return true
@@ -140,18 +140,18 @@ func get_attack_multiplier(terrain_type: String, unit_type: String = "") -> floa
 	return terrain.attack_multiplier.get_value(unit_type)
 
 
-func get_defense_modifier(terrain_type: String, unit_type: String = "") -> float:
+func get_defense_multiplier(terrain_type: String, unit_type: String = "") -> float:
 	if not _is_loaded or not _terrains.has(terrain_type):
 		return 0.0
 	var terrain: TerrainDefinition = _terrains[terrain_type]
-	return terrain.defense_modifier.get_value(unit_type)
+	return terrain.defense_multiplier.get_value(unit_type)
 
 
-func get_avoid_modifier(terrain_type: String, unit_type: String = "") -> float:
+func get_avoid_multiplier(terrain_type: String, unit_type: String = "") -> float:
 	if not _is_loaded or not _terrains.has(terrain_type):
 		return 0.0
 	var terrain: TerrainDefinition = _terrains[terrain_type]
-	return terrain.avoid_modifier.get_value(unit_type)
+	return terrain.avoid_multiplier.get_value(unit_type)
 
 
 func get_all_terrain_types() -> Array[String]:
@@ -196,20 +196,20 @@ class TerrainDefinition:
 	var walkable := TerrainProperty.new()
 	var move_penalty := TerrainProperty.new()
 	var attack_multiplier := TerrainProperty.new()
-	var defense_modifier: TerrainProperty:
+	var defense_multiplier: TerrainProperty:
 		get:
-			return defense_modifier
+			return defense_multiplier
 		set(value):
-			defense_modifier = value
-	var avoid_modifier: TerrainProperty:
+			defense_multiplier = value
+	var avoid_multiplier: TerrainProperty:
 		get:
-			return avoid_modifier
+			return avoid_multiplier
 		set(value):
-			avoid_modifier = value
+			avoid_multiplier = value
 	var terrain_status_immunity: Array[String] = []
 
 	func _init() -> void:
-		defense_modifier = TerrainProperty.new()
-		defense_modifier.default_value = 0.0
-		avoid_modifier = TerrainProperty.new()
-		avoid_modifier.default_value = 0.0
+		defense_multiplier = TerrainProperty.new()
+		defense_multiplier.default_value = 1.0
+		avoid_multiplier = TerrainProperty.new()
+		avoid_multiplier.default_value = 1.0

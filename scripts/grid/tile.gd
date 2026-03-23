@@ -16,8 +16,8 @@ var terrain_type_name: String = "Plains"
 var walkable: float = 1.0
 var move_penalty: float = 1.0
 var attack_multiplier: float = 1.0
-var defense_modifier: float = 0.0
-var avoid_modifier: float = 0.0
+var defense_multiplier: float = 1.0
+var avoid_multiplier: float = 1.0
 var terrain_status_immunity: Array[String] = []
 
 # Reference to the unit currently standing on this tile (null if empty)
@@ -48,8 +48,8 @@ func refresh_terrain_properties(unit_type: String = "") -> void:
 	walkable = 1.0 if terrain_manager.can_unit_walk_on_terrain(terrain_type_name, unit_type) else 0.0
 	move_penalty = terrain_manager.get_movement_cost(terrain_type_name, unit_type)
 	attack_multiplier = terrain_manager.get_attack_multiplier(terrain_type_name, unit_type)
-	defense_modifier = terrain_manager.get_defense_modifier(terrain_type_name, unit_type)
-	avoid_modifier = terrain_manager.get_avoid_modifier(terrain_type_name, unit_type)
+	defense_multiplier = terrain_manager.get_defense_multiplier(terrain_type_name, unit_type)
+	avoid_multiplier = terrain_manager.get_avoid_multiplier(terrain_type_name, unit_type)
 
 	var definition: Variant = terrain_manager.get_terrain_definition(terrain_type_name)
 	if definition != null:
@@ -88,18 +88,18 @@ func get_attack_multiplier_for_unit(unit_type: String = "") -> float:
 	return attack_multiplier
 
 
-func get_defense_modifier_for_unit(unit_type: String = "") -> float:
+func get_defense_multiplier_for_unit(unit_type: String = "") -> float:
 	var terrain_manager: Node = get_node_or_null("/root/TerrainDataManager")
 	if terrain_manager != null:
-		return terrain_manager.get_defense_modifier(terrain_type_name, unit_type)
-	return defense_modifier
+		return terrain_manager.get_defense_multiplier(terrain_type_name, unit_type)
+	return defense_multiplier
 
 
-func get_avoid_modifier_for_unit(unit_type: String = "") -> float:
+func get_avoid_multiplier_for_unit(unit_type: String = "") -> float:
 	var terrain_manager: Node = get_node_or_null("/root/TerrainDataManager")
 	if terrain_manager != null:
-		return terrain_manager.get_avoid_modifier(terrain_type_name, unit_type)
-	return avoid_modifier
+		return terrain_manager.get_avoid_multiplier(terrain_type_name, unit_type)
+	return avoid_multiplier
 
 
 # =============================================================================

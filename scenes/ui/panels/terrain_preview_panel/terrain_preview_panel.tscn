@@ -1,0 +1,220 @@
+[gd_scene format=3 uid="uid://dsiltowjmsm6"]
+
+[ext_resource type="Texture2D" uid="uid://xf3oc6m40lxx" path="res://art/sprites/ui/hud_panel/panel_border_small.png" id="1_03bco"]
+[ext_resource type="Script" uid="uid://ci1b3212mvpd6" path="res://scripts/ui/panels/terrain_preview_panel.gd" id="1_m4tgr"]
+[ext_resource type="PackedScene" uid="uid://bnln2wsfjk1qo" path="res://scenes/ui/panels/ui_text.tscn" id="2_3of4y"]
+[ext_resource type="Texture2D" uid="uid://b8pyyrs2ou2yn" path="res://art/sprites/tilesets/single_tiles/mountain.tres" id="2_bwljb"]
+[ext_resource type="Texture2D" uid="uid://de0tlvuionsdd" path="res://art/sprites/ui/terrain_attribute_icons_placeholder/movement_penalty.png" id="4_u0cct"]
+[ext_resource type="Texture2D" uid="uid://erwd7xgrprfa" path="res://art/sprites/ui/terrain_attribute_icons_placeholder/defense_modifier.png" id="5_kxlso"]
+[ext_resource type="Texture2D" uid="uid://h0qtj6ne51n6" path="res://art/sprites/ui/terrain_attribute_icons_placeholder/avoid_modifier.png" id="6_m4tgr"]
+[ext_resource type="Texture2D" uid="uid://dmkslloqr3q8d" path="res://art/sprites/ui/terrain_attribute_icons_placeholder/attack_modifier.png" id="7_il7qi"]
+[ext_resource type="Texture2D" uid="uid://b0waoxxfldpem" path="res://art/sprites/ui/placeholder_10x10.png" id="8_ln87s"]
+[ext_resource type="PackedScene" uid="uid://b4ngymd7vmpqv" path="res://art/sprites/ui/ui_text_container.tscn" id="9_kkwl4"]
+[ext_resource type="Texture2D" uid="uid://3b0ebgkk8u3n" path="res://art/sprites/ui/elemental_type_icons_10x10/air.png" id="10_kxlso"]
+
+[node name="TerrainPreviewPanel" type="Control" unique_id=588582763]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 140.0
+offset_bottom = 140.0
+script = ExtResource("1_m4tgr")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=512396276]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="ColorRect" type="ColorRect" parent="MarginContainer" unique_id=970040075]
+layout_mode = 2
+color = Color(0.09019608, 0.08235294, 0.07058824, 0.85)
+
+[node name="TextureRect" type="TextureRect" parent="." unique_id=1679447001]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+texture = ExtResource("1_03bco")
+
+[node name="ContentMargin" type="MarginContainer" parent="." unique_id=835422123]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ContentMargin" unique_id=1634140511]
+layout_mode = 2
+
+[node name="TerrainContainer" type="HBoxContainer" parent="ContentMargin/VBoxContainer" unique_id=164261057]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="TextureRect" type="TextureRect" parent="ContentMargin/VBoxContainer/TerrainContainer" unique_id=1345569881]
+custom_minimum_size = Vector2(16, 16)
+layout_mode = 2
+texture = ExtResource("2_bwljb")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="MarginContainer" parent="ContentMargin/VBoxContainer/TerrainContainer" unique_id=781430797 instance=ExtResource("2_3of4y")]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="Label" parent="ContentMargin/VBoxContainer/TerrainContainer/MarginContainer" index="0" unique_id=1042415212]
+text = "Mountain"
+uppercase = false
+
+[node name="MarginContainer" type="MarginContainer" parent="ContentMargin/VBoxContainer" unique_id=512882396]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/margin_top = 0
+
+[node name="GridContainer" type="GridContainer" parent="ContentMargin/VBoxContainer/MarginContainer" unique_id=1624902092]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
+columns = 5
+
+[node name="Blank" type="Control" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer" unique_id=888926215]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+
+[node name="MovementPenaltyIcon" type="MarginContainer" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer" unique_id=1156975555]
+layout_mode = 2
+theme_override_constants/margin_top = 0
+
+[node name="TextureRect" type="TextureRect" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer/MovementPenaltyIcon" unique_id=1137350267]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+texture = ExtResource("4_u0cct")
+stretch_mode = 5
+
+[node name="DefenseModifierIcon" type="MarginContainer" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer" unique_id=1238237800]
+layout_mode = 2
+theme_override_constants/margin_top = 0
+
+[node name="TextureRect" type="TextureRect" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer/DefenseModifierIcon" unique_id=321429332]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+texture = ExtResource("5_kxlso")
+stretch_mode = 5
+
+[node name="AvoidModifierIcon" type="MarginContainer" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer" unique_id=1348789615]
+layout_mode = 2
+theme_override_constants/margin_top = 0
+
+[node name="TextureRect" type="TextureRect" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer/AvoidModifierIcon" unique_id=956653063]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+texture = ExtResource("6_m4tgr")
+stretch_mode = 5
+
+[node name="AttackModifierIcon" type="MarginContainer" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer" unique_id=364126797]
+layout_mode = 2
+theme_override_constants/margin_top = 0
+
+[node name="TextureRect" type="TextureRect" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer/AttackModifierIcon" unique_id=2116096530]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+texture = ExtResource("7_il7qi")
+stretch_mode = 6
+
+[node name="AllTypesIconContainer" type="MarginContainer" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer" unique_id=79194729]
+layout_mode = 2
+theme_override_constants/margin_top = 0
+
+[node name="TextureRect" type="TextureRect" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer/AllTypesIconContainer" unique_id=1187104350]
+layout_mode = 2
+texture = ExtResource("8_ln87s")
+
+[node name="MovementPenalty" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer" unique_id=1691056733 instance=ExtResource("9_kkwl4")]
+layout_mode = 2
+theme_override_constants/margin_left = 0
+
+[node name="Label" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer/MovementPenalty" index="0" unique_id=1878820360]
+text = "3"
+
+[node name="DefenseModifier" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer" unique_id=1706812934 instance=ExtResource("9_kkwl4")]
+layout_mode = 2
+theme_override_constants/margin_left = 0
+
+[node name="Label" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer/DefenseModifier" index="0" unique_id=1878820360]
+text = "1.1"
+
+[node name="AvoidModifier" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer" unique_id=2083286609 instance=ExtResource("9_kkwl4")]
+layout_mode = 2
+theme_override_constants/margin_left = 0
+
+[node name="Label" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer/AvoidModifier" index="0" unique_id=1878820360]
+text = "1.3"
+
+[node name="AttackModifier" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer" unique_id=1452335127 instance=ExtResource("9_kkwl4")]
+layout_mode = 2
+theme_override_constants/margin_left = 0
+
+[node name="Label" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer/AttackModifier" index="0" unique_id=1878820360]
+text = "1"
+
+[node name="AllTypesIconContainer2" type="MarginContainer" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer" unique_id=1227149021]
+layout_mode = 2
+theme_override_constants/margin_top = 0
+
+[node name="TextureRect" type="TextureRect" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer/AllTypesIconContainer2" unique_id=1121779710]
+layout_mode = 2
+texture = ExtResource("10_kxlso")
+
+[node name="MovementPenalty2" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer" unique_id=1943154625 instance=ExtResource("9_kkwl4")]
+layout_mode = 2
+theme_override_constants/margin_left = 0
+
+[node name="Label" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer/MovementPenalty2" index="0" unique_id=1878820360]
+text = "1"
+
+[node name="DefenseModifier2" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer" unique_id=124120975 instance=ExtResource("9_kkwl4")]
+layout_mode = 2
+theme_override_constants/margin_left = 0
+
+[node name="Label" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer/DefenseModifier2" index="0" unique_id=1878820360]
+text = "1"
+
+[node name="AvoidModifier2" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer" unique_id=1224633086 instance=ExtResource("9_kkwl4")]
+layout_mode = 2
+theme_override_constants/margin_left = 0
+
+[node name="Label" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer/AvoidModifier2" index="0" unique_id=1878820360]
+text = "1"
+
+[node name="AttackModifier2" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer" unique_id=1347686376 instance=ExtResource("9_kkwl4")]
+layout_mode = 2
+theme_override_constants/margin_left = 0
+
+[node name="Label" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer/AttackModifier2" index="0" unique_id=1878820360]
+text = "1"
+
+[node name="SpacerY16" type="Control" parent="ContentMargin/VBoxContainer" unique_id=944186418]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+
+[editable path="ContentMargin/VBoxContainer/TerrainContainer/MarginContainer"]
+[editable path="ContentMargin/VBoxContainer/MarginContainer/GridContainer/MovementPenalty"]
+[editable path="ContentMargin/VBoxContainer/MarginContainer/GridContainer/DefenseModifier"]
+[editable path="ContentMargin/VBoxContainer/MarginContainer/GridContainer/AvoidModifier"]
+[editable path="ContentMargin/VBoxContainer/MarginContainer/GridContainer/AttackModifier"]
+[editable path="ContentMargin/VBoxContainer/MarginContainer/GridContainer/MovementPenalty2"]
+[editable path="ContentMargin/VBoxContainer/MarginContainer/GridContainer/DefenseModifier2"]
+[editable path="ContentMargin/VBoxContainer/MarginContainer/GridContainer/AvoidModifier2"]
+[editable path="ContentMargin/VBoxContainer/MarginContainer/GridContainer/AttackModifier2"]

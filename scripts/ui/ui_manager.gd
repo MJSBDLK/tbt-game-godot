@@ -42,7 +42,7 @@ var _right_panel: VBoxContainer = null
 
 # Panels
 var _unit_info_panel: UnitPreviewPanel = null
-var _terrain_info_panel: TerrainInfoPanel = null
+var _terrain_info_panel: TerrainPreviewPanel = null
 var _action_menu_panel: ActionMenuPanel = null
 var _combat_preview_panel: CombatPreviewPanel = null
 
@@ -358,10 +358,10 @@ func _instantiate_panels() -> void:
 		_unit_info_panel = unit_info_scene.instantiate() as UnitPreviewPanel
 		_left_panel.add_child(_unit_info_panel)
 
-	# Terrain info panel (left, bottom)
-	var terrain_info_scene := load("res://scenes/ui/panels/terrain_info_panel.tscn")
+	# Terrain preview panel (left, bottom)
+	var terrain_info_scene := load("res://scenes/ui/panels/terrain_preview_panel/terrain_preview_panel.tscn")
 	if terrain_info_scene != null:
-		_terrain_info_panel = terrain_info_scene.instantiate() as TerrainInfoPanel
+		_terrain_info_panel = terrain_info_scene.instantiate() as TerrainPreviewPanel
 		_left_panel.add_child(_terrain_info_panel)
 
 	# Action menu panel (right, top)

@@ -1,7 +1,7 @@
 ## Displays hovered tile terrain info in the left panel: name, move cost, defense mod.
 ## PDA-style dark blue background. Shown on tile hover, hidden when leaving tiles.
 ## 140x140px at reference resolution.
-class_name TerrainInfoPanel
+class_name TerrainInfoPanelTest
 extends PanelContainer
 
 

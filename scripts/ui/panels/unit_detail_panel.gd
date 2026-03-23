@@ -444,16 +444,20 @@ func _update_hp() -> void:
 	var current_hp: int = _unit.current_hp if _unit != null else _character_data.max_hp
 	var max_hp: int = _character_data.max_hp
 
+	var health_percent: float = float(current_hp) / float(max_hp) if max_hp > 0 else 0.0
+	var health_color: Color = GameColors.get_health_color(health_percent)
+
 	if _hp_label:
 		_hp_label.text = str(current_hp)
+		_hp_label.add_theme_color_override("font_color", health_color)
 	if _hp_max_label:
 		_hp_max_label.text = "/%d" % max_hp
 
 	if _hp_bar and _hp_bar_background:
 		var fill_ratio: float = clampf(float(current_hp) / float(max_hp), 0.0, 1.0) if max_hp > 0 else 0.0
 		_hp_bar.size.x = fill_ratio * _hp_bar_background.size.x
-		var health_percent: float = float(current_hp) / float(max_hp) if max_hp > 0 else 0.0
-		_hp_bar.color = GameColors.get_health_color(health_percent)
+		_hp_bar.color = health_color
+		_hp_bar_background.color = GameColors.get_health_bg_color(health_percent)
 
 
 func _update_stats() -> void:
