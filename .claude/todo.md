@@ -9,7 +9,7 @@
 - [ ] Status effect indicators on units (icons + turn countdown)
 - [ ] Cancel/confirm input hints
 - [ ] UI style guide doc
-
+- [ ] Speed up the overlay fading out once the text is off the screen
 
 ## Art Pipeline
 - [ ] Figure out how normal maps work with the Aseprite -> Aseprite Wizard -> Godot workflow

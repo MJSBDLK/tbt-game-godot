@@ -122,6 +122,14 @@ static var BUTTON_HOVERED: Color:
 	get: return GameColorPalette.get_color("Blue", 7)
 static var BUTTON_PRESSED: Color:
 	get: return GameColorPalette.get_color("Blue", 4)
+static var ACTION_BUTTON_BORDER: Color:
+	get: return GameColorPalette.get_color("Gray", 7)
+static var ACTION_BUTTON_BG_NORMAL: Color:
+	get: return with_alpha(GameColorPalette.get_color("Gray", 2), 0.3)
+static var ACTION_BUTTON_BG_HOVERED: Color:
+	get: return with_alpha(GameColorPalette.get_color("Gray", 3), 0.5)
+static var ACTION_BUTTON_BG_PRESSED: Color:
+	get: return with_alpha(GameColorPalette.get_color("Gray", 1), 0.4)
 
 
 # =============================================================================
