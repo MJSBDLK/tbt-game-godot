@@ -4,6 +4,8 @@ global uniform float glow_alpha : hint_range(0.0, 1.0) = 0.85;
 uniform vec4 glow_color : source_color = vec4(0.0, 1.0, 0.5, 1.0);
 uniform bool solid_rect = false;
 uniform vec2 rect_size = vec2(80.0, 2.0);
+// Enable a second glow pass at 2px distance for thicker outlines (e.g. larger text).
+uniform bool double_glow = false;
 
 void fragment() {
 	vec4 current = texture(TEXTURE, UV);
@@ -34,6 +36,23 @@ void fragment() {
 		float right = texture(TEXTURE, UV + vec2(pixel_size.x, 0.0)).a;
 
 		float neighbor = max(max(up, down), max(left, right));
+
+		if (double_glow) {
+			// Second pass: sample 2px out in orthogonal + diagonal directions.
+			float up2 = texture(TEXTURE, UV + vec2(0.0, -pixel_size.y * 2.0)).a;
+			float down2 = texture(TEXTURE, UV + vec2(0.0, pixel_size.y * 2.0)).a;
+			float left2 = texture(TEXTURE, UV + vec2(-pixel_size.x * 2.0, 0.0)).a;
+			float right2 = texture(TEXTURE, UV + vec2(pixel_size.x * 2.0, 0.0)).a;
+			float ul = texture(TEXTURE, UV + vec2(-pixel_size.x, -pixel_size.y)).a;
+			float ur = texture(TEXTURE, UV + vec2(pixel_size.x, -pixel_size.y)).a;
+			float dl = texture(TEXTURE, UV + vec2(-pixel_size.x, pixel_size.y)).a;
+			float dr = texture(TEXTURE, UV + vec2(pixel_size.x, pixel_size.y)).a;
+			float outer = max(max(max(up2, down2), max(left2, right2)),
+			                  max(max(ul, ur), max(dl, dr)));
+			// Outer ring is dimmer than inner ring.
+			neighbor = max(neighbor, outer * 0.6);
+		}
+
 		float glow = neighbor * (1.0 - current.a);
 
 		vec4 tinted = current * COLOR;
