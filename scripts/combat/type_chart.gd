@@ -67,8 +67,10 @@ static func get_effectiveness_text(multiplier: float) -> String:
 		return "Super Effective"
 	elif multiplier == 1.0:
 		return ""
-	elif multiplier > 0.0:
+	elif multiplier >= 0.5:
 		return "Not Very Effective"
+	elif multiplier > 0.0:
+		return "Barely Effective"
 	else:
 		return "No Effect"
 

@@ -1,15 +1,18 @@
 # Todo
-- [ ] Style the action menu panel
+- [x] Style the action menu panel
 - [x] Style the combat preview panel
 - [x] Phase transition
-- [ ] battle result overlays
-- [ ] Terrain sprites (replace colored placeholders with real art)
-- [ ] Unit sprites (replace colored rectangles)
-- [ ] Damage popups & effectiveness feedback styling
+- [x] Terrain sprites (replace colored placeholders with real art)
+- [x] Unit sprites (replace colored rectangles)
+- [x] Damage popups & effectiveness feedback styling
+  - [x] Hitlag (both units freeze on impact, scaled by damage, 0.25s ceiling)
+  - [x] Hit flash (white flash on defender after hitlag, duration scaled by damage)
+  - [x] Screenshake (kicks in as hitlag releases, intensity scaled by damage)
 - [ ] Status effect indicators on units (icons + turn countdown)
 - [ ] Cancel/confirm input hints
 - [ ] UI style guide doc
 - [ ] Speed up the overlay fading out once the text is off the screen
+- [ ] battle result overlays
 
 ## Art Pipeline
 - [ ] Figure out how normal maps work with the Aseprite -> Aseprite Wizard -> Godot workflow

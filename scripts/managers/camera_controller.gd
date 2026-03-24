@@ -35,6 +35,11 @@ var _min_bounds: Vector2 = Vector2.ZERO
 var _max_bounds: Vector2 = Vector2(640, 360)
 var _pan_tween: Tween = null
 
+# Screenshake state
+var _shake_intensity: float = 0.0
+var _shake_decay: float = 0.0
+var _shake_offset: Vector2 = Vector2.ZERO
+
 ## The world position the camera is heading toward (set before tween starts).
 ## Use this instead of global_position when the camera may still be mid-pan.
 var target_position: Vector2:
@@ -61,6 +66,7 @@ func _process(delta: float) -> void:
 			_handle_edge_pan(delta)
 
 	_apply_smooth_movement(delta)
+	_apply_screenshake(delta)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -232,3 +238,36 @@ func set_zoom_level(new_zoom: float, smooth: bool = true) -> void:
 	_target_zoom = clampf(new_zoom, min_zoom, max_zoom)
 	if not smooth:
 		zoom = Vector2(_target_zoom, _target_zoom)
+
+
+# =============================================================================
+# SCREENSHAKE
+# =============================================================================
+
+const SHAKE_MAX_INTENSITY: float = 4.0  # Max pixel offset at impact_weight=1.0
+const SHAKE_DECAY_RATE: float = 12.0  # How fast shake dies out (higher = faster)
+
+## Trigger screenshake scaled by impact weight (0.0–1.0).
+func screenshake(impact_weight: float) -> void:
+	var intensity := impact_weight * SHAKE_MAX_INTENSITY
+	# Don't weaken an ongoing stronger shake
+	_shake_intensity = maxf(_shake_intensity, intensity)
+	_shake_decay = _shake_intensity
+
+
+func _apply_screenshake(delta: float) -> void:
+	if _shake_intensity <= 0.01:
+		_shake_intensity = 0.0
+		if _shake_offset != Vector2.ZERO:
+			offset -= _shake_offset
+			_shake_offset = Vector2.ZERO
+		return
+
+	_shake_intensity = lerpf(_shake_intensity, 0.0, SHAKE_DECAY_RATE * delta)
+
+	# Remove previous offset, apply new random one
+	offset -= _shake_offset
+	_shake_offset = Vector2(
+		randf_range(-_shake_intensity, _shake_intensity),
+		randf_range(-_shake_intensity, _shake_intensity))
+	offset += _shake_offset

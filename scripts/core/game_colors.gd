@@ -264,11 +264,11 @@ static var PDA_TEXT_HIGHLIGHT: Color:
 # =============================================================================
 
 static var MULTIPLIER_X4_LIGHT: Color:
-	get: return GameColorPalette.get_color("Red", 6)
+	get: return GameColorPalette.get_color("Red", 7)
 static var MULTIPLIER_X4_DARK: Color:
 	get: return GameColorPalette.get_color("Red", 2)
 static var MULTIPLIER_X3_LIGHT: Color:
-	get: return GameColorPalette.get_color("Orange", 6)
+	get: return GameColorPalette.get_color("Orange", 7)
 static var MULTIPLIER_X3_DARK: Color:
 	get: return GameColorPalette.get_color("Orange", 3)
 static var MULTIPLIER_X2_LIGHT: Color:
@@ -283,6 +283,10 @@ static var MULTIPLIER_HALF_LIGHT: Color:
 	get: return GameColorPalette.get_color("Green", 7)
 static var MULTIPLIER_HALF_DARK: Color:
 	get: return GameColorPalette.get_color("Green", 3)
+static var MULTIPLIER_QUARTER_LIGHT: Color:
+	get: return GameColorPalette.get_color("Teal", 7)
+static var MULTIPLIER_QUARTER_DARK: Color:
+	get: return GameColorPalette.get_color("Teal", 3)
 static var MULTIPLIER_X0_LIGHT: Color:
 	get: return GameColorPalette.get_color("Cyan", 7)
 static var MULTIPLIER_X0_DARK: Color:
@@ -453,8 +457,10 @@ static func get_effectiveness_color(effectiveness: float, is_heal: bool = false)
 		return MULTIPLIER_X2_LIGHT
 	elif effectiveness == 1.0:
 		return MULTIPLIER_X1_LIGHT
-	elif effectiveness > 0.0:
+	elif effectiveness >= 0.5:
 		return MULTIPLIER_HALF_LIGHT
+	elif effectiveness > 0.0:
+		return MULTIPLIER_QUARTER_LIGHT
 	else:
 		return MULTIPLIER_X0_LIGHT
 

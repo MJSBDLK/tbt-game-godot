@@ -110,6 +110,17 @@ static func can_counter_attack(defender: Node2D, attacker: Node2D) -> bool:
 	return true
 
 
+## How "heavy" a hit feels, from 0.0 (trivial) to 1.0 (devastating).
+## Uses the higher of raw-damage ratio and %HP ratio so both big numbers
+## and chunk-damage on fragile units register appropriately.
+const MAX_REASONABLE_DAMAGE: float = 50.0
+
+static func calculate_impact_weight(damage: int, target_max_hp: int) -> float:
+	var raw_ratio := float(damage) / MAX_REASONABLE_DAMAGE
+	var hp_ratio := float(damage) / maxf(1.0, float(target_max_hp))
+	return clampf(maxf(raw_ratio, hp_ratio), 0.0, 1.0)
+
+
 ## Manhattan distance between two units via their current tiles.
 static func get_manhattan_distance(unit_a: Node2D, unit_b: Node2D) -> int:
 	var tile_a: Variant = unit_a.get("current_tile")

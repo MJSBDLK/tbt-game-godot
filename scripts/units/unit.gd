@@ -29,6 +29,8 @@ const MOVEMENT_SCALE: int = 2
 const MOVE_SPEED: float = 200.0  # Pixels per second
 const HIT_DELAY: float = 0.3  # Seconds between combat hits
 const BOOP_DISTANCE: float = 8.0  # Pixels the sprite bumps toward target during attack
+const HITLAG_MIN: float = 0.05  # Minimum freeze on any hit (seconds)
+const HITLAG_MAX: float = 0.25  # Maximum freeze on a devastating hit (seconds)
 
 
 # =============================================================================
@@ -450,39 +452,60 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 
 
 ## Execute a single hit against a target. Calculates damage, spawns popup, optionally applies status.
+## Sequence: boop out → hitlag freeze at contact → snap back + damage + popup.
 func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
-	await _play_attack_animation(target)
-
+	# Pre-calculate damage so we know impact weight before the hit lands
 	var damage := DamageCalculator.calculate_damage(self, target, move)
 	var type_multiplier := DamageCalculator.get_type_effectiveness(self, target, move)
 	var effectiveness_text := TypeChart.get_effectiveness_text(type_multiplier)
+	var impact_weight := DamageCalculator.calculate_impact_weight(damage, target.character_data.max_hp if target.character_data else 1)
+
+	# Phase 1: Boop toward target
+	await _play_boop_out(target)
+
+	# Phase 2: Hitlag — both units freeze at moment of contact
+	var hitlag_duration := lerpf(HITLAG_MIN, HITLAG_MAX, impact_weight)
+	await get_tree().create_timer(hitlag_duration).timeout
+
+	# Phase 3: Snap back + hit flash + screenshake + damage (all fire together as hitlag releases)
+	_play_boop_return()
+	VisualFeedbackManager.apply_hit_flash(target, impact_weight)
+
+	var camera := get_viewport().get_camera_2d() as CameraController
+	if camera != null:
+		camera.screenshake(impact_weight)
 
 	target.take_damage(damage)
 	combat_hit.emit(self, target, damage)
 
-	# Spawn damage popup
 	_spawn_damage_popup(target, damage, effectiveness_text, type_multiplier)
 
-	DebugConfig.log_combat("Hit: %s -> %s for %d damage (x%.2f %s)" % [
-		unit_name, target.unit_name, damage, type_multiplier, effectiveness_text])
+	DebugConfig.log_combat("Hit: %s -> %s for %d damage (x%.2f %s, impact=%.2f, hitlag=%.3fs)" % [
+		unit_name, target.unit_name, damage, type_multiplier, effectiveness_text, impact_weight, hitlag_duration])
 
 	# Apply status effect on first hit only
 	if apply_status and move.status_effect_type != Enums.StatusEffectType.NONE:
 		StatusEffectSystem.apply_status_effect(self, target, move)
 
 
-## Boop animation: sprite bumps toward the target and snaps back.
-## Used as a placeholder until real attack animations are added.
-func _play_attack_animation(target: Unit) -> void:
+## Boop out: sprite bumps toward the target. Awaitable — completes at the contact point.
+func _play_boop_out(target: Unit) -> void:
 	if _sprite == null or target == null:
-		await get_tree().create_timer(0.15).timeout
+		await get_tree().create_timer(0.08).timeout
 		return
 	var direction := (target.global_position - global_position).normalized()
 	var boop_offset := direction * BOOP_DISTANCE
 	var tween := create_tween()
 	tween.tween_property(_sprite, "position", boop_offset, 0.08).set_ease(Tween.EASE_OUT)
-	tween.tween_property(_sprite, "position", Vector2.ZERO, 0.12).set_ease(Tween.EASE_IN)
 	await tween.finished
+
+
+## Boop return: sprite snaps back to center. Fire-and-forget (not awaited).
+func _play_boop_return() -> void:
+	if _sprite == null:
+		return
+	var tween := create_tween()
+	tween.tween_property(_sprite, "position", Vector2.ZERO, 0.12).set_ease(Tween.EASE_IN)
 
 
 func _spawn_damage_popup(target: Unit, damage: int, effectiveness_text: String, multiplier: float) -> void:
