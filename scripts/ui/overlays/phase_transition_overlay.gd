@@ -24,11 +24,11 @@ const BANNER_Y: int = (360 - BANNER_HEIGHT) / 2  # 148
 const STAR_FAST_SPEEDS: Array[float] = [360.0, 240.0, 120.0]
 
 ## Timing (seconds).
-const FADE_IN_DURATION: float = 0.45
-const SLIDE_IN_DURATION: float = 1.35
-const HOLD_DURATION: float = 1.8
-const SLIDE_OUT_DURATION: float = 1.05
-const FADE_OUT_DURATION: float = 0.45
+const FADE_IN_DURATION: float = 0.2
+const SLIDE_IN_DURATION: float = 0.8
+const HOLD_DURATION: float = 1.0
+const SLIDE_OUT_DURATION: float = 0.8
+const FADE_OUT_DURATION: float = 0.2
 
 ## How far offscreen the text starts/ends (pixels).
 const TEXT_OFFSCREEN: float = 700.0

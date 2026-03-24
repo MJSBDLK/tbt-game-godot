@@ -270,11 +270,13 @@ func _clear_items() -> void:
 	if _content_container == null:
 		return
 	for child: Node in _content_container.get_children():
+		_content_container.remove_child(child)
 		child.queue_free()
 
 
 func _resize_panel() -> void:
-	# Let the VBoxContainer auto-size; just ensure minimum.
+	# Reset minimum so the panel can shrink when content is smaller.
+	custom_minimum_size.y = 0
 	await get_tree().process_frame
 	var item_count := _content_container.get_child_count()
 	var total_height := item_count * (CHIP_HEIGHT + 2) + 24  # margins (12 top + 12 bottom)
