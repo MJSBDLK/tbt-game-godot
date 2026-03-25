@@ -90,7 +90,11 @@
       "Read(//home/mjsbdlk/Documents/Projects/**)",
       "Read(//home/mjsbdlk/Documents/Projects/tbt-game-godot/NR % 11 == 8 { printf \"\"\"\"\"\"\"\"Ramp %d \\(idx 7\\): %s\\\\n\"\"\"\"\"\"\"\", int\\(\\(NR-1\\)/**)",
       "Bash(git fetch:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(xargs -n1 basename)",
+      "Bash(/home/mjsbdlk/aseprite/build/bin/aseprite -b /home/mjsbdlk/Documents/Projects/tbt-game-godot/art/sprites/ui/status_effect_icons_6x6_v2/status_effect_icons_6x6_v2.aseprite --data /dev/stdout --format json-array)",
+      "Bash(cat /home/mjsbdlk/Documents/Projects/tbt-game-godot/data/moves/*.json)",
+      "Bash(grep -E \"\\\\.\\(tscn|gd\\)$\")"
     ]
   }
 }

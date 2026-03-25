@@ -13,6 +13,7 @@
 - [ ] UI style guide doc
 - [ ] Speed up the overlay fading out once the text is off the screen
 - [ ] battle result overlays
+- [ ] Clicking on an enemy unit brings up the unit preview panel for that unit (good) but then to make it go away you need to click on a friendly unit (bad) - tapping anywhere on the map should make it go away.
 
 ## Art Pipeline
 - [ ] Figure out how normal maps work with the Aseprite -> Aseprite Wizard -> Godot workflow
