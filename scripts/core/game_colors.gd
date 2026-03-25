@@ -146,10 +146,14 @@ static var TEXT_SECONDARY_GLOW: Color:
 	get: return GameColorPalette.get_color("Magenta", 4)  # #7d4181
 static var TEXT_SUCCESS: Color:
 	get: return GameColorPalette.get_color("Green", 6)
+static var TEXT_SUCCESS_GLOW: Color:
+	get: return GameColorPalette.get_color("Green", 3)
 static var TEXT_WARNING: Color:
 	get: return GameColorPalette.get_color("Yellow", 5)
 static var TEXT_DANGER: Color:
 	get: return GameColorPalette.get_color("Red", 5)
+static var TEXT_DANGER_GLOW: Color:
+	get: return GameColorPalette.get_color("Red", 2)
 
 
 # =============================================================================
