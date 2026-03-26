@@ -1,5 +1,6 @@
-## Displays a row of status effect icons below a unit's health bar.
+## Displays a row of status effect icons above a unit's health bar.
 ## Up to 4 icons, 6x6 each with 2px gaps, centered on the unit.
+## Pip bars sit inline with the top pixel of the health bar.
 class_name StatusEffectIndicator
 extends Node2D
 
@@ -9,7 +10,7 @@ const ICON_GAP: int = 2
 const MAX_ICONS: int = 4
 const MAX_TURNS: int = 4
 const PIP_BAR_WIDTH: int = 4  # 4 pips at 1px each
-const PIP_BAR_Y_OFFSET: int = 4  # 1px below the bottom edge of the 6x6 icon
+const PIP_BAR_Y_OFFSET: int = 4  # Icon center is at y=0; bottom edge at +3; 1px gap; pip bar starts at +4
 
 var _icon_sprites: Array[Sprite2D] = []
 var _pip_bars: Array[Node2D] = []

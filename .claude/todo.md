@@ -8,12 +8,14 @@
   - [x] Hitlag (both units freeze on impact, scaled by damage, 0.25s ceiling)
   - [x] Hit flash (white flash on defender after hitlag, duration scaled by damage)
   - [x] Screenshake (kicks in as hitlag releases, intensity scaled by damage)
-- [ ] Status effect indicators on units (icons + turn countdown)
-- [ ] Cancel/confirm input hints
+- [x] Status effect indicators on units (icons + turn countdown)
 - [ ] UI style guide doc
 - [ ] Speed up the overlay fading out once the text is off the screen
 - [ ] battle result overlays
 - [ ] Clicking on an enemy unit brings up the unit preview panel for that unit (good) but then to make it go away you need to click on a friendly unit (bad) - tapping anywhere on the map should make it go away.
+- [ ] Cancel/confirm input hints
+- [ ] Add a toggle for "nearest neighbor scaling" vs. "only allow integer scaled zoom levels" (and come up with a concise way of saying that, like zoom mode: nearest neighbor/integer)
+- [ ] 
 
 ## Art Pipeline
 - [ ] Figure out how normal maps work with the Aseprite -> Aseprite Wizard -> Godot workflow

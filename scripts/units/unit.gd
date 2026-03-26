@@ -604,17 +604,13 @@ func _apply_faction_healthbar() -> void:
 
 
 ## Position the health bar just above the topmost pixel of the sprite.
-## Shifts up an extra 8px when status effect icons are visible.
+## Status icons sit above the health bar (anchored to it), so they move together.
 func _update_healthbar_position() -> void:
 	if _health_bar == null or _sprite == null or _sprite.texture == null:
 		return
 	var sprite_top := _sprite.offset.y - _sprite.texture.get_height() / 2.0
-	var status_offset := 8.0 if _has_visible_status_icons() else 0.0
-	_health_bar.position.y = sprite_top - 3.0 - status_offset
+	_health_bar.position.y = sprite_top - 3.0
 
-
-func _has_visible_status_icons() -> bool:
-	return _status_indicator != null and _status_indicator.visible
 
 
 ## Called when any status effect is applied or removed on any unit.
@@ -629,8 +625,8 @@ func _update_status_indicators() -> void:
 	if _status_indicator == null:
 		return
 	_status_indicator.update_icons(active_status_effects)
-	# Position icons just below the health bar (2px gap)
-	_status_indicator.position.y = 3.0
+	# Position icons above the health bar — pip bars overlap health bar top pixel
+	_status_indicator.position.y = -5.0
 	_update_healthbar_position()
 
 

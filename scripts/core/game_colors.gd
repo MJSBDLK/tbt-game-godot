@@ -32,7 +32,7 @@ static var PLAYER_UNIT: Color:
 static var ENEMY_UNIT: Color:
 	get: return Color(1.0, 0.4, 0.35)  # Bright red
 static var NEUTRAL_UNIT: Color:
-	get: return Color(0.75, 0.75, 0.75)  # Light gray
+	get: return GameColorPalette.get_color("Green", 7)
 static var ALLY_UNIT: Color:
 	get: return Color(1.0, 0.95, 0.4)  # Bright yellow
 
@@ -148,8 +148,6 @@ static var TEXT_SUCCESS: Color:
 	get: return GameColorPalette.get_color("Green", 6)
 static var TEXT_SUCCESS_GLOW: Color:
 	get: return GameColorPalette.get_color("Green", 3)
-static var TEXT_WARNING: Color:
-	get: return GameColorPalette.get_color("Yellow", 5)
 static var TEXT_DANGER: Color:
 	get: return GameColorPalette.get_color("Red", 5)
 static var TEXT_DANGER_GLOW: Color:
@@ -469,13 +467,3 @@ static func get_effectiveness_color(effectiveness: float, is_heal: bool = false)
 		return MULTIPLIER_X0_LIGHT
 
 
-## Returns text color based on damage amount.
-static func get_damage_text_color(damage: int, is_critical: bool = false) -> Color:
-	if is_critical:
-		return brightened(TEXT_DANGER, 1.3)
-	if damage >= 10:
-		return TEXT_DANGER
-	elif damage >= 5:
-		return TEXT_WARNING
-	else:
-		return TEXT_PRIMARY
