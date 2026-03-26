@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://m4iqsap30tl"
+path="res://.godot/imported/damage_numbers_10x14.aseprite-ae451459916432c915a5695b834f6603.res"
+
+[deps]
+
+source_file="res://art/sprites/ui/damage_numbers_10x14.aseprite"
+dest_files=["res://.godot/imported/damage_numbers_10x14.aseprite-ae451459916432c915a5695b834f6603.res"]
+
+[params]
+

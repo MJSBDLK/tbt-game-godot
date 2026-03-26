@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://hqlbfv8bmx4q"
+path="res://.godot/imported/status_effect_icons_6x6_v2.aseprite-200d8431ff04811b7495d479bca63104.res"
+
+[deps]
+
+source_file="res://art/sprites/ui/status_effect_icons_6x6_v2.aseprite"
+dest_files=["res://.godot/imported/status_effect_icons_6x6_v2.aseprite-200d8431ff04811b7495d479bca63104.res"]
+
+[params]
+

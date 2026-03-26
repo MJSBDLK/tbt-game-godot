@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://g1tse7wacae2"
+path="res://.godot/imported/2x3_source_tiles.aseprite-a361a79b981d98f1d708b9f29626115a.res"
+
+[deps]
+
+source_file="res://art/sprites/tilesets/2x3_source_tiles/2x3_source_tiles.aseprite"
+dest_files=["res://.godot/imported/2x3_source_tiles.aseprite-a361a79b981d98f1d708b9f29626115a.res"]
+
+[params]
+
