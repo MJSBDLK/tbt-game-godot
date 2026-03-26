@@ -63,7 +63,6 @@ var _status_description: VBoxContainer = null
 # Move detail labels
 var _move_detail_name_label: Label = null
 var _move_detail_element_icon: TextureRect = null
-var _move_detail_type_icon: TextureRect = null
 var _move_detail_power_label: Label = null
 var _move_detail_accuracy_label: Label = null
 var _move_detail_usage_label: Label = null
@@ -231,7 +230,9 @@ func _cache_node_references() -> void:
 	var move_container: HBoxContainer = _move_description.get_node("MoveContainer")
 	_move_detail_name_label = _find_label_in_node(move_container.get_node("MarginContainer"))
 	_move_detail_element_icon = move_container.get_node("ElementalTypeContainer/TextureRect")
-	_move_detail_type_icon = move_container.get_node("MoveTypeContainer/TextureRect") if move_container.has_node("MoveTypeContainer/TextureRect") else null
+	# Moves only have one type — hide the second icon container (reused from unit prefab)
+	if move_container.has_node("MoveTypeContainer"):
+		move_container.get_node("MoveTypeContainer").visible = false
 
 	# Power/Acc/Usage mini-panels
 	var power_acc_usg: HBoxContainer = _move_description.get_node("PowerAccUsgContainer")

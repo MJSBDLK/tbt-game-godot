@@ -17,6 +17,12 @@ var _attacking_unit: Unit = null
 var _attack_move: Move = null
 var _attackable_tiles: Array[Tile] = []
 
+# Long-press detection for opening unit detail on touch
+const LONG_PRESS_DURATION: float = 0.2  # seconds
+var _press_start_time: float = -1.0
+var _press_start_tile: Tile = null
+var _long_press_fired: bool = false
+
 
 # =============================================================================
 # PUBLIC API
@@ -120,6 +126,7 @@ func _process(_delta: float) -> void:
 	if not input_enabled or not GridManager.is_grid_ready():
 		return
 	_update_hover()
+	_check_long_press()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -146,13 +153,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 
-	# Mouse clicks
-	if event is InputEventMouseButton and event.pressed:
+	# Mouse/touch clicks
+	if event is InputEventMouseButton:
 		var mouse_event := event as InputEventMouseButton
 		if mouse_event.button_index == MOUSE_BUTTON_LEFT:
-			_handle_left_click()
+			if mouse_event.pressed:
+				_start_press()
+			else:
+				_end_press()
 			get_viewport().set_input_as_handled()
-		elif mouse_event.button_index == MOUSE_BUTTON_RIGHT:
+		elif mouse_event.button_index == MOUSE_BUTTON_RIGHT and mouse_event.pressed:
 			_handle_right_click()
 			get_viewport().set_input_as_handled()
 
@@ -225,6 +235,51 @@ func _handle_unit_info_hotkey() -> void:
 		unit = _hovered_tile.current_unit as Unit
 	if unit == null:
 		return
+	_open_unit_detail(unit)
+
+
+# =============================================================================
+# LONG-PRESS / SECOND-TAP → UNIT DETAIL
+# =============================================================================
+
+func _start_press() -> void:
+	_press_start_time = Time.get_ticks_msec() / 1000.0
+	_press_start_tile = GridManager.get_tile_at_position(_get_world_mouse_position())
+	_long_press_fired = false
+
+
+func _end_press() -> void:
+	if _long_press_fired:
+		# Long press already opened unit detail — don't also fire a click
+		_reset_press()
+		return
+	_handle_left_click()
+	_reset_press()
+
+
+func _reset_press() -> void:
+	_press_start_time = -1.0
+	_press_start_tile = null
+	_long_press_fired = false
+
+
+func _check_long_press() -> void:
+	if _press_start_time < 0.0 or _long_press_fired:
+		return
+	var elapsed: float = (Time.get_ticks_msec() / 1000.0) - _press_start_time
+	if elapsed < LONG_PRESS_DURATION:
+		return
+	# Verify finger hasn't drifted to a different tile
+	var current_tile := GridManager.get_tile_at_position(_get_world_mouse_position())
+	if current_tile != _press_start_tile:
+		_reset_press()
+		return
+	if current_tile != null and current_tile.current_unit is Unit:
+		_long_press_fired = true
+		_open_unit_detail(current_tile.current_unit as Unit)
+
+
+func _open_unit_detail(unit: Unit) -> void:
 	var state_manager: Node = get_node("/root/GameStateManager")
 	state_manager.push_state(Enums.InputState.UNIT_DETAIL, unit)
 	var ui_manager: Node = _get_ui_manager()
@@ -261,10 +316,18 @@ func _handle_default_click() -> void:
 		if clicked_unit.faction == Enums.UnitFaction.PLAYER and clicked_unit.can_act:
 			select_unit(clicked_unit)
 		else:
-			# Show enemy/neutral info without selecting
 			var ui_manager: Node = _get_ui_manager()
 			if ui_manager != null:
-				ui_manager.show_unit_info(clicked_unit)
+				# Second tap on same unit → open full detail panel
+				if ui_manager.get_previewed_unit() == clicked_unit:
+					_open_unit_detail(clicked_unit)
+				else:
+					ui_manager.show_unit_info(clicked_unit)
+	else:
+		# Clicked empty tile — dismiss any open unit preview
+		var ui_manager: Node = _get_ui_manager()
+		if ui_manager != null:
+			ui_manager.hide_unit_info()
 
 
 func _handle_movement_planning_click() -> void:

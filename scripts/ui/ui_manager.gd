@@ -89,6 +89,12 @@ func hide_unit_info() -> void:
 	_unit_info_panel.hide_panel()
 
 
+func get_previewed_unit() -> Unit:
+	if _unit_info_panel == null:
+		return null
+	return _unit_info_panel.get_tracked_unit()
+
+
 # =============================================================================
 # PUBLIC API — TERRAIN INFO
 # =============================================================================

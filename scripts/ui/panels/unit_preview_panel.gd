@@ -6,6 +6,10 @@ extends PanelContainer
 
 
 var _tracked_unit: Unit = null
+
+
+func get_tracked_unit() -> Unit:
+	return _tracked_unit
 var _passive_configs: Dictionary = {}  # passive_name -> { abbrevName, description }
 
 # Header — resolved in _ready via node paths
