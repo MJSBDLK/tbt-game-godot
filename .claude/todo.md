@@ -1,3 +1,7 @@
+# Meeting 20260329
+- [ ] Go over style guide with Lawrence
+- [ ] 
+
 # Todo
 - [x] Style the action menu panel
 - [x] Style the combat preview panel
@@ -10,7 +14,7 @@
   - [x] Screenshake (kicks in as hitlag releases, intensity scaled by damage)
 - [x] Status effect indicators on units (icons + turn countdown)
 - [ ] UI style guide doc
-- [ ] Speed up the overlay fading out once the text is off the screen
+- [x] Speed up the overlay fading out once the text is off the screen
 - [ ] battle result overlays
 - [ ] Clicking on an enemy unit brings up the unit preview panel for that unit (good) but then to make it go away you need to click on a friendly unit (bad) - tapping anywhere on the map should make it go away.
 - [ ] Cancel/confirm input hints

@@ -20,6 +20,7 @@ For each section, give me your bullet points -- what the rules are, what to avoi
 ## 2. Color Palette
 
 We have GameColorPalette with named color families (Azure, Red, Green, etc.) at 10 shades each.
+*We also have a colors demo. Preview the scene with F6 to check it out.*
 
 ### General rules
 - **Q: When should we reach for palette colors vs. hardcoded hex?**
@@ -150,8 +151,12 @@ Based on your mockup draft:
 - Right panel (140px)
 - Button styling: Gray 2 bg @ 30%, Gray 7 border, hover = Gray 3 @ 50%
 - **Q: Satisfied with the current button look?**
+- [LOD]: 
 - **Q: Selected/active button state?**
-- **Q: Should disabled actions (no PP, out of range) look different from hidden?**
+- [LOD]: 
+- **Q: Should disabled actions (no usage, out of range) look different from hidden?**
+- [RQD]: We currently hide attacks which are out of range, and gray out depleted moves
+- [LOD]: 
 
 ---
 
@@ -161,8 +166,11 @@ Based on your mockup draft:
 - Color based on damage amount (low=primary, mid=warning, high=danger)
 - Critical hits get brightened danger color
 - **Q: Font size for popups?**
+- [LOD]:
 - **Q: Any outline/shadow on popup text, or just glow?**
+- [RQD]: Gray1 at 97.5% opacity
 - **Q: Heal popups -- green? Different animation?**
+- [RQD]: Green, and we probably want a lil "green + sign" with particle effect 
 
 ---
 
@@ -171,16 +179,23 @@ Based on your mockup draft:
 - CIELAB luminance-matched colors per faction
 - Text + accent + glow triple per faction
 - **Q: Current treatment finalized?**
+- [LOD]: 
 - **Q: Animation timing -- how long should the banner hold?**
+- [RQD]: We might fine tune this. It needs to be snappy. I find a total time of 3s is non-intrusive, but we may speed it up further
 
 ---
 
 ## 10. Spacing & Margins
 
 - **Q: Standard margin inside panels? (currently varies)**
+- [RQD]: I'm inclined to just use vibes here; 13px seems about right on the detail panel but there goes 20% of your panel real estate on a small panel
+- [LOD]: 
 - **Q: Gap between chips in a row?**
+- [LOD]: 
 - **Q: Gap between panel sections (e.g., HP bar to moves list)?**
+- [LOD]: 
 - **Q: Any golden rules like "always 2px gap" or "4px minimum margin"?**
+- [LOD]: 
 
 ---
 
@@ -191,20 +206,32 @@ Current icon sizes:
 - Status effect icons: 6x6
 - Portraits: ?
 - **Q: Are these sizes locked?**
+- [RQD]: type icons, status effect icons, terrain attribute icons: pretty much.
+  for portraits, it's a different story. We have 96x96, 32x32, and I think 64x64 (correct me if I'm wrong) portraits? These aren't set in stone yet.
 - **Q: Move type icons (Physical/Special/Support) -- what size?**
+- [RQD]: 10x10. Probably set in stone.
 - **Q: Should all icons use TEXTURE_FILTER_NEAREST?**
+- [RQD]: Icons yes, portraits no.
+  Wew haven't decided on what filtering algo to use on highres portraits. Probably bilinear but I want to test other spatial scalers.
 
 ---
 
 ## 12. Things That Bug You
 
 - **Q: Anything in the current UI that doesn't look right?**
+- [LOD]: 
 - **Q: Any component you want to redesign before Alpha?**
+- [LOD]: 
 - **Q: Color pairings that feel off?**
+- [LOD]: 
 
 ---
 
 ## 13. Things NOT to Touch
 
 - **Q: Anything that's "done" and should not be messed with?**
+- [RQD]: At this point I think nothing is 100% set in stone. The icon and font sizes would be a giant pain to redesign around, though.
+- [LOD]: 
 - **Q: Any visual decisions you've made that might seem arbitrary but are intentional?**
+- [RQD]: The border around HUD chips using 1px, rounded 2: Godot's default AA behavior makes this fit perfectly within our design; change them even a little and I don't like the look. Lawrence can override this decision, obviously
+- [LOD]: 
