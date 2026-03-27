@@ -15,6 +15,7 @@ const TYPE_ICON_DIR := "res://art/sprites/ui/elemental_type_icons_10x10/"
 
 # The scene used for text cells in the grid
 var _text_container_scene: PackedScene = null
+var _current_terrain_type: String = ""
 
 
 func _ready() -> void:
@@ -43,6 +44,9 @@ func show_tile(tile: Tile) -> void:
 	if tile == null:
 		hide_panel()
 		return
+	if tile.terrain_type_name == _current_terrain_type and visible:
+		return
+	_current_terrain_type = tile.terrain_type_name
 
 	visible = true
 	_terrain_name_label.text = tile.terrain_type_name.capitalize()
@@ -86,6 +90,7 @@ func show_tile(tile: Tile) -> void:
 
 func hide_panel() -> void:
 	visible = false
+	_current_terrain_type = ""
 
 
 # =============================================================================

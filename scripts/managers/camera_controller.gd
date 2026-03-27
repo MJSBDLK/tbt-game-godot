@@ -36,6 +36,7 @@ var integer_zoom_mode: bool = false:
 var _target_position: Vector2 = Vector2.ZERO
 var _target_zoom: float = 2.0
 var _is_dragging: bool = false
+var is_panning: bool = false
 var _drag_start_position: Vector2 = Vector2.ZERO
 var _min_bounds: Vector2 = Vector2.ZERO
 var _max_bounds: Vector2 = Vector2(640, 360)
@@ -119,6 +120,7 @@ func _handle_keyboard_pan(delta: float) -> void:
 		pan_input.y -= 1.0
 	if Input.is_action_pressed("camera_pan_down"):
 		pan_input.y += 1.0
+	is_panning = pan_input.length() > 0 or _is_dragging
 
 	if pan_input.length() > 0:
 		pan_input = pan_input.normalized()

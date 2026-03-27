@@ -172,6 +172,9 @@ func _unhandled_input(event: InputEvent) -> void:
 # =============================================================================
 
 func _update_hover() -> void:
+	var camera := get_viewport().get_camera_2d() as CameraController
+	if camera != null and camera.is_panning:
+		return
 	var world_position := _get_world_mouse_position()
 	var tile := GridManager.get_tile_at_position(world_position)
 	if tile != _hovered_tile:
