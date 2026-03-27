@@ -1,6 +1,6 @@
 # Meeting 20260329
 - [ ] Go over style guide with Lawrence
-- [ ] 
+- [ ] Any options you can think of?
 
 ## For Lawrence (Art!)
 - [ ] move preview animated arrow (see the FreePixelEffect resource from the Unity project)

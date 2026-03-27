@@ -99,7 +99,8 @@ func _add_row(unit_type: Variant, move_cost: float, defense: float, avoid: float
 		_grid.add_child(placeholder)
 	else:
 		var element_type: Enums.ElementalType = _unit_type_string_to_enum(unit_type)
-		var icon_path: String = TYPE_ICON_DIR + unit_type.to_lower() + ".png"
+		var enum_name: String = Enums.ElementalType.keys()[element_type].to_lower()
+		var icon_path: String = TYPE_ICON_DIR + enum_name + ".png"
 		var icon_texture: Texture2D = load(icon_path) as Texture2D
 		var icon_cell := _create_icon_cell(icon_texture)
 		_grid.add_child(icon_cell)

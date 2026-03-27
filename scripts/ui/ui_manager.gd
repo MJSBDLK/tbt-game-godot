@@ -55,6 +55,7 @@ var _phase_transition_overlay: Node = null
 var _battle_result_overlay: Node = null
 var _unit_detail_panel: UnitDetailPanel = null
 var _system_menu_panel: SystemMenuPanel = null
+var _options_menu_panel: OptionsMenuPanel = null
 
 
 func _ready() -> void:
@@ -200,6 +201,22 @@ func hide_system_menu() -> void:
 	if _system_menu_panel == null:
 		return
 	_system_menu_panel.hide_menu()
+
+
+# =============================================================================
+# PUBLIC API — OPTIONS MENU
+# =============================================================================
+
+func show_options_menu() -> void:
+	if _options_menu_panel == null:
+		return
+	_options_menu_panel.show_panel()
+
+
+func hide_options_menu() -> void:
+	if _options_menu_panel == null:
+		return
+	_options_menu_panel.hide_panel()
 
 
 # =============================================================================
@@ -407,7 +424,16 @@ func _instantiate_panels() -> void:
 	_place_system_menu()
 	_system_menu_panel.closed.connect(_on_system_menu_closed)
 	_system_menu_panel.end_turn_selected.connect(_on_system_menu_end_turn)
+	_system_menu_panel.options_selected.connect(_on_system_menu_options)
 	_system_menu_panel.quit_selected.connect(_on_system_menu_quit)
+
+	# Options menu panel — centered overlay
+	_options_menu_panel = OptionsMenuPanel.new()
+	_options_menu_panel.set_anchors_preset(Control.PRESET_CENTER)
+	_options_menu_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_options_menu_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_overlay_layer.add_child(_options_menu_panel)
+	_options_menu_panel.closed.connect(_on_options_menu_closed)
 
 
 func _instantiate_overlays() -> void:
@@ -534,24 +560,28 @@ func _on_state_changed(_old_state: Enums.InputState, new_state: Enums.InputState
 			hide_combat_preview()
 			hide_unit_detail()
 			hide_system_menu()
+			hide_options_menu()
 		Enums.InputState.ACTION_MENU_OPEN:
 			hide_unit_info()
 			hide_terrain_info()
 			hide_combat_preview()
 			hide_unit_detail()
 			hide_system_menu()
+			hide_options_menu()
 		Enums.InputState.ATTACK_TARGETING:
 			hide_unit_info()
 			hide_terrain_info()
 			hide_action_menu()
 			hide_unit_detail()
 			hide_system_menu()
+			hide_options_menu()
 		Enums.InputState.UNIT_DETAIL:
 			hide_unit_info()
 			hide_terrain_info()
 			hide_action_menu()
 			hide_combat_preview()
 			hide_system_menu()
+			hide_options_menu()
 		Enums.InputState.PAUSED:
 			hide_unit_info()
 			hide_terrain_info()
@@ -579,6 +609,22 @@ func _on_system_menu_end_turn() -> void:
 	var turn_manager := get_node_or_null("/root/TurnManager")
 	if turn_manager != null and turn_manager.is_player_phase():
 		turn_manager.force_end_player_turn()
+
+
+func _on_system_menu_options() -> void:
+	# Hide system menu panel without emitting closed (stay in PAUSED state)
+	if _system_menu_panel != null:
+		_system_menu_panel.visible = false
+	show_options_menu()
+
+
+func _on_options_menu_closed() -> void:
+	# Return to system menu — but only if still in PAUSED state
+	# (state transition handler also calls hide_options_menu which emits closed)
+	var state_manager := get_node_or_null("/root/GameStateManager")
+	if state_manager != null and state_manager.current_state == Enums.InputState.PAUSED:
+		if _system_menu_panel != null:
+			_system_menu_panel.show_menu()
 
 
 func _on_system_menu_quit() -> void:

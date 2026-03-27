@@ -18,6 +18,12 @@ extends Camera2D
 @export var min_zoom: float = 1.0
 @export var max_zoom: float = 4.0
 @export var zoom_smooth_time: float = 0.1
+## When true, zoom snaps to integer levels (1x, 2x, 3x, 4x) instead of smooth 0.25 steps.
+var integer_zoom_mode: bool = false:
+	set(value):
+		integer_zoom_mode = value
+		if value:
+			_target_zoom = roundf(clampf(_target_zoom, min_zoom, max_zoom))
 
 @export_group("Bounds")
 @export var constrain_to_bounds: bool = true
@@ -75,10 +81,16 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	# Zoom
 	if event.is_action_pressed("zoom_in"):
-		_target_zoom = clampf(_target_zoom + zoom_step, min_zoom, max_zoom)
+		var step: float = 1.0 if integer_zoom_mode else zoom_step
+		_target_zoom = clampf(_target_zoom + step, min_zoom, max_zoom)
+		if integer_zoom_mode:
+			_target_zoom = roundf(_target_zoom)
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("zoom_out"):
-		_target_zoom = clampf(_target_zoom - zoom_step, min_zoom, max_zoom)
+		var step: float = 1.0 if integer_zoom_mode else zoom_step
+		_target_zoom = clampf(_target_zoom - step, min_zoom, max_zoom)
+		if integer_zoom_mode:
+			_target_zoom = roundf(_target_zoom)
 		get_viewport().set_input_as_handled()
 
 	# Middle-mouse drag
