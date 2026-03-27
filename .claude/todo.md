@@ -3,7 +3,7 @@
 - [ ] 
 
 ## For Lawrence (Art!)
-- [ ] move preview animated arrow (see the free arrow resource from the Unity project)
+- [ ] move preview animated arrow (see the FreePixelEffect resource from the Unity project)
 - [ ] waypoint indicator for move preview
 
 # Todo
@@ -22,8 +22,10 @@
 - [ ] battle result overlays
 - [x] Clicking on an enemy unit brings up the unit preview panel for that unit (good) but then to make it go away you need to click on a friendly unit (bad) - tapping anywhere on the map should make it go away.
 - [ ] Cancel/confirm input hints
+- [x] Add a "pause" menu (it's turn-based, the game is always paused) and Options menu. What else goes in the pause menu? How is it accessed on touchscreen?
+- [ ] Options menu
 - [ ] Add a toggle for "nearest neighbor scaling" vs. "only allow integer scaled zoom levels" (and come up with a concise way of saying that, like zoom mode: nearest neighbor/integer)
-- [ ] Add a "pause" menu (it's turn-based, the game is always paused) and Options menu. What else goes in the pause menu? How is it accessed on touchscreen?
+
 
 ## Art Pipeline
 - [ ] Figure out how normal maps work with the Aseprite -> Aseprite Wizard -> Godot workflow

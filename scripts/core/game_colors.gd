@@ -109,7 +109,7 @@ static var UNIT_ACTED: Color:
 # =============================================================================
 
 static var HUD_PANEL_BACKGROUND: Color:
-	get: return Color("#302d27d9")  # #302d27 @ 85% — standard background for all HUD panels
+	get: return with_alpha(GameColorPalette.get_color("Eggshell", 1), 0.85)
 static var MENU_BACKGROUND: Color:
 	get: return with_alpha(GameColorPalette.get_color("Blue", 3), 0.9)
 static var MENU_BORDER: Color:

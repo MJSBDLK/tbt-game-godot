@@ -54,6 +54,7 @@ var _overlay_layer: CanvasLayer = null
 var _phase_transition_overlay: Node = null
 var _battle_result_overlay: Node = null
 var _unit_detail_panel: UnitDetailPanel = null
+var _system_menu_panel: SystemMenuPanel = null
 
 
 func _ready() -> void:
@@ -182,6 +183,23 @@ func hide_unit_detail() -> void:
 
 func is_unit_detail_visible() -> bool:
 	return _unit_detail_panel != null and _unit_detail_panel.visible
+
+
+# =============================================================================
+# PUBLIC API — SYSTEM MENU
+# =============================================================================
+
+func show_system_menu() -> void:
+	if _system_menu_panel == null:
+		return
+	_place_system_menu()
+	_system_menu_panel.show_menu()
+
+
+func hide_system_menu() -> void:
+	if _system_menu_panel == null:
+		return
+	_system_menu_panel.hide_menu()
 
 
 # =============================================================================
@@ -382,6 +400,15 @@ func _instantiate_panels() -> void:
 		_combat_preview_panel = combat_preview_scene.instantiate() as CombatPreviewPanel
 		_right_panel.add_child(_combat_preview_panel)
 
+	# System menu panel — anchored directly to main layout (not in a VBox)
+	# so it can anchor to either screen edge without clipping the border.
+	_system_menu_panel = SystemMenuPanel.new()
+	_main_layout.add_child(_system_menu_panel)
+	_place_system_menu()
+	_system_menu_panel.closed.connect(_on_system_menu_closed)
+	_system_menu_panel.end_turn_selected.connect(_on_system_menu_end_turn)
+	_system_menu_panel.quit_selected.connect(_on_system_menu_quit)
+
 
 func _instantiate_overlays() -> void:
 	# Phase transition overlay
@@ -440,6 +467,30 @@ func _place_action_panels(on_left: bool) -> void:
 		_right_panel.offset_right = 0
 
 
+## Anchors the system menu panel to the correct screen edge.
+## The panel's outer corner (including border) sits at the screen corner,
+## growing inward to fit its content — no hardcoded width.
+func _place_system_menu() -> void:
+	if _system_menu_panel == null:
+		return
+	# Pin to a corner point; the panel's minimum size determines the actual rect.
+	# grow_horizontal controls which direction it expands from the anchor.
+	_system_menu_panel.anchor_top = 0.0
+	_system_menu_panel.anchor_bottom = 0.0
+	_system_menu_panel.offset_top = 0
+	_system_menu_panel.offset_bottom = 0
+	_system_menu_panel.offset_left = 0
+	_system_menu_panel.offset_right = 0
+	if _action_panels_on_left:
+		_system_menu_panel.anchor_left = 0.0
+		_system_menu_panel.anchor_right = 0.0
+		_system_menu_panel.grow_horizontal = Control.GROW_DIRECTION_END
+	else:
+		_system_menu_panel.anchor_left = 1.0
+		_system_menu_panel.anchor_right = 1.0
+		_system_menu_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+
+
 ## Returns true if the unit's world position will appear in the right half of the
 ## screen after the camera finishes panning (uses target_position, not current).
 func _unit_is_in_right_half(unit: Node) -> bool:
@@ -468,6 +519,7 @@ func _is_action_ui_open() -> bool:
 		Enums.InputState.ACTION_MENU_OPEN,
 		Enums.InputState.ATTACK_TARGETING,
 		Enums.InputState.UNIT_DETAIL,
+		Enums.InputState.PAUSED,
 	]
 
 
@@ -481,21 +533,31 @@ func _on_state_changed(_old_state: Enums.InputState, new_state: Enums.InputState
 			hide_action_menu()
 			hide_combat_preview()
 			hide_unit_detail()
+			hide_system_menu()
 		Enums.InputState.ACTION_MENU_OPEN:
 			hide_unit_info()
 			hide_terrain_info()
 			hide_combat_preview()
 			hide_unit_detail()
+			hide_system_menu()
 		Enums.InputState.ATTACK_TARGETING:
 			hide_unit_info()
 			hide_terrain_info()
 			hide_action_menu()
 			hide_unit_detail()
+			hide_system_menu()
 		Enums.InputState.UNIT_DETAIL:
 			hide_unit_info()
 			hide_terrain_info()
 			hide_action_menu()
 			hide_combat_preview()
+			hide_system_menu()
+		Enums.InputState.PAUSED:
+			hide_unit_info()
+			hide_terrain_info()
+			hide_action_menu()
+			hide_combat_preview()
+			hide_unit_detail()
 
 
 func _on_unit_detail_closed() -> void:
@@ -504,6 +566,23 @@ func _on_unit_detail_closed() -> void:
 	# The state handler also calls hide_unit_detail() which re-emits closed.
 	if state_manager != null and state_manager.current_state == Enums.InputState.UNIT_DETAIL:
 		state_manager.pop_state()
+
+
+func _on_system_menu_closed() -> void:
+	var state_manager := get_node_or_null("/root/GameStateManager")
+	if state_manager != null and state_manager.current_state == Enums.InputState.PAUSED:
+		state_manager.pop_state()
+
+
+func _on_system_menu_end_turn() -> void:
+	hide_system_menu()
+	var turn_manager := get_node_or_null("/root/TurnManager")
+	if turn_manager != null and turn_manager.is_player_phase():
+		turn_manager.force_end_player_turn()
+
+
+func _on_system_menu_quit() -> void:
+	get_tree().quit()
 
 
 ## Hides a panel node by setting visible = false directly.

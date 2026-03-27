@@ -287,6 +287,14 @@ func _open_unit_detail(unit: Unit) -> void:
 		ui_manager.show_unit_detail(unit)
 
 
+func _open_system_menu() -> void:
+	var state_manager: Node = get_node("/root/GameStateManager")
+	state_manager.push_state(Enums.InputState.PAUSED)
+	var ui_manager: Node = _get_ui_manager()
+	if ui_manager != null:
+		ui_manager.show_system_menu()
+
+
 func _handle_escape() -> void:
 	var state_manager: Node = get_node("/root/GameStateManager")
 	var state: Enums.InputState = state_manager.current_state
@@ -299,7 +307,7 @@ func _handle_escape() -> void:
 			state_manager.clear_state_stack()
 			state_manager.change_state(Enums.InputState.DEFAULT)
 		Enums.InputState.DEFAULT:
-			pass
+			_open_system_menu()
 
 
 func _handle_default_click() -> void:
