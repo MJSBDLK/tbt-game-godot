@@ -29,6 +29,8 @@ const MOVEMENT_SCALE: int = 2
 const MOVE_SPEED: float = 200.0  # Pixels per second
 const HIT_DELAY: float = 0.3  # Seconds between combat hits
 const BOOP_DISTANCE: float = 8.0  # Pixels the sprite bumps toward target during attack
+const HITLAG_MIN: float = 0.05  # Minimum freeze on any hit (seconds)
+const HITLAG_MAX: float = 0.25  # Maximum freeze on a devastating hit (seconds)
 
 
 # =============================================================================
@@ -76,6 +78,7 @@ var _sprite: Sprite2D = null
 var _health_bar: Node2D = null
 var _health_bar_background: ColorRect = null
 var _health_bar_fill: ColorRect = null
+var _status_indicator: StatusEffectIndicator = null
 var _path_visualizer: Node2D = null  # PathVisualizer
 
 
@@ -88,8 +91,11 @@ func _ready() -> void:
 	_health_bar = $HealthBar as Node2D
 	_health_bar_background = $HealthBar/Background as ColorRect
 	_health_bar_fill = $HealthBar/Fill as ColorRect
+	_status_indicator = $HealthBar/StatusEffectIndicator as StatusEffectIndicator
 	if has_node("PathVisualizer"):
 		_path_visualizer = $PathVisualizer
+	StatusEffectSystem.status_effect_applied.connect(_on_status_effect_changed)
+	StatusEffectSystem.status_effect_removed.connect(_on_status_effect_changed)
 
 
 func initialize(starting_tile: Tile) -> void:
@@ -125,6 +131,12 @@ func initialize(starting_tile: Tile) -> void:
 		Enums.UnitFaction.keys()[faction],
 		Enums.elemental_type_to_string(character_data.primary_type),
 		current_hp, character_data.move_distance])
+
+	if DebugConfig.testing_passives:
+		_apply_random_debug_passives()
+
+	if DebugConfig.testing_status_effects:
+		_apply_random_debug_status_effects()
 
 
 # =============================================================================
@@ -450,39 +462,60 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 
 
 ## Execute a single hit against a target. Calculates damage, spawns popup, optionally applies status.
+## Sequence: boop out → hitlag freeze at contact → snap back + damage + popup.
 func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
-	await _play_attack_animation(target)
-
+	# Pre-calculate damage so we know impact weight before the hit lands
 	var damage := DamageCalculator.calculate_damage(self, target, move)
 	var type_multiplier := DamageCalculator.get_type_effectiveness(self, target, move)
 	var effectiveness_text := TypeChart.get_effectiveness_text(type_multiplier)
+	var impact_weight := DamageCalculator.calculate_impact_weight(damage, target.character_data.max_hp if target.character_data else 1)
+
+	# Phase 1: Boop toward target
+	await _play_boop_out(target)
+
+	# Phase 2: Hitlag — both units freeze at moment of contact
+	var hitlag_duration := lerpf(HITLAG_MIN, HITLAG_MAX, impact_weight)
+	await get_tree().create_timer(hitlag_duration).timeout
+
+	# Phase 3: Snap back + hit flash + screenshake + damage (all fire together as hitlag releases)
+	_play_boop_return()
+	VisualFeedbackManager.apply_hit_flash(target, impact_weight)
+
+	var camera := get_viewport().get_camera_2d() as CameraController
+	if camera != null:
+		camera.screenshake(impact_weight)
 
 	target.take_damage(damage)
 	combat_hit.emit(self, target, damage)
 
-	# Spawn damage popup
 	_spawn_damage_popup(target, damage, effectiveness_text, type_multiplier)
 
-	DebugConfig.log_combat("Hit: %s -> %s for %d damage (x%.2f %s)" % [
-		unit_name, target.unit_name, damage, type_multiplier, effectiveness_text])
+	DebugConfig.log_combat("Hit: %s -> %s for %d damage (x%.2f %s, impact=%.2f, hitlag=%.3fs)" % [
+		unit_name, target.unit_name, damage, type_multiplier, effectiveness_text, impact_weight, hitlag_duration])
 
 	# Apply status effect on first hit only
 	if apply_status and move.status_effect_type != Enums.StatusEffectType.NONE:
 		StatusEffectSystem.apply_status_effect(self, target, move)
 
 
-## Boop animation: sprite bumps toward the target and snaps back.
-## Used as a placeholder until real attack animations are added.
-func _play_attack_animation(target: Unit) -> void:
+## Boop out: sprite bumps toward the target. Awaitable — completes at the contact point.
+func _play_boop_out(target: Unit) -> void:
 	if _sprite == null or target == null:
-		await get_tree().create_timer(0.15).timeout
+		await get_tree().create_timer(0.08).timeout
 		return
 	var direction := (target.global_position - global_position).normalized()
 	var boop_offset := direction * BOOP_DISTANCE
 	var tween := create_tween()
 	tween.tween_property(_sprite, "position", boop_offset, 0.08).set_ease(Tween.EASE_OUT)
-	tween.tween_property(_sprite, "position", Vector2.ZERO, 0.12).set_ease(Tween.EASE_IN)
 	await tween.finished
+
+
+## Boop return: sprite snaps back to center. Fire-and-forget (not awaited).
+func _play_boop_return() -> void:
+	if _sprite == null:
+		return
+	var tween := create_tween()
+	tween.tween_property(_sprite, "position", Vector2.ZERO, 0.12).set_ease(Tween.EASE_IN)
 
 
 func _spawn_damage_popup(target: Unit, damage: int, effectiveness_text: String, multiplier: float) -> void:
@@ -507,11 +540,13 @@ func _handle_defeat() -> void:
 	if _sprite != null:
 		_sprite.modulate = Color(0.4, 0.4, 0.4, 1.0)
 
-	# Hide health bar
+	# Hide health bar and status icons
 	if _health_bar_background != null:
 		_health_bar_background.visible = false
 	if _health_bar_fill != null:
 		_health_bar_fill.visible = false
+	if _status_indicator != null:
+		_status_indicator.visible = false
 
 	# Fade out over 1 second
 	var tween := create_tween()
@@ -569,11 +604,90 @@ func _apply_faction_healthbar() -> void:
 
 
 ## Position the health bar just above the topmost pixel of the sprite.
+## Status icons sit above the health bar (anchored to it), so they move together.
 func _update_healthbar_position() -> void:
 	if _health_bar == null or _sprite == null or _sprite.texture == null:
 		return
 	var sprite_top := _sprite.offset.y - _sprite.texture.get_height() / 2.0
 	_health_bar.position.y = sprite_top - 3.0
+
+
+
+## Called when any status effect is applied or removed on any unit.
+func _on_status_effect_changed(unit: Node2D, _effect_type_name: String) -> void:
+	if unit != self:
+		return
+	_update_status_indicators()
+
+
+## Rebuild the status icon row and adjust health bar position.
+func _update_status_indicators() -> void:
+	if _status_indicator == null:
+		return
+	_status_indicator.update_icons(active_status_effects)
+	# Position icons above the health bar — pip bars overlap health bar top pixel
+	_status_indicator.position.y = -5.0
+	_update_healthbar_position()
+
+
+## Debug: randomly equip 1-4 passives from passives.json.
+## Prefers the character's base pool; fills remaining slots from the full JSON pool.
+func _apply_random_debug_passives() -> void:
+	if character_data == null:
+		return
+	var all_passives := _load_passive_names_from_json()
+	if all_passives.is_empty():
+		return
+	var pool: Array[String] = character_data.base_pool_passives.duplicate()
+	if pool.is_empty():
+		pool = all_passives.duplicate()
+	pool.shuffle()
+	var count := randi_range(1, mini(4, pool.size()))
+	character_data.equipped_passives.clear()
+	for i: int in range(count):
+		character_data.equipped_passives.append(pool[i])
+	DebugConfig.log_unit_init("Debug passives for '%s': %s" % [unit_name, str(character_data.equipped_passives)])
+
+
+static var _cached_passive_names: Array[String] = []
+
+static func _load_passive_names_from_json() -> Array[String]:
+	if not _cached_passive_names.is_empty():
+		return _cached_passive_names
+	var file := FileAccess.open("res://data/passives.json", FileAccess.READ)
+	if file == null:
+		return _cached_passive_names
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		return _cached_passive_names
+	var data: Dictionary = json.data as Dictionary
+	for key: String in data.keys():
+		_cached_passive_names.append(key)
+	return _cached_passive_names
+
+
+## Debug: assign 1-4 random status effects to this unit for visual testing.
+## First unit always gets 4 to ensure max-icon layout is visible.
+static var _debug_status_unit_count: int = 0
+
+func _apply_random_debug_status_effects() -> void:
+	var configs := StatusEffectData.get_default_configs()
+	var all_types: Array = configs.keys()
+	all_types.shuffle()
+	var count: int
+	if _debug_status_unit_count == 0:
+		# First unit: 4 statuses, only ones with duration > 1 so they survive turn start
+		var durable_types: Array = all_types.filter(func(t: String) -> bool:
+			return configs[t].duration > 1)
+		durable_types.shuffle()
+		count = mini(4, durable_types.size())
+		for i: int in range(count):
+			StatusEffectSystem.apply_status_effect_by_name(null, self, durable_types[i])
+	else:
+		count = randi_range(1, mini(4, all_types.size()))
+		for i: int in range(count):
+			StatusEffectSystem.apply_status_effect_by_name(null, self, all_types[i])
+	_debug_status_unit_count += 1
 
 
 ## Reset sprite modulate to full color (active unit).

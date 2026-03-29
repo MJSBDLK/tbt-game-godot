@@ -34,6 +34,7 @@ const STAT_BAR_MIN_WIDTH: float = 3.0
 
 var _character_data: CharacterData = null
 var _unit: Variant = null  # Unit reference for current_hp and status effects
+var _passive_configs: Dictionary = {}  # passive_name -> { abbrevName, description }
 
 # Left column node references
 var _portrait: TextureRect = null
@@ -62,7 +63,6 @@ var _status_description: VBoxContainer = null
 # Move detail labels
 var _move_detail_name_label: Label = null
 var _move_detail_element_icon: TextureRect = null
-var _move_detail_type_icon: TextureRect = null
 var _move_detail_power_label: Label = null
 var _move_detail_accuracy_label: Label = null
 var _move_detail_usage_label: Label = null
@@ -92,6 +92,7 @@ var _selection_index: int = -1
 
 func _ready() -> void:
 	_cache_node_references()
+	_load_passive_configs()
 	_setup_tablet_input()
 	_hide_all_details()
 	_add_border_overlay()
@@ -229,7 +230,9 @@ func _cache_node_references() -> void:
 	var move_container: HBoxContainer = _move_description.get_node("MoveContainer")
 	_move_detail_name_label = _find_label_in_node(move_container.get_node("MarginContainer"))
 	_move_detail_element_icon = move_container.get_node("ElementalTypeContainer/TextureRect")
-	_move_detail_type_icon = move_container.get_node("MoveTypeContainer/TextureRect") if move_container.has_node("MoveTypeContainer/TextureRect") else null
+	# Moves only have one type — hide the second icon container (reused from unit prefab)
+	if move_container.has_node("MoveTypeContainer"):
+		move_container.get_node("MoveTypeContainer").visible = false
 
 	# Power/Acc/Usage mini-panels
 	var power_acc_usg: HBoxContainer = _move_description.get_node("PowerAccUsgContainer")
@@ -477,33 +480,46 @@ func _update_stats() -> void:
 		if value_label:
 			value_label.text = "%d" % total_value
 
-		# Modifier label
+		# Modifier label — set visibility on the PARENT container, not just the label
 		var modifier_label: Label = row["modifier_label"]
 		if modifier_label:
+			var modifier_container: Control = modifier_label.get_parent() as Control
 			if bonus_value > 0:
 				modifier_label.text = "+%d" % bonus_value
-				modifier_label.add_theme_color_override("font_color", GameColors.TEXT_SUCCESS)
-				modifier_label.visible = true
+				_set_label_color(modifier_label, GameColors.TEXT_SUCCESS, GameColors.TEXT_SUCCESS_GLOW)
+				if modifier_container:
+					modifier_container.visible = true
 			elif bonus_value < 0:
 				modifier_label.text = "%d" % bonus_value
-				modifier_label.add_theme_color_override("font_color", GameColors.TEXT_DANGER)
-				modifier_label.visible = true
+				_set_label_color(modifier_label, GameColors.TEXT_DANGER, GameColors.TEXT_DANGER_GLOW)
+				if modifier_container:
+					modifier_container.visible = true
 			else:
-				modifier_label.visible = false
+				if modifier_container:
+					modifier_container.visible = false
 
 		# Color: green at cap, red for negative bonus, default otherwise
 		var name_label: Label = row["name_label"]
 		if at_cap:
 			if value_label:
-				value_label.add_theme_color_override("font_color", GameColors.TEXT_SUCCESS)
+				_set_label_color(value_label, GameColors.TEXT_SUCCESS, GameColors.TEXT_SUCCESS_GLOW)
 			if name_label:
-				name_label.add_theme_color_override("font_color", GameColors.TEXT_SUCCESS)
+				_set_label_color(name_label, GameColors.TEXT_SUCCESS, GameColors.TEXT_SUCCESS_GLOW)
 		elif bonus_value > 0:
 			if value_label:
-				value_label.add_theme_color_override("font_color", GameColors.TEXT_SUCCESS)
+				_set_label_color(value_label, GameColors.TEXT_SUCCESS, GameColors.TEXT_SUCCESS_GLOW)
+			if name_label:
+				_reset_label_color(name_label)
 		elif bonus_value < 0:
 			if value_label:
-				value_label.add_theme_color_override("font_color", GameColors.TEXT_DANGER)
+				_set_label_color(value_label, GameColors.TEXT_DANGER, GameColors.TEXT_DANGER_GLOW)
+			if name_label:
+				_reset_label_color(name_label)
+		else:
+			if value_label:
+				_reset_label_color(value_label)
+			if name_label:
+				_reset_label_color(name_label)
 
 		# Base bar width
 		var base_pixels: int = 0
@@ -582,29 +598,32 @@ func _update_passive_tablets() -> void:
 
 func _update_status_tablets() -> void:
 	var effects: Array = _unit.active_status_effects if _unit != null else []
+	var configs := StatusEffectData.get_default_configs()
 
 	for i: int in range(_status_panels.size()):
 		var panel: PanelContainer = _status_panels[i]
 		var hbox: HBoxContainer = panel.get_node("HBoxContainer")
 		var name_label: Label = _find_label_in_node(hbox.get_node("MarginContainer"))
-		var icon_container: Variant = null
-		for child: Node in hbox.get_children():
-			if child.name == "ElemetalTypeIconContainer" and child is MarginContainer:
-				icon_container = child
-				break
+		var icon_container: MarginContainer = hbox.get_node("ElemetalTypeIconContainer") if hbox.has_node("ElemetalTypeIconContainer") else null
+		var type_icon: TextureRect = icon_container.get_node("TextureRect") if icon_container else null
 
 		if i < effects.size():
-			var effect: Variant = effects[i]
+			var effect: StatusEffect = effects[i] as StatusEffect
+			var config: StatusEffectData = configs.get(effect.effect_type_name, null)
 			panel.visible = true
+
 			if name_label:
-				var effect_name: String = ""
-				if effect is Dictionary:
-					effect_name = effect.get("name", "")
-				elif "effect_name" in effect:
-					effect_name = effect.effect_name
-				elif "status_type" in effect:
-					effect_name = Enums.StatusEffectType.keys()[effect.status_type]
-				name_label.text = effect_name.to_upper()
+				if config != null and config.abbrev_name != "":
+					name_label.text = config.abbrev_name.to_upper()
+				else:
+					name_label.text = effect.effect_type_name.to_upper()
+
+			if type_icon:
+				if config != null and config.icon_path != "":
+					type_icon.texture = load(config.icon_path) as Texture2D
+					type_icon.visible = true
+				else:
+					type_icon.visible = false
 		else:
 			panel.visible = false
 
@@ -650,7 +669,8 @@ func _show_move_detail(index: int) -> void:
 		if _move_detail_effect_name_label:
 			_move_detail_effect_name_label.text = effect_name
 		if _move_detail_effect_icon:
-			var icon: Texture2D = _get_status_effect_icon(move.status_effect_type)
+			var effect_key: String = Enums.StatusEffectType.keys()[move.status_effect_type]
+			var icon: Texture2D = _get_status_effect_icon_by_name(effect_key)
 			_move_detail_effect_icon.texture = icon
 			_move_detail_effect_icon.get_parent().visible = icon != null
 
@@ -680,15 +700,20 @@ func _show_passive_detail(index: int) -> void:
 
 	_passive_description.visible = true
 
+	var passive_name: String = str(passive_names[index])
 	if _passive_detail_name_label:
-		_passive_detail_name_label.text = str(passive_names[index]).to_upper()
+		_passive_detail_name_label.text = passive_name.to_upper()
 
-	# TODO: populate description and flavor from passive data when PassiveData class exists
+	# Populate description from passives.json
+	var config: Variant = _passive_configs.get(passive_name, null)
 	if _passive_detail_description_label:
-		_passive_detail_description_label.text = ""
+		var desc: String = config["description"] if config is Dictionary and config.has("description") else ""
+		_passive_detail_description_label.text = desc
+		_passive_detail_description_label.get_parent().get_parent().visible = not desc.is_empty()
 
 	if _passive_detail_flavor_label:
 		_passive_detail_flavor_label.text = ""
+		_passive_detail_flavor_label.get_parent().get_parent().visible = false
 
 
 func _show_status_detail(index: int) -> void:
@@ -698,28 +723,69 @@ func _show_status_detail(index: int) -> void:
 
 	_status_description.visible = true
 
-	var effect: Variant = effects[index]
-	var effect_name: String = ""
-	if effect is Dictionary:
-		effect_name = effect.get("name", "")
-	elif "effect_name" in effect:
-		effect_name = effect.effect_name
-	elif "status_type" in effect:
-		effect_name = Enums.StatusEffectType.keys()[effect.status_type]
+	var effect: StatusEffect = effects[index] as StatusEffect
+	var configs := StatusEffectData.get_default_configs()
+	var config: StatusEffectData = configs.get(effect.effect_type_name, null)
 
+	# Header name
 	if _status_detail_name_label:
-		_status_detail_name_label.text = effect_name.to_upper()
+		_status_detail_name_label.text = effect.effect_type_name.to_upper()
 
-	# TODO: populate description from StatusEffect data when available
+	# Header icon
+	if _status_detail_icon:
+		var icon: Texture2D = _get_status_effect_icon_by_name(effect.effect_type_name)
+		_status_detail_icon.texture = icon
+		_status_detail_icon.visible = icon != null
+
+	# Description
+	if _status_detail_description_label:
+		var desc_text: String = ""
+		if config != null:
+			desc_text = config.description
+		if effect.remaining_turns > 0:
+			desc_text += "\n%d turn(s) remaining." % effect.remaining_turns
+		_status_detail_description_label.text = desc_text
+		_status_detail_description_label.get_parent().get_parent().visible = not desc_text.is_empty()
+
+	# Stacks container — show stack icons for stackable effects (e.g., VOID)
+	if _status_detail_stacks_container:
+		_status_detail_stacks_container.visible = false
 
 
 # =============================================================================
 # HELPERS
 # =============================================================================
 
-func _get_status_effect_icon(_effect_type: Enums.StatusEffectType) -> Texture2D:
-	# TODO: Load from art/sprites/ui/status_icons/ once icons are created
-	return null
+func _set_label_color(label: Label, font_color: Color, glow_color: Color) -> void:
+	label.add_theme_color_override("font_color", font_color)
+	if label is GlowLabel:
+		label.glow_color = glow_color
+
+
+func _reset_label_color(label: Label) -> void:
+	label.remove_theme_color_override("font_color")
+	if label is GlowLabel:
+		label.glow_color = GameColors.TEXT_PRIMARY_GLOW
+
+
+func _load_passive_configs() -> void:
+	var file := FileAccess.open("res://data/passives.json", FileAccess.READ)
+	if file == null:
+		DebugConfig.log_error("UnitDetailPanel: Could not load passives.json")
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		DebugConfig.log_error("UnitDetailPanel: Failed to parse passives.json")
+		return
+	_passive_configs = json.data as Dictionary
+
+
+func _get_status_effect_icon_by_name(effect_type_name: String) -> Texture2D:
+	var configs := StatusEffectData.get_default_configs()
+	var config: StatusEffectData = configs.get(effect_type_name, null)
+	if config == null or config.icon_path == "":
+		return null
+	return load(config.icon_path) as Texture2D
 
 
 func _get_elemental_icon(element_type: Enums.ElementalType) -> Texture2D:

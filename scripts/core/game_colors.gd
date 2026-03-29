@@ -32,7 +32,7 @@ static var PLAYER_UNIT: Color:
 static var ENEMY_UNIT: Color:
 	get: return Color(1.0, 0.4, 0.35)  # Bright red
 static var NEUTRAL_UNIT: Color:
-	get: return Color(0.75, 0.75, 0.75)  # Light gray
+	get: return GameColorPalette.get_color("Green", 7)
 static var ALLY_UNIT: Color:
 	get: return Color(1.0, 0.95, 0.4)  # Bright yellow
 
@@ -109,7 +109,7 @@ static var UNIT_ACTED: Color:
 # =============================================================================
 
 static var HUD_PANEL_BACKGROUND: Color:
-	get: return Color("#302d27d9")  # #302d27 @ 85% — standard background for all HUD panels
+	get: return with_alpha(GameColorPalette.get_color("Eggshell", 1), 0.85)
 static var MENU_BACKGROUND: Color:
 	get: return with_alpha(GameColorPalette.get_color("Blue", 3), 0.9)
 static var MENU_BORDER: Color:
@@ -122,6 +122,14 @@ static var BUTTON_HOVERED: Color:
 	get: return GameColorPalette.get_color("Blue", 7)
 static var BUTTON_PRESSED: Color:
 	get: return GameColorPalette.get_color("Blue", 4)
+static var ACTION_BUTTON_BORDER: Color:
+	get: return GameColorPalette.get_color("Gray", 7)
+static var ACTION_BUTTON_BG_NORMAL: Color:
+	get: return with_alpha(GameColorPalette.get_color("Gray", 2), 0.3)
+static var ACTION_BUTTON_BG_HOVERED: Color:
+	get: return with_alpha(GameColorPalette.get_color("Gray", 3), 0.5)
+static var ACTION_BUTTON_BG_PRESSED: Color:
+	get: return with_alpha(GameColorPalette.get_color("Gray", 1), 0.4)
 
 
 # =============================================================================
@@ -138,10 +146,12 @@ static var TEXT_SECONDARY_GLOW: Color:
 	get: return GameColorPalette.get_color("Magenta", 4)  # #7d4181
 static var TEXT_SUCCESS: Color:
 	get: return GameColorPalette.get_color("Green", 6)
-static var TEXT_WARNING: Color:
-	get: return GameColorPalette.get_color("Yellow", 5)
+static var TEXT_SUCCESS_GLOW: Color:
+	get: return GameColorPalette.get_color("Green", 3)
 static var TEXT_DANGER: Color:
 	get: return GameColorPalette.get_color("Red", 5)
+static var TEXT_DANGER_GLOW: Color:
+	get: return GameColorPalette.get_color("Red", 2)
 
 
 # =============================================================================
@@ -256,11 +266,11 @@ static var PDA_TEXT_HIGHLIGHT: Color:
 # =============================================================================
 
 static var MULTIPLIER_X4_LIGHT: Color:
-	get: return GameColorPalette.get_color("Red", 6)
+	get: return GameColorPalette.get_color("Red", 7)
 static var MULTIPLIER_X4_DARK: Color:
 	get: return GameColorPalette.get_color("Red", 2)
 static var MULTIPLIER_X3_LIGHT: Color:
-	get: return GameColorPalette.get_color("Orange", 6)
+	get: return GameColorPalette.get_color("Orange", 7)
 static var MULTIPLIER_X3_DARK: Color:
 	get: return GameColorPalette.get_color("Orange", 3)
 static var MULTIPLIER_X2_LIGHT: Color:
@@ -275,6 +285,10 @@ static var MULTIPLIER_HALF_LIGHT: Color:
 	get: return GameColorPalette.get_color("Green", 7)
 static var MULTIPLIER_HALF_DARK: Color:
 	get: return GameColorPalette.get_color("Green", 3)
+static var MULTIPLIER_QUARTER_LIGHT: Color:
+	get: return GameColorPalette.get_color("Teal", 7)
+static var MULTIPLIER_QUARTER_DARK: Color:
+	get: return GameColorPalette.get_color("Teal", 3)
 static var MULTIPLIER_X0_LIGHT: Color:
 	get: return GameColorPalette.get_color("Cyan", 7)
 static var MULTIPLIER_X0_DARK: Color:
@@ -445,19 +459,11 @@ static func get_effectiveness_color(effectiveness: float, is_heal: bool = false)
 		return MULTIPLIER_X2_LIGHT
 	elif effectiveness == 1.0:
 		return MULTIPLIER_X1_LIGHT
-	elif effectiveness > 0.0:
+	elif effectiveness >= 0.5:
 		return MULTIPLIER_HALF_LIGHT
+	elif effectiveness > 0.0:
+		return MULTIPLIER_QUARTER_LIGHT
 	else:
 		return MULTIPLIER_X0_LIGHT
 
 
-## Returns text color based on damage amount.
-static func get_damage_text_color(damage: int, is_critical: bool = false) -> Color:
-	if is_critical:
-		return brightened(TEXT_DANGER, 1.3)
-	if damage >= 10:
-		return TEXT_DANGER
-	elif damage >= 5:
-		return TEXT_WARNING
-	else:
-		return TEXT_PRIMARY

@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/units/unit.gd" id="1_unit"]
 [ext_resource type="Texture2D" path="res://art/sprites/characters/placeholder_unit.png" id="2_sprite"]
 [ext_resource type="Script" path="res://scripts/units/path_visualizer.gd" id="3_pathvis"]
+[ext_resource type="Script" path="res://scripts/ui/status_effect_indicator.gd" id="4_status"]
 
 [node name="Unit" type="Node2D"]
 script = ExtResource("1_unit")
@@ -13,20 +14,24 @@ texture = ExtResource("2_sprite")
 [node name="HealthBar" type="Node2D" parent="."]
 
 [node name="Background" type="ColorRect" parent="HealthBar"]
-offset_left = -7.0
+offset_left = -12.0
 offset_top = -1.0
-offset_right = 7.0
+offset_right = 12.0
 offset_bottom = 1.0
 mouse_filter = 2
 color = Color(0.1, 0.1, 0.1, 1)
 
 [node name="Fill" type="ColorRect" parent="HealthBar"]
-offset_left = -7.0
+offset_left = -12.0
 offset_top = -1.0
-offset_right = 7.0
+offset_right = 12.0
 offset_bottom = 1.0
 mouse_filter = 2
 color = Color(0.45, 0.65, 1.0, 1)
+
+[node name="StatusEffectIndicator" type="Node2D" parent="HealthBar"]
+visible = false
+script = ExtResource("4_status")
 
 [node name="PathVisualizer" type="Node2D" parent="."]
 top_level = true

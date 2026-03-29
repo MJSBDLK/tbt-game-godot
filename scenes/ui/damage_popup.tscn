@@ -6,19 +6,19 @@
 script = ExtResource("1_popup")
 
 [node name="DamageLabel" type="Label" parent="."]
-offset_left = -20
-offset_top = -6
-offset_right = 20
-offset_bottom = 6
+offset_left = -40
+offset_top = -10
+offset_right = 40
+offset_bottom = 10
 horizontal_alignment = 1
 vertical_alignment = 1
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 16
 
 [node name="EffectivenessLabel" type="Label" parent="."]
-offset_left = -30
-offset_top = 4
-offset_right = 30
-offset_bottom = 12
+offset_left = -40
+offset_top = 8
+offset_right = 40
+offset_bottom = 18
 horizontal_alignment = 1
 vertical_alignment = 1
 theme_override_font_sizes/font_size = 5

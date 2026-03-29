@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://o7l3nvi4e7jn"]
+
+[ext_resource type="Script" uid="uid://bis6wwbd7gfl2" path="res://scenes/debug/game_colors_demo.gd" id="1_script"]
+
+[node name="GameColorsDemo" type="ColorRect" unique_id=1164057950]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.08, 0.08, 0.08, 1)
+script = ExtResource("1_script")

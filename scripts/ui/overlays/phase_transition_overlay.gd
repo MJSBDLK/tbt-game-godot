@@ -20,15 +20,15 @@ const BANNER_Y: int = (360 - BANNER_HEIGHT) / 2  # 148
 
 ## Per-layer scroll speeds in pixels/second at full speed (_speed_factor = 1.0).
 ## At half speed (_speed_factor = 0.5), each layer runs at half these values.
-## back=120, mid=240, front=480 → at 60fps: 2/4/8 px/frame fast, 1/2/4 slow.
-const STAR_FAST_SPEEDS: Array[float] = [120.0, 240.0, 480.0]
+## star1(bright)=360, star2(mid)=240, star3(dim)=120 → at 60fps: 6/4/2 fast, 3/2/1 slow.
+const STAR_FAST_SPEEDS: Array[float] = [360.0, 240.0, 120.0]
 
 ## Timing (seconds).
-const FADE_IN_DURATION: float = 0.45
-const SLIDE_IN_DURATION: float = 1.35
-const HOLD_DURATION: float = 1.8
-const SLIDE_OUT_DURATION: float = 1.05
-const FADE_OUT_DURATION: float = 0.45
+const FADE_IN_DURATION: float = 0.2
+const SLIDE_IN_DURATION: float = 0.8
+const HOLD_DURATION: float = 1.0
+const SLIDE_OUT_DURATION: float = 0.8
+const FADE_OUT_DURATION: float = 0.2
 
 ## How far offscreen the text starts/ends (pixels).
 const TEXT_OFFSCREEN: float = 700.0

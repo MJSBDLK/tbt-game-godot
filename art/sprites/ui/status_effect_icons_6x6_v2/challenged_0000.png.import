@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dvwaf48rvpw68"
-valid=false
+uid="uid://dwbu6ywjqu4xq"
+path="res://.godot/imported/challenged_0000.png-c3be92a148f8c9696e30f4c98f964219.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
-source_file="res://art/sprites/ui/elemental_type_icons_10x10.aseprite"
+source_file="res://art/sprites/ui/status_effect_icons_6x6_v2/challenged_0000.png"
+dest_files=["res://.godot/imported/challenged_0000.png-c3be92a148f8c9696e30f4c98f964219.ctex"]
 
 [params]
 

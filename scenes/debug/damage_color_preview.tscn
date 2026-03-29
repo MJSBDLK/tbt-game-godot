@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://damage_color_preview"]
+
+[ext_resource type="Script" path="res://scenes/debug/damage_color_preview.gd" id="1_script"]
+
+[node name="DamageColorPreview" type="ColorRect"]
+color = Color(0.71, 0.68, 0.60, 1)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_script")

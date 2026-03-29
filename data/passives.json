@@ -1,0 +1,70 @@
+{
+	"Anti-Gravity": {
+		"abbrevName": "AntiGrav",
+		"description": "Debuffs have a 50% chance to clear each turn they tick down"
+	},
+	"Cavalier": {
+		"abbrevName": "Cavalier",
+		"description": "Attacking stats cannot be buffed or debuffed by moves"
+	},
+	"Extendo": {
+		"abbrevName": "Extendo",
+		"description": "Physical moves have +1 range, but not through impassable terrain"
+	},
+	"Flippant": {
+		"abbrevName": "Flippant",
+		"description": "Super effective attacks against this unit have decreased accuracy and increased damage"
+	},
+	"Ghost": {
+		"abbrevName": "Ghost",
+		"description": "Can move through enemy units"
+	},
+	"Glib": {
+		"abbrevName": "Glib",
+		"description": "Bonus if target's special is lower, penalty if higher"
+	},
+	"Impetuous": {
+		"abbrevName": "Impetuous",
+		"description": "+20% damage on first attack each turn, -10% for each attack after"
+	},
+	"Impulsive": {
+		"abbrevName": "Impulsive",
+		"description": "First attack each turn gains +20% accuracy. Enemy attacks gain +20% accuracy against this unit"
+	},
+	"Jury Rig": {
+		"abbrevName": "Jury Rig",
+		"description": "Heals adjacent robo-type allies at the start of each turn"
+	},
+	"Low Profile": {
+		"abbrevName": "Low Prof.",
+		"description": "Harder to target at range; ranged attacks have reduced accuracy"
+	},
+	"Maximum": {
+		"abbrevName": "Maximum",
+		"description": "Status effects cannot lower this unit's stats below base values"
+	},
+	"Protector": {
+		"abbrevName": "Protector",
+		"description": "Ranged attacks hit this unit instead of units directly behind it"
+	},
+	"Reckless": {
+		"abbrevName": "Reckless",
+		"description": "Increased terrain bonuses and penalties"
+	},
+	"Reliable": {
+		"abbrevName": "Reliable",
+		"description": "Massive accuracy boost, effectively guaranteeing hits"
+	},
+	"Stellar": {
+		"abbrevName": "Stellar",
+		"description": "Grants the Maximum effect to all allied units within 2 tiles"
+	},
+	"Waste Not": {
+		"abbrevName": "Waste Not",
+		"description": "Recovers PP by defeating enemies"
+	},
+	"Zone Control": {
+		"abbrevName": "Zone Ctrl",
+		"description": "Enemies suffer movement and accuracy penalties within 3 tiles; allies are buffed"
+	}
+}

@@ -48,6 +48,38 @@ func apply_flash(target: Node2D, flash_color: Color, duration: float = 0.2) -> v
 
 
 # =============================================================================
+# HIT FLASH — white flash on a sprite to indicate damage taken
+# =============================================================================
+
+const HIT_FLASH_MIN_DURATION: float = 0.08
+const HIT_FLASH_MAX_DURATION: float = 0.2
+
+## Flash a unit's sprite white, duration scaled by impact weight (0.0–1.0).
+## At the end, reapplies the unit's correct state modulate (acted/active) so the
+## tween never overwrites state changes that happened mid-flash.
+func apply_hit_flash(target: Node2D, impact_weight: float) -> void:
+	if target == null:
+		return
+	var sprite: Sprite2D = target.get_node_or_null("Sprite2D")
+	if sprite == null:
+		return
+
+	var duration := lerpf(HIT_FLASH_MIN_DURATION, HIT_FLASH_MAX_DURATION, impact_weight)
+
+	# Snap to palette white, then ease back (the callback handles final color)
+	var flash_color := GameColorPalette.get_color("Gray", 10)
+	sprite.modulate = flash_color * 3.0  # Overbright for intensity
+	var tween := create_tween()
+	tween.tween_property(sprite, "modulate", flash_color, duration).set_ease(Tween.EASE_OUT)
+	tween.finished.connect(func() -> void:
+		if target.has_method("_apply_acted_modulate") and not target.can_act:
+			target._apply_acted_modulate()
+		elif target.has_method("_apply_active_modulate"):
+			target._apply_active_modulate()
+	)
+
+
+# =============================================================================
 # CLEAR FEEDBACK — stop active effect on a node
 # =============================================================================
 

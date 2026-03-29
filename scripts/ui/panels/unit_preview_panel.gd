@@ -7,6 +7,11 @@ extends PanelContainer
 
 var _tracked_unit: Unit = null
 
+
+func get_tracked_unit() -> Unit:
+	return _tracked_unit
+var _passive_configs: Dictionary = {}  # passive_name -> { abbrevName, description }
+
 # Header — resolved in _ready via node paths
 var _portrait: TextureRect = null
 var _type_icon_primary: TextureRect = null
@@ -29,6 +34,7 @@ var _status_container: GridContainer = null
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_resolve_nodes()
+	_load_passive_configs()
 	# Stay visible when previewing this scene standalone (F6)
 	if get_tree().current_scene != self:
 		visible = false
@@ -213,11 +219,12 @@ func _update_passives(unit: Unit) -> void:
 			chip.visible = true
 			var label: Label = _find_label_in_chip(chip)
 			if label != null:
-				# PassiveData is a placeholder — handle strings or objects
+				var passive_name: String = ""
 				if passives[i] is String:
-					label.text = passives[i]
+					passive_name = passives[i]
 				elif passives[i].get("passive_name") != null:
-					label.text = passives[i].passive_name
+					passive_name = passives[i].passive_name
+				label.text = _get_passive_abbrev(passive_name)
 		else:
 			chip.visible = false
 
@@ -226,24 +233,47 @@ func _update_passives(unit: Unit) -> void:
 
 func _update_statuses(unit: Unit) -> void:
 	var statuses: Array = unit.active_status_effects
+	var configs := StatusEffectData.get_default_configs()
 
-	# Clear existing status icons
+	var status_chips: Array[Node] = []
 	for child: Node in _status_container.get_children():
-		child.queue_free()
+		if child is ColorRect:
+			status_chips.append(child)
 
-	if statuses.is_empty():
-		_status_container.visible = false
-		return
+	for i: int in range(status_chips.size()):
+		var chip: ColorRect = status_chips[i] as ColorRect
+		if i < statuses.size() and statuses[i] != null:
+			var effect: StatusEffect = statuses[i] as StatusEffect
+			var config: StatusEffectData = configs.get(effect.effect_type_name, null)
+			chip.visible = true
+			_update_status_chip(chip, effect, config)
+		else:
+			chip.visible = false
 
-	_status_container.visible = true
-	for effect: Variant in statuses:
-		var icon_texture: Texture2D = _get_status_effect_icon(effect.effect_type)
-		if icon_texture != null:
-			var icon := TextureRect.new()
-			icon.texture = icon_texture
-			icon.custom_minimum_size = Vector2(10, 10)
-			icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			_status_container.add_child(icon)
+	_status_container.visible = not statuses.is_empty()
+
+
+func _update_status_chip(chip: ColorRect, effect: StatusEffect, config: StatusEffectData) -> void:
+	var parts := _find_status_chip_parts(chip)
+
+	# Icon
+	if parts.icon != null:
+		if config != null and config.icon_path != "":
+			parts.icon.texture = load(config.icon_path) as Texture2D
+			parts.icon.visible = true
+		else:
+			parts.icon.visible = false
+
+	# Name label
+	if parts.name_label != null:
+		if config != null and config.abbrev_name != "":
+			parts.name_label.text = config.abbrev_name
+		else:
+			parts.name_label.text = effect.effect_type_name.capitalize()
+
+	# Turns remaining label
+	if parts.turns_label != null:
+		parts.turns_label.text = str(effect.remaining_turns)
 
 
 # =============================================================================
@@ -284,6 +314,44 @@ func _get_elemental_icon(element_type: Enums.ElementalType) -> Texture2D:
 	return null
 
 
-func _get_status_effect_icon(_effect_type: Enums.StatusEffectType) -> Texture2D:
-	# TODO: Load from art/sprites/ui/status_icons/ once icons are created
-	return null
+func _load_passive_configs() -> void:
+	var file := FileAccess.open("res://data/passives.json", FileAccess.READ)
+	if file == null:
+		DebugConfig.log_error("UnitPreviewPanel: Could not load passives.json")
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		DebugConfig.log_error("UnitPreviewPanel: Failed to parse passives.json")
+		return
+	_passive_configs = json.data as Dictionary
+
+
+func _get_passive_abbrev(passive_name: String) -> String:
+	var config: Variant = _passive_configs.get(passive_name, null)
+	if config is Dictionary and config.has("abbrevName"):
+		return config["abbrevName"]
+	return passive_name
+
+
+## Returns {icon: TextureRect, name_label: Label, turns_label: Label} for a status chip.
+## Status chip layout: ColorRect > HBoxContainer > [IconContainer, NameContainer, Spacer, TurnsContainer]
+func _find_status_chip_parts(chip: ColorRect) -> Dictionary:
+	var result := { "icon": null, "name_label": null, "turns_label": null }
+	for child: Node in chip.get_children():
+		if not child is HBoxContainer:
+			continue
+		var hbox_children: Array[Node] = child.get_children()
+		var labels_found: Array[Label] = []
+		for hbox_child: Node in hbox_children:
+			if hbox_child is MarginContainer:
+				for grandchild: Node in hbox_child.get_children():
+					if grandchild is TextureRect and result.icon == null:
+						result.icon = grandchild
+					elif grandchild is Label:
+						labels_found.append(grandchild)
+		# First label is the name, last label is the turns count
+		if labels_found.size() >= 1:
+			result.name_label = labels_found[0]
+		if labels_found.size() >= 2:
+			result.turns_label = labels_found[labels_found.size() - 1]
+	return result

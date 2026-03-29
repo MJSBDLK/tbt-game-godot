@@ -84,7 +84,17 @@
       "Bash(grep -E \"\\\\.\\(tres|res\\)$\")",
       "Bash(/home/mjsbdlk/aseprite/build/bin/aseprite -b \"art/sprites/ui/turn_transition_overlay_stars.aseprite\" --all-layers --split-layers --trim --save-as \"/tmp/star_layers/{layer}.png\")",
       "Read(//tmp/star_layers/**)",
-      "Bash(/home/mjsbdlk/aseprite/build/bin/aseprite -b \"art/sprites/ui/turn_transition_overlay_stars.aseprite\" --all-layers --split-layers --save-as \"art/sprites/ui/turn_transition_overlay_stars/{layer}.png\")"
+      "Bash(/home/mjsbdlk/aseprite/build/bin/aseprite -b \"art/sprites/ui/turn_transition_overlay_stars.aseprite\" --all-layers --split-layers --save-as \"art/sprites/ui/turn_transition_overlay_stars/{layer}.png\")",
+      "Bash(grep -n \"StyleBoxTexture\\\\|custom_minimum_size\\\\|_resize\" /home/mjsbdlk/Documents/Projects/tbt-game-godot/scripts/ui/panels/*.gd)",
+      "Read(//home/mjsbdlk/snap/godot-4/**)",
+      "Read(//home/mjsbdlk/Documents/Projects/**)",
+      "Read(//home/mjsbdlk/Documents/Projects/tbt-game-godot/NR % 11 == 8 { printf \"\"\"\"\"\"\"\"Ramp %d \\(idx 7\\): %s\\\\n\"\"\"\"\"\"\"\", int\\(\\(NR-1\\)/**)",
+      "Bash(git fetch:*)",
+      "Bash(git checkout:*)",
+      "Bash(xargs -n1 basename)",
+      "Bash(/home/mjsbdlk/aseprite/build/bin/aseprite -b /home/mjsbdlk/Documents/Projects/tbt-game-godot/art/sprites/ui/status_effect_icons_6x6_v2/status_effect_icons_6x6_v2.aseprite --data /dev/stdout --format json-array)",
+      "Bash(cat /home/mjsbdlk/Documents/Projects/tbt-game-godot/data/moves/*.json)",
+      "Bash(grep -E \"\\\\.\\(tscn|gd\\)$\")"
     ]
   }
 }

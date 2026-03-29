@@ -21,6 +21,10 @@ func _ready() -> void:
 	_start_position = position
 	# Pop scale overshoot
 	scale = Vector2(POP_SCALE, POP_SCALE)
+	# Apply orthogonal glow shader as outline — Gray 1 @ 97.5% alpha
+	var outline_color := Color(GameColorPalette.get_color("Gray", 1), 0.975)
+	_apply_outline(_damage_label, outline_color)
+	_apply_outline(_effectiveness_label, outline_color)
 
 
 func initialize(damage: int, effectiveness_text: String, effectiveness_multiplier: float) -> void:
@@ -69,7 +73,17 @@ func _get_effectiveness_color(multiplier: float) -> Color:
 		return GameColors.MULTIPLIER_X2_LIGHT
 	elif multiplier == 1.0:
 		return GameColors.MULTIPLIER_X1_LIGHT
-	elif multiplier > 0.0:
+	elif multiplier >= 0.5:
 		return GameColors.MULTIPLIER_HALF_LIGHT
+	elif multiplier > 0.0:
+		return GameColors.MULTIPLIER_QUARTER_LIGHT
 	else:
 		return GameColors.MULTIPLIER_X0_LIGHT
+
+
+func _apply_outline(label: Label, color: Color) -> void:
+	if label == null:
+		return
+	var material_instance: ShaderMaterial = preload("res://resources/hud_glow.tres").duplicate()
+	material_instance.set_shader_parameter("glow_color", color)
+	label.material = material_instance
