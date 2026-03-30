@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://nn7oox2tixo3"
-path="res://.godot/imported/black_sand.png-7afc3b306b9a340ca59db96aaaf66717.ctex"
+uid="uid://wn2qnqgiag34"
+path="res://.godot/imported/move_chip_colors_mockup.png-946b70b4e5807ad6aed0f03676913855.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/sprites/tilesets/black_sand.png"
-dest_files=["res://.godot/imported/black_sand.png-7afc3b306b9a340ca59db96aaaf66717.ctex"]
+source_file="res://art/reference/move_chip_colors_mockup.png"
+dest_files=["res://.godot/imported/move_chip_colors_mockup.png-946b70b4e5807ad6aed0f03676913855.ctex"]
 
 [params]
 

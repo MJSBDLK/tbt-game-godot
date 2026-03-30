@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://cid06twba2og5"]
 
 [ext_resource type="Shader" uid="uid://73x5snsmw5ew" path="res://resources/shaders/move_chip_fill.gdshader" id="1_hwt8s"]
-[ext_resource type="Script" path="res://scripts/ui/components/move_chip.gd" id="2_tsjxw"]
+[ext_resource type="Script" uid="uid://d3icbg3mtvwqo" path="res://scripts/ui/components/move_chip.gd" id="2_tsjxw"]
 [ext_resource type="PackedScene" uid="uid://bnln2wsfjk1qo" path="res://scenes/ui/panels/ui_text.tscn" id="3_dhjju"]
 [ext_resource type="PackedScene" path="res://scenes/ui/spacer_horizontal_expand.tscn" id="4_7233m"]
 [ext_resource type="Texture2D" uid="uid://btj5wfa71ge7y" path="res://art/sprites/ui/elemental_type_icons_10x10/plant.png" id="5_hwt8s"]
@@ -11,8 +11,8 @@ shader = ExtResource("1_hwt8s")
 shader_parameter/fill_color = Color(0.24313726, 0.40784314, 0.24705882, 1)
 shader_parameter/empty_color = Color(0.11764706, 0.21568628, 0.12941177, 1)
 shader_parameter/border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
-shader_parameter/fill_percent = 0.6
-shader_parameter/skew_amount = 0.05
+shader_parameter/fill_percent = 0.929
+shader_parameter/skew_angle = 45.0
 shader_parameter/border_px = 1.0
 shader_parameter/radius_px = 2.0
 shader_parameter/rect_size = Vector2(113, 14)
@@ -25,6 +25,7 @@ script = ExtResource("2_tsjxw")
 fill_color = Color(0.24313726, 0.40784314, 0.24705882, 1)
 empty_color = Color(0.11764706, 0.21568628, 0.12941177, 1)
 border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
+fill_percent = 1.0
 radius_px = 2.0
 
 [node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=14545190]

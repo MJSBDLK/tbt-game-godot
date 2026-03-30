@@ -166,8 +166,8 @@ func _create_move_chip(move: Move, is_assigned: bool, callback: Callable) -> Con
 	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var fill: float = float(move.current_uses) / float(move.max_uses) if move.max_uses > 0 else 0.0
-	var bright_color: Color = GameColors.get_move_chip_fill(move.element_type)
-	var dark_color: Color = GameColors.get_move_chip_empty(move.element_type)
+	var bright_color: Color = GameColors.get_move_chip_foreground(move.element_type)
+	var dark_color: Color = GameColors.get_move_chip_background(move.element_type)
 
 	chip.fill_color = bright_color
 	chip.empty_color = dark_color

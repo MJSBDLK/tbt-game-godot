@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bldwvquu8yrvh"
-path="res://.godot/imported/orange_sand.png-f96cbcc80970745c094b534c94c5160e.ctex"
+uid="uid://bbuta4yra1en7"
+path="res://.godot/imported/orange_sand__purple_sand_12x4.png-d50c41e7807667bdcc2e4264c77e32c8.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/sprites/tilesets/orange_sand.png"
-dest_files=["res://.godot/imported/orange_sand.png-f96cbcc80970745c094b534c94c5160e.ctex"]
+source_file="res://art/sprites/tilesets/orange_sand__purple_sand_12x4.png"
+dest_files=["res://.godot/imported/orange_sand__purple_sand_12x4.png-d50c41e7807667bdcc2e4264c77e32c8.ctex"]
 
 [params]
 

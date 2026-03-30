@@ -51,6 +51,10 @@ func show_tile(tile: Tile) -> void:
 	visible = true
 	_terrain_name_label.text = tile.terrain_type_name.capitalize()
 
+	var tile_texture := tile.get_tile_texture()
+	if tile_texture:
+		_terrain_icon.texture = tile_texture
+
 	# Clear dynamic rows (everything after the first 5 header icons)
 	var children: Array[Node] = _grid.get_children()
 	for i: int in range(children.size() - 1, 4, -1):

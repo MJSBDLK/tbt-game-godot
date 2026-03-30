@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dpo3poj5hua6c"
-path="res://.godot/imported/mountain.png-861719335b0980f28574d14a8dbc57b4.ctex"
+uid="uid://bkjvmtxu63l1e"
+path="res://.godot/imported/blue_sand__regolith_12x4.png-02e10509a3ea7ff0ddc1b6f9e4b95256.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/sprites/tilesets/mountain.png"
-dest_files=["res://.godot/imported/mountain.png-861719335b0980f28574d14a8dbc57b4.ctex"]
+source_file="res://art/sprites/tilesets/blue_sand__regolith_12x4.png"
+dest_files=["res://.godot/imported/blue_sand__regolith_12x4.png-02e10509a3ea7ff0ddc1b6f9e4b95256.ctex"]
 
 [params]
 

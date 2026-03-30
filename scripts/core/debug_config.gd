@@ -20,7 +20,7 @@ var unit_init: bool = true
 var combat: bool = true
 var ai: bool = false
 var status_effects: bool = true
-var testing_status_effects: bool = true  # Assign random status effects on unit spawn
+var testing_status_effects: bool = false  # Assign random status effects on unit spawn
 var testing_passives: bool = true  # Randomly equip passives from base pool on unit spawn
 
 # Input & State

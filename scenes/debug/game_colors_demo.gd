@@ -638,9 +638,13 @@ func _build_move_chip_colors(parent: Control) -> void:
 		if element_type == Enums.ElementalType.NONE:
 			continue
 
-		var type_name: String = Enums.elemental_type_to_string(element_type as Enums.ElementalType)
-		var fill_color: Color = GameColors.get_move_chip_fill(element_type as Enums.ElementalType)
-		var empty_color: Color = GameColors.get_move_chip_empty(element_type as Enums.ElementalType)
+		var typed: Enums.ElementalType = element_type as Enums.ElementalType
+		var type_name: String = Enums.elemental_type_to_string(typed)
+		var foreground: Color = GameColors.get_move_chip_foreground(typed)
+		var background: Color = GameColors.get_move_chip_background(typed)
+		var border: Color = GameColors.get_move_chip_border(typed)
+		var font_color: Color = GameColors.get_move_chip_font_color(typed)
+		var glow_color: Color = GameColors.get_move_chip_glow_color(typed)
 		var icon_path: String = "res://art/sprites/ui/elemental_type_icons_10x10/%s.png" % type_name.to_lower()
 		var icon_texture: Texture2D = load(icon_path) as Texture2D if ResourceLoader.exists(icon_path) else null
 
@@ -649,20 +653,20 @@ func _build_move_chip_colors(parent: Control) -> void:
 		vbox.add_child(hbox)
 
 		# Full chip
-		hbox.add_child(_make_move_chip(type_name, fill_color, empty_color, 1.0, icon_texture))
+		hbox.add_child(_make_move_chip(type_name, foreground, background, border, font_color, glow_color, 1.0, icon_texture))
 
 		# Half chip
-		hbox.add_child(_make_move_chip(type_name, fill_color, empty_color, 0.5, icon_texture))
+		hbox.add_child(_make_move_chip(type_name, foreground, background, border, font_color, glow_color, 0.5, icon_texture))
 
 
-func _make_move_chip(label_text: String, fill_color: Color, empty_color: Color, fill_percent: float, icon_texture: Texture2D) -> MoveChip:
+func _make_move_chip(label_text: String, foreground: Color, background: Color, border: Color, font_color: Color, glow_color: Color, fill_percent: float, icon_texture: Texture2D) -> MoveChip:
 	var chip := MoveChip.new()
 	chip.custom_minimum_size = Vector2(113, 14)
 	chip.material = MOVE_CHIP_MATERIAL.duplicate()
-	chip.fill_color = fill_color
-	chip.empty_color = empty_color
+	chip.fill_color = foreground
+	chip.empty_color = background
 	chip.fill_percent = fill_percent
-	chip.border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
+	chip.border_color = border
 	chip.radius_px = 2.0
 
 	# Inner HBoxContainer — matches scene: offset_top=2, offset_bottom=12 (10px inner)
@@ -681,7 +685,7 @@ func _make_move_chip(label_text: String, fill_color: Color, empty_color: Color, 
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	inner_hbox.add_child(margin)
 
-	var label := _make_glow_label(label_text, GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW, _font_5px, 5)
+	var label := _make_glow_label(label_text, font_color, glow_color, _font_5px, 5)
 	label.uppercase = false
 	margin.add_child(label)
 

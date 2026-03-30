@@ -2,7 +2,7 @@
 - [ ] 
 
 # Meeting 20260405
-- [ ] RQD - have move type icons (phys/spec/supp) wired up to show Lawrence
+- [x] RQD - have move type icons (phys/spec/supp) wired up to show Lawrence
 - [ ] RQD - add move type color pairings to the color demo panel - use full and half full move chips
 - [ ] RQD - figure out what we were using those status colors for
 - [ ] 

@@ -296,45 +296,146 @@ static var MULTIPLIER_X0_DARK: Color:
 
 
 # =============================================================================
-# MOVE CHIP COLORS (fill = bright portion, empty = dark background)
+# MOVE CHIP COLORS — v2 (extracted from Lawrence's mockup via extract_chip_colors.py)
+# Each type has: background, foreground, border, font_color, glow_color
+# Ramps: each type uses a single palette ramp (e.g. AIR = TealGray, FIRE = PoppyRed)
 # =============================================================================
 
-static func get_move_chip_fill(element_type: Enums.ElementalType) -> Color:
+static func get_move_chip_background(element_type: Enums.ElementalType) -> Color:
 	match element_type:
-		Enums.ElementalType.FIRE:      return GameColorPalette.get_color("Orange", 4)
-		Enums.ElementalType.ELECTRIC:  return GameColorPalette.get_color("Yellow", 4)
+		Enums.ElementalType.AIR:       return GameColorPalette.get_color("TealGray", 2)
+		Enums.ElementalType.CHIVALRIC: return GameColorPalette.get_color("Orange", 2)
+		Enums.ElementalType.COLD:      return GameColorPalette.get_color("Azure", 1)
+		Enums.ElementalType.ELECTRIC:  return GameColorPalette.get_color("YellowOrange", 2)
+		Enums.ElementalType.FIRE:      return GameColorPalette.get_color("PoppyRed", 2)
+		Enums.ElementalType.GENTRY:    return GameColorPalette.get_color("Tan2", 2)
+		Enums.ElementalType.GRAVITY:   return GameColorPalette.get_color("Violet", 1)
+		Enums.ElementalType.HERALDIC:  return GameColorPalette.get_color("Chartreuse", 2)
+		Enums.ElementalType.OCCULT:    return GameColorPalette.get_color("Red", 1)
+		Enums.ElementalType.PLANT:     return GameColorPalette.get_color("Green", 2)
+		Enums.ElementalType.ROBO:      return GameColorPalette.get_color("Gray", 3)
+		Enums.ElementalType.SIMPLE:    return GameColorPalette.get_color("S1", 2)
+		Enums.ElementalType.VOID:      return GameColorPalette.get_color("Yellow", 1)
+		Enums.ElementalType.OBSIDIAN:  return GameColorPalette.get_color("Blue", 0)
+		_:                             return GameColorPalette.get_color("Gray", 2)
+
+
+static func get_move_chip_foreground(element_type: Enums.ElementalType) -> Color:
+	match element_type:
+		Enums.ElementalType.AIR:       return GameColorPalette.get_color("TealGray", 7)
+		Enums.ElementalType.CHIVALRIC: return GameColorPalette.get_color("Orange", 6)
+		Enums.ElementalType.COLD:      return GameColorPalette.get_color("Azure", 4)
+		Enums.ElementalType.ELECTRIC:  return GameColorPalette.get_color("YellowOrange", 6)
+		Enums.ElementalType.FIRE:      return GameColorPalette.get_color("PoppyRed", 5)
+		Enums.ElementalType.GENTRY:    return GameColorPalette.get_color("Tan2", 7)
+		Enums.ElementalType.GRAVITY:   return GameColorPalette.get_color("Violet", 3)
+		Enums.ElementalType.HERALDIC:  return GameColorPalette.get_color("Chartreuse", 4)
+		Enums.ElementalType.OCCULT:    return GameColorPalette.get_color("Red", 4)
 		Enums.ElementalType.PLANT:     return GameColorPalette.get_color("Green", 4)
-		Enums.ElementalType.COLD:      return GameColorPalette.get_color("Blue", 5)
-		Enums.ElementalType.AIR:       return GameColorPalette.get_color("Cyan", 4)
-		Enums.ElementalType.GRAVITY:   return GameColorPalette.get_color("Purple", 4)
-		Enums.ElementalType.VOID:      return GameColorPalette.get_color("Eggplant", 4)
-		Enums.ElementalType.OCCULT:    return GameColorPalette.get_color("Violet", 4)
-		Enums.ElementalType.CHIVALRIC: return GameColorPalette.get_color("Azure", 4)
-		Enums.ElementalType.HERALDIC:  return GameColorPalette.get_color("YellowOrange", 4)
-		Enums.ElementalType.GENTRY:    return GameColorPalette.get_color("Eggshell", 4)
-		Enums.ElementalType.ROBO:      return GameColorPalette.get_color("TealGray", 4)
-		Enums.ElementalType.OBSIDIAN:  return GameColorPalette.get_color("Gray", 2)
-		Enums.ElementalType.SIMPLE:    return GameColorPalette.get_color("Gray", 4)
+		Enums.ElementalType.ROBO:      return GameColorPalette.get_color("Gray", 8)
+		Enums.ElementalType.SIMPLE:    return GameColorPalette.get_color("S1", 6)
+		Enums.ElementalType.VOID:      return GameColorPalette.get_color("Yellow", 5)
+		Enums.ElementalType.OBSIDIAN:  return GameColorPalette.get_color("Blue", 3)
+		_:                             return GameColorPalette.get_color("Gray", 5)
+
+
+static func get_move_chip_border(element_type: Enums.ElementalType) -> Color:
+	match element_type:
+		Enums.ElementalType.AIR:       return GameColorPalette.get_color("TealGray", 6)
+		Enums.ElementalType.CHIVALRIC: return GameColorPalette.get_color("Orange", 5)
+		Enums.ElementalType.COLD:      return GameColorPalette.get_color("Azure", 3)
+		Enums.ElementalType.ELECTRIC:  return GameColorPalette.get_color("YellowOrange", 5)
+		Enums.ElementalType.FIRE:      return GameColorPalette.get_color("PoppyRed", 4)
+		Enums.ElementalType.GENTRY:    return GameColorPalette.get_color("Tan2", 9)
+		Enums.ElementalType.GRAVITY:   return GameColorPalette.get_color("Violet", 5)
+		Enums.ElementalType.HERALDIC:  return GameColorPalette.get_color("Chartreuse", 5)
+		Enums.ElementalType.OCCULT:    return GameColorPalette.get_color("Red", 3)
+		Enums.ElementalType.PLANT:     return GameColorPalette.get_color("Green", 6)
+		Enums.ElementalType.ROBO:      return GameColorPalette.get_color("Gray", 9)
+		Enums.ElementalType.SIMPLE:    return GameColorPalette.get_color("S1", 3)
+		Enums.ElementalType.VOID:      return GameColorPalette.get_color("Yellow", 8)
+		Enums.ElementalType.OBSIDIAN:  return GameColorPalette.get_color("Blue", 2)
 		_:                             return GameColorPalette.get_color("Gray", 4)
 
 
-static func get_move_chip_empty(element_type: Enums.ElementalType) -> Color:
+static func get_move_chip_font_color(element_type: Enums.ElementalType) -> Color:
 	match element_type:
-		Enums.ElementalType.FIRE:      return GameColorPalette.get_color("Red", 1)
-		Enums.ElementalType.ELECTRIC:  return GameColorPalette.get_color("Purple", 1)
-		Enums.ElementalType.PLANT:     return GameColorPalette.get_color("Teal", 1)
-		Enums.ElementalType.COLD:      return GameColorPalette.get_color("Purple", 1)
-		Enums.ElementalType.AIR:       return GameColorPalette.get_color("Blue", 1)
-		Enums.ElementalType.GRAVITY:   return GameColorPalette.get_color("Gray", 1)
-		Enums.ElementalType.VOID:      return GameColorPalette.get_color("Gray", 0)
-		Enums.ElementalType.OCCULT:    return GameColorPalette.get_color("RedViolet", 1)
-		Enums.ElementalType.CHIVALRIC: return GameColorPalette.get_color("Blue", 1)
-		Enums.ElementalType.HERALDIC:  return GameColorPalette.get_color("Orange", 1)
-		Enums.ElementalType.GENTRY:    return GameColorPalette.get_color("Straw", 1)
-		Enums.ElementalType.ROBO:      return GameColorPalette.get_color("Gray", 1)
-		Enums.ElementalType.OBSIDIAN:  return GameColorPalette.get_color("Gray", 0)
-		Enums.ElementalType.SIMPLE:    return GameColorPalette.get_color("Blue", 1)
-		_:                             return GameColorPalette.get_color("Blue", 1)
+		Enums.ElementalType.AIR:       return GameColorPalette.get_color("TealGray", 10)
+		Enums.ElementalType.CHIVALRIC: return GameColorPalette.get_color("Orange", 10)
+		Enums.ElementalType.COLD:      return GameColorPalette.get_color("Azure", 10)
+		Enums.ElementalType.ELECTRIC:  return GameColorPalette.get_color("YellowOrange", 10)
+		Enums.ElementalType.FIRE:      return GameColorPalette.get_color("PoppyRed", 10)
+		Enums.ElementalType.GENTRY:    return GameColorPalette.get_color("Tan2", 10)
+		Enums.ElementalType.GRAVITY:   return GameColorPalette.get_color("Violet", 10)
+		Enums.ElementalType.HERALDIC:  return GameColorPalette.get_color("Chartreuse", 10)
+		Enums.ElementalType.OCCULT:    return GameColorPalette.get_color("Red", 10)
+		Enums.ElementalType.PLANT:     return GameColorPalette.get_color("Green", 10)
+		Enums.ElementalType.ROBO:      return GameColorPalette.get_color("Gray", 10)
+		Enums.ElementalType.SIMPLE:    return GameColorPalette.get_color("S1", 10)
+		Enums.ElementalType.VOID:      return GameColorPalette.get_color("Yellow", 10)
+		Enums.ElementalType.OBSIDIAN:  return GameColorPalette.get_color("Blue", 10)
+		_:                             return GameColorPalette.get_color("Gray", 9)
+
+
+static func get_move_chip_glow_color(element_type: Enums.ElementalType) -> Color:
+	match element_type:
+		Enums.ElementalType.AIR:       return GameColorPalette.get_color("TealGray", 6)
+		Enums.ElementalType.CHIVALRIC: return GameColorPalette.get_color("Orange", 5)
+		Enums.ElementalType.COLD:      return GameColorPalette.get_color("Azure", 5)
+		Enums.ElementalType.ELECTRIC:  return GameColorPalette.get_color("YellowOrange", 5)
+		Enums.ElementalType.FIRE:      return GameColorPalette.get_color("PoppyRed", 6)
+		Enums.ElementalType.GENTRY:    return GameColorPalette.get_color("Tan2", 5)
+		Enums.ElementalType.GRAVITY:   return GameColorPalette.get_color("Violet", 5)
+		Enums.ElementalType.HERALDIC:  return GameColorPalette.get_color("Chartreuse", 5)
+		Enums.ElementalType.OCCULT:    return GameColorPalette.get_color("Red", 3)
+		Enums.ElementalType.PLANT:     return GameColorPalette.get_color("Green", 6)
+		Enums.ElementalType.ROBO:      return GameColorPalette.get_color("Gray", 5)
+		Enums.ElementalType.SIMPLE:    return GameColorPalette.get_color("S1", 4)
+		Enums.ElementalType.VOID:      return GameColorPalette.get_color("Yellow", 4)
+		Enums.ElementalType.OBSIDIAN:  return GameColorPalette.get_color("Blue", 6)
+		_:                             return GameColorPalette.get_color("Gray", 5)
+
+
+# =============================================================================
+# MOVE CHIP COLORS — v1 (deprecated, kept for reference)
+# =============================================================================
+#
+#static func get_move_chip_fill(element_type: Enums.ElementalType) -> Color:
+#	match element_type:
+#		Enums.ElementalType.FIRE:      return GameColorPalette.get_color("Orange", 4)
+#		Enums.ElementalType.ELECTRIC:  return GameColorPalette.get_color("Yellow", 4)
+#		Enums.ElementalType.PLANT:     return GameColorPalette.get_color("Green", 4)
+#		Enums.ElementalType.COLD:      return GameColorPalette.get_color("Blue", 5)
+#		Enums.ElementalType.AIR:       return GameColorPalette.get_color("Cyan", 4)
+#		Enums.ElementalType.GRAVITY:   return GameColorPalette.get_color("Purple", 4)
+#		Enums.ElementalType.VOID:      return GameColorPalette.get_color("Eggplant", 4)
+#		Enums.ElementalType.OCCULT:    return GameColorPalette.get_color("Violet", 4)
+#		Enums.ElementalType.CHIVALRIC: return GameColorPalette.get_color("Azure", 4)
+#		Enums.ElementalType.HERALDIC:  return GameColorPalette.get_color("YellowOrange", 4)
+#		Enums.ElementalType.GENTRY:    return GameColorPalette.get_color("Eggshell", 4)
+#		Enums.ElementalType.ROBO:      return GameColorPalette.get_color("TealGray", 4)
+#		Enums.ElementalType.OBSIDIAN:  return GameColorPalette.get_color("Gray", 2)
+#		Enums.ElementalType.SIMPLE:    return GameColorPalette.get_color("Gray", 4)
+#		_:                             return GameColorPalette.get_color("Gray", 4)
+#
+#
+#static func get_move_chip_empty(element_type: Enums.ElementalType) -> Color:
+#	match element_type:
+#		Enums.ElementalType.FIRE:      return GameColorPalette.get_color("Red", 1)
+#		Enums.ElementalType.ELECTRIC:  return GameColorPalette.get_color("Purple", 1)
+#		Enums.ElementalType.PLANT:     return GameColorPalette.get_color("Teal", 1)
+#		Enums.ElementalType.COLD:      return GameColorPalette.get_color("Purple", 1)
+#		Enums.ElementalType.AIR:       return GameColorPalette.get_color("Blue", 1)
+#		Enums.ElementalType.GRAVITY:   return GameColorPalette.get_color("Gray", 1)
+#		Enums.ElementalType.VOID:      return GameColorPalette.get_color("Gray", 0)
+#		Enums.ElementalType.OCCULT:    return GameColorPalette.get_color("RedViolet", 1)
+#		Enums.ElementalType.CHIVALRIC: return GameColorPalette.get_color("Blue", 1)
+#		Enums.ElementalType.HERALDIC:  return GameColorPalette.get_color("Orange", 1)
+#		Enums.ElementalType.GENTRY:    return GameColorPalette.get_color("Straw", 1)
+#		Enums.ElementalType.ROBO:      return GameColorPalette.get_color("Gray", 1)
+#		Enums.ElementalType.OBSIDIAN:  return GameColorPalette.get_color("Gray", 0)
+#		Enums.ElementalType.SIMPLE:    return GameColorPalette.get_color("Blue", 1)
+#		_:                             return GameColorPalette.get_color("Blue", 1)
 
 
 # =============================================================================

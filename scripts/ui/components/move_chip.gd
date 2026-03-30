@@ -17,14 +17,16 @@ class_name MoveChip
 		border_color = value
 		_apply_shader_params()
 
+const MAX_FILL: float = 0.929
+
 @export_range(0.0, 1.0) var fill_percent: float = 0.6:
 	set(value):
 		fill_percent = value
 		_apply_shader_params()
 
-@export_range(0.0, 0.3) var skew_amount: float = 0.05:
+@export_range(0.0, 45.0) var skew_angle: float = 45.0:
 	set(value):
-		skew_amount = value
+		skew_angle = value
 		_apply_shader_params()
 
 @export_range(0.0, 4.0) var border_px: float = 1.0:
@@ -61,8 +63,8 @@ func _apply_shader_params() -> void:
 	shader_material.set_shader_parameter("fill_color", fill_color)
 	shader_material.set_shader_parameter("empty_color", empty_color)
 	shader_material.set_shader_parameter("border_color", border_color)
-	shader_material.set_shader_parameter("fill_percent", fill_percent)
-	shader_material.set_shader_parameter("skew_amount", skew_amount)
+	shader_material.set_shader_parameter("fill_percent", fill_percent * MAX_FILL)
+	shader_material.set_shader_parameter("skew_angle", skew_angle)
 	shader_material.set_shader_parameter("border_px", border_px)
 	shader_material.set_shader_parameter("radius_px", radius_px)
 	shader_material.set_shader_parameter("rect_size", get_rect().size)

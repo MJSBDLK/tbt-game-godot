@@ -30,6 +30,10 @@ const _DAMAGE_VALUE_PATH = "PercentageAndMultipliersSection/DamageValueContainer
 const _HIT_VALUE_PATH = "PercentageAndMultipliersSection/HitPercentageContainer/GlowLabel"
 const _SECONDARY_VALUE_PATH = "PercentageAndMultipliersSection/SecondaryChanceContainer/GlowLabel"
 const _MULTIPLIER_VALUE_PATH = "PercentageAndMultipliersSection/DamageMultiplierContainer/GlowLabel"
+const _PRIMARY_TYPE_ICON_PATH = "UnitRow/HBoxContainer/UnitTypeIconContainer/TextureRect"
+const _SECONDARY_TYPE_ICON_PATH = "UnitRow/HBoxContainer/UnitTypeIconContainer2/TextureRect"
+const _MOVE_TYPE_ICON_PATH = "MoveRow/HBoxContainer/UnitTypeIconContainer/TextureRect"
+const _MOVE_DAMAGE_TYPE_ICON_PATH = "MoveRow/HBoxContainer/UnitTypeIconContainer2/TextureRect"
 
 # 4 unique-named containers (set "Access as Unique Name" on these in the editor)
 @onready var _attacker_section: Control = %AttackerContainer
@@ -56,6 +60,16 @@ const _MULTIPLIER_VALUE_PATH = "PercentageAndMultipliersSection/DamageMultiplier
 @onready var _defender_secondary_label: Label = _defender_section.get_node(_SECONDARY_VALUE_PATH)
 @onready var _defender_multiplier_label: Label = _defender_section.get_node(_MULTIPLIER_VALUE_PATH)
 @onready var _defender_hits_label: Label = _defender_section.get_node(_MOVE_HITS_PATH)
+
+# Unit type icons (primary + secondary) and move element icon per section
+@onready var _attacker_primary_type_icon: TextureRect = _attacker_section.get_node(_PRIMARY_TYPE_ICON_PATH)
+@onready var _attacker_secondary_type_icon: TextureRect = _attacker_section.get_node(_SECONDARY_TYPE_ICON_PATH)
+@onready var _attacker_move_type_icon: TextureRect = _attacker_section.get_node(_MOVE_TYPE_ICON_PATH)
+@onready var _defender_primary_type_icon: TextureRect = _defender_section.get_node(_PRIMARY_TYPE_ICON_PATH)
+@onready var _defender_secondary_type_icon: TextureRect = _defender_section.get_node(_SECONDARY_TYPE_ICON_PATH)
+@onready var _defender_move_type_icon: TextureRect = _defender_section.get_node(_MOVE_TYPE_ICON_PATH)
+@onready var _attacker_move_damage_type_icon: TextureRect = _attacker_section.get_node(_MOVE_DAMAGE_TYPE_ICON_PATH)
+@onready var _defender_move_damage_type_icon: TextureRect = _defender_section.get_node(_MOVE_DAMAGE_TYPE_ICON_PATH)
 
 
 func _ready() -> void:
@@ -94,6 +108,11 @@ func _update_attacker_section(attacker: Node, defender: Node, move: Move) -> voi
 	var attacker_name: String = attacker.get("unit_name") if attacker.get("unit_name") else "???"
 	_attacker_name_label.text = _truncate(attacker_name)
 
+	var attacker_data: CharacterData = attacker.get("character_data")
+	_set_unit_type_icons(_attacker_primary_type_icon, _attacker_secondary_type_icon, attacker_data)
+	_set_elemental_icon(_attacker_move_type_icon, move.element_type)
+	_set_damage_type_icon(_attacker_move_damage_type_icon, move.damage_type)
+
 	_attacker_move_label.text = _truncate(move.abbrev_name)
 
 	# Damage per hit and hit count (from athleticism comparison)
@@ -124,10 +143,15 @@ func _update_defender_section(attacker: Node, defender: Node, move: Move) -> voi
 	var defender_name: String = defender.get("unit_name") if defender.get("unit_name") else "???"
 	_defender_name_label.text = _truncate(defender_name)
 
+	var defender_data: CharacterData = defender.get("character_data")
+	_set_unit_type_icons(_defender_primary_type_icon, _defender_secondary_type_icon, defender_data)
+
 	var can_counter := DamageCalculator.can_counter_attack(defender, attacker)
 	if can_counter:
 		var counter_move: Move = defender.get("assigned_move")
 		_defender_move_label.text = _truncate(counter_move.abbrev_name)
+		_set_elemental_icon(_defender_move_type_icon, counter_move.element_type)
+		_set_damage_type_icon(_defender_move_damage_type_icon, counter_move.damage_type)
 
 		var counter_damage := DamageCalculator.calculate_damage(defender, attacker, counter_move)
 		var counter_hits := DamageCalculator.calculate_attack_count(defender, attacker)
@@ -143,7 +167,9 @@ func _update_defender_section(attacker: Node, defender: Node, move: Move) -> voi
 			defender, attacker, counter_move)
 		_set_multiplier_label(_defender_multiplier_label, counter_effectiveness)
 	else:
-		_defender_move_label.text = "No Counter"
+		_defender_move_label.text = "--"
+		_defender_move_type_icon.get_parent().visible = false
+		_defender_move_damage_type_icon.get_parent().visible = false
 		_set_hits_label(_defender_hits_label, 0)
 		_defender_damage_label.text = "0"
 		_defender_hit_label.text = "--"
@@ -287,3 +313,34 @@ func _color_multiplier_label(label: Label, effectiveness: float) -> void:
 	# GlowLabel exposes glow_color for the shader — set it if available
 	if label.has_method("_apply_glow_color"):
 		label.set("glow_color", colors[1])
+
+
+func _set_unit_type_icons(primary_icon: TextureRect, secondary_icon: TextureRect, data: CharacterData) -> void:
+	if data:
+		_set_elemental_icon(primary_icon, data.primary_type)
+		_set_elemental_icon(secondary_icon, data.secondary_type)
+	else:
+		primary_icon.get_parent().visible = false
+		secondary_icon.get_parent().visible = false
+
+
+func _set_damage_type_icon(icon: TextureRect, damage_type: Enums.DamageType) -> void:
+	var icon_path: String = Enums.get_damage_type_icon(damage_type)
+	if icon_path != "" and ResourceLoader.exists(icon_path):
+		icon.texture = load(icon_path) as Texture2D
+		icon.get_parent().visible = true
+	else:
+		icon.get_parent().visible = false
+
+
+func _set_elemental_icon(icon: TextureRect, element_type: Enums.ElementalType) -> void:
+	if element_type == Enums.ElementalType.NONE:
+		icon.get_parent().visible = false
+	else:
+		var type_name: String = Enums.elemental_type_to_string(element_type).to_lower()
+		var path: String = "res://art/sprites/ui/elemental_type_icons_10x10/%s.png" % type_name
+		if ResourceLoader.exists(path):
+			icon.texture = load(path) as Texture2D
+			icon.get_parent().visible = true
+		else:
+			icon.get_parent().visible = false

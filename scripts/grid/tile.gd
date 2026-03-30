@@ -141,6 +141,41 @@ func set_color(color: Color) -> void:
 
 
 # =============================================================================
+# TEXTURE EXTRACTION
+# =============================================================================
+
+## Returns the tile's visual texture from the TileMapLayer tileset.
+## Used by UI panels that need a snapshot of what this tile looks like.
+func get_tile_texture() -> Texture2D:
+	var builder: Node = get_parent().get_parent()  # Tiles -> TilemapGridBuilder
+	if builder == null:
+		return null
+
+	var floor_layer: TileMapLayer = builder.get_node_or_null("TerrainTileLayer") as TileMapLayer
+	if floor_layer == null:
+		return null
+
+	# Convert game-grid coords back to tilemap cell coords (Y-flip)
+	var cell := Vector2i(grid_x, -grid_y)
+	var source_id := floor_layer.get_cell_source_id(cell)
+	if source_id < 0:
+		return null
+
+	var tile_set := floor_layer.tile_set
+	var source := tile_set.get_source(source_id) as TileSetAtlasSource
+	if source == null:
+		return null
+
+	var atlas_coords := floor_layer.get_cell_atlas_coords(cell)
+	var region := source.get_tile_texture_region(atlas_coords)
+
+	var atlas_texture := AtlasTexture.new()
+	atlas_texture.atlas = source.texture
+	atlas_texture.region = region
+	return atlas_texture
+
+
+# =============================================================================
 # UTILITY
 # =============================================================================
 

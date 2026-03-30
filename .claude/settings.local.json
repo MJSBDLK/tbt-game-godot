@@ -96,7 +96,9 @@
       "Bash(cat /home/mjsbdlk/Documents/Projects/tbt-game-godot/data/moves/*.json)",
       "Bash(grep -E \"\\\\.\\(tscn|gd\\)$\")",
       "Bash(gh repo:*)",
-      "Bash(grep -v \".import$\")"
+      "Bash(grep -v \".import$\")",
+      "Bash(/home/mjsbdlk/aseprite/build/bin/aseprite -b art/sprites/tilesets/2x3_source_tiles/2x3_source_tiles.aseprite --data /dev/stdout --format json-array)",
+      "Bash(grep \"source_file\" art/sprites/tilesets/*_12x4.png.import)"
     ]
   }
 }

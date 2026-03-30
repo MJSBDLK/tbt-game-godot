@@ -4,7 +4,7 @@ uniform vec4 fill_color : source_color = vec4(0.8, 0.3, 0.1, 1.0);
 uniform vec4 empty_color : source_color = vec4(0.3, 0.1, 0.05, 1.0);
 uniform vec4 border_color : source_color = vec4(0.15, 0.15, 0.15, 1.0);
 uniform float fill_percent : hint_range(0.0, 1.0) = 0.6;
-uniform float skew_amount : hint_range(0.0, 0.3) = 0.05;
+uniform float skew_angle : hint_range(0.0, 45.0) = 45.0;
 uniform float border_px : hint_range(0.0, 4.0) = 1.0;
 uniform float radius_px : hint_range(0.0, 10.0) = 3.0;
 uniform vec2 rect_size = vec2(100.0, 14.0);
@@ -21,7 +21,8 @@ void fragment() {
 	float dist = rounded_box_sdf(pos_px - center, center, radius_px);
 
 	// Inner color: fill or empty based on diagonal threshold
-	float threshold = fill_percent + skew_amount - (skew_amount * 2.0 * UV.y);
+	float skew = tan(radians(skew_angle)) * rect_size.y / (2.0 * rect_size.x);
+	float threshold = fill_percent + skew - (skew * 2.0 * UV.y);
 	vec4 inner = UV.x < threshold ? fill_color : empty_color;
 
 	// Blend border -> inner using SDF distance

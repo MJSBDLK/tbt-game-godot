@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dcfcps0iehfc"
-path="res://.godot/imported/road.png-9c4ea31c5147de0ba5c80b74f09bdf0e.ctex"
+uid="uid://nn7oox2tixo3"
+path="res://.godot/imported/black_sand__regolith_12x4.png-2301c33bb02e86cbde06c69157984a39.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/sprites/tilesets/road.png"
-dest_files=["res://.godot/imported/road.png-9c4ea31c5147de0ba5c80b74f09bdf0e.ctex"]
+source_file="res://art/sprites/tilesets/black_sand__regolith_12x4.png"
+dest_files=["res://.godot/imported/black_sand__regolith_12x4.png-2301c33bb02e86cbde06c69157984a39.ctex"]
 
 [params]
 

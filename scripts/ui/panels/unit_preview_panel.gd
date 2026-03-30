@@ -191,8 +191,8 @@ func _update_move_chip(chip: ColorRect, move: Move) -> void:
 	var fill: float = float(move.current_uses) / float(move.max_uses) if move.max_uses > 0 else 0.0
 	# DEBUG: uncomment to randomize fill for visual testing
 	#fill = randf_range(0.1, 0.9)
-	var bright_color: Color = GameColors.get_move_chip_fill(move.element_type)
-	var dark_color: Color = GameColors.get_move_chip_empty(move.element_type)
+	var bright_color: Color = GameColors.get_move_chip_foreground(move.element_type)
+	var dark_color: Color = GameColors.get_move_chip_background(move.element_type)
 
 	chip.set("fill_color", bright_color)
 	chip.set("empty_color", dark_color)
