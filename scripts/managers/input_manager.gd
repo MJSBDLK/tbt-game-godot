@@ -256,6 +256,9 @@ func _end_press() -> void:
 		# Long press already opened unit detail — don't also fire a click
 		_reset_press()
 		return
+	if _press_start_time < 0.0:
+		# Press-down was consumed by GUI (e.g. action menu button) — ignore the release
+		return
 	_handle_left_click()
 	_reset_press()
 

@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://df3xfvf5lh7mq" path="res://scenes/ui/panels/unit_detail_panel/stat_container.tscn" id="3_6fycp"]
 [ext_resource type="Texture2D" uid="uid://cdywvg8e4nbn" path="res://art/sprites/ui/hud_panel/leading_colon_white.png" id="3_c3gtm"]
 [ext_resource type="PackedScene" uid="uid://c7kjsj5b8efcw" path="res://scenes/ui/panels/unit_detail_panel/hp_container.tscn" id="4_1wkfw"]
+[ext_resource type="Texture2D" uid="uid://3ogoy3kjkvs7" path="res://art/sprites/ui/elemental_type_icons_10x10/gravity.png" id="5_3cqu2"]
 [ext_resource type="Material" uid="uid://d3rfhbptxbold" path="res://resources/hud_glow.tres" id="5_o3ofy"]
 [ext_resource type="PackedScene" uid="uid://dd24vss0p725t" path="res://scenes/ui/panels/unit_detail_panel/panel_container.tscn" id="6_m0525"]
 [ext_resource type="PackedScene" uid="uid://bnln2wsfjk1qo" path="res://scenes/ui/panels/ui_text.tscn" id="6_p6yto"]
@@ -16,11 +17,11 @@
 [ext_resource type="Texture2D" uid="uid://ctjbmyua33w0k" path="res://art/sprites/ui/elemental_type_icons_10x10/simple.png" id="15_7ir6r"]
 [ext_resource type="Texture2D" uid="uid://0q8h7ynjwlnj" path="res://art/sprites/ui/status_effect_icons/burn.png" id="15_o3ofy"]
 [ext_resource type="Texture2D" uid="uid://1738pmwtyeww" path="res://art/sprites/ui/status_effect_icons/rooted.png" id="16_3cqu2"]
-[ext_resource type="Texture2D" uid="uid://cv4xdlkrumtqu" path="res://art/sprites/ui/elemental_type_icons_10x10/obsidian.png" id="16_2518s"]
 [ext_resource type="PackedScene" uid="uid://dmhftfupyer7o" path="res://scenes/ui/panels/ui_text_centered.tscn" id="17_0oxyw"]
 [ext_resource type="Texture2D" uid="uid://kp12o3qgqk55" path="res://art/sprites/ui/status_effect_icons/freeze.png" id="17_ywfd3"]
 [ext_resource type="Texture2D" uid="uid://cwhv7tr2sownv" path="res://art/sprites/ui/status_effect_icons/challenged.png" id="18_pqajl"]
 [ext_resource type="Script" uid="uid://dssao01a5a5gn" path="res://scripts/ui/panels/unit_detail_panel.gd" id="19_script"]
+[ext_resource type="Texture2D" uid="uid://dmb30p1t7k1pr" path="res://art/sprites/ui/move_type_icons_10x10/physical.png" id="20_o3ofy"]
 [ext_resource type="Texture2D" uid="uid://dxqehrjh25e5" path="res://art/sprites/ui/status_effect_icons/critical.png" id="22_o06yo"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4tjpj"]
@@ -117,6 +118,9 @@ layout_mode = 2
 
 [node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/UnitNameAndTypes/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(746814425, 781430797) index="0" unique_id=1042415212]
 text = "Max Stellar"
+
+[node name="TextureRect" parent="MainRow/LeftColumnMargin/LeftColumn/UnitNameAndTypes/HBoxContainer/UnitTypeIconContainer2" parent_id_path=PackedInt32Array(746814425, 703941886) index="0" unique_id=1922221654]
+texture = ExtResource("5_3cqu2")
 
 [node name="MarginContainer2" parent="MainRow/LeftColumnMargin/LeftColumn/UnitNameAndTypes/HBoxContainer" parent_id_path=PackedInt32Array(746814425, 760266391) index="3" unique_id=1691056733]
 visible = false
@@ -466,6 +470,7 @@ visible = true
 
 [node name="TextureRect" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel1/HBoxContainer/ElemetalTypeIconContainer" index="0" unique_id=1278191071]
 texture = ExtResource("15_o3ofy")
+stretch_mode = 5
 
 [node name="MarginContainer" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel1/HBoxContainer" parent_id_path=PackedInt32Array(1226398933, 596906299) index="2" unique_id=781430797]
 size_flags_horizontal = 1
@@ -490,6 +495,7 @@ visible = true
 
 [node name="TextureRect" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel2/HBoxContainer/ElemetalTypeIconContainer" index="0" unique_id=1278191071]
 texture = ExtResource("16_3cqu2")
+stretch_mode = 5
 
 [node name="MarginContainer" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel2/HBoxContainer" parent_id_path=PackedInt32Array(78460901, 596906299) index="2" unique_id=781430797]
 size_flags_horizontal = 1
@@ -514,6 +520,7 @@ visible = true
 
 [node name="TextureRect" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel3/HBoxContainer/ElemetalTypeIconContainer" index="0" unique_id=1278191071]
 texture = ExtResource("17_ywfd3")
+stretch_mode = 5
 
 [node name="MarginContainer" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel3/HBoxContainer" parent_id_path=PackedInt32Array(669822751, 596906299) index="2" unique_id=781430797]
 size_flags_horizontal = 1
@@ -538,6 +545,7 @@ visible = true
 
 [node name="TextureRect" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel4/HBoxContainer/ElemetalTypeIconContainer" index="0" unique_id=1278191071]
 texture = ExtResource("18_pqajl")
+stretch_mode = 5
 
 [node name="MarginContainer" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel4/HBoxContainer" parent_id_path=PackedInt32Array(1352442921, 596906299) index="2" unique_id=781430797]
 size_flags_horizontal = 1
@@ -591,7 +599,7 @@ theme_override_constants/margin_top = 0
 
 [node name="TextureRect" type="TextureRect" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/MoveContainer/MoveTypeContainer" unique_id=1158001500]
 layout_mode = 2
-texture = ExtResource("16_2518s")
+texture = ExtResource("20_o3ofy")
 
 [node name="PowerAccUsgContainer" type="HBoxContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription" unique_id=908821707]
 layout_mode = 2

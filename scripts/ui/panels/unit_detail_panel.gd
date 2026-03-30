@@ -63,6 +63,7 @@ var _status_description: VBoxContainer = null
 # Move detail labels
 var _move_detail_name_label: Label = null
 var _move_detail_element_icon: TextureRect = null
+var _move_detail_damage_type_icon: TextureRect = null
 var _move_detail_power_label: Label = null
 var _move_detail_accuracy_label: Label = null
 var _move_detail_usage_label: Label = null
@@ -230,9 +231,8 @@ func _cache_node_references() -> void:
 	var move_container: HBoxContainer = _move_description.get_node("MoveContainer")
 	_move_detail_name_label = _find_label_in_node(move_container.get_node("MarginContainer"))
 	_move_detail_element_icon = move_container.get_node("ElementalTypeContainer/TextureRect")
-	# Moves only have one type — hide the second icon container (reused from unit prefab)
 	if move_container.has_node("MoveTypeContainer"):
-		move_container.get_node("MoveTypeContainer").visible = false
+		_move_detail_damage_type_icon = move_container.get_node("MoveTypeContainer/TextureRect")
 
 	# Power/Acc/Usage mini-panels
 	var power_acc_usg: HBoxContainer = _move_description.get_node("PowerAccUsgContainer")
@@ -648,6 +648,14 @@ func _show_move_detail(index: int) -> void:
 
 	if _move_detail_element_icon:
 		_move_detail_element_icon.texture = _get_elemental_icon(move.element_type)
+
+	if _move_detail_damage_type_icon:
+		var icon_path: String = Enums.get_damage_type_icon(move.damage_type)
+		if icon_path != "" and ResourceLoader.exists(icon_path):
+			_move_detail_damage_type_icon.texture = load(icon_path) as Texture2D
+			_move_detail_damage_type_icon.get_parent().visible = true
+		else:
+			_move_detail_damage_type_icon.get_parent().visible = false
 
 	if _move_detail_power_label:
 		_move_detail_power_label.text = "%d" % move.base_power if move.base_power > 0 else "--"

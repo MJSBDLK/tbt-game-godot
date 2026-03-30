@@ -263,3 +263,11 @@ static func string_to_elemental_type(type_name: String) -> ElementalType:
 		if key == upper:
 			return ElementalType[key]
 	return ElementalType.NONE
+
+
+static func get_damage_type_icon(damage_type: DamageType) -> String:
+	match damage_type:
+		DamageType.PHYSICAL: return "res://art/sprites/ui/move_type_icons_10x10/physical.png"
+		DamageType.SPECIAL: return "res://art/sprites/ui/move_type_icons_10x10/special_d.png"
+		DamageType.SUPPORT: return "res://art/sprites/ui/move_type_icons_10x10/support.png"
+		_: return ""
