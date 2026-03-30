@@ -94,7 +94,8 @@
       "Bash(xargs -n1 basename)",
       "Bash(/home/mjsbdlk/aseprite/build/bin/aseprite -b /home/mjsbdlk/Documents/Projects/tbt-game-godot/art/sprites/ui/status_effect_icons_6x6_v2/status_effect_icons_6x6_v2.aseprite --data /dev/stdout --format json-array)",
       "Bash(cat /home/mjsbdlk/Documents/Projects/tbt-game-godot/data/moves/*.json)",
-      "Bash(grep -E \"\\\\.\\(tscn|gd\\)$\")"
+      "Bash(grep -E \"\\\\.\\(tscn|gd\\)$\")",
+      "Bash(gh repo:*)"
     ]
   }
 }

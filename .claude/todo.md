@@ -1,12 +1,23 @@
-# Meeting 20260329
-- [ ] Go over style guide with Lawrence
-- [ ] Any options you can think of?
-
 ## For Lawrence (Art!)
-- [ ] move preview animated arrow (see the FreePixelEffect resource from the Unity project)
-- [ ] waypoint indicator for move preview
+- [ ] 
+
+# Meeting 20260405
+- [ ] RQD - have move type icons (phys/spec/supp) wired up to show Lawrence
+- [ ] RQD - add move type color pairings to the color demo panel - use full and half full move chips
+- [ ] RQD - figure out what we were using those status colors for
+- [ ] 
+- [ ] LOD - move preview animated arrow (see the FreePixelEffect resource from the Unity project)
+- [ ] LOD - waypoint indicator for move preview
+- [ ] Go over style guide with Lawrence
+- [ ] Check out the colors demo
+- [ ] Check out the options menu - any options you can think of?
 
 # Todo
+- [ ] Merge Lawrence's branch
+- [ ] RQD - orthogonal shader border
+- [ ] Status icons are stretched in the unit detail panel
+- [ ] Start adding tooltips
+- [ ] We forgot to add the injury system!
 - [x] Style the action menu panel
 - [x] Style the combat preview panel
 - [x] Phase transition
@@ -40,9 +51,9 @@
 + [x] Support - a move that helps your team, maybe just a green plus or something?
 
 ### Terrain Attributes
-+ [ ] Movement cost — boot/footprint
-+ [ ] Defense modifier — shield
-+ [ ] Avoid modifier — dodging figure
-+ [ ] Attack multiplier — sword / crosshair
++ [x] Movement cost — boot/footprint
++ [x] Defense modifier — shield
++ [x] Avoid modifier — dodging figure
++ [x] Attack multiplier — sword / crosshair
 
 ### Health bar background glow

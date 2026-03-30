@@ -3,17 +3,17 @@
 [ext_resource type="Texture2D" uid="uid://cpjc2y8havpey" path="res://art/sprites/ui/hud_panel/panel_border_tall.png" id="2_1in3x"]
 [ext_resource type="Texture2D" uid="uid://bbsipj42qbwqu" path="res://art/portraits/maam_portrait.png" id="3_b2vn0"]
 [ext_resource type="PackedScene" uid="uid://bnln2wsfjk1qo" path="res://scenes/ui/panels/ui_text.tscn" id="6_6gye5"]
-[ext_resource type="PackedScene" uid="uid://brwuwlg5n6h6q" path="res://scenes/ui/panels/ui_text_secondary.tscn" id="7_1in3x"]
+[ext_resource type="PackedScene" path="res://scenes/ui/panels/ui_text_secondary.tscn" id="7_1in3x"]
 [ext_resource type="Material" uid="uid://d3rfhbptxbold" path="res://resources/hud_glow.tres" id="8_caeep"]
-[ext_resource type="PackedScene" uid="uid://c5ru5qu6xedcy" path="res://scenes/ui/spacer_horizontal_expand.tscn" id="9_6gye5"]
-[ext_resource type="Script" uid="uid://ctyqqhodhdp85" path="res://scripts/ui/components/glow_color_rect.gd" id="9_q2q7x"]
-[ext_resource type="Texture2D" uid="uid://bxto2621eitf" path="res://resources/ui/icons/type_plant.tres" id="10_hnhj3"]
-[ext_resource type="Script" uid="uid://d3icbg3mtvwqo" path="res://scripts/ui/components/move_chip.gd" id="10_k7j8h"]
+[ext_resource type="PackedScene" uid="uid://cid06twba2og5" path="res://scenes/ui/panels/unit_preview_panel/move_container.tscn" id="8_tv8aq"]
+[ext_resource type="PackedScene" path="res://scenes/ui/spacer_horizontal_expand.tscn" id="9_6gye5"]
+[ext_resource type="Script" path="res://scripts/ui/components/glow_color_rect.gd" id="9_q2q7x"]
+[ext_resource type="Script" path="res://scripts/ui/components/move_chip.gd" id="10_k7j8h"]
 [ext_resource type="Texture2D" uid="uid://ca276mnrds1mt" path="res://art/sprites/ui/elemental_type_icons_10x10/cold.png" id="12_tv8aq"]
 [ext_resource type="Shader" uid="uid://73x5snsmw5ew" path="res://resources/shaders/move_chip_fill.gdshader" id="13_kslfy"]
 [ext_resource type="Texture2D" uid="uid://0q8h7ynjwlnj" path="res://art/sprites/ui/status_effect_icons/burn.png" id="16_k0vg6"]
 [ext_resource type="Script" uid="uid://krh6fnua8dbe" path="res://scripts/ui/panels/unit_preview_panel.gd" id="16_preview"]
-[ext_resource type="PackedScene" uid="uid://wv3eq3wk14pj" path="res://scenes/ui/panels/ui_text_status.tscn" id="17_yyibq"]
+[ext_resource type="PackedScene" path="res://scenes/ui/panels/ui_text_status.tscn" id="17_yyibq"]
 [ext_resource type="Texture2D" uid="uid://cwhv7tr2sownv" path="res://art/sprites/ui/status_effect_icons/challenged.png" id="18_ti3j1"]
 [ext_resource type="Texture2D" uid="uid://kp12o3qgqk55" path="res://art/sprites/ui/status_effect_icons/freeze.png" id="19_5ng7j"]
 [ext_resource type="Texture2D" uid="uid://1738pmwtyeww" path="res://art/sprites/ui/status_effect_icons/rooted.png" id="20_npkjf"]
@@ -301,46 +301,9 @@ text = "/25"
 layout_mode = 2
 theme_override_constants/separation = 2
 
-[node name="MoveContainer" type="ColorRect" parent="MarginContainer/VBoxContainer/MovesContainer" unique_id=1888031594]
+[node name="MoveContainer" parent="MarginContainer/VBoxContainer/MovesContainer" unique_id=44909441 instance=ExtResource("8_tv8aq")]
 material = SubResource("ShaderMaterial_tv8aq")
-custom_minimum_size = Vector2(0, 14)
 layout_mode = 2
-size_flags_vertical = 3
-script = ExtResource("10_k7j8h")
-fill_color = Color(0.24313726, 0.40784314, 0.24705882, 1)
-empty_color = Color(0.11764706, 0.21568628, 0.12941177, 1)
-border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
-radius_px = 2.0
-
-[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer" unique_id=442468961]
-layout_mode = 0
-offset_top = 2.0
-offset_right = 113.0
-offset_bottom = 12.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="MoveName" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer/HBoxContainer" unique_id=1986450679 instance=ExtResource("6_6gye5")]
-layout_mode = 2
-theme_override_constants/margin_left = 4
-
-[node name="Label" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer/HBoxContainer/MoveName" index="0" unique_id=1042415212]
-text = "Vines"
-uppercase = false
-
-[node name="SpacerHorizontalExpand" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer/HBoxContainer" unique_id=84782848 instance=ExtResource("9_6gye5")]
-layout_mode = 2
-
-[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer/HBoxContainer" unique_id=1022671173]
-layout_mode = 2
-theme_override_constants/margin_left = 1
-theme_override_constants/margin_top = 1
-theme_override_constants/margin_right = 3
-theme_override_constants/margin_bottom = 1
-
-[node name="TextureRect" type="TextureRect" parent="MarginContainer/VBoxContainer/MovesContainer/MoveContainer/HBoxContainer/MarginContainer" unique_id=609645665]
-layout_mode = 2
-texture = ExtResource("10_hnhj3")
 
 [node name="MoveContainer2" type="ColorRect" parent="MarginContainer/VBoxContainer/MovesContainer" unique_id=664060225]
 material = SubResource("ShaderMaterial_deend")
@@ -812,7 +775,6 @@ text = "1"
 [editable path="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer/MarginContainer2"]
 [editable path="MarginContainer/VBoxContainer/HPBar/HBoxContainer/MarginContainer"]
 [editable path="MarginContainer/VBoxContainer/HPBar/HBoxContainer/MarginContainer2"]
-[editable path="MarginContainer/VBoxContainer/MovesContainer/MoveContainer/HBoxContainer/MoveName"]
 [editable path="MarginContainer/VBoxContainer/MovesContainer/MoveContainer2/HBoxContainer/MoveName"]
 [editable path="MarginContainer/VBoxContainer/MovesContainer/MoveContainer3/HBoxContainer/MoveName"]
 [editable path="MarginContainer/VBoxContainer/MovesContainer/MoveContainer4/HBoxContainer/MoveName"]

@@ -5,6 +5,7 @@
 extends ColorRect
 
 const GLOW_MATERIAL: ShaderMaterial = preload("res://resources/hud_glow.tres")
+const MOVE_CHIP_MATERIAL: ShaderMaterial = preload("res://resources/move_chip_fill.tres")
 const SECTION_GAP: int = 16
 const ROW_GAP: int = 4
 const SWATCH_SIZE := Vector2(20, 12)
@@ -49,6 +50,7 @@ func _ready() -> void:
 	_build_ui_colors(main_vbox)
 	_build_unit_selection_colors(main_vbox)
 	_build_path_colors(main_vbox)
+	_build_move_chip_colors(main_vbox)
 	_build_pda_colors(main_vbox)
 
 
@@ -617,6 +619,91 @@ func _build_path_colors(parent: Control) -> void:
 		vbox.add_child(hbox)
 		hbox.add_child(_make_swatch(entry["color"]))
 		hbox.add_child(_make_plain_label(entry["name"], GameColorPalette.get_color("Gray", 7)))
+
+
+# =============================================================================
+# MOVE CHIP COLORS — full and half-filled for each elemental type
+# =============================================================================
+
+func _build_move_chip_colors(parent: Control) -> void:
+	parent.add_child(_make_section_header("MOVE CHIP COLORS"))
+
+	var panel := _make_panel_bg()
+	parent.add_child(panel)
+
+	var vbox := _make_vbox(2)
+	panel.add_child(vbox)
+
+	for element_type: int in Enums.ElementalType.values():
+		if element_type == Enums.ElementalType.NONE:
+			continue
+
+		var type_name: String = Enums.elemental_type_to_string(element_type as Enums.ElementalType)
+		var fill_color: Color = GameColors.get_move_chip_fill(element_type as Enums.ElementalType)
+		var empty_color: Color = GameColors.get_move_chip_empty(element_type as Enums.ElementalType)
+		var icon_path: String = "res://art/sprites/ui/elemental_type_icons_10x10/%s.png" % type_name.to_lower()
+		var icon_texture: Texture2D = load(icon_path) as Texture2D if ResourceLoader.exists(icon_path) else null
+
+		var hbox := _make_hbox(2)
+		hbox.alignment = BoxContainer.ALIGNMENT_BEGIN
+		vbox.add_child(hbox)
+
+		# Full chip
+		hbox.add_child(_make_move_chip(type_name, fill_color, empty_color, 1.0, icon_texture))
+
+		# Half chip
+		hbox.add_child(_make_move_chip(type_name, fill_color, empty_color, 0.5, icon_texture))
+
+
+func _make_move_chip(label_text: String, fill_color: Color, empty_color: Color, fill_percent: float, icon_texture: Texture2D) -> MoveChip:
+	var chip := MoveChip.new()
+	chip.custom_minimum_size = Vector2(113, 14)
+	chip.material = MOVE_CHIP_MATERIAL.duplicate()
+	chip.fill_color = fill_color
+	chip.empty_color = empty_color
+	chip.fill_percent = fill_percent
+	chip.border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
+	chip.radius_px = 2.0
+
+	# Inner HBoxContainer — matches scene: offset_top=2, offset_bottom=12 (10px inner)
+	var inner_hbox := HBoxContainer.new()
+	inner_hbox.layout_mode = 0
+	inner_hbox.offset_top = 2.0
+	inner_hbox.offset_right = 113.0
+	inner_hbox.offset_bottom = 12.0
+	inner_hbox.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	inner_hbox.grow_vertical = Control.GROW_DIRECTION_BOTH
+	chip.add_child(inner_hbox)
+
+	# Move name label (GlowLabel wrapped in MarginContainer, matching ui_text.tscn)
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 4)
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	inner_hbox.add_child(margin)
+
+	var label := _make_glow_label(label_text, GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW, _font_5px, 5)
+	label.uppercase = false
+	margin.add_child(label)
+
+	# Spacer
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	inner_hbox.add_child(spacer)
+
+	# Type icon
+	if icon_texture != null:
+		var icon_margin := MarginContainer.new()
+		icon_margin.add_theme_constant_override("margin_left", 1)
+		icon_margin.add_theme_constant_override("margin_top", 1)
+		icon_margin.add_theme_constant_override("margin_right", 3)
+		icon_margin.add_theme_constant_override("margin_bottom", 1)
+		inner_hbox.add_child(icon_margin)
+
+		var icon := TextureRect.new()
+		icon.texture = icon_texture
+		icon_margin.add_child(icon)
+
+	return chip
 
 
 # =============================================================================
