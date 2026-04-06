@@ -11,12 +11,25 @@ var modifier: int = 0
 var duration: int = 0
 var stackable: bool = false
 var is_dot: bool = false  # Damage-over-time
+var max_stacks: int = 0  # 0 = not stack-based; >0 = uses stacks instead of duration
 var abbrev_name: String = ""  # Short display name for HUD chips (≤10 chars)
 var icon_path: String = ""  # Path to 6x6 icon in art/sprites/ui/status_effect_icons_6x6_v2/
 
 
 static func get_default_configs() -> Dictionary:
 	var configs: Dictionary = {}
+
+	var bellows := StatusEffectData.new()
+	bellows.effect_type = "BELLOWS"
+	bellows.abbrev_name = "Bellows"
+	bellows.description = "Fire moves deal +25% damage per stack (max 4). Gained when a unit with the Bellows passive takes air-type attack damage."
+	bellows.affected_stat = ""
+	bellows.modifier = 0
+	bellows.duration = 0  # Uses stacks, not duration
+	bellows.stackable = true
+	bellows.max_stacks = 4
+	bellows.icon_path = "res://art/sprites/ui/status_effect_icons_6x6_v2/bellows_0000.png"
+	configs["BELLOWS"] = bellows
 
 	var burn := StatusEffectData.new()
 	burn.effect_type = "BURN"

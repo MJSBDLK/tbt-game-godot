@@ -52,6 +52,33 @@ func apply_status_effect_by_name(caster: Node2D, target: Node2D, effect_type_nam
 		DebugConfig.log_error("StatusEffectSystem: Target has no active_status_effects")
 		return false
 
+	# Stack-based effects (e.g. BELLOWS): increment stacks on existing instance
+	if config.max_stacks > 0:
+		for existing: StatusEffect in active_effects:
+			if existing.effect_type_name == effect_type_name:
+				if existing.stacks < existing.max_stacks:
+					existing.stacks += 1
+					DebugConfig.log_status("StatusEffectSystem: %s stacks -> %d on %s" % [
+						effect_type_name, existing.stacks, target.get("unit_name")])
+				else:
+					DebugConfig.log_status("StatusEffectSystem: %s already at max stacks (%d) on %s" % [
+						effect_type_name, existing.max_stacks, target.get("unit_name")])
+				status_effect_applied.emit(target, effect_type_name)
+				return true
+		# No existing instance — create one at 1 stack
+		var effect := StatusEffect.new()
+		effect.effect_type_name = effect_type_name
+		effect.affected_stat = config.affected_stat
+		effect.modifier = config.modifier
+		effect.remaining_turns = -1  # Stack-based effects don't use turn countdown
+		effect.stacks = 1
+		effect.max_stacks = config.max_stacks
+		active_effects.append(effect)
+		DebugConfig.log_status("StatusEffectSystem: Applied %s (1 stack) to %s" % [
+			effect_type_name, target.get("unit_name")])
+		status_effect_applied.emit(target, effect_type_name)
+		return true
+
 	# Check for existing non-stackable effect
 	if not config.stackable:
 		for existing: StatusEffect in active_effects:
@@ -119,6 +146,16 @@ func process_turn_start_effects(unit: Node2D) -> void:
 				DebugConfig.log_status("StatusEffectSystem: %s took %d %s damage" % [
 					unit.get("unit_name"), dot_damage, effect.effect_type_name])
 				status_damage_dealt.emit(unit, dot_damage, effect.effect_type_name)
+
+		# Stack-based effects: lose 1 stack per turn instead of using duration
+		if effect.max_stacks > 0:
+			effect.stacks -= 1
+			if effect.stacks <= 0:
+				effects_to_remove.append(effect)
+			else:
+				DebugConfig.log_status("StatusEffectSystem: %s stacks -> %d on %s" % [
+					effect.effect_type_name, effect.stacks, unit.get("unit_name")])
+			continue
 
 		# Decrement turns
 		effect.remaining_turns -= 1
@@ -192,6 +229,41 @@ func clear_all_effects(unit: Node2D) -> void:
 		return
 	active_effects.clear()
 	_recalculate_stat_modifiers(unit)
+
+
+## Get the current stack count for a stack-based effect on a unit. Returns 0 if not present.
+func get_effect_stacks(unit: Node2D, effect_type_name: String) -> int:
+	if unit == null:
+		return 0
+	var active_effects: Array = unit.get("active_status_effects")
+	if active_effects == null:
+		return 0
+	for effect: StatusEffect in active_effects:
+		if effect.effect_type_name == effect_type_name:
+			return effect.stacks
+	return 0
+
+
+## Check if a unit has a specific passive equipped.
+func _unit_has_passive(unit: Node2D, passive_name: String) -> bool:
+	var character_data: Variant = unit.get("character_data")
+	if character_data == null:
+		return false
+	var passives: Array = character_data.get("equipped_passives")
+	if passives == null:
+		return false
+	return passive_name in passives
+
+
+## Called after a unit takes attack damage. Checks for passive triggers like Bellows.
+## Currently only triggers on damaging attacks; non-damaging air moves do not trigger Bellows.
+func check_passive_triggers_on_hit(attacker: Node2D, target: Node2D, move: Move) -> void:
+	if target == null or move == null:
+		return
+
+	# Bellows: air-type attack damage grants fire buff stacks
+	if move.element_type == Enums.ElementalType.AIR and _unit_has_passive(target, "Bellows"):
+		apply_status_effect_by_name(attacker, target, "BELLOWS")
 
 
 ## Check if a specific move index is locked by VOID.

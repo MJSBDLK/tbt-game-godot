@@ -37,6 +37,45 @@
 - [ ] Options menu
 - [ ] Add a toggle for "nearest neighbor scaling" vs. "only allow integer scaled zoom levels" (and come up with a concise way of saying that, like zoom mode: nearest neighbor/integer)
 
+---
+
+## Buff/Debuff System
+Split the single `active_status_effects` array into separate buff/debuff systems with independent caps (max 4 each).
+
+### Data Layer
+- [ ] Add `EffectCategory` enum to enums.gd: `BUFF, DEBUFF`
+- [ ] Add `category: Enums.EffectCategory` field to `StatusEffectData`
+- [ ] Tag each existing config in `StatusEffectData.get_default_configs()`:
+  - DEBUFF: BLEED, BURN, BUGLE, CHAIN_LIGHTNING, CHALLENGED, FREEZE, GRAVITY, POISON, ROOTED, SHOCKED, SUBVERSION, VOID, VULNERABLE, WITHER
+  - BUFF: BELLOWS, CRITICAL
+- [ ] Add `category` field to `StatusEffect` runtime class (copied from config on creation)
+
+### Unit Storage
+- [ ] Add `active_buffs: Array[StatusEffect]` to Unit (alongside existing `active_status_effects`)
+- [ ] Rename `active_status_effects` → `active_debuffs` (grep + replace across codebase)
+- [ ] Both arrays capped at 4
+
+### StatusEffectSystem Changes
+- [ ] `apply_status_effect_by_name()` — route to correct array based on config category
+- [ ] Cap enforcement: when 5th buff/debuff tries to apply, decide behavior (reject? replace oldest?)
+  - **Decision needed**: overflow policy — ask during implementation
+- [ ] `process_turn_start_effects()` — iterate both arrays
+- [ ] `_recalculate_stat_modifiers()` — iterate both arrays
+- [ ] `can_unit_move()` / `can_unit_act()` — only checks debuffs (optimization, but keeps it correct)
+- [ ] `remove_status_effect()` / `clear_all_effects()` — handle both arrays
+- [ ] `is_move_locked()` — debuffs only (VOID is a debuff)
+- [ ] `get_effect_stacks()` — check correct array based on effect name → config category
+- [ ] `check_passive_triggers_on_hit()` — applies to buff array (BELLOWS is a buff)
+
+### DamageCalculator
+- [ ] `calculate_damage()` BELLOWS lookup — no change needed (already queries by effect name via `get_effect_stacks`)
+
+### UI
+- [ ] Status HUD on units: show buff icons separately from debuff icons (left/right or color-coded)
+- [ ] Unit detail / character sheet panels: separate buff and debuff sections
+- [ ] Combat preview: indicate if buffs/debuffs are in play
+
+---
 
 ## Art Pipeline
 - [ ] Figure out how normal maps work with the Aseprite -> Aseprite Wizard -> Godot workflow

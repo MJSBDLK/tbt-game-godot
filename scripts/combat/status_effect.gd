@@ -20,3 +20,5 @@ var modifier: int = 0
 var remaining_turns: int = 0
 var caster_level: int = 1
 var locked_move_index: int = -1  # For VOID: which move slot is locked
+var stacks: int = 0              # For stackable effects like BELLOWS (0 = not stack-based)
+var max_stacks: int = 0          # Maximum stack count (0 = not stack-based)

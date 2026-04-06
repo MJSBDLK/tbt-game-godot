@@ -16,7 +16,7 @@ extends Resource
 # Specialization: free-form ±10% stat picks at class levels 2/3 (replaces named enum)
 # TODO: implement as Array of {stat_name: String, modifier: int} pairs
 #@export var specialization: Enums.Specialization = Enums.Specialization.NONE
-@export var level: int = 1
+@export var level: int = 0
 @export var experience: int = 0
 
 # Portrait (high-res concept art crop)

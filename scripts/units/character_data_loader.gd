@@ -27,7 +27,7 @@ static func _parse_character_json(data: Dictionary) -> CharacterData:
 	character.secondary_type = Enums.string_to_elemental_type(data.get("secondaryType", "None"))
 	character.current_class = _parse_character_class(data.get("currentClass", "Spaceman"))
 	# character.specialization = _parse_specialization(data.get("specialization", "None"))
-	character.level = int(data.get("level", 1))
+	character.level = int(data.get("level", 0))
 
 	# Portrait
 	character.portrait_path = data.get("portraitPath", "")

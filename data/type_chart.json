@@ -1,27 +1,345 @@
 {
 	"description": "Type effectiveness matchups. Unlisted pairs default to 1.0x.",
 	"matchups": [
-		{ "attacking": "Fire", "defending": "Plant", "multiplier": 2.0 },
-		{ "attacking": "Plant", "defending": "Electric", "multiplier": 2.0 },
-		{ "attacking": "Electric", "defending": "Fire", "multiplier": 2.0 },
-		{ "attacking": "Void", "defending": "Chivalric", "multiplier": 2.0 },
-		{ "attacking": "Chivalric", "defending": "Occult", "multiplier": 2.0 },
-		{ "attacking": "Occult", "defending": "Void", "multiplier": 2.0 },
-		{ "attacking": "Gravity", "defending": "Obsidian", "multiplier": 2.0 },
-		{ "attacking": "Electric", "defending": "Void", "multiplier": 0.0 },
-		{ "attacking": "Simple", "defending": "Robo", "multiplier": 0.5 },
-		{ "attacking": "Fire", "defending": "Obsidian", "multiplier": 0.5 },
-		{ "attacking": "Air", "defending": "Obsidian", "multiplier": 0.5 },
-		{ "attacking": "Chivalric", "defending": "Obsidian", "multiplier": 0.5 },
-		{ "attacking": "Cold", "defending": "Obsidian", "multiplier": 0.5 },
-		{ "attacking": "Electric", "defending": "Obsidian", "multiplier": 0.5 },
-		{ "attacking": "Gentry", "defending": "Obsidian", "multiplier": 0.5 },
-		{ "attacking": "Heraldic", "defending": "Obsidian", "multiplier": 0.5 },
-		{ "attacking": "Occult", "defending": "Obsidian", "multiplier": 0.5 },
-		{ "attacking": "Plant", "defending": "Obsidian", "multiplier": 0.5 },
-		{ "attacking": "Robo", "defending": "Obsidian", "multiplier": 0.5 },
-		{ "attacking": "Simple", "defending": "Obsidian", "multiplier": 0.5 },
-		{ "attacking": "Void", "defending": "Obsidian", "multiplier": 0.5 },
-		{ "attacking": "Obsidian", "defending": "Obsidian", "multiplier": 0.5 }
+		{
+			"attacking": "Air",
+			"defending": "Gravity",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Air",
+			"defending": "Obsidian",
+			"multiplier": 0.0
+		},
+		{
+			"attacking": "Air",
+			"defending": "Plant",
+			"multiplier": 2.0
+		},
+		{
+			"attacking": "Air",
+			"defending": "Robo",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Air",
+			"defending": "Simple",
+			"multiplier": 2.0
+		},
+		{
+			"attacking": "Chivalric",
+			"defending": "Heraldic",
+			"multiplier": 2.0
+		},
+		{
+			"attacking": "Chivalric",
+			"defending": "Obsidian",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Chivalric",
+			"defending": "Occult",
+			"multiplier": 2.0
+		},
+		{
+			"attacking": "Chivalric",
+			"defending": "Robo",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Cold",
+			"defending": "Chivalric",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Cold",
+			"defending": "Cold",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Cold",
+			"defending": "Fire",
+			"multiplier": 2.0
+		},
+		{
+			"attacking": "Cold",
+			"defending": "Obsidian",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Cold",
+			"defending": "Plant",
+			"multiplier": 2.0
+		},
+		{
+			"attacking": "Cold",
+			"defending": "Robo",
+			"multiplier": 2.0
+		},
+		{
+			"attacking": "Cold",
+			"defending": "Void",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Electric",
+			"defending": "Electric",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Electric",
+			"defending": "Fire",
+			"multiplier": 2.0
+		},
+		{
+			"attacking": "Electric",
+			"defending": "Obsidian",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Electric",
+			"defending": "Robo",
+			"multiplier": 2.0
+		},
+		{
+			"attacking": "Electric",
+			"defending": "Void",
+			"multiplier": 0.0
+		},
+		{
+			"attacking": "Fire",
+			"defending": "Chivalric",
+			"multiplier": 2.0
+		},
+		{
+			"attacking": "Fire",
+			"defending": "Cold",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Fire",
+			"defending": "Fire",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Fire",
+			"defending": "Obsidian",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Fire",
+			"defending": "Plant",
+			"multiplier": 2.0
+		},
+		{
+			"attacking": "Fire",
+			"defending": "Robo",
+			"multiplier": 2.0
+		},
+		{
+			"attacking": "Fire",
+			"defending": "Void",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Gentry",
+			"defending": "Chivalric",
+			"multiplier": 2.0
+		},
+		{
+			"attacking": "Gentry",
+			"defending": "Heraldic",
+			"multiplier": 2.0
+		},
+		{
+			"attacking": "Gentry",
+			"defending": "Obsidian",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Gentry",
+			"defending": "Occult",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Gentry",
+			"defending": "Robo",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Gravity",
+			"defending": "Air",
+			"multiplier": 2.0
+		},
+		{
+			"attacking": "Gravity",
+			"defending": "Gravity",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Gravity",
+			"defending": "Obsidian",
+			"multiplier": 2.0
+		},
+		{
+			"attacking": "Gravity",
+			"defending": "Plant",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Gravity",
+			"defending": "Void",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Heraldic",
+			"defending": "Chivalric",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Heraldic",
+			"defending": "Gentry",
+			"multiplier": 2.0
+		},
+		{
+			"attacking": "Heraldic",
+			"defending": "Obsidian",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Obsidian",
+			"defending": "Chivalric",
+			"multiplier": 2.0
+		},
+		{
+			"attacking": "Obsidian",
+			"defending": "Gentry",
+			"multiplier": 2.0
+		},
+		{
+			"attacking": "Obsidian",
+			"defending": "Obsidian",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Obsidian",
+			"defending": "Occult",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Obsidian",
+			"defending": "Robo",
+			"multiplier": 2.0
+		},
+		{
+			"attacking": "Obsidian",
+			"defending": "Void",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Occult",
+			"defending": "Chivalric",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Occult",
+			"defending": "Heraldic",
+			"multiplier": 2.0
+		},
+		{
+			"attacking": "Occult",
+			"defending": "Plant",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Occult",
+			"defending": "Simple",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Occult",
+			"defending": "Void",
+			"multiplier": 2.0
+		},
+		{
+			"attacking": "Plant",
+			"defending": "Air",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Plant",
+			"defending": "Fire",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Plant",
+			"defending": "Obsidian",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Plant",
+			"defending": "Occult",
+			"multiplier": 2.0
+		},
+		{
+			"attacking": "Plant",
+			"defending": "Plant",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Plant",
+			"defending": "Robo",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Robo",
+			"defending": "Electric",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Robo",
+			"defending": "Heraldic",
+			"multiplier": 2.0
+		},
+		{
+			"attacking": "Robo",
+			"defending": "Obsidian",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Simple",
+			"defending": "Obsidian",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Simple",
+			"defending": "Plant",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Simple",
+			"defending": "Robo",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Void",
+			"defending": "Electric",
+			"multiplier": 2.0
+		},
+		{
+			"attacking": "Void",
+			"defending": "Gravity",
+			"multiplier": 2.0
+		},
+		{
+			"attacking": "Void",
+			"defending": "Occult",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Void",
+			"defending": "Void",
+			"multiplier": 2.0
+		}
 	]
 }

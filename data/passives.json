@@ -1,4 +1,8 @@
 {
+	"Bellows": {
+		"abbrevName": "Bellows",
+		"description": "Taking air-type attack damage grants a stack of Bellows (+25% fire move damage per stack, max 4). Loses 1 stack at end of turn."
+	},
 	"Anti-Gravity": {
 		"abbrevName": "AntiGrav",
 		"description": "Debuffs have a 50% chance to clear each turn they tick down"

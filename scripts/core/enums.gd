@@ -37,6 +37,7 @@ enum DamageType {
 
 enum StatusEffectType {
 	NONE = 0,
+	BELLOWS,          # Stacking fire damage buff, gained when a unit with the Bellows passive takes air damage
 	BLEED,            # DoT, damage over time
 	BUGLE,            # Take +1 damage from heraldic moves
 	BURN,             # DoT, lower attack, stacks increase damage and spread fire

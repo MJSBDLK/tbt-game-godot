@@ -98,7 +98,13 @@
       "Bash(gh repo:*)",
       "Bash(grep -v \".import$\")",
       "Bash(/home/mjsbdlk/aseprite/build/bin/aseprite -b art/sprites/tilesets/2x3_source_tiles/2x3_source_tiles.aseprite --data /dev/stdout --format json-array)",
-      "Bash(grep \"source_file\" art/sprites/tilesets/*_12x4.png.import)"
+      "Bash(grep \"source_file\" art/sprites/tilesets/*_12x4.png.import)",
+      "Bash(xargs grep:*)",
+      "Bash(grep -r \"portraitPath\\\\|spriteSheet\\\\|baseStats\\\\|growthRates\" /home/mjsbdlk/Documents/Projects/tbt-game-godot/data/characters/*.json)",
+      "Bash(grep -E \"\\\\.\\(cs|asset|json\\)$\")",
+      "Bash(grep -r RewardType /home/mjsbdlk/Documents/Projects/tbt-game-unity/Assets/Scripts --include=*.cs)",
+      "Bash(grep -r \"MoveData\\\\|PassiveData\" /home/mjsbdlk/Documents/Projects/tbt-game-unity/Assets/Scripts/Units --include=*.cs)",
+      "Bash(grep -ri \"passive\\\\|end_turn\\\\|turn_end\\\\|turn.*manager\" --include=*.gd -l)"
     ]
   }
 }

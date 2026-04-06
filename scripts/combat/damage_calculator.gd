@@ -33,12 +33,21 @@ static func calculate_damage(attacker: Node2D, defender: Node2D, move: Move) -> 
 	# Type effectiveness
 	var type_multiplier := get_type_effectiveness(attacker, defender, move)
 
+	# Bellows: +25% fire damage per stack
+	var bellows_multiplier := 1.0
+	if move.element_type == Enums.ElementalType.FIRE:
+		var status_system: Node = attacker.get_node_or_null("/root/StatusEffectSystem")
+		if status_system != null:
+			var bellows_stacks: int = status_system.get_effect_stacks(attacker, "BELLOWS")
+			if bellows_stacks > 0:
+				bellows_multiplier = 1.0 + (bellows_stacks * 0.25)
+
 	# Formula
 	var base_damage: float = (move.base_power * attack_stat / 5.0) - defense_stat
-	var final_damage := maxi(1, roundi(base_damage * type_multiplier))
+	var final_damage := maxi(1, roundi(base_damage * type_multiplier * bellows_multiplier))
 
-	DebugConfig.log_combat("DamageCalc: power=%d * atk=%d / 5 - def=%d = %.1f * type=%.2f -> %d" % [
-		move.base_power, attack_stat, defense_stat, base_damage, type_multiplier, final_damage])
+	DebugConfig.log_combat("DamageCalc: power=%d * atk=%d / 5 - def=%d = %.1f * type=%.2f * bellows=%.2f -> %d" % [
+		move.base_power, attack_stat, defense_stat, base_damage, type_multiplier, bellows_multiplier, final_damage])
 
 	return final_damage
 

@@ -497,6 +497,9 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 	if apply_status and move.status_effect_type != Enums.StatusEffectType.NONE:
 		StatusEffectSystem.apply_status_effect(self, target, move)
 
+	# Check passive triggers (e.g. Bellows: air hit grants fire buff)
+	StatusEffectSystem.check_passive_triggers_on_hit(self, target, move)
+
 
 ## Boop out: sprite bumps toward the target. Awaitable — completes at the contact point.
 func _play_boop_out(target: Unit) -> void:
