@@ -284,6 +284,7 @@ func _build_content() -> void:
 	_portrait_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	_portrait_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	left_column.add_child(_portrait_rect)
+	GameColors.add_portrait_border(_portrait_rect)
 
 	_type_label = _create_small_label(ui_manager)
 	_type_label.add_theme_color_override("font_color", GameColors.TEXT_SECONDARY)

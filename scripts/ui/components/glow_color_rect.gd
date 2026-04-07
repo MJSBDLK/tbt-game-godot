@@ -6,10 +6,16 @@ class_name GlowColorRect
 		glow_color = value
 		_apply_glow_color()
 
+## When true, renders a 1px border (colored by self_modulate) inset by 1px,
+## with glow extending 1px on both sides (3px total).
+@export var border_mode: bool = false
+
 func _ready() -> void:
 	if material:
 		material = material.duplicate()
 		(material as ShaderMaterial).set_shader_parameter("solid_rect", true)
+		if border_mode:
+			(material as ShaderMaterial).set_shader_parameter("border_mode", true)
 		_apply_glow_color()
 		_update_rect_size()
 

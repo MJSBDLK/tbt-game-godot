@@ -13,9 +13,9 @@
 - [ ] Check out the options menu - any options you can think of?
 
 # Todo
-- [ ] Merge Lawrence's branch
-- [ ] RQD - orthogonal shader border
-- [ ] Status icons are stretched in the unit detail panel
+- [x] Merge Lawrence's branch
+- [x] RQD - orthogonal shader portrait border
+- [x] Status icons are stretched in the unit detail panel
 - [ ] Start adding tooltips
 - [ ] We forgot to add the injury system!
 - [x] Style the action menu panel
