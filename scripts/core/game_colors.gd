@@ -485,19 +485,11 @@ static func get_movement_cost_bg_color(cost: float) -> Color:
 # HELPER FUNCTIONS
 # =============================================================================
 
-## Creates a portrait border GlowColorRect and adds it as a child of the portrait node.
-## Border: 1px in TEXT_PRIMARY inset by 1px, Glow: 1px TEXT_PRIMARY_GLOW on both sides (3px total).
-static func add_portrait_border(portrait: Control) -> void:
-	var border := GlowColorRect.new()
-	border.material = load("res://resources/hud_glow.tres") as Material
-	border.color = Color.TRANSPARENT
-	border.glow_color = TEXT_PRIMARY_GLOW
-	border.self_modulate = TEXT_PRIMARY
-	border.border_mode = true
-	border.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# Fill parent exactly — the shader insets the border by 1px
-	border.set_anchors_preset(Control.PRESET_FULL_RECT)
-	portrait.add_child(border)
+## Instances the portrait border prefab and adds it as a child of the given container.
+static func add_portrait_border(container: Control) -> void:
+	var border_scene := load("res://scenes/ui/components/portrait_border.tscn") as PackedScene
+	var border := border_scene.instantiate()
+	container.add_child(border)
 
 
 ## Returns a copy of the color with the specified alpha.

@@ -2,10 +2,10 @@
 
 [ext_resource type="Texture2D" uid="uid://dueko4xkylxsa" path="res://art/portraits/max_stellar_portrait.png" id="1_c3gtm"]
 [ext_resource type="PackedScene" uid="uid://dnhdopaxrtt3f" path="res://scenes/ui/panels/unit_row.tscn" id="2_r5h6j"]
+[ext_resource type="PackedScene" uid="uid://8mt1nhvixt6r" path="res://scenes/ui/components/portrait_border.tscn" id="3_3cqu2"]
 [ext_resource type="PackedScene" uid="uid://df3xfvf5lh7mq" path="res://scenes/ui/panels/unit_detail_panel/stat_container.tscn" id="3_6fycp"]
 [ext_resource type="Texture2D" uid="uid://cdywvg8e4nbn" path="res://art/sprites/ui/hud_panel/leading_colon_white.png" id="3_c3gtm"]
 [ext_resource type="PackedScene" uid="uid://c7kjsj5b8efcw" path="res://scenes/ui/panels/unit_detail_panel/hp_container.tscn" id="4_1wkfw"]
-[ext_resource type="Script" uid="uid://ctyqqhodhdp85" path="res://scripts/ui/components/glow_color_rect.gd" id="4_3cqu2"]
 [ext_resource type="Texture2D" uid="uid://3ogoy3kjkvs7" path="res://art/sprites/ui/elemental_type_icons_10x10/gravity.png" id="5_3cqu2"]
 [ext_resource type="Material" uid="uid://d3rfhbptxbold" path="res://resources/hud_glow.tres" id="5_o3ofy"]
 [ext_resource type="PackedScene" uid="uid://dd24vss0p725t" path="res://scenes/ui/panels/unit_detail_panel/panel_container.tscn" id="6_m0525"]
@@ -104,16 +104,8 @@ size_flags_vertical = 4
 texture = ExtResource("1_c3gtm")
 expand_mode = 1
 
-[node name="GlowColorRect" type="ColorRect" parent="MainRow/LeftColumnMargin/LeftColumn/MarginContainer" unique_id=1167714074]
-self_modulate = Color(0.85882354, 0.9529412, 1, 1)
-material = ExtResource("5_o3ofy")
+[node name="PortraitBorder" parent="MainRow/LeftColumnMargin/LeftColumn/MarginContainer" unique_id=1182830564 instance=ExtResource("3_3cqu2")]
 layout_mode = 2
-mouse_filter = 2
-color = Color(1, 1, 1, 0)
-script = ExtResource("4_3cqu2")
-glow_color = Color(0.29803923, 0.54901963, 0.73333335, 1)
-border_mode = true
-metadata/_custom_type_script = "uid://ctyqqhodhdp85"
 
 [node name="SpacerY3" type="Control" parent="MainRow/LeftColumnMargin/LeftColumn" unique_id=1350047301]
 custom_minimum_size = Vector2(0, 3)
