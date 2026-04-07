@@ -212,26 +212,6 @@ static var HEALTH_DAMAGE_PREVIEW_GLOW: Color:
 
 
 # =============================================================================
-# STATUS EFFECT COLORS
-# =============================================================================
-
-static var STATUS_BURN: Color:
-	get: return GameColorPalette.get_color("Orange", 6)
-static var STATUS_POISON: Color:
-	get: return GameColorPalette.get_color("Purple", 6)
-static var STATUS_BUFF: Color:
-	get: return GameColorPalette.get_color("Blue", 6)
-static var STATUS_DEBUFF: Color:
-	get: return GameColorPalette.get_color("Magenta", 5)
-static var STATUS_ICON_BACKGROUND: Color:
-	get: return Color("#40230a")
-static var STATUS_TEXT: Color:
-	get: return GameColorPalette.get_color("YellowOrange", 7)
-static var STATUS_TEXT_GLOW: Color:
-	get: return GameColorPalette.get_color("Red", 4)
-
-
-# =============================================================================
 # WAYPOINT/PATH COLORS
 # =============================================================================
 

@@ -3,13 +3,13 @@
 
 # Meeting 20260405
 - [x] RQD - have move type icons (phys/spec/supp) wired up to show Lawrence
-- [ ] RQD - add move type color pairings to the color demo panel - use full and half full move chips
-- [ ] RQD - figure out what we were using those status colors for
+- [x] RQD - add move type color pairings to the color demo panel - use full and half full move chips
+- [x] RQD - figure out what we were using those status colors for (removed — unused, will revisit when Lawrence mocks up status tick particles)
 - [ ] 
 - [ ] LOD - move preview animated arrow (see the FreePixelEffect resource from the Unity project)
 - [ ] LOD - waypoint indicator for move preview
 - [ ] Go over style guide with Lawrence
-- [ ] Check out the colors demo
+- [x] Check out the colors demo
 - [ ] Check out the options menu - any options you can think of?
 
 # Todo

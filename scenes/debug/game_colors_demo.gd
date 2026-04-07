@@ -41,7 +41,6 @@ func _ready() -> void:
 	_build_title(main_vbox)
 	_build_text_colors(main_vbox)
 	_build_health_ramp(main_vbox)
-	_build_status_effect_colors(main_vbox)
 	_build_faction_colors(main_vbox)
 	_build_phase_banner_colors(main_vbox)
 	_build_multiplier_colors(main_vbox)
@@ -257,53 +256,6 @@ func _build_health_ramp(parent: Control) -> void:
 		GameColors.HEALTH_DAMAGE_PREVIEW, GameColors.HEALTH_DAMAGE_PREVIEW_GLOW
 	))
 
-
-# =============================================================================
-# STATUS EFFECT COLORS — icon bg swatch + status text
-# =============================================================================
-
-func _build_status_effect_colors(parent: Control) -> void:
-	parent.add_child(_make_section_header("STATUS EFFECT COLORS"))
-
-	var panel := _make_panel_bg()
-	parent.add_child(panel)
-
-	var vbox := _make_vbox(4)
-	panel.add_child(vbox)
-
-	var statuses: Array[Dictionary] = [
-		{"name": "BURN", "color": GameColors.STATUS_BURN, "label": "Orange 6"},
-		{"name": "POISON", "color": GameColors.STATUS_POISON, "label": "Purple 6"},
-		{"name": "BUFF", "color": GameColors.STATUS_BUFF, "label": "Blue 6"},
-		{"name": "DEBUFF", "color": GameColors.STATUS_DEBUFF, "label": "Magenta 5"},
-	]
-
-	for status: Dictionary in statuses:
-		var hbox := _make_hbox(6)
-		vbox.add_child(hbox)
-
-		# Icon background swatch with status color overlay
-		var icon_bg := _make_swatch(GameColors.STATUS_ICON_BACKGROUND, Vector2(12, 12))
-		hbox.add_child(icon_bg)
-
-		var icon_fill := _make_swatch(status["color"], Vector2(6, 6))
-		icon_bg.add_child(icon_fill)
-		icon_fill.position = Vector2(3, 3)
-
-		# Status name as GlowLabel
-		hbox.add_child(_make_glow_label(
-			"%s 3T  (%s)" % [status["name"], status["label"]],
-			GameColors.STATUS_TEXT, GameColors.STATUS_TEXT_GLOW
-		))
-
-	# Icon background standalone
-	var bg_hbox := _make_hbox(6)
-	vbox.add_child(bg_hbox)
-	bg_hbox.add_child(_make_swatch(GameColors.STATUS_ICON_BACKGROUND, Vector2(12, 12)))
-	bg_hbox.add_child(_make_plain_label(
-		"Icon BG: #40230a",
-		GameColorPalette.get_color("Gray", 6)
-	))
 
 
 # =============================================================================

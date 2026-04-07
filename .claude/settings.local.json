@@ -104,7 +104,8 @@
       "Bash(grep -E \"\\\\.\\(cs|asset|json\\)$\")",
       "Bash(grep -r RewardType /home/mjsbdlk/Documents/Projects/tbt-game-unity/Assets/Scripts --include=*.cs)",
       "Bash(grep -r \"MoveData\\\\|PassiveData\" /home/mjsbdlk/Documents/Projects/tbt-game-unity/Assets/Scripts/Units --include=*.cs)",
-      "Bash(grep -ri \"passive\\\\|end_turn\\\\|turn_end\\\\|turn.*manager\" --include=*.gd -l)"
+      "Bash(grep -ri \"passive\\\\|end_turn\\\\|turn_end\\\\|turn.*manager\" --include=*.gd -l)",
+      "Bash(grep -E \"\\\\.\\(prefab|asset\\)$\")"
     ]
   }
 }
