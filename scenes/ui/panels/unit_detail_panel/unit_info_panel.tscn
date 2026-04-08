@@ -14,6 +14,7 @@
 [ext_resource type="Texture2D" uid="uid://tvadvq5t6db3" path="res://art/sprites/ui/elemental_type_icons_10x10/robo.png" id="7_tddys"]
 [ext_resource type="PackedScene" uid="uid://djwxelxu8cncd" path="res://scenes/ui/panels/unit_detail_panel/panel_container_secondary.tscn" id="8_tddys"]
 [ext_resource type="Script" uid="uid://mx0872xckvrs" path="res://scripts/ui/components/glow_label.gd" id="8_ywfd3"]
+[ext_resource type="Script" uid="uid://bd0j04v3i135g" path="res://scripts/ui/components/tap_tooltip.gd" id="12_ywfd3"]
 [ext_resource type="Texture2D" uid="uid://ctjbmyua33w0k" path="res://art/sprites/ui/elemental_type_icons_10x10/simple.png" id="15_7ir6r"]
 [ext_resource type="Texture2D" uid="uid://0q8h7ynjwlnj" path="res://art/sprites/ui/status_effect_icons/burn.png" id="15_o3ofy"]
 [ext_resource type="Texture2D" uid="uid://1738pmwtyeww" path="res://art/sprites/ui/status_effect_icons/rooted.png" id="16_3cqu2"]
@@ -117,8 +118,22 @@ layout_mode = 2
 [node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/UnitNameAndTypes/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(746814425, 781430797) index="0" unique_id=1042415212]
 text = "Max Stellar"
 
-[node name="TextureRect" parent="MainRow/LeftColumnMargin/LeftColumn/UnitNameAndTypes/HBoxContainer/UnitTypeIconContainer2" parent_id_path=PackedInt32Array(746814425, 703941886) index="0" unique_id=1922221654]
+[node name="UnitTypeIconContainer" parent="MainRow/LeftColumnMargin/LeftColumn/UnitNameAndTypes/HBoxContainer" parent_id_path=PackedInt32Array(746814425, 760266391) index="1" unique_id=779435640]
+tooltip_text = "Type: Simple"
+
+[node name="TapTooltip" type="Control" parent="MainRow/LeftColumnMargin/LeftColumn/UnitNameAndTypes/HBoxContainer/UnitTypeIconContainer" index="1" unique_id=861867846]
+layout_mode = 2
+script = ExtResource("12_ywfd3")
+
+[node name="UnitTypeIconContainer2" parent="MainRow/LeftColumnMargin/LeftColumn/UnitNameAndTypes/HBoxContainer" parent_id_path=PackedInt32Array(746814425, 760266391) index="2" unique_id=703941886]
+tooltip_text = "Type: Gravity"
+
+[node name="TextureRect" parent="MainRow/LeftColumnMargin/LeftColumn/UnitNameAndTypes/HBoxContainer/UnitTypeIconContainer2" index="0" unique_id=1922221654]
 texture = ExtResource("5_3cqu2")
+
+[node name="TapTooltip" type="Control" parent="MainRow/LeftColumnMargin/LeftColumn/UnitNameAndTypes/HBoxContainer/UnitTypeIconContainer2" index="1" unique_id=1966820749]
+layout_mode = 2
+script = ExtResource("12_ywfd3")
 
 [node name="MarginContainer2" parent="MainRow/LeftColumnMargin/LeftColumn/UnitNameAndTypes/HBoxContainer" parent_id_path=PackedInt32Array(746814425, 760266391) index="3" unique_id=1691056733]
 visible = false
@@ -165,6 +180,20 @@ theme_override_constants/separation = 0
 [node name="HPContainer" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer" unique_id=346892882 instance=ExtResource("4_1wkfw")]
 layout_mode = 2
 
+[node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/HPContainer/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(346892882, 781430797) index="0" unique_id=1042415212]
+tooltip_text = "Hit Points:
+How much damage the unit can take before it sustains an injury."
+mouse_filter = 0
+
+[node name="TapTooltip" type="Control" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/HPContainer/HBoxContainer/MarginContainer/Label" index="0" unique_id=1526724911]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("12_ywfd3")
+
 [node name="StatBar" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/HPContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(346892882, 1041254443) index="2" unique_id=1676632343]
 color = Color(0.57254905, 0.7882353, 0.54901963, 1)
 
@@ -175,7 +204,21 @@ theme_override_colors/font_color = Color(0.57254905, 0.7882353, 0.54901963, 1)
 layout_mode = 2
 
 [node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/StrContainer/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(1025052311, 781430797) index="0" unique_id=1042415212]
+tooltip_text = "Physical strength:
+Scales physical damage of attacks."
+mouse_filter = 0
 text = "Str"
+
+[node name="TapTooltip" type="Control" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/StrContainer/HBoxContainer/MarginContainer/Label" index="0" unique_id=2001695723]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+tooltip_text = "
+"
+script = ExtResource("12_ywfd3")
 
 [node name="StatBarBackground" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/StrContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(1025052311, 1041254443) index="0" unique_id=895120483]
 offset_top = -1.0
@@ -200,7 +243,19 @@ text = "+4"
 layout_mode = 2
 
 [node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/SpeContainer/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(338171143, 781430797) index="0" unique_id=1042415212]
+tooltip_text = "Special:
+Scales damage of special attacks."
+mouse_filter = 0
 text = "Spc"
+
+[node name="TapTooltip" type="Control" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/SpeContainer/HBoxContainer/MarginContainer/Label" index="0" unique_id=1563353404]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("12_ywfd3")
 
 [node name="StatBarBackground" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/SpeContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(338171143, 1041254443) index="0" unique_id=895120483]
 offset_top = -1.0
@@ -225,7 +280,19 @@ text = "+2"
 layout_mode = 2
 
 [node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/SklContainer/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(1281385357, 781430797) index="0" unique_id=1042415212]
+tooltip_text = "Skill:
+Affects accuracy."
+mouse_filter = 0
 text = "Skl"
+
+[node name="TapTooltip" type="Control" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/SklContainer/HBoxContainer/MarginContainer/Label" index="0" unique_id=1206231559]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("12_ywfd3")
 
 [node name="StatBarBackground" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/SklContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(1281385357, 1041254443) index="0" unique_id=895120483]
 offset_top = -1.0
@@ -250,7 +317,19 @@ text = "+6"
 layout_mode = 2
 
 [node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/AglContainer/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(1179964894, 781430797) index="0" unique_id=1042415212]
+tooltip_text = "Agility:
+Affects evasion."
+mouse_filter = 0
 text = "Agl"
+
+[node name="TapTooltip" type="Control" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/AglContainer/HBoxContainer/MarginContainer/Label" index="0" unique_id=1738862062]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("12_ywfd3")
 
 [node name="StatBarBackground" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/AglContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(1179964894, 1041254443) index="0" unique_id=895120483]
 offset_top = -1.0
@@ -277,7 +356,19 @@ text = "+0"
 layout_mode = 2
 
 [node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/AthContainer/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(1844143752, 781430797) index="0" unique_id=1042415212]
+tooltip_text = "Athletics:
+Determines multi-attack frequency and move distance in rough terrain."
+mouse_filter = 0
 text = "Ath"
+
+[node name="TapTooltip" type="Control" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/AthContainer/HBoxContainer/MarginContainer/Label" index="0" unique_id=1156431894]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("12_ywfd3")
 
 [node name="StatBarBackground" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/AthContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(1844143752, 1041254443) index="0" unique_id=895120483]
 offset_top = -1.0
@@ -302,7 +393,19 @@ text = "+1"
 layout_mode = 2
 
 [node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/DefContainer/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(1291422490, 781430797) index="0" unique_id=1042415212]
+tooltip_text = "Defense:
+Reduces damage from physical attacks."
+mouse_filter = 0
 text = "Def"
+
+[node name="TapTooltip" type="Control" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/DefContainer/HBoxContainer/MarginContainer/Label" index="0" unique_id=1356520742]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("12_ywfd3")
 
 [node name="StatBarBackground" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/DefContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(1291422490, 1041254443) index="0" unique_id=895120483]
 offset_top = -1.0
@@ -329,7 +432,19 @@ text = "+0"
 layout_mode = 2
 
 [node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/ResContainer/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(961404449, 781430797) index="0" unique_id=1042415212]
+tooltip_text = "Resistance:
+Reduces damage from special attacks."
+mouse_filter = 0
 text = "Res"
+
+[node name="TapTooltip" type="Control" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/ResContainer/HBoxContainer/MarginContainer/Label" index="0" unique_id=926987830]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("12_ywfd3")
 
 [node name="StatBarBackground" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/ResContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(961404449, 1041254443) index="0" unique_id=895120483]
 offset_top = -1.0
@@ -585,19 +700,29 @@ size_flags_horizontal = 3
 
 [node name="ElementalTypeContainer" type="MarginContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/MoveContainer" unique_id=1181272993]
 layout_mode = 2
+tooltip_text = "Type: Simple"
 theme_override_constants/margin_top = 0
 
 [node name="TextureRect" type="TextureRect" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/MoveContainer/ElementalTypeContainer" unique_id=1385990423]
 layout_mode = 2
 texture = ExtResource("15_7ir6r")
 
+[node name="TapTooltip" type="Control" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/MoveContainer/ElementalTypeContainer" unique_id=892151866]
+layout_mode = 2
+script = ExtResource("12_ywfd3")
+
 [node name="MoveTypeContainer" type="MarginContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/MoveContainer" unique_id=1683762268]
 layout_mode = 2
+tooltip_text = "Damage type: Physical"
 theme_override_constants/margin_top = 0
 
 [node name="TextureRect" type="TextureRect" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/MoveContainer/MoveTypeContainer" unique_id=1158001500]
 layout_mode = 2
 texture = ExtResource("20_o3ofy")
+
+[node name="TapTooltip" type="Control" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/MoveContainer/MoveTypeContainer" unique_id=2118083282]
+layout_mode = 2
+script = ExtResource("12_ywfd3")
 
 [node name="PowerAccUsgContainer" type="HBoxContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription" unique_id=908821707]
 layout_mode = 2
@@ -733,6 +858,7 @@ theme_override_constants/margin_bottom = 1
 [node name="TextureRect" type="TextureRect" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerPanelContainer/VBoxContainer/HBoxContainer2/ElemetalTypeIconContainer" unique_id=2052101755]
 layout_mode = 2
 texture = ExtResource("22_o06yo")
+stretch_mode = 5
 
 [node name="MarginContainer2" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerPanelContainer/VBoxContainer/HBoxContainer2" unique_id=1430785143 instance=ExtResource("17_0oxyw")]
 layout_mode = 2

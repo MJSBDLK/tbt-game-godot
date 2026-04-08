@@ -36,6 +36,7 @@
 - [x] Add a "pause" menu (it's turn-based, the game is always paused) and Options menu. What else goes in the pause menu? How is it accessed on touchscreen?
 - [ ] Options menu
 - [ ] Add a toggle for "nearest neighbor scaling" vs. "only allow integer scaled zoom levels" (and come up with a concise way of saying that, like zoom mode: nearest neighbor/integer)
+- [ ] Add support for icons in text boxes
 
 ---
 

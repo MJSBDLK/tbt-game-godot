@@ -42,6 +42,8 @@ var _name_label: Label = null
 var _class_label: Label = null
 var _type_icon_primary: TextureRect = null
 var _type_icon_secondary: TextureRect = null
+var _type_icon_container_primary: Control = null
+var _type_icon_container_secondary: Control = null
 var _hp_bar: ColorRect = null
 var _hp_bar_background: ColorRect = null
 var _hp_label: Label = null
@@ -64,6 +66,7 @@ var _status_description: VBoxContainer = null
 var _move_detail_name_label: Label = null
 var _move_detail_element_icon: TextureRect = null
 var _move_detail_damage_type_icon: TextureRect = null
+var _move_detail_damage_type_container: Control = null
 var _move_detail_power_label: Label = null
 var _move_detail_accuracy_label: Label = null
 var _move_detail_usage_label: Label = null
@@ -150,6 +153,7 @@ func show_character(character_data: CharacterData) -> void:
 func hide_panel() -> void:
 	_character_data = null
 	_unit = null
+	TapTooltip.dismiss()
 	visible = false
 	closed.emit()
 
@@ -170,6 +174,8 @@ func _cache_node_references() -> void:
 	_name_label = _find_label_in_row(unit_name_row)
 	_type_icon_primary = _find_type_icon(unit_name_row, 0)
 	_type_icon_secondary = _find_type_icon(unit_name_row, 1)
+	_type_icon_container_primary = _find_type_icon_container(unit_name_row, 0)
+	_type_icon_container_secondary = _find_type_icon_container(unit_name_row, 1)
 
 	# Class name and level
 	var class_row: Control = left_column.get_node("ClassNameAndLevel")
@@ -232,6 +238,7 @@ func _cache_node_references() -> void:
 	_move_detail_name_label = _find_label_in_node(move_container.get_node("MarginContainer"))
 	_move_detail_element_icon = move_container.get_node("ElementalTypeContainer/TextureRect")
 	if move_container.has_node("MoveTypeContainer"):
+		_move_detail_damage_type_container = move_container.get_node("MoveTypeContainer")
 		_move_detail_damage_type_icon = move_container.get_node("MoveTypeContainer/TextureRect")
 
 	# Power/Acc/Usage mini-panels
@@ -434,13 +441,21 @@ func _update_identity() -> void:
 		_class_label.text = class_text.to_upper() + " Lv." + str(_character_data.level)
 
 	# Type icons
+	var primary_visible := _character_data.primary_type != Enums.ElementalType.NONE
 	if _type_icon_primary:
 		_type_icon_primary.texture = _get_elemental_icon(_character_data.primary_type)
-		_type_icon_primary.visible = _character_data.primary_type != Enums.ElementalType.NONE
+	if _type_icon_container_primary:
+		_type_icon_container_primary.visible = primary_visible
+		if primary_visible:
+			_type_icon_container_primary.tooltip_text = "Type: %s" % Enums.elemental_type_to_string(_character_data.primary_type).capitalize()
 
+	var secondary_visible := _character_data.secondary_type != Enums.ElementalType.NONE
 	if _type_icon_secondary:
 		_type_icon_secondary.texture = _get_elemental_icon(_character_data.secondary_type)
-		_type_icon_secondary.visible = _character_data.secondary_type != Enums.ElementalType.NONE
+	if _type_icon_container_secondary:
+		_type_icon_container_secondary.visible = secondary_visible
+		if secondary_visible:
+			_type_icon_container_secondary.tooltip_text = "Type: %s" % Enums.elemental_type_to_string(_character_data.secondary_type).capitalize()
 
 
 func _update_hp() -> void:
@@ -656,6 +671,12 @@ func _show_move_detail(index: int) -> void:
 			_move_detail_damage_type_icon.get_parent().visible = true
 		else:
 			_move_detail_damage_type_icon.get_parent().visible = false
+	if _move_detail_damage_type_container:
+		var damage_type_name: String = Enums.DamageType.keys()[move.damage_type].capitalize()
+		if move.damage_type == Enums.DamageType.SUPPORT:
+			_move_detail_damage_type_container.tooltip_text = "Move type: %s" % damage_type_name
+		else:
+			_move_detail_damage_type_container.tooltip_text = "Damage type: %s" % damage_type_name
 
 	if _move_detail_power_label:
 		_move_detail_power_label.text = "%d" % move.base_power if move.base_power > 0 else "--"
@@ -836,19 +857,24 @@ func _find_label_in_node(node: Node) -> Label:
 
 func _find_type_icon(row: Control, index: int) -> TextureRect:
 	## Find a type icon TextureRect inside a unit_row instance.
-	if row == null:
-		return null
-	var hbox: Node = row.get_node_or_null("HBoxContainer")
-	if hbox == null:
-		return null
-	var container_name: String = "UnitTypeIconContainer" if index == 0 else "UnitTypeIconContainer2"
-	var container: Node = hbox.get_node_or_null(container_name)
+	var container: Control = _find_type_icon_container(row, index)
 	if container == null:
 		return null
 	for child: Node in container.get_children():
 		if child is TextureRect:
 			return child as TextureRect
 	return null
+
+
+func _find_type_icon_container(row: Control, index: int) -> Control:
+	## Find a type icon container inside a unit_row instance.
+	if row == null:
+		return null
+	var hbox: Node = row.get_node_or_null("HBoxContainer")
+	if hbox == null:
+		return null
+	var container_name: String = "UnitTypeIconContainer" if index == 0 else "UnitTypeIconContainer2"
+	return hbox.get_node_or_null(container_name) as Control
 
 
 func _find_label_in_panel(panel: PanelContainer, label_index: int) -> Label:
