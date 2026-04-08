@@ -16,7 +16,7 @@
 - [x] Merge Lawrence's branch
 - [x] RQD - orthogonal shader portrait border
 - [x] Status icons are stretched in the unit detail panel
-- [ ] Start adding tooltips
+- [x] Start adding tooltips
 - [ ] We forgot to add the injury system!
 - [x] Style the action menu panel
 - [x] Style the combat preview panel
@@ -37,6 +37,8 @@
 - [ ] Options menu
 - [ ] Add a toggle for "nearest neighbor scaling" vs. "only allow integer scaled zoom levels" (and come up with a concise way of saying that, like zoom mode: nearest neighbor/integer)
 - [ ] Add support for icons in text boxes
+- [ ] Add tooltip mode hotkey
+- [ ] Make sure tooltip mode hotkey does not disrupt the touchscreen flow
 
 ---
 

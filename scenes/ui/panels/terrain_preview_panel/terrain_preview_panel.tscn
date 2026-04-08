@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" uid="uid://b8pyyrs2ou2yn" path="res://art/sprites/tilesets/single_tiles/mountain.tres" id="2_bwljb"]
 [ext_resource type="Texture2D" uid="uid://de0tlvuionsdd" path="res://art/sprites/ui/terrain_attribute_icons_placeholder/movement_penalty.png" id="4_u0cct"]
 [ext_resource type="Texture2D" uid="uid://erwd7xgrprfa" path="res://art/sprites/ui/terrain_attribute_icons_placeholder/defense_modifier.png" id="5_kxlso"]
+[ext_resource type="Script" uid="uid://bd0j04v3i135g" path="res://scripts/ui/components/tap_tooltip.gd" id="6_il7qi"]
 [ext_resource type="Texture2D" uid="uid://h0qtj6ne51n6" path="res://art/sprites/ui/terrain_attribute_icons_placeholder/avoid_modifier.png" id="6_m4tgr"]
 [ext_resource type="Texture2D" uid="uid://dmkslloqr3q8d" path="res://art/sprites/ui/terrain_attribute_icons_placeholder/attack_modifier.png" id="7_il7qi"]
 [ext_resource type="Texture2D" uid="uid://b0waoxxfldpem" path="res://art/sprites/ui/placeholder_10x10.png" id="8_ln87s"]
@@ -95,6 +96,7 @@ layout_mode = 2
 
 [node name="MovementPenaltyIcon" type="MarginContainer" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer" unique_id=1156975555]
 layout_mode = 2
+tooltip_text = "Movement penalty"
 theme_override_constants/margin_top = 0
 
 [node name="TextureRect" type="TextureRect" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer/MovementPenaltyIcon" unique_id=1137350267]
@@ -103,8 +105,13 @@ layout_mode = 2
 texture = ExtResource("4_u0cct")
 stretch_mode = 5
 
+[node name="TapTooltip" type="Control" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer/MovementPenaltyIcon" unique_id=1801069880]
+layout_mode = 2
+script = ExtResource("6_il7qi")
+
 [node name="DefenseModifierIcon" type="MarginContainer" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer" unique_id=1238237800]
 layout_mode = 2
+tooltip_text = "Defense modifier"
 theme_override_constants/margin_top = 0
 
 [node name="TextureRect" type="TextureRect" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer/DefenseModifierIcon" unique_id=321429332]
@@ -113,8 +120,13 @@ layout_mode = 2
 texture = ExtResource("5_kxlso")
 stretch_mode = 5
 
+[node name="TapTooltip" type="Control" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer/DefenseModifierIcon" unique_id=706971894]
+layout_mode = 2
+script = ExtResource("6_il7qi")
+
 [node name="AvoidModifierIcon" type="MarginContainer" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer" unique_id=1348789615]
 layout_mode = 2
+tooltip_text = "Avoid modifier"
 theme_override_constants/margin_top = 0
 
 [node name="TextureRect" type="TextureRect" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer/AvoidModifierIcon" unique_id=956653063]
@@ -123,8 +135,13 @@ layout_mode = 2
 texture = ExtResource("6_m4tgr")
 stretch_mode = 5
 
+[node name="TapTooltip" type="Control" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer/AvoidModifierIcon" unique_id=1457600724]
+layout_mode = 2
+script = ExtResource("6_il7qi")
+
 [node name="AttackModifierIcon" type="MarginContainer" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer" unique_id=364126797]
 layout_mode = 2
+tooltip_text = "Attack modifier"
 theme_override_constants/margin_top = 0
 
 [node name="TextureRect" type="TextureRect" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer/AttackModifierIcon" unique_id=2116096530]
@@ -133,13 +150,23 @@ layout_mode = 2
 texture = ExtResource("7_il7qi")
 stretch_mode = 6
 
+[node name="TapTooltip" type="Control" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer/AttackModifierIcon" unique_id=1298705609]
+layout_mode = 2
+script = ExtResource("6_il7qi")
+
 [node name="AllTypesIconContainer" type="MarginContainer" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer" unique_id=79194729]
 layout_mode = 2
+tooltip_text = "Default type:
+All types have these attributes unless otherwise specified."
 theme_override_constants/margin_top = 0
 
 [node name="TextureRect" type="TextureRect" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer/AllTypesIconContainer" unique_id=1187104350]
 layout_mode = 2
 texture = ExtResource("8_ln87s")
+
+[node name="TapTooltip" type="Control" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer/AllTypesIconContainer" unique_id=1970362765]
+layout_mode = 2
+script = ExtResource("6_il7qi")
 
 [node name="MovementPenalty" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer" unique_id=1691056733 instance=ExtResource("9_kkwl4")]
 layout_mode = 2
@@ -171,11 +198,16 @@ text = "1"
 
 [node name="AllTypesIconContainer2" type="MarginContainer" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer" unique_id=1227149021]
 layout_mode = 2
+tooltip_text = "Type: Air"
 theme_override_constants/margin_top = 0
 
 [node name="TextureRect" type="TextureRect" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer/AllTypesIconContainer2" unique_id=1121779710]
 layout_mode = 2
 texture = ExtResource("10_kxlso")
+
+[node name="TapTooltip" type="Control" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer/AllTypesIconContainer2" unique_id=2055143669]
+layout_mode = 2
+script = ExtResource("6_il7qi")
 
 [node name="MovementPenalty2" parent="ContentMargin/VBoxContainer/MarginContainer/GridContainer" unique_id=1943154625 instance=ExtResource("9_kkwl4")]
 layout_mode = 2

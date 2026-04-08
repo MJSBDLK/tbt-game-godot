@@ -93,6 +93,7 @@ func show_tile(tile: Tile) -> void:
 
 
 func hide_panel() -> void:
+	TapTooltip.dismiss()
 	visible = false
 	_current_terrain_type = ""
 
@@ -105,6 +106,8 @@ func _add_row(unit_type: Variant, move_cost: float, defense: float, avoid: float
 	# Column 1: type icon or "default" placeholder
 	if unit_type == null:
 		var placeholder := _create_icon_cell(load("res://art/sprites/ui/placeholder_10x10.png"))
+		placeholder.tooltip_text = "Default type:\nAll types have these attributes unless otherwise specified."
+		_add_tap_tooltip(placeholder)
 		_grid.add_child(placeholder)
 	else:
 		var element_type: Enums.ElementalType = _unit_type_string_to_enum(unit_type)
@@ -112,6 +115,8 @@ func _add_row(unit_type: Variant, move_cost: float, defense: float, avoid: float
 		var icon_path: String = TYPE_ICON_DIR + enum_name + ".png"
 		var icon_texture: Texture2D = load(icon_path) as Texture2D
 		var icon_cell := _create_icon_cell(icon_texture)
+		icon_cell.tooltip_text = "Type: %s" % unit_type
+		_add_tap_tooltip(icon_cell)
 		_grid.add_child(icon_cell)
 
 	# Column 2: movement cost (color-coded, inverted — lower is better)
@@ -165,6 +170,11 @@ func _create_icon_cell(texture: Texture2D) -> MarginContainer:
 	tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	margin.add_child(tex_rect)
 	return margin
+
+
+func _add_tap_tooltip(control: Control) -> void:
+	var tooltip := TapTooltip.new()
+	control.add_child(tooltip)
 
 
 # =============================================================================
