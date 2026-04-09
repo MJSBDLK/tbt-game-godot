@@ -677,19 +677,11 @@ func _apply_random_debug_status_effects() -> void:
 	var configs := StatusEffectData.get_default_configs()
 	var all_types: Array = configs.keys()
 	all_types.shuffle()
-	var count: int
-	if _debug_status_unit_count == 0:
-		# First unit: 4 statuses, only ones with duration > 1 so they survive turn start
-		var durable_types: Array = all_types.filter(func(t: String) -> bool:
-			return configs[t].duration > 1)
-		durable_types.shuffle()
-		count = mini(4, durable_types.size())
-		for i: int in range(count):
-			StatusEffectSystem.apply_status_effect_by_name(null, self, durable_types[i])
-	else:
-		count = randi_range(1, mini(4, all_types.size()))
-		for i: int in range(count):
-			StatusEffectSystem.apply_status_effect_by_name(null, self, all_types[i])
+	# Under the 1-buff/1-debuff slot model, the system rejects more than one effect
+	# per category. We just attempt 4 random effects and let the system enforce slots.
+	var count: int = mini(4, all_types.size())
+	for i: int in range(count):
+		StatusEffectSystem.apply_status_effect_by_name(null, self, all_types[i])
 	_debug_status_unit_count += 1
 
 

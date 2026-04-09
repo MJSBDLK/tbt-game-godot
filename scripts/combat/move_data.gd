@@ -67,6 +67,8 @@ static func _parse_move_entry(move_name: String, data: Dictionary) -> Move:
 	match damage_string.to_upper():
 		"SPECIAL":
 			move.damage_type = Enums.DamageType.SPECIAL
+		"SUPPORT":
+			move.damage_type = Enums.DamageType.SUPPORT
 		_:
 			move.damage_type = Enums.DamageType.PHYSICAL
 
@@ -85,6 +87,10 @@ static func _parse_move_entry(move_name: String, data: Dictionary) -> Move:
 		var effect_name: String = status_data.get("effect", "")
 		move.status_effect_chance = float(status_data.get("chance", 0.0))
 		move.status_effect_type = _parse_status_effect(effect_name)
+		move.status_effect_stacks = int(status_data.get("stacks", 0))
+		move.status_effect_replaces = bool(status_data.get("replaces", false))
+		var status_target: String = String(status_data.get("target", "target")).to_lower()
+		move.status_effect_self_target = status_target == "self"
 
 	return move
 

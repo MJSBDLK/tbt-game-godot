@@ -231,6 +231,7 @@ func _update_passives(unit: Unit) -> void:
 	_passives_container.visible = not passives.is_empty()
 
 
+## Slot 0 = active buff, slot 1 = active debuff. Remaining chips are hidden.
 func _update_statuses(unit: Unit) -> void:
 	var statuses: Array = unit.active_status_effects
 	var configs := StatusEffectData.get_default_configs()
@@ -240,17 +241,28 @@ func _update_statuses(unit: Unit) -> void:
 		if child is ColorRect:
 			status_chips.append(child)
 
+	# Pick first buff + first debuff
+	var buff: StatusEffect = null
+	var debuff: StatusEffect = null
+	for entry: StatusEffect in statuses:
+		if entry.category == Enums.EffectCategory.BUFF and buff == null:
+			buff = entry
+		elif entry.category == Enums.EffectCategory.DEBUFF and debuff == null:
+			debuff = entry
+	var slot_effects: Array[StatusEffect] = [buff, debuff]
+
+	var any_visible: bool = false
 	for i: int in range(status_chips.size()):
 		var chip: ColorRect = status_chips[i] as ColorRect
-		if i < statuses.size() and statuses[i] != null:
-			var effect: StatusEffect = statuses[i] as StatusEffect
-			var config: StatusEffectData = configs.get(effect.effect_type_name, null)
+		var effect: StatusEffect = slot_effects[i] if i < slot_effects.size() else null
+		if effect != null:
 			chip.visible = true
-			_update_status_chip(chip, effect, config)
+			any_visible = true
+			_update_status_chip(chip, effect, configs.get(effect.effect_type_name, null))
 		else:
 			chip.visible = false
 
-	_status_container.visible = not statuses.is_empty()
+	_status_container.visible = any_visible
 
 
 func _update_status_chip(chip: ColorRect, effect: StatusEffect, config: StatusEffectData) -> void:
@@ -271,9 +283,9 @@ func _update_status_chip(chip: ColorRect, effect: StatusEffect, config: StatusEf
 		else:
 			parts.name_label.text = effect.effect_type_name.capitalize()
 
-	# Turns remaining label
+	# Stack count label (formerly "turns remaining")
 	if parts.turns_label != null:
-		parts.turns_label.text = str(effect.remaining_turns)
+		parts.turns_label.text = str(effect.stacks)
 
 
 # =============================================================================

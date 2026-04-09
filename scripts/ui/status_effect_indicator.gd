@@ -1,5 +1,5 @@
-## Displays a row of status effect icons above a unit's health bar.
-## Up to 4 icons, 6x6 each with 2px gaps, centered on the unit.
+## Displays the unit's active buff and debuff icons above its health bar.
+## Two slots: buff on the left, debuff on the right (each is 6x6 with a 2px gap).
 ## Pip bars sit inline with the top pixel of the health bar.
 class_name StatusEffectIndicator
 extends Node2D
@@ -7,8 +7,8 @@ extends Node2D
 
 const ICON_SIZE: int = 6
 const ICON_GAP: int = 2
-const MAX_ICONS: int = 4
-const MAX_TURNS: int = 4
+const MAX_SLOTS: int = 2  # 1 buff + 1 debuff
+const MAX_PIPS: int = 4
 const PIP_BAR_WIDTH: int = 4  # 4 pips at 1px each
 const PIP_BAR_Y_OFFSET: int = 4  # Icon center is at y=0; bottom edge at +3; 1px gap; pip bar starts at +4
 
@@ -20,27 +20,47 @@ var _icon_cache: Dictionary = {}  # path -> Texture2D
 func update_icons(active_effects: Array) -> void:
 	_clear_icons()
 
-	if active_effects.is_empty():
+	# Pick the first buff and the first debuff (slot model — usually only one each).
+	var buff: StatusEffect = null
+	var debuff: StatusEffect = null
+	for entry: StatusEffect in active_effects:
+		if entry.category == Enums.EffectCategory.BUFF and buff == null:
+			buff = entry
+		elif entry.category == Enums.EffectCategory.DEBUFF and debuff == null:
+			debuff = entry
+		if buff != null and debuff != null:
+			break
+
+	var slot_effects: Array[StatusEffect] = [buff, debuff]
+	var visible_count: int = 0
+	for entry: StatusEffect in slot_effects:
+		if entry != null:
+			visible_count += 1
+
+	if visible_count == 0:
 		visible = false
 		return
-
 	visible = true
+
 	var configs := StatusEffectData.get_default_configs()
-	var icon_count := mini(active_effects.size(), MAX_ICONS)
-	var total_width := icon_count * ICON_SIZE + (icon_count - 1) * ICON_GAP
+	var total_width := visible_count * ICON_SIZE + (visible_count - 1) * ICON_GAP
 	var start_x := -total_width / 2.0 + ICON_SIZE / 2.0
 
-	for i: int in range(icon_count):
-		var effect: StatusEffect = active_effects[i]
+	var draw_index: int = 0
+	for effect: StatusEffect in slot_effects:
+		if effect == null:
+			continue
 		var config: StatusEffectData = configs.get(effect.effect_type_name, null)
 		if config == null or config.icon_path == "":
+			draw_index += 1
 			continue
 
 		var texture := _load_icon(config.icon_path)
 		if texture == null:
+			draw_index += 1
 			continue
 
-		var icon_x: float = start_x + i * (ICON_SIZE + ICON_GAP)
+		var icon_x: float = start_x + draw_index * (ICON_SIZE + ICON_GAP)
 
 		var sprite := Sprite2D.new()
 		sprite.texture = texture
@@ -49,17 +69,18 @@ func update_icons(active_effects: Array) -> void:
 		add_child(sprite)
 		_icon_sprites.append(sprite)
 
-		# Turn pip bar below the icon
-		var pip_bar := _create_pip_bar(effect.remaining_turns, config.duration)
+		# Stack pip bar below the icon
+		var pip_bar := _create_pip_bar(effect.stacks, config.max_stacks)
 		pip_bar.position = Vector2(icon_x - PIP_BAR_WIDTH / 2.0, PIP_BAR_Y_OFFSET)
 		add_child(pip_bar)
 		_pip_bars.append(pip_bar)
+		draw_index += 1
 
 
-func _create_pip_bar(remaining_turns: int, max_duration: int) -> Node2D:
+func _create_pip_bar(current_stacks: int, max_stacks: int) -> Node2D:
 	var bar := Node2D.new()
-	var pip_count: int = clampi(max_duration, 1, MAX_TURNS)
-	var filled: int = clampi(remaining_turns, 0, pip_count)
+	var pip_count: int = clampi(max_stacks, 1, MAX_PIPS)
+	var filled: int = clampi(current_stacks, 0, pip_count)
 
 	for j: int in range(pip_count):
 		var pip := ColorRect.new()

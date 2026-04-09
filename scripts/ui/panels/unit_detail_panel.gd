@@ -611,8 +611,10 @@ func _update_passive_tablets() -> void:
 		_passives_section.visible = not passive_names.is_empty()
 
 
+## Slot 0 holds the active buff (if any), slot 1 holds the active debuff.
+## Slots 2+ are hidden — under the 1-buff/1-debuff slot model they are unused.
 func _update_status_tablets() -> void:
-	var effects: Array = _unit.active_status_effects if _unit != null else []
+	var slot_effects: Array[StatusEffect] = _get_slot_effects()
 	var configs := StatusEffectData.get_default_configs()
 
 	for i: int in range(_status_panels.size()):
@@ -622,28 +624,57 @@ func _update_status_tablets() -> void:
 		var icon_container: MarginContainer = hbox.get_node("ElemetalTypeIconContainer") if hbox.has_node("ElemetalTypeIconContainer") else null
 		var type_icon: TextureRect = icon_container.get_node("TextureRect") if icon_container else null
 
-		if i < effects.size():
-			var effect: StatusEffect = effects[i] as StatusEffect
-			var config: StatusEffectData = configs.get(effect.effect_type_name, null)
-			panel.visible = true
-
-			if name_label:
-				if config != null and config.abbrev_name != "":
-					name_label.text = config.abbrev_name.to_upper()
-				else:
-					name_label.text = effect.effect_type_name.to_upper()
-
-			if type_icon:
-				if config != null and config.icon_path != "":
-					type_icon.texture = load(config.icon_path) as Texture2D
-					type_icon.visible = true
-				else:
-					type_icon.visible = false
-		else:
+		var effect: StatusEffect = slot_effects[i] if i < slot_effects.size() else null
+		if effect == null:
 			panel.visible = false
+			continue
+
+		var config: StatusEffectData = configs.get(effect.effect_type_name, null)
+		panel.visible = true
+
+		if name_label:
+			if config != null and config.abbrev_name != "":
+				name_label.text = config.abbrev_name.to_upper()
+			else:
+				name_label.text = effect.effect_type_name.to_upper()
+
+		if type_icon:
+			if config != null and config.icon_path != "" and ResourceLoader.exists(config.icon_path):
+				type_icon.texture = load(config.icon_path) as Texture2D
+				type_icon.visible = true
+			else:
+				type_icon.visible = false
 
 	if _status_section:
-		_status_section.visible = not effects.is_empty()
+		var any_visible: bool = false
+		for effect: StatusEffect in slot_effects:
+			if effect != null:
+				any_visible = true
+				break
+		_status_section.visible = any_visible
+
+
+## Returns a fixed-length array sized to _status_panels.size():
+##   [0] = active buff or null
+##   [1] = active debuff or null
+##   [2..] = null
+func _get_slot_effects() -> Array[StatusEffect]:
+	var slots: Array[StatusEffect] = []
+	for i: int in range(_status_panels.size()):
+		slots.append(null)
+
+	if _unit == null:
+		return slots
+	var effects: Array = _unit.active_status_effects
+	for entry: StatusEffect in effects:
+		match entry.category:
+			Enums.EffectCategory.BUFF:
+				if slots[0] == null:
+					slots[0] = entry
+			Enums.EffectCategory.DEBUFF:
+				if slots.size() > 1 and slots[1] == null:
+					slots[1] = entry
+	return slots
 
 
 # =============================================================================
@@ -746,13 +777,15 @@ func _show_passive_detail(index: int) -> void:
 
 
 func _show_status_detail(index: int) -> void:
-	var effects: Array = _unit.active_status_effects if _unit != null else []
-	if index < 0 or index >= effects.size():
+	var slot_effects: Array[StatusEffect] = _get_slot_effects()
+	if index < 0 or index >= slot_effects.size():
+		return
+	var effect: StatusEffect = slot_effects[index]
+	if effect == null:
 		return
 
 	_status_description.visible = true
 
-	var effect: StatusEffect = effects[index] as StatusEffect
 	var configs := StatusEffectData.get_default_configs()
 	var config: StatusEffectData = configs.get(effect.effect_type_name, null)
 
@@ -771,8 +804,8 @@ func _show_status_detail(index: int) -> void:
 		var desc_text: String = ""
 		if config != null:
 			desc_text = config.description
-		if effect.remaining_turns > 0:
-			desc_text += "\n%d turn(s) remaining." % effect.remaining_turns
+		if effect.stacks > 0:
+			desc_text += "\n%d stack(s) remaining." % effect.stacks
 		_status_detail_description_label.text = desc_text
 		_status_detail_description_label.get_parent().get_parent().visible = not desc_text.is_empty()
 

@@ -3,6 +3,11 @@
 	"matchups": [
 		{
 			"attacking": "Air",
+			"defending": "Chivalric",
+			"multiplier": 0.5
+		},
+		{
+			"attacking": "Air",
 			"defending": "Gravity",
 			"multiplier": 0.5
 		},
@@ -13,17 +18,12 @@
 		},
 		{
 			"attacking": "Air",
-			"defending": "Plant",
-			"multiplier": 2.0
-		},
-		{
-			"attacking": "Air",
 			"defending": "Robo",
 			"multiplier": 0.5
 		},
 		{
 			"attacking": "Air",
-			"defending": "Simple",
+			"defending": "Void",
 			"multiplier": 2.0
 		},
 		{
@@ -305,6 +305,11 @@
 			"attacking": "Robo",
 			"defending": "Obsidian",
 			"multiplier": 0.5
+		},
+		{
+			"attacking": "Robo",
+			"defending": "Simple",
+			"multiplier": 2.0
 		},
 		{
 			"attacking": "Simple",

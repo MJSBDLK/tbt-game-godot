@@ -28,6 +28,14 @@ var current_uses: int = 0
 # Status effect (data only, not executed until Phase 3)
 @export var status_effect_type: Enums.StatusEffectType = Enums.StatusEffectType.NONE
 @export var status_effect_chance: float = 0.0
+# Number of stacks applied on a successful proc. 0 = use the effect's default_apply_stacks.
+@export var status_effect_stacks: int = 0
+# If true, this move's status effect bypasses the same-category-immunity rule and overwrites
+# any existing buff (if effect is a buff) or debuff (if effect is a debuff).
+@export var status_effect_replaces: bool = false
+# If true, the status effect applies to the caster instead of the move's target.
+# This is how rider buffs work — a damage move that buffs the user on hit.
+@export var status_effect_self_target: bool = false
 
 
 static var EMPTY: Move:

@@ -196,6 +196,26 @@ func get_stat(stat_name: String) -> int:
 	return 0
 
 
+## Returns the unmodified stat (everything in pass 1: base + growth + allocated + bond + passive
+## + future injuries). Excludes status_modifier so % buff/debuff calculations have a stable base
+## that doesn't compound with other status effects.
+func get_unmodified_stat(stat_name: String) -> int:
+	return get_stat(stat_name) - _get_status_modifier(stat_name)
+
+
+func _get_status_modifier(stat_name: String) -> int:
+	match stat_name:
+		"max_hp": return status_modifier_hp
+		"strength": return status_modifier_strength
+		"special": return status_modifier_special
+		"skill": return status_modifier_skill
+		"agility": return status_modifier_agility
+		"athleticism": return status_modifier_athleticism
+		"defense": return status_modifier_defense
+		"resistance": return status_modifier_resistance
+	return 0
+
+
 func get_stat_cap(stat_name: String) -> int:
 	return DEFAULT_STAT_CAPS.get(stat_name, 20)
 

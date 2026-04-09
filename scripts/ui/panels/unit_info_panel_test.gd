@@ -128,7 +128,7 @@ func _update_status(unit: Unit) -> void:
 		return
 	var parts: Array[String] = []
 	for effect: Variant in unit.active_status_effects:
-		parts.append("%s(%dt)" % [effect.effect_type_name, effect.remaining_turns])
+		parts.append("%s(%dx)" % [effect.effect_type_name, effect.stacks])
 	_status_label.text = ", ".join(parts)
 	_status_label.add_theme_color_override("font_color", GameColors.TEXT_DANGER)
 

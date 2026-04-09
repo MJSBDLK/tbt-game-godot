@@ -35,24 +35,35 @@ enum DamageType {
 	SUPPORT,
 }
 
+enum EffectCategory {
+	BUFF,
+	DEBUFF,
+}
+
 enum StatusEffectType {
 	NONE = 0,
+	# --- Buffs ---
 	BELLOWS,          # Stacking fire damage buff, gained when a unit with the Bellows passive takes air damage
+	CRITICAL,         # Next attack deals double damage
+	RALLIED,          # +% strength
+	FORTIFIED,        # +% defense
+	HASTED,           # +% agility
+	FOCUSED,          # +% skill
+	REGEN,            # Heal-over-time
+	# --- Debuffs ---
 	BLEED,            # DoT, damage over time
 	BUGLE,            # Take +1 damage from heraldic moves
-	BURN,             # DoT, lower attack, stacks increase damage and spread fire
+	BURN,             # DoT, lower attack
 	CHAIN_LIGHTNING,  # .5 dmg to adjacent, .25 to next, until <1 damage
 	CHALLENGED,       # Draws aggro, can't target weaker units if near challenger
-	CRITICAL,         # Double damage from this attack
 	FREEZE,           # Immobilized, can't act
-	GRAVITY,          # Hampers movement and attacks
+	GRAVITY,          # -% agility
 	POISON,           # DoT, damage over time
 	ROOTED,           # Stops movement
-	SHOCKED,          # Reduced accuracy, chance to skip turn
-	SUBVERSION,       # Lowers defenses by 1/3, allies' by 1/4 in range. Nullifies bond bonuses
-	VOID,             # Locks a random move or passive per stack, up to 3
-	VULNERABLE,       # Takes increased damage
-	WITHER,           # Reduced stats, weakened
+	SHOCKED,          # -% skill, chance to skip turn
+	SUBVERSION,       # -% defense
+	VOID,             # Locks a random move per stack
+	VULNERABLE,       # -% resistance
 }
 
 enum TerrainStatus {

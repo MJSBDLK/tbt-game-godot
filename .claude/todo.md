@@ -1,7 +1,7 @@
 ## For Lawrence (Art!)
 - [ ] 
 
-# Meeting 20260405
+# Meeting 20260412
 - [x] RQD - have move type icons (phys/spec/supp) wired up to show Lawrence
 - [x] RQD - add move type color pairings to the color demo panel - use full and half full move chips
 - [x] RQD - figure out what we were using those status colors for (removed — unused, will revisit when Lawrence mocks up status tick particles)
@@ -11,6 +11,7 @@
 - [ ] Go over style guide with Lawrence
 - [x] Check out the colors demo
 - [ ] Check out the options menu - any options you can think of?
+- [ ] LOD - I need a bunch more icons: buffs 6x6, injuries 10x10? (Let's discuss how injuries should look, and we may discard injuries for the alpha)
 
 # Todo
 - [x] Merge Lawrence's branch

@@ -21,25 +21,37 @@
 		"targetType": "Single"
 	},
 	"Uppercut": {
-		"description": "A rising strike that knocks the target off balance.",
+		"description": "A rising strike that knocks the target off balance and primes a follow-up.",
 		"abbrevName": "Uppercut",
 		"range": 1,
 		"areaOfEffect": 0,
 		"basePower": 5,
 		"damageType": "Physical",
 		"elementType": "Simple",
-		"targetType": "Single"
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Critical",
+			"chance": 0.25,
+			"stacks": 1,
+			"target": "self"
+		}
 	},
 
 	"Compressed Air": {
-		"description": "A pressurized burst of air fired at range.",
+		"description": "A pressurized burst of air fired at range. The recoil propels the user.",
 		"abbrevName": "Comp Air",
 		"range": 3,
 		"areaOfEffect": 0,
 		"basePower": 4,
 		"damageType": "Special",
 		"elementType": "Air",
-		"targetType": "Single"
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Hasted",
+			"chance": 0.3,
+			"stacks": 2,
+			"target": "self"
+		}
 	},
 	"Cyclone": {
 		"description": "A concentrated vortex of cutting air.",
@@ -185,14 +197,20 @@
 	},
 
 	"Feint": {
-		"description": "A deceptive quick strike. Cheap to use.",
+		"description": "A deceptive quick strike that sets up the user's next attack.",
 		"abbrevName": "Feint",
 		"range": 1,
 		"areaOfEffect": 0,
 		"basePower": 4,
 		"damageType": "Physical",
 		"elementType": "Gentry",
-		"targetType": "Single"
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Focused",
+			"chance": 0.4,
+			"stacks": 2,
+			"target": "self"
+		}
 	},
 	"Backstab": {
 		"description": "Hits where it hurts. A lot.",
@@ -231,14 +249,20 @@
 	},
 
 	"March": {
-		"description": "A disciplined formation strike.",
+		"description": "A disciplined formation strike that emboldens the user.",
 		"abbrevName": "March",
 		"range": 1,
 		"areaOfEffect": 0,
 		"basePower": 5,
 		"damageType": "Physical",
 		"elementType": "Heraldic",
-		"targetType": "Single"
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Rallied",
+			"chance": 0.3,
+			"stacks": 2,
+			"target": "self"
+		}
 	},
 	"Volley": {
 		"description": "A coordinated ranged attack from multiple angles.",
@@ -320,14 +344,20 @@
 	},
 
 	"Laser": {
-		"description": "A focused energy beam fired at range.",
+		"description": "A focused energy beam fired at range. Targeting systems calibrate with each shot.",
 		"abbrevName": "Laser",
 		"range": 3,
 		"areaOfEffect": 0,
 		"basePower": 4,
 		"damageType": "Special",
 		"elementType": "Robo",
-		"targetType": "Single"
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Focused",
+			"chance": 0.3,
+			"stacks": 2,
+			"target": "self"
+		}
 	},
 	"Overload": {
 		"description": "Blasts the target with a surge of electrical discharge.",
@@ -409,7 +439,13 @@
 		"basePower": 4,
 		"damageType": "Special",
 		"elementType": "Simple",
-		"targetType": "Single"
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Focused",
+			"chance": 0.3,
+			"stacks": 2,
+			"target": "self"
+		}
 	},
 
 	"Megaton Punch": {
@@ -421,5 +457,70 @@
 		"damageType": "Physical",
 		"elementType": "Simple",
 		"targetType": "Single"
+	},
+
+	"Fortify": {
+		"description": "Plants the feet and braces for incoming damage.",
+		"abbrevName": "Fortify",
+		"range": 0,
+		"areaOfEffect": 0,
+		"basePower": 0,
+		"damageType": "Support",
+		"elementType": "Chivalric",
+		"targetType": "Self",
+		"statusEffect": {
+			"effect": "Fortified",
+			"chance": 1.0,
+			"stacks": 4,
+			"target": "self"
+		}
+	},
+	"Bloom": {
+		"description": "Calls forth a brief regenerative bloom around the user.",
+		"abbrevName": "Bloom",
+		"range": 0,
+		"areaOfEffect": 0,
+		"basePower": 0,
+		"damageType": "Support",
+		"elementType": "Plant",
+		"targetType": "Self",
+		"statusEffect": {
+			"effect": "Regen",
+			"chance": 1.0,
+			"stacks": 4,
+			"target": "self"
+		}
+	},
+	"Focus": {
+		"description": "A breath of concentration. Sharpens the user's next strike.",
+		"abbrevName": "Focus",
+		"range": 0,
+		"areaOfEffect": 0,
+		"basePower": 0,
+		"damageType": "Support",
+		"elementType": "Gentry",
+		"targetType": "Self",
+		"statusEffect": {
+			"effect": "Critical",
+			"chance": 1.0,
+			"stacks": 1,
+			"target": "self"
+		}
+	},
+	"Battle Cry": {
+		"description": "A rousing shout that bolsters the user's resolve.",
+		"abbrevName": "Cry",
+		"range": 0,
+		"areaOfEffect": 0,
+		"basePower": 0,
+		"damageType": "Support",
+		"elementType": "Heraldic",
+		"targetType": "Self",
+		"statusEffect": {
+			"effect": "Rallied",
+			"chance": 1.0,
+			"stacks": 4,
+			"target": "self"
+		}
 	}
 }

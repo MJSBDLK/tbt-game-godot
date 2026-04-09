@@ -106,7 +106,8 @@
       "Bash(grep -r \"MoveData\\\\|PassiveData\" /home/mjsbdlk/Documents/Projects/tbt-game-unity/Assets/Scripts/Units --include=*.cs)",
       "Bash(grep -ri \"passive\\\\|end_turn\\\\|turn_end\\\\|turn.*manager\" --include=*.gd -l)",
       "Bash(grep -E \"\\\\.\\(prefab|asset\\)$\")",
-      "Bash(grep -r \"class_name\\\\|extends PanelContainer\" /home/mjsbdlk/Documents/Projects/tbt-game-godot/scripts/ui/panels/*.gd)"
+      "Bash(grep -r \"class_name\\\\|extends PanelContainer\" /home/mjsbdlk/Documents/Projects/tbt-game-godot/scripts/ui/panels/*.gd)",
+      "Bash(timeout 30 godot-4 --headless --check-only --quit)"
     ]
   }
 }
