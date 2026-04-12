@@ -92,8 +92,11 @@ static func get_type_effectiveness(attacker: Node2D, defender: Node2D, move: Mov
 	if type_chart_manager == null:
 		return 1.0
 
+	# Use effective types so Crystallization-injured units lose their typing.
 	return type_chart_manager.get_combined_effectiveness(
-		move.element_type, defender_data.primary_type, defender_data.secondary_type)
+		move.element_type,
+		defender_data.effective_primary_type(),
+		defender_data.effective_secondary_type())
 
 
 ## Check if defender can counter-attack the attacker.

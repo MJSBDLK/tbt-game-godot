@@ -20,3 +20,7 @@ var caster_level: int = 1
 var dot_damage_per_tick: int = 0  # Cached at apply time from caster level + target HP
 var hot_heal_per_tick: int = 0    # Cached at apply time from caster level + target HP
 var locked_move_indices: Array[int] = []  # For VOID: one entry per stack
+# Element/damage_type of the move that applied this effect. Used for injury
+# attribution when a DoT tick deals the killing blow.
+var source_element: Enums.ElementalType = Enums.ElementalType.NONE
+var source_damage_type: Enums.DamageType = Enums.DamageType.PHYSICAL

@@ -63,6 +63,25 @@ func _find_grid_builder() -> TilemapGridBuilder:
 
 func _spawn_units_from_tiles(positions: Array, faction: Enums.UnitFaction, character_path: String) -> Array[Unit]:
 	var units: Array[Unit] = []
+	# For player units, walk the SquadManager roster instead of relying on the
+	# default character_path (this lets the persistent roster determine who
+	# spawns and how many slots are filled). For enemy units we still use the
+	# tile spawn count + the per-faction default JSON path.
+	if faction == Enums.UnitFaction.PLAYER:
+		var roster: Array[CharacterData] = SquadManager.get_active_roster()
+		var slot_count: int = mini(positions.size(), roster.size())
+		for i: int in range(slot_count):
+			var grid_pos := positions[i] as Vector2i
+			var tile := GridManager.get_tile(grid_pos.x, grid_pos.y)
+			if tile == null:
+				push_warning("BattleScene: No tile at (%d, %d) for spawn" % [grid_pos.x, grid_pos.y])
+				continue
+			var unit := _create_unit_from_data(roster[i], faction, tile)
+			if unit != null:
+				units.append(unit)
+		return units
+
+	# Enemy spawns: load from default JSON path each spawn (no persistence).
 	for position: Variant in positions:
 		var grid_pos := position as Vector2i
 		var tile := GridManager.get_tile(grid_pos.x, grid_pos.y)
@@ -79,10 +98,32 @@ func _spawn_units_from_tiles(positions: Array, faction: Enums.UnitFaction, chara
 # UNIT CREATION
 # =============================================================================
 
+## Spawn a unit from a JSON path. Used for enemies (and as a fallback for tests).
 func _create_unit(json_path: String, faction: Enums.UnitFaction, tile: Tile,
 		ai_behavior: Enums.AIBehaviorType = Enums.AIBehaviorType.AGGRESSIVE) -> Unit:
 	var unit: Unit = _unit_scene.instantiate() as Unit
 	unit.character_json_path = json_path
+	unit.faction = faction
+	_units_container.add_child(unit)
+	unit.initialize(tile)
+	unit.auto_assign_first_usable_move()
+
+	if faction == Enums.UnitFaction.ENEMY:
+		var enemy_ai := EnemyAI.new()
+		enemy_ai.name = "EnemyAI"
+		enemy_ai.behavior_type = ai_behavior
+		unit.add_child(enemy_ai)
+
+	return unit
+
+
+## Spawn a unit from a pre-existing CharacterData (the SquadManager-persistent
+## path used for player units). The CharacterData reference is shared with the
+## roster so any mid-mission state mutations (XP gain, injury queue) persist.
+func _create_unit_from_data(character_data: CharacterData, faction: Enums.UnitFaction, tile: Tile,
+		ai_behavior: Enums.AIBehaviorType = Enums.AIBehaviorType.AGGRESSIVE) -> Unit:
+	var unit: Unit = _unit_scene.instantiate() as Unit
+	unit.character_data = character_data
 	unit.faction = faction
 	_units_container.add_child(unit)
 	unit.initialize(tile)

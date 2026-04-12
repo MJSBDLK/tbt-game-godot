@@ -112,6 +112,9 @@ func start_player_phase() -> void:
 
 	_process_status_effects(_player_units)
 	_refresh_units(_player_units)
+	# Run injury per-turn effects AFTER refresh, so PTSD's can_act=false
+	# isn't immediately reset.
+	_process_injury_turn_effects(_player_units)
 
 	if input_manager != null:
 		input_manager.enable_input()
@@ -151,6 +154,7 @@ func start_enemy_phase() -> void:
 
 	_process_status_effects(_enemy_units)
 	_refresh_units(_enemy_units)
+	_process_injury_turn_effects(_enemy_units)
 
 	enemy_phase_started.emit()
 	await _process_enemy_phase()
@@ -261,3 +265,12 @@ func _process_status_effects(units: Array[Unit]) -> void:
 	for unit: Unit in units:
 		if not unit.is_defeated():
 			status_system.process_turn_start_effects(unit)
+
+
+func _process_injury_turn_effects(units: Array[Unit]) -> void:
+	var injury_system: Node = get_node_or_null("/root/InjurySystem")
+	if injury_system == null:
+		return
+	for unit: Unit in units:
+		if not unit.is_defeated():
+			injury_system.process_turn_start(unit, turn_count)

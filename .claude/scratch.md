@@ -68,3 +68,26 @@ Also: CON 5, CAR 8, Move Distance 3.
 
 Health bar colors (parametric 0.85):
 #6e150d, #8e371e, #a7532d, #c17b3e, #dca452, #f4cc65, #d3cc72, #afcb80, #8cc991, #6dcbac, #45cbce
+
+Q1. Element → injury map. Listed as minor (major)
+Element	    DamageType      Injury	        Penalty
+Fire	    Phys/Spc        Burn Scar	    -STR
+Cold	    Phys/Spc        Frostbite	    -AGL
+Electric	Phys/Spc        Nerve Damage	-SKL
+Plant	    Physical        Contusion	    -ATH
+Plant	    Special         Infection	    -RES
+Air	        Phys/Spc        Concussion	    -SKL
+Gravity	    Phys/Spc        Broken Bone 	-1 (2) Move [down to a minimum of 1]
+Void	    Phys/Spc        Bends   	    1 (2) random move or passive locked each turn
+Occult	    Phys/Spc        Curse	        -10 (20)% LUCK (affects all dice rolls)
+Chivalric	Phys/Spc        Wound   	    -20 (40)% maxHP
+Heraldic	Physical        Trauma     	    -DEF
+Heraldic	Special         PTSD     	    6.25 (12.5)% chance to not act (flee) each turn after the first
+Gentry	    Physical        Wound	        -20 (40)% maxHP
+Gentry	    Special         Corruption	    6.25 (12.5)% chance to change to enemy faction for the turn, each turn after the first
+Robo	    Physical        Laceration 	    -Healing effects reduced by 25 (50)% down to a minimum of 1 [max 99% reduction from all sources]
+Robo	    Special         Hypoesthesia    -Hides health bar if health over 50 (0)%
+Simple	    Physical        Trauma	        -DEF
+Simple	    Special         Amnesia	        -SPC
+Obsidian	Physical        Crystallization -Removes primary (and secondary) elemental type (this might be a positive and that's fine!)
+Obsidian	Special         Corruption   	6.25 (12.5)% chance to change to enemy faction for the turn, each turn after the first

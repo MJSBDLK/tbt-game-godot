@@ -15,13 +15,29 @@ static func load_character(json_path: String) -> CharacterData:
 		push_error("CharacterDataLoader: Failed to parse '%s'" % json_path)
 		return null
 
-	return _parse_character_json(json_result as Dictionary)
+	var character := _parse_character_json(json_result as Dictionary)
+
+	# Fall back to deriving character_id from the JSON filename if not declared.
+	if character != null and character.character_id == "":
+		character.character_id = _derive_id_from_path(json_path)
+
+	return character
+
+
+## Strip directories and extension from a JSON path to produce a fallback character_id.
+## "res://data/characters/spaceman.json" -> "spaceman"
+static func _derive_id_from_path(json_path: String) -> String:
+	var base: String = json_path.get_file()
+	if base.ends_with(".json"):
+		base = base.substr(0, base.length() - 5)
+	return base.to_lower()
 
 
 static func _parse_character_json(data: Dictionary) -> CharacterData:
 	var character := CharacterData.new()
 
 	# Identity
+	character.character_id = data.get("id", "")
 	character.character_name = data.get("characterName", "Unknown")
 	character.primary_type = Enums.string_to_elemental_type(data.get("primaryType", "None"))
 	character.secondary_type = Enums.string_to_elemental_type(data.get("secondaryType", "None"))

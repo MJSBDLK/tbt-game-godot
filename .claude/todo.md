@@ -5,13 +5,25 @@
 - [x] RQD - have move type icons (phys/spec/supp) wired up to show Lawrence
 - [x] RQD - add move type color pairings to the color demo panel - use full and half full move chips
 - [x] RQD - figure out what we were using those status colors for (removed — unused, will revisit when Lawrence mocks up status tick particles)
-- [ ] 
-- [ ] LOD - move preview animated arrow (see the FreePixelEffect resource from the Unity project)
-- [ ] LOD - waypoint indicator for move preview
+- [x] LOD - move preview animated arrow (see the FreePixelEffect resource from the Unity project)
+- [x] LOD - waypoint indicator for move preview
 - [ ] Go over style guide with Lawrence
 - [x] Check out the colors demo
 - [ ] Check out the options menu - any options you can think of?
 - [ ] LOD - I need a bunch more icons: buffs 6x6, injuries 10x10? (Let's discuss how injuries should look, and we may discard injuries for the alpha)
+
+# Meeting 20260419
+- [ ] LOD - push move preview beacons small/large, red/blue
+- [ ] RQD - speed up unit movement by like 3x or so
+- [ ] 
+
+# RQD Todo by 20260412
+- [ ] Mock up updated unit detail panel (1 buff slot + 1 debuff slot + injury 2x2 grid with 2-slot stacking)
+- [ ] Create test_map_02 (or a "next mission" button) so we can playtest injury persistence across missions
+- [ ] Add `"id"` field to character JSONs (spaceman.json, ernesto.json, maam.json) — works without it but cleaner with
+- [ ] Send Lawrence the buff icon request: Rallied, Fortified, Hasted, Focused, Regen (6x6, matching status_effect_icons_6x6_v2 style) + the missing Bellows icon
+- [ ] Discuss injury icon style with Lawrence — 6x6 matching status icons, or larger? 20 injuries to cover eventually but only need a few for alpha
+- [ ] Playtest buff/debuff system: toggle `testing_status_effects = true` in debug_config.gd, verify slot enforcement + pip bars + detail panel work in-game
 
 # Todo
 - [x] Merge Lawrence's branch
@@ -43,41 +55,21 @@
 
 ---
 
-## Buff/Debuff System
-Split the single `active_status_effects` array into separate buff/debuff systems with independent caps (max 4 each).
+## Buff/Debuff System (shipped 2026-04-09)
+- [x] Unified stack/percentage model — every effect uses stacks (no separate `duration`); stat effects are % of unmodified stat
+- [x] 1 buff slot + 1 debuff slot per unit, with same-category immunity (and `replaces` override flag on moves)
+- [x] 5 new buffs added: Rallied (+STR), Fortified (+DEF), Hasted (+AGL), Focused (+SKL), Regen (HoT)
+- [x] 6 weak moves got self-target buff riders (Compressed Air, Uppercut, Feint, Sidearm, Laser, March)
+- [x] 4 dedicated Support moves added: Fortify, Bloom, Focus, Battle Cry
+- [x] UI updated: detail panel, in-world indicator, preview panel all show 1 buff + 1 debuff
+- [ ] **Icon requests pending from Lawrence**: Rallied, Fortified, Hasted, Focused, Regen, plus the long-missing Bellows
+- [ ] Combat preview: indicate buffs/debuffs in play (deferred — combat numbers will pull from effective stats automatically once the panel reads `character_data.strength` etc.)
+- [ ] Ally-target support moves (e.g. Rally) — combat selection doesn't yet support ally-target; defer until needed
 
-### Data Layer
-- [ ] Add `EffectCategory` enum to enums.gd: `BUFF, DEBUFF`
-- [ ] Add `category: Enums.EffectCategory` field to `StatusEffectData`
-- [ ] Tag each existing config in `StatusEffectData.get_default_configs()`:
-  - DEBUFF: BLEED, BURN, BUGLE, CHAIN_LIGHTNING, CHALLENGED, FREEZE, GRAVITY, POISON, ROOTED, SHOCKED, SUBVERSION, VOID, VULNERABLE, WITHER
-  - BUFF: BELLOWS, CRITICAL
-- [ ] Add `category` field to `StatusEffect` runtime class (copied from config on creation)
-
-### Unit Storage
-- [ ] Add `active_buffs: Array[StatusEffect]` to Unit (alongside existing `active_status_effects`)
-- [ ] Rename `active_status_effects` → `active_debuffs` (grep + replace across codebase)
-- [ ] Both arrays capped at 4
-
-### StatusEffectSystem Changes
-- [ ] `apply_status_effect_by_name()` — route to correct array based on config category
-- [ ] Cap enforcement: when 5th buff/debuff tries to apply, decide behavior (reject? replace oldest?)
-  - **Decision needed**: overflow policy — ask during implementation
-- [ ] `process_turn_start_effects()` — iterate both arrays
-- [ ] `_recalculate_stat_modifiers()` — iterate both arrays
-- [ ] `can_unit_move()` / `can_unit_act()` — only checks debuffs (optimization, but keeps it correct)
-- [ ] `remove_status_effect()` / `clear_all_effects()` — handle both arrays
-- [ ] `is_move_locked()` — debuffs only (VOID is a debuff)
-- [ ] `get_effect_stacks()` — check correct array based on effect name → config category
-- [ ] `check_passive_triggers_on_hit()` — applies to buff array (BELLOWS is a buff)
-
-### DamageCalculator
-- [ ] `calculate_damage()` BELLOWS lookup — no change needed (already queries by effect name via `get_effect_stacks`)
-
-### UI
-- [ ] Status HUD on units: show buff icons separately from debuff icons (left/right or color-coded)
-- [ ] Unit detail / character sheet panels: separate buff and debuff sections
-- [ ] Combat preview: indicate if buffs/debuffs are in play
+# Options Menu
+- [ ] Master Volume - default 0.8
+- [ ] SFX Volume - default 0.8
+- [ ] Music Volume - default 0.8
 
 ---
 

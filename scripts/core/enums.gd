@@ -40,6 +40,25 @@ enum EffectCategory {
 	DEBUFF,
 }
 
+enum InjurySeverity {
+	MINOR,  # 1 slot, 4 battles to recover
+	MAJOR,  # 2 slots, 8 battles to recover
+}
+
+## How an injury affects the unit. Each value maps to a code path in InjurySystem.
+enum InjuryMechanic {
+	STAT_PCT,         # -X% to a single stat (Burn Scar, Frostbite, Concussion, ...)
+	MAX_HP_PCT,       # -X% maxHP (Wound)
+	MOVE_DISTANCE,    # -N move distance, min 1 (Broken Bone)
+	HEALING_REDUCED,  # -X% healing received (Laceration)
+	LUCK_PCT,         # -X% LUCK on every roll the unit makes (Curse)
+	TURN_SKIP_CHANCE, # X% chance to skip turn (PTSD)
+	FRIENDLY_FIRE,    # X% chance per attack to retarget a random ally in range (Corruption)
+	MOVE_LOCK,        # N random move/passive locked each turn (Bends)
+	HIDE_HEALTH,      # Hides health bar above threshold (Hypoesthesia)
+	REMOVE_TYPE,      # Removes elemental type(s) (Crystallization)
+}
+
 enum StatusEffectType {
 	NONE = 0,
 	# --- Buffs ---

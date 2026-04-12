@@ -55,7 +55,7 @@ var max_movement_range: int:
 	get:
 		if character_data == null:
 			return 0
-		return character_data.move_distance * MOVEMENT_SCALE
+		return character_data.get_effective_move_distance() * MOVEMENT_SCALE
 
 
 # =============================================================================
@@ -69,6 +69,16 @@ var is_defeated_flag: bool = false
 var current_hp: int = 0
 var assigned_move: Move = null
 var active_status_effects: Array = []  # Array of StatusEffect
+
+# Set by take_damage when the killing blow lands. Used by InjurySystem to
+# pick the right injury when the unit_defeated handler runs.
+# Shape: { "element": Enums.ElementalType, "damage_type": Enums.DamageType, "name": String }
+var last_killing_source: Dictionary = {}
+var last_damage_overkill: int = 0
+
+# Per-turn injury state (cleared and re-rolled at start of each turn).
+# Set by InjurySystem.process_turn_start.
+var injury_locked_move_indices: Array[int] = []
 
 var _start_tile_before_move: Tile = null
 var _selection_tween: Tween = null
@@ -99,12 +109,18 @@ func _ready() -> void:
 
 
 func initialize(starting_tile: Tile) -> void:
-	# Load character data from JSON
-	if character_json_path != "":
+	# If character_data was injected before initialize() (BattleScene route for
+	# persistent player units via SquadManager), skip the JSON load. Otherwise
+	# fall back to loading from json_path (used by enemy units and tests).
+	if character_data == null and character_json_path != "":
 		character_data = CharacterDataLoader.load_character(character_json_path)
 	if character_data == null:
 		character_data = CharacterData.new()
 		DebugConfig.log_error("Unit '%s': No character data loaded" % unit_name)
+
+	# Apply persistent injury stat modifiers from prior missions. Safe to call
+	# even on a freshly-loaded character with no injuries.
+	InjurySystem.recalculate_injury_modifiers(character_data)
 
 	# Sync name
 	unit_name = character_data.character_name
@@ -338,17 +354,42 @@ func set_acted() -> void:
 # HEALTH
 # =============================================================================
 
-func take_damage(amount: int) -> void:
-	current_hp = maxi(0, current_hp - amount)
+## Apply damage to this unit. The optional source dict carries the
+## attribution data InjurySystem needs to assign an injury at death:
+##   { "element": Enums.ElementalType, "damage_type": Enums.DamageType }
+## Sources may also include a free-form "name" key for logging.
+## When the killing blow lands, this caches source on the unit so the
+## injury system can read it during the unit_defeated handler.
+func take_damage(amount: int, source: Dictionary = {}) -> void:
+	# Compute overkill BEFORE clamping current_hp. If a 5 HP unit takes 12 damage,
+	# pre_clamp_hp = -7, so overkill = 7.
+	var pre_clamp_hp: int = current_hp - amount
+	current_hp = maxi(0, pre_clamp_hp)
+	if pre_clamp_hp < 0:
+		last_damage_overkill = -pre_clamp_hp
 	_update_health_bar()
 	health_changed.emit(self, current_hp, character_data.max_hp)
 	if current_hp <= 0 and not is_defeated_flag:
 		is_defeated_flag = true
+		last_killing_source = source
+		# Queue an injury based on the killing source. Player units get the actual
+		# injury queued; enemy units skip injury queuing entirely (their character_data
+		# isn't persisted between missions). This is checked by faction.
+		if faction == Enums.UnitFaction.PLAYER:
+			InjurySystem.queue_injury_from_death(self)
 		unit_defeated.emit(self)
 
 
+## Heal this unit by amount. The actual heal is reduced by Laceration
+## (character_data.healing_reduction_pct) but always restores at least 1 HP if amount > 0.
 func heal(amount: int) -> void:
-	current_hp = mini(character_data.max_hp, current_hp + amount)
+	if amount <= 0:
+		return
+	var reduction: float = character_data.healing_reduction_pct
+	var actual: int = amount
+	if reduction > 0.0:
+		actual = maxi(1, int(floor(amount * (1.0 - reduction / 100.0))))
+	current_hp = mini(character_data.max_hp, current_hp + actual)
 	_update_health_bar()
 	health_changed.emit(self, current_hp, character_data.max_hp)
 
@@ -360,6 +401,9 @@ func _update_health_bar() -> void:
 		return
 	var health_percent := float(current_hp) / float(character_data.max_hp)
 	_health_bar_fill.scale.x = health_percent
+	# Hypoesthesia: hide the whole bar when an HP-hide injury threshold is exceeded.
+	if _health_bar != null:
+		_health_bar.visible = not character_data.is_health_bar_hidden(current_hp)
 
 
 # =============================================================================
@@ -370,11 +414,21 @@ func assign_move(move: Move) -> void:
 	assigned_move = move
 
 
+## Returns true if the given move slot index is locked by either a status effect (VOID)
+## or an active per-turn injury effect (Bends).
+func is_move_index_locked(index: int) -> bool:
+	if StatusEffectSystem.is_move_locked(self, index):
+		return true
+	if index in injury_locked_move_indices:
+		return true
+	return false
+
+
 func auto_assign_first_usable_move() -> void:
 	if character_data == null:
 		return
 	for move: Move in character_data.equipped_moves:
-		if move.has_uses_remaining() and not StatusEffectSystem.is_move_locked(self, character_data.equipped_moves.find(move)):
+		if move.has_uses_remaining() and not is_move_index_locked(character_data.equipped_moves.find(move)):
 			assigned_move = move
 			return
 	assigned_move = null
@@ -386,13 +440,38 @@ func get_usable_moves() -> Array[Move]:
 		return usable
 	for index: int in range(character_data.equipped_moves.size()):
 		var move: Move = character_data.equipped_moves[index]
-		if move.has_uses_remaining() and not StatusEffectSystem.is_move_locked(self, index):
+		if move.has_uses_remaining() and not is_move_index_locked(index):
 			usable.append(move)
 	return usable
 
 
 func is_defeated() -> bool:
 	return current_hp <= 0
+
+
+## Returns a random non-defeated ally within manhattan `attack_range` of this unit,
+## or null if none exist. Used by the FRIENDLY_FIRE injury mechanic to retarget.
+func _pick_random_ally_in_range(attack_range: int) -> Unit:
+	var turn_manager: Node = get_node_or_null("/root/TurnManager")
+	if turn_manager == null:
+		return null
+	var pool: Array[Unit] = []
+	if faction == Enums.UnitFaction.PLAYER:
+		pool = turn_manager.get_player_units()
+	else:
+		pool = turn_manager.get_enemy_units()
+
+	var candidates: Array[Unit] = []
+	for ally: Unit in pool:
+		if ally == self or ally.is_defeated() or ally.current_tile == null or current_tile == null:
+			continue
+		var dist: int = absi(ally.current_tile.grid_x - current_tile.grid_x) + absi(ally.current_tile.grid_y - current_tile.grid_y)
+		if dist <= attack_range:
+			candidates.append(ally)
+
+	if candidates.is_empty():
+		return null
+	return candidates[randi() % candidates.size()]
 
 
 # =============================================================================
@@ -404,6 +483,19 @@ func is_defeated() -> bool:
 func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 	if defender == null or attacker_move == null:
 		return
+
+	# Friendly fire (Corruption injury): the attacker has been "acting shifty."
+	# On a proc, retarget a random ally in range. If no ally is in range, the
+	# attack fizzles entirely — flavor: the unit hesitates.
+	if character_data != null and character_data.friendly_fire_chance_pct() > 0.0:
+		if randf() * 100.0 < character_data.friendly_fire_chance_pct():
+			var ally: Unit = _pick_random_ally_in_range(attacker_move.attack_range)
+			if ally == null:
+				DebugConfig.log_combat("FriendlyFire: %s hesitated (no ally in range)" % unit_name)
+				return
+			DebugConfig.log_combat("FriendlyFire: %s redirected attack from %s to %s" % [
+				unit_name, defender.unit_name, ally.unit_name])
+			defender = ally
 
 	combat_started.emit(self, defender)
 	DebugConfig.log_combat("Combat: %s (move=%s) vs %s" % [unit_name, attacker_move.move_name, defender.unit_name])
@@ -485,7 +577,11 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 	if camera != null:
 		camera.screenshake(impact_weight)
 
-	target.take_damage(damage)
+	target.take_damage(damage, {
+		"element": move.element_type,
+		"damage_type": move.damage_type,
+		"name": move.move_name,
+	})
 	combat_hit.emit(self, target, damage)
 
 	_spawn_damage_popup(target, damage, effectiveness_text, type_multiplier)

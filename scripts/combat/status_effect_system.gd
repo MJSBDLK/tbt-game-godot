@@ -39,22 +39,32 @@ func apply_status_effect(caster: Node2D, target: Node2D, move: Move) -> bool:
 	if actual_target == null:
 		return false
 
-	# Roll chance
-	var roll := randf()
-	if roll > move.status_effect_chance:
-		DebugConfig.log_status("StatusEffectSystem: %s missed (roll %.2f > chance %.2f)" % [
-			Enums.StatusEffectType.keys()[move.status_effect_type], roll, move.status_effect_chance])
+	# Roll chance — the caster is the actor, so use the caster's luck.
+	# A cursed caster has a lower probability of successfully landing the status.
+	var caster_data: Variant = caster.get("character_data") if caster != null else null
+	var success: bool = false
+	if caster_data != null:
+		success = caster_data.roll_succeeds(move.status_effect_chance)
+	else:
+		success = randf() < move.status_effect_chance
+	if not success:
+		DebugConfig.log_status("StatusEffectSystem: %s missed (chance %.2f, luck-adjusted)" % [
+			Enums.StatusEffectType.keys()[move.status_effect_type], move.status_effect_chance])
 		return false
 
 	var effect_type_name: String = Enums.StatusEffectType.keys()[move.status_effect_type]
 	var stacks_to_apply: int = move.status_effect_stacks  # 0 = use config default
-	return apply_status_effect_by_name(caster, actual_target, effect_type_name, stacks_to_apply, move.status_effect_replaces)
+	return apply_status_effect_by_name(
+		caster, actual_target, effect_type_name, stacks_to_apply,
+		move.status_effect_replaces, move.element_type, move.damage_type)
 
 
 ## Apply a status effect by name. Returns true if applied (or successfully restacked).
 ## stacks_to_apply: 0 = use the effect's default_apply_stacks.
 ## replace_existing: bypass same-category immunity, removing any active effect of the same category.
-func apply_status_effect_by_name(caster: Node2D, target: Node2D, effect_type_name: String, stacks_to_apply: int = 0, replace_existing: bool = false) -> bool:
+## source_element/source_damage_type: stamped onto the StatusEffect for injury attribution
+## if a DoT tick from this effect kills the target.
+func apply_status_effect_by_name(caster: Node2D, target: Node2D, effect_type_name: String, stacks_to_apply: int = 0, replace_existing: bool = false, source_element: Enums.ElementalType = Enums.ElementalType.NONE, source_damage_type: Enums.DamageType = Enums.DamageType.PHYSICAL) -> bool:
 	if target == null:
 		return false
 
@@ -109,6 +119,8 @@ func apply_status_effect_by_name(caster: Node2D, target: Node2D, effect_type_nam
 	effect.category = config.category
 	effect.affected_stat = config.affected_stat
 	effect.stacks = mini(stacks_to_apply, config.max_stacks)
+	effect.source_element = source_element
+	effect.source_damage_type = source_damage_type
 
 	var caster_data: Variant = caster.get("character_data") if caster != null else null
 	effect.caster_level = caster_data.level if caster_data != null else 1
@@ -157,7 +169,12 @@ func process_turn_start_effects(unit: Node2D) -> void:
 
 		# DoT: deal cached per-tick damage before consuming the stack
 		if effect.dot_damage_per_tick > 0:
-			unit.call("take_damage", effect.dot_damage_per_tick)
+			var source: Dictionary = {
+				"element": effect.source_element,
+				"damage_type": effect.source_damage_type,
+				"name": effect.effect_type_name,
+			}
+			unit.call("take_damage", effect.dot_damage_per_tick, source)
 			DebugConfig.log_status("StatusEffectSystem: %s took %d %s damage" % [
 				unit.get("unit_name"), effect.dot_damage_per_tick, effect.effect_type_name])
 			status_damage_dealt.emit(unit, effect.dot_damage_per_tick, effect.effect_type_name)
@@ -320,13 +337,15 @@ func check_passive_triggers_on_hit(attacker: Node2D, target: Node2D, move: Move)
 # =============================================================================
 
 ## Recalculate every status_modifier_* on a unit's character_data using the
-## two-pass percentage model:
-##   pass 1 (unmodified) = base + growth + allocated + bond + passive (+ future injuries)
-##   pass 2 (effective)  = unmodified + status_modifier
+## three-pass percentage model:
+##   pass 1 (raw_passive) = base + growth + allocated + bond + passive
+##   pass 2 (unmodified)  = raw_passive + injury_modifier  (% of raw_passive — handled by InjurySystem)
+##   pass 3 (effective)   = unmodified + status_modifier   (% of unmodified — this function)
 ##
-## status_modifier is computed by summing all percentages affecting a given stat
-## and then applying that combined % to the unmodified stat. Result is rounded toward
-## zero with a minimum magnitude of 1 if the summed % is non-zero.
+## Buffs/debuffs scale off the unit's already-injured stat (pass 2), so an injured
+## unit gets less out of buffs. status_modifier is computed by summing all percentages
+## affecting a given stat and then applying that combined % to the unmodified stat.
+## Result is rounded toward zero with a minimum magnitude of 1 if the summed % is non-zero.
 func _recalculate_stat_modifiers(unit: Node2D) -> void:
 	var character_data: Variant = unit.get("character_data")
 	if character_data == null:
