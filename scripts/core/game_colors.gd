@@ -194,15 +194,18 @@ static var HEALTH_RAMP_BG: Array[Color] = [
 	GameColorPalette.get_color("Cyan", 4),           # 10 — confirmed dark teal (EXACT)
 ]
 
-# Legacy accessors for code that references specific thresholds
+# Legacy accessors for code that references specific thresholds.
+# These guard against HEALTH_RAMP being unpopulated (can happen in @tool inspector
+# plugin contexts where typed-array static-init runs in a different code path).
+# Falls back to the palette directly if the ramp isn't ready.
 static var HEALTH_FULL: Color:
-	get: return HEALTH_RAMP[10]
+	get: return HEALTH_RAMP[10] if HEALTH_RAMP.size() > 10 else GameColorPalette.get_color("Cyan", 7)
 static var HEALTH_HALF: Color:
-	get: return HEALTH_RAMP[5]
+	get: return HEALTH_RAMP[5] if HEALTH_RAMP.size() > 5 else GameColorPalette.get_color("YellowOrange", 7)
 static var HEALTH_LOW: Color:
-	get: return HEALTH_RAMP[2]
+	get: return HEALTH_RAMP[2] if HEALTH_RAMP.size() > 2 else GameColorPalette.get_color("PoppyRed", 5)
 static var HEALTH_CRITICAL: Color:
-	get: return HEALTH_RAMP[0]
+	get: return HEALTH_RAMP[0] if HEALTH_RAMP.size() > 0 else GameColorPalette.get_color("Red", 3)
 
 # Damage preview section (pulsing zone in combat preview)
 static var HEALTH_DAMAGE_PREVIEW: Color:

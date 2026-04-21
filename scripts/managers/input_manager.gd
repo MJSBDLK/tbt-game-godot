@@ -130,6 +130,23 @@ func _process(_delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Cheat keybinds run even when input is disabled (e.g. mid-AI phase),
+	# so you can always bail out of a stuck battle.
+	if DebugConfig.cheats_enabled and event is InputEventKey and event.pressed and not event.echo:
+		var key_event := event as InputEventKey
+		# Use Ctrl+W for victory, Ctrl+L for loss. F9/F10 conflict with the
+		# Godot editor's debug pause keybinding.
+		if key_event.ctrl_pressed:
+			match key_event.keycode:
+				KEY_W:
+					_cheat_end_battle(true)
+					get_viewport().set_input_as_handled()
+					return
+				KEY_L:
+					_cheat_end_battle(false)
+					get_viewport().set_input_as_handled()
+					return
+
 	if not input_enabled:
 		return
 
@@ -590,3 +607,17 @@ func _get_world_mouse_position() -> Vector2:
 	if camera != null:
 		return camera.get_global_mouse_position()
 	return viewport.get_mouse_position()
+
+
+# =============================================================================
+# DEV CHEATS
+# =============================================================================
+
+func _cheat_end_battle(is_victory: bool) -> void:
+	var turn_manager: Node = get_node_or_null("/root/TurnManager")
+	if turn_manager == null:
+		return
+	if turn_manager.is_battle_ended():
+		return
+	print("CHEAT: Forcing battle end — %s" % ("VICTORY" if is_victory else "DEFEAT"))
+	turn_manager._end_battle(is_victory)

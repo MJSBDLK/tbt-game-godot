@@ -55,12 +55,14 @@ var _move_panels: Array[PanelContainer] = []
 var _passive_panels: Array[PanelContainer] = []
 var _status_panels: Array[PanelContainer] = []
 var _passives_section: VBoxContainer = null
-var _status_section: VBoxContainer = null
+var _status_section: Container = null
 
 # Right column detail containers
 var _move_description: VBoxContainer = null
 var _passive_description: VBoxContainer = null
-var _status_description: VBoxContainer = null
+# EffectDescription is shared by status (boost/affliction) and injury click handlers.
+# Both render into the same node via different formatters (_show_status_detail / _show_injury_detail).
+var _effect_description: VBoxContainer = null
 
 # Move detail labels
 var _move_detail_name_label: Label = null
@@ -82,14 +84,22 @@ var _passive_detail_name_label: Label = null
 var _passive_detail_description_label: Label = null
 var _passive_detail_flavor_label: Label = null
 
-# Status detail labels
-var _status_detail_name_label: Label = null
-var _status_detail_icon: TextureRect = null
-var _status_detail_description_label: Label = null
-var _status_detail_stacks_container: Control = null
+# Effect detail labels (shared by status and injury detail formatters)
+var _effect_detail_name_label: Label = null
+var _effect_detail_icon: TextureRect = null
+var _effect_detail_description_label: Label = null
+
+# Injury slot panels — 4 total (2 per column). See _update_injury_panels().
+var _injuries_section: VBoxContainer = null
+var _injury_column_1: VBoxContainer = null
+var _injury_column_2: VBoxContainer = null
+var _injury_panels: Array[PanelContainer] = []  # [InjuryPanel1, InjuryPanel4, InjuryPanel2, InjuryPanel3]
+var _injury_slot_to_injury: Array[Injury] = []  # parallel to _injury_panels — null = empty placeholder
+var _injury_filled_stylebox: StyleBox = null
+var _injury_empty_stylebox: StyleBox = null
 
 # Selection state
-enum SelectionType { NONE, MOVE, PASSIVE, STATUS }
+enum SelectionType { NONE, MOVE, PASSIVE, STATUS, INJURY }
 var _selection_type: SelectionType = SelectionType.NONE
 var _selection_index: int = -1
 
@@ -221,17 +231,35 @@ func _cache_node_references() -> void:
 		if child.name.begins_with("PassivePanel") and child is PanelContainer:
 			_passive_panels.append(child as PanelContainer)
 
-	# Center column — status panels
-	_status_section = center_column.get_node("StatusSection")
-	for child: Node in _status_section.get_children():
-		if child.name.begins_with("StatusPanel") and child is PanelContainer:
-			_status_panels.append(child as PanelContainer)
+	# Center column — affliction/boost section.
+	# New layout: AfflictionBoostSection contains StatusSection (afflictions) and BoostSection (boosts).
+	# _status_panels order: [BoostPanel (slot 0=buff), StatusPanel1 (slot 1=debuff)].
+	_status_section = center_column.get_node_or_null("AfflictionBoostSection")
+	if _status_section == null:
+		# Legacy single-section fallback.
+		_status_section = center_column.get_node_or_null("StatusSection")
+	if _status_section != null:
+		var boost_panel: Node = _status_section.get_node_or_null("BoostSection/BoostPanel")
+		if boost_panel is PanelContainer:
+			_status_panels.append(boost_panel as PanelContainer)
+		var status_panel: Node = _status_section.get_node_or_null("StatusSection/StatusPanel1")
+		if status_panel is PanelContainer:
+			_status_panels.append(status_panel as PanelContainer)
+		# Legacy: flat StatusPanel* children directly under _status_section.
+		if _status_panels.is_empty():
+			for child: Node in _status_section.get_children():
+				if child.name.begins_with("StatusPanel") and child is PanelContainer:
+					_status_panels.append(child as PanelContainer)
 
 	# Right column — detail containers
 	var detail_parent: VBoxContainer = get_node("MainRow/RightColumnMargin/MovePassiveStatusParent")
 	_move_description = detail_parent.get_node("MoveDescription")
 	_passive_description = detail_parent.get_node("PassiveDescription")
-	_status_description = detail_parent.get_node("StatusDescription")
+	# EffectDescription replaces the old StatusDescription — used by both status and injury detail.
+	_effect_description = detail_parent.get_node_or_null("EffectDescription")
+	if _effect_description == null:
+		# Fallback for transitional state where the scene still uses the old name.
+		_effect_description = detail_parent.get_node_or_null("StatusDescription")
 
 	# Move detail sub-nodes
 	var move_container: HBoxContainer = _move_description.get_node("MoveContainer")
@@ -269,13 +297,43 @@ func _cache_node_references() -> void:
 	var passive_flavor_panel: PanelContainer = _passive_description.get_node("PowerPanelContainer3")
 	_passive_detail_flavor_label = _find_label_in_node(passive_flavor_panel.get_node("MarginContainer"))
 
-	# Status detail sub-nodes
-	var status_header_hbox: HBoxContainer = _status_description.get_node("HBoxContainer")
-	_status_detail_name_label = _find_label_in_node(status_header_hbox.get_node("StatusHeader"))
-	_status_detail_icon = status_header_hbox.get_node("TextureRect")
-	var status_desc_panel: PanelContainer = _status_description.get_node("PowerPanelContainer2")
-	_status_detail_description_label = _find_label_in_node(status_desc_panel.get_node("MarginContainer"))
-	_status_detail_stacks_container = _status_description.get_node("PowerPanelContainer3")
+	# Effect detail sub-nodes (shared by status and injury formatters).
+	# Container names changed during the buff/affliction/injury rework — try new names
+	# first, fall back to legacy names so older scene revisions still work.
+	if _effect_description != null:
+		var header_hbox: HBoxContainer = _effect_description.get_node("HBoxContainer")
+		var header_node: Node = header_hbox.get_node_or_null("EffectHeader")
+		if header_node == null:
+			header_node = header_hbox.get_node_or_null("StatusHeader")
+		_effect_detail_name_label = _find_label_in_node(header_node) if header_node != null else null
+		_effect_detail_icon = header_hbox.get_node_or_null("TextureRect") as TextureRect
+
+		var desc_panel: PanelContainer = _effect_description.get_node_or_null("EffectDescriptionContainer")
+		if desc_panel == null:
+			desc_panel = _effect_description.get_node_or_null("PowerPanelContainer2")
+		if desc_panel != null:
+			_effect_detail_description_label = _find_label_in_node(desc_panel.get_node("MarginContainer"))
+
+	# Injuries section — 4 slots laid out as 2 columns of 2 panels each.
+	# Empty placeholder template = InjuryPanel3's stylebox; filled = InjuryPanel1's.
+	_injuries_section = center_column.get_node_or_null("InjuriesSection")
+	if _injuries_section != null:
+		var injury_hbox: HBoxContainer = _injuries_section.get_node("HBoxContainer")
+		_injury_column_1 = injury_hbox.get_node("VBoxContainer") as VBoxContainer
+		_injury_column_2 = injury_hbox.get_node("VBoxContainer2") as VBoxContainer
+		# Order: column 1 (top, bottom), column 2 (top, bottom)
+		var p1: PanelContainer = _injury_column_1.get_node_or_null("InjuryPanel1") as PanelContainer
+		var p4: PanelContainer = _injury_column_1.get_node_or_null("InjuryPanel4") as PanelContainer
+		var p2: PanelContainer = _injury_column_2.get_node_or_null("InjuryPanel2") as PanelContainer
+		var p3: PanelContainer = _injury_column_2.get_node_or_null("InjuryPanel3") as PanelContainer
+		for panel: PanelContainer in [p1, p4, p2, p3]:
+			if panel != null:
+				_injury_panels.append(panel)
+		# Cache the two stylebox templates from existing panels.
+		if p1 != null:
+			_injury_filled_stylebox = p1.get_theme_stylebox("panel")
+		if p3 != null:
+			_injury_empty_stylebox = p3.get_theme_stylebox("panel")
 
 
 # =============================================================================
@@ -312,6 +370,16 @@ func _setup_tablet_input() -> void:
 				_select(SelectionType.STATUS, index)
 		)
 		_status_panels[i].mouse_filter = Control.MOUSE_FILTER_STOP
+
+	for i: int in range(_injury_panels.size()):
+		var index := i
+		_ensure_unique_style(_injury_panels[i])
+		_set_children_mouse_pass(_injury_panels[i])
+		_injury_panels[i].gui_input.connect(func(event: InputEvent):
+			if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+				_select(SelectionType.INJURY, index)
+		)
+		_injury_panels[i].mouse_filter = Control.MOUSE_FILTER_STOP
 
 
 func _ensure_unique_style(panel: PanelContainer) -> void:
@@ -357,6 +425,8 @@ func _update_tablet_selection() -> void:
 		_set_tablet_selected(panel, false)
 	for panel: PanelContainer in _status_panels:
 		_set_tablet_selected(panel, false)
+	for panel: PanelContainer in _injury_panels:
+		_set_tablet_selected(panel, false)
 
 	# Highlight the selected tablet
 	var panels: Array[PanelContainer] = []
@@ -367,6 +437,8 @@ func _update_tablet_selection() -> void:
 			panels = _passive_panels
 		SelectionType.STATUS:
 			panels = _status_panels
+		SelectionType.INJURY:
+			panels = _injury_panels
 
 	if _selection_index >= 0 and _selection_index < panels.size():
 		_set_tablet_selected(panels[_selection_index], true)
@@ -393,8 +465,8 @@ func _hide_all_details() -> void:
 		_move_description.visible = false
 	if _passive_description:
 		_passive_description.visible = false
-	if _status_description:
-		_status_description.visible = false
+	if _effect_description:
+		_effect_description.visible = false
 
 
 func _update_detail_panel() -> void:
@@ -407,6 +479,8 @@ func _update_detail_panel() -> void:
 			_show_passive_detail(_selection_index)
 		SelectionType.STATUS:
 			_show_status_detail(_selection_index)
+		SelectionType.INJURY:
+			_show_injury_detail(_selection_index)
 
 
 # =============================================================================
@@ -423,6 +497,7 @@ func _update_all() -> void:
 	_update_move_tablets()
 	_update_passive_tablets()
 	_update_status_tablets()
+	_update_injury_panels()
 
 
 func _update_portrait() -> void:
@@ -654,6 +729,140 @@ func _update_status_tablets() -> void:
 		_status_section.visible = any_visible
 
 
+## Updates the InjuriesSection panels to reflect the unit's current_injuries.
+##
+## Layout: 4 panels arranged as 2 columns of 2 (col1: [Panel1, Panel4], col2: [Panel2, Panel3]).
+## Per column rules:
+##   - Major injury (2 slots): one panel Filled (Major content), the other Hidden.
+##     With only 1 panel visible in the column, EXPAND_FILL makes it look Major-sized.
+##   - Two Minors: both Filled (Minor content). Both visible → each takes half the column.
+##   - One Minor: 1 Filled + 1 Empty placeholder. Both visible → both Minor-sized.
+##   - Empty column: 2 Empty placeholders.
+##
+## The whole InjuriesSection is hidden if the unit has zero current_injuries.
+func _update_injury_panels() -> void:
+	# Reset the slot→injury mapping (used by _show_injury_detail click handler).
+	_injury_slot_to_injury.clear()
+	for i: int in range(_injury_panels.size()):
+		_injury_slot_to_injury.append(null)
+
+	# Hide the entire section if the unit has no injuries.
+	if _injuries_section == null:
+		return
+	var injuries: Array[Injury] = []
+	if _character_data != null:
+		injuries = _character_data.current_injuries
+	if injuries.is_empty():
+		_injuries_section.visible = false
+		return
+	_injuries_section.visible = true
+
+	# Place injuries into columns. Each column has capacity 2 slots.
+	# Column 1 panels: [_injury_panels[0]=Panel1 (top), _injury_panels[1]=Panel4 (bottom)]
+	# Column 2 panels: [_injury_panels[2]=Panel2 (top), _injury_panels[3]=Panel3 (bottom)]
+	var col1_remaining: int = 2
+	var col2_remaining: int = 2
+	var col1_assignments: Array[Injury] = []  # ordered by placement
+	var col2_assignments: Array[Injury] = []
+
+	for injury: Injury in injuries:
+		var slots: int = injury.slots_occupied()
+		if col1_remaining >= slots:
+			col1_assignments.append(injury)
+			col1_remaining -= slots
+		elif col2_remaining >= slots:
+			col2_assignments.append(injury)
+			col2_remaining -= slots
+		# else: would exceed slot cap — shouldn't happen because commit enforces this,
+		# but if it does we silently drop the overflow rather than crash.
+
+	_apply_column_state(col1_assignments, [_injury_panels[0], _injury_panels[1]], 0)
+	_apply_column_state(col2_assignments, [_injury_panels[2], _injury_panels[3]], 2)
+
+
+## Apply the visual state for a single column.
+##   assignments: ordered list of injuries to place (max 2)
+##   panels:      [top_panel, bottom_panel]
+##   slot_offset: index into _injury_slot_to_injury for the top panel (0 for col1, 2 for col2)
+func _apply_column_state(assignments: Array[Injury], panels: Array, slot_offset: int) -> void:
+	if panels.size() != 2:
+		return
+	var top_panel: PanelContainer = panels[0]
+	var bot_panel: PanelContainer = panels[1]
+
+	if assignments.is_empty():
+		# Empty column → both panels show as empty placeholders.
+		_set_injury_panel(top_panel, null, slot_offset)
+		_set_injury_panel(bot_panel, null, slot_offset + 1)
+		return
+
+	if assignments.size() == 1 and assignments[0].slots_occupied() == 2:
+		# Major in this column → only top panel visible (Major content), bottom hidden.
+		_set_injury_panel(top_panel, assignments[0], slot_offset)
+		bot_panel.visible = false
+		return
+
+	# 1 or 2 minors in the column.
+	_set_injury_panel(top_panel, assignments[0], slot_offset)
+	if assignments.size() >= 2:
+		_set_injury_panel(bot_panel, assignments[1], slot_offset + 1)
+	else:
+		_set_injury_panel(bot_panel, null, slot_offset + 1)  # empty placeholder
+
+
+## Set the visual state of a single injury panel.
+##   injury: null = empty placeholder; otherwise filled with this injury's data.
+##   slot_index: position in _injury_slot_to_injury so the click handler can look up the right injury.
+func _set_injury_panel(panel: PanelContainer, injury: Injury, slot_index: int) -> void:
+	if panel == null:
+		return
+	panel.visible = true
+	_injury_slot_to_injury[slot_index] = injury
+
+	# Apply the right stylebox.
+	var target_style: StyleBox = _injury_filled_stylebox if injury != null else _injury_empty_stylebox
+	if target_style != null:
+		panel.add_theme_stylebox_override("panel", target_style.duplicate())
+
+	# Find the inner widgets (same path used by _update_status_tablets for shared layout).
+	var hbox: HBoxContainer = panel.get_node_or_null("HBoxContainer") as HBoxContainer
+	if hbox == null:
+		return
+	var name_label: Label = _find_label_in_node(hbox.get_node_or_null("MarginContainer"))
+	var icon_container: MarginContainer = hbox.get_node_or_null("ElemetalTypeIconContainer") as MarginContainer
+	var type_icon: TextureRect = icon_container.get_node_or_null("TextureRect") as TextureRect if icon_container != null else null
+	var usages_container: Node = hbox.get_node_or_null("UsagesContainer")
+	var usages_label: Label = _find_label_in_node(usages_container) if usages_container != null else null
+	var infinity_symbol: Node = usages_container.get_node_or_null("InfinitySymbol") if usages_container != null else null
+
+	if injury == null:
+		# Empty placeholder — clear all content.
+		if name_label:
+			name_label.text = ""
+		if type_icon:
+			type_icon.visible = false
+		if usages_label:
+			usages_label.visible = false
+		if infinity_symbol:
+			infinity_symbol.visible = false
+		return
+
+	# Filled — show injury data.
+	var data: InjuryData = injury.get_data()
+	if name_label:
+		var display: String = data.display_name if data != null else injury.injury_id
+		name_label.text = display.to_upper()
+	if type_icon:
+		# Injury icons not yet authored — hide until they exist.
+		type_icon.visible = false
+	if usages_label:
+		usages_label.text = str(injury.battles_remaining)
+		usages_label.visible = true
+	if infinity_symbol:
+		# Permanent injuries (scars) deferred from v1 — never show infinity yet.
+		infinity_symbol.visible = false
+
+
 ## Returns a fixed-length array sized to _status_panels.size():
 ##   [0] = active buff or null
 ##   [1] = active debuff or null
@@ -783,35 +992,62 @@ func _show_status_detail(index: int) -> void:
 	var effect: StatusEffect = slot_effects[index]
 	if effect == null:
 		return
+	if _effect_description == null:
+		return
 
-	_status_description.visible = true
+	_effect_description.visible = true
 
 	var configs := StatusEffectData.get_default_configs()
 	var config: StatusEffectData = configs.get(effect.effect_type_name, null)
 
-	# Header name
-	if _status_detail_name_label:
-		_status_detail_name_label.text = effect.effect_type_name.to_upper()
+	if _effect_detail_name_label:
+		_effect_detail_name_label.text = effect.effect_type_name.to_upper()
 
-	# Header icon
-	if _status_detail_icon:
+	if _effect_detail_icon:
 		var icon: Texture2D = _get_status_effect_icon_by_name(effect.effect_type_name)
-		_status_detail_icon.texture = icon
-		_status_detail_icon.visible = icon != null
+		_effect_detail_icon.texture = icon
+		_effect_detail_icon.visible = icon != null
 
-	# Description
-	if _status_detail_description_label:
+	if _effect_detail_description_label:
 		var desc_text: String = ""
 		if config != null:
 			desc_text = config.description
 		if effect.stacks > 0:
 			desc_text += "\n%d stack(s) remaining." % effect.stacks
-		_status_detail_description_label.text = desc_text
-		_status_detail_description_label.get_parent().get_parent().visible = not desc_text.is_empty()
+		_effect_detail_description_label.text = desc_text
 
-	# Stacks container — show stack icons for stackable effects (e.g., VOID)
-	if _status_detail_stacks_container:
-		_status_detail_stacks_container.visible = false
+
+## Show injury details in the shared EffectDescription right-column container.
+## Takes the same slot index as the InjuryPanel that was clicked; resolves to the
+## actual Injury via the parallel _injury_slot_to_injury list.
+func _show_injury_detail(index: int) -> void:
+	if index < 0 or index >= _injury_slot_to_injury.size():
+		return
+	var injury: Injury = _injury_slot_to_injury[index]
+	if injury == null:
+		return  # Empty slot click — no detail to show
+	if _effect_description == null:
+		return
+
+	_effect_description.visible = true
+
+	var data: InjuryData = injury.get_data()
+
+	if _effect_detail_name_label:
+		var severity_tag: String = " (Major)" if injury.severity == Enums.InjurySeverity.MAJOR else ""
+		var display: String = data.display_name if data != null else injury.injury_id
+		_effect_detail_name_label.text = display.to_upper() + severity_tag
+
+	if _effect_detail_icon:
+		# Injury icons not yet authored — hide the icon container until they exist.
+		_effect_detail_icon.visible = false
+
+	if _effect_detail_description_label:
+		var desc_text: String = ""
+		if data != null:
+			desc_text = data.description
+		desc_text += "\n%d battle(s) until recovered." % injury.battles_remaining
+		_effect_detail_description_label.text = desc_text
 
 
 # =============================================================================

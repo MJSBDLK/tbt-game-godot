@@ -109,7 +109,9 @@
       "Bash(grep -r \"class_name\\\\|extends PanelContainer\" /home/mjsbdlk/Documents/Projects/tbt-game-godot/scripts/ui/panels/*.gd)",
       "Bash(timeout 30 godot-4 --headless --check-only --quit)",
       "Bash(timeout 30 godot-4 --headless --quit)",
-      "Bash(timeout 30 godot-4 --headless --editor --quit)"
+      "Bash(timeout 30 godot-4 --headless --editor --quit)",
+      "Read(//home/mjsbdlk/.local/share/godot/app_userdata/TBT Game/**)",
+      "Bash(/home/mjsbdlk/aseprite/build/bin/aseprite -b \"/home/mjsbdlk/Documents/Projects/tbt-game-godot/art/sprites/ui/buff_icons_6x6.aseprite\" --all-layers --split-layers --trim --save-as \"/home/mjsbdlk/Documents/Projects/tbt-game-godot/art/sprites/ui/buff_icons_6x6/{layer}.png\")"
     ]
   }
 }

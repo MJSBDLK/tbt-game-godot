@@ -24,6 +24,14 @@ extends Node
 
 signal character_added(character_data: CharacterData)
 signal character_permadead(character_id: String)
+## Emitted after battle_ended processing completes. The report is an Array of
+## Dictionaries, one per character in the pre-commit roster snapshot, with keys:
+##   "character_name": String
+##   "new_injuries": Array[Injury]        # committed this mission
+##   "recovered_injuries": Array[Injury]  # expired from recovery tick
+##   "permadead": bool                    # slot overflow during commit
+##   "is_victory": bool
+signal post_mission_report_ready(report: Array)
 
 
 # Default roster bootstrapped at game start.
@@ -66,18 +74,42 @@ func _connect_turn_manager() -> void:
 ## Called when TurnManager emits battle_ended. Walks the active roster:
 ##   1. Commits any pending injuries on each character (slot overflow → permadeath)
 ##   2. Ticks recovery on every active roster member (regardless of participation)
-func _on_battle_ended(_is_victory: bool) -> void:
+func _on_battle_ended(is_victory: bool) -> void:
 	# Snapshot active roster — mark_permadead mutates the dict during iteration.
 	var snapshot: Array[CharacterData] = get_active_roster()
+	var report: Array = []
 	for character: CharacterData in snapshot:
+		# Capture new injuries (the pending list, which commit_pending_injuries clears).
+		var new_injuries: Array = character.pending_injuries.duplicate()
+		var pre_tick_snapshot: Array = character.current_injuries.duplicate()
+
 		var alive: bool = InjurySystem.commit_pending_injuries(character)
-		if not alive:
+		var permadead: bool = not alive
+		if permadead:
 			mark_permadead(character)
-	# Tick recovery on the surviving roster (the snapshot contained permadead-to-be
-	# members, but those are gone now, so re-fetch).
-	for character: CharacterData in get_active_roster():
-		InjurySystem.tick_recovery(character)
-	DebugConfig.log_unit_init("SquadManager: battle_ended processed — active roster: %s" % _roster_by_id.keys())
+
+		# Tick recovery only if the character survived commit.
+		var recovered: Array = []
+		if not permadead:
+			InjurySystem.tick_recovery(character)
+			for prior in pre_tick_snapshot:
+				if not character.current_injuries.has(prior):
+					recovered.append(prior)
+			# Reset transient battle state so the next spawn starts clean —
+			# otherwise stale status_modifier_* values (from buffs/debuffs active
+			# at battle end) leak into the next mission and can zero out HP.
+			character.reset_status_modifiers()
+
+		report.append({
+			"character_name": character.character_name,
+			"new_injuries": new_injuries,
+			"recovered_injuries": recovered,
+			"permadead": permadead,
+			"is_victory": is_victory,
+		})
+
+	DebugConfig.log_unit_init("SquadManager: battle_ended processed — active roster: %s" % [_roster_by_id.keys()])
+	post_mission_report_ready.emit(report)
 
 
 # =============================================================================

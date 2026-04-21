@@ -56,6 +56,7 @@ var _battle_result_overlay: Node = null
 var _unit_detail_panel: UnitDetailPanel = null
 var _system_menu_panel: SystemMenuPanel = null
 var _options_menu_panel: OptionsMenuPanel = null
+var _post_mission_report_panel: PostMissionReportPanel = null
 
 
 func _ready() -> void:
@@ -458,6 +459,23 @@ func _instantiate_overlays() -> void:
 		_unit_detail_panel.visible = false
 		_overlay_layer.add_child(_unit_detail_panel)
 		_unit_detail_panel.closed.connect(_on_unit_detail_closed)
+
+	# Post-mission report panel (minimal placeholder UI)
+	var post_mission_scene := load("res://scenes/ui/panels/post_mission_report_panel.tscn")
+	if post_mission_scene != null:
+		_post_mission_report_panel = post_mission_scene.instantiate() as PostMissionReportPanel
+		_overlay_layer.add_child(_post_mission_report_panel)
+		var squad_manager: Node = get_node_or_null("/root/SquadManager")
+		if squad_manager and squad_manager.has_signal("post_mission_report_ready"):
+			squad_manager.post_mission_report_ready.connect(_on_post_mission_report_ready)
+
+
+func _on_post_mission_report_ready(report: Array) -> void:
+	# Suppress the legacy battle-result overlay so its Continue button doesn't
+	# compete with the post-mission panel (they share the same overlay layer).
+	hide_battle_result()
+	if _post_mission_report_panel != null:
+		_post_mission_report_panel.show_report(report)
 
 
 # =============================================================================

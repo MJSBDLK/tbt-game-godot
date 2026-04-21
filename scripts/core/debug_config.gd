@@ -20,9 +20,10 @@ var unit_init: bool = true
 var combat: bool = true
 var ai: bool = false
 var status_effects: bool = true
-var testing_status_effects: bool = false  # Assign random status effects on unit spawn
-var testing_passives: bool = true  # Randomly equip passives from base pool on unit spawn
+var testing_status_effects: bool = true  # Assign random status effects on unit spawn
+var testing_passives: bool = false  # Randomly equip passives from base pool on unit spawn
 var testing_injuries: bool = false  # Run InjurySystem self-test at SquadManager bootstrap
+var testing_random_injuries_on_spawn: bool = false  # Apply 0-4 random injuries to each player unit on spawn
 
 # Input & State
 var input: bool = false
@@ -36,6 +37,9 @@ var pixel_perfect_ui: bool = false
 
 # Turn Management
 var turn_manager: bool = false
+
+# Cheats (dev-only keybinds — F9 instawin, F10 instalose)
+var cheats_enabled: bool = true
 
 
 # ===== HELPER METHODS =====

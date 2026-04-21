@@ -26,7 +26,7 @@ signal combat_completed(attacker: Unit, defender: Unit)
 # =============================================================================
 
 const MOVEMENT_SCALE: int = 2
-const MOVE_SPEED: float = 200.0  # Pixels per second
+const MOVE_SPEED: float = 600.0  # Pixels per second
 const HIT_DELAY: float = 0.3  # Seconds between combat hits
 const BOOP_DISTANCE: float = 8.0  # Pixels the sprite bumps toward target during attack
 const HITLAG_MIN: float = 0.05  # Minimum freeze on any hit (seconds)
@@ -153,6 +153,9 @@ func initialize(starting_tile: Tile) -> void:
 
 	if DebugConfig.testing_status_effects:
 		_apply_random_debug_status_effects()
+
+	if DebugConfig.testing_random_injuries_on_spawn and faction == Enums.UnitFaction.PLAYER:
+		_apply_random_debug_injuries()
 
 
 # =============================================================================
@@ -779,6 +782,37 @@ func _apply_random_debug_status_effects() -> void:
 	for i: int in range(count):
 		StatusEffectSystem.apply_status_effect_by_name(null, self, all_types[i])
 	_debug_status_unit_count += 1
+
+
+## Debug: directly inject 0-4 random injuries into character_data.current_injuries.
+## Bypasses the normal queue/commit pipeline so we can see UI states without dying.
+## Severity weighted 70% Minor / 30% Major. Stops adding once slot capacity (4) would overflow.
+func _apply_random_debug_injuries() -> void:
+	if character_data == null:
+		return
+	character_data.current_injuries.clear()
+	var all_injuries: Array[InjuryData] = InjuryDatabase.get_all_injuries()
+	if all_injuries.is_empty():
+		return
+	all_injuries.shuffle()
+	var target_count: int = randi_range(0, 4)
+	var added: int = 0
+	for data: InjuryData in all_injuries:
+		if added >= target_count:
+			break
+		var severity: Enums.InjurySeverity = Enums.InjurySeverity.MAJOR if randf() < 0.3 else Enums.InjurySeverity.MINOR
+		var slots: int = 2 if severity == Enums.InjurySeverity.MAJOR else 1
+		if not character_data.can_accept_injury(slots):
+			continue
+		var injury := Injury.new()
+		injury.injury_id = data.injury_id
+		injury.severity = severity
+		injury.battles_remaining = data.major_recovery_battles if severity == Enums.InjurySeverity.MAJOR else data.minor_recovery_battles
+		character_data.current_injuries.append(injury)
+		added += 1
+	InjurySystem.recalculate_injury_modifiers(character_data)
+	DebugConfig.log_unit_init("Debug injuries on '%s': %d injuries (%d slots used)" % [
+		unit_name, character_data.current_injuries.size(), character_data.injury_slots_used()])
 
 
 ## Reset sprite modulate to full color (active unit).

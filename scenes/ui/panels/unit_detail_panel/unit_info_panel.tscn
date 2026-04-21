@@ -17,12 +17,12 @@
 [ext_resource type="Script" uid="uid://bd0j04v3i135g" path="res://scripts/ui/components/tap_tooltip.gd" id="12_ywfd3"]
 [ext_resource type="Texture2D" uid="uid://ctjbmyua33w0k" path="res://art/sprites/ui/elemental_type_icons_10x10/simple.png" id="15_7ir6r"]
 [ext_resource type="Texture2D" uid="uid://0q8h7ynjwlnj" path="res://art/sprites/ui/status_effect_icons/burn.png" id="15_o3ofy"]
-[ext_resource type="Texture2D" uid="uid://1738pmwtyeww" path="res://art/sprites/ui/status_effect_icons/rooted.png" id="16_3cqu2"]
 [ext_resource type="PackedScene" uid="uid://dmhftfupyer7o" path="res://scenes/ui/panels/ui_text_centered.tscn" id="17_0oxyw"]
-[ext_resource type="Texture2D" uid="uid://kp12o3qgqk55" path="res://art/sprites/ui/status_effect_icons/freeze.png" id="17_ywfd3"]
-[ext_resource type="Texture2D" uid="uid://cwhv7tr2sownv" path="res://art/sprites/ui/status_effect_icons/challenged.png" id="18_pqajl"]
+[ext_resource type="Texture2D" uid="uid://ccue1001ohxc8" path="res://art/sprites/ui/status_effect_icons_6x6_v2/vulnerable_0000.png" id="18_o3ofy"]
+[ext_resource type="Texture2D" uid="uid://b0waoxxfldpem" path="res://art/sprites/ui/placeholder_10x10.png" id="19_3cqu2"]
 [ext_resource type="Script" uid="uid://dssao01a5a5gn" path="res://scripts/ui/panels/unit_detail_panel.gd" id="19_script"]
 [ext_resource type="Texture2D" uid="uid://dmb30p1t7k1pr" path="res://art/sprites/ui/move_type_icons_10x10/physical.png" id="20_o3ofy"]
+[ext_resource type="Texture2D" uid="uid://so65sl7gbaw1" path="res://art/sprites/ui/infinity_9x6.png" id="20_ywfd3"]
 [ext_resource type="Texture2D" uid="uid://dxqehrjh25e5" path="res://art/sprites/ui/status_effect_icons/critical.png" id="22_o06yo"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4tjpj"]
@@ -42,6 +42,70 @@ corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1fikk"]
+content_margin_left = 3.0
+content_margin_top = 1.0
+content_margin_right = 3.0
+content_margin_bottom = 1.0
+bg_color = Color(0.18431373, 0.007843138, 0.003921569, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3cqu2"]
+content_margin_left = 3.0
+content_margin_top = 1.0
+content_margin_right = 3.0
+content_margin_bottom = 1.0
+bg_color = Color(0.0627451, 0.18039216, 0.14509805, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ywfd3"]
+content_margin_left = 3.0
+content_margin_top = 1.0
+content_margin_right = 3.0
+content_margin_bottom = 1.0
+bg_color = Color(0.2509804, 0.13725491, 0.039215688, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_o06yo"]
+content_margin_left = 3.0
+content_margin_top = 1.0
+content_margin_right = 3.0
+content_margin_bottom = 1.0
+bg_color = Color(0.2509804, 0.13725491, 0.039215688, 0)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pqajl"]
 content_margin_left = 3.0
 content_margin_top = 1.0
 content_margin_right = 3.0
@@ -558,117 +622,193 @@ layout_mode = 2
 [node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/PassivesSection/PassivePanel4/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(1141019160, 781430797) index="0" unique_id=1042415212]
 text = "Stellar"
 
-[node name="StatusSection" type="VBoxContainer" parent="MainRow/CenterColumnMargin/CenterColumn" unique_id=722223065]
+[node name="AfflictionBoostSection" type="HBoxContainer" parent="MainRow/CenterColumnMargin/CenterColumn" unique_id=1050504600]
 layout_mode = 2
 
-[node name="StatusHeader" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection" unique_id=381200958 instance=ExtResource("6_p6yto")]
+[node name="StatusSection" type="VBoxContainer" parent="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection" unique_id=722223065]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="StatusHeader" parent="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection/StatusSection" unique_id=381200958 instance=ExtResource("6_p6yto")]
 layout_mode = 2
 
-[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusHeader" index="0" unique_id=1042415212]
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection/StatusSection/StatusHeader" index="0" unique_id=1042415212]
 theme_override_colors/font_color = Color(1, 0.90588236, 0.5921569, 1)
-text = "Status"
+text = "Affliction"
 uppercase = false
 glow_color = Color(0.5568628, 0.14509805, 0.09411765, 1)
 
-[node name="StatusPanel1" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection" unique_id=1226398933 instance=ExtResource("8_tddys")]
+[node name="StatusPanel1" parent="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection/StatusSection" unique_id=1226398933 instance=ExtResource("8_tddys")]
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_1fikk")
 
-[node name="Control2" type="Control" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel1/HBoxContainer" parent_id_path=PackedInt32Array(1226398933, 596906299) index="0" unique_id=479709986]
+[node name="Control2" type="Control" parent="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection/StatusSection/StatusPanel1/HBoxContainer" parent_id_path=PackedInt32Array(1226398933, 596906299) index="0" unique_id=479709986]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ElemetalTypeIconContainer" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel1/HBoxContainer" parent_id_path=PackedInt32Array(1226398933, 596906299) index="1" unique_id=490212]
+[node name="ElemetalTypeIconContainer" parent="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection/StatusSection/StatusPanel1/HBoxContainer" parent_id_path=PackedInt32Array(1226398933, 596906299) index="1" unique_id=490212]
 visible = true
 
-[node name="TextureRect" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel1/HBoxContainer/ElemetalTypeIconContainer" index="0" unique_id=1278191071]
+[node name="TextureRect" parent="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection/StatusSection/StatusPanel1/HBoxContainer/ElemetalTypeIconContainer" index="0" unique_id=1278191071]
 texture = ExtResource("15_o3ofy")
 stretch_mode = 5
 
-[node name="MarginContainer" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel1/HBoxContainer" parent_id_path=PackedInt32Array(1226398933, 596906299) index="2" unique_id=781430797]
+[node name="MarginContainer" parent="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection/StatusSection/StatusPanel1/HBoxContainer" parent_id_path=PackedInt32Array(1226398933, 596906299) index="2" unique_id=781430797]
 size_flags_horizontal = 1
 
-[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel1/HBoxContainer/MarginContainer" index="0" unique_id=1042415212]
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection/StatusSection/StatusPanel1/HBoxContainer/MarginContainer" index="0" unique_id=1042415212]
 text = "Burn"
 glow_color = Color(0.5568628, 0.14509805, 0.09411765, 1)
 
-[node name="Control" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel1/HBoxContainer" parent_id_path=PackedInt32Array(1226398933, 596906299) index="3" unique_id=1542727817]
+[node name="Control" parent="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection/StatusSection/StatusPanel1/HBoxContainer" parent_id_path=PackedInt32Array(1226398933, 596906299) index="3" unique_id=1542727817]
 visible = true
 
-[node name="StatusPanel2" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection" unique_id=78460901 instance=ExtResource("8_tddys")]
-layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_1fikk")
-
-[node name="Control2" type="Control" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel2/HBoxContainer" parent_id_path=PackedInt32Array(78460901, 596906299) index="0" unique_id=1975525596]
+[node name="BoostSection" type="VBoxContainer" parent="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection" unique_id=1218520083]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ElemetalTypeIconContainer" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel2/HBoxContainer" parent_id_path=PackedInt32Array(78460901, 596906299) index="1" unique_id=490212]
-visible = true
+[node name="BoostSectionHeader" parent="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection/BoostSection" unique_id=2131323262 instance=ExtResource("6_p6yto")]
+layout_mode = 2
 
-[node name="TextureRect" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel2/HBoxContainer/ElemetalTypeIconContainer" index="0" unique_id=1278191071]
-texture = ExtResource("16_3cqu2")
-stretch_mode = 5
-
-[node name="MarginContainer" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel2/HBoxContainer" parent_id_path=PackedInt32Array(78460901, 596906299) index="2" unique_id=781430797]
-size_flags_horizontal = 1
-
-[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel2/HBoxContainer/MarginContainer" index="0" unique_id=1042415212]
-text = "Rooted"
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection/BoostSection/BoostSectionHeader" index="0" unique_id=1042415212]
+theme_override_colors/font_color = Color(1, 0.90588236, 0.5921569, 1)
+text = "Boost"
+uppercase = false
 glow_color = Color(0.5568628, 0.14509805, 0.09411765, 1)
 
-[node name="Control" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel2/HBoxContainer" parent_id_path=PackedInt32Array(78460901, 596906299) index="3" unique_id=1542727817]
-visible = true
-
-[node name="StatusPanel3" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection" unique_id=669822751 instance=ExtResource("8_tddys")]
+[node name="BoostPanel" parent="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection/BoostSection" unique_id=1932182799 instance=ExtResource("8_tddys")]
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_1fikk")
+theme_override_styles/panel = SubResource("StyleBoxFlat_3cqu2")
 
-[node name="Control2" type="Control" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel3/HBoxContainer" parent_id_path=PackedInt32Array(669822751, 596906299) index="0" unique_id=1744950174]
+[node name="Control2" type="Control" parent="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection/BoostSection/BoostPanel/HBoxContainer" parent_id_path=PackedInt32Array(1932182799, 596906299) index="0" unique_id=916712971]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ElemetalTypeIconContainer" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel3/HBoxContainer" parent_id_path=PackedInt32Array(669822751, 596906299) index="1" unique_id=490212]
+[node name="ElemetalTypeIconContainer" parent="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection/BoostSection/BoostPanel/HBoxContainer" parent_id_path=PackedInt32Array(1932182799, 596906299) index="1" unique_id=490212]
 visible = true
 
-[node name="TextureRect" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel3/HBoxContainer/ElemetalTypeIconContainer" index="0" unique_id=1278191071]
-texture = ExtResource("17_ywfd3")
+[node name="TextureRect" parent="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection/BoostSection/BoostPanel/HBoxContainer/ElemetalTypeIconContainer" index="0" unique_id=1278191071]
+texture = ExtResource("18_o3ofy")
 stretch_mode = 5
 
-[node name="MarginContainer" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel3/HBoxContainer" parent_id_path=PackedInt32Array(669822751, 596906299) index="2" unique_id=781430797]
+[node name="MarginContainer" parent="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection/BoostSection/BoostPanel/HBoxContainer" parent_id_path=PackedInt32Array(1932182799, 596906299) index="2" unique_id=781430797]
 size_flags_horizontal = 1
 
-[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel3/HBoxContainer/MarginContainer" index="0" unique_id=1042415212]
-text = "Frozen"
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection/BoostSection/BoostPanel/HBoxContainer/MarginContainer" index="0" unique_id=1042415212]
+text = "Duckie"
 glow_color = Color(0.5568628, 0.14509805, 0.09411765, 1)
 
-[node name="Control" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel3/HBoxContainer" parent_id_path=PackedInt32Array(669822751, 596906299) index="3" unique_id=1542727817]
+[node name="Control" parent="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection/BoostSection/BoostPanel/HBoxContainer" parent_id_path=PackedInt32Array(1932182799, 596906299) index="3" unique_id=1542727817]
 visible = true
 
-[node name="StatusPanel4" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection" unique_id=1352442921 instance=ExtResource("8_tddys")]
+[node name="InjuriesSection" type="VBoxContainer" parent="MainRow/CenterColumnMargin/CenterColumn" unique_id=65674196]
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_1fikk")
 
-[node name="Control2" type="Control" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel4/HBoxContainer" parent_id_path=PackedInt32Array(1352442921, 596906299) index="0" unique_id=56691820]
+[node name="InjuriesHeader" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection" unique_id=366781990 instance=ExtResource("6_p6yto")]
+layout_mode = 2
+
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/InjuriesHeader" index="0" unique_id=1042415212]
+theme_override_colors/font_color = Color(1, 0.90588236, 0.5921569, 1)
+text = "Injuries"
+uppercase = false
+glow_color = Color(0.49019608, 0.25490198, 0.5058824, 1)
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection" unique_id=1534375104]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer" unique_id=1195848018]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/separation = 1
 
-[node name="ElemetalTypeIconContainer" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel4/HBoxContainer" parent_id_path=PackedInt32Array(1352442921, 596906299) index="1" unique_id=490212]
+[node name="InjuryPanel1" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer" unique_id=1522637672 instance=ExtResource("8_tddys")]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_ywfd3")
+
+[node name="ElemetalTypeIconContainer" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer/InjuryPanel1/HBoxContainer" parent_id_path=PackedInt32Array(1522637672, 596906299) index="0" unique_id=490212]
+visible = true
+size_flags_vertical = 0
+
+[node name="TextureRect" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer/InjuryPanel1/HBoxContainer/ElemetalTypeIconContainer" index="0" unique_id=1278191071]
+texture = ExtResource("19_3cqu2")
+
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer/InjuryPanel1/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(1522637672, 781430797) index="0" unique_id=1042415212]
+text = "Injury1
+(Major)"
+uppercase = false
+
+[node name="Control" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer/InjuryPanel1/HBoxContainer" parent_id_path=PackedInt32Array(1522637672, 596906299) index="2" unique_id=1542727817]
 visible = true
 
-[node name="TextureRect" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel4/HBoxContainer/ElemetalTypeIconContainer" index="0" unique_id=1278191071]
-texture = ExtResource("18_pqajl")
+[node name="UsagesContainer" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer/InjuryPanel1/HBoxContainer" parent_id_path=PackedInt32Array(1522637672, 596906299) index="3" unique_id=1394778763]
+visible = true
+
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer/InjuryPanel1/HBoxContainer/UsagesContainer" index="0" unique_id=1042415212]
+visible = false
+text = "∞"
+
+[node name="InfinitySymbol" type="TextureRect" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer/InjuryPanel1/HBoxContainer/UsagesContainer" index="1" unique_id=1943240481]
+self_modulate = Color(1, 0.90588236, 0.5921569, 1)
+material = ExtResource("5_o3ofy")
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+texture = ExtResource("20_ywfd3")
 stretch_mode = 5
+script = ExtResource("7_3cqu2")
+glow_color = Color(0.49019608, 0.25490198, 0.5058824, 1)
+metadata/_custom_type_script = "uid://bkmxi7xbiyjd8"
 
-[node name="MarginContainer" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel4/HBoxContainer" parent_id_path=PackedInt32Array(1352442921, 596906299) index="2" unique_id=781430797]
-size_flags_horizontal = 1
+[node name="InjuryPanel4" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer" unique_id=1528005419 instance=ExtResource("8_tddys")]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_o06yo")
 
-[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel4/HBoxContainer/MarginContainer" index="0" unique_id=1042415212]
-text = "Challenged"
-glow_color = Color(0.5568628, 0.14509805, 0.09411765, 1)
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer/InjuryPanel4/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(1528005419, 781430797) index="0" unique_id=1042415212]
+text = ""
+uppercase = false
 
-[node name="Control" parent="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel4/HBoxContainer" parent_id_path=PackedInt32Array(1352442921, 596906299) index="3" unique_id=1542727817]
+[node name="VBoxContainer2" type="VBoxContainer" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer" unique_id=1803982996]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 1
+
+[node name="InjuryPanel2" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer2" unique_id=1402634777 instance=ExtResource("8_tddys")]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_pqajl")
+
+[node name="ElemetalTypeIconContainer" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer2/InjuryPanel2/HBoxContainer" parent_id_path=PackedInt32Array(1402634777, 596906299) index="0" unique_id=490212]
 visible = true
+
+[node name="TextureRect" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer2/InjuryPanel2/HBoxContainer/ElemetalTypeIconContainer" index="0" unique_id=1278191071]
+texture = ExtResource("19_3cqu2")
+
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer2/InjuryPanel2/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(1402634777, 781430797) index="0" unique_id=1042415212]
+text = "Injury2"
+uppercase = false
+
+[node name="Control" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer2/InjuryPanel2/HBoxContainer" parent_id_path=PackedInt32Array(1402634777, 596906299) index="2" unique_id=1542727817]
+visible = true
+
+[node name="UsagesContainer" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer2/InjuryPanel2/HBoxContainer" parent_id_path=PackedInt32Array(1402634777, 596906299) index="3" unique_id=1394778763]
+visible = true
+
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer2/InjuryPanel2/HBoxContainer/UsagesContainer" index="0" unique_id=1042415212]
+self_modulate = Color(1, 0.90588236, 0.5921569, 1)
+text = "4"
+glow_color = Color(0.49019608, 0.25490198, 0.5058824, 1)
+
+[node name="InjuryPanel3" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer2" unique_id=1910906139 instance=ExtResource("8_tddys")]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_o06yo")
+
+[node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer2/InjuryPanel3/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(1910906139, 781430797) index="0" unique_id=1042415212]
+text = ""
+uppercase = false
 
 [node name="RightColumnMargin" type="MarginContainer" parent="MainRow" unique_id=557670575]
 layout_mode = 2
@@ -943,42 +1083,42 @@ autowrap_mode = 3
 uppercase = false
 glow_color = Color(0.49019608, 0.25490198, 0.5058824, 1)
 
-[node name="StatusDescription" type="VBoxContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent" unique_id=1097117077]
+[node name="EffectDescription" type="VBoxContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent" unique_id=1097117077]
 layout_mode = 2
 theme_override_constants/separation = 3
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription" unique_id=1923018401]
+[node name="HBoxContainer" type="HBoxContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/EffectDescription" unique_id=1923018401]
 layout_mode = 2
 
-[node name="StatusHeader" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/HBoxContainer" unique_id=243227715 instance=ExtResource("6_p6yto")]
+[node name="EffectHeader" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/EffectDescription/HBoxContainer" unique_id=243227715 instance=ExtResource("6_p6yto")]
 layout_mode = 2
 
-[node name="Label" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/HBoxContainer/StatusHeader" index="0" unique_id=1042415212]
+[node name="Label" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/EffectDescription/HBoxContainer/EffectHeader" index="0" unique_id=1042415212]
 theme_override_colors/font_color = Color(1, 0.90588236, 0.5921569, 1)
 text = "BURN"
 uppercase = false
 glow_color = Color(0.5568628, 0.14509805, 0.09411765, 1)
 
-[node name="Spacer" type="Control" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/HBoxContainer" unique_id=1600909116]
+[node name="Spacer" type="Control" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/EffectDescription/HBoxContainer" unique_id=1600909116]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="TextureRect" type="TextureRect" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/HBoxContainer" unique_id=548901552]
+[node name="TextureRect" type="TextureRect" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/EffectDescription/HBoxContainer" unique_id=548901552]
 layout_mode = 2
 texture = ExtResource("15_o3ofy")
 stretch_mode = 5
 
-[node name="PowerPanelContainer2" type="PanelContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription" unique_id=730843398]
+[node name="EffectDescriptionContainer" type="PanelContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/EffectDescription" unique_id=730843398]
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_45eaq")
 
-[node name="MarginContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/PowerPanelContainer2" unique_id=132207025 instance=ExtResource("6_p6yto")]
+[node name="MarginContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/EffectDescription/EffectDescriptionContainer" unique_id=132207025 instance=ExtResource("6_p6yto")]
 layout_mode = 2
 theme_override_constants/margin_left = 2
 theme_override_constants/margin_right = 2
 theme_override_constants/margin_bottom = 2
 
-[node name="Label" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/PowerPanelContainer2/MarginContainer" index="0" unique_id=1042415212]
+[node name="Label" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/EffectDescription/EffectDescriptionContainer/MarginContainer" index="0" unique_id=1042415212]
 custom_minimum_size = Vector2(96, 0)
 theme_override_colors/font_color = Color(1, 0.90588236, 0.5921569, 1)
 text = "Take fire damage each turn.
@@ -988,17 +1128,17 @@ autowrap_mode = 3
 uppercase = false
 glow_color = Color(0.5568628, 0.14509805, 0.09411765, 1)
 
-[node name="PowerPanelContainer3" type="PanelContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription" unique_id=324083837]
+[node name="EffectFlavorTextContainer" type="PanelContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/EffectDescription" unique_id=324083837]
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_45eaq")
 
-[node name="MarginContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/PowerPanelContainer3" unique_id=898697828 instance=ExtResource("6_p6yto")]
+[node name="MarginContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/EffectDescription/EffectFlavorTextContainer" unique_id=898697828 instance=ExtResource("6_p6yto")]
 layout_mode = 2
 theme_override_constants/margin_left = 2
 theme_override_constants/margin_right = 2
 theme_override_constants/margin_bottom = 2
 
-[node name="Label" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/PowerPanelContainer3/MarginContainer" index="0" unique_id=1042415212]
+[node name="Label" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/EffectDescription/EffectFlavorTextContainer/MarginContainer" index="0" unique_id=1042415212]
 visible = false
 custom_minimum_size = Vector2(96, 0)
 theme_override_colors/font_color = Color(0.9607843, 0.8039216, 0.39607844, 1)
@@ -1008,21 +1148,21 @@ autowrap_mode = 3
 uppercase = false
 glow_color = Color(0.5568628, 0.14509805, 0.09411765, 1)
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/PowerPanelContainer3/MarginContainer" unique_id=1356091656]
+[node name="HBoxContainer" type="HBoxContainer" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/EffectDescription/EffectFlavorTextContainer/MarginContainer" unique_id=1356091656]
 layout_mode = 2
 alignment = 1
 
-[node name="TextureRect" type="TextureRect" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/PowerPanelContainer3/MarginContainer/HBoxContainer" unique_id=1569758876]
+[node name="TextureRect" type="TextureRect" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/EffectDescription/EffectFlavorTextContainer/MarginContainer/HBoxContainer" unique_id=1569758876]
 layout_mode = 2
 texture = ExtResource("15_o3ofy")
 stretch_mode = 5
 
-[node name="TextureRect2" type="TextureRect" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/PowerPanelContainer3/MarginContainer/HBoxContainer" unique_id=1260831413]
+[node name="TextureRect2" type="TextureRect" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/EffectDescription/EffectFlavorTextContainer/MarginContainer/HBoxContainer" unique_id=1260831413]
 layout_mode = 2
 texture = ExtResource("15_o3ofy")
 stretch_mode = 5
 
-[node name="TextureRect3" type="TextureRect" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/PowerPanelContainer3/MarginContainer/HBoxContainer" unique_id=1168884809]
+[node name="TextureRect3" type="TextureRect" parent="MainRow/RightColumnMargin/MovePassiveStatusParent/EffectDescription/EffectFlavorTextContainer/MarginContainer/HBoxContainer" unique_id=1168884809]
 layout_mode = 2
 texture = ExtResource("15_o3ofy")
 stretch_mode = 5
@@ -1090,19 +1230,27 @@ stretch_mode = 5
 [editable path="MainRow/CenterColumnMargin/CenterColumn/PassivesSection/PassivePanel4"]
 [editable path="MainRow/CenterColumnMargin/CenterColumn/PassivesSection/PassivePanel4/HBoxContainer/MarginContainer"]
 [editable path="MainRow/CenterColumnMargin/CenterColumn/PassivesSection/PassivePanel4/HBoxContainer/UsagesContainer"]
-[editable path="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusHeader"]
-[editable path="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel1"]
-[editable path="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel1/HBoxContainer/MarginContainer"]
-[editable path="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel1/HBoxContainer/UsagesContainer"]
-[editable path="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel2"]
-[editable path="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel2/HBoxContainer/MarginContainer"]
-[editable path="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel2/HBoxContainer/UsagesContainer"]
-[editable path="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel3"]
-[editable path="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel3/HBoxContainer/MarginContainer"]
-[editable path="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel3/HBoxContainer/UsagesContainer"]
-[editable path="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel4"]
-[editable path="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel4/HBoxContainer/MarginContainer"]
-[editable path="MainRow/CenterColumnMargin/CenterColumn/StatusSection/StatusPanel4/HBoxContainer/UsagesContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection/StatusSection/StatusHeader"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection/StatusSection/StatusPanel1"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection/StatusSection/StatusPanel1/HBoxContainer/MarginContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection/StatusSection/StatusPanel1/HBoxContainer/UsagesContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection/BoostSection/BoostSectionHeader"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection/BoostSection/BoostPanel"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection/BoostSection/BoostPanel/HBoxContainer/MarginContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection/BoostSection/BoostPanel/HBoxContainer/UsagesContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/InjuriesHeader"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer/InjuryPanel1"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer/InjuryPanel1/HBoxContainer/MarginContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer/InjuryPanel1/HBoxContainer/UsagesContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer/InjuryPanel4"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer/InjuryPanel4/HBoxContainer/MarginContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer/InjuryPanel4/HBoxContainer/UsagesContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer2/InjuryPanel2"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer2/InjuryPanel2/HBoxContainer/MarginContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer2/InjuryPanel2/HBoxContainer/UsagesContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer2/InjuryPanel3"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer2/InjuryPanel3/HBoxContainer/MarginContainer"]
+[editable path="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer2/InjuryPanel3/HBoxContainer/UsagesContainer"]
 [editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/MoveContainer/MarginContainer"]
 [editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerAccUsgContainer/PowerPanelContainer/VBoxContainer/MarginContainer"]
 [editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/MoveDescription/PowerAccUsgContainer/PowerPanelContainer/VBoxContainer/MarginContainer2"]
@@ -1117,6 +1265,6 @@ stretch_mode = 5
 [editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/PassiveDescription/PassivesHeader"]
 [editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/PassiveDescription/PowerPanelContainer2/MarginContainer"]
 [editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/PassiveDescription/PowerPanelContainer3/MarginContainer"]
-[editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/HBoxContainer/StatusHeader"]
-[editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/PowerPanelContainer2/MarginContainer"]
-[editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/StatusDescription/PowerPanelContainer3/MarginContainer"]
+[editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/EffectDescription/HBoxContainer/EffectHeader"]
+[editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/EffectDescription/EffectDescriptionContainer/MarginContainer"]
+[editable path="MainRow/RightColumnMargin/MovePassiveStatusParent/EffectDescription/EffectFlavorTextContainer/MarginContainer"]

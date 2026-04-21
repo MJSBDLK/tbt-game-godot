@@ -1,4 +1,4 @@
-## For Lawrence (Art!)
+# For Lawrence (Art!)
 - [ ] 
 
 # Meeting 20260412
@@ -7,15 +7,21 @@
 - [x] RQD - figure out what we were using those status colors for (removed — unused, will revisit when Lawrence mocks up status tick particles)
 - [x] LOD - move preview animated arrow (see the FreePixelEffect resource from the Unity project)
 - [x] LOD - waypoint indicator for move preview
-- [ ] Go over style guide with Lawrence
+- [x] Go over style guide with Lawrence
 - [x] Check out the colors demo
-- [ ] Check out the options menu - any options you can think of?
-- [ ] LOD - I need a bunch more icons: buffs 6x6, injuries 10x10? (Let's discuss how injuries should look, and we may discard injuries for the alpha)
+- [x] Check out the options menu - any options you can think of?
+- [x] LOD - I need a bunch more icons: buffs 6x6, injuries 10x10? (Let's discuss how injuries should look, and we may discard injuries for the alpha)
+- [x] Elemental Type matchup chart
 
-# Meeting 20260419
+# Meeting 20260426
 - [ ] LOD - push move preview beacons small/large, red/blue
+- [ ] LOD - any questions on style guide?
+- [ ] LOD - I need a bunch more icons: buffs 6x6, injuries 10x10? (Let's discuss how injuries should look, and we may discard injuries for the alpha)
 - [ ] RQD - speed up unit movement by like 3x or so
-- [ ] 
+- [ ] RQD - attempt pixellation filter for hypoesthesia injury
+- [ ] RQD - what colors should buffs and injuries be in the HUD?
+- [ ] RQD - Aseprite plugin - eyedropper that copies hex value to clipboard
+- [ ] RQD - 
 
 # RQD Todo by 20260412
 - [ ] Mock up updated unit detail panel (1 buff slot + 1 debuff slot + injury 2x2 grid with 2-slot stacking)
@@ -24,6 +30,13 @@
 - [ ] Send Lawrence the buff icon request: Rallied, Fortified, Hasted, Focused, Regen (6x6, matching status_effect_icons_6x6_v2 style) + the missing Bellows icon
 - [ ] Discuss injury icon style with Lawrence — 6x6 matching status icons, or larger? 20 injuries to cover eventually but only need a few for alpha
 - [ ] Playtest buff/debuff system: toggle `testing_status_effects = true` in debug_config.gd, verify slot enforcement + pip bars + detail panel work in-game
+
+# BUGZ 
+- [ ] Zooming in and mousing around outside the window still changes the terrain preview
+- [ ] unit preview panel and terrain preview panel don't move to the left side of the screen (and presumably vice versa) when the cursor is on that side (no cursor in touchscreen mode but it's clearly still a problem)
+- [ ] can't target certain units with Overload. Not sure why.
+- [ ] I can't select the unit I want! He's clearly standing on the mountain but it doesn't detect the unit there??
+- [ ] units have the wrong portraits.
 
 # Todo
 - [x] Merge Lawrence's branch
@@ -52,6 +65,8 @@
 - [ ] Add support for icons in text boxes
 - [ ] Add tooltip mode hotkey
 - [ ] Make sure tooltip mode hotkey does not disrupt the touchscreen flow
+- [ ] Add support for icons in the panel descriptions
+- [ ] Test game running at 90, 120, 144, 240 fps
 
 ---
 

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://8yuumwrml3y0"
-path="res://.godot/imported/vulerable_b_0000.png-9894897edf51e7747edfd5e3f49a4573.ctex"
+uid="uid://bhhbu87lttbpj"
+path="res://.godot/imported/bellows_0000.png-3a0476813c6521ac4b4c6af211844efe.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/sprites/ui/status_effect_icons_6x6_v2/vulerable_b_0000.png"
-dest_files=["res://.godot/imported/vulerable_b_0000.png-9894897edf51e7747edfd5e3f49a4573.ctex"]
+source_file="res://art/sprites/ui/status_effect_icons_6x6_v2/bellows_0000.png"
+dest_files=["res://.godot/imported/bellows_0000.png-3a0476813c6521ac4b4c6af211844efe.ctex"]
 
 [params]
 

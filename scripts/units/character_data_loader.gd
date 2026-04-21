@@ -37,7 +37,7 @@ static func _parse_character_json(data: Dictionary) -> CharacterData:
 	var character := CharacterData.new()
 
 	# Identity
-	character.character_id = data.get("id", "")
+	character.character_id = data.get("characterId", data.get("id", ""))
 	character.character_name = data.get("characterName", "Unknown")
 	character.primary_type = Enums.string_to_elemental_type(data.get("primaryType", "None"))
 	character.secondary_type = Enums.string_to_elemental_type(data.get("secondaryType", "None"))
