@@ -18,9 +18,9 @@
 - [ ] LOD - any questions on style guide?
 - [ ] LOD - I need a bunch more icons: buffs 6x6, injuries 10x10? (Let's discuss how injuries should look, and we may discard injuries for the alpha)
 - [x] RQD - speed up unit movement by like 3x or so
-- [ ] RQD - attempt pixellation filter for hypoesthesia injury
-- [ ] RQD - what colors should buffs and injuries be in the HUD?
-- [x] RQD - Aseprite plugin - eyedropper that copies hex value to clipboard
+- [x] RQD - attempt pixellation filter for hypoesthesia injury
+- [x] RQD - what colors should buffs and injuries be in the HUD?
+- [ ] RQD - Aseprite plugin - eyedropper that copies hex value to clipboard
 - [ ] RQD - 
 
 # RQD Todo by 20260412
