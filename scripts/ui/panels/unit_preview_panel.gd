@@ -24,6 +24,7 @@ var _hp_background: ColorRect = null
 var _hp_fill: ColorRect = null
 var _hp_value_label: Label = null
 var _hp_max_label: Label = null
+var _hp_censor: StaticCensorOverlay = null
 
 # Sections
 var _moves_container: VBoxContainer = null
@@ -56,6 +57,14 @@ func _resolve_nodes() -> void:
 	_hp_fill = hp_bar.get_node("HPBarContainer/HPFill") as ColorRect
 	_hp_value_label = hp_bar.get_node("HBoxContainer/MarginContainer/Label") as Label
 	_hp_max_label = hp_bar.get_node("HBoxContainer/MarginContainer2/Label") as Label
+
+	_hp_censor = StaticCensorOverlay.new()
+	hp_bar.add_child(_hp_censor)
+	# Cover the bar + current value, but leave "/max" readable.
+	var hp_value_container: Control = hp_bar.get_node("HBoxContainer/MarginContainer") as Control
+	var hp_bar_container: Control = hp_bar.get_node("HPBarContainer") as Control
+	var targets: Array[Control] = [hp_bar_container, hp_value_container]
+	_hp_censor.set_targets(targets)
 
 	_moves_container = vbox.get_node("MovesContainer") as VBoxContainer
 	_passives_container = vbox.get_node("PassivesContainer") as GridContainer
@@ -153,6 +162,9 @@ func _update_hp(unit: Unit) -> void:
 	if _hp_value_label is GlowLabel:
 		_hp_value_label.glow_color = health_bg_color
 	_hp_max_label.text = "/%d" % max_hp
+
+	if _hp_censor != null:
+		_hp_censor.set_censored(unit.character_data.is_health_bar_hidden(current_hp))
 
 
 func _update_moves(unit: Unit) -> void:

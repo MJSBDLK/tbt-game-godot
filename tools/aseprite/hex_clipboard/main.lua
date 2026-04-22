@@ -2,10 +2,14 @@
 -- clipboard, either automatically whenever the fg color changes (e.g. after
 -- using the Eyedropper) or on demand via a menu command / hotkey.
 
+local DEBOUNCE_SECONDS = 0.15
+
 local plugin_path
 local fg_listener
 local last_copied_hex = ""
 local dlg
+local debounce_timer
+local pending_copy = false
 
 local function color_to_hex(color)
     local r, g, b, a = color.red, color.green, color.blue, color.alpha
@@ -15,20 +19,29 @@ local function color_to_hex(color)
     return string.format("#%02X%02X%02X", r, g, b)
 end
 
-local function shell_quote(s)
+local function posix_quote(s)
     return "'" .. string.gsub(s, "'", "'\\''") .. "'"
+end
+
+local function win_quote(s)
+    return '"' .. string.gsub(s, '"', '""') .. '"'
 end
 
 local function copy_to_clipboard(text)
     local ok = false
 
     if app.os.windows then
-        local handle = io.popen("clip", "w")
-        if handle then
-            handle:write(text)
-            handle:close()
-            ok = true
-        end
+        -- Route through wscript.exe (GUI subsystem, no console window) running a
+        -- bundled VBScript that uses the htmlfile COM object to set the clipboard.
+        -- `start "" /B` detaches so Aseprite never blocks waiting for it.
+        local vbs = app.fs.joinPath(plugin_path, "clip_win.vbs")
+        local cmd = string.format(
+            'start "" /B wscript //nologo //B %s %s',
+            win_quote(vbs),
+            win_quote(text)
+        )
+        os.execute(cmd)
+        ok = true
     elseif app.os.macos then
         local handle = io.popen("pbcopy", "w")
         if handle then
@@ -43,8 +56,8 @@ local function copy_to_clipboard(text)
         local cmd = table.concat({
             "env -u LD_LIBRARY_PATH -u LD_PRELOAD",
             "python3",
-            shell_quote(helper),
-            shell_quote(text),
+            posix_quote(helper),
+            posix_quote(text),
             "</dev/null >/dev/null 2>&1 &",
         }, " ")
         local result = os.execute(cmd)
@@ -60,11 +73,31 @@ local function copy_to_clipboard(text)
     return ok
 end
 
+local function flush_pending()
+    if debounce_timer then
+        debounce_timer:stop()
+    end
+    if pending_copy then
+        pending_copy = false
+        copy_to_clipboard(color_to_hex(app.fgColor))
+    end
+end
+
+local function schedule_copy()
+    pending_copy = true
+    if not debounce_timer then
+        debounce_timer = Timer{
+            interval = DEBOUNCE_SECONDS,
+            ontick = flush_pending,
+        }
+    end
+    debounce_timer:stop()
+    debounce_timer:start()
+end
+
 local function start_listener()
     if fg_listener then return end
-    fg_listener = app.events:on("fgcolorchange", function()
-        copy_to_clipboard(color_to_hex(app.fgColor))
-    end)
+    fg_listener = app.events:on("fgcolorchange", schedule_copy)
 end
 
 local function stop_listener()
@@ -72,6 +105,10 @@ local function stop_listener()
         app.events:off(fg_listener)
         fg_listener = nil
     end
+    if debounce_timer then
+        debounce_timer:stop()
+    end
+    pending_copy = false
 end
 
 local function open_dialog(plugin)

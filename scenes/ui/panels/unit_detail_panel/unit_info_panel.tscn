@@ -261,6 +261,12 @@ script = ExtResource("12_ywfd3")
 [node name="StatBar" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/HPContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(346892882, 1041254443) index="2" unique_id=1676632343]
 color = Color(0.57254905, 0.7882353, 0.54901963, 1)
 
+[node name="TextureRect" type="TextureRect" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/HPContainer/HBoxContainer/StatBarContainer" parent_id_path=PackedInt32Array(346892882, 1041254443) index="3" unique_id=1894913016]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+expand_mode = 1
+
 [node name="Label" parent="MainRow/LeftColumnMargin/LeftColumn/StatsContainer/HPContainer/HBoxContainer/StatValue" parent_id_path=PackedInt32Array(346892882, 1823085028) index="0" unique_id=1042415212]
 theme_override_colors/font_color = Color(0.57254905, 0.7882353, 0.54901963, 1)
 

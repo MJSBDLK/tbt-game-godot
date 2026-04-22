@@ -48,6 +48,7 @@ var _hp_bar: ColorRect = null
 var _hp_bar_background: ColorRect = null
 var _hp_label: Label = null
 var _hp_max_label: Label = null  # Reuses StatModifier node to show "/max_hp"
+var _hp_censor: StaticCensorOverlay = null
 var _stat_rows: Dictionary = {}  # display_key -> { bar_base, bar_bonus, bar_bg, value_label, modifier_label, name_label }
 
 # Center column tablets
@@ -199,6 +200,13 @@ func _cache_node_references() -> void:
 	_hp_bar = hp_bar_container.get_node("StatBar")
 	_hp_label = _find_label_in_node(hp_hbox.get_node("StatValue"))
 	_hp_max_label = _find_label_in_node(hp_hbox.get_node("StatModifier"))  # Repurposed as "/max_hp"
+
+	_hp_censor = StaticCensorOverlay.new()
+	hp_hbox.add_child(_hp_censor)
+	# Cover bar + current value, leave "/max" readable.
+	var stat_value_node: Control = hp_hbox.get_node("StatValue") as Control
+	var targets: Array[Control] = [hp_bar_container, stat_value_node]
+	_hp_censor.set_targets(targets)
 
 	# Stat rows
 	var stats_container: VBoxContainer = left_column.get_node("StatsContainer")
@@ -551,6 +559,9 @@ func _update_hp() -> void:
 		_hp_bar.size.x = fill_ratio * _hp_bar_background.size.x
 		_hp_bar.color = health_color
 		_hp_bar_background.color = GameColors.get_health_bg_color(health_percent)
+
+	if _hp_censor != null and _character_data != null:
+		_hp_censor.set_censored(_character_data.is_health_bar_hidden(current_hp))
 
 
 func _update_stats() -> void:

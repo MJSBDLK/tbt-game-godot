@@ -117,20 +117,9 @@
       "Read(//home/mjsbdlk/.config/aseprite/**)",
       "Read(//home/mjsbdlk/aseprite/build/bin/data/extensions/**)",
       "Read(//home/mjsbdlk/aseprite/build/bin/data/**)",
-      "Bash(command -v xclip)",
-      "Bash(command -v wl-copy)",
-      "Bash(command -v xsel)",
-      "Bash(apt list *)",
-      "Bash(mkdir -p ~/.config/aseprite/extensions/hex-clipboard)",
-      "Bash(cp /home/mjsbdlk/Documents/Projects/tbt-game-godot/tools/aseprite/hex_clipboard/package.json ~/.config/aseprite/extensions/hex-clipboard/)",
-      "Bash(cp /home/mjsbdlk/Documents/Projects/tbt-game-godot/tools/aseprite/hex_clipboard/main.lua ~/.config/aseprite/extensions/hex-clipboard/)",
-      "Bash(cp /home/mjsbdlk/Documents/Projects/tbt-game-godot/tools/aseprite/hex_clipboard/clip_linux.py ~/.config/aseprite/extensions/hex-clipboard/)",
-      "Bash(chmod +x ~/.config/aseprite/extensions/hex-clipboard/clip_linux.py)",
-      "Bash(cp /home/mjsbdlk/Documents/Projects/tbt-game-godot/tools/aseprite/hex_clipboard/main.lua ~/.config/aseprite/extensions/hex-clipboard/main.lua)",
-      "Bash(rm -f /tmp/hex-clipboard.aseprite-extension)",
-      "Bash(zip -j /tmp/hex-clipboard.aseprite-extension package.json main.lua clip_linux.py)",
-      "Read(//tmp/**)",
-      "Bash(mkdir -p /home/mjsbdlk/Documents/Projects/tbt-game-godot/tools/aseprite/dist)"
+      "Bash(awk 'NR>=1' \"/home/mjsbdlk/Documents/Projects/tbt-game-godot/art/colors/SpacemanColorPalette_v1.41.gpl\")",
+      "Bash(awk 'BEGIN{i=0} /^[ 0-9]/{print i\": \"$0; i++}' \"/home/mjsbdlk/Documents/Projects/tbt-game-godot/art/colors/SpacemanColorPalette_v1.41.gpl\")",
+      "Bash(awk -F':' 'NR>=133 && NR<=176')"
     ]
   }
 }

@@ -90,6 +90,13 @@ var _health_bar_background: ColorRect = null
 var _health_bar_fill: ColorRect = null
 var _status_indicator: StatusEffectIndicator = null
 var _path_visualizer: Node2D = null  # PathVisualizer
+var _static_overlay: Sprite2D = null
+var _static_tick_accum: float = 0.0
+
+const _STATIC_NOISE_TEX: Texture2D = preload("res://art/sprites/ui/static_noise.png")
+const _STATIC_BAR_WIDTH: int = 24
+const _STATIC_BAR_HEIGHT: int = 2
+const _STATIC_TICK_INTERVAL: float = 0.12
 
 
 # =============================================================================
@@ -104,6 +111,8 @@ func _ready() -> void:
 	_status_indicator = $HealthBar/StatusEffectIndicator as StatusEffectIndicator
 	if has_node("PathVisualizer"):
 		_path_visualizer = $PathVisualizer
+	_build_static_overlay()
+	set_process(true)
 	StatusEffectSystem.status_effect_applied.connect(_on_status_effect_changed)
 	StatusEffectSystem.status_effect_removed.connect(_on_status_effect_changed)
 
@@ -160,6 +169,14 @@ func initialize(starting_tile: Tile) -> void:
 	if DebugConfig.testing_enemy_ghost and faction == Enums.UnitFaction.ENEMY:
 		if not character_data.has_equipped_passive("Ghost"):
 			character_data.equipped_passives.append("Ghost")
+
+	if (DebugConfig.testing_hypoesthesia or DebugConfig.testing_hypoesthesia_major) \
+			and faction == Enums.UnitFaction.PLAYER:
+		_apply_debug_hypoesthesia()
+		# Randomize HP so the 50% threshold transition is visible without combat.
+		current_hp = maxi(1, roundi(character_data.max_hp * randf_range(0.15, 1.0)))
+
+	_update_health_bar()
 
 
 # =============================================================================
@@ -419,9 +436,44 @@ func _update_health_bar() -> void:
 		return
 	var health_percent := float(current_hp) / float(character_data.max_hp)
 	_health_bar_fill.scale.x = health_percent
-	# Hypoesthesia: hide the whole bar when an HP-hide injury threshold is exceeded.
-	if _health_bar != null:
-		_health_bar.visible = not character_data.is_health_bar_hidden(current_hp)
+	# Hypoesthesia: swap the fill for a static-noise overlay when the injury
+	# threshold is exceeded. The bar itself stays visible so the censor reads.
+	var censor: bool = character_data.is_health_bar_hidden(current_hp)
+	_health_bar_fill.visible = not censor
+	if _static_overlay != null:
+		_static_overlay.visible = censor
+
+
+func _build_static_overlay() -> void:
+	if _health_bar == null:
+		return
+	_static_overlay = Sprite2D.new()
+	_static_overlay.name = "StaticOverlay"
+	_static_overlay.texture = _STATIC_NOISE_TEX
+	_static_overlay.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_static_overlay.centered = false
+	_static_overlay.region_enabled = true
+	_static_overlay.region_rect = Rect2(0, 0, _STATIC_BAR_WIDTH, _STATIC_BAR_HEIGHT)
+	# Background ColorRect spans offset_left=-12..right=12, top=-1..bottom=1.
+	# Sprite2D is uncentered, so position at the top-left corner.
+	_static_overlay.position = Vector2(-_STATIC_BAR_WIDTH / 2.0, -_STATIC_BAR_HEIGHT / 2.0)
+	_static_overlay.visible = false
+	_health_bar.add_child(_static_overlay)
+
+
+func _process(delta: float) -> void:
+	if _static_overlay == null or not _static_overlay.visible:
+		return
+	_static_tick_accum += delta
+	if _static_tick_accum < _STATIC_TICK_INTERVAL:
+		return
+	_static_tick_accum = 0.0
+	var tex_size: Vector2i = _STATIC_NOISE_TEX.get_size()
+	var max_x: int = maxi(0, tex_size.x - _STATIC_BAR_WIDTH)
+	var max_y: int = maxi(0, tex_size.y - _STATIC_BAR_HEIGHT)
+	var rx: int = randi() % (max_x + 1)
+	var ry: int = randi() % (max_y + 1)
+	_static_overlay.region_rect = Rect2(rx, ry, _STATIC_BAR_WIDTH, _STATIC_BAR_HEIGHT)
 
 
 # =============================================================================
@@ -828,6 +880,29 @@ func _apply_random_debug_injuries() -> void:
 	InjurySystem.recalculate_injury_modifiers(character_data)
 	DebugConfig.log_unit_init("Debug injuries on '%s': %d injuries (%d slots used)" % [
 		unit_name, character_data.current_injuries.size(), character_data.injury_slots_used()])
+
+
+func _apply_debug_hypoesthesia() -> void:
+	if character_data == null:
+		return
+	var data: InjuryData = InjuryDatabase.get_injury_by_id("hypoesthesia")
+	if data == null:
+		return
+	if not character_data.can_accept_injury(1):
+		return
+	for entry: Injury in character_data.current_injuries:
+		if entry.injury_id == "hypoesthesia":
+			return
+	var injury := Injury.new()
+	injury.injury_id = "hypoesthesia"
+	if DebugConfig.testing_hypoesthesia_major:
+		injury.severity = Enums.InjurySeverity.MAJOR
+		injury.battles_remaining = data.major_recovery_battles
+	else:
+		injury.severity = Enums.InjurySeverity.MINOR
+		injury.battles_remaining = data.minor_recovery_battles
+	character_data.current_injuries.append(injury)
+	InjurySystem.recalculate_injury_modifiers(character_data)
 
 
 ## Reset sprite modulate to full color (active unit).

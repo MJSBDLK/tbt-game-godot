@@ -20,7 +20,7 @@
 - [x] RQD - speed up unit movement by like 3x or so
 - [ ] RQD - attempt pixellation filter for hypoesthesia injury
 - [ ] RQD - what colors should buffs and injuries be in the HUD?
-- [ ] RQD - Aseprite plugin - eyedropper that copies hex value to clipboard
+- [x] RQD - Aseprite plugin - eyedropper that copies hex value to clipboard
 - [ ] RQD - 
 
 # RQD Todo by 20260412
@@ -39,6 +39,9 @@
 - [ ] units have the wrong portraits.
 - [ ] Enemies can move on top of my units
 - [ ] Injuries (not exactly a bug, just a problem): if you're fighting a tough enemy, e.g. a boss, and you lose a bunch of units, they all end up taking the same injury. Not sure if this is worth fixing. We might just give bosses like that a passive that prevents using the same move repeatedly.
+- [ ] Tall units have their health bar hidden if they're in the top row
+- [ ] It's kinda hard to see the enemy unit detail panel - some combination of clicking repeatedly seems to do it but it's unintuitive and often 
+- [ ] Hypoesthesia Effect - NN scaling is yielding boxes which are 1x1, 2x1, 1x2 and 2x2 - what's causing this?
 
 # Todo
 - [x] Merge Lawrence's branch
