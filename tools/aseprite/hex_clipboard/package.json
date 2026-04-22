@@ -1,0 +1,15 @@
+{
+    "name": "hex-clipboard",
+    "displayName": "Hex Clipboard",
+    "description": "Copy the foreground color hex value to the system clipboard — automatically on color change (e.g. after eyedroppering) or on demand.",
+    "version": "1.0.0",
+    "author": {
+        "name": "TBT Game"
+    },
+    "license": "MIT",
+    "contributes": {
+        "scripts": [
+            { "path": "./main.lua" }
+        ]
+    }
+}

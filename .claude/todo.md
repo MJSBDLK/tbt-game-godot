@@ -17,7 +17,7 @@
 - [ ] LOD - push move preview beacons small/large, red/blue
 - [ ] LOD - any questions on style guide?
 - [ ] LOD - I need a bunch more icons: buffs 6x6, injuries 10x10? (Let's discuss how injuries should look, and we may discard injuries for the alpha)
-- [ ] RQD - speed up unit movement by like 3x or so
+- [x] RQD - speed up unit movement by like 3x or so
 - [ ] RQD - attempt pixellation filter for hypoesthesia injury
 - [ ] RQD - what colors should buffs and injuries be in the HUD?
 - [ ] RQD - Aseprite plugin - eyedropper that copies hex value to clipboard
@@ -38,6 +38,7 @@
 - [ ] I can't select the unit I want! He's clearly standing on the mountain but it doesn't detect the unit there??
 - [ ] units have the wrong portraits.
 - [ ] Enemies can move on top of my units
+- [ ] Injuries (not exactly a bug, just a problem): if you're fighting a tough enemy, e.g. a boss, and you lose a bunch of units, they all end up taking the same injury. Not sure if this is worth fixing. We might just give bosses like that a passive that prevents using the same move repeatedly.
 
 # Todo
 - [x] Merge Lawrence's branch

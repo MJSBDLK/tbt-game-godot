@@ -40,6 +40,6 @@
 	},
 
 	"level": 1,
-	"basePoolMoves": ["Megaton Punch", "Impact", "Guard Break", "Lance", "Bonk", "Klunk"],
+	"basePoolMoves": ["Impact", "Guard Break", "Lance", "Bonk", "Klunk"],
 	"basePoolPassives": []
 }
