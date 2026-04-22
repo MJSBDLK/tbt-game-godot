@@ -1,0 +1,45 @@
+{
+	"characterName": "Napdawg",
+	"primaryType": "Gentry",
+	"secondaryType": "None",
+	"currentClass": "Napdawg",
+	"specialization": "None",
+
+	"sprite": {
+		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
+		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",
+		"frameIndex": 7
+	},
+
+	"baseStats": {
+		"maxHP": 14,
+		"strength": 4,
+		"special": 4,
+		"skill": 7,
+		"agility": 9,
+		"athleticism": 6,
+		"defense": 2,
+		"resistance": 3
+	},
+
+	"growthRates": {
+		"hp": 40,
+		"strength": 30,
+		"special": 30,
+		"skill": 55,
+		"agility": 65,
+		"athleticism": 45,
+		"defense": 20,
+		"resistance": 25
+	},
+
+	"physicalAttributes": {
+		"moveDistance": 5,
+		"constitution": 3,
+		"carry": 5
+	},
+
+	"level": 1,
+	"basePoolMoves": ["Backstab", "Feint", "Sidearm", "Volley", "Backhand"],
+	"basePoolPassives": []
+}

@@ -37,6 +37,7 @@
 - [ ] can't target certain units with Overload. Not sure why.
 - [ ] I can't select the unit I want! He's clearly standing on the mountain but it doesn't detect the unit there??
 - [ ] units have the wrong portraits.
+- [ ] Enemies can move on top of my units
 
 # Todo
 - [x] Merge Lawrence's branch
@@ -61,12 +62,14 @@
 - [ ] Cancel/confirm input hints
 - [x] Add a "pause" menu (it's turn-based, the game is always paused) and Options menu. What else goes in the pause menu? How is it accessed on touchscreen?
 - [ ] Options menu
-- [ ] Add a toggle for "nearest neighbor scaling" vs. "only allow integer scaled zoom levels" (and come up with a concise way of saying that, like zoom mode: nearest neighbor/integer)
+- [x] Add a toggle for "nearest neighbor scaling" vs. "only allow integer scaled zoom levels" (and come up with a concise way of saying that, like zoom mode: nearest neighbor/integer)
 - [ ] Add support for icons in text boxes
 - [ ] Add tooltip mode hotkey
 - [ ] Make sure tooltip mode hotkey does not disrupt the touchscreen flow
 - [ ] Add support for icons in the panel descriptions
 - [ ] Test game running at 90, 120, 144, 240 fps
+- [ ] Add lock_framerate option with a slider and max 1000 Hz (I guess, I'm assuming it won't reach anywhere near that)
+- [ ] PRIORITY: Create in-between mission squad management screen.
 
 ---
 

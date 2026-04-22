@@ -139,7 +139,6 @@ func get_movement_range(unit: Node2D) -> Array[Tile]:
 	var current_tile: Tile = unit.get("current_tile")
 	var max_movement: int = unit.get("max_movement_range")
 	var unit_type: String = _get_unit_type(unit)
-	var unit_faction: Variant = unit.get("faction")
 
 	if current_tile == null:
 		DebugConfig.log_error("GridManager: Unit has no current_tile for movement range")
@@ -166,23 +165,47 @@ func get_movement_range(unit: Node2D) -> Array[Tile]:
 			if cost_to_neighbor > max_movement:
 				continue
 
-			# Enemy units block pathfinding
-			if neighbor.current_unit != null and neighbor != current_tile:
-				var occupant_faction: Variant = neighbor.current_unit.get("faction")
-				if occupant_faction != unit_faction:
-					continue
+			# Pass-through check (may be blocked by enemies / friendlies depending on passives).
+			if neighbor != current_tile and _tile_blocks_passage(neighbor, unit):
+				continue
 
 			# Update if cheaper path found
 			if not tile_costs.has(neighbor) or cost_to_neighbor < tile_costs[neighbor]:
 				tile_costs[neighbor] = cost_to_neighbor
 				tiles_to_check.append(neighbor)
 
-				# Can only end on unoccupied tiles
-				var is_occupied := neighbor.current_unit != null and neighbor != current_tile
-				if not is_occupied and not valid_tiles.has(neighbor):
+				# Endpoint check: you can never END on an occupied tile.
+				if _tile_is_valid_endpoint(neighbor, current_tile) and not valid_tiles.has(neighbor):
 					valid_tiles.append(neighbor)
 
 	return valid_tiles
+
+
+## True if the given tile would block `moving_unit` from PASSING THROUGH.
+## Allies never block. Enemies block unless moving_unit has the "Ghost" passive.
+## Future-proofed to read additional passives without touching pathfinding code.
+func _tile_blocks_passage(tile: Tile, moving_unit: Node2D) -> bool:
+	if tile.current_unit == null:
+		return false
+	var occupant_faction: Variant = tile.current_unit.get("faction")
+	var mover_faction: Variant = moving_unit.get("faction")
+	if occupant_faction == mover_faction:
+		return false  # Allies always pass through.
+	# Enemy in the way — check for Ghost.
+	var character_data: Variant = moving_unit.get("character_data")
+	if character_data != null and character_data.has_method("has_equipped_passive"):
+		if character_data.has_equipped_passive("Ghost"):
+			return false
+	return true
+
+
+## True if the given tile is a valid MOVEMENT ENDPOINT for the moving unit.
+## Endpoint rule is universal: you cannot end your turn on an occupied tile,
+## regardless of faction or passives. start_tile is always valid (it's where you began).
+func _tile_is_valid_endpoint(tile: Tile, start_tile: Tile) -> bool:
+	if tile == start_tile:
+		return true
+	return tile.current_unit == null
 
 
 ## Calculate remaining movement range from last waypoint position.
@@ -227,13 +250,13 @@ func get_remaining_movement_range(unit: Node2D) -> Array[Tile]:
 			var cost_to_neighbor := current_cost + ceili(neighbor.get_movement_cost_for_unit(unit_type))
 			if cost_to_neighbor > remaining_movement:
 				continue
-			if neighbor.current_unit != null and neighbor != start_tile:
+			if neighbor != start_tile and _tile_blocks_passage(neighbor, unit):
 				continue
 
 			if not tile_costs.has(neighbor) or cost_to_neighbor < tile_costs[neighbor]:
 				tile_costs[neighbor] = cost_to_neighbor
 				tiles_to_check.append(neighbor)
-				if not valid_tiles.has(neighbor) and neighbor != start_tile:
+				if _tile_is_valid_endpoint(neighbor, start_tile) and not valid_tiles.has(neighbor):
 					valid_tiles.append(neighbor)
 
 	return valid_tiles

@@ -8,7 +8,7 @@
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
 		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",
-		"frameIndex": 7
+		"frameIndex": 0
 	},
 
 	"baseStats": {

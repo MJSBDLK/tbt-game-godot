@@ -12,25 +12,26 @@ var grid_manager: bool = false
 var z_index: bool = false
 
 # Units
-var unit_movement: bool = true
+var unit_movement: bool = false
 var unit_health: bool = false
-var unit_init: bool = true
+var unit_init: bool = false
 
 # Combat
-var combat: bool = true
+var combat: bool = false
 var ai: bool = false
-var status_effects: bool = true
-var testing_status_effects: bool = true  # Assign random status effects on unit spawn
+var status_effects: bool = false
+var testing_status_effects: bool = false  # Assign random status effects on unit spawn
 var testing_passives: bool = false  # Randomly equip passives from base pool on unit spawn
 var testing_injuries: bool = false  # Run InjurySystem self-test at SquadManager bootstrap
 var testing_random_injuries_on_spawn: bool = false  # Apply 0-4 random injuries to each player unit on spawn
+var testing_enemy_ghost: bool = false  # Grant every enemy the Ghost passive (pathfind through allies)
 
 # Input & State
 var input: bool = false
 var game_state: bool = false
 
 # UI
-var action_menu: bool = true
+var action_menu: bool = false
 var icons: bool = false
 var combat_preview: bool = false
 var pixel_perfect_ui: bool = false

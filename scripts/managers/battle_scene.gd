@@ -6,6 +6,17 @@ extends Node2D
 @export var default_player_character: String = "res://data/characters/spaceman.json"
 @export var default_enemy_character: String = "res://data/characters/grunt.json"
 
+## Random enemy pool. Each spawn picks from this list uniformly. Duplicates
+## weight the odds (e.g. grunt appears twice → 2x chance). Placeholder until a
+## per-map enemy composition system replaces this.
+@export var enemy_spawn_pool: Array[String] = [
+	"res://data/characters/grunt.json",
+	"res://data/characters/grunt.json",
+	"res://data/characters/napdawg.json",
+	"res://data/characters/ogre.json",
+	"res://data/characters/blood_mage.json",
+]
+
 var _unit_scene: PackedScene = preload("res://scenes/battle/unit.tscn")
 var _units_container: Node2D = null
 
@@ -81,14 +92,18 @@ func _spawn_units_from_tiles(positions: Array, faction: Enums.UnitFaction, chara
 				units.append(unit)
 		return units
 
-	# Enemy spawns: load from default JSON path each spawn (no persistence).
+	# Enemy spawns: pick a random JSON per tile from enemy_spawn_pool.
+	# Falls back to character_path (default_enemy_character) if the pool is empty.
 	for position: Variant in positions:
 		var grid_pos := position as Vector2i
 		var tile := GridManager.get_tile(grid_pos.x, grid_pos.y)
 		if tile == null:
 			push_warning("BattleScene: No tile at (%d, %d) for spawn" % [grid_pos.x, grid_pos.y])
 			continue
-		var unit := _create_unit(character_path, faction, tile)
+		var json_path: String = character_path
+		if not enemy_spawn_pool.is_empty():
+			json_path = enemy_spawn_pool[randi() % enemy_spawn_pool.size()]
+		var unit := _create_unit(json_path, faction, tile)
 		if unit != null:
 			units.append(unit)
 	return units

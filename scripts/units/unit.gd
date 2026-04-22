@@ -157,6 +157,10 @@ func initialize(starting_tile: Tile) -> void:
 	if DebugConfig.testing_random_injuries_on_spawn and faction == Enums.UnitFaction.PLAYER:
 		_apply_random_debug_injuries()
 
+	if DebugConfig.testing_enemy_ghost and faction == Enums.UnitFaction.ENEMY:
+		if not character_data.has_equipped_passive("Ghost"):
+			character_data.equipped_passives.append("Ghost")
+
 
 # =============================================================================
 # GRIDMANAGER INTERFACE: MOVEMENT COST
@@ -257,11 +261,15 @@ func cancel_movement() -> void:
 # =============================================================================
 
 func move_to_tile(new_tile: Tile) -> void:
-	if current_tile != null:
+	if current_tile != null and current_tile.current_unit == self:
 		current_tile.clear_unit()
 	current_tile = new_tile
 	if current_tile != null:
-		current_tile.set_unit(self)
+		if current_tile.current_unit == null:
+			current_tile.set_unit(self)
+		elif current_tile.current_unit != self:
+			push_warning("Unit '%s' told to move_to_tile [%d,%d] already occupied by '%s'" % [
+				unit_name, current_tile.grid_x, current_tile.grid_y, current_tile.current_unit.unit_name])
 		global_position = current_tile.global_position
 	_update_z_index()
 
@@ -282,11 +290,18 @@ func _move_along_path(path: Array[Tile]) -> void:
 		tween.tween_property(self, "global_position", target_position, duration)
 		await tween.finished
 
-		# Update tile occupancy tile-by-tile
-		if current_tile != null:
+		# Update tile occupancy tile-by-tile. Only clear our OWN registration on
+		# the previous tile, and only claim the new tile if it's free. This
+		# prevents a walking unit from stomping another unit's occupancy when
+		# paths unexpectedly cross.
+		if current_tile != null and current_tile.current_unit == self:
 			current_tile.clear_unit()
 		current_tile = tile
-		tile.set_unit(self)
+		if tile.current_unit == null:
+			tile.set_unit(self)
+		else:
+			push_warning("Unit '%s' stepped onto tile [%d,%d] already occupied by '%s' — skipping set_unit to preserve occupancy" % [
+				unit_name, tile.grid_x, tile.grid_y, tile.current_unit.unit_name])
 		_update_z_index()
 
 

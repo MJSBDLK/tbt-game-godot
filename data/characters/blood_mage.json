@@ -1,0 +1,45 @@
+{
+	"characterName": "Blood Mage",
+	"primaryType": "Occult",
+	"secondaryType": "None",
+	"currentClass": "Blood Mage",
+	"specialization": "None",
+
+	"sprite": {
+		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
+		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",
+		"frameIndex": 8
+	},
+
+	"baseStats": {
+		"maxHP": 12,
+		"strength": 2,
+		"special": 11,
+		"skill": 6,
+		"agility": 4,
+		"athleticism": 3,
+		"defense": 2,
+		"resistance": 5
+	},
+
+	"growthRates": {
+		"hp": 30,
+		"strength": 10,
+		"special": 75,
+		"skill": 50,
+		"agility": 35,
+		"athleticism": 20,
+		"defense": 15,
+		"resistance": 45
+	},
+
+	"physicalAttributes": {
+		"moveDistance": 4,
+		"constitution": 3,
+		"carry": 4
+	},
+
+	"level": 1,
+	"basePoolMoves": ["Wither", "Dark Energy", "Void Touch", "Leech", "Erase"],
+	"basePoolPassives": []
+}

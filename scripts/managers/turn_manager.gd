@@ -256,6 +256,24 @@ func _refresh_units(units: Array[Unit]) -> void:
 	for unit: Unit in units:
 		if not unit.is_defeated():
 			unit.refresh_unit()
+	_audit_tile_occupancy(units, "refresh")
+
+
+## Diagnostic: verify every alive unit's current_tile registers the unit back.
+## Logs a loud warning on mismatch so we can catch occupancy desyncs as they happen.
+func _audit_tile_occupancy(units: Array[Unit], phase: String) -> void:
+	for unit: Unit in units:
+		if unit.is_defeated():
+			continue
+		if unit.current_tile == null:
+			push_warning("OCCUPANCY AUDIT [%s] %s has null current_tile" % [phase, unit.unit_name])
+			continue
+		if unit.current_tile.current_unit != unit:
+			var occupant_name: String = "null"
+			if unit.current_tile.current_unit != null:
+				occupant_name = unit.current_tile.current_unit.unit_name
+			push_warning("OCCUPANCY AUDIT [%s] %s thinks it's on tile [%d,%d] but tile.current_unit=%s" % [
+				phase, unit.unit_name, unit.current_tile.grid_x, unit.current_tile.grid_y, occupant_name])
 
 
 func _process_status_effects(units: Array[Unit]) -> void:

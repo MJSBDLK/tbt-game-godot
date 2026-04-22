@@ -1,0 +1,45 @@
+{
+	"characterName": "Ogre",
+	"primaryType": "Simple",
+	"secondaryType": "None",
+	"currentClass": "Ogre",
+	"specialization": "None",
+
+	"sprite": {
+		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
+		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",
+		"frameIndex": 9
+	},
+
+	"baseStats": {
+		"maxHP": 32,
+		"strength": 11,
+		"special": 1,
+		"skill": 2,
+		"agility": 1,
+		"athleticism": 8,
+		"defense": 8,
+		"resistance": 6
+	},
+
+	"growthRates": {
+		"hp": 90,
+		"strength": 70,
+		"special": 5,
+		"skill": 15,
+		"agility": 10,
+		"athleticism": 55,
+		"defense": 60,
+		"resistance": 40
+	},
+
+	"physicalAttributes": {
+		"moveDistance": 3,
+		"constitution": 10,
+		"carry": 14
+	},
+
+	"level": 1,
+	"basePoolMoves": ["Megaton Punch", "Impact", "Guard Break", "Lance", "Bonk", "Klunk"],
+	"basePoolPassives": []
+}

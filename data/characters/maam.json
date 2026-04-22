@@ -11,7 +11,7 @@
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
 		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",
-		"frameIndex": 2
+		"frameIndex": 5
 	},
 
 	"baseStats": {
@@ -37,7 +37,7 @@
 	},
 
 	"physicalAttributes": {
-		"moveDistance": 4,
+		"moveDistance": 6,
 		"constitution": 4,
 		"carry": 6
 	},

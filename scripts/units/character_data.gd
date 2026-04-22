@@ -205,6 +205,23 @@ var base_pool_moves: Array[String] = []    # All learnable move names
 var base_pool_passives: Array[String] = [] # All learnable passive names
 
 
+## Case-insensitive check for an equipped passive by display name. Passives are
+## currently stored as strings (PassiveData resource placeholder); this helper
+## abstracts the lookup so pathfinding / combat can test for specific effects
+## without caring about representation.
+func has_equipped_passive(passive_name: String) -> bool:
+	var target: String = passive_name.to_lower()
+	for passive: Variant in equipped_passives:
+		var name_str: String = ""
+		if passive is String:
+			name_str = passive as String
+		elif passive != null and passive.get("name") != null:
+			name_str = str(passive.get("name"))
+		if name_str.to_lower() == target:
+			return true
+	return false
+
+
 # =============================================================================
 # STAT CAPS (default values — will be class-based via CLASS_INFO later)
 # =============================================================================

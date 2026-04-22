@@ -349,13 +349,11 @@ func _handle_default_click() -> void:
 		else:
 			var ui_manager: Node = _get_ui_manager()
 			if ui_manager != null:
-				# Second tap on same unit → open full detail panel
 				if ui_manager.get_previewed_unit() == clicked_unit:
 					_open_unit_detail(clicked_unit)
 				else:
 					ui_manager.show_unit_info(clicked_unit)
 	else:
-		# Clicked empty tile — dismiss any open unit preview
 		var ui_manager: Node = _get_ui_manager()
 		if ui_manager != null:
 			ui_manager.hide_unit_info()

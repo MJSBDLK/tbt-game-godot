@@ -111,7 +111,9 @@
       "Bash(timeout 30 godot-4 --headless --quit)",
       "Bash(timeout 30 godot-4 --headless --editor --quit)",
       "Read(//home/mjsbdlk/.local/share/godot/app_userdata/TBT Game/**)",
-      "Bash(/home/mjsbdlk/aseprite/build/bin/aseprite -b \"/home/mjsbdlk/Documents/Projects/tbt-game-godot/art/sprites/ui/buff_icons_6x6.aseprite\" --all-layers --split-layers --trim --save-as \"/home/mjsbdlk/Documents/Projects/tbt-game-godot/art/sprites/ui/buff_icons_6x6/{layer}.png\")"
+      "Bash(/home/mjsbdlk/aseprite/build/bin/aseprite -b \"/home/mjsbdlk/Documents/Projects/tbt-game-godot/art/sprites/ui/buff_icons_6x6.aseprite\" --all-layers --split-layers --trim --save-as \"/home/mjsbdlk/Documents/Projects/tbt-game-godot/art/sprites/ui/buff_icons_6x6/{layer}.png\")",
+      "Bash(ln -sf '__TRACKED_VAR__/snap/godot-4/21/.local/share/godot/app_userdata/TBT Game/logs/godot.log' /home/mjsbdlk/Documents/Projects/tbt-game-godot/godot.log)",
+      "Bash(grep -q \"^godot.log$\" /home/mjsbdlk/Documents/Projects/tbt-game-godot/.gitignore)"
     ]
   }
 }

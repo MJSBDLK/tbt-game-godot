@@ -91,3 +91,15 @@ Simple	    Physical        Trauma	        -DEF
 Simple	    Special         Amnesia	        -SPC
 Obsidian	Physical        Crystallization -Removes primary (and secondary) elemental type (this might be a positive and that's fine!)
 Obsidian	Special         Corruption   	6.25 (12.5)% chance to change to enemy faction for the turn, each turn after the first
+
+character sprite indices
+9: ogre
+2: ernesto
+8: blood mage
+4: gravcap
+6: elfpirate
+7: napdawg
+5: maam
+0: grasker
+1: spaceman
+3: orcpage
