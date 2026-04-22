@@ -119,7 +119,13 @@
       "Read(//home/mjsbdlk/aseprite/build/bin/data/**)",
       "Bash(awk 'NR>=1' \"/home/mjsbdlk/Documents/Projects/tbt-game-godot/art/colors/SpacemanColorPalette_v1.41.gpl\")",
       "Bash(awk 'BEGIN{i=0} /^[ 0-9]/{print i\": \"$0; i++}' \"/home/mjsbdlk/Documents/Projects/tbt-game-godot/art/colors/SpacemanColorPalette_v1.41.gpl\")",
-      "Bash(awk -F':' 'NR>=133 && NR<=176')"
+      "Bash(awk -F':' 'NR>=133 && NR<=176')",
+      "Bash(cmake --version)",
+      "Bash(ninja --version)",
+      "Bash(git --version)",
+      "PowerShell(cmake --version)",
+      "PowerShell(ninja --version)",
+      "PowerShell(cl 2>&1)"
     ]
   }
 }

@@ -2,14 +2,12 @@
 -- clipboard, either automatically whenever the fg color changes (e.g. after
 -- using the Eyedropper) or on demand via a menu command / hotkey.
 
-local DEBOUNCE_SECONDS = 0.15
-
 local plugin_path
 local fg_listener
 local last_copied_hex = ""
 local dlg
-local debounce_timer
-local pending_copy = false
+local trigger_file
+local clip_file
 
 local function color_to_hex(color)
     local r, g, b, a = color.red, color.green, color.blue, color.alpha
@@ -31,17 +29,15 @@ local function copy_to_clipboard(text)
     local ok = false
 
     if app.os.windows then
-        -- Route through wscript.exe (GUI subsystem, no console window) running a
-        -- bundled VBScript that uses the htmlfile COM object to set the clipboard.
-        -- `start "" /B` detaches so Aseprite never blocks waiting for it.
-        local vbs = app.fs.joinPath(plugin_path, "clip_win.vbs")
-        local cmd = string.format(
-            'start "" /B wscript //nologo //B %s %s',
-            win_quote(vbs),
-            win_quote(text)
-        )
-        os.execute(cmd)
-        ok = true
+        -- Write to trigger file; the background daemon picks it up and calls clip.exe.
+        -- This avoids spawning cmd.exe on every color change (which is slow due to
+        -- Windows Defender scanning processes spawned from unsigned executables).
+        local f = io.open(trigger_file, "w")
+        if f then
+            f:write(text)
+            f:close()
+            ok = true
+        end
     elseif app.os.macos then
         local handle = io.popen("pbcopy", "w")
         if handle then
@@ -50,8 +46,6 @@ local function copy_to_clipboard(text)
             ok = true
         end
     else
-        -- Linux: spawn a bundled Python/GTK helper, detached, with LD_LIBRARY_PATH
-        -- stripped so a snap-launched parent (e.g. VSCode terminal) can't poison it.
         local helper = app.fs.joinPath(plugin_path, "clip_linux.py")
         local cmd = table.concat({
             "env -u LD_LIBRARY_PATH -u LD_PRELOAD",
@@ -73,31 +67,13 @@ local function copy_to_clipboard(text)
     return ok
 end
 
-local function flush_pending()
-    if debounce_timer then
-        debounce_timer:stop()
-    end
-    if pending_copy then
-        pending_copy = false
-        copy_to_clipboard(color_to_hex(app.fgColor))
-    end
-end
-
-local function schedule_copy()
-    pending_copy = true
-    if not debounce_timer then
-        debounce_timer = Timer{
-            interval = DEBOUNCE_SECONDS,
-            ontick = flush_pending,
-        }
-    end
-    debounce_timer:stop()
-    debounce_timer:start()
+local function on_fg_color_change()
+    copy_to_clipboard(color_to_hex(app.fgColor))
 end
 
 local function start_listener()
     if fg_listener then return end
-    fg_listener = app.events:on("fgcolorchange", schedule_copy)
+    fg_listener = app.events:on("fgcolorchange", on_fg_color_change)
 end
 
 local function stop_listener()
@@ -105,10 +81,6 @@ local function stop_listener()
         app.events:off(fg_listener)
         fg_listener = nil
     end
-    if debounce_timer then
-        debounce_timer:stop()
-    end
-    pending_copy = false
 end
 
 local function open_dialog(plugin)
@@ -151,6 +123,22 @@ function init(plugin)
         plugin.preferences.auto_copy = false
     end
 
+    if app.os.windows then
+        local tmp = os.getenv("TEMP") or os.getenv("TMP") or "C:\\Temp"
+        trigger_file = tmp .. "\\aseprite_hex_clipboard.txt"
+        clip_file    = tmp .. "\\aseprite_hex_clipboard_data.txt"
+        local daemon = app.fs.joinPath(plugin_path, "daemon_win.vbs")
+        -- start "" (no /B) launches wscript detached; cmd.exe exits immediately.
+        -- First call is slow (~5s, Windows Defender cold-start on cmd.exe) but
+        -- only happens once at plugin init, not on every color change.
+        os.execute(string.format(
+            'start "" wscript //nologo //B %s %s %s',
+            win_quote(daemon),
+            win_quote(trigger_file),
+            win_quote(clip_file)
+        ))
+    end
+
     plugin:newCommand{
         id = "HexClipboardPanel",
         title = "Hex Clipboard...",
@@ -178,4 +166,11 @@ function exit(plugin)
         dlg = nil
     end
     stop_listener()
+    if app.os.windows and trigger_file then
+        local f = io.open(trigger_file, "w")
+        if f then
+            f:write("STOP")
+            f:close()
+        end
+    end
 end

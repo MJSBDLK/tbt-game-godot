@@ -20,7 +20,7 @@
 - [x] RQD - speed up unit movement by like 3x or so
 - [x] RQD - attempt pixellation filter for hypoesthesia injury
 - [x] RQD - what colors should buffs and injuries be in the HUD?
-- [ ] RQD - Aseprite plugin - eyedropper that copies hex value to clipboard
+- [x] RQD - Aseprite plugin - eyedropper that copies hex value to clipboard
 - [ ] RQD - 
 
 # RQD Todo by 20260412
