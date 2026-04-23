@@ -30,7 +30,7 @@ var integer_zoom_mode: bool = false:
 ## Extra pixels the viewport is allowed to show past each map edge (1 tile = 32px).
 @export var bounds_buffer_left: float = 32.0
 @export var bounds_buffer_right: float = 32.0
-@export var bounds_buffer_top: float = 32.0
+@export var bounds_buffer_top: float = 64.0  # Extra space above map so tall unit HP bars + status icons on top row are pannable into view
 @export var bounds_buffer_bottom: float = 0.0
 
 var _target_position: Vector2 = Vector2.ZERO

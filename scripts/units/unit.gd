@@ -66,8 +66,10 @@ var is_selected: bool = false
 var can_act: bool = true
 var is_moving: bool = false
 var is_defeated_flag: bool = false
+var _defeat_visuals_played: bool = false
 var current_hp: int = 0
 var assigned_move: Move = null
+var last_used_move_index: int = -1  # Index into equipped_moves of the most recently executed move (for Capricious passive)
 var active_status_effects: Array = []  # Array of StatusEffect
 
 # Set by take_damage when the killing blow lands. Used by InjurySystem to
@@ -604,7 +606,7 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 		await get_tree().create_timer(HIT_DELAY).timeout
 		await _execute_single_hit(defender, attacker_move, false)
 
-	if defender.is_defeated() and not defender.is_defeated_flag:
+	if defender.is_defeated():
 		await defender._handle_defeat()
 
 	# === Bonus defender counters (2nd through Nth) ===
@@ -615,7 +617,7 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 			await get_tree().create_timer(HIT_DELAY).timeout
 			await defender._execute_single_hit(self, defender.assigned_move, false)
 
-	if is_defeated() and not is_defeated_flag:
+	if is_defeated():
 		await _handle_defeat()
 
 	combat_completed.emit(self, defender)
@@ -699,6 +701,9 @@ func _spawn_damage_popup(target: Unit, damage: int, effectiveness_text: String, 
 
 ## Handle unit defeat: gray out, fade, clear tile.
 func _handle_defeat() -> void:
+	if _defeat_visuals_played:
+		return
+	_defeat_visuals_played = true
 	is_defeated_flag = true
 	DebugConfig.log_combat("Unit defeated: %s" % unit_name)
 

@@ -83,6 +83,10 @@ func show_unit_info(unit: Node) -> void:
 		return
 	if _is_action_ui_open():
 		return
+	# Info panels live in _left_panel by default. _place_action_panels(true)
+	# moves _left_panel to the RIGHT side, so we want on_left=true when the
+	# previewed unit is on the LEFT half — info panels flip away from the unit.
+	_place_action_panels(not _unit_is_in_right_half(unit))
 	_unit_info_panel.show_unit(unit as Unit)
 
 
@@ -108,6 +112,10 @@ func show_terrain_info(tile: Variant) -> void:
 	# Terrain info is suppressed while the action menu or combat preview is active.
 	if _is_action_ui_open():
 		return
+	# Info panels live in _left_panel by default. Invert the side test so info
+	# panels move to the side opposite the hovered tile.
+	if tile != null:
+		_place_action_panels(not _tile_is_in_right_half(tile))
 	_terrain_info_panel.show_tile(tile)
 
 
@@ -538,13 +546,29 @@ func _place_system_menu() -> void:
 ## Returns true if the unit's world position will appear in the right half of the
 ## screen after the camera finishes panning (uses target_position, not current).
 func _unit_is_in_right_half(unit: Node) -> bool:
-	var cam := _get_camera()
 	var node2d := unit as Node2D
-	if cam == null or node2d == null:
+	if node2d == null:
+		return false
+	return _world_pos_is_in_right_half(node2d.global_position)
+
+
+## Shared half-of-screen test used by both unit-info and terrain-info side-flipping.
+func _world_pos_is_in_right_half(world_pos: Vector2) -> bool:
+	var cam := _get_camera()
+	if cam == null:
 		return false
 	var viewport_width: float = get_viewport().get_visible_rect().size.x
-	var screen_x: float = (node2d.global_position.x - cam.target_position.x) * cam.zoom.x + viewport_width / 2.0
+	var screen_x: float = (world_pos.x - cam.target_position.x) * cam.zoom.x + viewport_width / 2.0
 	return screen_x > viewport_width / 2.0
+
+
+func _tile_is_in_right_half(tile: Variant) -> bool:
+	if tile == null:
+		return false
+	var node2d := tile as Node2D
+	if node2d == null:
+		return false
+	return _world_pos_is_in_right_half(node2d.global_position)
 
 
 func _get_camera() -> CameraController:

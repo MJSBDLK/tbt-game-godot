@@ -6,6 +6,9 @@ extends Node2D
 @export var default_player_character: String = "res://data/characters/spaceman.json"
 @export var default_enemy_character: String = "res://data/characters/grunt.json"
 
+@export_group("Visuals")
+@export var show_vignette: bool = true
+
 ## Random enemy pool. Each spawn picks from this list uniformly. Duplicates
 ## weight the odds (e.g. grunt appears twice → 2x chance). Placeholder until a
 ## per-map enemy composition system replaces this.
@@ -18,6 +21,7 @@ extends Node2D
 ]
 
 var _unit_scene: PackedScene = preload("res://scenes/battle/unit.tscn")
+var _vignette_shader: Shader = preload("res://shaders/vignette.gdshader")
 var _units_container: Node2D = null
 
 
@@ -33,6 +37,9 @@ func _ready() -> void:
 
 
 func _on_grid_ready() -> void:
+	if show_vignette:
+		_build_vignette()
+
 	var spawn_points := _get_tile_spawn_points()
 	var player_units := _spawn_units_from_tiles(spawn_points["Player"], Enums.UnitFaction.PLAYER, default_player_character)
 	var enemy_units := _spawn_units_from_tiles(spawn_points["Enemy"], Enums.UnitFaction.ENEMY, default_enemy_character)
@@ -107,6 +114,55 @@ func _spawn_units_from_tiles(positions: Array, faction: Enums.UnitFaction, chara
 		if unit != null:
 			units.append(unit)
 	return units
+
+
+# =============================================================================
+# VIGNETTE
+# =============================================================================
+
+## Builds a world-space out-of-bounds fade around the map. The effect paints the
+## territory outside the map rect: alpha ramps from 0 at the map edge to 1 over
+## `fade_width` pixels, then stays fully opaque. Lawrence's long-term boundary
+## treatment (impassable terrain, custom sprites, fog, decorations, sky) will
+## layer on top of this.
+func _build_vignette() -> void:
+	var tile_size: int = GridManager.tile_size
+	var origin_x: float = GridManager.grid_offset_x * tile_size
+	var min_tilemap_y: int = -GridManager.grid_offset_y - GridManager.grid_height + 1
+	var origin_y: float = min_tilemap_y * tile_size
+	var map_min := Vector2(origin_x, origin_y)
+	var map_size := Vector2(GridManager.grid_width * tile_size, GridManager.grid_height * tile_size)
+	var map_max := map_min + map_size
+
+	# Polygon must extend far enough past the map that the camera can never pan
+	# its edge into view. 4096px of padding is effectively infinite at current
+	# zoom levels.
+	var pad := 4096.0
+	var poly_min := map_min - Vector2(pad, pad)
+	var poly_max := map_max + Vector2(pad, pad)
+
+	# Live in the default world CanvasLayer so the vignette participates in the
+	# same z_index ordering as tiles/units. z_index = 4 puts it above floor +
+	# decoration tilemap layers (z=0 and z=3) but below every unit layer
+	# (ZIndexLayer.UNITS = 5 and up). Tall unit sprites / HP bars / status
+	# icons poking into OOB therefore render on top of the fade rather than
+	# being darkened by it.
+	var poly := Polygon2D.new()
+	poly.name = "MapVignette"
+	poly.polygon = PackedVector2Array([
+		Vector2(poly_min.x, poly_min.y),
+		Vector2(poly_max.x, poly_min.y),
+		Vector2(poly_max.x, poly_max.y),
+		Vector2(poly_min.x, poly_max.y),
+	])
+	poly.z_index = 4
+
+	var mat := ShaderMaterial.new()
+	mat.shader = _vignette_shader
+	mat.set_shader_parameter("map_min", map_min)
+	mat.set_shader_parameter("map_max", map_max)
+	poly.material = mat
+	add_child(poly)
 
 
 # =============================================================================

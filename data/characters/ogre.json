@@ -41,5 +41,5 @@
 
 	"level": 1,
 	"basePoolMoves": ["Impact", "Guard Break", "Lance", "Bonk", "Klunk"],
-	"basePoolPassives": []
+	"basePoolPassives": ["Capricious"]
 }

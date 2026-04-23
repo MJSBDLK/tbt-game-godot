@@ -7,6 +7,10 @@
 		"abbrevName": "AntiGrav",
 		"description": "Debuffs have a 50% chance to clear each turn they tick down"
 	},
+	"Capricious": {
+		"abbrevName": "Capric.",
+		"description": "Cannot use the same move twice in a row; picks randomly among remaining usable moves"
+	},
 	"Cavalier": {
 		"abbrevName": "Cavalier",
 		"description": "Attacking stats cannot be buffed or debuffed by moves"

@@ -25,9 +25,8 @@ func execute_turn() -> void:
 	DebugConfig.log_ai("AI '%s' thinking..." % _unit.unit_name)
 	await get_tree().create_timer(think_delay).timeout
 
-	# Ensure we have a move assigned
-	if _unit.assigned_move == null:
-		_unit.auto_assign_first_usable_move()
+	# Pick a move. Capricious passive → random among usable moves excluding the last used one.
+	_assign_move_for_turn()
 	if _unit.assigned_move == null:
 		DebugConfig.log_ai("AI '%s' has no usable moves, ending turn" % _unit.unit_name)
 		_unit.set_acted()
@@ -119,8 +118,44 @@ func _can_attack_target(target: Unit) -> bool:
 func _execute_attack(target: Unit) -> void:
 	DebugConfig.log_ai("AI '%s' attacking '%s' with '%s'" % [
 		_unit.unit_name, target.unit_name, _unit.assigned_move.move_name])
+	# Record which move we're about to use so Capricious can avoid picking it again next turn.
+	var data: CharacterData = _unit.character_data
+	if data != null:
+		_unit.last_used_move_index = data.equipped_moves.find(_unit.assigned_move)
 	await get_tree().create_timer(attack_delay).timeout
 	await _unit.execute_combat_sequence(target, _unit.assigned_move)
+
+
+func _assign_move_for_turn() -> void:
+	var data: CharacterData = _unit.character_data
+	if data == null:
+		_unit.auto_assign_first_usable_move()
+		return
+
+	# Non-Capricious enemies: preserve existing behavior (keep assigned_move if set).
+	if not data.has_equipped_passive("Capricious"):
+		if _unit.assigned_move == null:
+			_unit.auto_assign_first_usable_move()
+		return
+
+	# Capricious: pick randomly from usable moves, excluding last_used_move_index.
+	var usable_indices: Array[int] = []
+	for index: int in range(data.equipped_moves.size()):
+		var move: Move = data.equipped_moves[index]
+		if move.has_uses_remaining() and not _unit.is_move_index_locked(index):
+			usable_indices.append(index)
+
+	if usable_indices.is_empty():
+		_unit.assigned_move = null
+		return
+
+	var filtered: Array[int] = []
+	for idx: int in usable_indices:
+		if idx != _unit.last_used_move_index:
+			filtered.append(idx)
+	var pool: Array[int] = filtered if not filtered.is_empty() else usable_indices
+	var chosen: int = pool[randi() % pool.size()]
+	_unit.assigned_move = data.equipped_moves[chosen]
 
 
 # =============================================================================
