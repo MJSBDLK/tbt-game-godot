@@ -1,7 +1,7 @@
 # For Lawrence (Art!)
 - [ ] 
 
-# Meeting 20260412
+# [x] Meeting 20260412
 - [x] RQD - have move type icons (phys/spec/supp) wired up to show Lawrence
 - [x] RQD - add move type color pairings to the color demo panel - use full and half full move chips
 - [x] RQD - figure out what we were using those status colors for (removed — unused, will revisit when Lawrence mocks up status tick particles)
@@ -13,7 +13,7 @@
 - [x] LOD - I need a bunch more icons: buffs 6x6, injuries 10x10? (Let's discuss how injuries should look, and we may discard injuries for the alpha)
 - [x] Elemental Type matchup chart
 
-# Meeting 20260426
+# [ ] Meeting 20260426
 - [ ] LOD - push move preview beacons small/large, red/blue
 - [ ] LOD - any questions on style guide?
 - [ ] LOD - I need a bunch more icons: buffs 6x6, injuries 10x10? (Let's discuss how injuries should look, and we may discard injuries for the alpha)
@@ -21,34 +21,32 @@
 - [x] RQD - attempt pixellation filter for hypoesthesia injury
 - [x] RQD - what colors should buffs and injuries be in the HUD?
 - [x] RQD - Aseprite plugin - eyedropper that copies hex value to clipboard
-- [ ] RQD - 
 
-# RQD Todo by 20260412
-- [ ] Mock up updated unit detail panel (1 buff slot + 1 debuff slot + injury 2x2 grid with 2-slot stacking)
-- [ ] Create test_map_02 (or a "next mission" button) so we can playtest injury persistence across missions
-- [ ] Add `"id"` field to character JSONs (spaceman.json, ernesto.json, maam.json) — works without it but cleaner with
-- [ ] Send Lawrence the buff icon request: Rallied, Fortified, Hasted, Focused, Regen (6x6, matching status_effect_icons_6x6_v2 style) + the missing Bellows icon
-- [ ] Discuss injury icon style with Lawrence — 6x6 matching status icons, or larger? 20 injuries to cover eventually but only need a few for alpha
-- [ ] Playtest buff/debuff system: toggle `testing_status_effects = true` in debug_config.gd, verify slot enforcement + pip bars + detail panel work in-game
+# [x] RQD Todo by 20260412
+- [x] Mock up updated unit detail panel (1 buff slot + 1 debuff slot + injury 2x2 grid with 2-slot stacking)
+- [x] Create test_map_02 (or a "next mission" button) so we can playtest injury persistence across missions
+- [x] Add `"id"` field to character JSONs (spaceman.json, ernesto.json, maam.json) — works without it but cleaner with
+- [x] Send Lawrence the buff icon request: Rallied, Fortified, Hasted, Focused, Regen (6x6, matching status_effect_icons_6x6_v2 style) + the missing Bellows icon
+- [x] Discuss injury icon style with Lawrence — 6x6 matching status icons, or larger? 20 injuries to cover eventually but only need a few for alpha
+- [x] Playtest buff/debuff system: toggle `testing_status_effects = true` in debug_config.gd, verify slot enforcement + pip bars + detail panel work in-game
 
 # BUGZ 
 - [ ] Zooming in and mousing around outside the window still changes the terrain preview
 - [ ] unit preview panel and terrain preview panel don't move to the left side of the screen (and presumably vice versa) when the cursor is on that side (no cursor in touchscreen mode but it's clearly still a problem)
-- [ ] can't target certain units with Overload. Not sure why.
-- [ ] I can't select the unit I want! He's clearly standing on the mountain but it doesn't detect the unit there??
+- [x] I can't select the unit I want! He's clearly standing on the mountain but it doesn't detect the unit there??
 - [ ] units have the wrong portraits.
-- [ ] Enemies can move on top of my units
+- [x] Enemies can move on top of my units
 - [ ] Injuries (not exactly a bug, just a problem): if you're fighting a tough enemy, e.g. a boss, and you lose a bunch of units, they all end up taking the same injury. Not sure if this is worth fixing. We might just give bosses like that a passive that prevents using the same move repeatedly.
 - [ ] Tall units have their health bar hidden if they're in the top row
-- [ ] It's kinda hard to see the enemy unit detail panel - some combination of clicking repeatedly seems to do it but it's unintuitive and often 
-- [ ] Hypoesthesia Effect - NN scaling is yielding boxes which are 1x1, 2x1, 1x2 and 2x2 - what's causing this?
+- [x] It's kinda hard to see the enemy unit detail panel - some combination of clicking repeatedly seems to do it but it's unintuitive and often 
+- [x] Hypoesthesia Effect - NN scaling is yielding boxes which are 1x1, 2x1, 1x2 and 2x2 - what's causing this?
 
 # Todo
 - [x] Merge Lawrence's branch
 - [x] RQD - orthogonal shader portrait border
 - [x] Status icons are stretched in the unit detail panel
 - [x] Start adding tooltips
-- [ ] We forgot to add the injury system!
+- [x] We forgot to add the injury system!
 - [x] Style the action menu panel
 - [x] Style the combat preview panel
 - [x] Phase transition
@@ -65,7 +63,7 @@
 - [x] Clicking on an enemy unit brings up the unit preview panel for that unit (good) but then to make it go away you need to click on a friendly unit (bad) - tapping anywhere on the map should make it go away.
 - [ ] Cancel/confirm input hints
 - [x] Add a "pause" menu (it's turn-based, the game is always paused) and Options menu. What else goes in the pause menu? How is it accessed on touchscreen?
-- [ ] Options menu
+- [x] Options menu
 - [x] Add a toggle for "nearest neighbor scaling" vs. "only allow integer scaled zoom levels" (and come up with a concise way of saying that, like zoom mode: nearest neighbor/integer)
 - [ ] Add support for icons in text boxes
 - [ ] Add tooltip mode hotkey
@@ -74,6 +72,7 @@
 - [ ] Test game running at 90, 120, 144, 240 fps
 - [ ] Add lock_framerate option with a slider and max 1000 Hz (I guess, I'm assuming it won't reach anywhere near that)
 - [ ] PRIORITY: Create in-between mission squad management screen.
+- [ ] programmer art for 5 enemy types
 
 ---
 
