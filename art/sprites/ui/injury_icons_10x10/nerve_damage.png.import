@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://4tvas7l4clx6"
-path="res://.godot/imported/bellows_6x6.png-c4944d136ba3d6651f832529839077b4.ctex"
+uid="uid://hk44jlkt5j6a"
+path="res://.godot/imported/nerve_damage.png-784ff58b2c0d24e3f7d1ebe69f0f52a9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/sprites/ui/buff_icons_6x6/bellows_6x6.png"
-dest_files=["res://.godot/imported/bellows_6x6.png-c4944d136ba3d6651f832529839077b4.ctex"]
+source_file="res://art/sprites/ui/injury_icons_10x10/nerve_damage.png"
+dest_files=["res://.godot/imported/nerve_damage.png-784ff58b2c0d24e3f7d1ebe69f0f52a9.ctex"]
 
 [params]
 

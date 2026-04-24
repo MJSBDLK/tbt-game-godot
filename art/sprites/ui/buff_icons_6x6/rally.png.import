@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b58sdbho1uhc"
-path="res://.godot/imported/rallied_6x6.png-a89b3467760c5409ab2e68345bd03ff8.ctex"
+uid="uid://f4r7rqds0ibr"
+path="res://.godot/imported/rally.png-d76e2dc67f75b4651fe704a2f33651b6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/sprites/ui/buff_icons_6x6/rallied_6x6.png"
-dest_files=["res://.godot/imported/rallied_6x6.png-a89b3467760c5409ab2e68345bd03ff8.ctex"]
+source_file="res://art/sprites/ui/buff_icons_6x6/rally.png"
+dest_files=["res://.godot/imported/rally.png-d76e2dc67f75b4651fe704a2f33651b6.ctex"]
 
 [params]
 

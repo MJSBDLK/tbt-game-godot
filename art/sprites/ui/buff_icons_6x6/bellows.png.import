@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dsdyqyv3ia0fq"
-path="res://.godot/imported/focused_6x6.png-1e2b8f602ce9238a1cbaaef744386dd2.ctex"
+uid="uid://dyi3unelicvwh"
+path="res://.godot/imported/bellows.png-da6b3bbcd6e077eb65ac02984b12a5d4.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/sprites/ui/buff_icons_6x6/focused_6x6.png"
-dest_files=["res://.godot/imported/focused_6x6.png-1e2b8f602ce9238a1cbaaef744386dd2.ctex"]
+source_file="res://art/sprites/ui/buff_icons_6x6/bellows.png"
+dest_files=["res://.godot/imported/bellows.png-da6b3bbcd6e077eb65ac02984b12a5d4.ctex"]
 
 [params]
 

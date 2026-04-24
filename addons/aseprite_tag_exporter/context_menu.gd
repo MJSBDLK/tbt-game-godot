@@ -56,6 +56,7 @@ func _export_file(aseprite_file_path: String, lowercase_names: bool) -> void:
 	var arguments := PackedStringArray([
 		"-b",
 		global_source,
+		"--trim",
 		"--save-as",
 		temp_directory + "{frame0000}.png",
 	])

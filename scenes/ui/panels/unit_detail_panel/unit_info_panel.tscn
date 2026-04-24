@@ -19,10 +19,11 @@
 [ext_resource type="Texture2D" uid="uid://0q8h7ynjwlnj" path="res://art/sprites/ui/status_effect_icons/burn.png" id="15_o3ofy"]
 [ext_resource type="PackedScene" uid="uid://dmhftfupyer7o" path="res://scenes/ui/panels/ui_text_centered.tscn" id="17_0oxyw"]
 [ext_resource type="Texture2D" uid="uid://ccue1001ohxc8" path="res://art/sprites/ui/status_effect_icons_6x6_v2/vulnerable_0000.png" id="18_o3ofy"]
-[ext_resource type="Texture2D" uid="uid://b0waoxxfldpem" path="res://art/sprites/ui/placeholder_10x10.png" id="19_3cqu2"]
+[ext_resource type="Texture2D" uid="uid://cy3wfakvgvcpr" path="res://art/sprites/ui/injury_icons_10x10/burn_scar.png" id="19_pqajl"]
 [ext_resource type="Script" uid="uid://dssao01a5a5gn" path="res://scripts/ui/panels/unit_detail_panel.gd" id="19_script"]
 [ext_resource type="Texture2D" uid="uid://dmb30p1t7k1pr" path="res://art/sprites/ui/move_type_icons_10x10/physical.png" id="20_o3ofy"]
 [ext_resource type="Texture2D" uid="uid://so65sl7gbaw1" path="res://art/sprites/ui/infinity_9x6.png" id="20_ywfd3"]
+[ext_resource type="Texture2D" uid="uid://hk44jlkt5j6a" path="res://art/sprites/ui/injury_icons_10x10/nerve_damage.png" id="21_o06yo"]
 [ext_resource type="Texture2D" uid="uid://dxqehrjh25e5" path="res://art/sprites/ui/status_effect_icons/critical.png" id="22_o06yo"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4tjpj"]
@@ -640,7 +641,7 @@ layout_mode = 2
 
 [node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/AfflictionBoostSection/StatusSection/StatusHeader" index="0" unique_id=1042415212]
 theme_override_colors/font_color = Color(1, 0.90588236, 0.5921569, 1)
-text = "Affliction"
+text = "Afflict"
 uppercase = false
 glow_color = Color(0.5568628, 0.14509805, 0.09411765, 1)
 
@@ -737,7 +738,7 @@ visible = true
 size_flags_vertical = 0
 
 [node name="TextureRect" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer/InjuryPanel1/HBoxContainer/ElemetalTypeIconContainer" index="0" unique_id=1278191071]
-texture = ExtResource("19_3cqu2")
+texture = ExtResource("19_pqajl")
 
 [node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer/InjuryPanel1/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(1522637672, 781430797) index="0" unique_id=1042415212]
 text = "Injury1
@@ -790,7 +791,7 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_pqajl")
 visible = true
 
 [node name="TextureRect" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer2/InjuryPanel2/HBoxContainer/ElemetalTypeIconContainer" index="0" unique_id=1278191071]
-texture = ExtResource("19_3cqu2")
+texture = ExtResource("21_o06yo")
 
 [node name="Label" parent="MainRow/CenterColumnMargin/CenterColumn/InjuriesSection/HBoxContainer/VBoxContainer2/InjuryPanel2/HBoxContainer/MarginContainer" parent_id_path=PackedInt32Array(1402634777, 781430797) index="0" unique_id=1042415212]
 text = "Injury2"
