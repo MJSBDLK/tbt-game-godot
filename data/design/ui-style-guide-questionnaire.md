@@ -19,14 +19,14 @@ For each section, give me your bullet points -- what the rules are, what to avoi
 
 ## 2. Color Palette
 
-We have GameColorPalette with named color families (Azure, Red, Green, etc.) at 10 shades each.
+We have GameColorPalette with named color families (Azure, Red, Green, etc.) at 11 shades each.
 *We also have a colors demo. Preview the scene with F6 to check it out.*
 
 ### General rules
 - **Q: When should we reach for palette colors vs. hardcoded hex?**
 - [RQD]: always reach for palette colors
 - **Q: Are there any palette families we should avoid or that are reserved?**
-- [LOD]: 
+- [LOD]: Avoid any of the palette families after Eggplant, with auto generated names like "GPL Ramp 22". Also, "Hay" is not in use despite having a real name. Note: We should check that we both have the palette with names, otherwise this info won't be correct. 
 
 ### Faction colors
 - Player: Blue (`Azure` family)
@@ -34,7 +34,7 @@ We have GameColorPalette with named color families (Azure, Red, Green, etc.) at 
 - Neutral: Green
 - Ally: Yellow
 - **Q: Need a ramp name for neutral/ally**
-- [LOD]: 
+- [LOD]: Neutral: 'Teal' or 'Green', Ally: 'Yellow Orange'
 
 ### Background & Panels
 - Panel bg: `#302d27` @ 85% opacity (`HUD_PANEL_BACKGROUND`)
@@ -62,9 +62,9 @@ Currently using GlowLabel (custom Label with glow_color property).
   - Debuff = Magenta 5 `#9e5d9f`
 - Status icon background: `#40230a`
 - **Q: Are these pairings finalized?**
-- [LOD]: 
+- [LOD]: No
 - **Q: When should we use secondary text color vs. primary?**
-- [LOD]: 
+- [LOD]: There is no hard rule, but in general important text like names, titles, headers, etc. use the primary, and information underneath these should use the secondary text color. 
 - **Q: Should every Label in HUD panels be a GlowLabel, or only specific ones?**
 - [RQD]: Everything in a PANEL should be a GlowLabel.
 
@@ -98,9 +98,9 @@ Currently using GlowLabel (custom Label with glow_color property).
   - Buff: Critical
   - Lockout: Void
 - **Q: Should each status effect get its own color (tied to the element that inflicts it, e.g. Freeze=Cyan, Shocked=Yellow, Void=Eggplant)? Or group by category (all DoTs share one color, all CC shares another)?**
-- [LOD]:
+- [LOD]: Each status effect should have its own color.
 - **Q: Should status chip background color vary by status type/category, or stay uniform (#40230a for all)?**
-- [LOD]:
+- [LOD]: It should vary by type, generally a very dark version of the status color, or a custom secondary color. 
 
 ### Passive Chips
 - ColorRect with abbreviated name label
@@ -129,7 +129,7 @@ Currently using GlowLabel (custom Label with glow_color property).
 - **Q: Health bar height/thickness -- is the current size right?**
 - [RQD]: yes
 - **Q: Damage preview zone (gray pulsing section) -- finalized?**
-- [LOD]:  
+- [LOD]:  I don't know
 
 ---
 
@@ -142,7 +142,7 @@ Based on your mockup draft:
 - **Q: What's finalized here vs. still draft?**
 - [RQD]: This is basically done at this point, only small tweaks from here
 - **Q: Multiplier number colors (x4=red, x2=yellow, x0=teal) -- locked in?**
-- [LOD]: 
+- [LOD]: I don't know
 
 ---
 
