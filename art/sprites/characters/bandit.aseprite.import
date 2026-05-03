@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://qme2ayr14c7k"
+path="res://.godot/imported/bandit.aseprite-44902efac8ada730a84a6010a02ea64d.res"
+
+[deps]
+
+source_file="res://art/sprites/characters/bandit.aseprite"
+dest_files=["res://.godot/imported/bandit.aseprite-44902efac8ada730a84a6010a02ea64d.res"]
+
+[params]
+

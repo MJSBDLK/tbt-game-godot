@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://drxm8liy0306f"
+path="res://.godot/imported/path_beacon.aseprite-2555e417729df94c8a177897efd364b1.res"
+
+[deps]
+
+source_file="res://art/sprites/ui/move_preview/path_beacon.aseprite"
+dest_files=["res://.godot/imported/path_beacon.aseprite-2555e417729df94c8a177897efd364b1.res"]
+
+[params]
+

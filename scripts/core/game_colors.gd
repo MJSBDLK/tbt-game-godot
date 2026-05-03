@@ -556,5 +556,3 @@ static func get_effectiveness_color(effectiveness: float, is_heal: bool = false)
 		return MULTIPLIER_QUARTER_LIGHT
 	else:
 		return MULTIPLIER_X0_LIGHT
-
-
