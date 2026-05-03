@@ -1,0 +1,104 @@
+# Default: treat as text, normalize to LF on commit, check out as LF on disk.
+# This kills all CRLF/LF cross-platform churn.
+* text=auto eol=lf
+
+# Source code & config — explicitly LF
+*.gd        text eol=lf
+*.gdshader  text eol=lf
+*.shader    text eol=lf
+*.cs        text eol=lf
+*.cfg       text eol=lf
+*.ini       text eol=lf
+*.toml      text eol=lf
+*.yaml      text eol=lf
+*.yml       text eol=lf
+*.json      text eol=lf
+*.md        text eol=lf
+*.txt       text eol=lf
+*.xml       text eol=lf
+*.html      text eol=lf
+*.css       text eol=lf
+*.js        text eol=lf
+*.ts        text eol=lf
+
+# Godot project & resource files — text, LF
+project.godot   text eol=lf
+*.tscn          text eol=lf
+*.tres          text eol=lf
+*.escn          text eol=lf
+*.import        text eol=lf
+*.uid           text eol=lf
+*.gd.uid        text eol=lf
+*.remap         text eol=lf
+*.translation   text eol=lf
+
+# Shell scripts must be LF or they break on Linux/macOS
+*.sh    text eol=lf
+*.bash  text eol=lf
+
+# Windows scripts must be CRLF or cmd.exe misparses them
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+*.ps1   text eol=crlf
+
+# Images — binary
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.bmp       binary
+*.webp      binary
+*.ico       binary
+*.tga       binary
+*.exr       binary
+*.hdr       binary
+*.svg       text eol=lf
+
+# Aseprite & art source — binary
+*.aseprite  binary
+*.ase       binary
+*.psd       binary
+*.kra       binary
+*.xcf       binary
+
+# Audio — binary
+*.wav       binary
+*.ogg       binary
+*.mp3       binary
+*.flac      binary
+*.opus      binary
+
+# Video — binary
+*.mp4       binary
+*.webm      binary
+*.mov       binary
+*.ogv       binary
+
+# Fonts — binary
+*.ttf       binary
+*.otf       binary
+*.woff      binary
+*.woff2     binary
+*.eot       binary
+
+# 3D & models — binary
+*.glb       binary
+*.fbx       binary
+*.obj       binary
+*.blend     binary
+*.blend1    binary
+# Note: .gltf is JSON-text but Godot imports it as a single asset; treat as binary to avoid normalization touching it
+*.gltf      binary
+
+# Archives & compiled artifacts — binary
+*.pck       binary
+*.zip       binary
+*.tar       binary
+*.gz        binary
+*.7z        binary
+*.exe       binary
+*.dll       binary
+*.so        binary
+*.dylib     binary
+*.wasm      binary
+*.pdf       binary
