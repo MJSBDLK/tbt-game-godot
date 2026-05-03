@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://oinv64mhd7mw"
+path="res://.godot/imported/injury_icons_10x10.aseprite-efff8e6c5c3fb19fc613496f930620e9.res"
+
+[deps]
+
+source_file="res://art/sprites/ui/injury_icons_10x10.aseprite"
+dest_files=["res://.godot/imported/injury_icons_10x10.aseprite-efff8e6c5c3fb19fc613496f930620e9.res"]
+
+[params]
+
