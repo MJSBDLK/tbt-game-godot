@@ -16,7 +16,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 config/name="TBT Game"
 config/description="Tactical Battle RPG - Pokemon meets Fire Emblem"
-run/main_scene="res://scenes/battle/maps/test_map_01.tscn"
+run/main_scene="res://scenes/ui/start_screen.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 
 [autoload]
@@ -28,6 +28,7 @@ TypeChartManager="*res://scripts/combat/type_chart_manager.gd"
 StatusEffectSystem="*res://scripts/combat/status_effect_system.gd"
 InjuryDatabase="*res://scripts/units/injury_database.gd"
 InjurySystem="*res://scripts/units/injury_system.gd"
+CampaignManager="*res://scripts/managers/campaign_manager.gd"
 SquadManager="*res://scripts/managers/squad_manager.gd"
 GameStateManager="*res://scripts/managers/game_state_manager.gd"
 InputManager="*res://scripts/managers/input_manager.gd"

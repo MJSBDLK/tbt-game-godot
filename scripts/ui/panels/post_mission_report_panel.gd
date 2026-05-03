@@ -35,13 +35,13 @@ func _unhandled_key_input(event: InputEvent) -> void:
 func _on_continue_pressed() -> void:
 	visible = false
 	closed.emit()
-	# No mission-select yet — toggle between the two test maps so we can verify
-	# cross-mission persistence (injuries carry, rosters persist).
-	var current_path: String = get_tree().current_scene.scene_file_path
-	var next_path: String = "res://scenes/battle/maps/test_map_02.tscn"
-	if current_path == next_path:
-		next_path = "res://scenes/battle/maps/test_map_01.tscn"
-	get_tree().change_scene_to_file(next_path)
+	var campaign_manager: Node = get_node_or_null("/root/CampaignManager")
+	if campaign_manager != null and campaign_manager.is_active():
+		campaign_manager.advance_mission()
+	else:
+		# No active campaign (e.g. launched a map directly from the editor).
+		# Fall back to the start screen so the player can pick a campaign.
+		get_tree().change_scene_to_file("res://scenes/ui/start_screen.tscn")
 
 
 func _format_report(report: Array) -> String:

@@ -57,6 +57,7 @@ var _unit_detail_panel: UnitDetailPanel = null
 var _system_menu_panel: SystemMenuPanel = null
 var _options_menu_panel: OptionsMenuPanel = null
 var _post_mission_report_panel: PostMissionReportPanel = null
+var _recruit_picker_panel: Node = null
 
 
 func _ready() -> void:
@@ -247,6 +248,20 @@ func show_battle_result(is_victory: bool, turn_count: int, player_units_lost: in
 func hide_battle_result() -> void:
 	if _battle_result_overlay != null and _battle_result_overlay.has_method("hide_result"):
 		_battle_result_overlay.hide_result()
+
+
+## Show the recruit picker with the given candidate JSON paths and await the
+## user's choice. Returns the chosen path, or "" if the picker can't be shown
+## (caller should treat that as "skip recruitment, keep going").
+func show_recruit_picker_and_wait(candidate_paths: Array[String]) -> String:
+	if _recruit_picker_panel == null or candidate_paths.is_empty():
+		return ""
+	if not _recruit_picker_panel.has_method("show_candidates"):
+		push_warning("UIManager: recruit picker panel missing show_candidates method")
+		return ""
+	_recruit_picker_panel.show_candidates(candidate_paths)
+	var chosen_path: String = await _recruit_picker_panel.recruit_chosen
+	return chosen_path
 
 
 # =============================================================================
@@ -476,6 +491,12 @@ func _instantiate_overlays() -> void:
 		var squad_manager: Node = get_node_or_null("/root/SquadManager")
 		if squad_manager and squad_manager.has_signal("post_mission_report_ready"):
 			squad_manager.post_mission_report_ready.connect(_on_post_mission_report_ready)
+
+	# Recruit picker panel (between-missions choice of N candidates)
+	var recruit_picker_scene := load("res://scenes/ui/panels/recruit_picker_panel.tscn")
+	if recruit_picker_scene != null:
+		_recruit_picker_panel = recruit_picker_scene.instantiate()
+		_overlay_layer.add_child(_recruit_picker_panel)
 
 
 func _on_post_mission_report_ready(report: Array) -> void:

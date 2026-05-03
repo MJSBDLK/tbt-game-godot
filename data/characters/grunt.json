@@ -1,8 +1,8 @@
 {
 	"characterName": "Grunt",
-	"primaryType": "Simple",
+	"primaryType": "Heraldic",
 	"secondaryType": "None",
-	"currentClass": "Spaceman",
+	"currentClass": "Grunt",
 	"specialization": "None",
 
 	"sprite": {

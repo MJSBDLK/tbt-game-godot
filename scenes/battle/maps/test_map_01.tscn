@@ -22,7 +22,7 @@ tile_set = ExtResource("3_go1p3")
 tile_set = ExtResource("3_go1p3")
 
 [node name="SpawnTileLayer" type="TileMapLayer" parent="TilemapBuilder" unique_id=151676986]
-tile_map_data = PackedByteArray("AAABAP7/BwABAAAAAAAGAPv/BwACAAAAAAAFAPz/BwACAAAAAAADAPv/BwABAAAAAAAJAAUABwADAAAAAAD2/wUABwADAAAAAAAJAPv/BwADAAAAAAD2//v/BwADAAAAAAAFAP3/BwACAAAAAAABAP3/BwABAAAAAAA=")
+tile_map_data = PackedByteArray("AAABAP7/BwABAAAAAAAGAPv/BwAFAAAAAAAFAPz/BwAEAAAAAAADAPv/BwABAAAAAAAJAAUABwADAAAAAAD2/wUABwADAAAAAAAJAPv/BwADAAAAAAD2//v/BwADAAAAAAAFAP3/BwAGAAAAAAABAP3/BwABAAAAAAD2/wMABwAHAAAAAAA=")
 tile_set = ExtResource("3_go1p3")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1875369592]

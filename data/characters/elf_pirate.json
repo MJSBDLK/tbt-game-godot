@@ -1,0 +1,48 @@
+{
+	"characterId": "elfPirate",
+	"characterName": "Elf Pirate",
+	"primaryType": "Air",
+	"secondaryType": "None",
+	"currentClass": "Pirate",
+	"specialization": "None",
+
+	"portraitPath": "res://art/portraits/elfpirate_portrait.png",
+
+	"sprite": {
+		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
+		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",
+		"frameIndex": 6
+	},
+
+	"baseStats": {
+		"maxHP": 14,
+		"strength": 5,
+		"special": 6,
+		"skill": 8,
+		"agility": 9,
+		"athleticism": 5,
+		"defense": 3,
+		"resistance": 4
+	},
+
+	"growthRates": {
+		"hp": 35,
+		"strength": 40,
+		"special": 35,
+		"skill": 70,
+		"agility": 75,
+		"athleticism": 45,
+		"defense": 25,
+		"resistance": 30
+	},
+
+	"physicalAttributes": {
+		"moveDistance": 5,
+		"constitution": 4,
+		"carry": 5
+	},
+
+	"level": 1,
+	"basePoolMoves": ["Compressed Air", "Cyclone", "Sidearm", "Feint", "Backstab"],
+	"basePoolPassives": []
+}

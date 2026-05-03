@@ -2,8 +2,10 @@
 	"characterName": "Napdawg",
 	"primaryType": "Gentry",
 	"secondaryType": "None",
-	"currentClass": "Napdawg",
+	"currentClass": "Noble",
 	"specialization": "None",
+
+	"portraitPath": "res://art/portraits/napdawg_portrait.png",
 
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",

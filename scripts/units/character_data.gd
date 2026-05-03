@@ -492,3 +492,44 @@ func reset_bond_bonuses() -> void:
 	bond_bonus_athleticism = 0
 	bond_bonus_defense = 0
 	bond_bonus_resistance = 0
+
+
+# =============================================================================
+# AUTO-LEVELING — ported from Unity CharacterData.ProcessLevelUp()
+# =============================================================================
+
+## Roll growth checks for one level. For each stat, if randf() * 100 falls
+## below that stat's growth rate AND the stat isn't capped, increment the
+## corresponding growth_gains_* counter. Increments level by 1.
+##
+## Class-progression rewards (Unity's ProcessLevelUpReward path) are NOT yet
+## implemented — the class progression schedule resource doesn't exist in the
+## Godot port. Stat-up allocation points and unlocked moves/passives will land
+## with the squad/prep screen (alpha item #3).
+func process_level_up() -> void:
+	if randf() * 100.0 < growth_rate_hp and not is_at_stat_cap("max_hp"):
+		growth_gains_hp += 1
+	if randf() * 100.0 < growth_rate_strength and not is_at_stat_cap("strength"):
+		growth_gains_strength += 1
+	if randf() * 100.0 < growth_rate_special and not is_at_stat_cap("special"):
+		growth_gains_special += 1
+	if randf() * 100.0 < growth_rate_skill and not is_at_stat_cap("skill"):
+		growth_gains_skill += 1
+	if randf() * 100.0 < growth_rate_agility and not is_at_stat_cap("agility"):
+		growth_gains_agility += 1
+	if randf() * 100.0 < growth_rate_athleticism and not is_at_stat_cap("athleticism"):
+		growth_gains_athleticism += 1
+	if randf() * 100.0 < growth_rate_defense and not is_at_stat_cap("defense"):
+		growth_gains_defense += 1
+	if randf() * 100.0 < growth_rate_resistance and not is_at_stat_cap("resistance"):
+		growth_gains_resistance += 1
+	level += 1
+
+
+## Simulate level-ups from the character's current level up to `target_level`.
+## No-ops if already at or above the target. Each level uses the unit's growth
+## rates to decide whether each stat ticks up — same algorithm as the Unity
+## level-up at the end of a real battle, just run repeatedly.
+func simulate_levels_up_to(target_level: int) -> void:
+	while level < target_level:
+		process_level_up()

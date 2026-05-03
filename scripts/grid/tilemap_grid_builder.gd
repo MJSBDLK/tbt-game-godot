@@ -162,8 +162,10 @@ func _get_terrain_type_from_layer(layer: TileMapLayer, cell: Vector2i) -> String
 
 
 ## Returns spawn points from the SpawnTileLayer, grouped by faction.
-## Keys: "Player", "Enemy". Values: Array of Vector2i in game-grid coordinates (Y-up).
-## Returns empty dictionary if no spawn layer or no spawn tiles painted.
+## Player spawns: Array[Vector2i] (game-grid coordinates, Y-up).
+## Enemy spawns: Array[Dictionary] of {position: Vector2i, difficulty: EnemyDifficulty}.
+## The difficulty comes from the tile's "spawn_difficulty" custom data — empty
+## or unrecognized values fall back to EnemyDifficulty.DEFAULT.
 func get_spawn_points() -> Dictionary:
 	var result: Dictionary = {"Player": [], "Enemy": []}
 
@@ -176,15 +178,28 @@ func get_spawn_points() -> Dictionary:
 			continue
 
 		var spawn_faction: Variant = tile_data.get_custom_data("spawn_faction")
-		if spawn_faction is String and spawn_faction != "":
-			if spawn_faction == "Boundary":
-				continue  # Boundary markers are not spawn points
-			var grid_x := cell.x
-			var grid_y := -cell.y  # Flip Y: Godot tilemap Y-down -> game grid Y-up
-			if result.has(spawn_faction):
-				result[spawn_faction].append(Vector2i(grid_x, grid_y))
-			else:
-				push_warning("TilemapGridBuilder: Unknown spawn_faction '%s' at cell %s" % [spawn_faction, cell])
+		if not (spawn_faction is String and spawn_faction != ""):
+			continue
+		if spawn_faction == "Boundary":
+			continue  # Boundary markers are not spawn points
+
+		var grid_x := cell.x
+		var grid_y := -cell.y  # Flip Y: Godot tilemap Y-down -> game grid Y-up
+		var grid_pos := Vector2i(grid_x, grid_y)
+
+		if spawn_faction == "Player":
+			result["Player"].append(grid_pos)
+		elif spawn_faction == "Enemy":
+			var difficulty := Enums.EnemyDifficulty.DEFAULT
+			var diff_name: Variant = tile_data.get_custom_data("spawn_difficulty")
+			if diff_name is String and diff_name != "":
+				if Enums.SPAWN_DIFFICULTY_BY_NAME.has(diff_name):
+					difficulty = Enums.SPAWN_DIFFICULTY_BY_NAME[diff_name]
+				else:
+					push_warning("TilemapGridBuilder: Unknown spawn_difficulty '%s' at cell %s" % [diff_name, cell])
+			result["Enemy"].append({"position": grid_pos, "difficulty": difficulty})
+		else:
+			push_warning("TilemapGridBuilder: Unknown spawn_faction '%s' at cell %s" % [spawn_faction, cell])
 
 	DebugConfig.log_tilemap("TilemapGridBuilder: Found %d player spawns, %d enemy spawns" % [
 		result["Player"].size(), result["Enemy"].size()])

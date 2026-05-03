@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://berwbhyipiu0t"]
 
-[ext_resource type="Texture2D" uid="uid://dueko4xkylxsa" path="res://art/portraits/max_stellar_portrait.png" id="1_c3gtm"]
+[ext_resource type="Texture2D" uid="uid://dvcinqly1ucr4" path="res://art/portraits/default_portrait.png" id="2_pqajl"]
 [ext_resource type="PackedScene" uid="uid://dnhdopaxrtt3f" path="res://scenes/ui/panels/unit_row.tscn" id="2_r5h6j"]
 [ext_resource type="PackedScene" uid="uid://8mt1nhvixt6r" path="res://scenes/ui/components/portrait_border.tscn" id="3_3cqu2"]
 [ext_resource type="PackedScene" uid="uid://df3xfvf5lh7mq" path="res://scenes/ui/panels/unit_detail_panel/stat_container.tscn" id="3_6fycp"]
@@ -167,7 +167,7 @@ custom_minimum_size = Vector2(92, 92)
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
-texture = ExtResource("1_c3gtm")
+texture = ExtResource("2_pqajl")
 expand_mode = 1
 
 [node name="PortraitBorder" parent="MainRow/LeftColumnMargin/LeftColumn/MarginContainer" unique_id=1182830564 instance=ExtResource("3_3cqu2")]

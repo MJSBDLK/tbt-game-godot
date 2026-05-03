@@ -83,10 +83,10 @@ func _spawn_units_from_tiles(positions: Array, faction: Enums.UnitFaction, chara
 	var units: Array[Unit] = []
 	# For player units, walk the SquadManager roster instead of relying on the
 	# default character_path (this lets the persistent roster determine who
-	# spawns and how many slots are filled). For enemy units we still use the
-	# tile spawn count + the per-faction default JSON path.
+	# spawns and how many slots are filled). Player spawn tiles carry no
+	# difficulty data — entries are bare Vector2i.
 	if faction == Enums.UnitFaction.PLAYER:
-		var roster: Array[CharacterData] = SquadManager.get_active_roster()
+		var roster: Array[CharacterData] = _get_deployed_roster()
 		var slot_count: int = mini(positions.size(), roster.size())
 		for i: int in range(slot_count):
 			var grid_pos := positions[i] as Vector2i
@@ -99,10 +99,11 @@ func _spawn_units_from_tiles(positions: Array, faction: Enums.UnitFaction, chara
 				units.append(unit)
 		return units
 
-	# Enemy spawns: pick a random JSON per tile from enemy_spawn_pool.
-	# Falls back to character_path (default_enemy_character) if the pool is empty.
-	for position: Variant in positions:
-		var grid_pos := position as Vector2i
+	# Enemy spawns: each entry is a Dictionary {position, difficulty}. Random
+	# JSON per tile from enemy_spawn_pool; difficulty drives auto-level bucket.
+	for entry: Variant in positions:
+		var grid_pos: Vector2i = entry["position"]
+		var difficulty: Enums.EnemyDifficulty = entry.get("difficulty", Enums.EnemyDifficulty.DEFAULT)
 		var tile := GridManager.get_tile(grid_pos.x, grid_pos.y)
 		if tile == null:
 			push_warning("BattleScene: No tile at (%d, %d) for spawn" % [grid_pos.x, grid_pos.y])
@@ -110,7 +111,7 @@ func _spawn_units_from_tiles(positions: Array, faction: Enums.UnitFaction, chara
 		var json_path: String = character_path
 		if not enemy_spawn_pool.is_empty():
 			json_path = enemy_spawn_pool[randi() % enemy_spawn_pool.size()]
-		var unit := _create_unit(json_path, faction, tile)
+		var unit := _create_unit(json_path, faction, tile, Enums.AIBehaviorType.AGGRESSIVE, difficulty)
 		if unit != null:
 			units.append(unit)
 	return units
@@ -170,13 +171,19 @@ func _build_vignette() -> void:
 # =============================================================================
 
 ## Spawn a unit from a JSON path. Used for enemies (and as a fallback for tests).
+## When an active campaign is running, the spawned unit's CharacterData is
+## auto-leveled. The `difficulty` arg comes from the spawn tile's bucket and
+## controls which level band the enemy lands in. Without an active campaign
+## (e.g. F6 directly on a map), the unit stays at level 1.
 func _create_unit(json_path: String, faction: Enums.UnitFaction, tile: Tile,
-		ai_behavior: Enums.AIBehaviorType = Enums.AIBehaviorType.AGGRESSIVE) -> Unit:
+		ai_behavior: Enums.AIBehaviorType = Enums.AIBehaviorType.AGGRESSIVE,
+		difficulty: Enums.EnemyDifficulty = Enums.EnemyDifficulty.DEFAULT) -> Unit:
 	var unit: Unit = _unit_scene.instantiate() as Unit
 	unit.character_json_path = json_path
 	unit.faction = faction
 	_units_container.add_child(unit)
 	unit.initialize(tile)
+	_auto_level_unit(unit, difficulty)
 	unit.auto_assign_first_usable_move()
 
 	if faction == Enums.UnitFaction.ENEMY:
@@ -186,6 +193,47 @@ func _create_unit(json_path: String, faction: Enums.UnitFaction, tile: Tile,
 		unit.add_child(enemy_ai)
 
 	return unit
+
+
+## Auto-levels an enemy unit when a campaign is active. Each enemy gets an
+## independently-rolled level from CampaignManager.pick_enemy_level(difficulty),
+## where `difficulty` came from the spawn tile's bucket (DEFAULT for legacy
+## tiles, or one of VERY_LOW..BOSS for difficulty-tagged tiles). Player units
+## come in pre-leveled from CampaignManager.start_campaign / _register_recruit.
+## Returns the roster filtered by CampaignManager's deployment selection (the
+## player's prep-screen choice of which units to bring). Empty selection means
+## "deploy everyone." Falls back to the full roster if no campaign is active
+## (e.g. F6 directly on a battle scene).
+func _get_deployed_roster() -> Array[CharacterData]:
+	var full_roster: Array[CharacterData] = SquadManager.get_active_roster()
+	var campaign_manager: Node = get_node_or_null("/root/CampaignManager")
+	if campaign_manager == null or not campaign_manager.is_active():
+		return full_roster
+	var selected_ids: Array[String] = campaign_manager.get_deployment()
+	if selected_ids.is_empty():
+		return full_roster
+	var filtered: Array[CharacterData] = []
+	for character: CharacterData in full_roster:
+		if selected_ids.has(character.character_id):
+			filtered.append(character)
+	return filtered
+
+
+func _auto_level_unit(unit: Unit, difficulty: Enums.EnemyDifficulty = Enums.EnemyDifficulty.DEFAULT) -> void:
+	if unit == null or unit.character_data == null:
+		return
+	var campaign_manager: Node = get_node_or_null("/root/CampaignManager")
+	if campaign_manager == null or not campaign_manager.is_active():
+		return
+	if unit.faction != Enums.UnitFaction.ENEMY:
+		return
+	var target_level: int = campaign_manager.pick_enemy_level(difficulty)
+	if unit.character_data.level >= target_level:
+		return
+	unit.character_data.simulate_levels_up_to(target_level)
+	# Unit.initialize() captured current_hp before auto-leveling raised max_hp.
+	# Top off so a freshly-spawned auto-leveled unit starts at full health.
+	unit.current_hp = unit.character_data.max_hp
 
 
 ## Spawn a unit from a pre-existing CharacterData (the SquadManager-persistent

@@ -1,9 +1,9 @@
 {
 	"characterId": "ernesto",
 	"characterName": "Ernesto",
-	"primaryType": "Robo",
-	"secondaryType": "Simple",
-	"currentClass": "Spaceman",
+	"primaryType": "Simple",
+	"secondaryType": "None",
+	"currentClass": "Engineer",
 	"specialization": "None",
 
 	"portraitPath": "res://art/portraits/ernesto_portrait.png",

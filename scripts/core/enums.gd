@@ -120,6 +120,8 @@ enum CharacterClass {
 	SKULK,    # Sneaky militia type
 	MAGE,
 	HEAVY,
+	GRUNT,
+	BLOOD_MAGE,
 	# Tier 2
 	JETPACK,
 	HARDCASE,
@@ -143,6 +145,8 @@ const CLASS_INFO: Dictionary = {
 	CharacterClass.SKULK:       { "tier": 1, "display_name": "Skulk" },
 	CharacterClass.MAGE:        { "tier": 1, "display_name": "Mage" },
 	CharacterClass.HEAVY:       { "tier": 1, "display_name": "Heavy" },
+	CharacterClass.GRUNT:       { "tier": 1, "display_name": "Grunt" },
+	CharacterClass.BLOOD_MAGE:  { "tier": 1, "display_name": "Blood Mage" },
 	CharacterClass.JETPACK:     { "tier": 2, "display_name": "Jetpack" },
 	CharacterClass.HARDCASE:    { "tier": 2, "display_name": "Hardcase" },
 	CharacterClass.KNIGHT:      { "tier": 2, "display_name": "Knight" },
@@ -173,6 +177,34 @@ enum SupportLevel {
 	C,
 	B,
 	A,
+}
+
+
+## Per-spawn-tile enemy strength bucket. DEFAULT = full Gaussian over the squad
+## level range (legacy behavior). The 5 quintiles divide the squad range; the 2
+## boss tiers extend beyond max. See CampaignManager.pick_enemy_level().
+enum EnemyDifficulty {
+	DEFAULT,
+	VERY_LOW,
+	LOW,
+	NORMAL,
+	HIGH,
+	VERY_HIGH,
+	MINIBOSS,
+	BOSS,
+}
+
+
+## String-keyed lookup for parsing the spawn_difficulty custom data on tiles.
+## Keys must match the strings written into battle_tileset.tres.
+const SPAWN_DIFFICULTY_BY_NAME: Dictionary = {
+	"VeryLow": EnemyDifficulty.VERY_LOW,
+	"Low": EnemyDifficulty.LOW,
+	"Normal": EnemyDifficulty.NORMAL,
+	"High": EnemyDifficulty.HIGH,
+	"VeryHigh": EnemyDifficulty.VERY_HIGH,
+	"Miniboss": EnemyDifficulty.MINIBOSS,
+	"Boss": EnemyDifficulty.BOSS,
 }
 
 

@@ -1,0 +1,48 @@
+{
+	"characterId": "gravityCaptain",
+	"characterName": "Gravity Captain",
+	"primaryType": "Gravity",
+	"secondaryType": "None",
+	"currentClass": "Enigma",
+	"specialization": "None",
+
+	"portraitPath": "res://art/portraits/gravcap_portrait.png",
+
+	"sprite": {
+		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
+		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",
+		"frameIndex": 4
+	},
+
+	"baseStats": {
+		"maxHP": 8,
+		"strength": 1,
+		"special": 12,
+		"skill": 9,
+		"agility": 2,
+		"athleticism": 1,
+		"defense": 1,
+		"resistance": 7
+	},
+
+	"growthRates": {
+		"hp": 20,
+		"strength": 5,
+		"special": 80,
+		"skill": 60,
+		"agility": 15,
+		"athleticism": 10,
+		"defense": 10,
+		"resistance": 55
+	},
+
+	"physicalAttributes": {
+		"moveDistance": 3,
+		"constitution": 2,
+		"carry": 3
+	},
+
+	"level": 1,
+	"basePoolMoves": ["Gravity Well", "Mass Shift", "Compressed Air", "Erase", "Focus"],
+	"basePoolPassives": []
+}

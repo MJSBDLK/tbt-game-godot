@@ -1,9 +1,9 @@
 {
 	"characterId": "maam",
 	"characterName": "Ma'am",
-	"primaryType": "Gentry",
+	"primaryType": "Simple",
 	"secondaryType": "None",
-	"currentClass": "Spaceman",
+	"currentClass": "Skulk",
 	"specialization": "None",
 
 	"portraitPath": "res://art/portraits/maam_portrait.png",

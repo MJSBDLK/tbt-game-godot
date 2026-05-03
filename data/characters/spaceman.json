@@ -1,6 +1,6 @@
 {
 	"characterId": "spaceman",
-	"characterName": "Spaceman",
+	"characterName": "Max Stellar",
 	"primaryType": "Simple",
 	"secondaryType": "None",
 	"currentClass": "Spaceman",
@@ -44,5 +44,5 @@
 
 	"level": 1,
 	"basePoolMoves": ["Bonk", "Laser", "Klunk", "Uppercut", "Overload", "Megaton Punch"],
-	"basePoolPassives": ["Anti-Gravity", "Impetuous", "Maximum", "Stellar"]
+	"basePoolPassives": ["Anti-Gravity", "Impetuous", "Competitive", "Maximum", "Stellar"]
 }
