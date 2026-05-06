@@ -28,7 +28,7 @@ var testing_enemy_ghost: bool = false  # Grant every enemy the Ghost passive (pa
 # note: enable unit_health debug (below) for randomized health values
 var testing_hypoesthesia: bool = false  # Give every player unit a Minor Hypoesthesia injury on spawn (censors HP bar above 50%)
 var testing_hypoesthesia_major: bool = false  # Use Major severity instead of Minor (censor always on unless HP=0)
-var testing_random_hp_on_spawn: bool = true  # Spawn every player unit at 15-100% HP — useful for testing heals
+var testing_random_hp_on_spawn: bool = false  # Spawn every player unit at 15-100% HP — useful for testing heals
 
 # Input & State
 var input: bool = false
