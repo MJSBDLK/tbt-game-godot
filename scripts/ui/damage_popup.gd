@@ -40,6 +40,16 @@ func initialize(damage: int, effectiveness_text: String, effectiveness_multiplie
 			_effectiveness_label.visible = false
 
 
+## Heal popup: green "+N" with no effectiveness label.
+func initialize_heal(amount: int) -> void:
+	var heal_color := GameColorPalette.get_color("Green", 6)
+	if _damage_label != null:
+		_damage_label.text = "+%d" % amount
+		_damage_label.modulate = heal_color
+	if _effectiveness_label != null:
+		_effectiveness_label.visible = false
+
+
 func _process(delta: float) -> void:
 	_elapsed += delta
 
@@ -67,18 +77,20 @@ func _process(delta: float) -> void:
 
 
 func _get_effectiveness_color(multiplier: float) -> Color:
-	if multiplier >= 4.0:
-		return GameColors.MULTIPLIER_X4_LIGHT
-	elif multiplier >= 2.0:
-		return GameColors.MULTIPLIER_X2_LIGHT
-	elif multiplier == 1.0:
-		return GameColors.MULTIPLIER_X1_LIGHT
-	elif multiplier >= 0.5:
-		return GameColors.MULTIPLIER_HALF_LIGHT
-	elif multiplier > 0.0:
-		return GameColors.MULTIPLIER_QUARTER_LIGHT
-	else:
+	if TypeChart.is_immune(multiplier):
 		return GameColors.MULTIPLIER_X0_LIGHT
+	var stage := TypeChart.multiplier_to_stage(multiplier)
+	match stage:
+		2:
+			return GameColors.MULTIPLIER_X4_LIGHT
+		1:
+			return GameColors.MULTIPLIER_X2_LIGHT
+		-1:
+			return GameColors.MULTIPLIER_HALF_LIGHT
+		-2:
+			return GameColors.MULTIPLIER_QUARTER_LIGHT
+		_:
+			return GameColors.MULTIPLIER_X1_LIGHT
 
 
 func _apply_outline(label: Label, color: Color) -> void:

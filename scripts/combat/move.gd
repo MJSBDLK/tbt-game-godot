@@ -37,6 +37,35 @@ var current_uses: int = 0
 # This is how rider buffs work — a damage move that buffs the user on hit.
 @export var status_effect_self_target: bool = false
 
+# On-hit displacement (instant, non-lingering). 0 = no displacement.
+# Resolved by DisplacementSystem after damage. Save formula: target fails when
+# the chosen dc_source on the hit exceeds target.<displace_save_stat>.
+@export var displace_distance: int = 0
+@export var displace_vector: String = ""  # away_from_attacker, toward_attacker, attacker_facing, from_aoe_center
+@export var displace_save_stat: String = ""  # CharacterData property name (constitution, athleticism, ...)
+@export var displace_save_dc_source: String = ""  # damage, base_power
+@export var displace_on_blocked: String = "stop"  # stop, bonus_damage, swap, fall_through
+
+# Escape hatch for complex on-hit effects that can't be expressed declaratively
+# (e.g. gravity orbits). Path to a script with a static resolve(caster, target, move, damage) method.
+# Not yet wired — DisplacementSystem will warn if set.
+@export var on_hit_script: String = ""
+
+# Healing. When true, the move heals the target instead of dealing damage.
+# Heal amount = caster.special + base_power (matches the Unity formula for First Aid).
+@export var heals: bool = false
+
+# Status effects to remove from the target on hit (e.g. "BLEED" to cure a wound).
+# Names match Enums.StatusEffectType keys (case-insensitive — normalized in MoveData).
+@export var cleanse_effects: PackedStringArray = PackedStringArray()
+
+
+## True if this move targets allies (ALLY or ALLY_NOT_SELF). Used by
+## InputManager + Unit to flip faction checks during target selection,
+## and to skip counter-attacks during combat resolution.
+func targets_allies() -> bool:
+	return target_type == Enums.TargetType.ALLY or target_type == Enums.TargetType.ALLY_NOT_SELF
+
 
 static var EMPTY: Move:
 	get:

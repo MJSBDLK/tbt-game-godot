@@ -62,3 +62,10 @@ When porting a system, read the Unity source first:
 - Turns: `../tbt-game/Assets/Scripts/Managers/TurnManager.cs`
 - UI: `../tbt-game/Assets/Scripts/UI/UIManager.cs`
 - Design docs: `../tbt-game/Assets/Docs/`
+
+## UI Style
+
+Before any UI work, read [data/design/ui-style-guide.md](data/design/ui-style-guide.md). It's the
+source of truth for palette use, typography, panel components, icon sizes, and the
+TBD/LOCK status of every visual decision. Don't hardcode hex values — reach for
+`GameColorPalette`. Don't introduce non-integer pixel sizing in gameplay UI.

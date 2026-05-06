@@ -83,7 +83,7 @@ func start_attack_targeting(attacker: Unit, move: Move) -> void:
 	_is_selecting_attack_target = true
 	_attacking_unit = attacker
 	_attack_move = move
-	_attackable_tiles = _get_valid_attack_tiles(attacker, move)
+	_attackable_tiles = MoveTargeting.get_valid_target_tiles(attacker, move)
 	GridManager.clear_movement_range()
 	GridManager.display_attack_range(_attackable_tiles)
 
@@ -144,6 +144,10 @@ func _unhandled_input(event: InputEvent) -> void:
 					return
 				KEY_L:
 					_cheat_end_battle(false)
+					get_viewport().set_input_as_handled()
+					return
+				KEY_R:
+					_cheat_refresh_hovered_unit()
 					get_viewport().set_input_as_handled()
 					return
 
@@ -221,9 +225,17 @@ func _update_combat_preview(tile: Tile) -> void:
 	if not _is_selecting_attack_target or _attacking_unit == null or _attack_move == null:
 		return
 
-	if tile != null and tile.current_unit != null and tile.current_unit is Unit:
+	if tile != null and _attackable_tiles.has(tile) and tile.current_unit != null and tile.current_unit is Unit:
 		var target := tile.current_unit as Unit
-		if target.faction != _attacking_unit.faction and not target.is_defeated():
+		if MoveTargeting.is_valid_target(target, _attacking_unit, _attack_move):
+			if _attack_move.heals:
+				var heal_amount := DamageCalculator.calculate_heal_amount(_attacking_unit, target, _attack_move)
+				ui_manager.show_heal_preview(_attacking_unit, target, _attack_move, heal_amount)
+				return
+			if _attack_move.targets_allies():
+				# Non-healing buff/support — no preview UI yet, defer that pass.
+				ui_manager.hide_combat_preview()
+				return
 			ui_manager.show_combat_preview(_attacking_unit, target, _attack_move)
 			return
 
@@ -436,7 +448,7 @@ func _handle_attack_target_click() -> void:
 		return
 
 	var target := clicked_tile.current_unit as Unit
-	if target.faction == _attacking_unit.faction or target.is_defeated():
+	if not MoveTargeting.is_valid_target(target, _attacking_unit, _attack_move):
 		cancel_attack_targeting()
 		return
 
@@ -570,7 +582,7 @@ func _get_post_move_camera_target(unit: Unit) -> Vector2:
 	## Falls back to the unit's own position if no targets are in range.
 	var positions: Array[Vector2] = [unit.global_position]
 	for move: Move in unit.get_usable_moves():
-		for tile: Tile in _get_valid_attack_tiles(unit, move):
+		for tile: Tile in MoveTargeting.get_valid_target_tiles(unit, move):
 			if tile.current_unit != null:
 				positions.append(tile.current_unit.global_position)
 	if positions.size() == 1:
@@ -581,19 +593,6 @@ func _get_post_move_camera_target(unit: Unit) -> Vector2:
 		min_pos = min_pos.min(pos)
 		max_pos = max_pos.max(pos)
 	return (min_pos + max_pos) / 2.0
-
-
-func _get_valid_attack_tiles(attacker: Unit, move: Move) -> Array[Tile]:
-	var tiles: Array[Tile] = []
-	if attacker == null or move == null or attacker.current_tile == null:
-		return tiles
-	var all_tiles := GridManager.get_tiles_within_range(attacker.current_tile, move.attack_range)
-	for tile: Tile in all_tiles:
-		if tile.current_unit != null and tile.current_unit is Unit:
-			var target := tile.current_unit as Unit
-			if target.faction != attacker.faction and not target.is_defeated():
-				tiles.append(tile)
-	return tiles
 
 
 func _get_ui_manager() -> Node:
@@ -626,3 +625,16 @@ func _cheat_end_battle(is_victory: bool) -> void:
 		return
 	print("CHEAT: Forcing battle end — %s" % ("VICTORY" if is_victory else "DEFEAT"))
 	turn_manager._end_battle(is_victory)
+
+
+## Refresh whichever unit the mouse is currently over (any faction). Useful for
+## re-using First Aid on the same caster repeatedly when iterating on heal UX.
+func _cheat_refresh_hovered_unit() -> void:
+	var tile := GridManager.get_tile_at_position(_get_world_mouse_position())
+	if tile == null or tile.current_unit == null or not tile.current_unit is Unit:
+		return
+	var unit := tile.current_unit as Unit
+	if unit.is_defeated():
+		return
+	unit.refresh_unit()
+	print("CHEAT: Refreshed '%s'" % unit.unit_name)

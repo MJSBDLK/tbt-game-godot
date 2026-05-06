@@ -397,13 +397,13 @@ func _build_multiplier_colors(parent: Control) -> void:
 	panel.add_child(vbox)
 
 	var multipliers: Array[Dictionary] = [
-		{"label": "x4 Devastating", "light": GameColors.MULTIPLIER_X4_LIGHT, "dark": GameColors.MULTIPLIER_X4_DARK},
-		{"label": "x3", "light": GameColors.MULTIPLIER_X3_LIGHT, "dark": GameColors.MULTIPLIER_X3_DARK},
-		{"label": "x2 Super Effective", "light": GameColors.MULTIPLIER_X2_LIGHT, "dark": GameColors.MULTIPLIER_X2_DARK},
+		{"label": "x4 2x Ouch", "light": GameColors.MULTIPLIER_X4_LIGHT, "dark": GameColors.MULTIPLIER_X4_DARK},
+		{"label": "x3 (heavy)", "light": GameColors.MULTIPLIER_X3_LIGHT, "dark": GameColors.MULTIPLIER_X3_DARK},
+		{"label": "x2 Ouch", "light": GameColors.MULTIPLIER_X2_LIGHT, "dark": GameColors.MULTIPLIER_X2_DARK},
 		{"label": "x1 Neutral", "light": GameColors.MULTIPLIER_X1_LIGHT, "dark": GameColors.MULTIPLIER_X1_DARK},
-		{"label": "x1/2 Not Very Effective", "light": GameColors.MULTIPLIER_HALF_LIGHT, "dark": GameColors.MULTIPLIER_HALF_DARK},
-		{"label": "x1/4 Barely Effective", "light": GameColors.MULTIPLIER_QUARTER_LIGHT, "dark": GameColors.MULTIPLIER_QUARTER_DARK},
-		{"label": "x0 No Effect", "light": GameColors.MULTIPLIER_X0_LIGHT, "dark": GameColors.MULTIPLIER_X0_DARK},
+		{"label": "x1/2 Resist", "light": GameColors.MULTIPLIER_HALF_LIGHT, "dark": GameColors.MULTIPLIER_HALF_DARK},
+		{"label": "x1/4 2x Resist", "light": GameColors.MULTIPLIER_QUARTER_LIGHT, "dark": GameColors.MULTIPLIER_QUARTER_DARK},
+		{"label": "x0 Immune", "light": GameColors.MULTIPLIER_X0_LIGHT, "dark": GameColors.MULTIPLIER_X0_DARK},
 	]
 
 	for mult: Dictionary in multipliers:
@@ -424,13 +424,13 @@ func _build_damage_popup_colors(parent: Control) -> void:
 	var popup_glow_color := Color(GameColorPalette.get_color("Gray", 1), 0.975)
 
 	var tiers: Array[Dictionary] = [
-		{"label": "x4 Devastating", "value": 47, "color": GameColors.MULTIPLIER_X4_LIGHT},
-		{"label": "x3", "value": 34, "color": GameColors.MULTIPLIER_X3_LIGHT},
-		{"label": "x2 Super Effective", "value": 22, "color": GameColors.MULTIPLIER_X2_LIGHT},
+		{"label": "x4 2x Ouch", "value": 47, "color": GameColors.MULTIPLIER_X4_LIGHT},
+		{"label": "x3 (heavy)", "value": 34, "color": GameColors.MULTIPLIER_X3_LIGHT},
+		{"label": "x2 Ouch", "value": 22, "color": GameColors.MULTIPLIER_X2_LIGHT},
 		{"label": "x1 Neutral", "value": 15, "color": GameColors.MULTIPLIER_X1_LIGHT},
-		{"label": "x1/2 Not Very Effective", "value": 7, "color": GameColors.MULTIPLIER_HALF_LIGHT},
-		{"label": "x1/4 Barely Effective", "value": 3, "color": GameColors.MULTIPLIER_QUARTER_LIGHT},
-		{"label": "x0 No Effect", "value": 0, "color": GameColors.MULTIPLIER_X0_LIGHT},
+		{"label": "x1/2 Resist", "value": 7, "color": GameColors.MULTIPLIER_HALF_LIGHT},
+		{"label": "x1/4 2x Resist", "value": 3, "color": GameColors.MULTIPLIER_QUARTER_LIGHT},
+		{"label": "x0 Immune", "value": 0, "color": GameColors.MULTIPLIER_X0_LIGHT},
 		{"label": "Critical (x2 brightened)", "value": 44, "color": GameColors.brightened(GameColors.MULTIPLIER_X2_LIGHT, 1.3)},
 	]
 

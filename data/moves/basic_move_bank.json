@@ -522,5 +522,20 @@
 			"stacks": 4,
 			"target": "self"
 		}
+	},
+
+	"First Aid": {
+		"description": "Patches up a wounded ally and stems any bleeding.",
+		"abbrevName": "First Aid",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 4,
+		"damageType": "Support",
+		"elementType": "Simple",
+		"targetType": "Ally",
+		"heal": true,
+		"onHit": {
+			"cleanse": ["Bleed"]
+		}
 	}
 }

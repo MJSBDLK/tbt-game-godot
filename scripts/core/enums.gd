@@ -248,9 +248,11 @@ enum AIBehaviorType {
 }
 
 enum TargetType {
-	SINGLE,
-	SELF,
-	AOE,
+	SINGLE,           # Enemy unit (default attack target)
+	SELF,             # Caster only
+	AOE,              # Area-of-effect on enemy faction
+	ALLY,             # Same faction as caster, including self
+	ALLY_NOT_SELF,    # Same faction as caster, excluding self
 }
 
 

@@ -56,96 +56,96 @@ func _build_definitions() -> void:
 		"burn_scar", "Burn Scar",
 		"A persistent burn scar that weakens the muscles beneath.",
 		Enums.ElementalType.FIRE, true, Enums.DamageType.PHYSICAL,
-		"strength", 10.0, 25.0))
+		"strength", 10.0, 25.0), "burn_scar.png")
 
 	_register(_make_stat_pct(
 		"frostbite", "Frostbite",
 		"Lingering nerve damage from the cold slows the body.",
 		Enums.ElementalType.COLD, true, Enums.DamageType.PHYSICAL,
-		"agility", 10.0, 25.0))
+		"agility", 10.0, 25.0), "frostbite.png")
 
 	_register(_make_stat_pct(
 		"nerve_damage", "Nerve Damage",
 		"Misfiring nerves blunt the unit's reflexes.",
 		Enums.ElementalType.ELECTRIC, true, Enums.DamageType.PHYSICAL,
-		"skill", 10.0, 25.0))
+		"skill", 10.0, 25.0), "nerve_damage.png")
 
 	_register(_make_stat_pct(
 		"contusion", "Contusion",
 		"Deep bruising makes movement through rough terrain a chore.",
 		Enums.ElementalType.PLANT, false, Enums.DamageType.PHYSICAL,
-		"athleticism", 10.0, 25.0))
+		"athleticism", 10.0, 25.0), "contusion.png")
 
 	_register(_make_stat_pct(
 		"infection", "Infection",
 		"A festering plant infection erodes the body's resistance.",
 		Enums.ElementalType.PLANT, false, Enums.DamageType.SPECIAL,
-		"resistance", 10.0, 25.0))
+		"resistance", 10.0, 25.0), "infection.png")
 
 	_register(_make_stat_pct(
 		"concussion", "Concussion",
 		"A rattled head dulls the unit's coordination.",
 		Enums.ElementalType.AIR, true, Enums.DamageType.PHYSICAL,
-		"skill", 10.0, 25.0))
+		"skill", 10.0, 25.0), "concussion.png")
 
 	_register(_make_stat_pct(
 		"trauma_heraldic", "Trauma",
 		"Battered armor and bones leave the unit's defenses compromised.",
 		Enums.ElementalType.HERALDIC, false, Enums.DamageType.PHYSICAL,
-		"defense", 10.0, 25.0))
+		"defense", 10.0, 25.0), "trauma.png")
 
 	_register(_make_stat_pct(
 		"trauma_simple", "Trauma",
 		"Generic blunt-force trauma weakens the unit's stance.",
 		Enums.ElementalType.SIMPLE, false, Enums.DamageType.PHYSICAL,
-		"defense", 10.0, 25.0))
+		"defense", 10.0, 25.0), "trauma.png")
 
 	_register(_make_stat_pct(
 		"amnesia", "Amnesia",
 		"The unit struggles to recall the techniques of focused attacks.",
 		Enums.ElementalType.SIMPLE, false, Enums.DamageType.SPECIAL,
-		"special", 10.0, 25.0))
+		"special", 10.0, 25.0), "amnesia.png")
 
 	# --- maxHP-pct injuries ---
 	_register(_make_max_hp_pct(
 		"wound_chivalric", "Wound",
 		"A deep wound from a chivalric weapon caps the unit's vitality.",
 		Enums.ElementalType.CHIVALRIC, true, Enums.DamageType.PHYSICAL,
-		20.0, 40.0))
+		20.0, 40.0), "wound.png")
 
 	_register(_make_max_hp_pct(
 		"wound_gentry", "Wound",
 		"A precise stab from a gentry blade caps the unit's vitality.",
 		Enums.ElementalType.GENTRY, false, Enums.DamageType.PHYSICAL,
-		20.0, 40.0))
+		20.0, 40.0), "wound.png")
 
 	# --- Move distance penalty ---
 	_register(_make_move_distance(
 		"broken_bone", "Broken Bone",
 		"A broken bone makes every step harder.",
 		Enums.ElementalType.GRAVITY, true, Enums.DamageType.PHYSICAL,
-		1, 2))
+		1, 2), "broken_bone.png")
 
 	# --- Healing reduction ---
 	_register(_make_healing_reduced(
 		"laceration", "Laceration",
 		"A clean cut that resists clotting. Healing is less effective.",
 		Enums.ElementalType.ROBO, false, Enums.DamageType.PHYSICAL,
-		25.0, 50.0))
+		25.0, 50.0), "laceration.png")
 
 	# --- Luck reduction ---
 	_register(_make_luck_pct(
 		"curse", "Curse",
 		"An occult hex saps the unit's luck on every action.",
 		Enums.ElementalType.OCCULT, true, Enums.DamageType.PHYSICAL,
-		10.0, 20.0))
+		10.0, 20.0), "curse.png")
 
 	# --- Turn skip chance ---
 	_register(_make_turn_skip(
 		"ptsd", "PTSD",
 		"Each turn, the unit may freeze in fear and lose its action.",
 		Enums.ElementalType.HERALDIC, false, Enums.DamageType.SPECIAL,
-		6.25, 12.5))
+		6.25, 12.5), "ptsd.png")
 
 	# --- Friendly fire (Corruption) ---
 	# Flavor: "<UnitName> has been acting shifty lately..."
@@ -153,20 +153,20 @@ func _build_definitions() -> void:
 		"corruption_gentry", "Corruption",
 		"Has been acting shifty lately...",
 		Enums.ElementalType.GENTRY, false, Enums.DamageType.SPECIAL,
-		10.0, 20.0))
+		10.0, 20.0), "corruption.png")
 
 	_register(_make_friendly_fire(
 		"corruption_obsidian", "Corruption",
 		"Has been acting shifty lately...",
 		Enums.ElementalType.OBSIDIAN, false, Enums.DamageType.SPECIAL,
-		10.0, 20.0))
+		10.0, 20.0), "corruption.png")
 
 	# --- Move/passive lock ---
 	_register(_make_move_lock(
 		"bends", "Bends",
 		"Void exposure locks one or more random move/passive slots each turn.",
 		Enums.ElementalType.VOID, true, Enums.DamageType.PHYSICAL,
-		1, 2))
+		1, 2), "bends.png")
 
 	# --- Hide health ---
 	# Minor: hides bar when HP > 50%; Major: always hides (threshold 0).
@@ -174,21 +174,26 @@ func _build_definitions() -> void:
 		"hypoesthesia", "Hypoesthesia",
 		"Numbness from electric trauma masks the unit's pain. Health is hard to read.",
 		Enums.ElementalType.ROBO, false, Enums.DamageType.SPECIAL,
-		0.5, 0.0))
+		0.5, 0.0), "hypoesthesia.png")
 
 	# --- Type removal ---
 	_register(_make_remove_type(
 		"crystallization", "Crystallization",
 		"Obsidian shards alter the unit's elemental nature.",
 		Enums.ElementalType.OBSIDIAN, false, Enums.DamageType.PHYSICAL,
-		1, 2))
+		1, 2), "crystallization.png")
 
 
 # =============================================================================
 # REGISTRATION HELPERS
 # =============================================================================
 
-func _register(data: InjuryData) -> void:
+const ICON_DIRECTORY := "res://art/sprites/ui/injury_icons_10x10/"
+
+
+func _register(data: InjuryData, icon_filename: String = "") -> void:
+	if icon_filename != "":
+		data.icon_path = ICON_DIRECTORY + icon_filename
 	_injuries_by_id[data.injury_id] = data
 	if data.matches_any_damage_type:
 		_lookup["%d:*" % data.source_element] = data

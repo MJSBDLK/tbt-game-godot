@@ -1,355 +1,355 @@
 {
-	"description": "Type effectiveness matchups. Unlisted pairs default to 1.0x.",
+	"description": "Type effectiveness matchups. 'effect' is one of: ouch, resist, immune. Unlisted pairs are neutral. Multipliers derive from TYPE_COEFFICIENT in type_chart.gd.",
 	"matchups": [
 		{
 			"attacking": "Air",
 			"defending": "Chivalric",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Air",
 			"defending": "Gravity",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Air",
 			"defending": "Obsidian",
-			"multiplier": 0.0
+			"effect": "immune"
 		},
 		{
 			"attacking": "Air",
 			"defending": "Robo",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Air",
 			"defending": "Void",
-			"multiplier": 2.0
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Chivalric",
 			"defending": "Heraldic",
-			"multiplier": 2.0
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Chivalric",
 			"defending": "Obsidian",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Chivalric",
 			"defending": "Occult",
-			"multiplier": 2.0
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Chivalric",
 			"defending": "Robo",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Cold",
 			"defending": "Chivalric",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Cold",
 			"defending": "Cold",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Cold",
 			"defending": "Fire",
-			"multiplier": 2.0
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Cold",
 			"defending": "Obsidian",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Cold",
 			"defending": "Plant",
-			"multiplier": 2.0
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Cold",
 			"defending": "Robo",
-			"multiplier": 2.0
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Cold",
 			"defending": "Void",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Electric",
 			"defending": "Electric",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Electric",
 			"defending": "Fire",
-			"multiplier": 2.0
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Electric",
 			"defending": "Obsidian",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Electric",
 			"defending": "Robo",
-			"multiplier": 2.0
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Electric",
 			"defending": "Void",
-			"multiplier": 0.0
+			"effect": "immune"
 		},
 		{
 			"attacking": "Fire",
 			"defending": "Chivalric",
-			"multiplier": 2.0
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Fire",
 			"defending": "Cold",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Fire",
 			"defending": "Fire",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Fire",
 			"defending": "Obsidian",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Fire",
 			"defending": "Plant",
-			"multiplier": 2.0
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Fire",
 			"defending": "Robo",
-			"multiplier": 2.0
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Fire",
 			"defending": "Void",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Gentry",
 			"defending": "Chivalric",
-			"multiplier": 2.0
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Gentry",
 			"defending": "Heraldic",
-			"multiplier": 2.0
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Gentry",
 			"defending": "Obsidian",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Gentry",
 			"defending": "Occult",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Gentry",
 			"defending": "Robo",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Gravity",
 			"defending": "Air",
-			"multiplier": 2.0
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Gravity",
 			"defending": "Gravity",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Gravity",
 			"defending": "Obsidian",
-			"multiplier": 2.0
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Gravity",
 			"defending": "Plant",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Gravity",
 			"defending": "Void",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Heraldic",
 			"defending": "Chivalric",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Heraldic",
 			"defending": "Gentry",
-			"multiplier": 2.0
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Heraldic",
 			"defending": "Obsidian",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Obsidian",
 			"defending": "Chivalric",
-			"multiplier": 2.0
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Obsidian",
 			"defending": "Gentry",
-			"multiplier": 2.0
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Obsidian",
 			"defending": "Obsidian",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Obsidian",
 			"defending": "Occult",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Obsidian",
 			"defending": "Robo",
-			"multiplier": 2.0
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Obsidian",
 			"defending": "Void",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Occult",
 			"defending": "Chivalric",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Occult",
 			"defending": "Heraldic",
-			"multiplier": 2.0
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Occult",
 			"defending": "Plant",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Occult",
 			"defending": "Simple",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Occult",
 			"defending": "Void",
-			"multiplier": 2.0
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Plant",
 			"defending": "Air",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Plant",
 			"defending": "Fire",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Plant",
 			"defending": "Obsidian",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Plant",
 			"defending": "Occult",
-			"multiplier": 2.0
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Plant",
 			"defending": "Plant",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Plant",
 			"defending": "Robo",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Robo",
 			"defending": "Electric",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Robo",
 			"defending": "Gentry",
-			"multiplier": 2.0
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Robo",
 			"defending": "Heraldic",
-			"multiplier": 2.0
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Robo",
 			"defending": "Obsidian",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Robo",
 			"defending": "Simple",
-			"multiplier": 2.0
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Simple",
 			"defending": "Obsidian",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Simple",
 			"defending": "Plant",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Simple",
 			"defending": "Robo",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Void",
 			"defending": "Electric",
-			"multiplier": 2.0
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Void",
 			"defending": "Gravity",
-			"multiplier": 2.0
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Void",
 			"defending": "Occult",
-			"multiplier": 0.5
+			"effect": "resist"
 		},
 		{
 			"attacking": "Void",
 			"defending": "Void",
-			"multiplier": 2.0
+			"effect": "ouch"
 		}
 	]
 }

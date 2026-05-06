@@ -162,10 +162,23 @@ Each class provides access to a unique "library" of learnable passives:
 ## Combat Mechanics
 
 ### Type Effectiveness *(Dual Type System)*
-- **Super Effective**: 2x damage
-- **Not Very Effective**: 0.5x damage
-- **Normal**: 1x damage
-- **Dual Type Interaction**: Both defending types considered, effectiveness combined
+Effectiveness is expressed in stages, not raw multipliers. The single coefficient
+`TYPE_COEFFICIENT` (currently 1.2, defined in `scripts/combat/type_chart.gd`) drives all values:
+
+| Stage | Compact label | Verbose label | Multiplier @ k=1.2 |
+|------|---------------|---------------|----------|
+| +2   | 2x Ouch       | Double Ouch   | 1.44× |
+| +1   | Ouch          | Ouch          | 1.20× |
+|  0   | Neutral       | Neutral       | 1.00× |
+| −1   | Resist        | Resist        | 0.833× |
+| −2   | 2x Resist     | Double Resist | 0.694× |
+| —    | Immune        | Immune        | 0× |
+
+Compact labels are used for on-map chips, combat preview, anywhere space-constrained.
+Verbose labels are used for tooltips, flavor text, the codex.
+`TypeChart.get_effectiveness_text(multiplier, verbose: bool)` returns the right form.
+
+**Dual Type Interaction**: Both defending types are looked up and their multipliers multiplied. An `Ouch × Ouch` matchup yields `2x Ouch` (k²); an `Ouch × Resist` matchup yields neutral (k × 1/k = 1).
 
 ### Damage Calculation *(Current Implementation)* 
 ```

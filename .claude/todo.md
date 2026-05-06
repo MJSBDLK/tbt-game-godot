@@ -1,6 +1,15 @@
-# For Lawrence (Art!)
-- [ ] grunt/bandit enemy characters
-- [ ] 
+# [ ] Meeting 20260510
+- [ ] LOD - 92x92 portrait
+- [ ] LOD - 32x32 portrait
+- [x] RQD - 10x10 hypoesthesia icon (random crop of static_noise.png, wired in InjuryDatabase)
+- [x] RQD - pull and implement the injury icons (all 16 icons wired in InjuryDatabase via icon_path; "crystallization" spelling synced)
+- [x] RQD - surface InjuryData.icon_path in the unit detail panel injury 2x2 grid (icons load but aren't drawn yet — on-map indicator NOT needed; injuries belong in the detail panel only, not above the unit)
+- [x] RQD - separate bandit and grunt: bandit.json created (Gentry, skirmisher stats: hi AGL/SKL, lower HP/DEF, Impetuous passive, moves: Bonk/Backstab/Feint/Sidearm/Uppercut). grunt.json repointed to grunt/idle.png. SpriteAtlasLoader path bypassed in unit.gd for atlas-less single-PNG sprites. Bandit added to battle_scene enemy_spawn_pool (2x weight, same as grunt).
+- [x] RQD - implement preview beacons + animations (path_visualizer rewritten to spawn per-tile Sprite2D nodes with AtlasTexture; cascading wave plays sequence [idle, mid, dipped, mid, idle] at 125ms/frame, 500ms inter-tile stagger, 500ms inter-cycle pause; blue strip for player faction, red for enemy; no rotation. Flags deferred — will revisit if beacons aren't clear enough.)
+- [x] (playtest tuning) Beacon timing constants in path_visualizer.gd — FRAME_DURATION_MS=125, TILE_DELAY_MS=500, CYCLE_PAUSE_MS=500. Stretch goal: sync to music BPM.
+- [x] RQD - finalize style guide and feed to Claude (questionnaire distilled into data/design/ui-style-guide.md, referenced from CLAUDE.md, all LOD-blank items marked TBD; questionnaire kept as conversational source)
+- [x] RQD - rebalance type effectiveness multipliers from 2.0/4.0 → ~1.2/1.44 (single TYPE_COEFFICIENT in type_chart.gd; JSON now stores stage strings "vulnerable"/"resist"/"immune"; vocab is defender-framed Vulnerable/Resist; type chart editor + combat preview + demos updated; old "Vulnerable" status renamed to Exposed to free the word; data/design/character-system.md doc synced)
+- [x] (polish) Animated hypoesthesia icon: canvas_item shader scrolling static_noise.png UVs inside the injury slot (shaders/injury_static.gdshader + resources/injury_static.tres, applied in unit_detail_panel._set_injury_panel when injury_id == "hypoesthesia")
 
 # [x] Meeting 20260412
 - [x] RQD - have move type icons (phys/spec/supp) wired up to show Lawrence
@@ -23,13 +32,6 @@
 - [x] RQD - what colors should buffs and injuries be in the HUD?
 - [x] RQD - Aseprite plugin - eyedropper that copies hex value to clipboard
 
-# [ ] Meeting 20260510
-- [ ] RQD - pull and implement the injury icons
-- [ ] RQD - implement the bandit/grunt sprites
-- [ ] LOD - 92x92 portrait
-- [ ] LOD - 32x32 portrait
-- [ ] RQD - implement preview beacons + animations
-- [ ] RQD - finalize style guide and feed to Claude
 
 # [x] RQD Todo by 20260412
 - [x] Mock up updated unit detail panel (1 buff slot + 1 debuff slot + injury 2x2 grid with 2-slot stacking)
@@ -39,7 +41,7 @@
 - [x] Discuss injury icon style with Lawrence — 6x6 matching status icons, or larger? 20 injuries to cover eventually but only need a few for alpha
 - [x] Playtest buff/debuff system: toggle `testing_status_effects = true` in debug_config.gd, verify slot enforcement + pip bars + detail panel work in-game
 
-# [ ] Week 20260427
+# [ ] Week 20260510
 
 **Goal: close the alpha game loop as a 2-mission mini-campaign.** Pick start level → prep → mission 1 → result → between-mission level-up + prep → mission 2 → result → back to start. Two missions exercises persistence, leveling-between-fights, and the squad management loop without overinvesting in content. Maps are cheap to iterate; campaign infrastructure is not.
 
@@ -81,10 +83,13 @@
 - [ ] Is move accuracy implemented correctly? I've never noticed an attack miss.
 - [ ] Move distribution in the demo is wonky. Characters are getting moves which are way too powerful at level 5. This is contributing to the ogre problem
 - [ ] If a unit has no corresponding portrait, let's use default_portrait.png
+- [ ] Grunt sprite has its pivot set way too low
+- [ ] Something is fucky about damage calculation in general - it doesn't feel right
+- [ ] Design: we need healers.
 
 # TEST THESE MECHANICS
 - [ ] STAB + visual feedback
-- [ ] 
+- [ ] Unit sprites should not capture mousedown events (you click tiles, not units)
 
 # Todo
 - [x] Merge Lawrence's branch
@@ -102,7 +107,7 @@
   - [x] Hit flash (white flash on defender after hitlag, duration scaled by damage)
   - [x] Screenshake (kicks in as hitlag releases, intensity scaled by damage)
 - [x] Status effect indicators on units (icons + turn countdown)
-- [ ] UI style guide doc
+- [x] UI style guide doc (data/design/ui-style-guide.md, referenced from CLAUDE.md)
 - [x] Speed up the overlay fading out once the text is off the screen
 - [ ] battle result overlays (scope brainstormed; see [mission_objectives.md](mission_objectives.md) for the objective/bEXP model this hooks into)
 - [x] Clicking on an enemy unit brings up the unit preview panel for that unit (good) but then to make it go away you need to click on a friendly unit (bad) - tapping anywhere on the map should make it go away.
@@ -129,7 +134,11 @@
 - [ ] Something I'm noticing is that copying the 2x/4x/0.5x/0.25x system from Pokémon isn't working great in a TBS. Super effective moves are just devastating. We might try using a different multiplier: 2/3 for ineffective and 3/2 for super effective. I think this would mean 4/9x for double resisted moves and 2.25x for double weakness. We should do this: pick a coefficient in one place and change it as needed.
 - [ ] It would be useful to see units' typing and level with the additional info HUD (the one that shows their active boost/afflictions)
 - [ ] Unit "I'm injured I gotta fall back" monologue on injury the first time it happens
+- [ ] Create a template for a checklist for each character which includes everything we need for each character - 92x92 portrait, 32x32 portrait, idle animation, attack_physical_adjacent_north, attack_special_ranged_east, growth rates, base stats, just everything. Then we need to develop a file hierarchy.
 - [ ] 
+
+# Stretch Goals
+- [ ] Sync beacons to music BPM
 
 ---
 

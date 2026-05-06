@@ -91,9 +91,25 @@ func show_preview(attacker: Node, defender: Node, move: Move) -> void:
 		return
 
 	visible = true
+	_reset_pip_colors()
 	_update_attacker_section(attacker, defender, move)
 	_update_defender_section(attacker, defender, move)
 	_update_health_pips(attacker, defender, move)
+
+
+## Like show_preview but for ally-targeting (heal/support) moves.
+## `heal_amount` is the final HP that will land — caller computes via
+## DamageCalculator.calculate_heal_amount so the panel never duplicates the formula.
+func show_heal_preview(caster: Node, target: Node, move: Move, heal_amount: int) -> void:
+	if caster == null or target == null or move == null:
+		hide_panel()
+		return
+
+	visible = true
+	_apply_pip_heal_colors()
+	_update_caster_section_for_heal(caster, move, heal_amount)
+	_update_target_section_for_heal(target)
+	_update_heal_pips(caster, target, heal_amount)
 
 
 func hide_panel() -> void:
@@ -259,19 +275,23 @@ func _truncate(text: String) -> String:
 
 
 func _format_multiplier(effectiveness: float) -> String:
+	if TypeChart.is_immune(effectiveness):
+		return "x0"
 	if effectiveness == int(effectiveness):
 		return "x%d" % int(effectiveness)
-	return "x%.1f" % effectiveness
+	return "x%.2f" % effectiveness
 
 
-# Multiplier color pairs from Lawrence's spec (text color + glow color per ramp)
+# Multiplier color pairs from Lawrence's spec (text color + glow color per stage tier).
+# Stage +2 / +1 / 0 / -1 / -2 / immune. With TYPE_COEFFICIENT in play, type effectiveness
+# only ever produces these stages — no intermediate "x3" tier is reachable via type matchups.
 const _MULTIPLIER_COLORS := {
-	"x4":   [Color(0.863, 0.388, 0.310), Color(0.322, 0.035, 0.016)],   # Red
-	"x3":   [Color(0.788, 0.553, 0.278), Color(0.345, 0.149, 0.051)],   # Orange
-	"x2":   [Color(0.961, 0.804, 0.396), Color(0.376, 0.227, 0.059)],   # YellowOrange
-	"x1":   [Color(0.824, 0.808, 0.416), Color(0.494, 0.427, 0.141)],   # Yellow
-	"half": [Color(0.573, 0.788, 0.549), Color(0.176, 0.310, 0.180)],   # Green
-	"qtr":  [Color(0.271, 0.796, 0.808), Color(0.000, 0.302, 0.337)],   # Cyan
+	"ouch2":  [Color(0.863, 0.388, 0.310), Color(0.322, 0.035, 0.016)],   # Red
+	"ouch":   [Color(0.961, 0.804, 0.396), Color(0.376, 0.227, 0.059)],   # YellowOrange
+	"neut":   [Color(0.824, 0.808, 0.416), Color(0.494, 0.427, 0.141)],   # Yellow
+	"rsst":   [Color(0.573, 0.788, 0.549), Color(0.176, 0.310, 0.180)],   # Green
+	"rsst2":  [Color(0.271, 0.796, 0.808), Color(0.000, 0.302, 0.337)],   # Cyan
+	"immune": [Color(0.271, 0.796, 0.808), Color(0.000, 0.302, 0.337)],   # Cyan
 }
 
 
@@ -294,20 +314,21 @@ func _set_multiplier_label(label: Label, effectiveness: float) -> void:
 
 func _color_multiplier_label(label: Label, effectiveness: float) -> void:
 	var colors: Array
-	if effectiveness >= 4.0:
-		colors = _MULTIPLIER_COLORS["x4"]
-	elif effectiveness >= 3.0:
-		colors = _MULTIPLIER_COLORS["x3"]
-	elif effectiveness >= 2.0:
-		colors = _MULTIPLIER_COLORS["x2"]
-	elif effectiveness == 1.0:
-		colors = _MULTIPLIER_COLORS["x1"]
-	elif effectiveness >= 0.5:
-		colors = _MULTIPLIER_COLORS["half"]
-	elif effectiveness > 0.0:
-		colors = _MULTIPLIER_COLORS["qtr"]
+	if TypeChart.is_immune(effectiveness):
+		colors = _MULTIPLIER_COLORS["immune"]
 	else:
-		colors = _MULTIPLIER_COLORS["qtr"]
+		var stage := TypeChart.multiplier_to_stage(effectiveness)
+		match stage:
+			2:
+				colors = _MULTIPLIER_COLORS["ouch2"]
+			1:
+				colors = _MULTIPLIER_COLORS["ouch"]
+			-1:
+				colors = _MULTIPLIER_COLORS["rsst"]
+			-2:
+				colors = _MULTIPLIER_COLORS["rsst2"]
+			_:
+				colors = _MULTIPLIER_COLORS["neut"]
 
 	label.add_theme_color_override("font_color", colors[0])
 	# GlowLabel exposes glow_color for the shader — set it if available
@@ -344,3 +365,100 @@ func _set_elemental_icon(icon: TextureRect, element_type: Enums.ElementalType) -
 			icon.get_parent().visible = true
 		else:
 			icon.get_parent().visible = false
+
+
+# =============================================================================
+# HEAL PREVIEW
+# =============================================================================
+# Shares the panel layout with the damage path. The pip-bar `damage_*` slots are
+# repurposed as the "gain" band — green/teal pulse above current HP rather than
+# red pulse above projected HP. _reset_pip_colors restores the damage path on
+# next damage preview so heal/damage previews can interleave without leakage.
+
+const _HEAL_BAND_COLOR: Color = Color(0.314, 0.690, 0.404, 1.0)   # Green 6
+const _HEAL_BAND_GLOW: Color  = Color(0.118, 0.341, 0.165, 1.0)   # Green 8 (darker)
+const _HEAL_NUMBER_FONT: Color = Color(0.573, 0.788, 0.549, 1.0)  # matches "rsst" multiplier text
+const _HEAL_NUMBER_GLOW: Color = Color(0.176, 0.310, 0.180, 1.0)  # matches "rsst" glow
+
+# Original ColorRect-style damage pulse defaults from health_pip_bar.gd.
+const _DAMAGE_BAND_COLOR_DEFAULT: Color = Color(0.5, 0.5, 0.5, 1.0)
+const _DAMAGE_BAND_GLOW_DEFAULT: Color  = Color(0.3, 0.3, 0.3, 1.0)
+
+
+func _apply_pip_heal_colors() -> void:
+	for pip: HealthPipBar in [_top_health_pips, _bottom_health_pips]:
+		pip.damage_color = _HEAL_BAND_COLOR
+		pip.damage_glow = _HEAL_BAND_GLOW
+
+
+func _reset_pip_colors() -> void:
+	for pip: HealthPipBar in [_top_health_pips, _bottom_health_pips]:
+		pip.damage_color = _DAMAGE_BAND_COLOR_DEFAULT
+		pip.damage_glow = _DAMAGE_BAND_GLOW_DEFAULT
+
+
+func _update_caster_section_for_heal(caster: Node, move: Move, heal_amount: int) -> void:
+	var caster_name: String = caster.get("unit_name") if caster.get("unit_name") else "???"
+	_attacker_name_label.text = _truncate(caster_name)
+
+	var caster_data: CharacterData = caster.get("character_data")
+	_set_unit_type_icons(_attacker_primary_type_icon, _attacker_secondary_type_icon, caster_data)
+	_set_elemental_icon(_attacker_move_type_icon, move.element_type)
+	_set_damage_type_icon(_attacker_move_damage_type_icon, move.damage_type)
+
+	_attacker_move_label.text = _truncate(move.abbrev_name)
+
+	_attacker_damage_label.text = "+%d" % heal_amount
+	_attacker_damage_label.add_theme_color_override("font_color", _HEAL_NUMBER_FONT)
+	if _attacker_damage_label.has_method("_apply_glow_color"):
+		_attacker_damage_label.set("glow_color", _HEAL_NUMBER_GLOW)
+
+	# Heals are single-application, no type effectiveness. Status proc only shows
+	# if the move actually carries one (rare on heals).
+	_set_hits_label(_attacker_hits_label, 0)
+	if move.status_effect_chance > 0.0 and move.status_effect_type != Enums.StatusEffectType.NONE:
+		_attacker_secondary_label.get_parent().visible = true
+		_attacker_secondary_label.text = "%d%%" % int(move.status_effect_chance * 100)
+	else:
+		_attacker_secondary_label.get_parent().visible = false
+	_set_multiplier_label(_attacker_multiplier_label, 0.0)
+
+
+func _update_target_section_for_heal(target: Node) -> void:
+	var target_name: String = target.get("unit_name") if target.get("unit_name") else "???"
+	_defender_name_label.text = _truncate(target_name)
+
+	var target_data: CharacterData = target.get("character_data")
+	_set_unit_type_icons(_defender_primary_type_icon, _defender_secondary_type_icon, target_data)
+
+	# No counter, no incoming move from the target — collapse the move row + stats.
+	_defender_move_label.text = "--"
+	_defender_move_type_icon.get_parent().visible = false
+	_defender_move_damage_type_icon.get_parent().visible = false
+	_set_hits_label(_defender_hits_label, 0)
+	_defender_damage_label.text = "--"
+	_defender_hit_label.text = "--"
+	_defender_secondary_label.get_parent().visible = false
+	_set_multiplier_label(_defender_multiplier_label, 0.0)
+
+
+func _update_heal_pips(caster: Node, target: Node, heal_amount: int) -> void:
+	# Caster's bar: just show their current HP, no band — they aren't taking or gaining damage.
+	var caster_data: CharacterData = caster.get("character_data")
+	var caster_hp: int = caster.get("current_hp")
+	var caster_max: int = caster_data.max_hp if caster_data != null else 1
+	_top_health_pips.health_fill = float(caster_hp) / float(caster_max)
+	_top_health_pips.damage_fill = 0.0
+
+	# Target's bar: solid current HP at the bottom, pulsing gain band stacked on top.
+	var target_data: CharacterData = target.get("character_data")
+	var target_hp: int = target.get("current_hp")
+	var target_max: int = target_data.max_hp if target_data != null else 1
+
+	_bottom_health_pips.health_fill = float(target_hp) / float(target_max)
+	_bottom_health_pips.damage_fill = float(heal_amount) / float(target_max)
+
+	_position_arrow(_attacker_arrow, _top_health_pips, _top_health_pips.health_fill, false)
+	# Position the target arrow at the TOP of the gain band (the projected new HP).
+	var target_projected_ratio := float(target_hp + heal_amount) / float(target_max)
+	_position_arrow(_defender_arrow, _bottom_health_pips, target_projected_ratio, true)

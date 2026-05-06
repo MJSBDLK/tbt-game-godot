@@ -1,0 +1,45 @@
+{
+	"characterName": "Bandit",
+	"primaryType": "Gentry",
+	"secondaryType": "None",
+	"currentClass": "Bandit",
+	"specialization": "None",
+
+	"sprite": {
+		"sheetPath": "res://art/sprites/characters/bandit/idle.png",
+		"atlasPath": "",
+		"frameIndex": 0
+	},
+
+	"baseStats": {
+		"maxHP": 14,
+		"strength": 6,
+		"special": 2,
+		"skill": 6,
+		"agility": 7,
+		"athleticism": 5,
+		"defense": 3,
+		"resistance": 3
+	},
+
+	"growthRates": {
+		"hp": 55,
+		"strength": 40,
+		"special": 15,
+		"skill": 50,
+		"agility": 60,
+		"athleticism": 40,
+		"defense": 25,
+		"resistance": 25
+	},
+
+	"physicalAttributes": {
+		"moveDistance": 4,
+		"constitution": 3,
+		"carry": 6
+	},
+
+	"level": 1,
+	"basePoolMoves": ["Bonk", "Backstab", "Feint", "Sidearm", "Uppercut"],
+	"basePoolPassives": ["Impetuous"]
+}

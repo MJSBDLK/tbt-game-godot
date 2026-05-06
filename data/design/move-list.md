@@ -156,6 +156,7 @@ Occult/Special
 + Wail
 
 Plant/Physical
++ Club
 + Ensnare
 + Root
 + Strangle

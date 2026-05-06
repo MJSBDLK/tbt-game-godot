@@ -170,6 +170,18 @@ func show_combat_preview(attacker: Node, defender: Node, move: Move) -> void:
 	_combat_preview_panel.show_preview(attacker as Unit, defender as Unit, move)
 
 
+func show_heal_preview(caster: Node, target: Node, move: Move, heal_amount: int) -> void:
+	if _combat_preview_panel == null:
+		return
+	if _unit_info_panel != null:
+		_unit_info_panel.hide_panel()
+	if _terrain_info_panel != null:
+		_terrain_info_panel.hide_panel()
+	if caster != null:
+		_place_action_panels(_unit_is_in_right_half(caster))
+	_combat_preview_panel.show_heal_preview(caster as Unit, target as Unit, move, heal_amount)
+
+
 func hide_combat_preview() -> void:
 	if _combat_preview_panel == null:
 		return

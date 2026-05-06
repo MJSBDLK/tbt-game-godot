@@ -99,6 +99,41 @@ static func get_type_effectiveness(attacker: Node2D, defender: Node2D, move: Mov
 		defender_data.effective_secondary_type())
 
 
+## Raw heal output of a move before per-target modifiers (Laceration, missing-HP clamp).
+## This is the "formula" — when stronger support moves come online they extend this
+## (e.g. multi-stat scaling, fixed amounts, percentages of max HP).
+static func move_heal_output(caster: Node2D, move: Move) -> int:
+	if caster == null or move == null:
+		return 0
+	var raw: int = move.base_power
+	var caster_data: CharacterData = caster.get("character_data")
+	if caster_data != null:
+		raw += caster_data.special
+	return raw
+
+
+## Apply target-side healing modifiers (Laceration `healing_reduction_pct`, missing-HP clamp).
+## Used by every heal source so reduction is computed in one place: move heals,
+## Regen ticks, anything else that lands HP on a unit.
+static func apply_healing_reduction(target: Node2D, raw_amount: int) -> int:
+	if target == null or raw_amount <= 0:
+		return 0
+	var target_data: CharacterData = target.get("character_data")
+	var actual: int = raw_amount
+	if target_data != null and target_data.healing_reduction_pct > 0.0:
+		actual = maxi(1, int(floor(raw_amount * (1.0 - target_data.healing_reduction_pct / 100.0))))
+	var current_hp: int = target.get("current_hp")
+	var max_hp: int = target_data.max_hp if target_data != null else current_hp
+	return maxi(0, mini(actual, max_hp - current_hp))
+
+
+## Final, ready-to-apply heal amount: move output → target reduction → missing-HP clamp.
+## Both the combat preview panel and Unit._execute_heal_hit route through this so
+## the preview is guaranteed to match what actually lands.
+static func calculate_heal_amount(caster: Node2D, target: Node2D, move: Move) -> int:
+	return apply_healing_reduction(target, move_heal_output(caster, move))
+
+
 ## Check if defender can counter-attack the attacker.
 static func can_counter_attack(defender: Node2D, attacker: Node2D) -> bool:
 	if defender == null or attacker == null:
@@ -112,6 +147,11 @@ static func can_counter_attack(defender: Node2D, attacker: Node2D) -> bool:
 	# Must have an assigned move with uses remaining
 	var defender_move: Move = defender.get("assigned_move")
 	if defender_move == null or not defender_move.has_uses_remaining():
+		return false
+
+	# Support moves don't deal damage, so they can't counter-attack.
+	# A unit with only support moves equipped is helpless on retaliation by design.
+	if defender_move.damage_type == Enums.DamageType.SUPPORT:
 		return false
 
 	# Must be in range

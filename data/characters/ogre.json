@@ -13,11 +13,11 @@
 
 	"baseStats": {
 		"maxHP": 32,
-		"strength": 11,
+		"strength": 10,
 		"special": 1,
 		"skill": 2,
 		"agility": 1,
-		"athleticism": 8,
+		"athleticism": 4,
 		"defense": 8,
 		"resistance": 6
 	},
@@ -40,6 +40,6 @@
 	},
 
 	"level": 1,
-	"basePoolMoves": ["Impact", "Guard Break", "Lance", "Bonk", "Klunk"],
+	"basePoolMoves": ["Club", "Guard Break", "Bonk", "Klunk"],
 	"basePoolPassives": ["Capricious"]
 }

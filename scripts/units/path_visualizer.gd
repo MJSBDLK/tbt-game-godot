@@ -1,113 +1,111 @@
-## Visualizes the planned movement path for a unit.
-## Draws rotated arrow sprites along the path between waypoints.
+## Visualizes the planned movement path for a unit using animated beacons.
+## Each tile along the path gets a non-rotated beacon sprite. Beacons play a
+## 5-step pulse (idle -> mid -> dipped -> mid -> idle) staggered along the path
+## so the wave appears to travel from the unit toward the destination. After
+## the last tile resolves to idle, the cycle holds for CYCLE_PAUSE_MS, then
+## loops. Beacon color follows unit faction: blue for player, red for enemy.
 ## Set as top_level in unit.tscn so positions are in world space.
 class_name PathVisualizer
 extends Node2D
 
 
-const ARROW_ALPHA: float = 0.8
-const WAYPOINT_ALPHA: float = 0.9
+const FRAME_SIZE: Vector2i = Vector2i(9, 9)
 
-var _arrow_texture: Texture2D = preload("res://art/sprites/ui/placeholder_arrow.png")
+# Animation timings (milliseconds). Tune at playtest.
+const FRAME_DURATION_MS: float = 125
+const TILE_DELAY_MS: float = 200.0
+const CYCLE_PAUSE_MS: float = 400.0
 
-## Each entry: { tile: Tile, rotation: float }
-var _path_entries: Array[Dictionary] = []
-var _waypoint_entries: Array[Dictionary] = []
+# Strip layout: 3 frames laid out horizontally, 9px each. Index 2 (last) is the
+# idle/rest pose; index 0 is the deepest part of the dip. Sequence opens and
+# closes on idle so wave-start/end blend invisibly into the rest state.
+const WAVE_SEQUENCE: Array[int] = [2, 1, 0, 1, 2]
+const IDLE_STRIP_INDEX: int = 2
+
+const _BEACON_BLUE: Texture2D = preload("res://art/sprites/ui/move_preview/path_beacon/blue.png")
+const _BEACON_RED: Texture2D = preload("res://art/sprites/ui/move_preview/path_beacon/red.png")
+
+
+var _path_tiles: Array[Tile] = []
+var _faction: Enums.UnitFaction = Enums.UnitFaction.PLAYER
+var _beacon_sprites: Array[Sprite2D] = []
+var _animation_time_ms: float = 0.0
 
 
 func _ready() -> void:
-	# Render above floor tiles but below units
 	z_index = ZIndexCalculator.calculate_sorting_order(
 		0, 100, ZIndexCalculator.ZIndexLayer.PATH_INDICATORS)
 
 
 func update_path(unit: Node2D) -> void:
-	_path_entries.clear()
-	_waypoint_entries.clear()
+	_faction = unit.get("faction")
 
 	var current_tile: Tile = unit.get("current_tile")
 	var planned_waypoints: Array = unit.get("planned_waypoints")
 
-	if current_tile == null or planned_waypoints.is_empty():
-		queue_redraw()
-		return
-
-	# Build ordered list of all tiles along the full path
 	var full_path: Array[Tile] = []
-	var start: Tile = current_tile
-	for waypoint: Variant in planned_waypoints:
-		var segment := GridManager.find_path(start, waypoint.tile, unit)
-		for tile: Tile in segment:
-			if not full_path.has(tile):
-				full_path.append(tile)
-		start = waypoint.tile
+	if current_tile != null and not planned_waypoints.is_empty():
+		var start: Tile = current_tile
+		for waypoint: Variant in planned_waypoints:
+			var segment := GridManager.find_path(start, waypoint.tile, unit)
+			for tile: Tile in segment:
+				if not full_path.has(tile):
+					full_path.append(tile)
+			start = waypoint.tile
 
-	# Collect waypoint tiles for distinct rendering
-	var waypoint_tile_set: Array[Tile] = []
-	for waypoint: Variant in planned_waypoints:
-		waypoint_tile_set.append(waypoint.tile)
-
-	# Build entries with rotation based on direction to next tile
-	for index: int in range(full_path.size()):
-		var tile: Tile = full_path[index]
-		var rotation_angle: float = 0.0
-
-		if index < full_path.size() - 1:
-			# Point toward next tile
-			var next_tile: Tile = full_path[index + 1]
-			rotation_angle = _get_rotation_toward(tile, next_tile)
-		elif index > 0:
-			# Last tile: same direction as previous arrow
-			var previous_tile: Tile = full_path[index - 1]
-			rotation_angle = _get_rotation_toward(previous_tile, tile)
-
-		var entry := { "tile": tile, "rotation": rotation_angle }
-
-		if waypoint_tile_set.has(tile):
-			_waypoint_entries.append(entry)
-		else:
-			_path_entries.append(entry)
-
-	queue_redraw()
+	_path_tiles = full_path
+	_animation_time_ms = 0.0
+	_rebuild_beacon_nodes()
 
 
 func clear_arrows() -> void:
-	_path_entries.clear()
-	_waypoint_entries.clear()
-	queue_redraw()
+	_path_tiles.clear()
+	_rebuild_beacon_nodes()
 
 
-func _draw() -> void:
-	var path_color := Color(GameColors.PATH_ARROW, ARROW_ALPHA)
-	for entry: Dictionary in _path_entries:
-		var tile: Tile = entry["tile"]
-		_draw_arrow(tile.global_position, entry["rotation"], path_color)
+func _process(delta: float) -> void:
+	if _beacon_sprites.is_empty():
+		return
+	_animation_time_ms += delta * 1000.0
 
-	var waypoint_color := Color(GameColors.WAYPOINT_INDICATOR, WAYPOINT_ALPHA)
-	for entry: Dictionary in _waypoint_entries:
-		var tile: Tile = entry["tile"]
-		_draw_arrow(tile.global_position, entry["rotation"], waypoint_color)
+	var wave_duration_ms: float = WAVE_SEQUENCE.size() * FRAME_DURATION_MS
+	var last_start_ms: float = (_beacon_sprites.size() - 1) * TILE_DELAY_MS
+	var cycle_total_ms: float = last_start_ms + wave_duration_ms + CYCLE_PAUSE_MS
+	var t_in_cycle: float = fmod(_animation_time_ms, cycle_total_ms)
+
+	for index: int in range(_beacon_sprites.size()):
+		var sprite: Sprite2D = _beacon_sprites[index]
+		var atlas: AtlasTexture = sprite.texture as AtlasTexture
+		if atlas == null:
+			continue
+
+		var local_t: float = t_in_cycle - index * TILE_DELAY_MS
+		var frame_index: int = IDLE_STRIP_INDEX
+		if local_t >= 0.0 and local_t < wave_duration_ms:
+			var seq_index: int = int(local_t / FRAME_DURATION_MS)
+			seq_index = clamp(seq_index, 0, WAVE_SEQUENCE.size() - 1)
+			frame_index = WAVE_SEQUENCE[seq_index]
+
+		atlas.region = Rect2(frame_index * FRAME_SIZE.x, 0, FRAME_SIZE.x, FRAME_SIZE.y)
 
 
-func _draw_arrow(world_position: Vector2, rotation_angle: float, color: Color) -> void:
-	draw_set_transform(world_position, rotation_angle, Vector2.ONE)
-	var texture_size := _arrow_texture.get_size()
-	var offset := -texture_size / 2.0
-	draw_texture(_arrow_texture, offset, color)
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+func _rebuild_beacon_nodes() -> void:
+	for sprite: Sprite2D in _beacon_sprites:
+		sprite.queue_free()
+	_beacon_sprites.clear()
 
+	if _path_tiles.is_empty():
+		return
 
-## Returns rotation in radians from one tile toward another.
-## Arrow sprite points UP by default, so: up=0, right=PI/2, down=PI, left=-PI/2.
-func _get_rotation_toward(from_tile: Tile, to_tile: Tile) -> float:
-	var direction_x: int = to_tile.grid_x - from_tile.grid_x
-	var direction_y: int = to_tile.grid_y - from_tile.grid_y
+	var strip: Texture2D = _BEACON_RED if _faction == Enums.UnitFaction.ENEMY else _BEACON_BLUE
 
-	if direction_x == 1:
-		return PI / 2.0
-	elif direction_x == -1:
-		return -PI / 2.0
-	elif direction_y == 1:
-		return 0.0  # Game Y-up = screen Y-up (arrow points up)
-	else:
-		return PI  # Game Y-down = screen Y-down (arrow points down)
+	for tile: Tile in _path_tiles:
+		var sprite := Sprite2D.new()
+		var atlas := AtlasTexture.new()
+		atlas.atlas = strip
+		atlas.region = Rect2(IDLE_STRIP_INDEX * FRAME_SIZE.x, 0, FRAME_SIZE.x, FRAME_SIZE.y)
+		sprite.texture = atlas
+		sprite.global_position = tile.global_position
+		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		add_child(sprite)
+		_beacon_sprites.append(sprite)

@@ -18,13 +18,18 @@ const CELL_SIZE := Vector2(50, 50)
 const HEADER_WIDTH: float = 80.0
 
 const COLOR_NORMAL := Color(0.75, 0.75, 0.75)
-const COLOR_SUPER_EFFECTIVE := Color(0.85, 0.25, 0.25)
-const COLOR_NOT_VERY_EFFECTIVE := Color(0.3, 0.45, 0.8)
-const COLOR_NO_EFFECT := Color(0.2, 0.2, 0.2)
+const COLOR_OUCH := Color(0.85, 0.25, 0.25)
+const COLOR_RESIST := Color(0.3, 0.45, 0.8)
+const COLOR_IMMUNE := Color(0.2, 0.2, 0.2)
 
-const CYCLE_ORDER: Array[float] = [1.0, 2.0, 0.5, 0.0]
+const EFFECT_NEUTRAL: String = ""
+const EFFECT_OUCH: String = "ouch"
+const EFFECT_RESIST: String = "resist"
+const EFFECT_IMMUNE: String = "immune"
 
-# "Attacking:Defending" -> float, only non-1.0 entries
+const CYCLE_ORDER: Array[String] = [EFFECT_NEUTRAL, EFFECT_OUCH, EFFECT_RESIST, EFFECT_IMMUNE]
+
+# "Attacking:Defending" -> stage string (one of vulnerable/resist/immune); only non-neutral entries
 var _data: Dictionary = {}
 # 14x14 array of cell PanelContainers
 var _cells: Array[Array] = []
@@ -79,7 +84,7 @@ func _build_ui() -> void:
 
 	# Confirmation dialog for Clear All
 	_confirm_dialog = ConfirmationDialog.new()
-	_confirm_dialog.dialog_text = "Clear all type matchups? This sets everything to 1.0x (normal)."
+	_confirm_dialog.dialog_text = "Clear all type matchups? This sets everything to neutral."
 	_confirm_dialog.confirmed.connect(_clear_all)
 	add_child(_confirm_dialog)
 
@@ -175,19 +180,15 @@ func _on_cell_input(event: InputEvent, row_index: int, col_index: int) -> void:
 
 func _cycle_cell(row_index: int, col_index: int) -> void:
 	var key := _make_key(TYPES[row_index], TYPES[col_index])
-	var current: float = _data.get(key, 1.0)
+	var current: String = _data.get(key, EFFECT_NEUTRAL)
 
-	# Find current position in cycle and advance
-	var cycle_index := 0
-	for i: int in range(CYCLE_ORDER.size()):
-		if is_equal_approx(CYCLE_ORDER[i], current):
-			cycle_index = i
-			break
+	var cycle_index := CYCLE_ORDER.find(current)
+	if cycle_index < 0:
+		cycle_index = 0
 	var next_index := (cycle_index + 1) % CYCLE_ORDER.size()
-	var next_value: float = CYCLE_ORDER[next_index]
+	var next_value: String = CYCLE_ORDER[next_index]
 
-	# Update data (remove if default)
-	if is_equal_approx(next_value, 1.0):
+	if next_value == EFFECT_NEUTRAL:
 		_data.erase(key)
 	else:
 		_data[key] = next_value
@@ -199,27 +200,28 @@ func _cycle_cell(row_index: int, col_index: int) -> void:
 func _update_cell_visual(row_index: int, col_index: int) -> void:
 	var cell: PanelContainer = _cells[row_index][col_index]
 	var key := _make_key(TYPES[row_index], TYPES[col_index])
-	var value: float = _data.get(key, 1.0)
+	var value: String = _data.get(key, EFFECT_NEUTRAL)
 
 	var style: StyleBoxFlat = cell.get_theme_stylebox("panel") as StyleBoxFlat
 	var label: Label = cell.get_child(0) as Label
 
-	if is_equal_approx(value, 2.0):
-		style.bg_color = COLOR_SUPER_EFFECTIVE
-		label.text = "2x"
-		label.add_theme_color_override("font_color", Color.WHITE)
-	elif is_equal_approx(value, 0.5):
-		style.bg_color = COLOR_NOT_VERY_EFFECTIVE
-		label.text = "½"
-		label.add_theme_color_override("font_color", Color.WHITE)
-	elif is_equal_approx(value, 0.0):
-		style.bg_color = COLOR_NO_EFFECT
-		label.text = "0"
-		label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
-	else:
-		style.bg_color = COLOR_NORMAL
-		label.text = "·"
-		label.remove_theme_color_override("font_color")
+	match value:
+		EFFECT_OUCH:
+			style.bg_color = COLOR_OUCH
+			label.text = "ouch"
+			label.add_theme_color_override("font_color", Color.WHITE)
+		EFFECT_RESIST:
+			style.bg_color = COLOR_RESIST
+			label.text = "rsst"
+			label.add_theme_color_override("font_color", Color.WHITE)
+		EFFECT_IMMUNE:
+			style.bg_color = COLOR_IMMUNE
+			label.text = "imm"
+			label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+		_:
+			style.bg_color = COLOR_NORMAL
+			label.text = "·"
+			label.remove_theme_color_override("font_color")
 
 
 func _load_data() -> void:
@@ -250,9 +252,13 @@ func _load_data() -> void:
 	for entry: Dictionary in matchups:
 		var attacking: String = entry.get("attacking", "")
 		var defending: String = entry.get("defending", "")
-		var multiplier: float = entry.get("multiplier", 1.0)
-		if attacking != "" and defending != "" and not is_equal_approx(multiplier, 1.0):
-			_data[_make_key(attacking, defending)] = multiplier
+		var effect_key: String = entry.get("effect", "")
+		if attacking == "" or defending == "" or effect_key == "":
+			continue
+		if effect_key != EFFECT_OUCH and effect_key != EFFECT_RESIST and effect_key != EFFECT_IMMUNE:
+			push_warning("TypeChartEditor: skipping unknown effect '%s' on %s:%s" % [effect_key, attacking, defending])
+			continue
+		_data[_make_key(attacking, defending)] = effect_key
 
 	_refresh_all_cells()
 	_dirty = false
@@ -269,11 +275,11 @@ func _save_data() -> void:
 		matchups.append({
 			"attacking": parts[0],
 			"defending": parts[1],
-			"multiplier": _data[key]
+			"effect": _data[key]
 		})
 
 	var output := {
-		"description": "Type effectiveness matchups. Unlisted pairs default to 1.0x.",
+		"description": "Type effectiveness matchups. 'effect' is one of: ouch, resist, immune. Unlisted pairs are neutral. Multipliers derive from TYPE_COEFFICIENT in type_chart.gd.",
 		"matchups": matchups
 	}
 

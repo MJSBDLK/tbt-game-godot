@@ -1,0 +1,10 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=3]
+
+[ext_resource type="Shader" path="res://shaders/injury_static.gdshader" id="1_shader"]
+[ext_resource type="Texture2D" uid="uid://cqci16nq82ywk" path="res://art/sprites/ui/static_noise.png" id="2_noise"]
+
+[resource]
+shader = ExtResource("1_shader")
+shader_parameter/noise_tex = ExtResource("2_noise")
+shader_parameter/icon_size = Vector2(10, 10)
+shader_parameter/tick_interval = 0.12

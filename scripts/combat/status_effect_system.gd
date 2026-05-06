@@ -179,11 +179,14 @@ func process_turn_start_effects(unit: Node2D) -> void:
 				unit.get("unit_name"), effect.dot_damage_per_tick, effect.effect_type_name])
 			status_damage_dealt.emit(unit, effect.dot_damage_per_tick, effect.effect_type_name)
 
-		# HoT: heal before consuming the stack
+		# HoT: heal before consuming the stack. Route through the shared reducer so
+		# Laceration applies to ticks identically to single-shot heals.
 		if effect.hot_heal_per_tick > 0:
-			unit.call("heal", effect.hot_heal_per_tick)
-			DebugConfig.log_status("StatusEffectSystem: %s healed %d from %s" % [
-				unit.get("unit_name"), effect.hot_heal_per_tick, effect.effect_type_name])
+			var applied_heal: int = DamageCalculator.apply_healing_reduction(unit, effect.hot_heal_per_tick)
+			if applied_heal > 0:
+				unit.call("heal", applied_heal)
+				DebugConfig.log_status("StatusEffectSystem: %s healed %d from %s" % [
+					unit.get("unit_name"), applied_heal, effect.effect_type_name])
 
 		# Consume one stack
 		effect.stacks -= 1

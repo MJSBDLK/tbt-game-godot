@@ -175,7 +175,8 @@ func initialize(starting_tile: Tile) -> void:
 	if (DebugConfig.testing_hypoesthesia or DebugConfig.testing_hypoesthesia_major) \
 			and faction == Enums.UnitFaction.PLAYER:
 		_apply_debug_hypoesthesia()
-		# Randomize HP so the 50% threshold transition is visible without combat.
+
+	if DebugConfig.testing_random_hp_on_spawn and faction == Enums.UnitFaction.PLAYER:
 		current_hp = maxi(1, roundi(character_data.max_hp * randf_range(0.15, 1.0)))
 
 	_update_health_bar()
@@ -417,16 +418,13 @@ func take_damage(amount: int, source: Dictionary = {}) -> void:
 		unit_defeated.emit(self)
 
 
-## Heal this unit by amount. The actual heal is reduced by Laceration
-## (character_data.healing_reduction_pct) but always restores at least 1 HP if amount > 0.
+## Apply a final heal amount to this unit. Caller is responsible for computing
+## the post-reduction value via DamageCalculator.apply_healing_reduction (or
+## .calculate_heal_amount for move-driven heals). This function only adds + clamps.
 func heal(amount: int) -> void:
 	if amount <= 0:
 		return
-	var reduction: float = character_data.healing_reduction_pct
-	var actual: int = amount
-	if reduction > 0.0:
-		actual = maxi(1, int(floor(amount * (1.0 - reduction / 100.0))))
-	current_hp = mini(character_data.max_hp, current_hp + actual)
+	current_hp = mini(character_data.max_hp, current_hp + amount)
 	_update_health_bar()
 	health_changed.emit(self, current_hp, character_data.max_hp)
 
@@ -556,10 +554,13 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 	if defender == null or attacker_move == null:
 		return
 
+	var is_ally_move := attacker_move.targets_allies()
+
 	# Friendly fire (Corruption injury): the attacker has been "acting shifty."
 	# On a proc, retarget a random ally in range. If no ally is in range, the
 	# attack fizzles entirely — flavor: the unit hesitates.
-	if character_data != null and character_data.friendly_fire_chance_pct() > 0.0:
+	# Skipped for ally-targeting moves (they're already friendly).
+	if not is_ally_move and character_data != null and character_data.friendly_fire_chance_pct() > 0.0:
 		if randf() * 100.0 < character_data.friendly_fire_chance_pct():
 			var ally: Unit = _pick_random_ally_in_range(attacker_move.attack_range)
 			if ally == null:
@@ -571,6 +572,13 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 
 	combat_started.emit(self, defender)
 	DebugConfig.log_combat("Combat: %s (move=%s) vs %s" % [unit_name, attacker_move.move_name, defender.unit_name])
+
+	# Ally-targeting moves (heals, buffs): single application, no counter, no multi-hit.
+	if is_ally_move:
+		attacker_move.consume_use()
+		await _execute_single_hit(defender, attacker_move, true)
+		combat_completed.emit(self, defender)
+		return
 
 	var attacker_hits := DamageCalculator.calculate_attack_count(self, defender)
 	var defender_can_counter := DamageCalculator.can_counter_attack(defender, self)
@@ -625,9 +633,14 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 		unit_name, current_hp, defender.unit_name, defender.current_hp])
 
 
-## Execute a single hit against a target. Calculates damage, spawns popup, optionally applies status.
+## Execute a single hit against a target. Calculates damage (or healing for support
+## moves), spawns popup, optionally applies status effects, runs on-hit cleanses.
 ## Sequence: boop out → hitlag freeze at contact → snap back + damage + popup.
 func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
+	if move.heals:
+		await _execute_heal_hit(target, move, apply_status)
+		return
+
 	# Pre-calculate damage so we know impact weight before the hit lands
 	var damage := DamageCalculator.calculate_damage(self, target, move)
 	var type_multiplier := DamageCalculator.get_type_effectiveness(self, target, move)
@@ -665,8 +678,45 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 	if apply_status and move.status_effect_type != Enums.StatusEffectType.NONE:
 		StatusEffectSystem.apply_status_effect(self, target, move)
 
+	# On-hit cleanse: remove specified status effects from the target.
+	_apply_cleanse(target, move)
+
+	# On-hit instant effects (displacement, etc.). Runs every hit, after damage.
+	await DisplacementSystem.resolve(self, target, move, damage)
+
 	# Check passive triggers (e.g. Bellows: air hit grants fire buff)
 	StatusEffectSystem.check_passive_triggers_on_hit(self, target, move)
+
+
+## Heal-side counterpart to _execute_single_hit. No hit flash, no screenshake,
+## no displacement. Heal amount = caster.special + move.base_power.
+func _execute_heal_hit(target: Unit, move: Move, apply_status: bool) -> void:
+	var heal_amount: int = DamageCalculator.calculate_heal_amount(self, target, move)
+
+	await _play_boop_out(target)
+	# Brief beat for the heal to feel weighty without the full damage hitlag.
+	await get_tree().create_timer(HITLAG_MIN).timeout
+	_play_boop_return()
+
+	target.heal(heal_amount)
+	combat_hit.emit(self, target, -heal_amount)
+	_spawn_heal_popup(target, heal_amount)
+
+	DebugConfig.log_combat("Heal: %s -> %s for %d HP (move=%s)" % [
+		unit_name, target.unit_name, heal_amount, move.move_name])
+
+	if apply_status and move.status_effect_type != Enums.StatusEffectType.NONE:
+		StatusEffectSystem.apply_status_effect(self, target, move)
+
+	_apply_cleanse(target, move)
+
+
+func _apply_cleanse(target: Unit, move: Move) -> void:
+	if move.cleanse_effects.is_empty():
+		return
+	for effect_name: String in move.cleanse_effects:
+		StatusEffectSystem.remove_status_effect(target, effect_name)
+		DebugConfig.log_combat("Cleanse: %s removed %s from %s" % [unit_name, effect_name, target.unit_name])
 
 
 ## Boop out: sprite bumps toward the target. Awaitable — completes at the contact point.
@@ -697,6 +747,16 @@ func _spawn_damage_popup(target: Unit, damage: int, effectiveness_text: String, 
 	get_tree().current_scene.add_child(popup)
 	if popup.has_method("initialize"):
 		popup.call("initialize", damage, effectiveness_text, multiplier)
+
+
+func _spawn_heal_popup(target: Unit, amount: int) -> void:
+	var popup_scene := preload("res://scenes/ui/damage_popup.tscn")
+	var popup: Node2D = popup_scene.instantiate()
+	popup.global_position = target.global_position + Vector2(0, -8)
+	popup.z_index = target.z_index + 2
+	get_tree().current_scene.add_child(popup)
+	if popup.has_method("initialize_heal"):
+		popup.call("initialize_heal", amount)
 
 
 ## Handle unit defeat: gray out, fade, clear tile.
@@ -742,7 +802,19 @@ func _handle_defeat() -> void:
 func _load_character_sprite() -> void:
 	if _sprite == null or character_data == null:
 		return
-	if character_data.sprite_sheet_path == "" or character_data.sprite_atlas_path == "":
+	if character_data.sprite_sheet_path == "":
+		return
+
+	# Atlas-less single-frame PNG (e.g. programmer-art idle.png) — load directly.
+	# If a pivot sidecar JSON exists next to the PNG (emitted by the aseprite
+	# tag exporter when the .aseprite file has a slice with pivot), use it to
+	# anchor the sprite. Otherwise fall back to feet-at-tile-center.
+	if character_data.sprite_atlas_path == "":
+		var raw_texture: Texture2D = load(character_data.sprite_sheet_path) as Texture2D
+		if raw_texture == null:
+			return
+		_sprite.texture = raw_texture
+		_sprite.offset = _resolve_pivot_offset(character_data.sprite_sheet_path, raw_texture)
 		return
 
 	var atlas_texture := SpriteAtlasLoader.get_frame_texture(
@@ -759,6 +831,27 @@ func _load_character_sprite() -> void:
 		character_data.sprite_atlas_path,
 		character_data.sprite_frame_index)
 	_sprite.offset = trim_offset
+
+
+## Resolve the Sprite2D.offset for an atlas-less PNG. Reads a sidecar JSON
+## (same path with .json extension) emitted by the Aseprite tag exporter when
+## the source .aseprite file has a slice with pivot. Pivot coords are in
+## pixel-corner space relative to the canvas top-left. Falls back to
+## feet-at-tile-center for sprites without a sidecar.
+func _resolve_pivot_offset(sheet_path: String, texture: Texture2D) -> Vector2:
+	var width := float(texture.get_width())
+	var height := float(texture.get_height())
+	var sidecar_path: String = sheet_path.trim_suffix(".png") + ".json"
+	if FileAccess.file_exists(sidecar_path):
+		var content := FileAccess.get_file_as_string(sidecar_path)
+		if not content.is_empty():
+			var parsed: Variant = JSON.parse_string(content)
+			if parsed is Dictionary and parsed.has("pivot"):
+				var pivot: Dictionary = parsed["pivot"]
+				var px := float(pivot.get("x", width / 2.0))
+				var py := float(pivot.get("y", height))
+				return Vector2(width / 2.0 - px, height / 2.0 - py)
+	return Vector2(0, -height / 2.0)
 
 
 ## Set health bar fill to faction color. Background stays dark for contrast.

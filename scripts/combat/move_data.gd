@@ -78,8 +78,35 @@ static func _parse_move_entry(move_name: String, data: Dictionary) -> Move:
 			move.target_type = Enums.TargetType.SELF
 		"AOE":
 			move.target_type = Enums.TargetType.AOE
+		"ALLY":
+			move.target_type = Enums.TargetType.ALLY
+		"ALLYNOTSELF":
+			move.target_type = Enums.TargetType.ALLY_NOT_SELF
 		_:
 			move.target_type = Enums.TargetType.SINGLE
+
+	# Heal flag (formula: caster.special + base_power, applied in Unit._execute_single_hit)
+	move.heals = bool(data.get("heal", false))
+
+	# On-hit instant effects (displacement, custom script). Non-lingering, post-damage.
+	var on_hit_data: Variant = data.get("onHit", null)
+	if on_hit_data is Dictionary:
+		var displace_data: Variant = on_hit_data.get("displace", null)
+		if displace_data is Dictionary:
+			move.displace_distance = int(displace_data.get("distance", 0))
+			move.displace_vector = String(displace_data.get("vector", "away_from_attacker"))
+			move.displace_on_blocked = String(displace_data.get("on_blocked", "stop"))
+			var save_data: Variant = displace_data.get("save", null)
+			if save_data is Dictionary:
+				move.displace_save_stat = String(save_data.get("vs", ""))
+				move.displace_save_dc_source = String(save_data.get("dc", ""))
+		move.on_hit_script = String(on_hit_data.get("script", ""))
+		var cleanse_data: Variant = on_hit_data.get("cleanse", null)
+		if cleanse_data is Array:
+			var cleansed: PackedStringArray = PackedStringArray()
+			for entry: Variant in cleanse_data:
+				cleansed.append(String(entry).to_upper())
+			move.cleanse_effects = cleansed
 
 	# Status effect (data only)
 	var status_data: Variant = data.get("statusEffect", null)

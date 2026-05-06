@@ -15,6 +15,8 @@ extends Node2D
 @export var enemy_spawn_pool: Array[String] = [
 	"res://data/characters/grunt.json",
 	"res://data/characters/grunt.json",
+	"res://data/characters/bandit.json",
+	"res://data/characters/bandit.json",
 	"res://data/characters/napdawg.json",
 	"res://data/characters/ogre.json",
 	"res://data/characters/blood_mage.json",

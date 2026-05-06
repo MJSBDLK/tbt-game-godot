@@ -55,8 +55,19 @@ func _resolve_nodes() -> void:
 	var hp_bar: HBoxContainer = vbox.get_node("HPBar")
 	_hp_background = hp_bar.get_node("HPBarContainer/HpBackground") as ColorRect
 	_hp_fill = hp_bar.get_node("HPBarContainer/HPFill") as ColorRect
+	# Both bars share `hud_glow.tres` as a scene-level ExtResource. Duplicate per-node so
+	# we can drive each one's `glow_color` independently from HP without bleeding into
+	# every other UI element using the same material.
+	if _hp_background.material != null:
+		_hp_background.material = _hp_background.material.duplicate()
+	if _hp_fill.material != null:
+		_hp_fill.material = _hp_fill.material.duplicate()
 	_hp_value_label = hp_bar.get_node("HBoxContainer/MarginContainer/Label") as Label
 	_hp_max_label = hp_bar.get_node("HBoxContainer/MarginContainer2/Label") as Label
+	if _hp_value_label != null and _hp_value_label.material != null:
+		_hp_value_label.material = _hp_value_label.material.duplicate()
+	if _hp_max_label != null and _hp_max_label.material != null:
+		_hp_max_label.material = _hp_max_label.material.duplicate()
 
 	_hp_censor = StaticCensorOverlay.new()
 	hp_bar.add_child(_hp_censor)
@@ -148,20 +159,23 @@ func _update_hp(unit: Unit) -> void:
 	_hp_fill.offset_right = 0.0
 	_hp_fill.anchor_right = health_percent
 	_hp_fill.color = health_color
-	if _hp_fill.has_method("_apply_glow_color"):
-		_hp_fill.glow_color = health_bg_color
+	if _hp_fill.material is ShaderMaterial:
+		_hp_fill.material.set_shader_parameter("glow_color", health_bg_color)
 
 	# Background tracks health color too
 	_hp_background.color = health_bg_color
-	if _hp_background.has_method("_apply_glow_color"):
-		_hp_background.glow_color = health_bg_color
+	if _hp_background.material is ShaderMaterial:
+		_hp_background.material.set_shader_parameter("glow_color", health_bg_color)
 
 	# Labels
 	_hp_value_label.text = str(current_hp)
 	_hp_value_label.add_theme_color_override("font_color", health_color)
-	if _hp_value_label is GlowLabel:
-		_hp_value_label.glow_color = health_bg_color
+	if _hp_value_label.material is ShaderMaterial:
+		_hp_value_label.material.set_shader_parameter("glow_color", health_bg_color)
 	_hp_max_label.text = "/%d" % max_hp
+	_hp_max_label.add_theme_color_override("font_color", health_color)
+	if _hp_max_label.material is ShaderMaterial:
+		_hp_max_label.material.set_shader_parameter("glow_color", health_bg_color)
 
 	if _hp_censor != null:
 		_hp_censor.set_censored(unit.character_data.is_health_bar_hidden(current_hp))

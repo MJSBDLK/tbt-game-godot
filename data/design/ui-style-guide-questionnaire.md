@@ -143,6 +143,7 @@ Based on your mockup draft:
 - [RQD]: This is basically done at this point, only small tweaks from here
 - **Q: Multiplier number colors (x4=red, x2=yellow, x0=teal) -- locked in?**
 - [LOD]: I don't know
+- [RQD LOCK]: Locked at the existing palette mapping (high=red, mid=yellow, x0=teal). Note: actual multiplier *values* are being rebalanced from 2.0/4.0 to ~1.2/1.44 — the color tiers remain the same.
 
 ---
 
@@ -154,6 +155,7 @@ Based on your mockup draft:
 - [LOD]: 
 - **Q: Selected/active button state?**
 - [LOD]: 
+- [RQD LOCK]: Selected/active button gets a pulsing glow on its border + slow rotational accent shimmer. Goal target — reconsider if it's noisy in practice.
 - **Q: Should disabled actions (no usage, out of range) look different from hidden?**
 - [RQD]: We currently hide attacks which are out of range, and gray out depleted moves
 - [LOD]: 

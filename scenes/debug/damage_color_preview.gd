@@ -2,13 +2,13 @@ extends ColorRect
 
 
 const TIERS: Array[Dictionary] = [
-	{"label": "x4  Devastating",        "value": 47, "multiplier": 4.0},
-	{"label": "x3",                     "value": 34, "multiplier": 3.0},
-	{"label": "x2  Super Effective",    "value": 22, "multiplier": 2.0},
-	{"label": "x1  Neutral",            "value": 15, "multiplier": 1.0},
-	{"label": "x½  Not Very Effective", "value": 7,  "multiplier": 0.5},
-	{"label": "x¼  Barely Effective",   "value": 3,  "multiplier": 0.25},
-	{"label": "x0  No Effect",          "value": 0,  "multiplier": 0.0},
+	{"label": "x4  2x Ouch",   "value": 47, "multiplier": 4.0},
+	{"label": "x3  (heavy)",   "value": 34, "multiplier": 3.0},
+	{"label": "x2  Ouch",      "value": 22, "multiplier": 2.0},
+	{"label": "x1  Neutral",   "value": 15, "multiplier": 1.0},
+	{"label": "x½  Resist",    "value": 7,  "multiplier": 0.5},
+	{"label": "x¼  2x Resist", "value": 3,  "multiplier": 0.25},
+	{"label": "x0  Immune",    "value": 0,  "multiplier": 0.0},
 ]
 
 

@@ -43,6 +43,6 @@
 	},
 
 	"level": 1,
-	"basePoolMoves": ["Feint", "Backstab", "Sidearm"],
+	"basePoolMoves": ["First Aid", "Feint", "Backstab", "Sidearm"],
 	"basePoolPassives": ["Ghost", "Low Profile"]
 }

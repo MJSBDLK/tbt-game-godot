@@ -25,8 +25,10 @@ var testing_passives: bool = false  # Randomly equip passives from base pool on 
 var testing_injuries: bool = false  # Run InjurySystem self-test at SquadManager bootstrap
 var testing_random_injuries_on_spawn: bool = false  # Apply 0-4 random injuries to each player unit on spawn
 var testing_enemy_ghost: bool = false  # Grant every enemy the Ghost passive (pathfind through allies)
+# note: enable unit_health debug (below) for randomized health values
 var testing_hypoesthesia: bool = false  # Give every player unit a Minor Hypoesthesia injury on spawn (censors HP bar above 50%)
 var testing_hypoesthesia_major: bool = false  # Use Major severity instead of Minor (censor always on unless HP=0)
+var testing_random_hp_on_spawn: bool = true  # Spawn every player unit at 15-100% HP — useful for testing heals
 
 # Input & State
 var input: bool = false
@@ -41,7 +43,7 @@ var pixel_perfect_ui: bool = false
 # Turn Management
 var turn_manager: bool = false
 
-# Cheats (dev-only keybinds — F9 instawin, F10 instalose)
+# Cheats (dev-only keybinds — Ctrl+W instawin, Ctrl+L instalose, Ctrl+R refresh hovered unit)
 var cheats_enabled: bool = true
 
 

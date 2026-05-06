@@ -6,8 +6,8 @@
 	"specialization": "None",
 
 	"sprite": {
-		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
-		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",
+		"sheetPath": "res://art/sprites/characters/grunt/idle.png",
+		"atlasPath": "",
 		"frameIndex": 0
 	},
 

@@ -28,6 +28,8 @@ const STAT_NODE_MAP: Dictionary = {
 	"Res": "RES",
 }
 
+const _HYPOESTHESIA_STATIC_MATERIAL: ShaderMaterial = preload("res://resources/injury_static.tres")
+
 const STAT_DISPLAY_MAX: float = 60.0
 const STAT_BAR_MAX_WIDTH: float = 44.0
 const STAT_BAR_MIN_WIDTH: float = 3.0
@@ -198,8 +200,18 @@ func _cache_node_references() -> void:
 	var hp_bar_container: Control = hp_hbox.get_node("StatBarContainer")
 	_hp_bar_background = hp_bar_container.get_node("StatBarBackground") if hp_bar_container.has_node("StatBarBackground") else null
 	_hp_bar = hp_bar_container.get_node("StatBar")
+	# Duplicate the shared `hud_glow.tres` material per-node so each bar's glow_color
+	# can be driven independently by HP% without bleeding into other UI.
+	if _hp_bar != null and _hp_bar.material != null:
+		_hp_bar.material = _hp_bar.material.duplicate()
+	if _hp_bar_background != null and _hp_bar_background.material != null:
+		_hp_bar_background.material = _hp_bar_background.material.duplicate()
 	_hp_label = _find_label_in_node(hp_hbox.get_node("StatValue"))
 	_hp_max_label = _find_label_in_node(hp_hbox.get_node("StatModifier"))  # Repurposed as "/max_hp"
+	if _hp_label != null and _hp_label.material != null:
+		_hp_label.material = _hp_label.material.duplicate()
+	if _hp_max_label != null and _hp_max_label.material != null:
+		_hp_max_label.material = _hp_max_label.material.duplicate()
 
 	_hp_censor = StaticCensorOverlay.new()
 	hp_hbox.add_child(_hp_censor)
@@ -548,17 +560,28 @@ func _update_hp() -> void:
 	var health_percent: float = float(current_hp) / float(max_hp) if max_hp > 0 else 0.0
 	var health_color: Color = GameColors.get_health_color(health_percent)
 
+	var health_bg_color: Color = GameColors.get_health_bg_color(health_percent)
+
 	if _hp_label:
 		_hp_label.text = str(current_hp)
 		_hp_label.add_theme_color_override("font_color", health_color)
+		if _hp_label.material is ShaderMaterial:
+			_hp_label.material.set_shader_parameter("glow_color", health_bg_color)
 	if _hp_max_label:
 		_hp_max_label.text = "/%d" % max_hp
+		_hp_max_label.add_theme_color_override("font_color", health_color)
+		if _hp_max_label.material is ShaderMaterial:
+			_hp_max_label.material.set_shader_parameter("glow_color", health_bg_color)
 
 	if _hp_bar and _hp_bar_background:
 		var fill_ratio: float = clampf(float(current_hp) / float(max_hp), 0.0, 1.0) if max_hp > 0 else 0.0
 		_hp_bar.size.x = fill_ratio * _hp_bar_background.size.x
 		_hp_bar.color = health_color
-		_hp_bar_background.color = GameColors.get_health_bg_color(health_percent)
+		_hp_bar_background.color = health_bg_color
+		if _hp_bar.material is ShaderMaterial:
+			_hp_bar.material.set_shader_parameter("glow_color", health_bg_color)
+		if _hp_bar_background.material is ShaderMaterial:
+			_hp_bar_background.material.set_shader_parameter("glow_color", health_bg_color)
 
 	if _hp_censor != null and _character_data != null:
 		_hp_censor.set_censored(_character_data.is_health_bar_hidden(current_hp))
@@ -864,14 +887,22 @@ func _set_injury_panel(panel: PanelContainer, injury: Injury, slot_index: int) -
 		var display: String = data.display_name if data != null else injury.injury_id
 		name_label.text = display.to_upper()
 	if type_icon:
-		# Injury icons not yet authored — hide until they exist.
-		type_icon.visible = false
+		if data != null and data.icon_path != "" and ResourceLoader.exists(data.icon_path):
+			type_icon.texture = load(data.icon_path) as Texture2D
+			type_icon.visible = true
+		else:
+			type_icon.visible = false
+		_apply_hypoesthesia_static(type_icon, injury.injury_id == "hypoesthesia")
 	if usages_label:
 		usages_label.text = str(injury.battles_remaining)
 		usages_label.visible = true
 	if infinity_symbol:
 		# Permanent injuries (scars) deferred from v1 — never show infinity yet.
 		infinity_symbol.visible = false
+
+
+func _apply_hypoesthesia_static(icon: TextureRect, enabled: bool) -> void:
+	icon.material = _HYPOESTHESIA_STATIC_MATERIAL if enabled else null
 
 
 ## Returns a fixed-length array sized to _status_panels.size():
@@ -1050,8 +1081,11 @@ func _show_injury_detail(index: int) -> void:
 		_effect_detail_name_label.text = display.to_upper() + severity_tag
 
 	if _effect_detail_icon:
-		# Injury icons not yet authored — hide the icon container until they exist.
-		_effect_detail_icon.visible = false
+		if data != null and data.icon_path != "" and ResourceLoader.exists(data.icon_path):
+			_effect_detail_icon.texture = load(data.icon_path) as Texture2D
+			_effect_detail_icon.visible = true
+		else:
+			_effect_detail_icon.visible = false
 
 	if _effect_detail_description_label:
 		var desc_text: String = ""

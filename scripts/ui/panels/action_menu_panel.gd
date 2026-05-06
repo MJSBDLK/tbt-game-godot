@@ -110,7 +110,7 @@ func _populate_main_menu(unit: Unit) -> void:
 	# Attack moves with valid targets — displayed as move chips.
 	var usable_moves := unit.get_usable_moves()
 	for move: Move in usable_moves:
-		var valid_targets := _get_valid_targets_for_move(unit, move)
+		var valid_targets := MoveTargeting.get_valid_target_tiles(unit, move)
 		if valid_targets.size() > 0:
 			var is_assigned := (unit.assigned_move == move)
 			var captured_move := move
@@ -297,19 +297,6 @@ func _ensure_border_overlay() -> void:
 # =============================================================================
 # HELPERS
 # =============================================================================
-
-func _get_valid_targets_for_move(unit: Unit, move: Move) -> Array[Tile]:
-	var tiles: Array[Tile] = []
-	if unit == null or move == null or unit.current_tile == null:
-		return tiles
-	var all_tiles := GridManager.get_tiles_within_range(unit.current_tile, move.attack_range)
-	for tile: Tile in all_tiles:
-		if tile.current_unit != null and tile.current_unit is Unit:
-			var target := tile.current_unit as Unit
-			if target.faction != unit.faction and not target.is_defeated():
-				tiles.append(tile)
-	return tiles
-
 
 func _get_elemental_icon(element_type: Enums.ElementalType) -> Texture2D:
 	if element_type == Enums.ElementalType.NONE:
