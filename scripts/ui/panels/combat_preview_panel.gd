@@ -71,6 +71,11 @@ const _MOVE_DAMAGE_TYPE_ICON_PATH = "MoveRow/HBoxContainer/UnitTypeIconContainer
 @onready var _attacker_move_damage_type_icon: TextureRect = _attacker_section.get_node(_MOVE_DAMAGE_TYPE_ICON_PATH)
 @onready var _defender_move_damage_type_icon: TextureRect = _defender_section.get_node(_MOVE_DAMAGE_TYPE_ICON_PATH)
 
+# Center-row column header for the value column. Toggled between "DMG" (damage
+# preview) and "HEAL" (heal preview) so the column always describes what the
+# number under it means.
+@onready var _value_column_header: Label = $Control/Contents/CenterRow/DmgContainer/Label
+
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -92,6 +97,7 @@ func show_preview(attacker: Node, defender: Node, move: Move) -> void:
 
 	visible = true
 	_reset_pip_colors()
+	_set_value_column_header("DMG")
 	_update_attacker_section(attacker, defender, move)
 	_update_defender_section(attacker, defender, move)
 	_update_health_pips(attacker, defender, move)
@@ -107,6 +113,7 @@ func show_heal_preview(caster: Node, target: Node, move: Move, heal_amount: int)
 
 	visible = true
 	_apply_pip_heal_colors()
+	_set_value_column_header("+HP")
 	_update_caster_section_for_heal(caster, move, heal_amount)
 	_update_target_section_for_heal(target)
 	_update_heal_pips(caster, target, heal_amount)
@@ -136,6 +143,7 @@ func _update_attacker_section(attacker: Node, defender: Node, move: Move) -> voi
 	var hit_count := DamageCalculator.calculate_attack_count(attacker, defender)
 	_attacker_damage_label.text = str(damage_per_hit)
 	_set_hits_label(_attacker_hits_label, hit_count)
+	_attacker_hit_label.text = "%d%%" % move.hit_chance_pct()
 
 	# Secondary chance — status effect proc chance from the move
 	if move.status_effect_chance > 0.0 and move.status_effect_type != Enums.StatusEffectType.NONE:
@@ -173,6 +181,7 @@ func _update_defender_section(attacker: Node, defender: Node, move: Move) -> voi
 		var counter_hits := DamageCalculator.calculate_attack_count(defender, attacker)
 		_defender_damage_label.text = str(counter_damage)
 		_set_hits_label(_defender_hits_label, counter_hits)
+		_defender_hit_label.text = "%d%%" % counter_move.hit_chance_pct()
 
 		if counter_move.status_effect_chance > 0.0 and counter_move.status_effect_type != Enums.StatusEffectType.NONE:
 			_defender_secondary_label.text = "%d%%" % int(counter_move.status_effect_chance * 100)
@@ -385,6 +394,11 @@ const _DAMAGE_BAND_COLOR_DEFAULT: Color = Color(0.5, 0.5, 0.5, 1.0)
 const _DAMAGE_BAND_GLOW_DEFAULT: Color  = Color(0.3, 0.3, 0.3, 1.0)
 
 
+func _set_value_column_header(text: String) -> void:
+	if _value_column_header != null:
+		_value_column_header.text = text
+
+
 func _apply_pip_heal_colors() -> void:
 	for pip: HealthPipBar in [_top_health_pips, _bottom_health_pips]:
 		pip.damage_color = _HEAL_BAND_COLOR
@@ -412,6 +426,7 @@ func _update_caster_section_for_heal(caster: Node, move: Move, heal_amount: int)
 	_attacker_damage_label.add_theme_color_override("font_color", _HEAL_NUMBER_FONT)
 	if _attacker_damage_label.has_method("_apply_glow_color"):
 		_attacker_damage_label.set("glow_color", _HEAL_NUMBER_GLOW)
+	_attacker_hit_label.text = "%d%%" % move.hit_chance_pct()
 
 	# Heals are single-application, no type effectiveness. Status proc only shows
 	# if the move actually carries one (rare on heals).

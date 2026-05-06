@@ -9,8 +9,12 @@ class_name MoveTargeting
 extends RefCounted
 
 
-## Returns true if `target` is a legal recipient of `move` cast by `attacker`,
-## ignoring range/grid considerations — pure faction + self filter.
+## Returns true if `target` is a legal AND meaningful recipient of `move` cast
+## by `attacker`. Faction + self filter is enforced first; then the move is
+## asked whether it would actually do anything to this target (heals on full-HP
+## allies, buffs at max stacks, and cleanses with nothing to strip all fail
+## here). Both the menu chip filter and the in-targeting tile filter share this
+## predicate, so the menu and the highlighted tiles always agree.
 static func is_valid_target(target: Unit, attacker: Unit, move: Move) -> bool:
 	if target == null or attacker == null or move == null:
 		return false
@@ -21,8 +25,10 @@ static func is_valid_target(target: Unit, attacker: Unit, move: Move) -> bool:
 			return false
 		if move.target_type == Enums.TargetType.ALLY_NOT_SELF and target == attacker:
 			return false
-		return true
-	return target.faction != attacker.faction
+	else:
+		if target.faction == attacker.faction:
+			return false
+	return move.has_meaningful_effect_on(target)
 
 
 ## Returns every tile within `move`'s range whose occupant is a valid target.

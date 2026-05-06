@@ -233,7 +233,19 @@ enum InputState {
 	UNIT_DETAIL,
 	DIALOGUE,
 	PAUSED,
+	BATTLE_RESULT,    # End-of-mission result overlay is up
+	POST_MISSION_REPORT,  # Post-mission summary panel is up (recruit/wound report)
+	RECRUITING,       # Recruit picker is up between missions
 }
+
+# Map-interactive states — info panels (unit info, terrain info) only show when
+# current_state is in this set. Inverted gate so new modal states default to
+# suppressing info panels rather than having to remember to update a blocklist.
+const MAP_VIEW_STATES: Array[InputState] = [
+	InputState.DEFAULT,
+	InputState.UNIT_SELECTED,
+	InputState.MOVEMENT_PLANNING,
+]
 
 enum TurnPhase {
 	PLAYER_PHASE,

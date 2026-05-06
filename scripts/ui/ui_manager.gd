@@ -82,7 +82,7 @@ func _ready() -> void:
 func show_unit_info(unit: Node) -> void:
 	if _unit_info_panel == null:
 		return
-	if _is_action_ui_open():
+	if not _is_map_view_active():
 		return
 	# Info panels live in _left_panel by default. _place_action_panels(true)
 	# moves _left_panel to the RIGHT side, so we want on_left=true when the
@@ -110,8 +110,7 @@ func get_previewed_unit() -> Unit:
 func show_terrain_info(tile: Variant) -> void:
 	if _terrain_info_panel == null:
 		return
-	# Terrain info is suppressed while the action menu or combat preview is active.
-	if _is_action_ui_open():
+	if not _is_map_view_active():
 		return
 	# Info panels live in _left_panel by default. Invert the side test so info
 	# panels move to the side opposite the hovered tile.
@@ -252,6 +251,11 @@ func show_phase_transition(text: String, color: Color) -> void:
 
 func show_battle_result(is_victory: bool, turn_count: int, player_units_lost: int,
 		enemies_defeated: int, total_players: int, total_enemies: int) -> void:
+	# Push BATTLE_RESULT — the state-changed handler tears down any in-flight
+	# map UI and _is_map_view_active() returns false from this point.
+	var state_manager := get_node_or_null("/root/GameStateManager")
+	if state_manager != null and state_manager.current_state != Enums.InputState.BATTLE_RESULT:
+		state_manager.push_state(Enums.InputState.BATTLE_RESULT)
 	if _battle_result_overlay != null and _battle_result_overlay.has_method("show_result"):
 		_battle_result_overlay.show_result(is_victory, turn_count, player_units_lost,
 			enemies_defeated, total_players, total_enemies)
@@ -260,6 +264,9 @@ func show_battle_result(is_victory: bool, turn_count: int, player_units_lost: in
 func hide_battle_result() -> void:
 	if _battle_result_overlay != null and _battle_result_overlay.has_method("hide_result"):
 		_battle_result_overlay.hide_result()
+	var state_manager := get_node_or_null("/root/GameStateManager")
+	if state_manager != null and state_manager.current_state == Enums.InputState.BATTLE_RESULT:
+		state_manager.pop_state()
 
 
 ## Show the recruit picker with the given candidate JSON paths and await the
@@ -271,8 +278,13 @@ func show_recruit_picker_and_wait(candidate_paths: Array[String]) -> String:
 	if not _recruit_picker_panel.has_method("show_candidates"):
 		push_warning("UIManager: recruit picker panel missing show_candidates method")
 		return ""
+	var state_manager := get_node_or_null("/root/GameStateManager")
+	if state_manager != null:
+		state_manager.push_state(Enums.InputState.RECRUITING)
 	_recruit_picker_panel.show_candidates(candidate_paths)
 	var chosen_path: String = await _recruit_picker_panel.recruit_chosen
+	if state_manager != null and state_manager.current_state == Enums.InputState.RECRUITING:
+		state_manager.pop_state()
 	return chosen_path
 
 
@@ -500,6 +512,7 @@ func _instantiate_overlays() -> void:
 	if post_mission_scene != null:
 		_post_mission_report_panel = post_mission_scene.instantiate() as PostMissionReportPanel
 		_overlay_layer.add_child(_post_mission_report_panel)
+		_post_mission_report_panel.closed.connect(_on_post_mission_report_closed)
 		var squad_manager: Node = get_node_or_null("/root/SquadManager")
 		if squad_manager and squad_manager.has_signal("post_mission_report_ready"):
 			squad_manager.post_mission_report_ready.connect(_on_post_mission_report_ready)
@@ -515,8 +528,17 @@ func _on_post_mission_report_ready(report: Array) -> void:
 	# Suppress the legacy battle-result overlay so its Continue button doesn't
 	# compete with the post-mission panel (they share the same overlay layer).
 	hide_battle_result()
+	var state_manager := get_node_or_null("/root/GameStateManager")
+	if state_manager != null and state_manager.current_state != Enums.InputState.POST_MISSION_REPORT:
+		state_manager.push_state(Enums.InputState.POST_MISSION_REPORT)
 	if _post_mission_report_panel != null:
 		_post_mission_report_panel.show_report(report)
+
+
+func _on_post_mission_report_closed() -> void:
+	var state_manager := get_node_or_null("/root/GameStateManager")
+	if state_manager != null and state_manager.current_state == Enums.InputState.POST_MISSION_REPORT:
+		state_manager.pop_state()
 
 
 # =============================================================================
@@ -611,17 +633,16 @@ func _get_camera() -> CameraController:
 	return viewport.get_camera_2d() as CameraController
 
 
-## Returns true when info panels (unit info, terrain info) should be suppressed.
-func _is_action_ui_open() -> bool:
+## Returns true when the map view is interactive — the only condition under
+## which info panels (unit info, terrain info) should render. Inverted gate:
+## new modal states (BATTLE_RESULT, RECRUITING, future overlays) suppress info
+## panels by default just by virtue of not being in MAP_VIEW_STATES. No
+## blocklist to keep updated.
+func _is_map_view_active() -> bool:
 	var state_manager := get_node_or_null("/root/GameStateManager")
 	if state_manager == null:
-		return false
-	return state_manager.current_state in [
-		Enums.InputState.ACTION_MENU_OPEN,
-		Enums.InputState.ATTACK_TARGETING,
-		Enums.InputState.UNIT_DETAIL,
-		Enums.InputState.PAUSED,
-	]
+		return true
+	return state_manager.current_state in Enums.MAP_VIEW_STATES
 
 
 # =============================================================================
@@ -663,6 +684,15 @@ func _on_state_changed(_old_state: Enums.InputState, new_state: Enums.InputState
 			hide_action_menu()
 			hide_combat_preview()
 			hide_unit_detail()
+		Enums.InputState.BATTLE_RESULT, Enums.InputState.POST_MISSION_REPORT, \
+		Enums.InputState.RECRUITING:
+			hide_unit_info()
+			hide_terrain_info()
+			hide_action_menu()
+			hide_combat_preview()
+			hide_unit_detail()
+			hide_system_menu()
+			hide_options_menu()
 
 
 func _on_unit_detail_closed() -> void:
