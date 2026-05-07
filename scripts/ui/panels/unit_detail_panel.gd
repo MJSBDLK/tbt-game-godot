@@ -521,10 +521,9 @@ func _update_all() -> void:
 
 
 func _update_portrait() -> void:
-	if _portrait == null or _character_data.portrait_path.is_empty():
+	if _portrait == null:
 		return
-	var texture: Texture2D = load(_character_data.portrait_path) as Texture2D
-	_portrait.texture = texture
+	_portrait.texture = CharacterPortrait.get_for(_character_data)
 
 
 func _update_identity() -> void:

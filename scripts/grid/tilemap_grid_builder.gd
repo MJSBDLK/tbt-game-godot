@@ -161,6 +161,48 @@ func _get_terrain_type_from_layer(layer: TileMapLayer, cell: Vector2i) -> String
 	return ""
 
 
+## Loads `scene_path` (a mission .tscn) off-tree and counts the cells on its
+## SpawnTileLayer marked with spawn_faction == "Player". Used by the squad
+## prep screen to show how many slots the next mission has without booting the
+## battle. Returns 0 if the scene can't be loaded or has no spawn layer.
+##
+## Note: instantiate() builds the node graph but does NOT call _ready, so this
+## doesn't trigger GridManager.clear_grid() or any other side effects.
+static func count_player_spawns(scene_path: String) -> int:
+	if scene_path.is_empty() or not ResourceLoader.exists(scene_path):
+		return 0
+	var packed: PackedScene = load(scene_path) as PackedScene
+	if packed == null:
+		return 0
+	var instance: Node = packed.instantiate()
+	if instance == null:
+		return 0
+	var count: int = 0
+	var builder: TilemapGridBuilder = _find_builder_in(instance)
+	if builder != null:
+		var spawn_layer: TileMapLayer = builder.get_node_or_null(builder.spawn_layer_path) as TileMapLayer
+		if spawn_layer != null:
+			for cell: Vector2i in spawn_layer.get_used_cells():
+				var tile_data := spawn_layer.get_cell_tile_data(cell)
+				if tile_data == null:
+					continue
+				var spawn_faction: Variant = tile_data.get_custom_data("spawn_faction")
+				if spawn_faction is String and spawn_faction == "Player":
+					count += 1
+	instance.queue_free()
+	return count
+
+
+static func _find_builder_in(node: Node) -> TilemapGridBuilder:
+	if node is TilemapGridBuilder:
+		return node as TilemapGridBuilder
+	for child: Node in node.get_children():
+		var found := _find_builder_in(child)
+		if found != null:
+			return found
+	return null
+
+
 ## Returns spawn points from the SpawnTileLayer, grouped by faction.
 ## Player spawns: Array[Vector2i] (game-grid coordinates, Y-up).
 ## Enemy spawns: Array[Dictionary] of {position: Vector2i, difficulty: EnemyDifficulty}.

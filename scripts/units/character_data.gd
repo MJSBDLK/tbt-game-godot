@@ -226,15 +226,19 @@ func has_equipped_passive(passive_name: String) -> bool:
 # STAT CAPS (default values — will be class-based via CLASS_INFO later)
 # =============================================================================
 
+## 2:1 HP-to-other-stat ratio: HP /20
+## and every other stat /10
+## both top out at 5px
+## these are the practical cap a maxed-late-game unit might pull off.
 const DEFAULT_STAT_CAPS: Dictionary = {
-	"max_hp": 60,
-	"strength": 25,
-	"special": 25,
-	"skill": 30,
-	"agility": 30,
-	"athleticism": 30,
-	"defense": 25,
-	"resistance": 25,
+	"max_hp": 100,
+	"strength": 50,
+	"special": 50,
+	"skill": 50,
+	"agility": 50,
+	"athleticism": 50,
+	"defense": 50,
+	"resistance": 50,
 }
 
 

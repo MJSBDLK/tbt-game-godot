@@ -1,0 +1,127 @@
+## Resolves a character's UI portrait. If `portrait_path` is set on the
+## character, returns that texture directly. Otherwise derives a placeholder
+## by cropping the top 32×32 of the character's idle sprite — handy while
+## real portrait art doesn't exist yet.
+##
+## "Top 32×32" actually means "32×32 starting at the first non-transparent
+## row," so canvases with whitespace above the head still produce a head-shot
+## instead of an empty square. Atlas-trimmed Aseprite frames have no
+## whitespace, so the scan no-ops for those (the trim already removed it).
+##
+## Results are cached by character_id so re-querying from multiple panels
+## doesn't re-scan the spritesheet.
+class_name CharacterPortrait
+extends RefCounted
+
+
+const _TARGET_SIZE: int = 32
+
+# Two caches because the two paths can produce different textures for the same
+# character — keep them separate so squad cards never accidentally serve up a
+# full painted portrait, and the detail panel never serves up a sprite crop
+# when a real portrait was available.
+# character_id -> Texture2D
+static var _cache_portrait_or_sprite: Dictionary = {}
+static var _cache_sprite_only: Dictionary = {}
+
+
+## Default lookup: prefers the character's painted portrait, falls back to a
+## crop of the idle sprite if no portrait is set. Used by the unit preview
+## and detail panels — wherever a "real" portrait is the goal.
+static func get_for(character: CharacterData) -> Texture2D:
+	if character == null:
+		return null
+
+	var cache_key: String = character.character_id
+	if cache_key != "" and _cache_portrait_or_sprite.has(cache_key):
+		return _cache_portrait_or_sprite[cache_key]
+
+	var texture: Texture2D = _resolve(character)
+	if cache_key != "" and texture != null:
+		_cache_portrait_or_sprite[cache_key] = texture
+	return texture
+
+
+## Sprite-only lookup: always returns a crop of the idle sprite, ignoring
+## portrait_path. Used by squad prep cards where the sprite-top crop reads
+## better at small sizes than a downscaled painted portrait.
+static func get_sprite_crop_for(character: CharacterData) -> Texture2D:
+	if character == null:
+		return null
+
+	var cache_key: String = character.character_id
+	if cache_key != "" and _cache_sprite_only.has(cache_key):
+		return _cache_sprite_only[cache_key]
+
+	var texture: Texture2D = _derive_from_sprite(character)
+	if cache_key != "" and texture != null:
+		_cache_sprite_only[cache_key] = texture
+	return texture
+
+
+static func _resolve(character: CharacterData) -> Texture2D:
+	if not character.portrait_path.is_empty() and ResourceLoader.exists(character.portrait_path):
+		return load(character.portrait_path) as Texture2D
+	return _derive_from_sprite(character)
+
+
+static func _derive_from_sprite(character: CharacterData) -> Texture2D:
+	if character.sprite_sheet_path.is_empty():
+		return null
+
+	var sheet_texture: Texture2D = load(character.sprite_sheet_path) as Texture2D
+	if sheet_texture == null:
+		return null
+	var image: Image = sheet_texture.get_image()
+	if image == null:
+		return null
+
+	var frame_rect: Rect2i = _resolve_frame_rect(character, image)
+	if frame_rect.size.x <= 0 or frame_rect.size.y <= 0:
+		return null
+
+	# Skip transparent rows above the actual sprite content. Aseprite-trimmed
+	# atlas frames already start at the first opaque row, so this is a no-op
+	# in that case; for raw idle PNGs it's the whole point of the scan.
+	var first_opaque_y: int = _find_first_opaque_row(image, frame_rect)
+	if first_opaque_y < 0:
+		return null
+
+	var available_height: int = frame_rect.position.y + frame_rect.size.y - first_opaque_y
+	var crop_height: int = mini(_TARGET_SIZE, available_height)
+	var crop_width: int = mini(_TARGET_SIZE, frame_rect.size.x)
+	# Center horizontally so a sprite narrower than 32 doesn't lean to one side.
+	var crop_x: int = frame_rect.position.x + (frame_rect.size.x - crop_width) / 2
+
+	var portrait := AtlasTexture.new()
+	portrait.atlas = sheet_texture
+	portrait.region = Rect2(crop_x, first_opaque_y, crop_width, crop_height)
+	return portrait
+
+
+static func _resolve_frame_rect(character: CharacterData, image: Image) -> Rect2i:
+	# Atlas-less PNGs are single-frame — the whole image is the idle frame.
+	if character.sprite_atlas_path.is_empty():
+		return Rect2i(0, 0, image.get_width(), image.get_height())
+
+	var frame_tex: AtlasTexture = SpriteAtlasLoader.get_frame_texture(
+		character.sprite_sheet_path,
+		character.sprite_atlas_path,
+		character.sprite_frame_index)
+	if frame_tex == null:
+		return Rect2i(0, 0, 0, 0)
+	var region: Rect2 = frame_tex.region
+	return Rect2i(int(region.position.x), int(region.position.y),
+		int(region.size.x), int(region.size.y))
+
+
+static func _find_first_opaque_row(image: Image, frame_rect: Rect2i) -> int:
+	var x_start: int = maxi(0, frame_rect.position.x)
+	var x_end: int = mini(image.get_width(), frame_rect.position.x + frame_rect.size.x)
+	var y_start: int = maxi(0, frame_rect.position.y)
+	var y_end: int = mini(image.get_height(), frame_rect.position.y + frame_rect.size.y)
+	for y: int in range(y_start, y_end):
+		for x: int in range(x_start, x_end):
+			if image.get_pixel(x, y).a > 0.0:
+				return y
+	return -1

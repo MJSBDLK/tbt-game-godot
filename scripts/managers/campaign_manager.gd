@@ -305,6 +305,12 @@ func get_current_mission_index() -> int:
 	return _current_mission_index
 
 
+func get_current_mission_path() -> String:
+	if not is_active():
+		return ""
+	return _mission_paths[_current_mission_index]
+
+
 func get_mission_count() -> int:
 	return _mission_paths.size()
 

@@ -26,6 +26,11 @@ extends Control
 enum EditMode { MOVES, PASSIVES }
 
 
+## Emitted when the user dismisses the picker via the close button. Prep
+## screen listens for this to re-expand the roster strip and clear selection.
+signal closed
+
+
 @export var edit_mode: EditMode = EditMode.MOVES :
 	set(value):
 		edit_mode = value
@@ -33,15 +38,35 @@ enum EditMode { MOVES, PASSIVES }
 			_refresh()
 
 
+## Selection state machine. The picker has three states:
+##
+##   NONE   — no slot is highlighted. Click any slot → BROWSE.
+##   BROWSE — a slot is highlighted; the user is reading. Detail column shows
+##            its content; the swap icon (➡⬅) appears on the slot.
+##            • Click the same slot again → NONE (deselect).
+##            • Click a different slot → BROWSE that slot (move highlight).
+##            • Click the swap icon → CARRY.
+##   CARRY  — a slot has been "lifted" for swapping. The next click on a
+##            different slot completes the swap and returns to NONE.
+##            • Click the same slot again → BROWSE (cancel carry).
+##            • Click outside any slot, or press Esc → BROWSE (cancel carry).
+##
+## This separates "I'm browsing" from "I'm rearranging" so users can read
+## moves without accidentally swapping them.
+enum SelectionMode { NONE, BROWSE, CARRY }
+
+
 var _character_data: CharacterData = null
 
-# Selection state. _selection_origin is "equipped" or "bank" or "" (none).
-# _selection_index is the slot/list index within that origin.
+var _selection_mode: SelectionMode = SelectionMode.NONE
+# When mode != NONE, these point to the selected slot.
+# _selection_origin is "equipped" or "bank" (or "equipped_passive" for the
+# preview-only passive list — though it never enters CARRY).
 var _selection_origin: String = ""
 var _selection_index: int = -1
-# What to render in the detail column on the right. Independent of selection
-# state — clicking a preview-only passive updates this without disturbing a
-# pending swap selection.
+# What to render in the detail column on the right. Tracks selection plus
+# preview-only clicks (e.g. clicking a passive while in moves edit mode
+# updates detail without disturbing the swap state).
 var _detail_target: Variant = null  # Move or passive name (String) or null
 
 # UI refs
@@ -50,6 +75,7 @@ var _equipped_moves_box: VBoxContainer = null
 var _equipped_passives_box: VBoxContainer = null
 var _bank_box: VBoxContainer = null
 var _detail_box: VBoxContainer = null
+var _detail_col: VBoxContainer = null
 var _mode_toggle_label: Label = null
 
 
@@ -82,16 +108,32 @@ func _build_ui() -> void:
 	root.add_theme_constant_override("separation", 6)
 	add_child(root)
 
-	# Summary header
+	# Summary header + close button
+	var header_row := HBoxContainer.new()
+	header_row.add_theme_constant_override("separation", 6)
+	root.add_child(header_row)
+
 	_summary_label = RichTextLabel.new()
 	_summary_label.bbcode_enabled = true
 	_summary_label.fit_content = true
 	_summary_label.scroll_active = false
 	_summary_label.custom_minimum_size = Vector2(0, 38)
+	_summary_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if ui_manager != null:
 		_summary_label.add_theme_font_override("normal_font", ui_manager.font_8px)
 		_summary_label.add_theme_font_size_override("normal_font_size", 8)
-	root.add_child(_summary_label)
+	header_row.add_child(_summary_label)
+
+	var close_button := Button.new()
+	close_button.text = "✕"
+	close_button.tooltip_text = "Close (return to squad)"
+	close_button.custom_minimum_size = Vector2(20, 20)
+	close_button.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	if ui_manager != null:
+		close_button.add_theme_font_override("font", ui_manager.font_8px)
+		close_button.add_theme_font_size_override("font_size", 8)
+	close_button.pressed.connect(func() -> void: closed.emit())
+	header_row.add_child(close_button)
 
 	# Mode toggle hint
 	_mode_toggle_label = Label.new()
@@ -122,7 +164,7 @@ func _build_ui() -> void:
 	equipped_col.add_child(moves_header)
 
 	_equipped_moves_box = VBoxContainer.new()
-	_equipped_moves_box.add_theme_constant_override("separation", 2)
+	_equipped_moves_box.add_theme_constant_override("separation", 1)
 	equipped_col.add_child(_equipped_moves_box)
 
 	var passives_header := Label.new()
@@ -133,7 +175,7 @@ func _build_ui() -> void:
 	equipped_col.add_child(passives_header)
 
 	_equipped_passives_box = VBoxContainer.new()
-	_equipped_passives_box.add_theme_constant_override("separation", 2)
+	_equipped_passives_box.add_theme_constant_override("separation", 1)
 	equipped_col.add_child(_equipped_passives_box)
 
 	# Center: bank (scrollable)
@@ -155,27 +197,28 @@ func _build_ui() -> void:
 	bank_col.add_child(bank_scroll)
 
 	_bank_box = VBoxContainer.new()
-	_bank_box.add_theme_constant_override("separation", 2)
+	_bank_box.add_theme_constant_override("separation", 1)
 	_bank_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bank_scroll.add_child(_bank_box)
 
-	# Right: detail
-	var detail_col := VBoxContainer.new()
-	detail_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	detail_col.size_flags_stretch_ratio = 1.2
-	columns.add_child(detail_col)
+	# Right: detail. Hidden by default; appears once the user clicks a slot.
+	_detail_col = VBoxContainer.new()
+	_detail_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_detail_col.size_flags_stretch_ratio = 1.2
+	_detail_col.visible = false
+	columns.add_child(_detail_col)
 
 	var detail_header := Label.new()
 	detail_header.text = "DETAIL"
 	if ui_manager != null:
 		detail_header.add_theme_font_override("font", ui_manager.font_5px)
 		detail_header.add_theme_font_size_override("font_size", 5)
-	detail_col.add_child(detail_header)
+	_detail_col.add_child(detail_header)
 
 	_detail_box = VBoxContainer.new()
 	_detail_box.add_theme_constant_override("separation", 4)
 	_detail_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	detail_col.add_child(_detail_box)
+	_detail_col.add_child(_detail_box)
 
 
 # =============================================================================
@@ -232,7 +275,7 @@ func _refresh_equipped_moves() -> void:
 			label = moves[i].move_name
 		else:
 			label = "— (empty)"
-		var btn := _make_slot_button(label, "equipped", i, edit_mode == EditMode.MOVES)
+		var btn := _make_slot_button(label, "equipped", i, edit_mode == EditMode.MOVES, move_or_null)
 		_equipped_moves_box.add_child(btn)
 
 
@@ -276,7 +319,8 @@ func _refresh_bank() -> void:
 		return
 
 	for i: int in range(available.size()):
-		var btn := _make_slot_button(available[i], "bank", i, edit_mode == EditMode.MOVES)
+		var bank_move: Move = MoveData.get_move(available[i])
+		var btn := _make_slot_button(available[i], "bank", i, edit_mode == EditMode.MOVES, bank_move)
 		# Stash the move name on the button as metadata so we don't need to re-resolve from index.
 		btn.set_meta("move_name", available[i])
 		_bank_box.add_child(btn)
@@ -284,12 +328,15 @@ func _refresh_bank() -> void:
 
 func _refresh_detail() -> void:
 	_clear_box(_detail_box)
+	# Hide the whole detail column when there's nothing to show — gives the
+	# equipped + bank columns more horizontal room and reads as "nothing
+	# pending."
 	if _detail_target == null:
-		var hint := Label.new()
-		hint.text = "Click a move or passive\nto see details."
-		hint.modulate.a = 0.6
-		_detail_box.add_child(hint)
+		if _detail_col != null:
+			_detail_col.visible = false
 		return
+	if _detail_col != null:
+		_detail_col.visible = true
 
 	if _detail_target is Move:
 		var move: Move = _detail_target
@@ -345,47 +392,253 @@ func _render_move_detail(move: Move) -> void:
 # SELECTION + SWAP
 # =============================================================================
 
-func _make_slot_button(label_text: String, origin: String, index: int, interactive: bool) -> Button:
+func _make_slot_button(label_text: String, origin: String, index: int, interactive: bool, move: Move = null) -> Button:
+	var ui_manager: Node = get_node_or_null("/root/UIManager")
+
 	var btn := Button.new()
-	btn.text = label_text
 	btn.toggle_mode = false
-	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	# Without `btn.text` the Button collapses to its theme's empty-string
+	# height — way shorter than the icons + label we layout as children.
+	# Lock a minimum height so the hover highlight matches the visible
+	# content. 14px = 10px icon + 4px combined vertical padding — snug
+	# without the icons touching the slots above/below.
+	btn.custom_minimum_size = Vector2(0, 14)
 	# Even non-interactive (preview) buttons accept clicks — they update the
-	# detail column but don't participate in swap selection.
+	# detail column but don't participate in selection state.
 	btn.pressed.connect(_on_slot_pressed.bind(origin, index, interactive))
-	# Visual cue for highlighted slot (matches selection state).
-	if origin == _selection_origin and index == _selection_index:
+
+	# Build the slot's interior as a single HBoxContainer anchored to the
+	# Button's full rect (offset for left padding + space on the right for
+	# the swap icon). Children pass clicks through to the Button so the
+	# whole row remains clickable as a unit; only the swap icon (TextureButton,
+	# added below) captures its own click.
+	var hbox := HBoxContainer.new()
+	hbox.set_anchors_preset(Control.PRESET_FULL_RECT)
+	hbox.offset_left = 4
+	hbox.offset_right = -14  # leaves room for the swap icon
+	hbox.add_theme_constant_override("separation", 3)
+	hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	btn.add_child(hbox)
+
+	# Elemental + damage type icons. Skip on empty slots and on slots that
+	# don't carry move data (e.g. passives, which pass move = null).
+	var has_move_icons: bool = move != null and move.move_id != "empty"
+	if has_move_icons:
+		var elem_icon: TextureRect = _make_inline_icon(_elemental_icon_path(move.element_type))
+		if elem_icon != null:
+			hbox.add_child(elem_icon)
+		var dmg_icon: TextureRect = _make_inline_icon(Enums.get_damage_type_icon(move.damage_type))
+		if dmg_icon != null:
+			hbox.add_child(dmg_icon)
+
+	var name_label := Label.new()
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if ui_manager != null:
+		name_label.add_theme_font_override("font", ui_manager.font_8px)
+		name_label.add_theme_font_size_override("font_size", 8)
+	hbox.add_child(name_label)
+
+	var is_selected: bool = (
+		_selection_mode != SelectionMode.NONE
+		and origin == _selection_origin
+		and index == _selection_index
+	)
+	name_label.text = label_text
+	if is_selected and _selection_mode == SelectionMode.CARRY:
+		# CARRY = "I'm holding this." Strong saturated amber + a subtle
+		# modulate pulse so the slot reads as "active." The spinning swap
+		# icon (added below) is the primary cue.
+		btn.modulate = Color(2.0, 1.3, 0.4)
+		var pulse := btn.create_tween()
+		pulse.set_loops()
+		pulse.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		pulse.tween_property(btn, "modulate", Color(2.4, 1.6, 0.5), 0.45)
+		pulse.tween_property(btn, "modulate", Color(2.0, 1.3, 0.4), 0.45)
+	elif is_selected:
+		# BROWSE = "I'm reading this." Soft warm tint, no animation.
 		btn.modulate = Color(1.4, 1.4, 0.8)
 	if not interactive:
 		btn.modulate.a = 0.65
+
+	# Swap affordance:
+	#  • BROWSE: static icon, click to lift.
+	#  • CARRY: spinning icon, decorative — clicks pass through so clicking
+	#    the slot (anywhere, including on the icon) cancels via the
+	#    same-slot-click branch in _on_slot_pressed.
+	if interactive and _slot_has_content(origin, index) and is_selected:
+		var swap_icon := _make_swap_icon(origin, index)
+		if _selection_mode == SelectionMode.CARRY:
+			swap_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			swap_icon.pivot_offset = Vector2(4, 4)  # center of the 8×8 icon
+			# `as_relative()` so each loop adds another TAU instead of snapping
+			# back to the source value (which is what set_loops() does by
+			# default — would freeze at TAU after the first revolution).
+			var spin := swap_icon.create_tween()
+			spin.set_loops()
+			spin.tween_property(swap_icon, "rotation", TAU, 1.2).as_relative()
+		btn.add_child(swap_icon)
 	return btn
 
 
-func _on_slot_pressed(origin: String, index: int, interactive: bool) -> void:
-	# Update the detail column regardless of interactivity.
-	_detail_target = _resolve_slot_target(origin, index)
+# 10×10 inline icon helper for elemental and damage type rendered inside a slot.
+func _make_inline_icon(path: String) -> TextureRect:
+	if path.is_empty() or not ResourceLoader.exists(path):
+		return null
+	var icon := TextureRect.new()
+	icon.texture = load(path) as Texture2D
+	icon.custom_minimum_size = Vector2(10, 10)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return icon
 
+
+func _elemental_icon_path(element_type: Enums.ElementalType) -> String:
+	if element_type == Enums.ElementalType.NONE:
+		return ""
+	var type_name: String = Enums.ElementalType.keys()[element_type].to_lower()
+	return "res://art/sprites/ui/elemental_type_icons_10x10/%s.png" % type_name
+
+
+func _slot_has_content(origin: String, index: int) -> bool:
+	if _character_data == null:
+		return false
+	if origin == "equipped":
+		if index >= _character_data.equipped_moves.size():
+			return false
+		var move: Move = _character_data.equipped_moves[index]
+		return move != null and move.move_id != "empty"
+	if origin == "bank":
+		return true
+	return false
+
+
+func _make_swap_icon(origin: String, index: int) -> TextureButton:
+	var icon := TextureButton.new()
+	icon.texture_normal = _get_swap_icon_texture()
+	icon.custom_minimum_size = Vector2(8, 8)
+	icon.size = Vector2(8, 8)
+	icon.tooltip_text = "Swap with another move"
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	# Anchor to the right-center of the slot button. Position offset moves it
+	# 12px in from the right edge with a 4px top offset so it visually sits
+	# centered on a ~16px-tall slot.
+	icon.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
+	icon.position = Vector2(-12, -4)
+	icon.pressed.connect(_on_swap_icon_pressed.bind(origin, index))
+	return icon
+
+
+func _on_slot_pressed(origin: String, index: int, interactive: bool) -> void:
+	# Preview-only clicks (e.g. passives in moves edit mode) update detail
+	# but never touch selection state.
 	if not interactive:
-		# Preview-only click — refresh detail but leave any pending swap intact.
+		_detail_target = _resolve_slot_target(origin, index)
 		_refresh_detail()
 		return
 
-	# Interactive click — drives the selection / swap state machine.
-	if _selection_origin == "":
-		# Nothing pending; this click highlights.
-		_selection_origin = origin
-		_selection_index = index
-	elif _selection_origin == origin:
-		# Same column — change the highlight.
-		_selection_index = index
-	else:
-		# Cross-column click — swap.
-		var equipped_idx: int = _selection_index if _selection_origin == "equipped" else index
-		var bank_button: Button = _bank_box.get_child(_selection_index if _selection_origin == "bank" else index) as Button
-		if bank_button != null and bank_button.has_meta("move_name"):
-			_swap_move(equipped_idx, bank_button.get_meta("move_name"))
-		_clear_selection()
+	match _selection_mode:
+		SelectionMode.NONE:
+			_select_browse(origin, index)
+		SelectionMode.BROWSE:
+			if _selection_origin == origin and _selection_index == index:
+				# Same slot → deselect.
+				_clear_selection()
+			else:
+				# Different slot → just move the highlight.
+				_select_browse(origin, index)
+		SelectionMode.CARRY:
+			if _selection_origin == origin and _selection_index == index:
+				# Clicked the lifted slot itself → cancel carry, drop back
+				# to BROWSE on the same slot.
+				_selection_mode = SelectionMode.BROWSE
+			else:
+				_execute_swap_into(origin, index)
+				_clear_selection()
 	_refresh()
+
+
+func _on_swap_icon_pressed(origin: String, index: int) -> void:
+	_select_carry(origin, index)
+	_refresh()
+
+
+func _select_browse(origin: String, index: int) -> void:
+	_selection_mode = SelectionMode.BROWSE
+	_selection_origin = origin
+	_selection_index = index
+	_detail_target = _resolve_slot_target(origin, index)
+
+
+func _select_carry(origin: String, index: int) -> void:
+	_selection_mode = SelectionMode.CARRY
+	_selection_origin = origin
+	_selection_index = index
+	_detail_target = _resolve_slot_target(origin, index)
+
+
+## Routes the lifted slot (in _selection_*) into the target slot. Equipped→
+## equipped reorders; bank↔equipped swaps; bank→bank is a no-op (bank entries
+## don't have positional identity worth preserving).
+func _execute_swap_into(target_origin: String, target_index: int) -> void:
+	var src_origin: String = _selection_origin
+	var src_index: int = _selection_index
+	if src_origin == "equipped" and target_origin == "equipped":
+		_reorder_equipped_moves(src_index, target_index)
+	elif src_origin == "equipped" and target_origin == "bank":
+		var bank_btn: Button = _bank_box.get_child(target_index) as Button
+		if bank_btn != null and bank_btn.has_meta("move_name"):
+			_swap_move(src_index, bank_btn.get_meta("move_name"))
+	elif src_origin == "bank" and target_origin == "equipped":
+		var bank_btn: Button = _bank_box.get_child(src_index) as Button
+		if bank_btn != null and bank_btn.has_meta("move_name"):
+			_swap_move(target_index, bank_btn.get_meta("move_name"))
+	# bank → bank: intentional no-op
+
+
+# =============================================================================
+# CANCEL / ESC HANDLING
+# =============================================================================
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey:
+		var key_event: InputEventKey = event
+		if key_event.pressed and not key_event.echo and key_event.keycode == KEY_ESCAPE:
+			_on_cancel_input()
+			accept_event()
+	elif event is InputEventMouseButton:
+		# Click on empty space (not consumed by any slot button) cancels a
+		# pending carry. Esc handles the same case for keyboard.
+		var mb: InputEventMouseButton = event
+		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT \
+				and _selection_mode == SelectionMode.CARRY:
+			_on_cancel_input()
+
+
+func _on_cancel_input() -> void:
+	if _selection_mode == SelectionMode.CARRY:
+		# Drop back to BROWSE on the same slot — the user changed their mind
+		# but probably still wants to read what they were holding.
+		_selection_mode = SelectionMode.BROWSE
+		_refresh()
+	elif _selection_mode == SelectionMode.BROWSE:
+		_clear_selection()
+		_refresh()
+
+
+# =============================================================================
+# SWAP ICON ASSET
+# =============================================================================
+
+const _SWAP_ICON_PATH: String = "res://art/sprites/ui/swap_flat_8x8.png"
+
+
+static func _get_swap_icon_texture() -> Texture2D:
+	return load(_SWAP_ICON_PATH) as Texture2D
 
 
 func _resolve_slot_target(origin: String, index: int) -> Variant:
@@ -410,8 +663,26 @@ func _resolve_slot_target(origin: String, index: int) -> Variant:
 
 
 func _clear_selection() -> void:
+	_selection_mode = SelectionMode.NONE
 	_selection_origin = ""
 	_selection_index = -1
+	# Detail tracks the active selection — when nothing's pending, nothing's
+	# being previewed, so the column collapses on the next refresh.
+	_detail_target = null
+
+
+## Swaps the positions of two already-equipped moves. Lets the player reorder
+## their loadout (e.g. moving the "main" attack to slot 1) without round-trips
+## through the bank.
+func _reorder_equipped_moves(index_a: int, index_b: int) -> void:
+	if _character_data == null:
+		return
+	var moves: Array[Move] = _character_data.equipped_moves
+	if index_a < 0 or index_b < 0 or index_a >= moves.size() or index_b >= moves.size():
+		return
+	var temp: Move = moves[index_a]
+	moves[index_a] = moves[index_b]
+	moves[index_b] = temp
 
 
 ## Replaces the equipped-move slot at `equipped_index` with the bank move named

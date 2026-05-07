@@ -60,6 +60,17 @@
 - Lawrence-blocked items can't be parallelized; if blocked on art, skip ahead to the next code item.
 
 
+# [ ] Art Needed (Lawrence)
+- [ ] A 10x10 "Swap" icon (like 🔁, kinda, straighter arrows)
+- [ ] 
+## [ ] Range Icons
+- [ ] Icon for range: 1
+- [ ] Icon for range: 2
+- [ ] Icon for range: 1-2
+- [ ] Icon for range: 2-3
+- [ ] Icon for range: 3+
+- [ ] ANY OTHER ICONS WE NEED HERE?
+
 # [ ] BUGZ 
 - [x] Zooming in and mousing around outside the window still changes the terrain preview
 - [x] unit preview panel and terrain preview panel don't move to the left side of the screen (and presumably vice versa) when the cursor is on that side (no cursor in touchscreen mode but it's clearly still a problem)

@@ -119,10 +119,7 @@ func _update_header(unit: Unit) -> void:
 	var data: CharacterData = unit.character_data
 
 	# Portrait
-	if data != null and data.portrait_path != "" and ResourceLoader.exists(data.portrait_path):
-		_portrait.texture = load(data.portrait_path) as Texture2D
-	else:
-		_portrait.texture = null
+	_portrait.texture = CharacterPortrait.get_for(data)
 
 	# Name
 	_name_label.text = unit.unit_name
