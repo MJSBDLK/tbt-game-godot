@@ -1,6 +1,10 @@
+# [ ] Meeting 20260517
+- [ ] LOD - Get me the new character sprites that fit properly on the map
+- [x] LOD - push existing line art portraits
+- [ ] RQD - keep working on intermission screens
+- [ ] LOD - if you want to: new line art and/or new characters and/or new jungle biome/ice desert biome terrain
+
 # [ ] Meeting 20260510
-- [ ] LOD - 92x92 portrait
-- [ ] LOD - 32x32 portrait
 - [x] RQD - 10x10 hypoesthesia icon (random crop of static_noise.png, wired in InjuryDatabase)
 - [x] RQD - pull and implement the injury icons (all 16 icons wired in InjuryDatabase via icon_path; "crystallization" spelling synced)
 - [x] RQD - surface InjuryData.icon_path in the unit detail panel injury 2x2 grid (icons load but aren't drawn yet — on-map indicator NOT needed; injuries belong in the detail panel only, not above the unit)
