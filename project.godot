@@ -34,6 +34,7 @@ GameStateManager="*res://scripts/managers/game_state_manager.gd"
 InputManager="*res://scripts/managers/input_manager.gd"
 ActionMenuManager="*res://scripts/managers/action_menu_manager.gd"
 TurnManager="*res://scripts/managers/turn_manager.gd"
+PassiveEffectsSystem="*res://scripts/combat/passive_effects_system.gd"
 UIManager="*res://scripts/ui/ui_manager.gd"
 VisualFeedbackManager="*res://scripts/ui/visual_feedback_manager.gd"
 

@@ -1,8 +1,20 @@
+# [ ] Meeting 20260524
+## RQD
+## LOD
+
 # [ ] Meeting 20260517
+## LOD
 - [ ] LOD - Get me the new character sprites that fit properly on the map
+### [ ] LOD - options if you get bored
+ - [ ] new line art and/or
+ - [ ] new characters and/or
+ - [ ] new jungle biome terrain (see concept art)
+ - [ ] ice desert biome terrain
+## RQD
 - [x] LOD - push existing line art portraits
+- [ ] RQD - fix crashes in mission progression
+- [ ] RQD - implement line art portraits
 - [ ] RQD - keep working on intermission screens
-- [ ] LOD - if you want to: new line art and/or new characters and/or new jungle biome/ice desert biome terrain
 
 # [ ] Meeting 20260510
 - [x] RQD - 10x10 hypoesthesia icon (random crop of static_noise.png, wired in InjuryDatabase)

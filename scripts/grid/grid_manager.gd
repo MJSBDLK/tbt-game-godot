@@ -95,9 +95,16 @@ func clear_grid() -> void:
 # =============================================================================
 
 ## Get the tile at integer grid coordinates. Returns null if out of bounds.
+## Also returns null if the stored tile has been freed — defends against
+## scene-transition windows where this autoload is still polled (by
+## InputManager._process) after the battle scene's tiles are queued for
+## deletion.
 func get_tile(x: int, y: int) -> Tile:
 	var key := Vector2i(x, y)
-	return _grid.get(key, null) as Tile
+	var entry: Variant = _grid.get(key, null)
+	if entry == null or not is_instance_valid(entry):
+		return null
+	return entry as Tile
 
 
 ## Get the tile at a world position (converts pixel coords to grid coords).

@@ -88,7 +88,10 @@ var growth_gains_athleticism: int = 0
 var growth_gains_defense: int = 0
 var growth_gains_resistance: int = 0
 
-# Allocated stat ups (player-distributed between missions)
+# Player-distributed stat-up points (0..StatAllocation.PER_STAT_CAP per stat).
+# These are point counts, NOT raw stat deltas — the actual stat bonus is
+# computed by StatAllocation.compute_delta() so flat vs percentage modes can
+# be flipped without touching player allocation state.
 var allocated_hp: int = 0
 var allocated_strength: int = 0
 var allocated_special: int = 0
@@ -97,6 +100,7 @@ var allocated_agility: int = 0
 var allocated_athleticism: int = 0
 var allocated_defense: int = 0
 var allocated_resistance: int = 0
+# Total earned points the player can still distribute (level-up rewards).
 var available_stat_ups: int = 0
 
 # Bond bonuses (from adjacent allies)
@@ -171,28 +175,44 @@ const MAX_INJURY_SLOTS: int = 4
 # =============================================================================
 
 var max_hp: int:
-	get: return base_max_hp + growth_gains_hp + allocated_hp + bond_bonus_hp + passive_bonus_hp + injury_modifier_hp + status_modifier_hp
+	get:
+		var lv: int = base_max_hp + growth_gains_hp
+		return lv + StatAllocation.compute_delta("max_hp", lv, allocated_hp) + bond_bonus_hp + passive_bonus_hp + injury_modifier_hp + status_modifier_hp
 
 var strength: int:
-	get: return base_strength + growth_gains_strength + allocated_strength + bond_bonus_strength + passive_bonus_strength + injury_modifier_strength + status_modifier_strength
+	get:
+		var lv: int = base_strength + growth_gains_strength
+		return lv + StatAllocation.compute_delta("strength", lv, allocated_strength) + bond_bonus_strength + passive_bonus_strength + injury_modifier_strength + status_modifier_strength
 
 var special: int:
-	get: return base_special + growth_gains_special + allocated_special + bond_bonus_special + passive_bonus_special + injury_modifier_special + status_modifier_special
+	get:
+		var lv: int = base_special + growth_gains_special
+		return lv + StatAllocation.compute_delta("special", lv, allocated_special) + bond_bonus_special + passive_bonus_special + injury_modifier_special + status_modifier_special
 
 var skill: int:
-	get: return base_skill + growth_gains_skill + allocated_skill + bond_bonus_skill + passive_bonus_skill + injury_modifier_skill + status_modifier_skill
+	get:
+		var lv: int = base_skill + growth_gains_skill
+		return lv + StatAllocation.compute_delta("skill", lv, allocated_skill) + bond_bonus_skill + passive_bonus_skill + injury_modifier_skill + status_modifier_skill
 
 var agility: int:
-	get: return base_agility + growth_gains_agility + allocated_agility + bond_bonus_agility + passive_bonus_agility + injury_modifier_agility + status_modifier_agility
+	get:
+		var lv: int = base_agility + growth_gains_agility
+		return lv + StatAllocation.compute_delta("agility", lv, allocated_agility) + bond_bonus_agility + passive_bonus_agility + injury_modifier_agility + status_modifier_agility
 
 var athleticism: int:
-	get: return base_athleticism + growth_gains_athleticism + allocated_athleticism + bond_bonus_athleticism + passive_bonus_athleticism + injury_modifier_athleticism + status_modifier_athleticism
+	get:
+		var lv: int = base_athleticism + growth_gains_athleticism
+		return lv + StatAllocation.compute_delta("athleticism", lv, allocated_athleticism) + bond_bonus_athleticism + passive_bonus_athleticism + injury_modifier_athleticism + status_modifier_athleticism
 
 var defense: int:
-	get: return base_defense + growth_gains_defense + allocated_defense + bond_bonus_defense + passive_bonus_defense + injury_modifier_defense + status_modifier_defense
+	get:
+		var lv: int = base_defense + growth_gains_defense
+		return lv + StatAllocation.compute_delta("defense", lv, allocated_defense) + bond_bonus_defense + passive_bonus_defense + injury_modifier_defense + status_modifier_defense
 
 var resistance: int:
-	get: return base_resistance + growth_gains_resistance + allocated_resistance + bond_bonus_resistance + passive_bonus_resistance + injury_modifier_resistance + status_modifier_resistance
+	get:
+		var lv: int = base_resistance + growth_gains_resistance
+		return lv + StatAllocation.compute_delta("resistance", lv, allocated_resistance) + bond_bonus_resistance + passive_bonus_resistance + injury_modifier_resistance + status_modifier_resistance
 
 
 # =============================================================================
@@ -319,36 +339,74 @@ func get_base_plus_growth(stat_name: String) -> int:
 
 func get_bonus_total(stat_name: String) -> int:
 	## Returns the sum of allocated + bond + passive + status modifiers (excludes base and growth).
-	var allocated: int = 0
+	## `allocated` is a stat delta computed via StatAllocation, not raw points.
 	var bond: int = 0
 	var passive: int = 0
 	var status: int = 0
 	match stat_name:
 		"max_hp":
-			allocated = allocated_hp; bond = bond_bonus_hp
-			passive = passive_bonus_hp; status = status_modifier_hp
+			bond = bond_bonus_hp; passive = passive_bonus_hp; status = status_modifier_hp
 		"strength":
-			allocated = allocated_strength; bond = bond_bonus_strength
-			passive = passive_bonus_strength; status = status_modifier_strength
+			bond = bond_bonus_strength; passive = passive_bonus_strength; status = status_modifier_strength
 		"special":
-			allocated = allocated_special; bond = bond_bonus_special
-			passive = passive_bonus_special; status = status_modifier_special
+			bond = bond_bonus_special; passive = passive_bonus_special; status = status_modifier_special
 		"skill":
-			allocated = allocated_skill; bond = bond_bonus_skill
-			passive = passive_bonus_skill; status = status_modifier_skill
+			bond = bond_bonus_skill; passive = passive_bonus_skill; status = status_modifier_skill
 		"agility":
-			allocated = allocated_agility; bond = bond_bonus_agility
-			passive = passive_bonus_agility; status = status_modifier_agility
+			bond = bond_bonus_agility; passive = passive_bonus_agility; status = status_modifier_agility
 		"athleticism":
-			allocated = allocated_athleticism; bond = bond_bonus_athleticism
-			passive = passive_bonus_athleticism; status = status_modifier_athleticism
+			bond = bond_bonus_athleticism; passive = passive_bonus_athleticism; status = status_modifier_athleticism
 		"defense":
-			allocated = allocated_defense; bond = bond_bonus_defense
-			passive = passive_bonus_defense; status = status_modifier_defense
+			bond = bond_bonus_defense; passive = passive_bonus_defense; status = status_modifier_defense
 		"resistance":
-			allocated = allocated_resistance; bond = bond_bonus_resistance
-			passive = passive_bonus_resistance; status = status_modifier_resistance
-	return allocated + bond + passive + status
+			bond = bond_bonus_resistance; passive = passive_bonus_resistance; status = status_modifier_resistance
+	var level_value: int = get_base_plus_growth(stat_name)
+	var allocated_delta: int = StatAllocation.compute_delta(stat_name, level_value, get_allocated_points(stat_name))
+	return allocated_delta + bond + passive + status
+
+
+func get_allocated_points(stat_name: String) -> int:
+	match stat_name:
+		"max_hp": return allocated_hp
+		"strength": return allocated_strength
+		"special": return allocated_special
+		"skill": return allocated_skill
+		"agility": return allocated_agility
+		"athleticism": return allocated_athleticism
+		"defense": return allocated_defense
+		"resistance": return allocated_resistance
+	return 0
+
+
+func set_allocated_points(stat_name: String, value: int) -> void:
+	match stat_name:
+		"max_hp": allocated_hp = value
+		"strength": allocated_strength = value
+		"special": allocated_special = value
+		"skill": allocated_skill = value
+		"agility": allocated_agility = value
+		"athleticism": allocated_athleticism = value
+		"defense": allocated_defense = value
+		"resistance": allocated_resistance = value
+
+
+## Sum of points spent across all 8 stats. Pair with `available_stat_ups` to
+## know how many remain (`available - allocated_total`).
+func allocated_total() -> int:
+	return (allocated_hp + allocated_strength + allocated_special + allocated_skill
+		+ allocated_agility + allocated_athleticism + allocated_defense + allocated_resistance)
+
+
+## Returns spent points to the pool. Used by the prep screen's reset button.
+func reset_allocations() -> void:
+	allocated_hp = 0
+	allocated_strength = 0
+	allocated_special = 0
+	allocated_skill = 0
+	allocated_agility = 0
+	allocated_athleticism = 0
+	allocated_defense = 0
+	allocated_resistance = 0
 
 
 func is_at_stat_cap(stat_name: String) -> bool:
@@ -528,6 +586,7 @@ func process_level_up() -> void:
 	if randf() * 100.0 < growth_rate_resistance and not is_at_stat_cap("resistance"):
 		growth_gains_resistance += 1
 	level += 1
+	available_stat_ups += StatAllocation.points_awarded_at_level(level)
 
 
 ## Simulate level-ups from the character's current level up to `target_level`.

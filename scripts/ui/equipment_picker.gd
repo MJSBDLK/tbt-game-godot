@@ -23,7 +23,21 @@ class_name EquipmentPicker
 extends Control
 
 
-enum EditMode { MOVES, PASSIVES }
+enum EditMode { MOVES, PASSIVES, STATS }
+
+
+# Display order + labels for the stat-allocation panel. Mirrors the abbreviation
+# convention used in the summary header so the player learns one set of names.
+const _STAT_ROWS: Array = [
+	{"name": "max_hp",      "label": "HP"},
+	{"name": "strength",    "label": "STR"},
+	{"name": "special",     "label": "SPC"},
+	{"name": "skill",       "label": "SKL"},
+	{"name": "agility",     "label": "AGL"},
+	{"name": "athleticism", "label": "ATH"},
+	{"name": "defense",     "label": "DEF"},
+	{"name": "resistance",  "label": "RES"},
+]
 
 
 ## Emitted when the user dismisses the picker via the close button. Prep
@@ -67,7 +81,11 @@ var _selection_index: int = -1
 # What to render in the detail column on the right. Tracks selection plus
 # preview-only clicks (e.g. clicking a passive while in moves edit mode
 # updates detail without disturbing the swap state).
-var _detail_target: Variant = null  # Move or passive name (String) or null
+#
+# `_detail_target_kind` disambiguates passive-name strings from move-name
+# strings; both flow through the same field but render via different paths.
+var _detail_target: Variant = null  # Move, passive name (String), or null
+var _detail_target_kind: String = ""  # "" | "move" | "passive"
 
 # UI refs
 var _summary_label: RichTextLabel = null
@@ -76,7 +94,14 @@ var _equipped_passives_box: VBoxContainer = null
 var _bank_box: VBoxContainer = null
 var _detail_box: VBoxContainer = null
 var _detail_col: VBoxContainer = null
-var _mode_toggle_label: Label = null
+var _mode_toggle_button: Button = null
+# The MOVES/PASSIVES three-column body and the STATS body live as siblings
+# under root; visibility flips together based on edit_mode.
+var _equipment_body: HBoxContainer = null
+var _stats_body: VBoxContainer = null
+var _stat_rows_box: VBoxContainer = null
+var _stat_pool_label: Label = null
+var _stat_reset_button: Button = null
 
 
 # =============================================================================
@@ -135,19 +160,23 @@ func _build_ui() -> void:
 	close_button.pressed.connect(func() -> void: closed.emit())
 	header_row.add_child(close_button)
 
-	# Mode toggle hint
-	_mode_toggle_label = Label.new()
-	_mode_toggle_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	# Mode toggle button — flips between editing moves and editing passives.
+	# Click cycles. Inactive section becomes preview-only on the next refresh.
+	_mode_toggle_button = Button.new()
+	_mode_toggle_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_mode_toggle_button.tooltip_text = "Toggle moves / passives"
 	if ui_manager != null:
-		_mode_toggle_label.add_theme_font_override("font", ui_manager.font_5px)
-		_mode_toggle_label.add_theme_font_size_override("font_size", 5)
-	root.add_child(_mode_toggle_label)
+		_mode_toggle_button.add_theme_font_override("font", ui_manager.font_8px)
+		_mode_toggle_button.add_theme_font_size_override("font_size", 8)
+	_mode_toggle_button.pressed.connect(_on_mode_toggle_pressed)
+	root.add_child(_mode_toggle_button)
 
-	# Three-column body
+	# Three-column body (MOVES/PASSIVES editing). Hidden when STATS mode active.
 	var columns := HBoxContainer.new()
 	columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	columns.add_theme_constant_override("separation", 8)
 	root.add_child(columns)
+	_equipment_body = columns
 
 	# Left: equipped moves (top) + passives (bottom)
 	var equipped_col := VBoxContainer.new()
@@ -220,6 +249,46 @@ func _build_ui() -> void:
 	_detail_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_detail_col.add_child(_detail_box)
 
+	_build_stats_body(root, ui_manager)
+
+
+func _build_stats_body(root: VBoxContainer, ui_manager: Node) -> void:
+	_stats_body = VBoxContainer.new()
+	_stats_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_stats_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_stats_body.add_theme_constant_override("separation", 4)
+	_stats_body.visible = false
+	root.add_child(_stats_body)
+
+	# Top row: pool counter on the left, Reset on the right.
+	var header_row := HBoxContainer.new()
+	header_row.add_theme_constant_override("separation", 8)
+	_stats_body.add_child(header_row)
+
+	_stat_pool_label = Label.new()
+	_stat_pool_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if ui_manager != null:
+		_stat_pool_label.add_theme_font_override("font", ui_manager.font_8px)
+		_stat_pool_label.add_theme_font_size_override("font_size", 8)
+	header_row.add_child(_stat_pool_label)
+
+	_stat_reset_button = Button.new()
+	_stat_reset_button.text = "Reset"
+	_stat_reset_button.tooltip_text = "Refund every allocated point back to the pool"
+	_stat_reset_button.custom_minimum_size = Vector2(44, 14)
+	if ui_manager != null:
+		_stat_reset_button.add_theme_font_override("font", ui_manager.font_5px)
+		_stat_reset_button.add_theme_font_size_override("font_size", 5)
+	_stat_reset_button.pressed.connect(_on_stat_reset_pressed)
+	header_row.add_child(_stat_reset_button)
+
+	# 8 stat rows live here — repopulated each refresh.
+	_stat_rows_box = VBoxContainer.new()
+	_stat_rows_box.add_theme_constant_override("separation", 2)
+	_stat_rows_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_stat_rows_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_stats_body.add_child(_stat_rows_box)
+
 
 # =============================================================================
 # REFRESH
@@ -228,10 +297,21 @@ func _build_ui() -> void:
 func _refresh() -> void:
 	_refresh_summary()
 	_refresh_mode_toggle()
+	_refresh_visible_body()
+	if edit_mode == EditMode.STATS:
+		_refresh_stats_body()
+		return
 	_refresh_equipped_moves()
 	_refresh_equipped_passives()
 	_refresh_bank()
 	_refresh_detail()
+
+
+func _refresh_visible_body() -> void:
+	if _equipment_body != null:
+		_equipment_body.visible = edit_mode != EditMode.STATS
+	if _stats_body != null:
+		_stats_body.visible = edit_mode == EditMode.STATS
 
 
 func _refresh_summary() -> void:
@@ -255,10 +335,24 @@ func _refresh_summary() -> void:
 
 
 func _refresh_mode_toggle() -> void:
-	if _mode_toggle_label == null:
+	if _mode_toggle_button == null:
 		return
-	var mode_str: String = "Moves" if edit_mode == EditMode.MOVES else "Passives"
-	_mode_toggle_label.text = "Editing: %s   (toggle deferred — moves only for now)" % mode_str
+	var mode_str: String = "Moves"
+	match edit_mode:
+		EditMode.PASSIVES: mode_str = "Passives"
+		EditMode.STATS: mode_str = "Stats"
+	_mode_toggle_button.text = "Editing: %s  ⇄" % mode_str
+
+
+func _on_mode_toggle_pressed() -> void:
+	# Wipe selection + detail before switching — the new mode's interactive
+	# section is different, so any held slot is now meaningless.
+	_clear_selection()
+	match edit_mode:
+		EditMode.MOVES: edit_mode = EditMode.PASSIVES
+		EditMode.PASSIVES: edit_mode = EditMode.STATS
+		_: edit_mode = EditMode.MOVES
+	_refresh()
 
 
 func _refresh_equipped_moves() -> void:
@@ -275,7 +369,8 @@ func _refresh_equipped_moves() -> void:
 			label = moves[i].move_name
 		else:
 			label = "— (empty)"
-		var btn := _make_slot_button(label, "equipped", i, edit_mode == EditMode.MOVES, move_or_null)
+		var btn := _make_slot_button(
+			label, "equipped", i, edit_mode == EditMode.MOVES, move_or_null)
 		_equipped_moves_box.add_child(btn)
 
 
@@ -284,15 +379,20 @@ func _refresh_equipped_passives() -> void:
 	if _character_data == null:
 		return
 	var passives: Array = _character_data.equipped_passives
-	# Show at least 1 slot even if empty.
-	var slot_count: int = maxi(passives.size(), 1)
+	# 4 fixed slots — matches the move grid visually so the equipped column
+	# reads as a uniform 4×N stack regardless of which mode you're in.
+	var slot_count: int = 4
 	for i: int in range(slot_count):
 		var label: String = "— (empty)"
+		var passive_name: String = ""
 		if i < passives.size():
 			var p: Variant = passives[i]
-			label = str(p) if p != null else "— (empty)"
-		# Passives are preview-only this iteration regardless of edit_mode.
-		var btn := _make_slot_button(label, "equipped_passive", i, false)
+			if p != null:
+				passive_name = str(p)
+				label = passive_name
+		var btn := _make_slot_button(
+			label, "equipped_passive", i, edit_mode == EditMode.PASSIVES,
+			null, passive_name)
 		_equipped_passives_box.add_child(btn)
 
 
@@ -300,8 +400,13 @@ func _refresh_bank() -> void:
 	_clear_box(_bank_box)
 	if _character_data == null:
 		return
-	# Bank shows movepool entries that aren't currently equipped.
-	# Alphabetize for predictable scrolling.
+	if edit_mode == EditMode.MOVES:
+		_populate_move_bank()
+	else:
+		_populate_passive_bank()
+
+
+func _populate_move_bank() -> void:
 	var equipped_names: Dictionary = {}
 	for move: Move in _character_data.equipped_moves:
 		if move != null:
@@ -311,18 +416,38 @@ func _refresh_bank() -> void:
 		if not equipped_names.has(name):
 			available.append(name)
 	available.sort()
-
 	if available.is_empty():
 		var empty_label := Label.new()
 		empty_label.text = "(no other moves available)"
 		_bank_box.add_child(empty_label)
 		return
-
 	for i: int in range(available.size()):
 		var bank_move: Move = MoveData.get_move(available[i])
-		var btn := _make_slot_button(available[i], "bank", i, edit_mode == EditMode.MOVES, bank_move)
-		# Stash the move name on the button as metadata so we don't need to re-resolve from index.
-		btn.set_meta("move_name", available[i])
+		var btn := _make_slot_button(available[i], "bank", i, true, bank_move)
+		# Stash the item name as metadata so swaps don't need to re-resolve from index.
+		btn.set_meta("item_name", available[i])
+		_bank_box.add_child(btn)
+
+
+func _populate_passive_bank() -> void:
+	# Mirror the move bank: pool minus equipped, alphabetized.
+	var equipped_names: Dictionary = {}
+	for passive: Variant in _character_data.equipped_passives:
+		if passive != null:
+			equipped_names[str(passive)] = true
+	var available: Array[String] = []
+	for name: String in _character_data.base_pool_passives:
+		if not equipped_names.has(name):
+			available.append(name)
+	available.sort()
+	if available.is_empty():
+		var empty_label := Label.new()
+		empty_label.text = "(no other passives available)"
+		_bank_box.add_child(empty_label)
+		return
+	for i: int in range(available.size()):
+		var btn := _make_slot_button(available[i], "bank", i, true, null, available[i])
+		btn.set_meta("item_name", available[i])
 		_bank_box.add_child(btn)
 
 
@@ -338,18 +463,17 @@ func _refresh_detail() -> void:
 	if _detail_col != null:
 		_detail_col.visible = true
 
-	if _detail_target is Move:
-		var move: Move = _detail_target
-		_render_move_detail(move)
-	elif _detail_target is String:
-		# Bank entry stored as name — resolve to Move and render.
-		var move := MoveData.get_move(_detail_target)
-		if move != null:
-			_render_move_detail(move)
-		else:
-			var name_only := Label.new()
-			name_only.text = str(_detail_target)
-			_detail_box.add_child(name_only)
+	match _detail_target_kind:
+		"move":
+			var move: Move = null
+			if _detail_target is Move:
+				move = _detail_target
+			elif _detail_target is String:
+				move = MoveData.get_move(_detail_target)
+			if move != null:
+				_render_move_detail(move)
+		"passive":
+			_render_passive_detail(str(_detail_target))
 
 
 func _render_move_detail(move: Move) -> void:
@@ -388,11 +512,33 @@ func _render_move_detail(move: Move) -> void:
 	_detail_box.add_child(desc_label)
 
 
+func _render_passive_detail(passive_name: String) -> void:
+	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var name_label := Label.new()
+	name_label.text = passive_name
+	if ui_manager != null:
+		name_label.add_theme_font_override("font", ui_manager.font_8px)
+		name_label.add_theme_font_size_override("font_size", 8)
+	_detail_box.add_child(name_label)
+
+	var desc_label := Label.new()
+	desc_label.text = PassiveData.get_description(passive_name)
+	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if ui_manager != null:
+		desc_label.add_theme_font_override("font", ui_manager.font_5px)
+		desc_label.add_theme_font_size_override("font_size", 5)
+	_detail_box.add_child(desc_label)
+
+
 # =============================================================================
 # SELECTION + SWAP
 # =============================================================================
 
-func _make_slot_button(label_text: String, origin: String, index: int, interactive: bool, move: Move = null) -> Button:
+## `move`: present for move slots; drives the inline element + damage icons.
+## Passive slots pass `move = null`; the icon row simply collapses.
+func _make_slot_button(
+		label_text: String, origin: String, index: int, interactive: bool,
+		move: Move = null, _passive_name: String = "") -> Button:
 	var ui_manager: Node = get_node_or_null("/root/UIManager")
 
 	var btn := Button.new()
@@ -512,6 +658,11 @@ func _slot_has_content(origin: String, index: int) -> bool:
 			return false
 		var move: Move = _character_data.equipped_moves[index]
 		return move != null and move.move_id != "empty"
+	if origin == "equipped_passive":
+		if index >= _character_data.equipped_passives.size():
+			return false
+		var p: Variant = _character_data.equipped_passives[index]
+		return p != null and str(p) != ""
 	if origin == "bank":
 		return true
 	return false
@@ -537,7 +688,7 @@ func _on_slot_pressed(origin: String, index: int, interactive: bool) -> void:
 	# Preview-only clicks (e.g. passives in moves edit mode) update detail
 	# but never touch selection state.
 	if not interactive:
-		_detail_target = _resolve_slot_target(origin, index)
+		_capture_detail_target(origin, index)
 		_refresh_detail()
 		return
 
@@ -571,33 +722,56 @@ func _select_browse(origin: String, index: int) -> void:
 	_selection_mode = SelectionMode.BROWSE
 	_selection_origin = origin
 	_selection_index = index
-	_detail_target = _resolve_slot_target(origin, index)
+	_capture_detail_target(origin, index)
 
 
 func _select_carry(origin: String, index: int) -> void:
 	_selection_mode = SelectionMode.CARRY
 	_selection_origin = origin
 	_selection_index = index
-	_detail_target = _resolve_slot_target(origin, index)
+	_capture_detail_target(origin, index)
 
 
 ## Routes the lifted slot (in _selection_*) into the target slot. Equipped→
 ## equipped reorders; bank↔equipped swaps; bank→bank is a no-op (bank entries
-## don't have positional identity worth preserving).
+## don't have positional identity worth preserving). Dispatches the move vs
+## passive variant based on `edit_mode` — the inactive section can't initiate
+## a swap, so origin combinations from the wrong mode never reach here.
 func _execute_swap_into(target_origin: String, target_index: int) -> void:
 	var src_origin: String = _selection_origin
 	var src_index: int = _selection_index
-	if src_origin == "equipped" and target_origin == "equipped":
-		_reorder_equipped_moves(src_index, target_index)
-	elif src_origin == "equipped" and target_origin == "bank":
-		var bank_btn: Button = _bank_box.get_child(target_index) as Button
-		if bank_btn != null and bank_btn.has_meta("move_name"):
-			_swap_move(src_index, bank_btn.get_meta("move_name"))
-	elif src_origin == "bank" and target_origin == "equipped":
-		var bank_btn: Button = _bank_box.get_child(src_index) as Button
-		if bank_btn != null and bank_btn.has_meta("move_name"):
-			_swap_move(target_index, bank_btn.get_meta("move_name"))
+	if edit_mode == EditMode.MOVES:
+		if src_origin == "equipped" and target_origin == "equipped":
+			_reorder_equipped_moves(src_index, target_index)
+		elif src_origin == "equipped" and target_origin == "bank":
+			var bank_name: String = _read_bank_item_name(target_index)
+			if bank_name != "":
+				_swap_move(src_index, bank_name)
+		elif src_origin == "bank" and target_origin == "equipped":
+			var bank_name: String = _read_bank_item_name(src_index)
+			if bank_name != "":
+				_swap_move(target_index, bank_name)
+	else:  # PASSIVES
+		if src_origin == "equipped_passive" and target_origin == "equipped_passive":
+			_reorder_equipped_passives(src_index, target_index)
+		elif src_origin == "equipped_passive" and target_origin == "bank":
+			var bank_name: String = _read_bank_item_name(target_index)
+			if bank_name != "":
+				_swap_passive(src_index, bank_name)
+		elif src_origin == "bank" and target_origin == "equipped_passive":
+			var bank_name: String = _read_bank_item_name(src_index)
+			if bank_name != "":
+				_swap_passive(target_index, bank_name)
 	# bank → bank: intentional no-op
+
+
+func _read_bank_item_name(bank_index: int) -> String:
+	if bank_index < 0 or bank_index >= _bank_box.get_child_count():
+		return ""
+	var btn: Node = _bank_box.get_child(bank_index)
+	if btn == null or not btn.has_meta("item_name"):
+		return ""
+	return str(btn.get_meta("item_name"))
 
 
 # =============================================================================
@@ -641,25 +815,35 @@ static func _get_swap_icon_texture() -> Texture2D:
 	return load(_SWAP_ICON_PATH) as Texture2D
 
 
-func _resolve_slot_target(origin: String, index: int) -> Variant:
+## Sets `_detail_target` and `_detail_target_kind` based on the slot at
+## (origin, index). Kind matters because move names and passive names are both
+## bare strings — without it, the detail renderer can't tell which lookup to
+## perform.
+func _capture_detail_target(origin: String, index: int) -> void:
+	_detail_target = null
+	_detail_target_kind = ""
 	if _character_data == null:
-		return null
+		return
 	if origin == "equipped":
 		var moves: Array[Move] = _character_data.equipped_moves
 		if index < moves.size():
-			return moves[index]
-		return null
-	if origin == "bank":
-		var btn: Node = _bank_box.get_child(index)
-		if btn != null and btn.has_meta("move_name"):
-			return btn.get_meta("move_name")
-		return null
+			_detail_target = moves[index]
+			_detail_target_kind = "move"
+		return
 	if origin == "equipped_passive":
 		var passives: Array = _character_data.equipped_passives
-		if index < passives.size():
-			return passives[index]  # passive name string
-		return null
-	return null
+		if index < passives.size() and passives[index] != null:
+			_detail_target = str(passives[index])
+			_detail_target_kind = "passive"
+		return
+	if origin == "bank":
+		if index < 0 or index >= _bank_box.get_child_count():
+			return
+		var btn: Node = _bank_box.get_child(index)
+		if btn == null or not btn.has_meta("item_name"):
+			return
+		_detail_target = str(btn.get_meta("item_name"))
+		_detail_target_kind = "move" if edit_mode == EditMode.MOVES else "passive"
 
 
 func _clear_selection() -> void:
@@ -669,6 +853,7 @@ func _clear_selection() -> void:
 	# Detail tracks the active selection — when nothing's pending, nothing's
 	# being previewed, so the column collapses on the next refresh.
 	_detail_target = null
+	_detail_target_kind = ""
 
 
 ## Swaps the positions of two already-equipped moves. Lets the player reorder
@@ -703,6 +888,160 @@ func _swap_move(equipped_index: int, bank_move_name: String) -> void:
 		while _character_data.equipped_moves.size() <= equipped_index:
 			_character_data.equipped_moves.append(Move.EMPTY)
 		_character_data.equipped_moves[equipped_index] = new_move
+
+
+## Mirror of `_reorder_equipped_moves` for the passive list.
+func _reorder_equipped_passives(index_a: int, index_b: int) -> void:
+	if _character_data == null:
+		return
+	var passives: Array = _character_data.equipped_passives
+	if index_a < 0 or index_b < 0 or index_a >= passives.size() or index_b >= passives.size():
+		return
+	var temp: Variant = passives[index_a]
+	passives[index_a] = passives[index_b]
+	passives[index_b] = temp
+
+
+## Mirror of `_swap_move` for passives. Stored as bare strings — no
+## per-instance state to track (passives don't have PP / cooldowns yet).
+func _swap_passive(equipped_index: int, bank_passive_name: String) -> void:
+	if _character_data == null:
+		return
+	if PassiveData.get_passive(bank_passive_name) == null:
+		push_warning("EquipmentPicker: passive '%s' not in PassiveData" % bank_passive_name)
+		return
+	var passives: Array = _character_data.equipped_passives
+	if equipped_index < passives.size():
+		passives[equipped_index] = bank_passive_name
+	else:
+		while passives.size() < equipped_index:
+			passives.append("")
+		passives.append(bank_passive_name)
+
+
+# =============================================================================
+# STATS BODY
+# =============================================================================
+
+func _refresh_stats_body() -> void:
+	_clear_box(_stat_rows_box)
+	if _character_data == null:
+		_stat_pool_label.text = ""
+		_stat_reset_button.disabled = true
+		return
+
+	var spent: int = _character_data.allocated_total()
+	var pool: int = _character_data.available_stat_ups
+	var remaining: int = pool - spent
+	# "Stat Ups: 7 / 10 unspent" reads as a glance — pool size on the right
+	# anchors expectations so a player ramping a fresh recruit (with a small
+	# pool) doesn't think the system is broken.
+	_stat_pool_label.text = "Stat Ups: %d / %d unspent" % [remaining, pool]
+	_stat_reset_button.disabled = spent == 0
+
+	for entry: Dictionary in _STAT_ROWS:
+		var row := _make_stat_row(str(entry["name"]), str(entry["label"]), remaining)
+		_stat_rows_box.add_child(row)
+
+
+func _make_stat_row(stat_name: String, abbrev: String, points_remaining: int) -> HBoxContainer:
+	var ui_manager: Node = get_node_or_null("/root/UIManager")
+
+	var row := HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", 4)
+
+	var name_label := Label.new()
+	name_label.text = abbrev
+	name_label.custom_minimum_size = Vector2(22, 14)
+	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	if ui_manager != null:
+		name_label.add_theme_font_override("font", ui_manager.font_8px)
+		name_label.add_theme_font_size_override("font_size", 8)
+	row.add_child(name_label)
+
+	var points: int = _character_data.get_allocated_points(stat_name)
+	var level_value: int = _character_data.get_base_plus_growth(stat_name)
+	var resulting: int = level_value + StatAllocation.compute_delta(stat_name, level_value, points)
+
+	var minus_button := Button.new()
+	minus_button.text = "-"
+	minus_button.custom_minimum_size = Vector2(14, 14)
+	minus_button.disabled = points <= 0
+	if ui_manager != null:
+		minus_button.add_theme_font_override("font", ui_manager.font_8px)
+		minus_button.add_theme_font_size_override("font_size", 8)
+	minus_button.pressed.connect(_on_stat_decrement.bind(stat_name))
+	row.add_child(minus_button)
+
+	# Value display: "30+++ → 33". The pluses are colored; the arrow + result
+	# only appear when allocation produced a non-zero delta. Level value stays
+	# left-aligned regardless of allocation so columns don't jitter as the
+	# player clicks +/-.
+	var value_label := RichTextLabel.new()
+	value_label.bbcode_enabled = true
+	value_label.fit_content = true
+	value_label.scroll_active = false
+	value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	value_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	value_label.custom_minimum_size = Vector2(0, 14)
+	if ui_manager != null:
+		value_label.add_theme_font_override("normal_font", ui_manager.font_8px)
+		value_label.add_theme_font_size_override("normal_font_size", 8)
+	var green_hex: String = GameColorPalette.get_color("Green", 6).to_html(false)
+	var pluses: String = "+".repeat(points)
+	var trailer: String = ""
+	if points > 0 and resulting != level_value:
+		trailer = "  → %d" % resulting
+	value_label.text = "%d[color=#%s]%s[/color]%s" % [level_value, green_hex, pluses, trailer]
+	row.add_child(value_label)
+
+	var plus_button := Button.new()
+	plus_button.text = "+"
+	plus_button.custom_minimum_size = Vector2(14, 14)
+	# `+` greys out at the per-stat cap OR when the pool is empty, so the
+	# affordance reads "this button can't do anything right now" in either case.
+	plus_button.disabled = points >= StatAllocation.PER_STAT_CAP or points_remaining <= 0
+	if ui_manager != null:
+		plus_button.add_theme_font_override("font", ui_manager.font_8px)
+		plus_button.add_theme_font_size_override("font_size", 8)
+	plus_button.pressed.connect(_on_stat_increment.bind(stat_name))
+	row.add_child(plus_button)
+	return row
+
+
+func _on_stat_increment(stat_name: String) -> void:
+	if _character_data == null:
+		return
+	var points: int = _character_data.get_allocated_points(stat_name)
+	if points >= StatAllocation.PER_STAT_CAP:
+		return
+	if _character_data.allocated_total() >= _character_data.available_stat_ups:
+		return
+	_character_data.set_allocated_points(stat_name, points + 1)
+	_refresh_summary()
+	_refresh_stats_body()
+
+
+func _on_stat_decrement(stat_name: String) -> void:
+	if _character_data == null:
+		return
+	var points: int = _character_data.get_allocated_points(stat_name)
+	if points <= 0:
+		return
+	_character_data.set_allocated_points(stat_name, points - 1)
+	_refresh_summary()
+	_refresh_stats_body()
+
+
+func _on_stat_reset_pressed() -> void:
+	if _character_data == null:
+		return
+	if _character_data.allocated_total() == 0:
+		return
+	_character_data.reset_allocations()
+	_refresh_summary()
+	_refresh_stats_body()
 
 
 # =============================================================================

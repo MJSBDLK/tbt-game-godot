@@ -38,6 +38,14 @@ func _ready() -> void:
 		GridManager.grid_ready.connect(_on_grid_ready)
 
 
+func _exit_tree() -> void:
+	# GridManager is an autoload — it outlives the battle scene. Without an
+	# explicit clear, its internal _grid keeps refs to tiles that are about
+	# to be freed; InputManager._process then polls those stale entries and
+	# crashes on cast / freezes the engine.
+	GridManager.clear_grid()
+
+
 func _on_grid_ready() -> void:
 	if show_vignette:
 		_build_vignette()
@@ -57,6 +65,12 @@ func _on_grid_ready() -> void:
 		turn_manager.initialize_battle(player_units, enemy_units)
 	else:
 		push_warning("BattleScene: TurnManager not found — running without turn loop")
+
+	# Wire passive effects after TurnManager owns the unit lists; the system
+	# does an initial recompute so opening-turn passive bonuses are correct.
+	var passive_effects: Node = get_node_or_null("/root/PassiveEffectsSystem")
+	if passive_effects != null:
+		passive_effects.register_battle_units(player_units, enemy_units)
 
 
 # =============================================================================

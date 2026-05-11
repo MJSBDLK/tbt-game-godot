@@ -203,6 +203,10 @@ func _update_hover() -> void:
 	var mouse_pos: Vector2 = viewport.get_mouse_position()
 	if not viewport.get_visible_rect().has_point(mouse_pos):
 		return
+	# Drop stale tile refs after a scene transition — this autoload survives
+	# the battle scene, so _hovered_tile may point at a freed Tile.
+	if _hovered_tile != null and not is_instance_valid(_hovered_tile):
+		_hovered_tile = null
 	var world_position := _get_world_mouse_position()
 	var tile := GridManager.get_tile_at_position(world_position)
 	if tile != _hovered_tile:

@@ -11,6 +11,10 @@
 		"abbrevName": "Capric.",
 		"description": "Cannot use the same move twice in a row; picks randomly among remaining usable moves"
 	},
+	"Competitive": {
+		"abbrevName": "Compet.",
+		"description": "+3 to whichever stat is highest among allied units within 3 tiles. Max tries to keep up."
+	},
 	"Cavalier": {
 		"abbrevName": "Cavalier",
 		"description": "Attacking stats cannot be buffed or debuffed by moves"

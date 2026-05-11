@@ -98,6 +98,12 @@ static func _parse_character_json(data: Dictionary) -> CharacterData:
 		if move != null:
 			character.equipped_moves.append(move)
 
+	# Equip passives from pool (up to 4) — mirrors the move auto-equip so
+	# units arrive with their first few passives slotted instead of empty.
+	# Players reorder/swap via the prep-screen picker.
+	for i: int in range(mini(passive_names.size(), 4)):
+		character.equipped_passives.append(str(passive_names[i]))
+
 	return character
 
 
