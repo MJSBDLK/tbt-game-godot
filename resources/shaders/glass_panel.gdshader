@@ -29,8 +29,8 @@ uniform float scanline_speed : hint_range(-2.0, 2.0) = 0.0;
 
 // === Every-Nth-scanline accent ===
 // On every Nth scanline cycle, brightens the row by `accent_strength`.
-// Setting accent_strength = 0 disables the effect entirely.
-uniform float accent_every : hint_range(2.0, 64.0) = 32.0;
+// Setting accent_strength = 0 OR accent_every = 0 disables the effect.
+uniform float accent_every : hint_range(0.0, 64.0) = 32.0;
 uniform float accent_strength : hint_range(0.0, 2.0) = 0.0;
 
 // === Reference-resolution effects ===
@@ -51,9 +51,17 @@ uniform float static_strength : hint_range(0.0, 1.0) = 0.0;
 uniform float static_rate : hint_range(1.0, 60.0) = 8.0;
 uniform float static_intra_chunk : hint_range(0.0, 1.0) = 0.15;
 
-// Flicker (chunk masking) lives on hd_portrait_mask.gdshader instead — see
-// the note in the fragment body. The overlay can only modulate; cutting
-// requires a shader on the mirror itself.
+// === Dark-dot flicker ===
+// Visually equivalent to "punching holes in the line art" at ~free cost
+// (vs. a second full-resolution shader pass on the HD mirror to mask alpha).
+// The panel surface behind a punched chunk would be dark anyway, so just
+// darkening the overlay's pixel at those chunks reads the same way. Same
+// chunk-quantization as the static effect; different time bucket and hash
+// seed so dots don't correlate with static positions.
+uniform vec4 dot_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
+uniform float dot_strength : hint_range(0.0, 1.0) = 0.0;
+uniform float dot_chance : hint_range(0.0, 0.05, 0.00001) = 0.001;
+uniform float dot_rate : hint_range(1.0, 60.0) = 4.0;
 
 
 // David Hoskins-style hash. Avoids the sin-based hash's non-uniform
@@ -105,7 +113,9 @@ void fragment() {
 		// 5. Every Nth scanline accent — sinusoidal brightening confined to
 		// rows whose scanline index is a multiple of `accent_every`. The
 		// `0.15915` is 1/(2π), converting phase to integer cycle index.
-		if (accent_strength > 0.0) {
+		// accent_every >= 1.0 guard avoids mod-by-zero when the uniform
+		// is set to 0 to disable the effect entirely.
+		if (accent_strength > 0.0 && accent_every >= 1.0) {
 			int scan_idx = int(floor(scan_y * 0.15915));
 			if (int(mod(float(scan_idx), accent_every)) == 0) {
 				float local = scan_y - float(scan_idx) * 6.2832;
@@ -140,10 +150,24 @@ void fragment() {
 			tinted *= mix(1.0, final_noise * 2.0, static_strength);
 		}
 
-		// Pixel-chunk flicker that punches holes in the line art lives on a
-		// separate mask shader (see hd_portrait_mask.gdshader) — applied to
-		// the HD mirror, not this overlay. The overlay can only modulate
-		// color, not erase line art behind it.
+		// 7. Dark-dot flicker — sparse chunks darkened with dot_color. Reads
+		// the same as punching holes in the line art (because the line art's
+		// panel surface is dark), at a fraction of the cost.
+		//
+		// CRITICAL: also drives base.a opaque in dot chunks. The overlay's
+		// base color is semi-transparent (typically alpha 0.3) so the line
+		// art behind shows through normally — but a "dot" needs to actually
+		// COVER the line art, not just slightly darken it. Without this
+		// the dot effect is barely visible no matter how high you set
+		// dot_strength.
+		if (dot_strength > 0.0) {
+			float dot_bucket = floor(TIME * dot_rate);
+			float dot_roll = hash_seeded(ref_coord, dot_bucket + 91.7);
+			if (dot_roll < dot_chance) {
+				tinted = mix(tinted, dot_color.rgb, dot_strength);
+				base.a = mix(base.a, dot_color.a, dot_strength);
+			}
+		}
 
 		COLOR = vec4(tinted, base.a);
 	}

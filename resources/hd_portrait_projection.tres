@@ -1,11 +1,11 @@
-[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://d08nbse016c3f"]
 
 [ext_resource type="Shader" path="res://resources/shaders/hd_portrait_projection.gdshader" id="1_shader"]
 
 [resource]
 shader = ExtResource("1_shader")
-shader_parameter/tint_color = Color(0.859, 0.953, 1.0, 1.0)
-shader_parameter/glow_color = Color(0.298, 0.549, 0.733, 1.0)
+shader_parameter/tint_color = Color(0.859, 0.953, 1, 1)
+shader_parameter/glow_color = Color(0.298, 0.549, 0.733, 1)
 shader_parameter/tint_strength = 1.0
 shader_parameter/glow_radius = 2.0
 shader_parameter/glow_strength = 1.0

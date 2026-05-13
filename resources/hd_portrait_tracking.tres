@@ -1,0 +1,13 @@
+[gd_resource type="ShaderMaterial" format=3 uid="uid://dony168up3c03"]
+
+[ext_resource type="Shader" uid="uid://dtu8fcffwrbjv" path="res://resources/shaders/hd_portrait_tracking.gdshader" id="1_shader"]
+
+[resource]
+shader = ExtResource("1_shader")
+shader_parameter/tracking_band_height = 0.02000000095
+shader_parameter/tracking_strength = 0.02000000095
+shader_parameter/tracking_speed = 0.050000477375000685
+shader_parameter/tracking_period = 6.000000285
+shader_parameter/tracking_noise_rate = 30.0
+shader_parameter/tracking_row_density = 100.0
+shader_parameter/tracking_band_brightness = 0.2000000095
