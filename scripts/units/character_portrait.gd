@@ -16,6 +16,15 @@ extends RefCounted
 
 const _TARGET_SIZE: int = 32
 
+# =====================================================================
+# EXPERIMENT (2026-05-13, Lawrence): apply the glass surface shader OVER
+# the HD line art instead of behind it, to compare which reads better as
+# a "projected" portrait. This will tint the line art (expected
+# discoloration). To revert: comment out _EXPERIMENT_OVERLAY_MATERIAL and
+# the matching assignment in bind_to_texture_rect.
+# =====================================================================
+const _EXPERIMENT_OVERLAY_MATERIAL: ShaderMaterial = preload("res://resources/glass_panel.tres")
+
 # Two caches because the two paths can produce different textures for the same
 # character — keep them separate so squad cards never accidentally serve up a
 # full painted portrait, and the detail panel never serves up a sprite crop
@@ -58,6 +67,8 @@ static func bind_to_texture_rect(texture_rect: TextureRect, character: Character
 	if hd_texture != null:
 		var slot: HDPortraitSlot = _ensure_hd_slot(texture_rect)
 		slot.hd_texture = hd_texture
+		# EXPERIMENT (see top of file): glass shader applied over line art.
+		slot.projection_material = _EXPERIMENT_OVERLAY_MATERIAL
 		# Clearing the pixel texture means transparent edges of the line art
 		# don't reveal the painted portrait underneath. The slot covers the
 		# TextureRect's rect via PRESET_FULL_RECT, so visually nothing is lost.

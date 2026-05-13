@@ -58,6 +58,16 @@ extends Control
 		show_debug_rect = value
 		queue_redraw()
 
+## Optional ShaderMaterial applied to the HD mirror — e.g. the projection /
+## hologram effect at `res://resources/hd_portrait_projection.tres`. When
+## null, the mirror renders the line art with no shader. Swappable per slot
+## so different panels can use different treatments (or none).
+@export var projection_material: ShaderMaterial = null:
+	set(value):
+		projection_material = value
+		if _mirror != null:
+			_mirror.material = value
+
 
 var _mirror: TextureRect = null
 # Cached so we know to free the right mirror on scene change even if SceneRouter's
@@ -117,6 +127,7 @@ func _ensure_mirror() -> void:
 	# way around.
 	_mirror.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_mirror.texture = hd_texture
+	_mirror.material = projection_material
 	hd_layer.add_child(_mirror)
 	_sync_mirror_geometry()
 	_sync_mirror_visibility()

@@ -1,5 +1,6 @@
 [gd_scene format=3 uid="uid://bthv3anysx78a"]
 
+[ext_resource type="Material" uid="uid://btbjebthrx7se" path="res://resources/glass_panel.tres" id="1_glasspanel"]
 [ext_resource type="Texture2D" uid="uid://cpjc2y8havpey" path="res://art/sprites/ui/hud_panel/panel_border_tall.png" id="2_1in3x"]
 [ext_resource type="Texture2D" uid="uid://bbsipj42qbwqu" path="res://art/portraits/maam_portrait.png" id="3_b2vn0"]
 [ext_resource type="PackedScene" uid="uid://bnln2wsfjk1qo" path="res://scenes/ui/panels/ui_text.tscn" id="6_6gye5"]
@@ -39,7 +40,7 @@ load_path = "res://.godot/imported/simple.png-1d620432ab362c5b0f21c08706accd19.c
 [sub_resource type="CompressedTexture2D" id="CompressedTexture2D_j0n4j"]
 load_path = "res://.godot/imported/chivalric.png-b89b78f8dd6b45162b765521529c2f05.ctex"
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_tv8aq"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_deend"]
 shader = ExtResource("13_kslfy")
 shader_parameter/fill_color = Color(0.24313726, 0.40784314, 0.24705882, 1)
 shader_parameter/empty_color = Color(0.11764706, 0.21568628, 0.12941177, 1)
@@ -50,7 +51,7 @@ shader_parameter/border_px = 1.0
 shader_parameter/radius_px = 2.0
 shader_parameter/rect_size = Vector2(113, 14)
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_deend"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_j0n4j"]
 shader = ExtResource("13_kslfy")
 shader_parameter/fill_color = Color(0.5294118, 0.33333334, 0.08627451, 1)
 shader_parameter/empty_color = Color(0.015686275, 0.15294118, 0.28627452, 1)
@@ -61,7 +62,7 @@ shader_parameter/border_px = 1.0
 shader_parameter/radius_px = 2.0
 shader_parameter/rect_size = Vector2(113, 14)
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_j0n4j"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_k0vg6"]
 shader = ExtResource("13_kslfy")
 shader_parameter/fill_color = Color(0.1764706, 0.41960785, 0.6117647, 1)
 shader_parameter/empty_color = Color(0.2509804, 0.13725491, 0.039215688, 1)
@@ -75,7 +76,7 @@ shader_parameter/rect_size = Vector2(113, 14)
 [sub_resource type="CompressedTexture2D" id="CompressedTexture2D_5ng7j"]
 load_path = "res://.godot/imported/electric.png-a294185894803bdd53024d489dbde486.ctex"
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_k0vg6"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_yyibq"]
 shader = ExtResource("13_kslfy")
 shader_parameter/fill_color = Color(0.1764706, 0.41960785, 0.6117647, 1)
 shader_parameter/empty_color = Color(0.015686275, 0.15294118, 0.28627452, 1)
@@ -86,17 +87,6 @@ shader_parameter/border_px = 1.0
 shader_parameter/radius_px = 2.0
 shader_parameter/rect_size = Vector2(113, 14)
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_yyibq"]
-shader = ExtResource("13_kslfy")
-shader_parameter/fill_color = Color(0.078431375, 0.05490196, 0.12156863, 0)
-shader_parameter/empty_color = Color(0.03529412, 0.05882353, 0.12941177, 1)
-shader_parameter/border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
-shader_parameter/fill_percent = 0.0
-shader_parameter/skew_angle = 0.0
-shader_parameter/border_px = 1.0
-shader_parameter/radius_px = 2.0
-shader_parameter/rect_size = Vector2(56, 12)
-
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_ti3j1"]
 shader = ExtResource("13_kslfy")
 shader_parameter/fill_color = Color(0.078431375, 0.05490196, 0.12156863, 0)
@@ -106,7 +96,7 @@ shader_parameter/fill_percent = 0.0
 shader_parameter/skew_angle = 0.0
 shader_parameter/border_px = 1.0
 shader_parameter/radius_px = 2.0
-shader_parameter/rect_size = Vector2(55, 12)
+shader_parameter/rect_size = Vector2(56, 12)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_5ng7j"]
 shader = ExtResource("13_kslfy")
@@ -117,7 +107,7 @@ shader_parameter/fill_percent = 0.0
 shader_parameter/skew_angle = 0.0
 shader_parameter/border_px = 1.0
 shader_parameter/radius_px = 2.0
-shader_parameter/rect_size = Vector2(56, 12)
+shader_parameter/rect_size = Vector2(55, 12)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_npkjf"]
 shader = ExtResource("13_kslfy")
@@ -128,18 +118,18 @@ shader_parameter/fill_percent = 0.0
 shader_parameter/skew_angle = 0.0
 shader_parameter/border_px = 1.0
 shader_parameter/radius_px = 2.0
-shader_parameter/rect_size = Vector2(55, 12)
+shader_parameter/rect_size = Vector2(56, 12)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_3b8ho"]
 shader = ExtResource("13_kslfy")
 shader_parameter/fill_color = Color(0.078431375, 0.05490196, 0.12156863, 0)
-shader_parameter/empty_color = Color(0.2509804, 0.13725491, 0.039215688, 1)
+shader_parameter/empty_color = Color(0.03529412, 0.05882353, 0.12941177, 1)
 shader_parameter/border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
 shader_parameter/fill_percent = 0.0
 shader_parameter/skew_angle = 0.0
 shader_parameter/border_px = 1.0
 shader_parameter/radius_px = 2.0
-shader_parameter/rect_size = Vector2(56, 12)
+shader_parameter/rect_size = Vector2(55, 12)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_fgdmn"]
 shader = ExtResource("13_kslfy")
@@ -150,7 +140,7 @@ shader_parameter/fill_percent = 0.0
 shader_parameter/skew_angle = 0.0
 shader_parameter/border_px = 1.0
 shader_parameter/radius_px = 2.0
-shader_parameter/rect_size = Vector2(55, 12)
+shader_parameter/rect_size = Vector2(56, 12)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_gk8ls"]
 shader = ExtResource("13_kslfy")
@@ -161,9 +151,20 @@ shader_parameter/fill_percent = 0.0
 shader_parameter/skew_angle = 0.0
 shader_parameter/border_px = 1.0
 shader_parameter/radius_px = 2.0
-shader_parameter/rect_size = Vector2(56, 12)
+shader_parameter/rect_size = Vector2(55, 12)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_arn0u"]
+shader = ExtResource("13_kslfy")
+shader_parameter/fill_color = Color(0.078431375, 0.05490196, 0.12156863, 0)
+shader_parameter/empty_color = Color(0.2509804, 0.13725491, 0.039215688, 1)
+shader_parameter/border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
+shader_parameter/fill_percent = 0.0
+shader_parameter/skew_angle = 0.0
+shader_parameter/border_px = 1.0
+shader_parameter/radius_px = 2.0
+shader_parameter/rect_size = Vector2(56, 12)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_jkkkr"]
 shader = ExtResource("13_kslfy")
 shader_parameter/fill_color = Color(0.078431375, 0.05490196, 0.12156863, 0)
 shader_parameter/empty_color = Color(0.2509804, 0.13725491, 0.039215688, 1)
@@ -207,6 +208,7 @@ layout_mode = 2
 theme_override_constants/separation = 3
 
 [node name="PortraitFrame" type="PanelContainer" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=170340210]
+material = ExtResource("1_glasspanel")
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_styles/panel = SubResource("StyleBoxFlat_tv8aq")
@@ -326,11 +328,11 @@ layout_mode = 2
 theme_override_constants/separation = 2
 
 [node name="MoveContainer" parent="MarginContainer/VBoxContainer/MovesContainer" unique_id=44909441 instance=ExtResource("8_tv8aq")]
-material = SubResource("ShaderMaterial_tv8aq")
+material = SubResource("ShaderMaterial_deend")
 layout_mode = 2
 
 [node name="MoveContainer2" type="ColorRect" parent="MarginContainer/VBoxContainer/MovesContainer" unique_id=664060225]
-material = SubResource("ShaderMaterial_deend")
+material = SubResource("ShaderMaterial_j0n4j")
 custom_minimum_size = Vector2(0, 14)
 layout_mode = 2
 size_flags_vertical = 3
@@ -372,7 +374,7 @@ layout_mode = 2
 texture = SubResource("CompressedTexture2D_j0n4j")
 
 [node name="MoveContainer3" type="ColorRect" parent="MarginContainer/VBoxContainer/MovesContainer" unique_id=2073146478]
-material = SubResource("ShaderMaterial_j0n4j")
+material = SubResource("ShaderMaterial_k0vg6")
 custom_minimum_size = Vector2(0, 14)
 layout_mode = 2
 size_flags_vertical = 3
@@ -414,7 +416,7 @@ layout_mode = 2
 texture = SubResource("CompressedTexture2D_5ng7j")
 
 [node name="MoveContainer4" type="ColorRect" parent="MarginContainer/VBoxContainer/MovesContainer" unique_id=410010954]
-material = SubResource("ShaderMaterial_k0vg6")
+material = SubResource("ShaderMaterial_yyibq")
 custom_minimum_size = Vector2(0, 14)
 layout_mode = 2
 size_flags_vertical = 3
@@ -462,7 +464,7 @@ theme_override_constants/v_separation = 2
 columns = 2
 
 [node name="PassiveContainer" type="ColorRect" parent="MarginContainer/VBoxContainer/PassivesContainer" unique_id=577357463]
-material = SubResource("ShaderMaterial_yyibq")
+material = SubResource("ShaderMaterial_ti3j1")
 custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -494,7 +496,7 @@ text = "Angery"
 uppercase = false
 
 [node name="PassiveContainer2" type="ColorRect" parent="MarginContainer/VBoxContainer/PassivesContainer" unique_id=1279026747]
-material = SubResource("ShaderMaterial_ti3j1")
+material = SubResource("ShaderMaterial_5ng7j")
 custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -526,7 +528,7 @@ text = "Mad"
 uppercase = false
 
 [node name="PassiveContainer3" type="ColorRect" parent="MarginContainer/VBoxContainer/PassivesContainer" unique_id=1737839952]
-material = SubResource("ShaderMaterial_5ng7j")
+material = SubResource("ShaderMaterial_npkjf")
 custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -558,7 +560,7 @@ text = "Furious"
 uppercase = false
 
 [node name="PassiveContainer4" type="ColorRect" parent="MarginContainer/VBoxContainer/PassivesContainer" unique_id=1536126449]
-material = SubResource("ShaderMaterial_npkjf")
+material = SubResource("ShaderMaterial_3b8ho")
 custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -596,7 +598,7 @@ theme_override_constants/v_separation = 2
 columns = 2
 
 [node name="PassiveContainer" type="ColorRect" parent="MarginContainer/VBoxContainer/StatusContainer" unique_id=133282712]
-material = SubResource("ShaderMaterial_3b8ho")
+material = SubResource("ShaderMaterial_fgdmn")
 custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -646,7 +648,7 @@ theme_override_constants/margin_right = 4
 text = "4"
 
 [node name="PassiveContainer2" type="ColorRect" parent="MarginContainer/VBoxContainer/StatusContainer" unique_id=729493490]
-material = SubResource("ShaderMaterial_fgdmn")
+material = SubResource("ShaderMaterial_gk8ls")
 custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -696,7 +698,7 @@ theme_override_constants/margin_right = 4
 text = "3"
 
 [node name="PassiveContainer3" type="ColorRect" parent="MarginContainer/VBoxContainer/StatusContainer" unique_id=509240865]
-material = SubResource("ShaderMaterial_gk8ls")
+material = SubResource("ShaderMaterial_arn0u")
 custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -746,7 +748,7 @@ theme_override_constants/margin_right = 4
 text = "2"
 
 [node name="PassiveContainer4" type="ColorRect" parent="MarginContainer/VBoxContainer/StatusContainer" unique_id=440948187]
-material = SubResource("ShaderMaterial_arn0u")
+material = SubResource("ShaderMaterial_jkkkr")
 custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 size_flags_horizontal = 3
