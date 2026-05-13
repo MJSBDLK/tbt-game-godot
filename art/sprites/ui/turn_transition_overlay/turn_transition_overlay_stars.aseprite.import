@@ -7,7 +7,7 @@ valid=false
 
 [deps]
 
-source_file="res://art/sprites/ui/turn_transition_overlay_stars.aseprite"
+source_file="res://art/sprites/ui/turn_transition_overlay/turn_transition_overlay_stars.aseprite"
 
 [params]
 
