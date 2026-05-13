@@ -16,14 +16,18 @@ extends RefCounted
 
 const _TARGET_SIZE: int = 32
 
-# =====================================================================
-# EXPERIMENT (2026-05-13, Lawrence): apply the glass surface shader OVER
-# the HD line art instead of behind it, to compare which reads better as
-# a "projected" portrait. This will tint the line art (expected
-# discoloration). To revert: comment out _EXPERIMENT_OVERLAY_MATERIAL and
-# the matching assignment in bind_to_texture_rect.
-# =====================================================================
-const _EXPERIMENT_OVERLAY_MATERIAL: ShaderMaterial = preload("res://resources/glass_panel.tres")
+# Glass-surface effect material applied as an HD-layer overlay above each
+# portrait — gives the line art a "projection on glass" look without
+# tinting the line art itself. Slot creates a semi-transparent ColorRect
+# in HDLayer with this material; reference-resolution effects (static,
+# scanline accent) quantize against the slot's reference size.
+const _PORTRAIT_OVERLAY_MATERIAL: ShaderMaterial = preload("res://resources/glass_panel.tres")
+
+# Mask material applied directly to the HD mirror — punches reference-
+# resolution chunks out of the line art (flicker / dropped pixel effect).
+# Lives on the mirror because the overlay above can only modulate color,
+# not erase pixels of the layer behind it.
+const _PORTRAIT_MIRROR_MASK_MATERIAL: ShaderMaterial = preload("res://resources/hd_portrait_mask.tres")
 
 # Two caches because the two paths can produce different textures for the same
 # character — keep them separate so squad cards never accidentally serve up a
@@ -67,8 +71,10 @@ static func bind_to_texture_rect(texture_rect: TextureRect, character: Character
 	if hd_texture != null:
 		var slot: HDPortraitSlot = _ensure_hd_slot(texture_rect)
 		slot.hd_texture = hd_texture
-		# EXPERIMENT (see top of file): glass shader applied over line art.
-		slot.projection_material = _EXPERIMENT_OVERLAY_MATERIAL
+		# Glass overlay above the HD line art — see _PORTRAIT_OVERLAY_MATERIAL.
+		slot.overlay_material = _PORTRAIT_OVERLAY_MATERIAL
+		# Mask shader on the mirror itself — punches chunks out of line art.
+		slot.projection_material = _PORTRAIT_MIRROR_MASK_MATERIAL
 		# Clearing the pixel texture means transparent edges of the line art
 		# don't reveal the painted portrait underneath. The slot covers the
 		# TextureRect's rect via PRESET_FULL_RECT, so visually nothing is lost.

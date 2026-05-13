@@ -1,6 +1,5 @@
 [gd_scene format=3 uid="uid://bthv3anysx78a"]
 
-[ext_resource type="Material" uid="uid://btbjebthrx7se" path="res://resources/glass_panel.tres" id="1_glasspanel"]
 [ext_resource type="Texture2D" uid="uid://cpjc2y8havpey" path="res://art/sprites/ui/hud_panel/panel_border_tall.png" id="2_1in3x"]
 [ext_resource type="Texture2D" uid="uid://bbsipj42qbwqu" path="res://art/portraits/maam_portrait.png" id="3_b2vn0"]
 [ext_resource type="PackedScene" uid="uid://bnln2wsfjk1qo" path="res://scenes/ui/panels/ui_text.tscn" id="6_6gye5"]
@@ -208,7 +207,6 @@ layout_mode = 2
 theme_override_constants/separation = 3
 
 [node name="PortraitFrame" type="PanelContainer" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=170340210]
-material = ExtResource("1_glasspanel")
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_styles/panel = SubResource("StyleBoxFlat_tv8aq")

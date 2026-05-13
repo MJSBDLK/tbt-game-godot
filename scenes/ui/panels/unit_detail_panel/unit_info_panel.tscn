@@ -1,7 +1,6 @@
 [gd_scene format=3 uid="uid://berwbhyipiu0t"]
 
 [ext_resource type="Texture2D" uid="uid://dvcinqly1ucr4" path="res://art/portraits/default_portrait.png" id="2_pqajl"]
-[ext_resource type="Material" path="res://resources/glass_panel.tres" id="1_glasspanel"]
 [ext_resource type="PackedScene" uid="uid://dnhdopaxrtt3f" path="res://scenes/ui/panels/unit_row.tscn" id="2_r5h6j"]
 [ext_resource type="PackedScene" uid="uid://8mt1nhvixt6r" path="res://scenes/ui/components/portrait_border.tscn" id="3_3cqu2"]
 [ext_resource type="PackedScene" uid="uid://df3xfvf5lh7mq" path="res://scenes/ui/panels/unit_detail_panel/stat_container.tscn" id="3_6fycp"]
@@ -157,12 +156,6 @@ theme_override_constants/separation = 0
 
 [node name="AspectRatioContainer" type="AspectRatioContainer" parent="MainRow/LeftColumnMargin/LeftColumn" unique_id=1253971767]
 layout_mode = 2
-
-[node name="GlassSurface" type="ColorRect" parent="MainRow/LeftColumnMargin/LeftColumn/AspectRatioContainer"]
-material = ExtResource("1_glasspanel")
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.1, 0.1, 0.1, 0.6)
 
 [node name="PortraitBorder" parent="MainRow/LeftColumnMargin/LeftColumn/AspectRatioContainer" unique_id=1182830564 instance=ExtResource("3_3cqu2")]
 layout_mode = 2

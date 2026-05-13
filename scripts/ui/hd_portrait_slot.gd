@@ -58,21 +58,47 @@ extends Control
 		show_debug_rect = value
 		queue_redraw()
 
-## Optional ShaderMaterial applied to the HD mirror — e.g. the projection /
-## hologram effect at `res://resources/hd_portrait_projection.tres`. When
-## null, the mirror renders the line art with no shader. Swappable per slot
-## so different panels can use different treatments (or none).
+## Optional ShaderMaterial applied to the HD mirror itself — directly tints
+## the line art's pixels. When null, the mirror renders the line art with no
+## shader. Use this only when you want the shader to be clipped to the line
+## art's silhouette (it will).
 @export var projection_material: ShaderMaterial = null:
 	set(value):
 		projection_material = value
 		if _mirror != null:
 			_mirror.material = value
 
+## Optional ShaderMaterial applied to a SEPARATE overlay ColorRect drawn in
+## HDLayer above the mirror — covers the full slot rect uniformly, so the
+## shader runs on every pixel of the portrait area (both opaque and
+## transparent line-art regions). This is the right slot for "glass surface
+## over the portrait" effects. The overlay's base color is `overlay_color`.
+@export var overlay_material: ShaderMaterial = null:
+	set(value):
+		overlay_material = value
+		if _overlay != null:
+			_overlay.material = value
+		elif value != null:
+			_ensure_overlay()
+
+## Base color of the overlay ColorRect. The shader sees this as `COLOR`, so
+## use a semi-transparent dark tone (alpha ≲ 0.3) — the alpha lets the line
+## art behind show through, and the shader can mix/tint from there.
+@export var overlay_color: Color = Color(0.1, 0.1, 0.1, 0.3):
+	set(value):
+		overlay_color = value
+		if _overlay != null:
+			_overlay.color = value
+
 
 var _mirror: TextureRect = null
 # Cached so we know to free the right mirror on scene change even if SceneRouter's
 # hd_layer reference somehow shifts mid-session.
 var _mirror_parent: CanvasLayer = null
+# Overlay ColorRect drawn above the mirror in HDLayer. Created on demand
+# when `overlay_material` is set so slots that don't need an overlay don't
+# pay for an extra node.
+var _overlay: ColorRect = null
 
 
 func _ready() -> void:
@@ -129,26 +155,59 @@ func _ensure_mirror() -> void:
 	_mirror.texture = hd_texture
 	_mirror.material = projection_material
 	hd_layer.add_child(_mirror)
+	# Overlay (if configured) gets added AFTER the mirror so it draws on top
+	# of the line art. Order matters — HDLayer renders its children in tree
+	# order, so the overlay needs to come second.
+	_ensure_overlay()
 	_sync_mirror_geometry()
 	_sync_mirror_visibility()
 
 
 
 
-func _sync_mirror_geometry() -> void:
-	if _mirror == null or not is_instance_valid(_mirror):
+func _ensure_overlay() -> void:
+	if overlay_material == null:
 		return
-	# Both this Control (inside the SubViewport) and the mirror (inside the
-	# root HDLayer) live in the same 640x360 reference coordinate space, so
-	# global_position/size map 1:1 without any extra transformation.
-	_mirror.position = global_position
-	_mirror.size = size
+	if _overlay != null and is_instance_valid(_overlay):
+		return
+	var hd_layer: CanvasLayer = SceneRouter.get_hd_layer()
+	if hd_layer == null:
+		# Mirrors the deferred-retry pattern in _ensure_mirror — GameRoot may
+		# not have registered yet on the first frame.
+		call_deferred("_ensure_overlay")
+		return
+	_overlay = ColorRect.new()
+	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_overlay.color = overlay_color
+	_overlay.material = overlay_material
+	hd_layer.add_child(_overlay)
+	_sync_overlay_geometry()
+	_sync_mirror_visibility()
+
+
+func _sync_mirror_geometry() -> void:
+	if _mirror != null and is_instance_valid(_mirror):
+		# Both this Control (inside the SubViewport) and the mirror (inside the
+		# root HDLayer) live in the same 640x360 reference coordinate space, so
+		# global_position/size map 1:1 without any extra transformation.
+		_mirror.position = global_position
+		_mirror.size = size
+	_sync_overlay_geometry()
+
+
+func _sync_overlay_geometry() -> void:
+	if _overlay == null or not is_instance_valid(_overlay):
+		return
+	_overlay.position = global_position
+	_overlay.size = size
 
 
 func _sync_mirror_visibility() -> void:
-	if _mirror == null or not is_instance_valid(_mirror):
-		return
-	_mirror.visible = is_visible_in_tree()
+	var visible_in_tree: bool = is_visible_in_tree()
+	if _mirror != null and is_instance_valid(_mirror):
+		_mirror.visible = visible_in_tree
+	if _overlay != null and is_instance_valid(_overlay):
+		_overlay.visible = visible_in_tree
 
 
 func _refresh_mirror_texture() -> void:
@@ -160,5 +219,8 @@ func _refresh_mirror_texture() -> void:
 func _destroy_mirror() -> void:
 	if _mirror != null and is_instance_valid(_mirror):
 		_mirror.queue_free()
+	if _overlay != null and is_instance_valid(_overlay):
+		_overlay.queue_free()
 	_mirror = null
+	_overlay = null
 	_mirror_parent = null

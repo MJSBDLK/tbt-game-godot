@@ -12,7 +12,7 @@
  - [ ] ice desert biome terrain
 ## RQD
 - [x] LOD - push existing line art portraits
-- [x] RQD - fix crashes in mission progression
+- [ ] RQD - fix crashes in mission progression
 - [ ] RQD - implement line art portraits
 - [ ] RQD - keep working on intermission screens
 
