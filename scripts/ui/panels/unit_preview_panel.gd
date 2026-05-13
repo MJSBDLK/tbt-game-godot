@@ -46,7 +46,9 @@ func _resolve_nodes() -> void:
 	var header: HBoxContainer = vbox.get_node("HBoxContainer")
 	var info_vbox: VBoxContainer = header.get_node("VBoxContainer")
 
-	_portrait = header.get_node("TextureRect") as TextureRect
+	# Recursive name lookup survives layout reshuffles (e.g. wrapping the
+	# portrait in a PanelContainer for the 1px AA border).
+	_portrait = header.find_child("Portrait", true, false) as TextureRect
 	_type_icon_primary = info_vbox.get_node("HBoxContainer/TextureRect") as TextureRect
 	_type_icon_secondary = info_vbox.get_node("HBoxContainer/TextureRect2") as TextureRect
 	_name_label = info_vbox.get_node("MarginContainer/Label") as Label
@@ -118,8 +120,10 @@ func refresh() -> void:
 func _update_header(unit: Unit) -> void:
 	var data: CharacterData = unit.character_data
 
-	# Portrait
-	_portrait.texture = CharacterPortrait.get_for(data)
+	# Portrait — bind_to_texture_rect promotes the slot to an HD line-art
+	# overlay if the character has one, falling back to the painted pixel
+	# portrait otherwise.
+	CharacterPortrait.bind_to_texture_rect(_portrait, data)
 
 	# Name
 	_name_label.text = unit.unit_name

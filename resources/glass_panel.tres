@@ -1,0 +1,14 @@
+[gd_resource type="ShaderMaterial" format=3 uid="uid://btbjebthrx7se"]
+
+[ext_resource type="Shader" uid="uid://6273watjmg5f" path="res://resources/shaders/glass_panel.gdshader" id="1_shader"]
+
+[resource]
+shader = ExtResource("1_shader")
+shader_parameter/glass_tint = Color(0.298, 0.549, 0.733, 0.08)
+shader_parameter/highlight_color = Color(0.859, 0.953, 1, 1)
+shader_parameter/gradient_strength = 0.3
+shader_parameter/top_highlight_strength = 0.25
+shader_parameter/top_highlight_falloff = 4.0
+shader_parameter/scanline_strength = 0.250000011875
+shader_parameter/scanline_density = 60.0
+shader_parameter/scanline_speed = 0.050000097374999886

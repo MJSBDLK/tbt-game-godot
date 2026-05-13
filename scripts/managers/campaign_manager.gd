@@ -79,7 +79,7 @@ func start_campaign(start_level: int, mission_paths: Array[String],
 	campaign_started.emit(_start_level, _mission_paths)
 	DebugConfig.log_unit_init("CampaignManager: Started campaign — level %d, %d missions, %d in recruit pool" % [
 		_start_level, _mission_paths.size(), _recruit_pool.size()])
-	get_tree().change_scene_to_file(PREP_SCREEN_PATH)
+	SceneRouter.change_scene_to(PREP_SCREEN_PATH)
 
 
 ## Called by post_mission_report_panel after the player clicks Continue.
@@ -100,7 +100,7 @@ func advance_mission() -> void:
 
 	var candidates: Array[String] = _pick_recruit_candidates(RECRUIT_OFFER_COUNT)
 	if not candidates.is_empty():
-		var ui_manager: Node = get_node_or_null("/root/UIManager")
+		var ui_manager: Node = UIManager
 		if ui_manager != null and ui_manager.has_method("show_recruit_picker_and_wait"):
 			var chosen_path: String = await ui_manager.show_recruit_picker_and_wait(candidates)
 			_register_recruit(chosen_path)
@@ -110,7 +110,7 @@ func advance_mission() -> void:
 	mission_advanced.emit(_current_mission_index)
 	DebugConfig.log_unit_init("CampaignManager: Advancing to mission %d/%d (via prep screen)" % [
 		_current_mission_index + 1, _mission_paths.size()])
-	get_tree().change_scene_to_file(PREP_SCREEN_PATH)
+	SceneRouter.change_scene_to(PREP_SCREEN_PATH)
 
 
 ## Records which roster members the player has chosen to deploy in the next
@@ -135,7 +135,7 @@ func deploy_to_current_mission() -> void:
 		return
 	DebugConfig.log_unit_init("CampaignManager: Deploying to mission %d/%d" % [
 		_current_mission_index + 1, _mission_paths.size()])
-	get_tree().change_scene_to_file(_mission_paths[_current_mission_index])
+	SceneRouter.change_scene_to(_mission_paths[_current_mission_index])
 
 
 ## Returns up to `count` randomly-shuffled paths from _recruit_pool, excluding
@@ -324,4 +324,4 @@ func is_final_mission() -> bool:
 # =============================================================================
 
 func _return_to_start_screen() -> void:
-	get_tree().change_scene_to_file(START_SCREEN_PATH)
+	SceneRouter.change_scene_to(START_SCREEN_PATH)

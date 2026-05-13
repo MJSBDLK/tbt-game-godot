@@ -18,7 +18,7 @@ func _ready() -> void:
 	size = Vector2(PANEL_WIDTH, PANEL_HEIGHT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 	if ui_manager != null:
 		var border: Variant = ui_manager.create_terrain_info_border()
 		if border != null:
@@ -78,7 +78,7 @@ func hide_panel() -> void:
 # =============================================================================
 
 func _build_content() -> void:
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 
 	var container := VBoxContainer.new()
 	container.add_theme_constant_override("separation", 4)

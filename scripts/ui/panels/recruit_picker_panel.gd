@@ -44,7 +44,7 @@ func hide_panel() -> void:
 # =============================================================================
 
 func _build_chrome() -> void:
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 
 	var dimmer := ColorRect.new()
 	dimmer.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -95,7 +95,7 @@ func _build_chrome() -> void:
 
 
 func _build_card(character: CharacterData, path: String) -> Control:
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 
 	var button := Button.new()
 	button.custom_minimum_size = Vector2(150, 210)
@@ -119,11 +119,14 @@ func _build_card(character: CharacterData, path: String) -> Control:
 		var portrait_wrap := CenterContainer.new()
 		portrait_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var portrait := TextureRect.new()
-		portrait.texture = load(character.portrait_path) as Texture2D
 		portrait.custom_minimum_size = Vector2(48, 48)
 		portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# bind_to_texture_rect promotes the TextureRect to an HD overlay when
+		# the character has a lineart_path; otherwise it loads the painted
+		# pixel portrait. Replaces the direct portrait_path load.
+		CharacterPortrait.bind_to_texture_rect(portrait, character)
 		portrait_wrap.add_child(portrait)
 		content.add_child(portrait_wrap)
 

@@ -1,0 +1,7 @@
+[gd_resource type="AtlasTexture" format=3 uid="uid://bcew80cwtphcj"]
+
+[ext_resource type="Texture2D" uid="uid://baj1scnshmfh" path="res://art/lineart_fullres/max_stellar.png" id="1_11rib"]
+
+[resource]
+atlas = ExtResource("1_11rib")
+region = Rect2(1000, 645, 900, 900)

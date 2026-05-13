@@ -117,7 +117,7 @@ func _build_cancel_hint() -> void:
 	_cancel_hint_label.offset_top = -20
 	_cancel_hint_label.offset_bottom = 0
 
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 	if ui_manager != null and ui_manager.font_5px != null:
 		_cancel_hint_label.add_theme_font_override("font", ui_manager.font_5px)
 		_cancel_hint_label.add_theme_font_size_override("font_size", 5)

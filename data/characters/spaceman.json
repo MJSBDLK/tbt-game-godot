@@ -7,6 +7,10 @@
 	"specialization": "None",
 
 	"portraitPath": "res://art/portraits/max_stellar_portrait.png",
+	"lineartPath": "res://art/lineart_fullres/max_stellar.png",
+	"lineartAtlases": {
+		"portrait": "res://art/lineart_fullres/spaceman_portrait.tres"
+	},
 
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",

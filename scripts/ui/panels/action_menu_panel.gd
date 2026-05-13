@@ -286,7 +286,7 @@ func _resize_panel() -> void:
 func _ensure_border_overlay() -> void:
 	if _border_overlay != null:
 		return
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 	if ui_manager == null:
 		return
 	_border_overlay = ui_manager.create_fullscreen_border_overlay()

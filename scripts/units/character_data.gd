@@ -28,6 +28,17 @@ extends Resource
 # Portrait (high-res concept art crop)
 @export var portrait_path: String = ""
 
+# Optional HD line-art portrait. When set, UI panels swap their pixel portrait
+# for an HDPortraitSlot pointed at this asset — rendered at native window
+# resolution via the HDLayer overlay. Leave empty to keep the pixel portrait.
+@export var lineart_path: String = ""
+
+# Named sub-regions of the line-art. Keys are framing names ("portrait",
+# "thumbnail", "fullbody"); values are paths to AtlasTexture .tres resources
+# that crop the lineart down to that region. UI consumers ask for a specific
+# region name; if missing, falls back to lineart_path (whole image).
+@export var lineart_atlases: Dictionary = {}
+
 # Sprite sheet reference (Aseprite JSON atlas)
 @export var sprite_sheet_path: String = ""
 @export var sprite_atlas_path: String = ""

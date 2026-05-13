@@ -107,11 +107,10 @@ func _update_all() -> void:
 
 
 func _update_portrait(data: CharacterData) -> void:
-	if data.portrait_path.is_empty():
-		_portrait_rect.texture = null
-		return
-	var texture: Texture2D = load(data.portrait_path) as Texture2D
-	_portrait_rect.texture = texture
+	# bind_to_texture_rect handles both the pixel-portrait fallback (its empty
+	# path is the same condition as the previous early-return) and the HD
+	# line-art promotion. Replaces the direct portrait_path load.
+	CharacterPortrait.bind_to_texture_rect(_portrait_rect, data)
 
 
 func _update_identity(data: CharacterData) -> void:
@@ -265,7 +264,7 @@ func _xp_for_next_level(level: int) -> int:
 # =============================================================================
 
 func _build_content() -> void:
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 
 	var main_row := HBoxContainer.new()
 	main_row.add_theme_constant_override("separation", 12)

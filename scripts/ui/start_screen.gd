@@ -33,7 +33,7 @@ func _ready() -> void:
 
 
 func _build_content() -> void:
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 
 	var background := ColorRect.new()
 	background.set_anchors_preset(Control.PRESET_FULL_RECT)

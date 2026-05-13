@@ -106,7 +106,7 @@ func start_player_phase() -> void:
 
 	DebugConfig.log_turn("TurnManager: === PLAYER PHASE (Turn %d) ===" % turn_count)
 
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 	if ui_manager != null:
 		await ui_manager.show_phase_transition("PLAYER PHASE - Turn %d" % turn_count, GameColors.PLAYER_UNIT)
 
@@ -148,7 +148,7 @@ func start_enemy_phase() -> void:
 
 	DebugConfig.log_turn("TurnManager: === ENEMY PHASE ===")
 
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 	if ui_manager != null:
 		await ui_manager.show_phase_transition("ENEMY PHASE", GameColors.ENEMY_UNIT)
 
@@ -236,7 +236,7 @@ func _end_battle(is_victory: bool) -> void:
 		if unit.is_defeated():
 			enemies_defeated += 1
 
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 	if ui_manager != null:
 		ui_manager.show_battle_result(is_victory, turn_count, player_units_lost,
 			enemies_defeated, _player_units.size(), _enemy_units.size())

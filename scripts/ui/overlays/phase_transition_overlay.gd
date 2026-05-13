@@ -137,7 +137,7 @@ func show_transition(text: String, color: Color) -> void:
 # =============================================================================
 
 func _build_content() -> void:
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 
 	# Clip container — limits visible area to the banner strip.
 	var clip_container := Control.new()

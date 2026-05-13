@@ -7,6 +7,10 @@
 	"specialization": "None",
 
 	"portraitPath": "res://art/portraits/maam_portrait.png",
+	"lineartPath": "res://art/lineart_fullres/ma'am.png",
+	"lineartAtlases": {
+		"portrait": "res://art/lineart_fullres/maam_portrait.tres"
+	},
 
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
