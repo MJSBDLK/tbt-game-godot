@@ -83,7 +83,7 @@ func _ready() -> void:
 # =============================================================================
 
 func _build_chrome() -> void:
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 
 	var background := ColorRect.new()
 	background.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -234,7 +234,7 @@ func _enforce_squad_cap_initial() -> void:
 
 
 func _add_roster_card(character: CharacterData) -> void:
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 
 	# The entire card is one Button so clicking anywhere on it selects the
 	# unit. The move button sits inside as a child Button — its clicks are
@@ -555,7 +555,7 @@ func _on_begin_pressed() -> void:
 	var campaign_manager: Node = get_node_or_null("/root/CampaignManager")
 	if campaign_manager == null or not campaign_manager.is_active():
 		push_warning("PrepScreen: no active campaign — returning to start screen")
-		get_tree().change_scene_to_file("res://scenes/ui/start_screen.tscn")
+		SceneRouter.change_scene_to("res://scenes/ui/start_screen.tscn")
 		return
 	campaign_manager.set_deployment(_selected_deployed_ids())
 	campaign_manager.deploy_to_current_mission()

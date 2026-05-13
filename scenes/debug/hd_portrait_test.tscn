@@ -1,0 +1,92 @@
+[gd_scene load_steps=5 format=3 uid="uid://b5hdportrtest02"]
+
+[ext_resource type="Texture2D" uid="uid://crbkedprar533" path="res://art/portraits/napdawg_portrait.png" id="1_pixel"]
+[ext_resource type="Texture2D" uid="uid://dbjief76xo57w" path="res://art/lineart_fullres/napdog.png" id="2_lineart"]
+[ext_resource type="Script" path="res://scripts/ui/hd_portrait_slot.gd" id="3_hdslot"]
+[ext_resource type="Script" path="res://scenes/debug/hd_portrait_test.gd" id="4_test"]
+
+[node name="HDPortraitTest" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("4_test")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.094, 0.094, 0.125, 1)
+
+[node name="LeftColumn" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 9
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_right = 144.0
+offset_top = 16.0
+offset_bottom = -16.0
+theme_override_constants/separation = 4
+
+[node name="LeftLabel" type="Label" parent="LeftColumn"]
+layout_mode = 2
+text = "PIXEL"
+horizontal_alignment = 1
+
+[node name="PixelPortrait" type="TextureRect" parent="LeftColumn"]
+texture_filter = 1
+custom_minimum_size = Vector2(128, 128)
+layout_mode = 2
+texture = ExtResource("1_pixel")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="LeftCaption" type="Label" parent="LeftColumn"]
+layout_mode = 2
+text = "64x64 @ nearest
+through SubViewport"
+horizontal_alignment = 1
+
+[node name="RightColumn" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -144.0
+offset_right = -16.0
+offset_top = 16.0
+offset_bottom = -16.0
+theme_override_constants/separation = 4
+
+[node name="RightLabel" type="Label" parent="RightColumn"]
+layout_mode = 2
+text = "HD"
+horizontal_alignment = 1
+
+[node name="HDSlot" type="Control" parent="RightColumn"]
+custom_minimum_size = Vector2(128, 128)
+layout_mode = 2
+script = ExtResource("3_hdslot")
+hd_texture = ExtResource("2_lineart")
+show_debug_rect = false
+
+[node name="RightCaption" type="Label" parent="RightColumn"]
+layout_mode = 2
+text = "3024x4032 @ linear-mipmap
+through HD overlay"
+horizontal_alignment = 1
+
+[node name="Diagnostics" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -240.0
+offset_top = -32.0
+offset_right = 240.0
+offset_bottom = -8.0
+horizontal_alignment = 1

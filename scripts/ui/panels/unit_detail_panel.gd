@@ -130,7 +130,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _add_border_overlay() -> void:
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 	if ui_manager != null and ui_manager.has_method("create_fullscreen_border_overlay"):
 		var overlay: PanelBorderOverlay = ui_manager.create_fullscreen_border_overlay()
 		add_child(overlay)
@@ -179,8 +179,9 @@ func _cache_node_references() -> void:
 	var left_column: VBoxContainer = get_node("MainRow/LeftColumnMargin/LeftColumn")
 	var center_column: VBoxContainer = get_node("MainRow/CenterColumnMargin/CenterColumn")
 
-	# Portrait
-	_portrait = left_column.get_node("MarginContainer/Portrait")
+	# Portrait — recursive search so the lookup survives layout reshuffles
+	# (e.g. wrapping the portrait + border in an AspectRatioContainer).
+	_portrait = left_column.find_child("Portrait", true, false)
 
 	# Unit name and types (from unit_row instance)
 	var unit_name_row: Control = left_column.get_node("UnitNameAndTypes")
@@ -523,7 +524,7 @@ func _update_all() -> void:
 func _update_portrait() -> void:
 	if _portrait == null:
 		return
-	_portrait.texture = CharacterPortrait.get_for(_character_data)
+	CharacterPortrait.bind_to_texture_rect(_portrait, _character_data)
 
 
 func _update_identity() -> void:

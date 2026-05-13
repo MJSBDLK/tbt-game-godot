@@ -1,0 +1,7 @@
+[gd_resource type="AtlasTexture" format=3 uid="uid://bkepp4hnfyyyu"]
+
+[ext_resource type="Texture2D" uid="uid://b51ivnjx6xb0k" path="res://art/lineart_fullres/gravity_captain.png" id="1_cxrm4"]
+
+[resource]
+atlas = ExtResource("1_cxrm4")
+region = Rect2(775, 450, 1500, 1500)

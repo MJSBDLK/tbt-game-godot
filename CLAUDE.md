@@ -51,7 +51,32 @@ res://
 
 ## Autoloads
 
-`DebugConfig`, `TerrainDataManager`, `GridManager`, `GameStateManager`, `InputManager`, `TurnManager`, `ActionMenuManager`, `TypeChartManager`, `StatusEffectSystem`, `UIManager`, `VisualFeedbackManager`
+`DebugConfig`, `SceneRouter`, `TerrainDataManager`, `GridManager`, `GameStateManager`, `InputManager`, `TurnManager`, `ActionMenuManager`, `TypeChartManager`, `StatusEffectSystem`, `UIManager`, `VisualFeedbackManager`
+
+## Rendering Architecture
+
+The main scene is [scenes/game_root.tscn](scenes/game_root.tscn), which hosts a
+640×360 `GameViewport` SubViewport (nearest filter, integer scale) for all
+pixel-art rendering, plus a root-level `HDLayer` CanvasLayer for HD textures
+(line-art portraits, etc.) that render at native window resolution with
+bilinear filtering. Stretch mode is `canvas_items` + integer scaling.
+
+- Use `SceneRouter.change_scene_to(path)` for scene transitions, **not**
+  `get_tree().change_scene_to_file()`. The latter replaces the whole tree
+  including GameRoot.
+- Use [HDPortraitSlot](scripts/ui/hd_portrait_slot.gd) (a Control script) when
+  reserving space inside pixel UI for an HD texture — set `hd_texture` and the
+  slot spawns a tracking TextureRect in HDLayer that mirrors its global rect.
+- Autoloads at /root must query `SceneRouter.get_game_viewport()` (not
+  `get_viewport()`) for camera, mouse, or world-coordinate queries — the root
+  viewport is native-resolution and has no game camera.
+- `UIManager` and `VisualFeedbackManager` are reparented into the SubViewport
+  at startup by GameRoot. Access them through the autoload singleton name
+  (`UIManager.foo()`), never via `get_node("/root/UIManager")` — the path no
+  longer resolves.
+- HD assets (large textures rendered into HDLayer) should have
+  `mipmaps/generate=true` in their .import file to avoid aliasing on
+  bilinear downscale.
 
 ## Key Reference Files
 

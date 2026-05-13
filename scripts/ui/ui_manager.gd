@@ -627,10 +627,14 @@ func _tile_is_in_right_half(tile: Variant) -> bool:
 
 
 func _get_camera() -> CameraController:
-	var viewport := get_viewport()
-	if viewport == null:
+	# UIManager is an autoload at the root viewport; the game camera lives
+	# inside the SubViewport that SceneRouter manages. Query the SubViewport
+	# directly so we don't end up looking for a Camera2D on a viewport that
+	# never had one.
+	var game_viewport: SubViewport = SceneRouter.get_game_viewport()
+	if game_viewport == null:
 		return null
-	return viewport.get_camera_2d() as CameraController
+	return game_viewport.get_camera_2d() as CameraController
 
 
 ## Returns true when the map view is interactive — the only condition under

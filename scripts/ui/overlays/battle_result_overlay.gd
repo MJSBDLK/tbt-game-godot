@@ -64,7 +64,7 @@ func _unhandled_input(event: InputEvent) -> void:
 # =============================================================================
 
 func _build_content() -> void:
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 
 	# Dark semi-transparent background
 	_background = ColorRect.new()

@@ -280,7 +280,7 @@ func _clear_items() -> void:
 func _ensure_border_overlay() -> void:
 	if _border_overlay != null:
 		return
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 	if ui_manager != null and ui_manager.has_method("create_fullscreen_border_overlay"):
 		_border_overlay = ui_manager.create_fullscreen_border_overlay()
 		if _border_overlay != null:

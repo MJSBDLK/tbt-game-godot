@@ -47,6 +47,11 @@ static func _parse_character_json(data: Dictionary) -> CharacterData:
 
 	# Portrait
 	character.portrait_path = data.get("portraitPath", "")
+	character.lineart_path = data.get("lineartPath", "")
+	var atlas_dict: Variant = data.get("lineartAtlases", {})
+	if atlas_dict is Dictionary:
+		for key: Variant in atlas_dict.keys():
+			character.lineart_atlases[str(key)] = str(atlas_dict[key])
 
 	# Sprite data
 	var sprite_data: Dictionary = data.get("sprite", {})

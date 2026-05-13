@@ -35,7 +35,7 @@ func show_action_menu(unit: Unit) -> void:
 	var state_manager: Node = get_node("/root/GameStateManager")
 	state_manager.change_state(Enums.InputState.ACTION_MENU_OPEN, unit)
 
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 	if ui_manager != null:
 		_connect_panel_signals(ui_manager)
 		ui_manager.show_action_menu(unit)
@@ -46,7 +46,7 @@ func show_action_menu(unit: Unit) -> void:
 
 
 func hide_action_menu() -> void:
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 	if ui_manager != null:
 		ui_manager.hide_action_menu()
 
@@ -119,7 +119,7 @@ func _on_move_selected(move: Move) -> void:
 func _on_assign_submenu() -> void:
 	if _active_unit == null:
 		return
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 	if ui_manager != null:
 		var panel: Node = ui_manager.get_action_menu_panel()
 		if panel != null and panel.has_method("show_assign_submenu"):
@@ -132,7 +132,7 @@ func _on_assign_move_selected(move: Move) -> void:
 	_active_unit.assign_move(move)
 	DebugConfig.log_action_menu("ActionMenu: Assigned '%s' to '%s'" % [move.move_name, _active_unit.unit_name])
 
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 	if ui_manager != null:
 		ui_manager.refresh()
 		var panel: Node = ui_manager.get_action_menu_panel()
@@ -148,7 +148,7 @@ func _on_unit_info_requested() -> void:
 	# Push state so "back" returns to ACTION_MENU_OPEN
 	var state_manager: Node = get_node("/root/GameStateManager")
 	state_manager.push_state(Enums.InputState.UNIT_DETAIL, _active_unit)
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 	if ui_manager != null:
 		ui_manager.show_unit_detail(_active_unit)
 	DebugConfig.log_action_menu("ActionMenu: Unit Info requested for '%s'" % _active_unit.unit_name)
@@ -186,7 +186,7 @@ func _on_cancel() -> void:
 	var unit := _active_unit
 
 	# If in assign submenu, go back to main menu
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 	if ui_manager != null:
 		var panel: Node = ui_manager.get_action_menu_panel()
 		if panel != null and panel.has_method("is_assign_submenu") and panel.is_assign_submenu():
@@ -217,7 +217,7 @@ func _on_game_state_changed(old_state: Enums.InputState, new_state: Enums.InputS
 	if new_state == Enums.InputState.ACTION_MENU_OPEN \
 			and old_state == Enums.InputState.UNIT_DETAIL \
 			and _active_unit != null:
-		var ui_manager: Node = get_node_or_null("/root/UIManager")
+		var ui_manager: Node = UIManager
 		if ui_manager != null:
 			_connect_panel_signals(ui_manager)
 			ui_manager.show_action_menu(_active_unit)

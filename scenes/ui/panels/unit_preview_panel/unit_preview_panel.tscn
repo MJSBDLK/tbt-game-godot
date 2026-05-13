@@ -7,8 +7,8 @@
 [ext_resource type="Material" uid="uid://d3rfhbptxbold" path="res://resources/hud_glow.tres" id="8_caeep"]
 [ext_resource type="PackedScene" uid="uid://cid06twba2og5" path="res://scenes/ui/panels/unit_preview_panel/move_container.tscn" id="8_tv8aq"]
 [ext_resource type="PackedScene" path="res://scenes/ui/spacer_horizontal_expand.tscn" id="9_6gye5"]
-[ext_resource type="Script" path="res://scripts/ui/components/glow_color_rect.gd" id="9_q2q7x"]
-[ext_resource type="Script" path="res://scripts/ui/components/move_chip.gd" id="10_k7j8h"]
+[ext_resource type="Script" uid="uid://ctyqqhodhdp85" path="res://scripts/ui/components/glow_color_rect.gd" id="9_q2q7x"]
+[ext_resource type="Script" uid="uid://d3icbg3mtvwqo" path="res://scripts/ui/components/move_chip.gd" id="10_k7j8h"]
 [ext_resource type="Texture2D" uid="uid://ca276mnrds1mt" path="res://art/sprites/ui/elemental_type_icons_10x10/cold.png" id="12_tv8aq"]
 [ext_resource type="Shader" uid="uid://73x5snsmw5ew" path="res://resources/shaders/move_chip_fill.gdshader" id="13_kslfy"]
 [ext_resource type="Texture2D" uid="uid://0q8h7ynjwlnj" path="res://art/sprites/ui/status_effect_icons/burn.png" id="16_k0vg6"]
@@ -17,6 +17,21 @@
 [ext_resource type="Texture2D" uid="uid://cwhv7tr2sownv" path="res://art/sprites/ui/status_effect_icons/challenged.png" id="18_ti3j1"]
 [ext_resource type="Texture2D" uid="uid://kp12o3qgqk55" path="res://art/sprites/ui/status_effect_icons/freeze.png" id="19_5ng7j"]
 [ext_resource type="Texture2D" uid="uid://1738pmwtyeww" path="res://art/sprites/ui/status_effect_icons/rooted.png" id="20_npkjf"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tv8aq"]
+content_margin_left = 1.0
+content_margin_top = 1.0
+content_margin_right = 1.0
+content_margin_bottom = 1.0
+bg_color = Color(0.1, 0.1, 0.1, 0.6)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 2
+corner_radius_top_right = 1
+corner_radius_bottom_right = 1
+corner_radius_bottom_left = 1
 
 [sub_resource type="CompressedTexture2D" id="CompressedTexture2D_deend"]
 load_path = "res://.godot/imported/simple.png-1d620432ab362c5b0f21c08706accd19.ctex"
@@ -29,7 +44,7 @@ shader = ExtResource("13_kslfy")
 shader_parameter/fill_color = Color(0.24313726, 0.40784314, 0.24705882, 1)
 shader_parameter/empty_color = Color(0.11764706, 0.21568628, 0.12941177, 1)
 shader_parameter/border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
-shader_parameter/fill_percent = 0.6
+shader_parameter/fill_percent = 0.929
 shader_parameter/skew_angle = 45.0
 shader_parameter/border_px = 1.0
 shader_parameter/radius_px = 2.0
@@ -40,7 +55,7 @@ shader = ExtResource("13_kslfy")
 shader_parameter/fill_color = Color(0.5294118, 0.33333334, 0.08627451, 1)
 shader_parameter/empty_color = Color(0.015686275, 0.15294118, 0.28627452, 1)
 shader_parameter/border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
-shader_parameter/fill_percent = 0.33
+shader_parameter/fill_percent = 0.30657
 shader_parameter/skew_angle = 45.0
 shader_parameter/border_px = 1.0
 shader_parameter/radius_px = 2.0
@@ -51,7 +66,7 @@ shader = ExtResource("13_kslfy")
 shader_parameter/fill_color = Color(0.1764706, 0.41960785, 0.6117647, 1)
 shader_parameter/empty_color = Color(0.2509804, 0.13725491, 0.039215688, 1)
 shader_parameter/border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
-shader_parameter/fill_percent = 0.285
+shader_parameter/fill_percent = 0.264765
 shader_parameter/skew_angle = 45.0
 shader_parameter/border_px = 1.0
 shader_parameter/radius_px = 2.0
@@ -65,7 +80,7 @@ shader = ExtResource("13_kslfy")
 shader_parameter/fill_color = Color(0.1764706, 0.41960785, 0.6117647, 1)
 shader_parameter/empty_color = Color(0.015686275, 0.15294118, 0.28627452, 1)
 shader_parameter/border_color = Color(0.7019608, 0.7019608, 0.7019608, 1)
-shader_parameter/fill_percent = 0.83
+shader_parameter/fill_percent = 0.77107
 shader_parameter/skew_angle = 45.0
 shader_parameter/border_px = 1.0
 shader_parameter/radius_px = 2.0
@@ -191,13 +206,21 @@ layout_mode = 2
 layout_mode = 2
 theme_override_constants/separation = 3
 
-[node name="TextureRect" type="TextureRect" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=1194855625]
+[node name="PortraitFrame" type="PanelContainer" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=170340210]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_styles/panel = SubResource("StyleBoxFlat_tv8aq")
+
+[node name="Portrait" type="TextureRect" parent="MarginContainer/VBoxContainer/HBoxContainer/PortraitFrame" unique_id=1194855625]
 custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
-size_flags_horizontal = 2
 texture = ExtResource("3_b2vn0")
-expand_mode = 2
+expand_mode = 1
 stretch_mode = 5
+
+[node name="AspectRatioContainer" type="AspectRatioContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/PortraitFrame" unique_id=823015189]
+visible = false
+layout_mode = 2
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=55277471]
 layout_mode = 2
@@ -205,6 +228,7 @@ size_flags_horizontal = 2
 theme_override_constants/separation = 2
 
 [node name="Spacer" type="Control" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer" unique_id=1484332549]
+visible = false
 custom_minimum_size = Vector2(0, 1)
 layout_mode = 2
 size_flags_horizontal = 3

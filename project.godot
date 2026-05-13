@@ -16,12 +16,13 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 config/name="TBT Game"
 config/description="Tactical Battle RPG - Pokemon meets Fire Emblem"
-run/main_scene="res://scenes/ui/start_screen.tscn"
+run/main_scene="res://scenes/game_root.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 
 [autoload]
 
 DebugConfig="*res://scripts/core/debug_config.gd"
+SceneRouter="*res://scripts/managers/scene_router.gd"
 TerrainDataManager="*res://scripts/grid/terrain_data_manager.gd"
 GridManager="*res://scripts/grid/grid_manager.gd"
 TypeChartManager="*res://scripts/combat/type_chart_manager.gd"
@@ -44,7 +45,7 @@ window/size/viewport_width=640
 window/size/viewport_height=360
 window/size/window_width_override=1920
 window/size/window_height_override=1080
-window/stretch/mode="viewport"
+window/stretch/mode="canvas_items"
 window/stretch/scale_mode="integer"
 
 [dotnet]

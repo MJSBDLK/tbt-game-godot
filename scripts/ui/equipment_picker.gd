@@ -126,7 +126,7 @@ func _ready() -> void:
 
 
 func _build_ui() -> void:
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -477,7 +477,7 @@ func _refresh_detail() -> void:
 
 
 func _render_move_detail(move: Move) -> void:
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 	var name_label := Label.new()
 	name_label.text = move.move_name
 	if ui_manager != null:
@@ -513,7 +513,7 @@ func _render_move_detail(move: Move) -> void:
 
 
 func _render_passive_detail(passive_name: String) -> void:
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 	var name_label := Label.new()
 	name_label.text = passive_name
 	if ui_manager != null:
@@ -539,7 +539,7 @@ func _render_passive_detail(passive_name: String) -> void:
 func _make_slot_button(
 		label_text: String, origin: String, index: int, interactive: bool,
 		move: Move = null, _passive_name: String = "") -> Button:
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 
 	var btn := Button.new()
 	btn.toggle_mode = false
@@ -945,7 +945,7 @@ func _refresh_stats_body() -> void:
 
 
 func _make_stat_row(stat_name: String, abbrev: String, points_remaining: int) -> HBoxContainer:
-	var ui_manager: Node = get_node_or_null("/root/UIManager")
+	var ui_manager: Node = UIManager
 
 	var row := HBoxContainer.new()
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL

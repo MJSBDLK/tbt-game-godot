@@ -1,0 +1,7 @@
+[gd_resource type="AtlasTexture" format=3 uid="uid://bohd3uwevs0h1"]
+
+[ext_resource type="Texture2D" uid="uid://bqgc1c3afspyg" path="res://art/lineart_fullres/grasker.png" id="1_a12o2"]
+
+[resource]
+atlas = ExtResource("1_a12o2")
+region = Rect2(1045, 475, 1000, 1000)

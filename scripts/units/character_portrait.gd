@@ -25,6 +25,81 @@ static var _cache_portrait_or_sprite: Dictionary = {}
 static var _cache_sprite_only: Dictionary = {}
 
 
+## Binds a portrait to an existing TextureRect, preferring HD line art when
+## available. Drop-in replacement for `texture_rect.texture = get_for(...)`
+## that adds opt-in HD rendering via HDPortraitSlot.
+##
+## Resolution order for the HD texture:
+##   1. `character.lineart_atlases[region_name]` — an AtlasTexture .tres
+##      that crops the source line art to a specific framing (e.g. headshot).
+##   2. `character.lineart_path` — the full line-art image, used when no
+##      region-specific atlas is defined.
+##   3. Pixel portrait fallback (`get_for`) when neither is set.
+##
+## When an HD texture is found, an HDPortraitSlot child is added under
+## `texture_rect` (or reused if already there) and the pixel `.texture` is
+## cleared so the HD overlay renders alone. The slot inherits the TextureRect's
+## rect via full-rect anchors, so the HD mirror in HDLayer ends up exactly
+## where the pixel portrait would have been.
+##
+## `region_name` defaults to "portrait" because that's what most consumers
+## want; pass a different name (e.g. "thumbnail") if the slot wants a
+## different crop.
+static func bind_to_texture_rect(texture_rect: TextureRect, character: CharacterData, region_name: String = "portrait") -> void:
+	if texture_rect == null:
+		return
+	if character == null:
+		texture_rect.texture = null
+		_remove_hd_slot(texture_rect)
+		return
+
+	var hd_texture: Texture2D = _resolve_hd_texture(character, region_name)
+
+	if hd_texture != null:
+		var slot: HDPortraitSlot = _ensure_hd_slot(texture_rect)
+		slot.hd_texture = hd_texture
+		# Clearing the pixel texture means transparent edges of the line art
+		# don't reveal the painted portrait underneath. The slot covers the
+		# TextureRect's rect via PRESET_FULL_RECT, so visually nothing is lost.
+		texture_rect.texture = null
+	else:
+		_remove_hd_slot(texture_rect)
+		texture_rect.texture = get_for(character)
+
+
+static func _resolve_hd_texture(character: CharacterData, region_name: String) -> Texture2D:
+	# Prefer the region-specific atlas — it pre-crops the source PNG to the
+	# framing we want (head-shot vs full body, etc.).
+	if region_name != "" and character.lineart_atlases.has(region_name):
+		var atlas_path: String = str(character.lineart_atlases[region_name])
+		if not atlas_path.is_empty() and ResourceLoader.exists(atlas_path):
+			return load(atlas_path) as Texture2D
+	# Fall back to the full line-art image (whole picture).
+	if not character.lineart_path.is_empty() and ResourceLoader.exists(character.lineart_path):
+		return load(character.lineart_path) as Texture2D
+	return null
+
+
+static func _ensure_hd_slot(parent: Control) -> HDPortraitSlot:
+	const SLOT_NAME: String = "_HDPortraitSlot"
+	var existing: HDPortraitSlot = parent.get_node_or_null(SLOT_NAME) as HDPortraitSlot
+	if existing != null:
+		return existing
+	var slot := HDPortraitSlot.new()
+	slot.name = SLOT_NAME
+	slot.set_anchors_preset(Control.PRESET_FULL_RECT)
+	slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(slot)
+	return slot
+
+
+static func _remove_hd_slot(parent: Control) -> void:
+	const SLOT_NAME: String = "_HDPortraitSlot"
+	var existing: HDPortraitSlot = parent.get_node_or_null(SLOT_NAME) as HDPortraitSlot
+	if existing != null:
+		existing.queue_free()
+
+
 ## Default lookup: prefers the character's painted portrait, falls back to a
 ## crop of the idle sprite if no portrait is set. Used by the unit preview
 ## and detail panels — wherever a "real" portrait is the goal.

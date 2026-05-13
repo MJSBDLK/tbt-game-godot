@@ -6,6 +6,10 @@
 	"specialization": "None",
 
 	"portraitPath": "res://art/portraits/napdawg_portrait.png",
+	"lineartPath": "res://art/lineart_fullres/napdog.png",
+	"lineartAtlases": {
+		"portrait": "res://art/lineart_fullres/napdawg_portrait.tres"
+	},
 
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",

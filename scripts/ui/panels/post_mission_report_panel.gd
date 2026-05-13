@@ -41,7 +41,7 @@ func _on_continue_pressed() -> void:
 	else:
 		# No active campaign (e.g. launched a map directly from the editor).
 		# Fall back to the start screen so the player can pick a campaign.
-		get_tree().change_scene_to_file("res://scenes/ui/start_screen.tscn")
+		SceneRouter.change_scene_to("res://scenes/ui/start_screen.tscn")
 
 
 func _format_report(report: Array) -> String:
