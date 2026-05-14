@@ -1,187 +1,191 @@
-// Glass-surface effect for HUD panels — applied via a CanvasItem `material`
-// on a Panel / PanelContainer / ColorRect that has a StyleBoxFlat or fill.
-// The shader processes every pixel the host draws (StyleBoxFlat bg + border)
-// and layers four passes on top:
-//   1. Azure tint — mixes the host's base color toward `glass_tint`.
-//   2. Top-down gradient — brighter near the top of the rect, simulating an
-//      overhead light source on the glass surface.
-//   3. Top-edge highlight — a sharper bright band along the upper edge to
-//      sell "polished glass" rather than "flat panel."
-//   4. Horizontal scanlines — subtle, gated by `scanline_strength` so they
-//      can be killed entirely if they read as noisy.
+// Projection-style effect overlay for HD portraits. Applied to a ColorRect
+// in HDLayer that sits above the HD line art mirror.
 //
-// All parameters are exported as uniforms so the host can be tuned in the
-// inspector without touching shader code. Defaults aim for "subtle blue
-// glass with a soft top highlight" — increase strengths for more flair.
+// PROJECTION MODEL (vs the old occlusion model):
+//   • `render_mode blend_add` — the shader's RGB output is ADDED to the
+//     line art behind, never multiplied or alpha-blended over. The line
+//     art's native brightness is always preserved as a minimum; this
+//     shader can only ADD light, never subtract.
+//   • Each pass outputs a positive "light contribution." Outputs of
+//     ~zero leave the line art untouched; positive values brighten it
+//     and shift its tone toward the contribution's color.
+//   • Effects that used to multiply pixels downward (darkening troughs,
+//     dot punches) are reformulated: scanline troughs simply contribute
+//     no light, dot chunks contribute a bright colored pulse instead of
+//     darkening.
+//
+// The pixel-art panel that hosts the line art continues to be visible —
+// only the line art itself is brightened by this overlay.
 shader_type canvas_item;
+render_mode blend_add;
 
-// Base color of the glass surface BEFORE any shader effect runs. Replaces
-// the host ColorRect's `color` (which was hard-coded and hidden in
-// HDPortraitSlot, causing invisible darkening of the line art). Alpha
-// controls how strongly the overlay covers the line art behind it —
-// higher = more glass-y, lower = clearer line art. RGB controls the
-// neutral tone of the glass. Default is mid-gray with a slight cool tint
-// at 18% alpha — leaves line art ~82% visible by default.
-uniform vec4 overlay_base : source_color = vec4(0.5, 0.5, 0.55, 0.18);
 
-uniform vec4 glass_tint : source_color = vec4(0.298, 0.549, 0.733, 0.4);     // Azure 5 @ 40% mix
-uniform vec4 highlight_color : source_color = vec4(0.859, 0.953, 1.0, 1.0);  // Azure 9
-uniform float gradient_strength : hint_range(0.0, 1.0) = 0.3;
-uniform float top_highlight_strength : hint_range(0.0, 1.0) = 0.25;
+// Ambient projection light — adds a constant tint to the entire portrait
+// area. Default zero so nothing is added until you push the alpha up.
+// RGB is the tint color, alpha is the strength of the contribution.
+uniform vec4 overlay_base : source_color = vec4(0.0, 0.0, 0.0, 0.0);
+
+// Color of the projector's "lamp" — the dominant light contribution that
+// other passes mix toward. Alpha scales how strongly this lamp light is
+// applied as ambient projection.
+uniform vec4 glass_tint : source_color = vec4(0.298, 0.549, 0.733, 0.1);   // Azure 5
+uniform vec4 highlight_color : source_color = vec4(0.859, 0.953, 1.0, 1.0); // Azure 9
+
+
+// === Gradient and edge highlight ===
+// Both are additive: positive light brightening toward the top.
+uniform float gradient_strength : hint_range(0.0, 1.0) = 0.0;
+uniform float top_highlight_strength : hint_range(0.0, 1.0) = 0.15;
 uniform float top_highlight_falloff : hint_range(1.0, 16.0) = 4.0;
+
+
+// === Scanlines ===
+// Bright horizontal bands; sin peaks contribute light, troughs contribute
+// zero. Scrolls vertically at scanline_speed.
 uniform float scanline_strength : hint_range(0.0, 1.0) = 0.1;
 uniform float scanline_density : hint_range(10.0, 300.0) = 60.0;
-// Scanline scroll velocity in UV-space units per second. Positive = downward
-// marquee, negative = upward. 0.05 = a full panel traversal every 20 seconds
-// (slow ambient drift); 0.5 = once every 2 seconds (assertive). 0 = static.
-uniform float scanline_speed : hint_range(-2.0, 2.0) = 0.0;
+uniform float scanline_speed : hint_range(-2.0, 2.0) = 0.05;
+
 
 // === Every-Nth-scanline accent ===
-// On every Nth scanline cycle, brightens the row by `accent_strength`.
-// Setting accent_strength = 0 OR accent_every = 0 disables the effect.
+// Adds a brighter band on rows whose scanline index is a multiple of
+// `accent_every`. Setting accent_strength = 0 or accent_every = 0 disables.
 uniform float accent_every : hint_range(0.0, 64.0) = 32.0;
 uniform float accent_strength : hint_range(0.0, 2.0) = 0.0;
 
-// === Reference-resolution effects ===
-// Chunk size in REFERENCE pixels (640×360 space). 1.0 = one chunk per
-// reference pixel = scale_factor actual screen pixels each. Larger values
-// give chunkier static. Independent of UV/atlas — we quantize FRAGCOORD
-// (actual framebuffer pixels) and derive the scale factor from
-// SCREEN_PIXEL_SIZE.
+
+// === Reference-resolution chunk effects ===
+// Static and dot use FRAGCOORD-quantized chunks at reference resolution
+// (640×360). Same chunk math is independent of UV/atlas/aspect issues.
 uniform float chunk_size_in_reference : hint_range(0.5, 8.0) = 1.0;
 
 const float REFERENCE_WIDTH = 640.0;
 
-// JPEG-style static — soft chunks with sub-pixel gradients. Each reference
-// pixel gets a base noise value plus an internal directional gradient, so
-// HD pixels inside the chunk vary smoothly — reads as "compressed image
-// with sub-pixel detail," not nearest-neighbor blockiness.
+
+// === Static noise — bright sparkles ===
+// Each chunk gets a hash-driven brightness value per time bucket; only the
+// upper half of the distribution contributes light (lower half = zero),
+// so the effect reads as "sparkles being added" rather than "noise both
+// brightening and dimming the image."
 uniform float static_strength : hint_range(0.0, 1.0) = 0.0;
 uniform float static_rate : hint_range(1.0, 60.0) = 8.0;
 uniform float static_intra_chunk : hint_range(0.0, 1.0) = 0.15;
 
-// === Dark-dot flicker ===
-// Visually equivalent to "punching holes in the line art" at ~free cost
-// (vs. a second full-resolution shader pass on the HD mirror to mask alpha).
-// The panel surface behind a punched chunk would be dark anyway, so just
-// darkening the overlay's pixel at those chunks reads the same way. Same
-// chunk-quantization as the static effect; different time bucket and hash
-// seed so dots don't correlate with static positions.
-uniform vec4 dot_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
+
+// === Bright dot glitch ===
+// Sparse chunks pulse a colored light contribution — reads as "scanner
+// dropout glitch" rather than "missing pixel." dot_color is the color of
+// the glitch (default bright Azure 9). For actual pixel cuts in the line
+// art, you'd need a separate mask shader on the mirror itself.
+uniform vec4 dot_color : source_color = vec4(0.859, 0.953, 1.0, 1.0);
 uniform float dot_strength : hint_range(0.0, 1.0) = 0.0;
-uniform float dot_chance : hint_range(0.0, 0.05, 0.00001) = 0.001;
+uniform float dot_chance : hint_range(0.0, 0.05, 0.00001) = 0.0001;
 uniform float dot_rate : hint_range(1.0, 60.0) = 4.0;
 
 
-// David Hoskins-style hash. Avoids the sin-based hash's non-uniform
-// distribution at large inputs (see hd_portrait_mask.gdshader for the
-// detailed reasoning — same issue applies to the static effect here).
-float hash(vec2 p) {
-	vec3 p3 = fract(vec3(p, 1.0) * 0.1031);
-	p3 += dot(p3, p3.yzx + 33.33);
-	return fract((p3.x + p3.y) * p3.z);
-}
-
+// David Hoskins hash — uniform across the input range, no sin-precision
+// issues at large FRAGCOORD values. Per-component multipliers (0.1031,
+// 0.1030, 0.0973) are the canonical Hoskins constants; they break
+// correlations between input axes. Using a single shared multiplier here
+// (as the earlier version did) produces a distribution that's biased at
+// the very-low-output end — which inflates trigger rates for sub-0.001
+// thresholds like `dot_chance` by an order of magnitude.
 float hash_seeded(vec2 p, float seed) {
-	vec3 p3 = fract(vec3(p, seed) * 0.1031);
+	vec3 p3 = fract(vec3(p, seed) * vec3(0.1031, 0.1030, 0.0973));
 	p3 += dot(p3, p3.yzx + 33.33);
 	return fract((p3.x + p3.y) * p3.z);
 }
 
 
 void fragment() {
-	// Read base color from the shader uniform rather than the host
-	// ColorRect's `COLOR` — gives full control over the glass surface
-	// tone (and most importantly its alpha, which controls how much
-	// the overlay obscures the line art behind it).
-	vec4 base = overlay_base;
+	// Each pass appends a positive RGB contribution. Final COLOR.rgb is
+	// added to the line art behind; COLOR.a = 1 means full contribution
+	// (blend_add adds src.rgb * src.a to dst).
+	vec3 light = vec3(0.0);
 
-	// Skip fully-transparent pixels — outside the StyleBoxFlat's drawn region.
-	// Without this guard the effect would expand the panel's apparent rect.
-	if (base.a < 0.01) {
-		COLOR = base;
-	} else {
-		// 1. Tint toward glass color
-		vec3 tinted = mix(base.rgb, glass_tint.rgb, glass_tint.a);
+	// 1. Ambient — flat tint applied everywhere.
+	light += overlay_base.rgb * overlay_base.a;
 
-		// 2. Top-down gradient — top a bit brighter, bottom a bit dimmer.
-		float gradient = mix(1.0 + gradient_strength, 1.0 - gradient_strength * 0.5, UV.y);
-		tinted *= gradient;
+	// 2. Lamp tint — overall projection lamp color contribution.
+	light += glass_tint.rgb * glass_tint.a;
 
-		// 3. Top-edge highlight — quick falloff from the top edge.
-		float highlight = pow(max(0.0, 1.0 - UV.y * top_highlight_falloff), 2.0) * top_highlight_strength;
-		tinted = mix(tinted, highlight_color.rgb, highlight);
+	// 3. Top-down gradient — extra brightness near the top, fading to
+	// zero at the bottom. Tinted with glass_tint so the gradient shifts
+	// hue toward the lamp color instead of just adding white (which
+	// would desaturate the line art beneath).
+	light += glass_tint.rgb * mix(gradient_strength, 0.0, UV.y);
 
-		// 4. Scanlines — sin-wave horizontal darkening, mixed in by strength.
-		// Subtracting (TIME * speed) from UV.y shifts the pattern downward as
-		// time advances (positive speed → features that were at y_0 at t=0 are
-		// at y_0 + speed*dt at t=dt). Negative speed scrolls upward.
-		float scan_y = (UV.y - TIME * scanline_speed) * scanline_density;
-		if (scanline_strength > 0.0) {
-			float scan = sin(scan_y);
-			float scan_factor = mix(1.0, 0.5 + scan * 0.5, scanline_strength);
-			tinted *= scan_factor;
-		}
+	// 4. Sharp top-edge highlight — Azure 9 (or whatever highlight_color
+	// is) ramping in quickly from the top edge. Pow2 of a clamped UV
+	// gradient gives a clean falloff.
+	float highlight = pow(max(0.0, 1.0 - UV.y * top_highlight_falloff), 2.0) * top_highlight_strength;
+	light += highlight_color.rgb * highlight;
 
-		// 5. Every Nth scanline accent — sinusoidal brightening confined to
-		// rows whose scanline index is a multiple of `accent_every`. The
-		// `0.15915` is 1/(2π), converting phase to integer cycle index.
-		// accent_every >= 1.0 guard avoids mod-by-zero when the uniform
-		// is set to 0 to disable the effect entirely.
-		if (accent_strength > 0.0 && accent_every >= 1.0) {
-			int scan_idx = int(floor(scan_y * 0.15915));
-			if (int(mod(float(scan_idx), accent_every)) == 0) {
-				float local = scan_y - float(scan_idx) * 6.2832;
-				float band = sin(local) * 0.5 + 0.5;
-				tinted *= 1.0 + band * accent_strength;
-			}
-		}
-
-		// Reference-pixel quantization via FRAGCOORD. Scale factor (actual
-		// screen pixels per reference pixel) is derived from
-		// SCREEN_PIXEL_SIZE — independent of UV remapping, AtlasTexture
-		// regions, KEEP_ASPECT padding, etc. Chunks are always square at
-		// the requested reference resolution.
-		float scale_factor = (1.0 / SCREEN_PIXEL_SIZE.x) / REFERENCE_WIDTH;
-		float chunk_pixel_size = max(1.0, chunk_size_in_reference * scale_factor);
-		vec2 ref_coord = floor(FRAGCOORD.xy / chunk_pixel_size);
-		vec2 sub_coord = fract(FRAGCOORD.xy / chunk_pixel_size) - 0.5;
-
-		// 6. JPEG-style static — chunk base value + intra-chunk gradient.
-		// Time is fed to the hash as an INDEPENDENT seed (not as a coord
-		// offset), so each time bucket produces uncorrelated noise instead of
-		// a pattern that appears to scroll sideways frame-to-frame.
-		if (static_strength > 0.0) {
-			float t_bucket = floor(TIME * static_rate);
-			float chunk_value = hash_seeded(ref_coord, t_bucket);
-			vec2 gradient_dir = vec2(
-				hash_seeded(ref_coord, t_bucket + 7.1),
-				hash_seeded(ref_coord, t_bucket + 13.7)
-			) * 2.0 - 1.0;
-			float intra = dot(sub_coord, gradient_dir) * static_intra_chunk;
-			float final_noise = chunk_value + intra;
-			tinted *= mix(1.0, final_noise * 2.0, static_strength);
-		}
-
-		// 7. Dark-dot flicker — sparse chunks darkened with dot_color. Reads
-		// the same as punching holes in the line art (because the line art's
-		// panel surface is dark), at a fraction of the cost.
-		//
-		// CRITICAL: also drives base.a opaque in dot chunks. The overlay's
-		// base color is semi-transparent (typically alpha 0.3) so the line
-		// art behind shows through normally — but a "dot" needs to actually
-		// COVER the line art, not just slightly darken it. Without this
-		// the dot effect is barely visible no matter how high you set
-		// dot_strength.
-		if (dot_strength > 0.0) {
-			float dot_bucket = floor(TIME * dot_rate);
-			float dot_roll = hash_seeded(ref_coord, dot_bucket + 91.7);
-			if (dot_roll < dot_chance) {
-				tinted = mix(tinted, dot_color.rgb, dot_strength);
-				base.a = mix(base.a, dot_color.a, dot_strength);
-			}
-		}
-
-		COLOR = vec4(tinted, base.a);
+	// 5. Scanlines — bright bands at sin peaks. max(0, sin) clamps the
+	// trough half to zero so it contributes no light, leaving the line
+	// art at its base brightness between bands.
+	float scan_y = (UV.y - TIME * scanline_speed) * scanline_density;
+	if (scanline_strength > 0.0) {
+		float scan = max(0.0, sin(scan_y));
+		// Tint the scanlines with the lamp color so they read as part of
+		// the same projection rather than as white-only stripes.
+		light += glass_tint.rgb * scan * scanline_strength;
 	}
+
+	// 6. Every Nth scanline accent — extra-bright row, lamp-tinted.
+	if (accent_strength > 0.0 && accent_every >= 1.0) {
+		int scan_idx = int(floor(scan_y * 0.15915));
+		if (int(mod(float(scan_idx), accent_every)) == 0) {
+			float local = scan_y - float(scan_idx) * 6.2832;
+			float band = sin(local) * 0.5 + 0.5;
+			light += highlight_color.rgb * band * accent_strength;
+		}
+	}
+
+	// Reference-pixel quantization for chunk-based effects.
+	float scale_factor = (1.0 / SCREEN_PIXEL_SIZE.x) / REFERENCE_WIDTH;
+	float chunk_pixel_size = max(1.0, chunk_size_in_reference * scale_factor);
+	vec2 ref_coord = floor(FRAGCOORD.xy / chunk_pixel_size);
+	vec2 sub_coord = fract(FRAGCOORD.xy / chunk_pixel_size) - 0.5;
+
+	// 7. Static — bright sparkles. Hash gives a value in [0,1] per chunk
+	// per time bucket; we use `max(0, n - 0.5) * 2` to take only the
+	// upper half of the distribution, so the effect reads as "bright
+	// chunks being added" not "noise modulating brightness up and down."
+	if (static_strength > 0.0) {
+		float t_bucket = floor(TIME * static_rate);
+		float chunk_value = hash_seeded(ref_coord, t_bucket);
+		vec2 gradient_dir = vec2(
+			hash_seeded(ref_coord, t_bucket + 7.1),
+			hash_seeded(ref_coord, t_bucket + 13.7)
+		) * 2.0 - 1.0;
+		float intra = dot(sub_coord, gradient_dir) * static_intra_chunk;
+		float final_noise = chunk_value + intra;
+		float bright = max(0.0, final_noise - 0.5) * 2.0 * static_strength;
+		// Sparkles tinted with the lamp color so they read as part of the
+		// projection's energy, preserving the projector's hue. No pure-white
+		// component — that just desaturates everything underneath.
+		light += glass_tint.rgb * bright;
+	}
+
+	// 8. Bright dot glitch — sparse chunks add a strong color pulse,
+	// like a scanner dropout dropping a bright square instead of a hole.
+	//
+	// Uses TWO independent hashes and requires both to pass `sqrt(chance)`.
+	// Single-hash trigger at sub-0.001 thresholds was firing ~25× over the
+	// expected rate due to the Hoskins hash's low-tail bias; combining two
+	// independent hashes effectively squares the threshold and dilutes any
+	// single-hash bias against the other's normal distribution, so the
+	// effective probability matches `dot_chance` accurately.
+	if (dot_strength > 0.0) {
+		float dot_bucket = floor(TIME * dot_rate);
+		float h1 = hash_seeded(ref_coord, dot_bucket + 91.7);
+		float h2 = hash_seeded(ref_coord, dot_bucket + 137.3);
+		float threshold = sqrt(max(0.0, dot_chance));
+		if (h1 < threshold && h2 < threshold) {
+			light += dot_color.rgb * dot_strength;
+		}
+	}
+
+	COLOR = vec4(light, 1.0);
 }

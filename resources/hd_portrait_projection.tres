@@ -4,11 +4,11 @@
 
 [resource]
 shader = ExtResource("1_shader")
-shader_parameter/tint_color = Color(0.859, 0.953, 1, 1)
-shader_parameter/glow_color = Color(0.298, 0.549, 0.733, 1)
-shader_parameter/tint_strength = 1.0
+shader_parameter/tint_color = Color(0.9764706, 0.99215686, 1, 1)
+shader_parameter/glow_color = Color(0.5764706, 0.81960785, 0.9607843, 1)
+shader_parameter/tint_strength = 0.2000000095
 shader_parameter/glow_radius = 2.0
-shader_parameter/glow_strength = 1.0
+shader_parameter/glow_strength = 0.2000000095
 shader_parameter/scanline_strength = 0.15
-shader_parameter/scanline_density = 80.0
+shader_parameter/scanline_density = 45.0000016625
 shader_parameter/scanline_speed = 0.0

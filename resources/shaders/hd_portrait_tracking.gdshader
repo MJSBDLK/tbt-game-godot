@@ -66,10 +66,13 @@ uniform float tracking_band_brightness : hint_range(0.0, 1.0) = 0.0;
 uniform float lineart_gamma : hint_range(0.2, 2.5) = 1.0;
 
 
-// David Hoskins-style hash — uniform across the input domain, no sin
-// precision issues at large coords.
+// David Hoskins hash — uniform across the input domain, no sin precision
+// issues at large coords. Per-component multipliers (0.1031, 0.1030,
+// 0.0973) are the canonical Hoskins constants — they break correlations
+// between input axes that otherwise bias the distribution at the
+// low-output end.
 float hash(vec2 p) {
-	vec3 p3 = fract(vec3(p, 1.0) * 0.1031);
+	vec3 p3 = fract(vec3(p, 1.0) * vec3(0.1031, 0.1030, 0.0973));
 	p3 += dot(p3, p3.yzx + 33.33);
 	return fract((p3.x + p3.y) * p3.z);
 }
