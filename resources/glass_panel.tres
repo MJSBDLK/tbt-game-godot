@@ -4,9 +4,9 @@
 
 [resource]
 shader = ExtResource("1_shader")
-shader_parameter/glass_tint = Color(0.298, 0.549, 0.733, 0.05)
-shader_parameter/highlight_color = Color(0.859, 0.953, 1, 1)
-shader_parameter/gradient_strength = 0.150000007125
+shader_parameter/glass_tint = Color(0.29803923, 0.54901963, 0.73333335, 0.05)
+shader_parameter/highlight_color = Color(1, 1, 1, 1)
+shader_parameter/gradient_strength = 0.2000000095
 shader_parameter/top_highlight_strength = 0.250000011875
 shader_parameter/top_highlight_falloff = 4.0
 shader_parameter/scanline_strength = 0.250000011875
@@ -15,7 +15,7 @@ shader_parameter/scanline_speed = 0.20000010449999994
 shader_parameter/accent_every = 0.0
 shader_parameter/accent_strength = 2.0
 shader_parameter/chunk_size_in_reference = 1.0
-shader_parameter/static_strength = 0.50000002375
+shader_parameter/static_strength = 0.250000011875
 shader_parameter/static_rate = 30.0000013775
 shader_parameter/static_intra_chunk = 1.0
 shader_parameter/dot_color = Color(0, 0.007843138, 0.019607844, 1)

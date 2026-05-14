@@ -56,6 +56,15 @@ uniform float tracking_row_density : hint_range(20.0, 400.0) = 100.0;
 // spike" feel. 0 = no brightness change.
 uniform float tracking_band_brightness : hint_range(0.0, 1.0) = 0.0;
 
+// Gamma adjustment for the line art (NOT linear multiplication — that
+// just clips highlights and washes saturation). 1.0 = unchanged, >1
+// lifts shadows toward midtones (image looks brighter, dark areas
+// brighten more than light areas), <1 deepens shadows. Use this to
+// compensate for the glass overlay's darkening passes (especially the
+// static, whose noise modulation pulls roughly half the pixels below
+// baseline). Inspector accepts typed values past the slider range.
+uniform float lineart_gamma : hint_range(0.2, 2.5) = 1.0;
+
 
 // David Hoskins-style hash — uniform across the input domain, no sin
 // precision issues at large coords.
@@ -111,6 +120,13 @@ void fragment() {
 
 	vec2 displaced_uv = UV + vec2(displace, 0.0);
 	vec4 src = texture(TEXTURE, displaced_uv);
+
+	// Gamma adjustment — `pow(rgb, 1/gamma)`. With gamma > 1, mid-grays
+	// lift toward white (image looks brighter), while pure-black stays
+	// black and pure-white stays white. Preserves dynamic range better
+	// than a linear multiplier, which would clip highlights and shift
+	// hue at the clip points.
+	src.rgb = pow(max(src.rgb, vec3(0.0)), vec3(1.0 / max(0.05, lineart_gamma)));
 
 	// Optional brightness pump inside the band.
 	if (tracking_band_brightness > 0.0) {

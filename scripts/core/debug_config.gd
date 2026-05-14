@@ -46,6 +46,14 @@ var turn_manager: bool = false
 # Cheats (dev-only keybinds — Ctrl+W instawin, Ctrl+L instalose, Ctrl+R refresh hovered unit)
 var cheats_enabled: bool = true
 
+# Visual debug — HD portrait pipeline. When true, HDPortraitSlot bypasses
+# its overlay (glass shader) and mirror material (tracking shader), so the
+# raw line art renders clean. Toggled by left-clicking on a portrait while
+# cheats_enabled. Useful for comparing the raw line art's brightness /
+# saturation against the post-shader composite when tuning effects.
+var debug_portrait_effects_disabled: bool = false
+signal debug_portrait_effects_changed
+
 
 # ===== HELPER METHODS =====
 

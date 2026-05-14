@@ -15,6 +15,15 @@
 // glass with a soft top highlight" — increase strengths for more flair.
 shader_type canvas_item;
 
+// Base color of the glass surface BEFORE any shader effect runs. Replaces
+// the host ColorRect's `color` (which was hard-coded and hidden in
+// HDPortraitSlot, causing invisible darkening of the line art). Alpha
+// controls how strongly the overlay covers the line art behind it —
+// higher = more glass-y, lower = clearer line art. RGB controls the
+// neutral tone of the glass. Default is mid-gray with a slight cool tint
+// at 18% alpha — leaves line art ~82% visible by default.
+uniform vec4 overlay_base : source_color = vec4(0.5, 0.5, 0.55, 0.18);
+
 uniform vec4 glass_tint : source_color = vec4(0.298, 0.549, 0.733, 0.4);     // Azure 5 @ 40% mix
 uniform vec4 highlight_color : source_color = vec4(0.859, 0.953, 1.0, 1.0);  // Azure 9
 uniform float gradient_strength : hint_range(0.0, 1.0) = 0.3;
@@ -81,7 +90,11 @@ float hash_seeded(vec2 p, float seed) {
 
 
 void fragment() {
-	vec4 base = COLOR;
+	// Read base color from the shader uniform rather than the host
+	// ColorRect's `COLOR` — gives full control over the glass surface
+	// tone (and most importantly its alpha, which controls how much
+	// the overlay obscures the line art behind it).
+	vec4 base = overlay_base;
 
 	// Skip fully-transparent pixels — outside the StyleBoxFlat's drawn region.
 	// Without this guard the effect would expand the panel's apparent rect.

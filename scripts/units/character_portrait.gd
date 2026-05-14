@@ -108,7 +108,9 @@ static func _ensure_hd_slot(parent: Control) -> HDPortraitSlot:
 	var slot := HDPortraitSlot.new()
 	slot.name = SLOT_NAME
 	slot.set_anchors_preset(Control.PRESET_FULL_RECT)
-	slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# The slot's _ready() sets mouse_filter = PASS so it can receive
+	# left-clicks for the debug effects-toggle (DebugConfig.cheats_enabled).
+	# Don't override that here.
 	parent.add_child(slot)
 	return slot
 

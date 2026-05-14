@@ -102,6 +102,16 @@ var _overlay: ColorRect = null
 
 
 func _ready() -> void:
+	# Receive left-clicks to toggle the debug portrait-effects bypass
+	# (gated by DebugConfig.cheats_enabled). MOUSE_FILTER_PASS lets the
+	# click also propagate to the portrait's parent in case other UI
+	# wants it (e.g. opening unit detail panel) — we don't consume it.
+	mouse_filter = Control.MOUSE_FILTER_PASS
+	gui_input.connect(_on_gui_input)
+	# Live-react if another slot toggles the debug flag — keep every
+	# portrait in the scene in sync.
+	DebugConfig.debug_portrait_effects_changed.connect(_apply_debug_effects_state)
+
 	# `item_rect_changed` covers position/size changes on this slot itself
 	# (theme reflow, anchor recalculation, container layout, etc.).
 	item_rect_changed.connect(_sync_mirror_geometry)
@@ -118,6 +128,35 @@ func _ready() -> void:
 	_ensure_mirror()
 	_sync_mirror_geometry()
 	_sync_mirror_visibility()
+	# Honor the current debug-bypass flag on first paint.
+	_apply_debug_effects_state()
+
+
+func _on_gui_input(event: InputEvent) -> void:
+	if not DebugConfig.cheats_enabled:
+		return
+	if event is InputEventMouseButton:
+		var mb: InputEventMouseButton = event
+		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
+			DebugConfig.debug_portrait_effects_disabled = \
+					not DebugConfig.debug_portrait_effects_disabled
+			DebugConfig.debug_portrait_effects_changed.emit()
+
+
+## Applies the current DebugConfig.debug_portrait_effects_disabled state to
+## this slot's mirror + overlay. When disabled:
+##   • Mirror's material is cleared (no tracking shader) so the line art
+##     renders untouched.
+##   • Overlay is hidden so its glass-effect ColorRect doesn't composite
+##     over the line art at all.
+## When the flag flips back, the original materials and visibility are
+## restored from the slot's exports (which are untouched by this method).
+func _apply_debug_effects_state() -> void:
+	var disabled: bool = DebugConfig.debug_portrait_effects_disabled
+	if _mirror != null and is_instance_valid(_mirror):
+		_mirror.material = null if disabled else projection_material
+	if _overlay != null and is_instance_valid(_overlay):
+		_overlay.visible = not disabled and is_visible_in_tree()
 
 
 func _notification(what: int) -> void:
@@ -207,7 +246,9 @@ func _sync_mirror_visibility() -> void:
 	if _mirror != null and is_instance_valid(_mirror):
 		_mirror.visible = visible_in_tree
 	if _overlay != null and is_instance_valid(_overlay):
-		_overlay.visible = visible_in_tree
+		# Honor the debug-bypass flag here too — when effects are disabled,
+		# the overlay should stay hidden regardless of slot visibility.
+		_overlay.visible = visible_in_tree and not DebugConfig.debug_portrait_effects_disabled
 
 
 func _refresh_mirror_texture() -> void:
