@@ -12,8 +12,8 @@
  - [ ] ice desert biome terrain
 ## RQD
 - [x] LOD - push existing line art portraits
-- [ ] RQD - fix crashes in mission progression
-- [ ] RQD - implement line art portraits
+- [x] RQD - fix crashes in mission progression
+- [x] RQD - implement line art portraits
 - [ ] RQD - keep working on intermission screens
 
 # [ ] Meeting 20260510
@@ -61,7 +61,7 @@
 
 **Goal: close the alpha game loop as a 2-mission mini-campaign.** Pick start level → prep → mission 1 → result → between-mission level-up + prep → mission 2 → result → back to start. Two missions exercises persistence, leveling-between-fights, and the squad management loop without overinvesting in content. Maps are cheap to iterate; campaign infrastructure is not.
 
-- [ ] **1. 2-mission mini-campaign skeleton.** Campaign-state singleton holding `{current_mission_index, squad, start_level}`. Start screen with start-level picker (5/20/40/60) → "Begin Campaign" → mission 1 → between-mission flow → mission 2 → end-of-campaign result. Mission content can be the existing test maps for now.
+- [x] **1. 2-mission mini-campaign skeleton.** Campaign-state singleton holding `{current_mission_index, squad, start_level}`. Start screen with start-level picker (5/20/40/60) → "Begin Campaign" → mission 1 → between-mission flow → mission 2 → end-of-campaign result. Mission content can be the existing test maps for now.
 - [x] **2. Auto-leveling system.** Simulate growth rolls to target level for both player units and enemies. Used to set campaign **starting** state; subsequent levels come from actually fighting. Reuse Unity's CharacterData growth logic (`../tbt-game/Assets/Scripts/Units/CharacterData.cs`).
 - [ ] **3. Squad/prep + between-mission level-up screen** (user-flagged PRIORITY). Pick squad, equip moves (~330 already in bank), equip passives, distribute stat allocation points. Same screen handles both initial prep AND between-mission level-up display (XP gained, stat-up rolls, new moves/passives unlocked).
 - [ ] **4. Rebuild battle result overlay with proper routing.** Current overlay is placeholder. Mid-campaign → between-mission screen. End-of-campaign → start screen. Per-unit stats + objective/bEXP scope from [mission_objectives.md](mission_objectives.md) is V2 — V1 just needs correct routing + existing turns/units-lost/enemies-defeated.

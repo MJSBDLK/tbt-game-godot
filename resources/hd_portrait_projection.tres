@@ -1,6 +1,6 @@
 [gd_resource type="ShaderMaterial" format=3 uid="uid://d08nbse016c3f"]
 
-[ext_resource type="Shader" path="res://resources/shaders/hd_portrait_projection.gdshader" id="1_shader"]
+[ext_resource type="Shader" uid="uid://dneb1lfip4qrs" path="res://resources/shaders/hd_portrait_projection.gdshader" id="1_shader"]
 
 [resource]
 shader = ExtResource("1_shader")

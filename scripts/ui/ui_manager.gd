@@ -638,11 +638,16 @@ func _get_camera() -> CameraController:
 
 
 ## Returns true when the map view is interactive — the only condition under
-## which info panels (unit info, terrain info) should render. Inverted gate:
-## new modal states (BATTLE_RESULT, RECRUITING, future overlays) suppress info
-## panels by default just by virtue of not being in MAP_VIEW_STATES. No
-## blocklist to keep updated.
+## which info panels (unit info, terrain info) should render.
+##
+## Primary gate is scene-presence: if a BattleScene isn't mounted, there's no
+## map to preview, full stop. This makes new non-battle screens (PrepScreen,
+## StartScreen, future overlays) inherently safe — they can't accidentally leak
+## map UI by forgetting to push a state. The InputState check stacks on top to
+## suppress panels during in-battle modals (ACTION_MENU_OPEN, etc.).
 func _is_map_view_active() -> bool:
+	if SceneRouter == null or not (SceneRouter.get_current_scene() is BattleScene):
+		return false
 	var state_manager := get_node_or_null("/root/GameStateManager")
 	if state_manager == null:
 		return true

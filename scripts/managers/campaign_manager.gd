@@ -25,6 +25,7 @@ signal campaign_ended()
 
 const START_SCREEN_PATH: String = "res://scenes/ui/start_screen.tscn"
 const PREP_SCREEN_PATH: String = "res://scenes/ui/prep_screen.tscn"
+const CAMPAIGN_COMPLETE_SCREEN_PATH: String = "res://scenes/ui/campaign_complete_screen.tscn"
 const RECRUIT_OFFER_COUNT: int = 3
 
 # Per-character starting levels. Lookup by character_id. Anyone not listed
@@ -286,11 +287,11 @@ func _bucket_band(difficulty: Enums.EnemyDifficulty, effective_min: float,
 
 
 func end_campaign() -> void:
-	DebugConfig.log_unit_init("CampaignManager: Campaign complete — returning to start screen")
+	DebugConfig.log_unit_init("CampaignManager: Campaign complete — showing completion screen")
 	_mission_paths.clear()
 	_current_mission_index = -1
 	campaign_ended.emit()
-	_return_to_start_screen()
+	SceneRouter.change_scene_to(CAMPAIGN_COMPLETE_SCREEN_PATH)
 
 
 func is_active() -> bool:

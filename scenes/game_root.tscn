@@ -16,6 +16,7 @@ stretch = true
 [node name="GameViewport" type="SubViewport" parent="PixelLayer"]
 size = Vector2i(640, 360)
 render_target_update_mode = 4
+canvas_item_default_texture_filter = 0
 
 [node name="HDLayer" type="CanvasLayer" parent="."]
 layer = 100

@@ -8,6 +8,7 @@ extends Control
 const CAMPAIGN_MISSIONS: Array[String] = [
 	"res://scenes/battle/maps/test_map_01.tscn",
 	"res://scenes/battle/maps/test_map_02.tscn",
+	"res://scenes/battle/maps/test_map_03.tscn",
 ]
 # Pool of pre-established characters who can join mid-campaign. One is picked
 # at random per mission boundary so replays vary. As the roster grows past the

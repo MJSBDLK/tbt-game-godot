@@ -1,5 +1,6 @@
 ## Battle scene root script. Spawns units from SpawnTileLayer and kicks off the turn loop.
 ## Each map scene must have a TilemapGridBuilder with a painted SpawnTileLayer.
+class_name BattleScene
 extends Node2D
 
 
