@@ -57,8 +57,14 @@ func _format_report(report: Array) -> String:
 		var new_injuries: Array = entry.get("new_injuries", [])
 		var recovered: Array = entry.get("recovered_injuries", [])
 		var permadead: bool = entry.get("permadead", false)
+		var level_before: int = entry.get("level_before", 0)
+		var level_after: int = entry.get("level_after", level_before)
+		var stat_ups_gained: int = entry.get("stat_ups_gained", 0)
+		var growths_gained: Array = entry.get("growths_gained", [])
+		var leveled: bool = level_after > level_before
 
-		if new_injuries.is_empty() and recovered.is_empty() and not permadead:
+		if (new_injuries.is_empty() and recovered.is_empty() and not permadead
+				and not leveled and stat_ups_gained <= 0):
 			lines.append("[color=#888888]%s — no changes.[/color]" % char_name)
 			continue
 
@@ -66,6 +72,14 @@ func _format_report(report: Array) -> String:
 		if permadead:
 			header += " [color=#ff5555](PERMADEAD)[/color]"
 		lines.append("[b]%s[/b]" % header)
+
+		if leveled:
+			lines.append("  [color=#ffd86a]Lv %d → %d[/color]" % [level_before, level_after])
+		if not growths_gained.is_empty():
+			lines.append("  [color=#a0e0ff]+ %s[/color]" % ", ".join(growths_gained))
+		if stat_ups_gained > 0:
+			var noun: String = "stat-up point" if stat_ups_gained == 1 else "stat-up points"
+			lines.append("  [color=#88ffaa]+%d %s to spend[/color]" % [stat_ups_gained, noun])
 
 		for injury: Injury in new_injuries:
 			lines.append("  [color=#ff8888]+ %s[/color]" % _injury_label(injury))

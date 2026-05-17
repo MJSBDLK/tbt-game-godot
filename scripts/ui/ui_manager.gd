@@ -57,6 +57,10 @@ var _unit_detail_panel: UnitDetailPanel = null
 var _system_menu_panel: SystemMenuPanel = null
 var _options_menu_panel: OptionsMenuPanel = null
 var _post_mission_report_panel: PostMissionReportPanel = null
+var _level_up_report_panel: LevelUpReportPanel = null
+# Stashed between LevelUpReportPanel.closed and PostMissionReportPanel showing,
+# since the two screens share one signal payload but get told to render in turn.
+var _pending_post_mission_report: Array = []
 var _recruit_picker_panel: Node = null
 
 
@@ -507,7 +511,14 @@ func _instantiate_overlays() -> void:
 		_overlay_layer.add_child(_unit_detail_panel)
 		_unit_detail_panel.closed.connect(_on_unit_detail_closed)
 
-	# Post-mission report panel (minimal placeholder UI)
+	# Post-mission flow: LevelUpReportPanel fires first on victory (skipped if
+	# nobody leveled), then PostMissionReportPanel for injuries/recovery.
+	var level_up_scene := load("res://scenes/ui/panels/level_up_report_panel.tscn")
+	if level_up_scene != null:
+		_level_up_report_panel = level_up_scene.instantiate() as LevelUpReportPanel
+		_overlay_layer.add_child(_level_up_report_panel)
+		_level_up_report_panel.closed.connect(_on_level_up_report_closed)
+
 	var post_mission_scene := load("res://scenes/ui/panels/post_mission_report_panel.tscn")
 	if post_mission_scene != null:
 		_post_mission_report_panel = post_mission_scene.instantiate() as PostMissionReportPanel
@@ -524,6 +535,13 @@ func _instantiate_overlays() -> void:
 		_overlay_layer.add_child(_recruit_picker_panel)
 
 
+## Entry point for the post-mission flow. Chain:
+##   battle_ended signal → _on_post_mission_report_ready (this)
+##     → LevelUpReportPanel.show_report() — celebrates leveled characters.
+##         Emits `closed` when done (or immediately if no one leveled).
+##     → _on_level_up_report_closed → PostMissionReportPanel.show_report() —
+##         renders injuries / recovery / permadeath. Emits `closed` when done.
+##     → _on_post_mission_report_closed → state pop, campaign advances.
 func _on_post_mission_report_ready(report: Array) -> void:
 	# Suppress the legacy battle-result overlay so its Continue button doesn't
 	# compete with the post-mission panel (they share the same overlay layer).
@@ -531,8 +549,26 @@ func _on_post_mission_report_ready(report: Array) -> void:
 	var state_manager := get_node_or_null("/root/GameStateManager")
 	if state_manager != null and state_manager.current_state != Enums.InputState.POST_MISSION_REPORT:
 		state_manager.push_state(Enums.InputState.POST_MISSION_REPORT)
-	if _post_mission_report_panel != null:
-		_post_mission_report_panel.show_report(report)
+
+	_pending_post_mission_report = report
+	if _level_up_report_panel != null:
+		# LevelUpReportPanel filters internally; if nobody leveled it emits
+		# `closed` immediately and the chain continues without delay.
+		_level_up_report_panel.show_report(report)
+	else:
+		_show_post_mission_report()
+
+
+func _on_level_up_report_closed() -> void:
+	_show_post_mission_report()
+
+
+func _show_post_mission_report() -> void:
+	if _post_mission_report_panel == null:
+		return
+	var report: Array = _pending_post_mission_report
+	_pending_post_mission_report = []
+	_post_mission_report_panel.show_report(report)
 
 
 func _on_post_mission_report_closed() -> void:

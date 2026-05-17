@@ -162,7 +162,7 @@
 - [ ] It would be useful to see units' typing and level with the additional info HUD (the one that shows their active boost/afflictions)
 - [ ] Unit "I'm injured I gotta fall back" monologue on injury the first time it happens
 - [ ] Create a template for a checklist for each character which includes everything we need for each character - 92x92 portrait, 32x32 portrait, idle animation, attack_physical_adjacent_north, attack_special_ranged_east, growth rates, base stats, just everything. Then we need to develop a file hierarchy.
-- [ ] 
+- [ ] Did we add STAB mechanics? Should be a 1.2x multiplier
 
 # Stretch Goals
 - [ ] Sync beacons to music BPM

@@ -71,9 +71,30 @@ func _connect_turn_manager() -> void:
 # MISSION END HOOK
 # =============================================================================
 
+## How many process_level_up rolls each surviving player character earns per
+## victorious mission. Alpha-tuned constant — XP curves can replace this later
+## without disturbing the rest of the pipeline.
+const LEVELS_PER_VICTORY: int = 1
+
+# Stat keys paired with their growth_gains_* property name. Used to diff growth
+# rolls before/after a level-up so the post-mission report can show "+1 STR".
+const _GROWTH_FIELDS: Array = [
+	["max_hp", "growth_gains_hp", "HP"],
+	["strength", "growth_gains_strength", "STR"],
+	["special", "growth_gains_special", "SPC"],
+	["skill", "growth_gains_skill", "SKL"],
+	["agility", "growth_gains_agility", "AGL"],
+	["athleticism", "growth_gains_athleticism", "ATH"],
+	["defense", "growth_gains_defense", "DEF"],
+	["resistance", "growth_gains_resistance", "RES"],
+]
+
+
 ## Called when TurnManager emits battle_ended. Walks the active roster:
 ##   1. Commits any pending injuries on each character (slot overflow → permadeath)
 ##   2. Ticks recovery on every active roster member (regardless of participation)
+##   3. On victory, runs LEVELS_PER_VICTORY level-up rolls on each survivor so
+##      growths + stat-up points flow into the prep-screen allocation UI.
 func _on_battle_ended(is_victory: bool) -> void:
 	# Snapshot active roster — mark_permadead mutates the dict during iteration.
 	var snapshot: Array[CharacterData] = get_active_roster()
@@ -90,6 +111,9 @@ func _on_battle_ended(is_victory: bool) -> void:
 
 		# Tick recovery only if the character survived commit.
 		var recovered: Array = []
+		var level_before: int = character.level
+		var pool_before: int = character.available_stat_ups
+		var growths_gained: Array[String] = []
 		if not permadead:
 			InjurySystem.tick_recovery(character)
 			for prior in pre_tick_snapshot:
@@ -100,16 +124,40 @@ func _on_battle_ended(is_victory: bool) -> void:
 			# at battle end) leak into the next mission and can zero out HP.
 			character.reset_status_modifiers()
 
+			if is_victory:
+				growths_gained = _apply_post_victory_level_ups(character)
+
 		report.append({
 			"character_name": character.character_name,
 			"new_injuries": new_injuries,
 			"recovered_injuries": recovered,
 			"permadead": permadead,
+			"level_before": level_before,
+			"level_after": character.level,
+			"stat_ups_gained": character.available_stat_ups - pool_before,
+			"growths_gained": growths_gained,
 			"is_victory": is_victory,
 		})
 
 	DebugConfig.log_unit_init("SquadManager: battle_ended processed — active roster: %s" % [_roster_by_id.keys()])
 	post_mission_report_ready.emit(report)
+
+
+## Snapshots growth_gains_*, runs LEVELS_PER_VICTORY level-up rolls, and returns
+## the abbreviations of every stat that actually grew across all rolls (e.g.
+## ["STR", "AGL"]). A stat appears at most once regardless of how many rolls
+## hit it — the report just wants the shape of the level, not exact magnitudes.
+func _apply_post_victory_level_ups(character: CharacterData) -> Array[String]:
+	var before: Dictionary = {}
+	for entry: Array in _GROWTH_FIELDS:
+		before[entry[1]] = character.get(entry[1])
+	for _i: int in range(LEVELS_PER_VICTORY):
+		character.process_level_up()
+	var grew: Array[String] = []
+	for entry: Array in _GROWTH_FIELDS:
+		if character.get(entry[1]) > before[entry[1]]:
+			grew.append(entry[2])
+	return grew
 
 
 # =============================================================================

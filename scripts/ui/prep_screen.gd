@@ -313,6 +313,21 @@ func _add_roster_card(character: CharacterData) -> void:
 	class_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_row.add_child(class_label)
 
+	# Eye-catching "★N" badge when the unit has stat-up points waiting to be
+	# distributed. Drives the player into the picker's Stats mode — without it
+	# they could miss the existence of the allocation surface entirely.
+	var unspent: int = character.available_stat_ups - character.allocated_total()
+	if unspent > 0:
+		var badge := Label.new()
+		badge.text = "★%d" % unspent
+		badge.modulate = GameColorPalette.get_color("Yellow", 5)
+		if ui_manager != null:
+			badge.add_theme_font_override("font", ui_manager.font_8px)
+			badge.add_theme_font_size_override("font_size", 8)
+		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		badge.tooltip_text = "%d unspent stat-up point%s" % [unspent, "" if unspent == 1 else "s"]
+		name_row.add_child(badge)
+
 	# Row 2: elemental type icons (left) | injury icons (right)
 	var icon_row := HBoxContainer.new()
 	icon_row.add_theme_constant_override("separation", 2)

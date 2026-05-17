@@ -266,7 +266,7 @@ func _build_stats_body(root: VBoxContainer, ui_manager: Node) -> void:
 	_stats_body.add_child(header_row)
 
 	_stat_pool_label = Label.new()
-	_stat_pool_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_stat_pool_label.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	if ui_manager != null:
 		_stat_pool_label.add_theme_font_override("font", ui_manager.font_8px)
 		_stat_pool_label.add_theme_font_size_override("font_size", 8)
@@ -281,6 +281,14 @@ func _build_stats_body(root: VBoxContainer, ui_manager: Node) -> void:
 		_stat_reset_button.add_theme_font_size_override("font_size", 5)
 	_stat_reset_button.pressed.connect(_on_stat_reset_pressed)
 	header_row.add_child(_stat_reset_button)
+
+	# Trailing spacer absorbs the row's leftover width so the pool label and
+	# Reset stay paired on the left — Reset on the far right of the panel was
+	# easy to miss.
+	var header_spacer := Control.new()
+	header_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	header_row.add_child(header_spacer)
 
 	# 8 stat rows live here — repopulated each refresh.
 	_stat_rows_box = VBoxContainer.new()
@@ -977,14 +985,19 @@ func _make_stat_row(stat_name: String, abbrev: String, points_remaining: int) ->
 	# Value display: "30+++ → 33". The pluses are colored; the arrow + result
 	# only appear when allocation produced a non-zero delta. Level value stays
 	# left-aligned regardless of allocation so columns don't jitter as the
-	# player clicks +/-.
+	# player clicks +/-. Fit-content (no SIZE_EXPAND_FILL) so the + button hugs
+	# the value instead of being banished to the far right of the row.
 	var value_label := RichTextLabel.new()
 	value_label.bbcode_enabled = true
 	value_label.fit_content = true
 	value_label.scroll_active = false
-	value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	value_label.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	value_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	value_label.custom_minimum_size = Vector2(0, 14)
+	# Just wide enough for a plain 3-digit number; the "+++ → N" preview pushes
+	# the + button rightward when allocated, which doubles as a visual cue that
+	# the stat has been spent on. Cross-row alignment loses out to the -/value/+
+	# cluster reading as a single tight unit.
+	value_label.custom_minimum_size = Vector2(20, 14)
 	if ui_manager != null:
 		value_label.add_theme_font_override("normal_font", ui_manager.font_8px)
 		value_label.add_theme_font_size_override("normal_font_size", 8)
@@ -1007,6 +1020,13 @@ func _make_stat_row(stat_name: String, abbrev: String, points_remaining: int) ->
 		plus_button.add_theme_font_size_override("font_size", 8)
 	plus_button.pressed.connect(_on_stat_increment.bind(stat_name))
 	row.add_child(plus_button)
+
+	# Trailing spacer absorbs the row's leftover width so the -/value/+ cluster
+	# stays packed on the left edge instead of stretching across the panel.
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(spacer)
 	return row
 
 
