@@ -1,20 +1,27 @@
 # [ ] Meeting 20260524
 ## RQD
+ - [ ] intermission screens - interactive buttons must be obviously interactive
+ - [ ] bEXP screen
+ - [ ] remove "*1" from character panel on the left when all statUps are allocated
+ - [ ] Give all characters at least 9 moves and 9 passives
+ - [ ] add level next to enemy (and friendly?) health bars
+ - [ ] RQD - keep working on intermission screens
 ## LOD
-
-# [ ] Meeting 20260517
-## LOD
+- [ ] Spend some time organizing your art folder with the game project
 - [ ] LOD - Get me the new character sprites that fit properly on the map
+ (Berserker, healers, ice archer, etc)
 ### [ ] LOD - options if you get bored
  - [ ] new line art and/or
  - [ ] new characters and/or
  - [ ] new jungle biome terrain (see concept art)
  - [ ] ice desert biome terrain
+
+# [x] Meeting 20260517
+## LOD
 ## RQD
 - [x] LOD - push existing line art portraits
 - [x] RQD - fix crashes in mission progression
 - [x] RQD - implement line art portraits
-- [ ] RQD - keep working on intermission screens
 
 # [ ] Meeting 20260510
 - [x] RQD - 10x10 hypoesthesia icon (random crop of static_noise.png, wired in InjuryDatabase)
@@ -113,6 +120,8 @@
 - [ ] Grunt sprite has its pivot set way too low
 - [ ] Something is fucky about damage calculation in general - it doesn't feel right
 - [ ] Design: we need healers.
+- [ ] The player can be offered multiple of the same character if they reduce the pool to <3
+- [ ]
 
 # TEST THESE MECHANICS
 - [ ] STAB + visual feedback
@@ -163,6 +172,10 @@
 - [ ] Unit "I'm injured I gotta fall back" monologue on injury the first time it happens
 - [ ] Create a template for a checklist for each character which includes everything we need for each character - 92x92 portrait, 32x32 portrait, idle animation, attack_physical_adjacent_north, attack_special_ranged_east, growth rates, base stats, just everything. Then we need to develop a file hierarchy.
 - [ ] Did we add STAB mechanics? Should be a 1.2x multiplier
+- [ ] Rework detail panel to use the move styleboxes we used in the preview panel
+- [ ] It's unclear to the user what's clickable in the UI and what's not - we need to apply some kind of visual design that makes it clear what is and what isn't interactible.
+- [ ] The move preview doesn't animate properly when the unit retreads its path
+- [ ] 
 
 # Stretch Goals
 - [ ] Sync beacons to music BPM
