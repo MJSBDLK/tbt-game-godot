@@ -257,10 +257,10 @@ func _set_zoom_mode(integer: bool) -> void:
 
 
 func _get_camera() -> CameraController:
-	var viewport := get_viewport()
-	if viewport == null:
-		return null
-	return viewport.get_camera_2d() as CameraController
+	# The options panel lives in HUDViewport; the world camera is in the root
+	# viewport. Route through SceneRouter so we don't end up looking at the
+	# wrong viewport.
+	return SceneRouter.get_world_camera() as CameraController
 
 
 # =============================================================================

@@ -2,6 +2,19 @@
 ## Attached to the Camera2D node in the battle scene.
 ## Player-driven panning: exponential decay lerp (responsive).
 ## Programmatic center_on(): Tween with EASE_IN_OUT (cinematic).
+##
+## Under the dual-pipeline rendering architecture (see `.claude/zoom-arch.md`),
+## the camera renders directly to the root viewport at native window resolution.
+## `Camera2D.zoom` therefore represents **screen pixels per world pixel**:
+##   zoom = 1 → 1 sp per wp (maximum clean zoom-out — visible area equals the
+##              full window in world units)
+##   zoom = window_integer_scale → "reference view" (visible area = 640×360
+##              world units, matching the design canvas)
+##   zoom = N → zoomed in N×, sprite pixels rendered at N screen pixels each
+##
+## All zoom values render with NEAREST filter and stay pixel-perfect when they
+## land on integer screen-pixel-per-world-pixel ratios. Smooth mode (float zoom)
+## allows fractional values with mild shimmer; Integer mode snaps cleanly.
 class_name CameraController
 extends Camera2D
 
@@ -15,8 +28,13 @@ extends Camera2D
 
 @export_group("Zoom")
 @export var zoom_step: float = 0.25
+## Minimum camera zoom = screen pixels per world pixel. 1.0 means 1 world pixel
+## = 1 screen pixel = pixel-perfect maximum zoom-out. Going lower would render
+## world pixels at sub-screen-pixel size (shimmer/wagon-wheel).
 @export var min_zoom: float = 1.0
-@export var max_zoom: float = 4.0
+## Maximum zoom-in. At zoom = 8 on a 1080p monitor, the visible area is
+## 240×135 world units (~7×4 tiles) — close inspection zoom.
+@export var max_zoom: float = 8.0
 @export var zoom_smooth_time: float = 0.1
 ## When true, zoom snaps to integer levels (1x, 2x, 3x, 4x) instead of smooth 0.25 steps.
 var integer_zoom_mode: bool = false:
@@ -34,7 +52,7 @@ var integer_zoom_mode: bool = false:
 @export var bounds_buffer_bottom: float = 0.0
 
 var _target_position: Vector2 = Vector2.ZERO
-var _target_zoom: float = 2.0
+var _target_zoom: float = 1.0  # Overwritten in _ready() with the window's integer scale.
 var _is_dragging: bool = false
 var is_panning: bool = false
 var _drag_start_position: Vector2 = Vector2.ZERO
@@ -59,11 +77,19 @@ var _map_pixel_size: Vector2 = Vector2.ZERO
 
 func _ready() -> void:
 	_target_position = global_position
-	_target_zoom = zoom.x
+	# Default zoom = window's integer scale. At this zoom the visible world area
+	# equals the 640×360 reference resolution — what the design canvas assumes.
+	_target_zoom = _default_zoom_for_window()
+	zoom = Vector2(_target_zoom, _target_zoom)
 	if GridManager.is_grid_ready():
 		_set_bounds_from_grid()
 	else:
 		GridManager.grid_ready.connect(_set_bounds_from_grid)
+
+
+func _default_zoom_for_window() -> float:
+	var w: Vector2i = DisplayServer.window_get_size()
+	return float(maxi(1, mini(w.x / 640, w.y / 360)))
 
 
 func _process(delta: float) -> void:

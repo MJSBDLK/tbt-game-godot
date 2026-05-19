@@ -3,15 +3,15 @@
 ## resolution by the HD overlay layer.
 ##
 ## How it works:
-##   - This slot lives in the SubViewport-hosted pixel UI tree. It contributes
+##   - This slot lives in HUDViewport (640×360 design canvas). It contributes
 ##     to layout exactly like an empty Control of its size.
 ##   - On _ready, it asks SceneRouter for the root-level HDLayer CanvasLayer
 ##     and spawns a mirror TextureRect there.
-##   - Every time this slot moves or resizes (or its texture changes), the
-##     mirror is updated to overlay the same screen-space rectangle. Both the
-##     SubViewport contents and the HDLayer use the project's 640x360
-##     reference coordinate system (the canvas_items stretch transform applies
-##     uniformly), so we can copy global_rect directly with no scaling math.
+##   - Every time this slot moves or resizes (or its texture changes, or the
+##     window is resized), the mirror is updated to overlay the same on-screen
+##     rectangle. HUD lives at 640×360; HDLayer renders in native pixels — so
+##     we project through HUDDisplay's on-screen rect (position + integer
+##     scale) to compute the mirror's native-pixel rect. See `_native_rect_for_slot()`.
 ##   - The pixel-side slot stays invisible by default; only the HD mirror is
 ##     rendered. The slot reappears as a magenta debug rect when
 ##     `show_debug_rect` is enabled in the inspector.
@@ -194,6 +194,13 @@ func _ensure_mirror() -> void:
 	_mirror.texture = hd_texture
 	_mirror.material = projection_material
 	hd_layer.add_child(_mirror)
+	# When the window resizes, HUDDisplay's on-screen position + integer scale
+	# change. The slot's local rect doesn't move (it's in HUDViewport's fixed
+	# 640×360 canvas), so NOTIFICATION_TRANSFORM_CHANGED won't fire — listen to
+	# HUDDisplay.resized directly.
+	var hud_display: TextureRect = SceneRouter.get_hud_display()
+	if hud_display != null and not hud_display.item_rect_changed.is_connected(_sync_mirror_geometry):
+		hud_display.item_rect_changed.connect(_sync_mirror_geometry)
 	# Overlay (if configured) gets added AFTER the mirror so it draws on top
 	# of the line art. Order matters — HDLayer renders its children in tree
 	# order, so the overlay needs to come second.
@@ -225,20 +232,33 @@ func _ensure_overlay() -> void:
 
 
 func _sync_mirror_geometry() -> void:
+	# The slot lives in HUDViewport's 640×360 design canvas; the mirror lives
+	# in HDLayer at the root viewport's native pixel resolution. Project the
+	# slot's HUD-space rect through HUDDisplay (which gives us the on-screen
+	# origin + integer scale) into native pixels.
+	var rect: Rect2 = _native_rect_for_slot()
 	if _mirror != null and is_instance_valid(_mirror):
-		# Both this Control (inside the SubViewport) and the mirror (inside the
-		# root HDLayer) live in the same 640x360 reference coordinate space, so
-		# global_position/size map 1:1 without any extra transformation.
-		_mirror.position = global_position
-		_mirror.size = size
+		_mirror.position = rect.position
+		_mirror.size = rect.size
 	_sync_overlay_geometry()
 
 
 func _sync_overlay_geometry() -> void:
 	if _overlay == null or not is_instance_valid(_overlay):
 		return
-	_overlay.position = global_position
-	_overlay.size = size
+	var rect: Rect2 = _native_rect_for_slot()
+	_overlay.position = rect.position
+	_overlay.size = rect.size
+
+
+func _native_rect_for_slot() -> Rect2:
+	var hud_display: TextureRect = SceneRouter.get_hud_display()
+	if hud_display == null:
+		return Rect2(global_position, size)
+	var scale_factor: float = float(SceneRouter.get_hud_scale())
+	var native_pos: Vector2 = hud_display.position + global_position * scale_factor
+	var native_size: Vector2 = size * scale_factor
+	return Rect2(native_pos, native_size)
 
 
 func _sync_mirror_visibility() -> void:

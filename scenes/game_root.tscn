@@ -1,22 +1,30 @@
 [gd_scene format=3 uid="uid://bqctds2e8k441"]
 
 [ext_resource type="Script" path="res://scenes/game_root.gd" id="1_root"]
+[ext_resource type="Script" path="res://scripts/managers/input_router.gd" id="2_inputrouter"]
 
 [node name="GameRoot" type="Node"]
 script = ExtResource("1_root")
 
-[node name="PixelLayer" type="SubViewportContainer" parent="."]
-texture_filter = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-mouse_filter = 1
-stretch = true
+[node name="WorldRoot" type="Node2D" parent="."]
 
-[node name="GameViewport" type="SubViewport" parent="PixelLayer"]
+[node name="HUDViewport" type="SubViewport" parent="."]
+transparent_bg = true
 size = Vector2i(640, 360)
 render_target_update_mode = 4
 canvas_item_default_texture_filter = 0
 
+[node name="HUDLayer" type="CanvasLayer" parent="."]
+layer = 50
+
+[node name="HUDDisplay" type="TextureRect" parent="HUDLayer"]
+texture_filter = 1
+mouse_filter = 2
+stretch_mode = 0
+expand_mode = 1
+
 [node name="HDLayer" type="CanvasLayer" parent="."]
 layer = 100
+
+[node name="InputRouter" type="Node" parent="."]
+script = ExtResource("2_inputrouter")

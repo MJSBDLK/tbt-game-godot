@@ -193,22 +193,19 @@ func _unhandled_input(event: InputEvent) -> void:
 # =============================================================================
 
 func _update_hover() -> void:
-	# Under the SubViewport-flip architecture, the camera and game-world mouse
-	# live inside the SubViewport that SceneRouter manages, not the root viewport
-	# that this autoload is parented to. Querying get_viewport() here would
-	# return the root viewport, which has no Camera2D and reports raw window
-	# pixel coordinates.
-	var game_viewport: SubViewport = SceneRouter.get_game_viewport()
-	if game_viewport == null:
+	# Camera2D is in the root viewport (WorldRoot's tree). This autoload is at
+	# /root, so get_viewport() returns the root viewport directly.
+	var camera := SceneRouter.get_world_camera() as CameraController
+	if camera == null:
 		return
-	var camera := game_viewport.get_camera_2d() as CameraController
-	if camera != null and camera.is_panning:
+	if camera.is_panning:
 		return
-	# Skip hover updates when the mouse is outside the viewport — otherwise zoom
-	# changes will remap an offscreen cursor onto arbitrary (possibly out-of-grid)
-	# tiles and leak into the terrain preview.
-	var mouse_pos: Vector2 = game_viewport.get_mouse_position()
-	if not game_viewport.get_visible_rect().has_point(mouse_pos):
+	# Skip hover updates when the mouse is outside the visible game area —
+	# otherwise zoom changes remap an offscreen cursor onto arbitrary tiles
+	# and leak into the terrain preview.
+	var root_viewport: Viewport = get_viewport()
+	var mouse_pos: Vector2 = root_viewport.get_mouse_position()
+	if not root_viewport.get_visible_rect().has_point(mouse_pos):
 		return
 	# Drop stale tile refs after a scene transition — this autoload survives
 	# the battle scene, so _hovered_tile may point at a freed Tile.
@@ -611,24 +608,18 @@ func _get_ui_manager() -> Node:
 
 
 func _get_camera() -> CameraController:
-	var game_viewport: SubViewport = SceneRouter.get_game_viewport()
-	if game_viewport == null:
-		return null
-	return game_viewport.get_camera_2d() as CameraController
+	return SceneRouter.get_world_camera() as CameraController
 
 
 func _get_world_mouse_position() -> Vector2:
-	# Route through the SubViewport so coordinates land in the 640x360 game
-	# space, not the native-resolution root viewport. Camera2D.get_global_mouse_position()
-	# transparently uses the camera's own viewport, so once we have the right
-	# camera the rest is automatic.
-	var game_viewport: SubViewport = SceneRouter.get_game_viewport()
-	if game_viewport == null:
-		return Vector2.ZERO
-	var camera := game_viewport.get_camera_2d()
+	# Camera2D.get_global_mouse_position() uses the camera's own viewport for
+	# the screen→world transform. Camera is in the root viewport (native pixels),
+	# and the mouse position there is also in native pixels, so the math is
+	# self-consistent.
+	var camera := SceneRouter.get_world_camera()
 	if camera != null:
 		return camera.get_global_mouse_position()
-	return game_viewport.get_mouse_position()
+	return get_viewport().get_mouse_position()
 
 
 # =============================================================================

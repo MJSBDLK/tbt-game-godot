@@ -93,6 +93,10 @@ func show_transition(text: String, color: Color) -> void:
 	visible = true
 	modulate.a = 0.0
 
+	# Pick up the current HUDViewport dimensions (handles window resize and
+	# different-resolution starts).
+	_sync_layout_to_hud()
+
 	# Position text offscreen left.
 	_phase_label.position.x = -TEXT_OFFSCREEN
 
@@ -136,28 +140,35 @@ func show_transition(text: String, color: Color) -> void:
 # BUILD CONTENT
 # =============================================================================
 
+var _clip_container: Control = null
+
+
 func _build_content() -> void:
 	var ui_manager: Node = UIManager
 
-	# Clip container — limits visible area to the banner strip.
-	var clip_container := Control.new()
-	clip_container.position = Vector2(0, BANNER_Y)
-	clip_container.size = Vector2(640, BANNER_HEIGHT)
-	clip_container.clip_contents = true
-	clip_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(clip_container)
+	# Clip container — full-width strip vertically centered. Size is updated
+	# from HUDViewport on every show_transition() so it adapts to window
+	# resizes / different monitors without depending on anchor-resolution
+	# timing inside a CanvasLayer.
+	_clip_container = Control.new()
+	_clip_container.clip_contents = true
+	_clip_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_clip_container)
 
-	# Banner background.
+	# Banner background — sized to clip container, tiled horizontally so it
+	# fills wider HUDs without leaving gaps (the source texture is 640 wide).
 	_banner = TextureRect.new()
 	_banner.texture = BANNER_TEXTURE
 	_banner.position = Vector2.ZERO
-	_banner.size = Vector2(640, BANNER_HEIGHT)
-	_banner.stretch_mode = TextureRect.STRETCH_KEEP
+	_banner.stretch_mode = TextureRect.STRETCH_TILE
 	_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	clip_container.add_child(_banner)
+	_clip_container.add_child(_banner)
 
 	# Star layers (back to front: star1 = farthest, star3 = nearest).
 	# Each layer gets two TextureRects side by side for seamless pixel-snapped wrap.
+	# Two tiles cover any HUD width up to 2 × TEXTURE_WIDTH (1280). Beyond that
+	# (super-ultrawide), the rightmost portion would show banner without stars
+	# — a polish edge case, not a blocker.
 	var star_textures: Array[CompressedTexture2D] = [STAR1_TEXTURE, STAR2_TEXTURE, STAR3_TEXTURE]
 	for i: int in range(star_textures.size()):
 		var pair: Array = []
@@ -168,27 +179,44 @@ func _build_content() -> void:
 			star_rect.size = Vector2(TEXTURE_WIDTH, BANNER_HEIGHT)
 			star_rect.stretch_mode = TextureRect.STRETCH_KEEP
 			star_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			clip_container.add_child(star_rect)
+			_clip_container.add_child(star_rect)
 			pair.append(star_rect)
 		_star_pairs.append(pair)
 
-	# Phase text label — centered vertically in the banner.
+	# Phase text label — position.x is tween-driven (slides offscreen left →
+	# center → offscreen right). Size is set explicitly to span the banner
+	# width so horizontal_alignment=CENTER produces a centered word.
 	_phase_label = Label.new()
 	_phase_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_phase_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_phase_label.position = Vector2(0, 0)
-	_phase_label.size = Vector2(640, BANNER_HEIGHT)
+	_phase_label.position = Vector2.ZERO
 	if ui_manager != null:
 		_phase_label.add_theme_font_override("font", ui_manager.font_11px)
 		_phase_label.add_theme_font_size_override("font_size", 48)
 	_phase_label.add_theme_color_override("font_color", Color.WHITE)
 	_phase_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_phase_label.uppercase = true
-	# Apply glow material with double glow for thicker outline at this size.
 	var label_material: ShaderMaterial = GLOW_MATERIAL.duplicate()
 	label_material.set_shader_parameter("double_glow", true)
 	_phase_label.material = label_material
-	clip_container.add_child(_phase_label)
+	_clip_container.add_child(_phase_label)
+
+
+## Recomputes clip container / banner / label sizes from the current HUDViewport.
+## Called at every show_transition() to pick up window resizes.
+func _sync_layout_to_hud() -> void:
+	var hud: SubViewport = SceneRouter.get_hud_viewport()
+	if hud == null:
+		return
+	var w: float = hud.size.x
+	var h: float = hud.size.y
+	if _clip_container != null:
+		_clip_container.position = Vector2(0, (h - BANNER_HEIGHT) / 2.0)
+		_clip_container.size = Vector2(w, BANNER_HEIGHT)
+	if _banner != null:
+		_banner.size = Vector2(w, BANNER_HEIGHT)
+	if _phase_label != null:
+		_phase_label.size = Vector2(w, BANNER_HEIGHT)
 
 
 ## Resolve faction color into a text/accent/glow trio for the phase banner.

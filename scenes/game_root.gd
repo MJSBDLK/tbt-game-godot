@@ -1,94 +1,94 @@
-## Top-level wrapper for the SubViewport-flip rendering architecture.
+## Top-level wrapper for the dual-pipeline rendering architecture.
 ##
-## Most of the game renders into the 640x360 `GameViewport` SubViewport hosted
-## by `PixelLayer`, which is displayed with nearest-filter integer scaling.
-## HD textures (line-art portraits, etc.) are added under `HDLayer` instead, so
-## they rasterise at the actual window pixel density with bilinear filtering.
+## Three rendering pipelines, each with one explicit scaling rule:
+##   1. World renders directly to the root viewport at native window resolution
+##      (Camera2D in WorldRoot). Camera.zoom is screen-pixels-per-world-pixel.
+##   2. HUD renders into a 640×360 SubViewport (HUDViewport). Its texture is
+##      then displayed by HUDDisplay (TextureRect, NEAREST filter, integer
+##      scale, centered on root viewport).
+##   3. HDLayer is a CanvasLayer at native window resolution for HD textures
+##      (line-art portraits). Positioned in native pixel space directly.
 ##
-## See SceneRouter for the API the rest of the codebase uses to load scenes
-## into the SubViewport and query the game viewport / HD layer.
+## InputRouter forwards events from the root viewport into HUDViewport with
+## coord remapping so panels receive mouse events at HUD-space positions.
+##
+## See `.claude/zoom-arch.md` for the architecture rationale.
 extends Node
 
 
-@onready var pixel_layer: SubViewportContainer = $PixelLayer
-@onready var game_viewport: SubViewport = $PixelLayer/GameViewport
+const _REF_WIDTH: int = 640
+const _REF_HEIGHT: int = 360
+
+
+@onready var world_root: Node2D = $WorldRoot
+@onready var hud_viewport: SubViewport = $HUDViewport
+@onready var hud_layer: CanvasLayer = $HUDLayer
+@onready var hud_display: TextureRect = $HUDLayer/HUDDisplay
 @onready var hd_layer: CanvasLayer = $HDLayer
+@onready var input_router: Node = $InputRouter
 
 
 func _ready() -> void:
-	# Pin the SubViewportContainer size to the project's reference resolution.
-	# It already gets 640x360 from anchors_preset=15 under canvas_items stretch
-	# (the root viewport's "visible rect" reports reference units, not native
-	# pixels), but pinning removes any ambiguity if the project ever changes
-	# stretch mode again.
-	var reference_size := Vector2(
-		ProjectSettings.get_setting("display/window/size/viewport_width", 640),
-		ProjectSettings.get_setting("display/window/size/viewport_height", 360))
-	pixel_layer.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	pixel_layer.position = Vector2.ZERO
-	pixel_layer.size = reference_size
-	# Don't set game_viewport.size directly — stretch=true on the container owns
-	# that and refuses manual overrides.
+	hud_display.texture = hud_viewport.get_texture()
+	_resize_hud_display()
+	get_tree().root.size_changed.connect(_resize_hud_display)
 
-	# Reparenting and the initial scene load both have to happen *after* the
-	# current frame's tree mutation settles. Defer them; deferred calls fire
-	# in the order they were queued, so reparent finishes before SceneRouter
-	# loads the start scene into the (now-correctly-populated) viewport.
 	_reparent_ui_autoloads()
-	SceneRouter.register_game_root(game_viewport, hd_layer)
+	SceneRouter.register_game_root(world_root, hud_viewport, hud_display, hd_layer)
 	_dump_diagnostics.call_deferred()
 
 
-func _dump_diagnostics() -> void:
-	# One-shot diagnostic. Prints to godot.log so we can confirm the setup at
-	# runtime. Remove once the rendering pipeline is verified stable.
-	var ui_manager_node: Node = get_node_or_null("/root/UIManager")
-	var ui_manager_parent: String = (
-		"<missing>" if ui_manager_node == null
-		else ui_manager_node.get_parent().get_path() as String)
-	var visual_feedback_node: Node = get_node_or_null("/root/VisualFeedbackManager")
-	var visual_feedback_parent: String = (
-		"<missing>" if visual_feedback_node == null
-		else visual_feedback_node.get_parent().get_path() as String)
-	# UIManager was reparented in _reparent_ui_autoloads, so /root/UIManager
-	# may now be null. Look up via the autoload singleton instead.
-	if ui_manager_node == null:
-		ui_manager_parent = str(UIManager.get_parent().get_path())
-	if visual_feedback_node == null:
-		visual_feedback_parent = str(VisualFeedbackManager.get_parent().get_path())
-	print("[GameRoot] stretch_mode=%s, scale=%s" % [
-		ProjectSettings.get_setting("display/window/stretch/mode"),
-		ProjectSettings.get_setting("display/window/stretch/scale_mode")])
-	print("[GameRoot] root viewport size=%s" % get_viewport().get_visible_rect().size)
-	print("[GameRoot] PixelLayer size=%s (CanvasItem space)" % pixel_layer.size)
-	print("[GameRoot] GameViewport size=%s (pixels)" % game_viewport.size)
-	print("[GameRoot] UIManager parent: %s" % ui_manager_parent)
-	print("[GameRoot] VisualFeedbackManager parent: %s" % visual_feedback_parent)
+## HUDViewport's design pixel size grows to match the window's aspect ratio at
+## the largest integer scale that fits ≥ 640×360. The 640×360 "core" is always
+## addressable; corner panels gain extra design pixels at the window edges so
+## they can anchor flush against the screen instead of floating inside a
+## letterbox. HUDDisplay fills the full window — no black bars.
+##
+## Examples:
+##   1920×1080 → scale=3, HUDViewport=640×360, HUDDisplay=1920×1080
+##   1280×800  → scale=2, HUDViewport=640×400, HUDDisplay=1280×800   (Steam Deck)
+##   1500×900  → scale=2, HUDViewport=750×450, HUDDisplay=1500×900
+##   2560×1080 → scale=3, HUDViewport=853×360, HUDDisplay=2560×1080  (ultrawide)
+func _resize_hud_display() -> void:
+	var window: Vector2i = DisplayServer.window_get_size()
+	var scale_factor: int = _integer_scale_for(window)
+	hud_viewport.size = Vector2i(window.x / scale_factor, window.y / scale_factor)
+	hud_display.size = Vector2(window)
+	hud_display.position = Vector2.ZERO
 
 
-# Autoloads are children of /root by default. Anything that builds visible
-# CanvasItems in its _ready() (UIManager, VisualFeedbackManager via its inner
-# CanvasLayer) needs to live *inside* the SubViewport so its render goes
-# through the 640x360 pixel-art framebuffer instead of the native-resolution
-# root viewport. Signal connections and the autoload singleton lookup survive
-# reparenting; only the node's tree path changes.
+func _integer_scale_for(window: Vector2i) -> int:
+	return maxi(1, mini(window.x / _REF_WIDTH, window.y / _REF_HEIGHT))
+
+
+# Autoloads default to children of /root. UIManager and VisualFeedbackManager
+# both render into HUD design space, so they live inside HUDViewport. Signal
+# connections and autoload-singleton lookups survive reparenting; only the
+# tree path changes.
 func _reparent_ui_autoloads() -> void:
-	_reparent_into_game_viewport("/root/UIManager")
-	_reparent_into_game_viewport("/root/VisualFeedbackManager")
+	_reparent_into(UIManager, hud_viewport)
+	_reparent_into(VisualFeedbackManager, hud_viewport)
 
 
-func _reparent_into_game_viewport(autoload_path: String) -> void:
-	var node: Node = get_node_or_null(autoload_path)
+func _reparent_into(node: Node, new_parent: Node) -> void:
 	if node == null:
-		push_warning("GameRoot: could not reparent %s (not found)" % autoload_path)
 		return
 	var current_parent: Node = node.get_parent()
-	if current_parent == game_viewport:
+	if current_parent == new_parent:
 		return
-	# The remove + add must be deferred: at the time _ready() runs, /root is
-	# still mid-tree-mutation finishing GameRoot's own attach, so direct
-	# remove_child() raises "parent node is busy adding/removing children".
-	# Deferred calls fire after the current frame settles, in queued order, so
-	# the remove completes before the add.
+	# The remove + add must be deferred — /root is mid-tree-mutation while
+	# GameRoot is attaching, so direct remove_child() raises "parent node is
+	# busy adding/removing children". Deferred calls fire in queued order.
 	current_parent.remove_child.call_deferred(node)
-	game_viewport.add_child.call_deferred(node)
+	new_parent.add_child.call_deferred(node)
+
+
+func _dump_diagnostics() -> void:
+	var window: Vector2i = DisplayServer.window_get_size()
+	var scale_factor: int = _integer_scale_for(window)
+	print("[GameRoot] stretch_mode=%s" % ProjectSettings.get_setting("display/window/stretch/mode"))
+	print("[GameRoot] window=%s scale=%dx HUDDisplay=(pos=%s size=%s)" % [
+		window, scale_factor, hud_display.position, hud_display.size])
+	print("[GameRoot] HUDViewport=%s" % hud_viewport.size)
+	print("[GameRoot] UIManager parent: %s" % UIManager.get_parent().get_path())
+	print("[GameRoot] VisualFeedbackManager parent: %s" % VisualFeedbackManager.get_parent().get_path())

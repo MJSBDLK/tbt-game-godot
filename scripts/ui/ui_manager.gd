@@ -644,13 +644,15 @@ func _unit_is_in_right_half(unit: Node) -> bool:
 
 
 ## Shared half-of-screen test used by both unit-info and terrain-info side-flipping.
+##
+## The world and HUD viewports occupy the same physical screen area, so "is the
+## world point right of center?" reduces to "is it right of the camera's target
+## X?" — viewport widths and zoom cancel out of the sign comparison.
 func _world_pos_is_in_right_half(world_pos: Vector2) -> bool:
 	var cam := _get_camera()
 	if cam == null:
 		return false
-	var viewport_width: float = get_viewport().get_visible_rect().size.x
-	var screen_x: float = (world_pos.x - cam.target_position.x) * cam.zoom.x + viewport_width / 2.0
-	return screen_x > viewport_width / 2.0
+	return world_pos.x > cam.target_position.x
 
 
 func _tile_is_in_right_half(tile: Variant) -> bool:
@@ -663,14 +665,10 @@ func _tile_is_in_right_half(tile: Variant) -> bool:
 
 
 func _get_camera() -> CameraController:
-	# UIManager is an autoload at the root viewport; the game camera lives
-	# inside the SubViewport that SceneRouter manages. Query the SubViewport
-	# directly so we don't end up looking for a Camera2D on a viewport that
-	# never had one.
-	var game_viewport: SubViewport = SceneRouter.get_game_viewport()
-	if game_viewport == null:
-		return null
-	return game_viewport.get_camera_2d() as CameraController
+	# UIManager lives in HUDViewport; the world camera lives in the root
+	# viewport (WorldRoot's tree). Go through SceneRouter so we don't depend
+	# on tree paths.
+	return SceneRouter.get_world_camera() as CameraController
 
 
 ## Returns true when the map view is interactive — the only condition under
