@@ -55,28 +55,54 @@ res://
 
 ## Rendering Architecture
 
-The main scene is [scenes/game_root.tscn](scenes/game_root.tscn), which hosts a
-640×360 `GameViewport` SubViewport (nearest filter, integer scale) for all
-pixel-art rendering, plus a root-level `HDLayer` CanvasLayer for HD textures
-(line-art portraits, etc.) that render at native window resolution with
-bilinear filtering. Stretch mode is `canvas_items` + integer scaling.
+Dual-pipeline rendering with project stretch mode set to **disabled**. Three
+render targets, each with one explicit scaling rule. See
+[.claude/zoom-arch.md](.claude/zoom-arch.md) for the full rationale.
 
-- Use `SceneRouter.change_scene_to(path)` for scene transitions, **not**
-  `get_tree().change_scene_to_file()`. The latter replaces the whole tree
-  including GameRoot.
-- Use [HDPortraitSlot](scripts/ui/hd_portrait_slot.gd) (a Control script) when
-  reserving space inside pixel UI for an HD texture — set `hd_texture` and the
-  slot spawns a tracking TextureRect in HDLayer that mirrors its global rect.
-- Autoloads at /root must query `SceneRouter.get_game_viewport()` (not
-  `get_viewport()`) for camera, mouse, or world-coordinate queries — the root
-  viewport is native-resolution and has no game camera.
-- `UIManager` and `VisualFeedbackManager` are reparented into the SubViewport
-  at startup by GameRoot. Access them through the autoload singleton name
+- **World** renders directly to the root viewport at native window resolution.
+  `Camera2D.zoom` = screen pixels per world pixel. At `zoom = N`, each world
+  pixel takes N screen pixels — always an integer multiple for crisp rendering.
+  Default zoom on first load = monitor's integer scale (3 on 1080p, 2 on Steam
+  Deck, 4 on 1440p, 6 on 4K) — visually matches the 640×360 reference at 1:1.
+- **HUD** renders into a `HUDViewport` SubViewport sized `window / integer_scale`
+  (≥640×360, grows on either axis at non-standard window aspects). Displayed
+  via `HUDDisplay` (TextureRect, NEAREST filter, fills window — no letterbox).
+  Panels use Control anchors to stick to corners/centers; the canvas grows with
+  the window so anchored panels visually hug actual screen edges.
+- **HDLayer** is a CanvasLayer at the root viewport (native pixel space) for
+  HD overlays like line-art portraits.
+- **InputRouter** forwards root-viewport events into HUDViewport with coord
+  remap. Events the HUD consumes are blocked at root so the world doesn't
+  also react.
+
+Key API rules:
+
+- `SceneRouter.change_scene_to(path)` for scene transitions — **not**
+  `get_tree().change_scene_to_file()`. Scenes route by root type: Node2D/Node3D
+  → WorldRoot (rendered with camera), Control → HUDViewport (640×360 design
+  canvas).
+- `SceneRouter.get_world_camera()` to find the active Camera2D. It lives at the
+  root viewport now; UIManager and other HUD-side code can't reach it via
+  `get_viewport().get_camera_2d()` because their viewport is HUDViewport.
+- `SceneRouter.get_hud_display()` + `get_hud_scale()` for HUD↔native pixel coord
+  math (used by HDPortraitSlot and anything projecting world→HUD positions).
+- [HDPortraitSlot](scripts/ui/hd_portrait_slot.gd) reserves space inside the
+  pixel UI for an HD texture. The slot's mirror in HDLayer is positioned via
+  explicit `hud_display.position + slot.global_position × hud_scale` projection,
+  not the old "same coord space" assumption.
+- `UIManager` and `VisualFeedbackManager` are reparented into HUDViewport at
+  startup by GameRoot. Access them through the autoload singleton name
   (`UIManager.foo()`), never via `get_node("/root/UIManager")` — the path no
   longer resolves.
 - HD assets (large textures rendered into HDLayer) should have
-  `mipmaps/generate=true` in their .import file to avoid aliasing on
-  bilinear downscale.
+  `mipmaps/generate=true` in their .import file to avoid aliasing on bilinear
+  downscale.
+
+UI authoring rule: **use Control anchors, don't hardcode positions to 640×360**.
+The HUD canvas grows wider/taller than 640×360 when the window aspect doesn't
+match the reference. Panels with `anchors_preset = 15` fill the canvas
+correctly. Panels with fixed positions (e.g., `Vector2(640, ...)`) won't span
+the full HUD on non-1080p monitors.
 
 ## Key Reference Files
 
