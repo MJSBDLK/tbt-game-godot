@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://xbm273ubaexu"
+path="res://.godot/imported/desert_sniper.aseprite-2b13e8f4049be9a9dbfdf8c3c3f8492b.res"
+
+[deps]
+
+source_file="res://art/sprites/characters/desert_sniper.aseprite"
+dest_files=["res://.godot/imported/desert_sniper.aseprite-2b13e8f4049be9a9dbfdf8c3c3f8492b.res"]
+
+[params]
+

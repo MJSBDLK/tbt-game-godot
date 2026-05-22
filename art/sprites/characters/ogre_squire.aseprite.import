@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://bi8qf3xyvjd0t"
+path="res://.godot/imported/ogre_squire.aseprite-9f3f05ab189200268a5804b877ce7173.res"
+
+[deps]
+
+source_file="res://art/sprites/characters/ogre_squire.aseprite"
+dest_files=["res://.godot/imported/ogre_squire.aseprite-9f3f05ab189200268a5804b877ce7173.res"]
+
+[params]
+

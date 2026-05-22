@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://bq5rjdnu8wyra"
+path="res://.godot/imported/napdog.aseprite-d3e2d31fef10943d1e579e754c01aa0d.res"
+
+[deps]
+
+source_file="res://art/sprites/characters/napdog.aseprite"
+dest_files=["res://.godot/imported/napdog.aseprite-d3e2d31fef10943d1e579e754c01aa0d.res"]
+
+[params]
+

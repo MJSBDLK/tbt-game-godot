@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://22fuo8u2uxkm"
+path="res://.godot/imported/healer_plant.aseprite-6b5428fa024bd2452a5bacbf33b3b6db.res"
+
+[deps]
+
+source_file="res://art/sprites/characters/healer_plant.aseprite"
+dest_files=["res://.godot/imported/healer_plant.aseprite-6b5428fa024bd2452a5bacbf33b3b6db.res"]
+
+[params]
+

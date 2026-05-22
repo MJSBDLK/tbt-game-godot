@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://cdcst6ih1dnj1"
+path="res://.godot/imported/pierre.aseprite-5f4fe38028bf6e60ab92473b93612276.res"
+
+[deps]
+
+source_file="res://art/sprites/characters/pierre.aseprite"
+dest_files=["res://.godot/imported/pierre.aseprite-5f4fe38028bf6e60ab92473b93612276.res"]
+
+[params]
+

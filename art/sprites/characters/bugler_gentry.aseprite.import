@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://d2m2gx78aj0gy"
+path="res://.godot/imported/bugler_gentry.aseprite-47079c64a624ab73eb51c674fa5e8e59.res"
+
+[deps]
+
+source_file="res://art/sprites/characters/bugler_gentry.aseprite"
+dest_files=["res://.godot/imported/bugler_gentry.aseprite-47079c64a624ab73eb51c674fa5e8e59.res"]
+
+[params]
+

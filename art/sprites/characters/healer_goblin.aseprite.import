@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://c85ddiysboix"
+path="res://.godot/imported/healer_goblin.aseprite-01f43ea90c0c89b4034288320043144c.res"
+
+[deps]
+
+source_file="res://art/sprites/characters/healer_goblin.aseprite"
+dest_files=["res://.godot/imported/healer_goblin.aseprite-01f43ea90c0c89b4034288320043144c.res"]
+
+[params]
+

@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://b5r8bwc1pccho"
+path="res://.godot/imported/ice_archer.aseprite-de381aec1c63882b7879d34744e94708.res"
+
+[deps]
+
+source_file="res://art/sprites/characters/ice_archer.aseprite"
+dest_files=["res://.godot/imported/ice_archer.aseprite-de381aec1c63882b7879d34744e94708.res"]
+
+[params]
+
