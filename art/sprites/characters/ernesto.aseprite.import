@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://f3yp70akevgc"
+path="res://.godot/imported/ernesto.aseprite-1eb01cf043b769fc2009bfd29c4e0429.res"
+
+[deps]
+
+source_file="res://art/sprites/characters/ernesto.aseprite"
+dest_files=["res://.godot/imported/ernesto.aseprite-1eb01cf043b769fc2009bfd29c4e0429.res"]
+
+[params]
+

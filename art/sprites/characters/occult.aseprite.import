@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://df38vrliny6pm"
+path="res://.godot/imported/occult.aseprite-4f1b41c55682487bdb6185498a03ee21.res"
+
+[deps]
+
+source_file="res://art/sprites/characters/occult.aseprite"
+dest_files=["res://.godot/imported/occult.aseprite-4f1b41c55682487bdb6185498a03ee21.res"]
+
+[params]
+

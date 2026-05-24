@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://dxpn2o7jdo1db"
+path="res://.godot/imported/plant_urchin.aseprite-ca460a1dbc4e477b90bfe617997dcec7.res"
+
+[deps]
+
+source_file="res://art/sprites/characters/plant_urchin.aseprite"
+dest_files=["res://.godot/imported/plant_urchin.aseprite-ca460a1dbc4e477b90bfe617997dcec7.res"]
+
+[params]
+

@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://cwwmh7ve6b3n5"
+path="res://.godot/imported/plant_cultist.aseprite-872f463a2ee81ed3a46968331f723a98.res"
+
+[deps]
+
+source_file="res://art/sprites/characters/plant_cultist.aseprite"
+dest_files=["res://.godot/imported/plant_cultist.aseprite-872f463a2ee81ed3a46968331f723a98.res"]
+
+[params]
+

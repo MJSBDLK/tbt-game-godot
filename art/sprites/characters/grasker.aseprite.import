@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://cymx18n0uyq88"
+path="res://.godot/imported/grasker.aseprite-5dd7dd161462c17b488f687ce9b72502.res"
+
+[deps]
+
+source_file="res://art/sprites/characters/grasker.aseprite"
+dest_files=["res://.godot/imported/grasker.aseprite-5dd7dd161462c17b488f687ce9b72502.res"]
+
+[params]
+

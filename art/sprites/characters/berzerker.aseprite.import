@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://b7k7kvk70v6ga"
+path="res://.godot/imported/berzerker.aseprite-b83402fb823947700f64ecf7a4f94c44.res"
+
+[deps]
+
+source_file="res://art/sprites/characters/berzerker.aseprite"
+dest_files=["res://.godot/imported/berzerker.aseprite-b83402fb823947700f64ecf7a4f94c44.res"]
+
+[params]
+

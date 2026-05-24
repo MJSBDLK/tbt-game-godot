@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://dh0ynkqqgxly1"
+path="res://.godot/imported/bugler_chivalric.aseprite-a050e4ba895e3bc3d94266e90f19a2a9.res"
+
+[deps]
+
+source_file="res://art/sprites/characters/bugler_chivalric.aseprite"
+dest_files=["res://.godot/imported/bugler_chivalric.aseprite-a050e4ba895e3bc3d94266e90f19a2a9.res"]
+
+[params]
+

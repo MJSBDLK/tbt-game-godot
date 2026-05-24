@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://bkj3o0hoba1mc"
+path="res://.godot/imported/max.aseprite-6d13c4a86618f564e1c92268a8d8b06c.res"
+
+[deps]
+
+source_file="res://art/sprites/characters/max.aseprite"
+dest_files=["res://.godot/imported/max.aseprite-6d13c4a86618f564e1c92268a8d8b06c.res"]
+
+[params]
+

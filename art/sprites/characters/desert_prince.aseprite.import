@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://6uv40sctt1v6"
+path="res://.godot/imported/desert_prince.aseprite-c2df069abe550179dd0963d1e87cf0f4.res"
+
+[deps]
+
+source_file="res://art/sprites/characters/desert_prince.aseprite"
+dest_files=["res://.godot/imported/desert_prince.aseprite-c2df069abe550179dd0963d1e87cf0f4.res"]
+
+[params]
+
