@@ -44,6 +44,7 @@ static func _parse_character_json(data: Dictionary) -> CharacterData:
 	character.current_class = _parse_character_class(data.get("currentClass", "Spaceman"))
 	# character.specialization = _parse_specialization(data.get("specialization", "None"))
 	character.level = int(data.get("level", 0))
+	character.tier = int(data.get("tier", 1))
 
 	# Portrait
 	character.portrait_path = data.get("portraitPath", "")

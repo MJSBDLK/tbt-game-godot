@@ -25,6 +25,13 @@ extends Resource
 @export var level: int = 0
 @export var experience: int = 0
 
+# Class tier — 1 = base class, 2 = first promotion, 3 = second promotion.
+# Used by CombatXpCalculator to compute the RD-style "internal level"
+# (level + (tier-1) * 20) so promoting effectively bumps your XP cost and
+# higher-tier units earn less from low-tier opponents. Promotion mechanics
+# aren't implemented yet; all roster JSONs leave this at 1 until they are.
+@export var tier: int = 1
+
 # Portrait (high-res concept art crop)
 @export var portrait_path: String = ""
 
@@ -607,3 +614,87 @@ func process_level_up() -> void:
 func simulate_levels_up_to(target_level: int) -> void:
 	while level < target_level:
 		process_level_up()
+
+
+# Stat metadata for the bEXP level-up. Each row: [stat_name (for cap check),
+# growth_rate_field, growth_gains_field]. Mirrors process_level_up's eight
+# stats; pulled into a table so the bEXP roll can weight them dynamically.
+const _BEXP_STAT_TABLE: Array = [
+	["max_hp",       "growth_rate_hp",          "growth_gains_hp"],
+	["strength",     "growth_rate_strength",    "growth_gains_strength"],
+	["special",      "growth_rate_special",     "growth_gains_special"],
+	["skill",        "growth_rate_skill",       "growth_gains_skill"],
+	["agility",      "growth_rate_agility",     "growth_gains_agility"],
+	["athleticism",  "growth_rate_athleticism", "growth_gains_athleticism"],
+	["defense",      "growth_rate_defense",     "growth_gains_defense"],
+	["resistance",   "growth_rate_resistance",  "growth_gains_resistance"],
+]
+
+## How many growths a single bEXP level-up grants. Matches Radiant Dawn.
+const BEXP_GROWTHS_PER_LEVEL: int = 3
+
+
+## Radiant Dawn–style bEXP level-up: exactly BEXP_GROWTHS_PER_LEVEL stat
+## growths, weighted by the unit's growth rates, with capped stats excluded
+## from the candidate pool. This is what makes bEXP "feel smart" with capped
+## units — the fewer eligible stats there are, the higher the odds your bEXP
+## hits one you wanted.
+##
+## If the unit has fewer uncapped stats than the target count (e.g. only 2
+## stats left to grow), it just grants as many as it can. If the total
+## growth rate across uncapped stats is zero (degenerate JSON), falls back
+## to uniform random so we always grant something.
+##
+## Distinct from process_level_up() so combat XP and bEXP can evolve their
+## formulas independently — see [.claude/](.claude/) design discussion.
+func process_bexp_level_up() -> void:
+	# Build candidate pool: [growth_rate_field, growth_gains_field] for each
+	# uncapped stat. Capped stats drop out — bEXP can't grow them.
+	var candidates: Array = []
+	for entry: Array in _BEXP_STAT_TABLE:
+		if not is_at_stat_cap(entry[0]):
+			candidates.append(entry)
+
+	var growths_to_apply: int = mini(BEXP_GROWTHS_PER_LEVEL, candidates.size())
+	for _i: int in range(growths_to_apply):
+		var total_weight: float = 0.0
+		for c: Array in candidates:
+			total_weight += float(get(c[1]))
+		var picked_index: int
+		if total_weight <= 0.0:
+			picked_index = randi() % candidates.size()
+		else:
+			var roll: float = randf() * total_weight
+			var cumulative: float = 0.0
+			picked_index = candidates.size() - 1
+			for j: int in range(candidates.size()):
+				cumulative += float(get(candidates[j][1]))
+				if roll <= cumulative:
+					picked_index = j
+					break
+		var picked: Array = candidates[picked_index]
+		set(picked[2], int(get(picked[2])) + 1)
+		# Remove so we can't double-pick the same stat in one level.
+		candidates.remove_at(picked_index)
+
+	level += 1
+	available_stat_ups += StatAllocation.points_awarded_at_level(level)
+
+
+## Adds `amount` to `experience`, cascading process_level_up for every full
+## 100-XP threshold crossed. Returns the number of level-ups that fired so
+## callers can drive popups / SFX. The 100-XP threshold matches Radiant Dawn
+## and lines up with CharacterSheetPanel._xp_for_next_level / the bEXP
+## screen's per-level cost — keep them in sync if either side moves.
+func grant_xp(amount: int) -> int:
+	if amount <= 0:
+		return 0
+	experience += amount
+	var levels_gained: int = 0
+	# 100 XP per level, flat. RD uses 100 too; the per-level threshold doesn't
+	# scale with level in RD — what scales is how much XP each *action* awards.
+	while experience >= 100:
+		experience -= 100
+		process_level_up()
+		levels_gained += 1
+	return levels_gained

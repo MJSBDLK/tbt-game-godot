@@ -1,3 +1,12 @@
+# [ ] Meeting 20260531
+## RQD
+- [ ] Import all of Lawrence's new character sprites at res://art/sprites/characters/
+  - [ ] Try implementing the animations for units that have them
+- [ ] How hard would it be to make a crater (terrain modifier) grant a defensive bonus against melee attacks and a penalty against ranged attacks?
+- [ ] port Libresprite extension over to Aseprite for 2x3s
+## LOD
+- [ ] same as weel 20260524
+
 # [ ] Meeting 20260524
 ## RQD
  - [ ] intermission screens - interactive buttons must be obviously interactive

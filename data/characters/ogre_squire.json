@@ -5,15 +5,12 @@
 	"secondaryType": "None",
 	"currentClass": "Squire",
 	"specialization": "None",
-
 	"portraitPath": "res://art/portraits/orcpage_portrait.png",
-
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
 		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",
 		"frameIndex": 3
 	},
-
 	"baseStats": {
 		"maxHP": 18,
 		"strength": 5,
@@ -24,7 +21,6 @@
 		"defense": 6,
 		"resistance": 3
 	},
-
 	"growthRates": {
 		"hp": 70,
 		"strength": 75,
@@ -35,14 +31,32 @@
 		"defense": 65,
 		"resistance": 40
 	},
-
 	"physicalAttributes": {
 		"moveDistance": 4,
 		"constitution": 5,
 		"carry": 7
 	},
-
 	"level": 1,
-	"basePoolMoves": ["Lance", "Guard Break", "March", "Battle Cry", "Fortify"],
-	"basePoolPassives": []
+	"basePoolMoves": [
+		"Lance",
+		"Guard Break",
+		"March",
+		"Battle Cry",
+		"Fortify",
+		"Volley",
+		"Klunk",
+		"Focus",
+		"Bonk"
+	],
+	"basePoolPassives": [
+		"Reliable",
+		"Protector",
+		"Competitive",
+		"Reckless",
+		"Cavalier",
+		"Maximum",
+		"Stellar",
+		"Impetuous",
+		"Bellows"
+	]
 }

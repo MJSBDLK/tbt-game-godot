@@ -4,13 +4,11 @@
 	"secondaryType": "None",
 	"currentClass": "Bandit",
 	"specialization": "None",
-
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/bandit/idle.png",
 		"atlasPath": "",
 		"frameIndex": 0
 	},
-
 	"baseStats": {
 		"maxHP": 14,
 		"strength": 6,
@@ -21,7 +19,6 @@
 		"defense": 3,
 		"resistance": 3
 	},
-
 	"growthRates": {
 		"hp": 55,
 		"strength": 40,
@@ -32,14 +29,32 @@
 		"defense": 25,
 		"resistance": 25
 	},
-
 	"physicalAttributes": {
 		"moveDistance": 4,
 		"constitution": 3,
 		"carry": 6
 	},
-
 	"level": 1,
-	"basePoolMoves": ["Bonk", "Backstab", "Feint", "Sidearm", "Uppercut"],
-	"basePoolPassives": ["Impetuous"]
+	"basePoolMoves": [
+		"Bonk",
+		"Backstab",
+		"Feint",
+		"Sidearm",
+		"Uppercut",
+		"Klunk",
+		"Focus",
+		"Volley",
+		"Megaton Punch"
+	],
+	"basePoolPassives": [
+		"Impetuous",
+		"Impulsive",
+		"Flippant",
+		"Cavalier",
+		"Low Profile",
+		"Reckless",
+		"Glib",
+		"Capricious",
+		"Waste Not"
+	]
 }

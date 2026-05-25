@@ -5,19 +5,16 @@
 	"secondaryType": "None",
 	"currentClass": "Engineer",
 	"specialization": "None",
-
 	"portraitPath": "res://art/portraits/ernesto_portrait.png",
 	"lineartPath": "res://art/lineart_fullres/ernesto.png",
 	"lineartAtlases": {
 		"portrait": "res://art/lineart_fullres/ernesto_portrait.tres"
 	},
-
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
 		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",
 		"frameIndex": 2
 	},
-
 	"baseStats": {
 		"maxHP": 22,
 		"strength": 9,
@@ -28,7 +25,6 @@
 		"defense": 5,
 		"resistance": 3
 	},
-
 	"growthRates": {
 		"hp": 60,
 		"strength": 45,
@@ -39,14 +35,32 @@
 		"defense": 55,
 		"resistance": 30
 	},
-
 	"physicalAttributes": {
 		"moveDistance": 5,
 		"constitution": 7,
 		"carry": 12
 	},
-
 	"level": 1,
-	"basePoolMoves": ["Backhand", "Overload", "Laser", "Compressed Air"],
-	"basePoolPassives": ["Jury Rig", "Reliable", "Waste Not"]
+	"basePoolMoves": [
+		"Backhand",
+		"Overload",
+		"Laser",
+		"Compressed Air",
+		"Bonk",
+		"Klunk",
+		"Sidearm",
+		"Uppercut",
+		"First Aid"
+	],
+	"basePoolPassives": [
+		"Jury Rig",
+		"Reliable",
+		"Waste Not",
+		"Maximum",
+		"Bellows",
+		"Extendo",
+		"Zone Control",
+		"Stellar",
+		"Reckless"
+	]
 }

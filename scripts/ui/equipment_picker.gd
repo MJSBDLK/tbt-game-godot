@@ -44,6 +44,11 @@ const _STAT_ROWS: Array = [
 ## screen listens for this to re-expand the roster strip and clear selection.
 signal closed
 
+## Emitted whenever the stat-allocation surface mutates the character
+## (increment / decrement / reset). Prep screen uses this to refresh the
+## roster card's "★N unspent" badge live as the player allocates.
+signal stats_changed
+
 
 @export var edit_mode: EditMode = EditMode.MOVES :
 	set(value):
@@ -1041,6 +1046,7 @@ func _on_stat_increment(stat_name: String) -> void:
 	_character_data.set_allocated_points(stat_name, points + 1)
 	_refresh_summary()
 	_refresh_stats_body()
+	stats_changed.emit()
 
 
 func _on_stat_decrement(stat_name: String) -> void:
@@ -1052,6 +1058,7 @@ func _on_stat_decrement(stat_name: String) -> void:
 	_character_data.set_allocated_points(stat_name, points - 1)
 	_refresh_summary()
 	_refresh_stats_body()
+	stats_changed.emit()
 
 
 func _on_stat_reset_pressed() -> void:
@@ -1062,6 +1069,7 @@ func _on_stat_reset_pressed() -> void:
 	_character_data.reset_allocations()
 	_refresh_summary()
 	_refresh_stats_body()
+	stats_changed.emit()
 
 
 # =============================================================================

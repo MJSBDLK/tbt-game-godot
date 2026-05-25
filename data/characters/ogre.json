@@ -4,13 +4,11 @@
 	"secondaryType": "None",
 	"currentClass": "Heavy",
 	"specialization": "None",
-
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
 		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",
 		"frameIndex": 9
 	},
-
 	"baseStats": {
 		"maxHP": 32,
 		"strength": 10,
@@ -21,7 +19,6 @@
 		"defense": 8,
 		"resistance": 6
 	},
-
 	"growthRates": {
 		"hp": 90,
 		"strength": 70,
@@ -32,14 +29,32 @@
 		"defense": 60,
 		"resistance": 40
 	},
-
 	"physicalAttributes": {
 		"moveDistance": 3,
 		"constitution": 10,
 		"carry": 14
 	},
-
 	"level": 1,
-	"basePoolMoves": ["Club", "Guard Break", "Bonk", "Klunk"],
-	"basePoolPassives": ["Capricious"]
+	"basePoolMoves": [
+		"Bonk",
+		"Klunk",
+		"Guard Break",
+		"Backhand",
+		"Uppercut",
+		"Flame Strike",
+		"Mass Shift",
+		"Impact",
+		"Megaton Punch"
+	],
+	"basePoolPassives": [
+		"Capricious",
+		"Maximum",
+		"Bellows",
+		"Reckless",
+		"Impetuous",
+		"Competitive",
+		"Protector",
+		"Reliable",
+		"Cavalier"
+	]
 }

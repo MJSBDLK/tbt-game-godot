@@ -57,6 +57,14 @@ var _character_ids: Array[String] = []
 # _card_portraits may contain null for characters with no derivable sprite.
 var _card_portraits: Array = []
 var _card_detail_rows: Array[Array] = []
+# The name row inside each card hosts the "★N unspent" badge — kept so we
+# can rebuild just the badge when the picker emits `stats_changed`. Parallel
+# to _card_buttons.
+var _card_name_rows: Array[HBoxContainer] = []
+# Current badge node per card (null if no unspent points). Parallel to
+# _card_buttons. Tracked separately from _card_name_rows so we can free /
+# replace just the badge without disturbing the name + class labels.
+var _card_badges: Array = []
 
 # Cached so _apply_collapse_state can resize the scroll panel without
 # walking the tree.
@@ -315,18 +323,12 @@ func _add_roster_card(character: CharacterData) -> void:
 
 	# Eye-catching "★N" badge when the unit has stat-up points waiting to be
 	# distributed. Drives the player into the picker's Stats mode — without it
-	# they could miss the existence of the allocation surface entirely.
-	var unspent: int = character.available_stat_ups - character.allocated_total()
-	if unspent > 0:
-		var badge := Label.new()
-		badge.text = "★%d" % unspent
-		badge.modulate = GameColorPalette.get_color("Yellow", 5)
-		if ui_manager != null:
-			badge.add_theme_font_override("font", ui_manager.font_8px)
-			badge.add_theme_font_size_override("font_size", 8)
-		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		badge.tooltip_text = "%d unspent stat-up point%s" % [unspent, "" if unspent == 1 else "s"]
-		name_row.add_child(badge)
+	# they could miss the existence of the allocation surface entirely. The
+	# badge node is tracked in _card_badges so we can refresh it live as the
+	# player allocates inside the picker, without rebuilding the whole card.
+	var badge_node: Label = _make_unspent_badge(character, ui_manager)
+	if badge_node != null:
+		name_row.add_child(badge_node)
 
 	# Row 2: elemental type icons (left) | injury icons (right)
 	var icon_row := HBoxContainer.new()
@@ -371,6 +373,55 @@ func _add_roster_card(character: CharacterData) -> void:
 	_card_buttons.append(card_button)
 	_move_buttons.append(move_button)
 	_character_ids.append(character.character_id)
+	_card_name_rows.append(name_row)
+	_card_badges.append(badge_node)
+
+
+## Builds the unspent-points badge for a character if they have any unspent.
+## Returns null when there's nothing to display — keeps the call sites
+## branch-free. Pulled out so _refresh_card_badge can recreate the same node
+## after allocation without duplicating the styling.
+func _make_unspent_badge(character: CharacterData, ui_manager: Node) -> Label:
+	var unspent: int = character.available_stat_ups - character.allocated_total()
+	if unspent <= 0:
+		return null
+	var badge := Label.new()
+	badge.text = "★%d" % unspent
+	badge.modulate = GameColorPalette.get_color("Yellow", 5)
+	if ui_manager != null:
+		badge.add_theme_font_override("font", ui_manager.font_8px)
+		badge.add_theme_font_size_override("font_size", 8)
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	badge.tooltip_text = "%d unspent stat-up point%s" % [unspent, "" if unspent == 1 else "s"]
+	return badge
+
+
+## Refreshes the ★N badge on the card for `character_id` based on its current
+## allocation state. Frees the old badge (if any) and rebuilds from scratch —
+## simpler than mutating-in-place and the badge is one Label, not a hot path.
+## Called from the equipment_picker's `stats_changed` signal so the badge
+## tracks +/- clicks live.
+func _refresh_card_badge(character_id: String) -> void:
+	var index: int = _character_ids.find(character_id)
+	if index == -1:
+		return
+	var character: CharacterData = SquadManager.get_character_by_id(character_id)
+	if character == null:
+		return
+	var name_row: HBoxContainer = _card_name_rows[index]
+	var old_badge: Variant = _card_badges[index]
+	if old_badge != null and is_instance_valid(old_badge):
+		name_row.remove_child(old_badge)
+		(old_badge as Node).queue_free()
+	var new_badge: Label = _make_unspent_badge(character, UIManager)
+	if new_badge != null:
+		name_row.add_child(new_badge)
+		# When the strip is collapsed, the badge inherits visibility from
+		# _card_detail_rows entries — but the badge isn't in that list. Match
+		# the collapse state explicitly so a live-recreated badge doesn't
+		# briefly flicker into view while the picker is open.
+		new_badge.visible = not _is_collapsed
+	_card_badges[index] = new_badge
 
 
 # =============================================================================
@@ -424,12 +475,22 @@ func _show_picker_for(character: CharacterData) -> void:
 		_picker = EquipmentPicker.new()
 		_picker.set_anchors_preset(Control.PRESET_FULL_RECT)
 		_picker.closed.connect(_on_picker_closed)
+		# Live ★N badge updates while the player is in the Stats tab. The
+		# signal carries no payload — the picker's current character is the
+		# only valid target, so we route through _selected_character_id.
+		_picker.stats_changed.connect(_on_picker_stats_changed)
 		_detail_host.add_child(_picker)
 	_empty_prompt.visible = false
 	_picker.visible = true
 	_picker.set_character(character)
 	if COLLAPSE_HIDES_DETAILS:
 		_apply_collapse_state(true)
+
+
+func _on_picker_stats_changed() -> void:
+	if _selected_character_id == "":
+		return
+	_refresh_card_badge(_selected_character_id)
 
 
 ## Tear down picker focus: hide the picker, clear the selected card highlight,

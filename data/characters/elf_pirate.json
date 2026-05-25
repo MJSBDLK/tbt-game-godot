@@ -5,15 +5,12 @@
 	"secondaryType": "None",
 	"currentClass": "Pirate",
 	"specialization": "None",
-
 	"portraitPath": "res://art/portraits/elfpirate_portrait.png",
-
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
 		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",
 		"frameIndex": 6
 	},
-
 	"baseStats": {
 		"maxHP": 14,
 		"strength": 5,
@@ -24,7 +21,6 @@
 		"defense": 3,
 		"resistance": 4
 	},
-
 	"growthRates": {
 		"hp": 35,
 		"strength": 40,
@@ -35,14 +31,32 @@
 		"defense": 25,
 		"resistance": 30
 	},
-
 	"physicalAttributes": {
 		"moveDistance": 5,
 		"constitution": 4,
 		"carry": 5
 	},
-
 	"level": 1,
-	"basePoolMoves": ["Compressed Air", "Cyclone", "Sidearm", "Feint", "Backstab"],
-	"basePoolPassives": []
+	"basePoolMoves": [
+		"Compressed Air",
+		"Cyclone",
+		"Sidearm",
+		"Feint",
+		"Backstab",
+		"Volley",
+		"Snap Freeze",
+		"Mass Shift",
+		"Focus"
+	],
+	"basePoolPassives": [
+		"Cavalier",
+		"Flippant",
+		"Impulsive",
+		"Reckless",
+		"Anti-Gravity",
+		"Impetuous",
+		"Capricious",
+		"Reliable",
+		"Stellar"
+	]
 }

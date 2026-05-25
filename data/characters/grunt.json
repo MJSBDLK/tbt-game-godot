@@ -4,13 +4,11 @@
 	"secondaryType": "None",
 	"currentClass": "Grunt",
 	"specialization": "None",
-
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/grunt/idle.png",
 		"atlasPath": "",
 		"frameIndex": 0
 	},
-
 	"baseStats": {
 		"maxHP": 18,
 		"strength": 6,
@@ -21,7 +19,6 @@
 		"defense": 4,
 		"resistance": 3
 	},
-
 	"growthRates": {
 		"hp": 70,
 		"strength": 45,
@@ -32,14 +29,32 @@
 		"defense": 35,
 		"resistance": 25
 	},
-
 	"physicalAttributes": {
 		"moveDistance": 3,
 		"constitution": 5,
 		"carry": 8
 	},
-
 	"level": 1,
-	"basePoolMoves": ["Bonk", "Klunk", "Flame Strike", "Shock", "Megaton Punch"],
-	"basePoolPassives": []
+	"basePoolMoves": [
+		"Bonk",
+		"Klunk",
+		"Flame Strike",
+		"Shock",
+		"Megaton Punch",
+		"March",
+		"Battle Cry",
+		"Volley",
+		"Lance"
+	],
+	"basePoolPassives": [
+		"Impetuous",
+		"Reliable",
+		"Protector",
+		"Reckless",
+		"Competitive",
+		"Cavalier",
+		"Flippant",
+		"Maximum",
+		"Stellar"
+	]
 }

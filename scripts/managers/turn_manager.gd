@@ -7,6 +7,11 @@ extends Node
 signal player_phase_started(turn_count: int)
 signal enemy_phase_started()
 signal battle_ended(is_victory: bool)
+## Fires once when initialize_battle wires up the unit lists, before
+## start_player_phase. Lets SquadManager snapshot pre-battle levels so the
+## post-mission level-up report can detect deltas even when level-ups
+## happened mid-battle (i.e. via combat XP, not the post-victory roll).
+signal battle_started(player_units: Array[Unit])
 
 var current_phase: Enums.TurnPhase = Enums.TurnPhase.PLAYER_PHASE
 var turn_count: int = 0
@@ -37,6 +42,7 @@ func initialize_battle(player_units: Array[Unit], enemy_units: Array[Unit]) -> v
 		if not unit.unit_defeated.is_connected(_on_unit_defeated):
 			unit.unit_defeated.connect(_on_unit_defeated)
 
+	battle_started.emit(_player_units)
 	start_player_phase()
 
 

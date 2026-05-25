@@ -5,19 +5,16 @@
 	"secondaryType": "None",
 	"currentClass": "Spaceman",
 	"specialization": "None",
-
 	"portraitPath": "res://art/portraits/max_stellar_portrait.png",
 	"lineartPath": "res://art/lineart_fullres/max_stellar.png",
 	"lineartAtlases": {
 		"portrait": "res://art/lineart_fullres/spaceman_portrait.tres"
 	},
-
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
 		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",
 		"frameIndex": 1
 	},
-
 	"baseStats": {
 		"maxHP": 21,
 		"strength": 6,
@@ -28,7 +25,6 @@
 		"defense": 3,
 		"resistance": 4
 	},
-
 	"growthRates": {
 		"hp": 70,
 		"strength": 55,
@@ -39,14 +35,32 @@
 		"defense": 40,
 		"resistance": 30
 	},
-
 	"physicalAttributes": {
 		"moveDistance": 5,
 		"constitution": 5,
 		"carry": 8
 	},
-
 	"level": 1,
-	"basePoolMoves": ["Bonk", "Laser", "Klunk", "Uppercut", "Overload", "Megaton Punch"],
-	"basePoolPassives": ["Anti-Gravity", "Impetuous", "Competitive", "Maximum", "Stellar"]
+	"basePoolMoves": [
+		"Bonk",
+		"Laser",
+		"Klunk",
+		"Uppercut",
+		"Overload",
+		"Megaton Punch",
+		"Backhand",
+		"Sidearm",
+		"Compressed Air"
+	],
+	"basePoolPassives": [
+		"Anti-Gravity",
+		"Impetuous",
+		"Competitive",
+		"Maximum",
+		"Stellar",
+		"Reliable",
+		"Reckless",
+		"Cavalier",
+		"Glib"
+	]
 }

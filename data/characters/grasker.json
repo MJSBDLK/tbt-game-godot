@@ -5,15 +5,12 @@
 	"secondaryType": "None",
 	"currentClass": "Fighter",
 	"specialization": "None",
-
 	"portraitPath": "res://art/portraits/grasker-portrait.png",
-
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
 		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",
 		"frameIndex": 0
 	},
-
 	"baseStats": {
 		"maxHP": 22,
 		"strength": 9,
@@ -24,7 +21,6 @@
 		"defense": 3,
 		"resistance": 3
 	},
-
 	"growthRates": {
 		"hp": 65,
 		"strength": 70,
@@ -35,14 +31,32 @@
 		"defense": 30,
 		"resistance": 25
 	},
-
 	"physicalAttributes": {
 		"moveDistance": 4,
 		"constitution": 6,
 		"carry": 7
 	},
-
 	"level": 1,
-	"basePoolMoves": ["Bonk", "Uppercut", "Guard Break", "Feint", "Focus"],
-	"basePoolPassives": []
+	"basePoolMoves": [
+		"Bonk",
+		"Uppercut",
+		"Guard Break",
+		"Feint",
+		"Focus",
+		"Klunk",
+		"Megaton Punch",
+		"Backhand",
+		"Flame Strike"
+	],
+	"basePoolPassives": [
+		"Impetuous",
+		"Reckless",
+		"Maximum",
+		"Competitive",
+		"Reliable",
+		"Stellar",
+		"Cavalier",
+		"Protector",
+		"Bellows"
+	]
 }

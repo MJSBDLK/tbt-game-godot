@@ -58,8 +58,10 @@ var _system_menu_panel: SystemMenuPanel = null
 var _options_menu_panel: OptionsMenuPanel = null
 var _post_mission_report_panel: PostMissionReportPanel = null
 var _level_up_report_panel: LevelUpReportPanel = null
-# Stashed between LevelUpReportPanel.closed and PostMissionReportPanel showing,
-# since the two screens share one signal payload but get told to render in turn.
+var _bonus_xp_panel: BonusXpPanel = null
+# Stashed between LevelUpReportPanel.closed → BonusXpPanel.show_report →
+# PostMissionReportPanel.show_report, since each screen accepts the same
+# payload but renders in sequence.
 var _pending_post_mission_report: Array = []
 var _recruit_picker_panel: Node = null
 
@@ -511,13 +513,21 @@ func _instantiate_overlays() -> void:
 		_overlay_layer.add_child(_unit_detail_panel)
 		_unit_detail_panel.closed.connect(_on_unit_detail_closed)
 
-	# Post-mission flow: LevelUpReportPanel fires first on victory (skipped if
-	# nobody leveled), then PostMissionReportPanel for injuries/recovery.
+	# Post-mission flow: LevelUpReportPanel → BonusXpPanel → PostMissionReportPanel.
+	# Each step self-skips if its preconditions don't fire (no level-ups,
+	# zero bEXP pool, etc.), so the chain falls through naturally on defeat
+	# or for first-mission victories where there's nothing to celebrate.
 	var level_up_scene := load("res://scenes/ui/panels/level_up_report_panel.tscn")
 	if level_up_scene != null:
 		_level_up_report_panel = level_up_scene.instantiate() as LevelUpReportPanel
 		_overlay_layer.add_child(_level_up_report_panel)
 		_level_up_report_panel.closed.connect(_on_level_up_report_closed)
+
+	var bonus_xp_scene := load("res://scenes/ui/panels/bonus_xp_panel.tscn")
+	if bonus_xp_scene != null:
+		_bonus_xp_panel = bonus_xp_scene.instantiate() as BonusXpPanel
+		_overlay_layer.add_child(_bonus_xp_panel)
+		_bonus_xp_panel.closed.connect(_on_bonus_xp_closed)
 
 	var post_mission_scene := load("res://scenes/ui/panels/post_mission_report_panel.tscn")
 	if post_mission_scene != null:
@@ -538,8 +548,11 @@ func _instantiate_overlays() -> void:
 ## Entry point for the post-mission flow. Chain:
 ##   battle_ended signal → _on_post_mission_report_ready (this)
 ##     → LevelUpReportPanel.show_report() — celebrates leveled characters.
-##         Emits `closed` when done (or immediately if no one leveled).
-##     → _on_level_up_report_closed → PostMissionReportPanel.show_report() —
+##         Self-skips if no one leveled.
+##     → _on_level_up_report_closed → BonusXpPanel.show_report() — spend
+##         accumulated bEXP on individual characters' experience.
+##         Self-skips if bonus_xp_pool == 0.
+##     → _on_bonus_xp_closed → PostMissionReportPanel.show_report() —
 ##         renders injuries / recovery / permadeath. Emits `closed` when done.
 ##     → _on_post_mission_report_closed → state pop, campaign advances.
 func _on_post_mission_report_ready(report: Array) -> void:
@@ -556,10 +569,23 @@ func _on_post_mission_report_ready(report: Array) -> void:
 		# `closed` immediately and the chain continues without delay.
 		_level_up_report_panel.show_report(report)
 	else:
-		_show_post_mission_report()
+		_show_bonus_xp_panel()
 
 
 func _on_level_up_report_closed() -> void:
+	_show_bonus_xp_panel()
+
+
+func _show_bonus_xp_panel() -> void:
+	if _bonus_xp_panel == null:
+		_show_post_mission_report()
+		return
+	# BonusXpPanel.show_report self-skips when the pool is empty — no need
+	# to peek at SquadManager.bonus_xp_pool here.
+	_bonus_xp_panel.show_report(_pending_post_mission_report)
+
+
+func _on_bonus_xp_closed() -> void:
 	_show_post_mission_report()
 
 

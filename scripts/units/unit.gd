@@ -91,6 +91,7 @@ var _health_bar: Node2D = null
 var _health_bar_background: ColorRect = null
 var _health_bar_fill: ColorRect = null
 var _status_indicator: StatusEffectIndicator = null
+var _level_label: Label = null
 var _path_visualizer: Node2D = null  # PathVisualizer
 var _static_overlay: Sprite2D = null
 var _static_tick_accum: float = 0.0
@@ -111,6 +112,8 @@ func _ready() -> void:
 	_health_bar_background = $HealthBar/Background as ColorRect
 	_health_bar_fill = $HealthBar/Fill as ColorRect
 	_status_indicator = $HealthBar/StatusEffectIndicator as StatusEffectIndicator
+	_level_label = $HealthBar/LevelLabel as Label
+	_style_level_label()
 	if has_node("PathVisualizer"):
 		_path_visualizer = $PathVisualizer
 	_build_static_overlay()
@@ -146,6 +149,7 @@ func initialize(starting_tile: Tile) -> void:
 	# Visuals
 	_load_character_sprite()
 	_apply_faction_healthbar()
+	_update_level_label()
 	_update_healthbar_position()
 	_update_z_index()
 	_update_health_bar()
@@ -667,6 +671,10 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 		"damage_type": move.damage_type,
 		"name": move.move_name,
 	})
+	# RD-style XP grant: only player units accumulate XP. The kill check has
+	# to read is_defeated AFTER take_damage but before _handle_defeat clears
+	# state — both are fine at this point in the sequence.
+	_award_combat_xp(target, target.is_defeated())
 	combat_hit.emit(self, target, damage)
 
 	_spawn_damage_popup(target, damage, effectiveness_text, type_multiplier)
@@ -699,6 +707,7 @@ func _execute_heal_hit(target: Unit, move: Move, apply_status: bool) -> void:
 	_play_boop_return()
 
 	target.heal(heal_amount)
+	_award_heal_xp(target, heal_amount)
 	combat_hit.emit(self, target, -heal_amount)
 	_spawn_heal_popup(target, heal_amount)
 
@@ -709,6 +718,44 @@ func _execute_heal_hit(target: Unit, move: Move, apply_status: bool) -> void:
 		StatusEffectSystem.apply_status_effect(self, target, move)
 
 	_apply_cleanse(target, move)
+
+
+## Grant combat XP to this unit (the attacker) for a hit on `target`. Only
+## fires for PLAYER faction — enemies don't level mid-mission. The kill flag
+## is passed in by the caller since it knows whether THIS hit killed the
+## target (a counter-killer wouldn't credit the original attacker).
+##
+## On level-up we refresh the level label + health bar so the visual reflects
+## the new state immediately. The full level-up celebration runs at the end
+## of mission via LevelUpReportPanel (uses SquadManager's pre-battle snapshot
+## to detect the delta).
+func _award_combat_xp(target: Unit, killed: bool) -> void:
+	if faction != Enums.UnitFaction.PLAYER:
+		return
+	if character_data == null or target == null or target.character_data == null:
+		return
+	var xp: int = CombatXpCalculator.compute_combat_xp(
+			character_data, target.character_data, killed)
+	var levels_gained: int = character_data.grant_xp(xp)
+	if levels_gained > 0:
+		_update_level_label()
+		_update_health_bar()
+
+
+## Heal-side XP grant. RD awards a flat amount per cast regardless of HP
+## restored — passing `amount` so we can switch to fraction-of-max scaling
+## later without changing call sites.
+func _award_heal_xp(target: Unit, amount: int) -> void:
+	if faction != Enums.UnitFaction.PLAYER:
+		return
+	if character_data == null or amount <= 0:
+		return
+	var target_data: CharacterData = target.character_data if target != null else null
+	var xp: int = CombatXpCalculator.compute_heal_xp(character_data, target_data)
+	var levels_gained: int = character_data.grant_xp(xp)
+	if levels_gained > 0:
+		_update_level_label()
+		_update_health_bar()
 
 
 func _apply_cleanse(target: Unit, move: Move) -> void:
@@ -781,6 +828,8 @@ func _handle_defeat() -> void:
 		_health_bar_fill.visible = false
 	if _status_indicator != null:
 		_status_indicator.visible = false
+	if _level_label != null:
+		_level_label.visible = false
 
 	# Fade out over 1 second
 	var tween := create_tween()
@@ -852,6 +901,33 @@ func _resolve_pivot_offset(sheet_path: String, texture: Texture2D) -> Vector2:
 				var py := float(pivot.get("y", height))
 				return Vector2(width / 2.0 - px, height / 2.0 - py)
 	return Vector2(0, -height / 2.0)
+
+
+## One-time font + outline-shader setup for the level number. Pulled out so
+## `_ready` can run it before initialize() — we don't depend on character_data
+## here. The label's text is empty until _update_level_label fills it.
+func _style_level_label() -> void:
+	if _level_label == null:
+		return
+	var ui_manager: Node = UIManager
+	if ui_manager != null:
+		_level_label.add_theme_font_override("font", ui_manager.font_5px)
+		_level_label.add_theme_font_size_override("font_size", 5)
+	# Orthogonal glow shader as outline so the number reads against any
+	# terrain. Same material as damage popups for visual consistency.
+	var outline_color: Color = Color(GameColorPalette.get_color("Gray", 1), 0.975)
+	var material_instance: ShaderMaterial = preload("res://resources/hud_glow.tres").duplicate()
+	material_instance.set_shader_parameter("glow_color", outline_color)
+	_level_label.material = material_instance
+
+
+## Refreshes the level number from character_data.level. Cheap — call any time
+## the unit's level changes (currently only at spawn; bEXP-driven mid-prep
+## levels happen in prep_screen, not in-battle).
+func _update_level_label() -> void:
+	if _level_label == null or character_data == null:
+		return
+	_level_label.text = "%d" % character_data.level
 
 
 ## Set health bar fill to faction color. Background stays dark for contrast.

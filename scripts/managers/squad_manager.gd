@@ -32,6 +32,26 @@ signal character_permadead(character_id: String)
 ##   "permadead": bool                    # slot overflow during commit
 ##   "is_victory": bool
 signal post_mission_report_ready(report: Array)
+## Fires whenever the shared bonus-XP pool changes — award on victory, spend
+## from the bEXP screen. UIs that display the pool can subscribe instead of
+## polling.
+signal bonus_xp_changed(new_pool: int)
+
+
+## Shared squad-wide pool of bonus XP. Spent on the post-mission bEXP screen
+## by pouring it into individual characters' regular `experience` field. Stays
+## across missions; carries forward when the player skips the screen.
+##
+## Per [[mission_objectives.md]] this should ultimately be awarded for
+## OBJECTIVES, not raw kills or turn count — the objective infrastructure
+## doesn't exist yet, so for now we grant a flat BONUS_XP_PER_VICTORY on win
+## as a placeholder that lets the bEXP UI exist and be playtested.
+var bonus_xp_pool: int = 0
+
+## Placeholder award schedule pending the objective system. Tune in one spot
+## (here) once real objectives land — every consumer reads bonus_xp_pool, so
+## changing the award size doesn't ripple.
+const BONUS_XP_PER_VICTORY: int = 150
 
 
 # Default roster bootstrapped at game start.
@@ -65,6 +85,38 @@ func _connect_turn_manager() -> void:
 		return
 	if not turn_manager.battle_ended.is_connected(_on_battle_ended):
 		turn_manager.battle_ended.connect(_on_battle_ended)
+	if not turn_manager.battle_started.is_connected(_on_battle_started):
+		turn_manager.battle_started.connect(_on_battle_started)
+
+
+# character_id -> Dictionary { level, stat_ups, growth_gains: {field: int} }
+# captured at battle_started. The level-up report diffs each character's
+# current state against this so combat-XP-driven level-ups are reflected the
+# same way as post-victory rolls — same animation, same per-stat reveals.
+# Cleared each battle so multi-mission campaigns don't carry stale state.
+var _pre_battle_snapshots: Dictionary = {}
+
+
+## Snapshots level, stat-up pool, and every growth_gains_* field for each
+## deployed player unit. Called from TurnManager.battle_started. The growth
+## snapshot is what lets us diff per-stat: "STR grew during this mission"
+## becomes `current_growth_gains_strength > snapshot.growth_gains_strength`.
+func _on_battle_started(player_units: Array) -> void:
+	_pre_battle_snapshots.clear()
+	for unit: Variant in player_units:
+		if unit == null:
+			continue
+		var data: CharacterData = unit.character_data if "character_data" in unit else null
+		if data == null:
+			continue
+		var growth_snapshot: Dictionary = {}
+		for entry: Array in _GROWTH_FIELDS:
+			growth_snapshot[entry[1]] = data.get(entry[1])
+		_pre_battle_snapshots[data.character_id] = {
+			"level": data.level,
+			"stat_ups": data.available_stat_ups,
+			"growth_gains": growth_snapshot,
+		}
 
 
 # =============================================================================
@@ -72,9 +124,13 @@ func _connect_turn_manager() -> void:
 # =============================================================================
 
 ## How many process_level_up rolls each surviving player character earns per
-## victorious mission. Alpha-tuned constant — XP curves can replace this later
-## without disturbing the rest of the pipeline.
-const LEVELS_PER_VICTORY: int = 1
+## victorious mission *on top of* combat XP gained during the fight.
+##
+## Combat XP via CombatXpCalculator is now the primary driver of leveling
+## (Radiant Dawn–style). This freebie is kept at 0 by default; flip to 1 to
+## A/B compare against the old "everyone gets a free level on victory"
+## baseline, or to soften early missions where chip damage is rare.
+const LEVELS_PER_VICTORY: int = 0
 
 # Stat keys paired with their growth_gains_* property name. Used to diff growth
 # rolls before/after a level-up so the post-mission report can show "+1 STR".
@@ -111,8 +167,15 @@ func _on_battle_ended(is_victory: bool) -> void:
 
 		# Tick recovery only if the character survived commit.
 		var recovered: Array = []
-		var level_before: int = character.level
-		var pool_before: int = character.available_stat_ups
+		# The pre-battle snapshot is the source of truth for level_before /
+		# pool_before / which growths happened — combat XP can grow either of
+		# them mid-battle, so the values at battle_ended don't reflect "what
+		# the unit had when the mission started." Fall back to current state
+		# for undeployed roster members (no snapshot → no delta).
+		var pre_snapshot: Dictionary = _pre_battle_snapshots.get(character.character_id, {})
+		var level_before: int = pre_snapshot.get("level", character.level)
+		var pool_before: int = pre_snapshot.get("stat_ups", character.available_stat_ups)
+		var pre_growths: Dictionary = pre_snapshot.get("growth_gains", {})
 		var growths_gained: Array[String] = []
 		if not permadead:
 			InjurySystem.tick_recovery(character)
@@ -125,7 +188,17 @@ func _on_battle_ended(is_victory: bool) -> void:
 			character.reset_status_modifiers()
 
 			if is_victory:
-				growths_gained = _apply_post_victory_level_ups(character)
+				# Optional freebie roll (LEVELS_PER_VICTORY) runs on top of
+				# combat XP. Its growths get folded into the same diff below.
+				_apply_post_victory_level_ups(character)
+			# Diff every growth_gains_* against the pre-battle snapshot.
+			# Combat-XP-driven and freebie-driven gains both show up here.
+			for entry: Array in _GROWTH_FIELDS:
+				var field: String = entry[1]
+				var current: int = int(character.get(field))
+				var before: int = int(pre_growths.get(field, current))
+				if current > before:
+					growths_gained.append(entry[2])
 
 		report.append({
 			"character_name": character.character_name,
@@ -139,8 +212,37 @@ func _on_battle_ended(is_victory: bool) -> void:
 			"is_victory": is_victory,
 		})
 
+	# Award bonus XP on victory. Objectives will eventually replace the flat
+	# award per [[mission_objectives.md]]; until then the alpha gets a constant
+	# per-mission grant so the bEXP screen has something to spend.
+	if is_victory:
+		bonus_xp_pool += BONUS_XP_PER_VICTORY
+		bonus_xp_changed.emit(bonus_xp_pool)
+
 	DebugConfig.log_unit_init("SquadManager: battle_ended processed — active roster: %s" % [_roster_by_id.keys()])
 	post_mission_report_ready.emit(report)
+
+
+## Pours `amount` from `bonus_xp_pool` into the character's experience and
+## cascades bEXP-style level-ups (exactly 3 growths each, weighted by growth
+## rate, capped stats excluded). Caps at the pool size; emits
+## `bonus_xp_changed` once. Returns the actual amount spent.
+##
+## Deliberately does NOT route through CharacterData.grant_xp because that
+## path uses the combat-XP level-up (random growth-rate rolls). RD treats
+## bEXP as a mechanically different XP source — same 100/level threshold,
+## different growth behavior.
+func spend_bonus_xp_on(character: CharacterData, amount: int) -> int:
+	if character == null or amount <= 0 or bonus_xp_pool <= 0:
+		return 0
+	var actual: int = mini(amount, bonus_xp_pool)
+	bonus_xp_pool -= actual
+	character.experience += actual
+	while character.experience >= 100:
+		character.experience -= 100
+		character.process_bexp_level_up()
+	bonus_xp_changed.emit(bonus_xp_pool)
+	return actual
 
 
 ## Snapshots growth_gains_*, runs LEVELS_PER_VICTORY level-up rolls, and returns

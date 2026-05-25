@@ -5,15 +5,12 @@
 	"secondaryType": "None",
 	"currentClass": "Enigma",
 	"specialization": "None",
-
 	"portraitPath": "res://art/portraits/gravcap_portrait.png",
-
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
 		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",
 		"frameIndex": 4
 	},
-
 	"baseStats": {
 		"maxHP": 8,
 		"strength": 1,
@@ -24,7 +21,6 @@
 		"defense": 1,
 		"resistance": 7
 	},
-
 	"growthRates": {
 		"hp": 20,
 		"strength": 5,
@@ -35,14 +31,32 @@
 		"defense": 10,
 		"resistance": 55
 	},
-
 	"physicalAttributes": {
 		"moveDistance": 3,
 		"constitution": 2,
 		"carry": 3
 	},
-
 	"level": 1,
-	"basePoolMoves": ["Gravity Well", "Mass Shift", "Compressed Air", "Erase", "Focus"],
-	"basePoolPassives": []
+	"basePoolMoves": [
+		"Gravity Well",
+		"Mass Shift",
+		"Compressed Air",
+		"Erase",
+		"Focus",
+		"Void Touch",
+		"Dark Energy",
+		"Cyclone",
+		"Impact"
+	],
+	"basePoolPassives": [
+		"Anti-Gravity",
+		"Stellar",
+		"Zone Control",
+		"Maximum",
+		"Glib",
+		"Protector",
+		"Reliable",
+		"Capricious",
+		"Cavalier"
+	]
 }

@@ -4,19 +4,16 @@
 	"secondaryType": "None",
 	"currentClass": "Noble",
 	"specialization": "None",
-
 	"portraitPath": "res://art/portraits/napdawg_portrait.png",
 	"lineartPath": "res://art/lineart_fullres/napdog.png",
 	"lineartAtlases": {
 		"portrait": "res://art/lineart_fullres/napdawg_portrait.tres"
 	},
-
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
 		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",
 		"frameIndex": 7
 	},
-
 	"baseStats": {
 		"maxHP": 14,
 		"strength": 4,
@@ -27,7 +24,6 @@
 		"defense": 2,
 		"resistance": 3
 	},
-
 	"growthRates": {
 		"hp": 40,
 		"strength": 30,
@@ -38,14 +34,32 @@
 		"defense": 20,
 		"resistance": 25
 	},
-
 	"physicalAttributes": {
 		"moveDistance": 5,
 		"constitution": 3,
 		"carry": 5
 	},
-
 	"level": 1,
-	"basePoolMoves": ["Backstab", "Feint", "Sidearm", "Volley", "Backhand"],
-	"basePoolPassives": []
+	"basePoolMoves": [
+		"Backstab",
+		"Feint",
+		"Sidearm",
+		"Volley",
+		"Backhand",
+		"Focus",
+		"Lance",
+		"Mass Shift",
+		"Battle Cry"
+	],
+	"basePoolPassives": [
+		"Glib",
+		"Cavalier",
+		"Protector",
+		"Reliable",
+		"Stellar",
+		"Reckless",
+		"Competitive",
+		"Maximum",
+		"Flippant"
+	]
 }
