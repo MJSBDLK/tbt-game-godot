@@ -176,10 +176,20 @@ local settings = {
     rightOffset = 0,
     topOffset = 0,
     bottomOffset = 0,
+    liveUpdate = true,
+    showPreviewScene = true,
 }
 
 local previewSprite = nil
+local sourceSprite = nil
+local sourceChangeKey = nil
+local updating = false
 local dlg = nil
+
+local function isSpriteValid(s)
+    if not s then return false end
+    return pcall(function() return s.width end)
+end
 
 ----------------------------------------------------------------------
 -- TILE COPY FUNCTIONS
@@ -371,19 +381,69 @@ local function createTempImage(w, h, colorMode)
     return img
 end
 
-local function updatePreviews()
-    local sprite = app.activeSprite
-    if not sprite then
-        app.alert("No active sprite!")
+-- Render the wareya sample scene from the 12×4 autotile region of dstImg
+-- into a 12×9 region starting at sceneStartY.
+local function drawPreviewScene(dstImg, tileW, tileH, sceneStartY)
+    for row = 1, #preview_data do
+        local rowData = preview_data[row]
+        for col = 1, #rowData do
+            local tileIndex = rowData[col]
+            if tileIndex >= 0 then
+                local tx = tileIndex % 12
+                local ty = math.floor(tileIndex / 12)
+                for py = 0, tileH - 1 do
+                    for px = 0, tileW - 1 do
+                        local pixel = safeGetPixel(dstImg, tx * tileW + px, ty * tileH + py)
+                        safeDrawPixel(dstImg,
+                            (col - 1) * tileW + px,
+                            sceneStartY + (row - 1) * tileH + py,
+                            pixel)
+                    end
+                end
+            end
+        end
+    end
+end
+
+local updatePreviews  -- forward declared so onSourceChange can reference it
+
+local function onSourceChange()
+    if not settings.liveUpdate then return end
+    if updating then return end
+    -- If the user closed the preview, pause auto-updates until manual refresh
+    if not isSpriteValid(previewSprite) then return end
+    updating = true
+    pcall(updatePreviews)
+    updating = false
+end
+
+updatePreviews = function()
+    -- Source = active sprite, unless active IS the preview (then use last-known source).
+    local source = app.activeSprite
+    if source == previewSprite or not source then
+        if isSpriteValid(sourceSprite) and sourceSprite ~= previewSprite then
+            source = sourceSprite
+        else
+            source = nil
+        end
+    end
+
+    if not source then
+        if not updating then
+            app.alert("No source sprite! Open your tileset and run again.")
+        end
         return
     end
-    
-    local srcImg = app.activeImage
-    if not srcImg then
-        app.alert("No active image/cel!")
-        return
+
+    -- Read the active cel image if source is active; else fall back to cel 1
+    local srcImg
+    if app.activeSprite == source and app.activeImage then
+        srcImg = app.activeImage
+    elseif source.cels[1] then
+        srcImg = source.cels[1].image
     end
-    
+    if not srcImg then return end
+
     local mode = settings.mode
     local tileW = settings.tileW
     local tileH = settings.tileH
@@ -393,28 +453,27 @@ local function updatePreviews()
         top = settings.topOffset,
         bottom = settings.bottomOffset,
     }
-    
+
+    local autotileH = 4 * tileH
+    local sceneH = settings.showPreviewScene and (1 + 9) * tileH or 0
     local outW = 12 * tileW
-    local outH = 4 * tileH
-    
+    local outH = autotileH + sceneH
+
     -- Create or resize preview sprite
-    if not previewSprite or not pcall(function() return previewSprite.width end) then
-        previewSprite = Sprite(outW, outH, sprite.colorMode)
+    if not isSpriteValid(previewSprite) then
+        previewSprite = Sprite(outW, outH, source.colorMode)
         previewSprite.filename = "Webtyler Preview"
-        -- Copy palette
-        for i = 0, #sprite.palettes[1] - 1 do
-            previewSprite.palettes[1]:setColor(i, sprite.palettes[1]:getColor(i))
+        for i = 0, #source.palettes[1] - 1 do
+            previewSprite.palettes[1]:setColor(i, source.palettes[1]:getColor(i))
         end
-    else
-        if previewSprite.width ~= outW or previewSprite.height ~= outH then
-            previewSprite:resize(outW, outH)
-        end
+    elseif previewSprite.width ~= outW or previewSprite.height ~= outH then
+        previewSprite:resize(outW, outH)
     end
-    
+
     local dstImg = Image(outW, outH, srcImg.colorMode)
     dstImg:clear()
-    
-    -- Process based on mode
+
+    -- Process based on mode (writes 12×4 autotile into top of dstImg)
     if mode == "minitiles" then
         updateMinitiles(srcImg, dstImg, tileW, tileH, offsets)
         
@@ -531,10 +590,28 @@ local function updatePreviews()
         updateMinitiles(tempImg, dstImg, tileW, tileH, offsets)
     end
     
-    -- Apply to preview sprite
+    -- Draw the sample-scene region from the freshly-generated autotile
+    if settings.showPreviewScene then
+        drawPreviewScene(dstImg, tileW, tileH, 5 * tileH)
+    end
+
+    -- Apply to preview sprite without stealing focus from the source
+    local prevActive = app.activeSprite
     app.activeSprite = previewSprite
     previewSprite.cels[1].image = dstImg
+    if isSpriteValid(prevActive) and prevActive ~= previewSprite then
+        app.activeSprite = prevActive
+    end
     app.refresh()
+
+    -- Hook live updates onto the source sprite (re-attach if source changed)
+    if sourceSprite ~= source then
+        if isSpriteValid(sourceSprite) and sourceChangeKey then
+            pcall(function() sourceSprite.events:off(sourceChangeKey) end)
+        end
+        sourceSprite = source
+        sourceChangeKey = source.events:on("change", onSourceChange)
+    end
 end
 
 ----------------------------------------------------------------------
@@ -634,11 +711,32 @@ local function showDialog()
         end
     }
     
+    dlg:separator{ text = "Preview" }
+
+    dlg:check{
+        id = "liveUpdate",
+        label = "Live update:",
+        selected = settings.liveUpdate,
+        onclick = function()
+            settings.liveUpdate = dlg.data.liveUpdate
+        end
+    }
+
+    dlg:check{
+        id = "showPreviewScene",
+        label = "Show sample scene:",
+        selected = settings.showPreviewScene,
+        onclick = function()
+            settings.showPreviewScene = dlg.data.showPreviewScene
+            updatePreviews()
+        end
+    }
+
     dlg:separator()
-    
+
     dlg:button{
         id = "update",
-        text = "Update Preview (F10)",
+        text = "Refresh Preview",
         onclick = function()
             updatePreviews()
         end
@@ -681,4 +779,9 @@ function exit(plugin)
     if dlg then
         dlg:close()
     end
+    if isSpriteValid(sourceSprite) and sourceChangeKey then
+        pcall(function() sourceSprite.events:off(sourceChangeKey) end)
+    end
+    sourceSprite = nil
+    sourceChangeKey = nil
 end
