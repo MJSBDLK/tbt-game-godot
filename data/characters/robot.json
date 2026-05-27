@@ -1,0 +1,61 @@
+{
+	"characterId": "robot",
+	"characterName": "Robot",
+	"primaryType": "Robo",
+	"secondaryType": "None",
+	"currentClass": "Engineer",
+	"specialization": "None",
+	"sprite": {
+		"sheetPath": "res://art/sprites/characters/robot/idle.png",
+		"atlasPath": "",
+		"frameIndex": 0
+	},
+	"baseStats": {
+		"maxHP": 16,
+		"strength": 4,
+		"special": 6,
+		"skill": 7,
+		"agility": 3,
+		"athleticism": 4,
+		"defense": 5,
+		"resistance": 4
+	},
+	"growthRates": {
+		"hp": 55,
+		"strength": 30,
+		"special": 55,
+		"skill": 60,
+		"agility": 30,
+		"athleticism": 35,
+		"defense": 50,
+		"resistance": 35
+	},
+	"physicalAttributes": {
+		"moveDistance": 3,
+		"constitution": 5,
+		"carry": 7
+	},
+	"level": 1,
+	"basePoolMoves": [
+		"Zap",
+		"Shock",
+		"Thunder Bolt",
+		"Laser",
+		"Overload",
+		"Sidearm",
+		"Bonk",
+		"Compressed Air",
+		"March"
+	],
+	"basePoolPassives": [
+		"Jury Rig",
+		"Anti-Gravity",
+		"Reliable",
+		"Maximum",
+		"Stellar",
+		"Protector",
+		"Reckless",
+		"Cavalier",
+		"Zone Control"
+	]
+}

@@ -1,0 +1,61 @@
+{
+	"characterId": "plant_cultist",
+	"characterName": "Plant Cultist",
+	"primaryType": "Plant",
+	"secondaryType": "None",
+	"currentClass": "Mage",
+	"specialization": "None",
+	"sprite": {
+		"sheetPath": "res://art/sprites/characters/plant_cultist/idle.png",
+		"atlasPath": "",
+		"frameIndex": 0
+	},
+	"baseStats": {
+		"maxHP": 13,
+		"strength": 2,
+		"special": 9,
+		"skill": 5,
+		"agility": 4,
+		"athleticism": 3,
+		"defense": 2,
+		"resistance": 6
+	},
+	"growthRates": {
+		"hp": 40,
+		"strength": 15,
+		"special": 70,
+		"skill": 45,
+		"agility": 40,
+		"athleticism": 20,
+		"defense": 20,
+		"resistance": 55
+	},
+	"physicalAttributes": {
+		"moveDistance": 4,
+		"constitution": 3,
+		"carry": 5
+	},
+	"level": 1,
+	"basePoolMoves": [
+		"Root",
+		"Vine Lash",
+		"Leech",
+		"Strangle",
+		"Wither",
+		"Bonk",
+		"Klunk",
+		"Sidearm",
+		"First Aid"
+	],
+	"basePoolPassives": [
+		"Capricious",
+		"Stellar",
+		"Bellows",
+		"Reliable",
+		"Cavalier",
+		"Maximum",
+		"Extendo",
+		"Protector",
+		"Reckless"
+	]
+}

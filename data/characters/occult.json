@@ -1,0 +1,61 @@
+{
+	"characterId": "occult",
+	"characterName": "Occult",
+	"primaryType": "Occult",
+	"secondaryType": "None",
+	"currentClass": "Blood Mage",
+	"specialization": "None",
+	"sprite": {
+		"sheetPath": "res://art/sprites/characters/occult/idle.png",
+		"atlasPath": "",
+		"frameIndex": 0
+	},
+	"baseStats": {
+		"maxHP": 13,
+		"strength": 2,
+		"special": 9,
+		"skill": 5,
+		"agility": 4,
+		"athleticism": 3,
+		"defense": 2,
+		"resistance": 6
+	},
+	"growthRates": {
+		"hp": 40,
+		"strength": 15,
+		"special": 70,
+		"skill": 45,
+		"agility": 40,
+		"athleticism": 20,
+		"defense": 20,
+		"resistance": 55
+	},
+	"physicalAttributes": {
+		"moveDistance": 4,
+		"constitution": 3,
+		"carry": 5
+	},
+	"level": 1,
+	"basePoolMoves": [
+		"Wither",
+		"Dark Energy",
+		"Void Touch",
+		"Erase",
+		"Leech",
+		"Mass Shift",
+		"Strangle",
+		"Snap Freeze",
+		"Glacier"
+	],
+	"basePoolPassives": [
+		"Capricious",
+		"Stellar",
+		"Bellows",
+		"Reliable",
+		"Cavalier",
+		"Maximum",
+		"Extendo",
+		"Protector",
+		"Reckless"
+	]
+}

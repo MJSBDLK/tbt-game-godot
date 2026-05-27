@@ -1,0 +1,61 @@
+{
+	"characterId": "plant_urchin",
+	"characterName": "Plant Urchin",
+	"primaryType": "Plant",
+	"secondaryType": "None",
+	"currentClass": "Mage",
+	"specialization": "None",
+	"sprite": {
+		"sheetPath": "res://art/sprites/characters/plant_urchin/idle.png",
+		"atlasPath": "",
+		"frameIndex": 0
+	},
+	"baseStats": {
+		"maxHP": 10,
+		"strength": 4,
+		"special": 3,
+		"skill": 5,
+		"agility": 6,
+		"athleticism": 5,
+		"defense": 2,
+		"resistance": 3
+	},
+	"growthRates": {
+		"hp": 35,
+		"strength": 35,
+		"special": 25,
+		"skill": 50,
+		"agility": 60,
+		"athleticism": 40,
+		"defense": 20,
+		"resistance": 25
+	},
+	"physicalAttributes": {
+		"moveDistance": 4,
+		"constitution": 2,
+		"carry": 4
+	},
+	"level": 1,
+	"basePoolMoves": [
+		"Root",
+		"Vine Lash",
+		"Leech",
+		"Strangle",
+		"Wither",
+		"Bonk",
+		"Klunk",
+		"Sidearm",
+		"First Aid"
+	],
+	"basePoolPassives": [
+		"Impetuous",
+		"Glib",
+		"Flippant",
+		"Low Profile",
+		"Cavalier",
+		"Capricious",
+		"Reckless",
+		"Stellar",
+		"Maximum"
+	]
+}

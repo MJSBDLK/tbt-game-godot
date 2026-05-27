@@ -11,9 +11,9 @@
 		"portrait": "res://art/lineart_fullres/spaceman_portrait.tres"
 	},
 	"sprite": {
-		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
-		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",
-		"frameIndex": 1
+		"sheetPath": "res://art/sprites/characters/max/idle.png",
+		"atlasPath": "",
+		"frameIndex": 0
 	},
 	"baseStats": {
 		"maxHP": 21,

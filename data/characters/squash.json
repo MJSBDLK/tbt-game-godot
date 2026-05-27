@@ -1,0 +1,61 @@
+{
+	"characterId": "squash",
+	"characterName": "Squash",
+	"primaryType": "Plant",
+	"secondaryType": "None",
+	"currentClass": "Fighter",
+	"specialization": "None",
+	"sprite": {
+		"sheetPath": "res://art/sprites/characters/squash/idle.png",
+		"atlasPath": "",
+		"frameIndex": 0
+	},
+	"baseStats": {
+		"maxHP": 20,
+		"strength": 8,
+		"special": 2,
+		"skill": 4,
+		"agility": 4,
+		"athleticism": 6,
+		"defense": 4,
+		"resistance": 3
+	},
+	"growthRates": {
+		"hp": 75,
+		"strength": 60,
+		"special": 15,
+		"skill": 35,
+		"agility": 35,
+		"athleticism": 50,
+		"defense": 40,
+		"resistance": 25
+	},
+	"physicalAttributes": {
+		"moveDistance": 4,
+		"constitution": 5,
+		"carry": 8
+	},
+	"level": 1,
+	"basePoolMoves": [
+		"Bonk",
+		"Klunk",
+		"Uppercut",
+		"Megaton Punch",
+		"Impact",
+		"Guard Break",
+		"Backhand",
+		"Lance",
+		"March"
+	],
+	"basePoolPassives": [
+		"Impetuous",
+		"Reckless",
+		"Maximum",
+		"Reliable",
+		"Competitive",
+		"Stellar",
+		"Cavalier",
+		"Protector",
+		"Flippant"
+	]
+}

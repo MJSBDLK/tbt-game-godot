@@ -1,0 +1,61 @@
+{
+	"characterId": "healer_goblin",
+	"characterName": "Goblin Healer",
+	"primaryType": "Gentry",
+	"secondaryType": "None",
+	"currentClass": "Mage",
+	"specialization": "None",
+	"sprite": {
+		"sheetPath": "res://art/sprites/characters/healer_goblin/idle.png",
+		"atlasPath": "",
+		"frameIndex": 0
+	},
+	"baseStats": {
+		"maxHP": 15,
+		"strength": 2,
+		"special": 7,
+		"skill": 6,
+		"agility": 5,
+		"athleticism": 4,
+		"defense": 3,
+		"resistance": 6
+	},
+	"growthRates": {
+		"hp": 50,
+		"strength": 15,
+		"special": 55,
+		"skill": 60,
+		"agility": 50,
+		"athleticism": 35,
+		"defense": 25,
+		"resistance": 55
+	},
+	"physicalAttributes": {
+		"moveDistance": 4,
+		"constitution": 3,
+		"carry": 5
+	},
+	"level": 1,
+	"basePoolMoves": [
+		"First Aid",
+		"Fortify",
+		"Bloom",
+		"Focus",
+		"Battle Cry",
+		"Bonk",
+		"Sidearm",
+		"Compressed Air",
+		"Zap"
+	],
+	"basePoolPassives": [
+		"Reliable",
+		"Protector",
+		"Glib",
+		"Stellar",
+		"Maximum",
+		"Cavalier",
+		"Waste Not",
+		"Capricious",
+		"Bellows"
+	]
+}

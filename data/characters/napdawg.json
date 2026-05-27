@@ -10,9 +10,9 @@
 		"portrait": "res://art/lineart_fullres/napdawg_portrait.tres"
 	},
 	"sprite": {
-		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
-		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",
-		"frameIndex": 7
+		"sheetPath": "res://art/sprites/characters/napdog/idle.png",
+		"atlasPath": "",
+		"frameIndex": 0
 	},
 	"baseStats": {
 		"maxHP": 14,

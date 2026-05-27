@@ -11,9 +11,9 @@
 		"portrait": "res://art/lineart_fullres/ernesto_portrait.tres"
 	},
 	"sprite": {
-		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
-		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",
-		"frameIndex": 2
+		"sheetPath": "res://art/sprites/characters/ernesto/idle.png",
+		"atlasPath": "",
+		"frameIndex": 0
 	},
 	"baseStats": {
 		"maxHP": 22,

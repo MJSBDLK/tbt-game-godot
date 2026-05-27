@@ -1,11 +1,50 @@
 # [ ] Meeting 20260531
 ## RQD
-- [ ] Import all of Lawrence's new character sprites at res://art/sprites/characters/
-  - [ ] Try implementing the animations for units that have them
+- [x] Import all of Lawrence's new character sprites at res://art/sprites/characters/
+  - [x] Auto-bootstrapped pivots (bbox bottom-center) for the new batch; ernesto/max/occult got non-trivial pivots from transparent padding. Will need real pivots once LOD wires them in.
+  - [x] Authored 21 new character JSONs (berzerker, buglers, knight, etc.) with archetype stat templates; updated 9 existing JSONs to point at the new per-char idle.png. New player chars added to RECRUIT_POOL, new enemies to enemy_spawn_pool. desert_prince/mystic/battle_chicken JSONs exist but have no ALLY/NEUTRAL spawn pool yet — TODO when that wiring lands.
+  - [ ] Try implementing the animations for units that have them (ernesto melee/meleelong, grasker melee, max meleeside/shootside, occult meleeside/shootside)
+## LOD
+- [ ] **Pivot workflow**: future .aseprite files need a slice with pivot set to the character's feet. The tag-exporter plugin already emits a JSON sidecar when it finds one; without it, we fall back to bbox-bottom which is wrong for any sprite with padding (ernesto, max, occult visibly off). One slice per .aseprite, name doesn't matter, just toggle the pivot checkbox and drag to feet.
+### [ ] Factions:
+ bandit — currently enemy
+ grunt — currently enemy
+ ernesto — currently player
+ grasker — currently enemy
+ ma'am — currently player
+ napdog (napdawg) — enemy
+ ogre — currently enemy
+ ogre_squire — currently enemy [SHOULD BE PLAYER]
+ elf_pirate — [player]
+ gravity_captain — [player]
+New sprites — faction needed:
+ berzerker — [enemy]
+ bugler_chivalric — [enemy]
+ bugler_gentry — [enemy]
+ desert_prince — [ally]
+ desert_sniper —[player]
+ flamethrower_phoenix — [enemy]
+ healer_goblin — [player]
+ healer_plant — [player]
+ ice_archer — [enemy]
+ knight — [enemy]
+ mystic — [ally]
+ pierre — [enemy]
+ plant_cultist — [player]
+ plant_urchin — [enemy]
+ pyro — [enemy]
+ robot — [player]
+ squash — [enemy]
+ thumps — [enemy]
+ traveller — [enemy]
+ battle_chicken — [meutral]
+ max — [player]
+ occult — [enemy]
+  
 - [ ] How hard would it be to make a crater (terrain modifier) grant a defensive bonus against melee attacks and a penalty against ranged attacks?
 - [ ] port Libresprite extension over to Aseprite for 2x3s
 ## LOD
-- [ ] same as weel 20260524
+- [ ] same as week 20260524
 
 # [ ] Meeting 20260524
 ## RQD

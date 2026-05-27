@@ -1,0 +1,61 @@
+{
+	"characterId": "knight",
+	"characterName": "Knight",
+	"primaryType": "Chivalric",
+	"secondaryType": "None",
+	"currentClass": "Knight",
+	"specialization": "None",
+	"sprite": {
+		"sheetPath": "res://art/sprites/characters/knight/idle.png",
+		"atlasPath": "",
+		"frameIndex": 0
+	},
+	"baseStats": {
+		"maxHP": 22,
+		"strength": 6,
+		"special": 2,
+		"skill": 3,
+		"agility": 2,
+		"athleticism": 4,
+		"defense": 8,
+		"resistance": 4
+	},
+	"growthRates": {
+		"hp": 80,
+		"strength": 45,
+		"special": 15,
+		"skill": 25,
+		"agility": 15,
+		"athleticism": 35,
+		"defense": 70,
+		"resistance": 40
+	},
+	"physicalAttributes": {
+		"moveDistance": 3,
+		"constitution": 7,
+		"carry": 10
+	},
+	"level": 1,
+	"basePoolMoves": [
+		"Bonk",
+		"Klunk",
+		"Guard Break",
+		"March",
+		"Impact",
+		"Lance",
+		"Backhand",
+		"Battle Cry",
+		"Fortify"
+	],
+	"basePoolPassives": [
+		"Protector",
+		"Reliable",
+		"Stellar",
+		"Maximum",
+		"Cavalier",
+		"Reckless",
+		"Competitive",
+		"Zone Control",
+		"Flippant"
+	]
+}

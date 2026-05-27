@@ -7,9 +7,9 @@
 	"specialization": "None",
 	"portraitPath": "res://art/portraits/gravcap_portrait.png",
 	"sprite": {
-		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
-		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",
-		"frameIndex": 4
+		"sheetPath": "res://art/sprites/characters/gravity_captain/idle.png",
+		"atlasPath": "",
+		"frameIndex": 0
 	},
 	"baseStats": {
 		"maxHP": 8,

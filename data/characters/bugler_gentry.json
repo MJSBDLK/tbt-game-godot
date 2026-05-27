@@ -1,0 +1,61 @@
+{
+	"characterId": "bugler_gentry",
+	"characterName": "Gentry Bugler",
+	"primaryType": "Gentry",
+	"secondaryType": "None",
+	"currentClass": "Noble",
+	"specialization": "None",
+	"sprite": {
+		"sheetPath": "res://art/sprites/characters/bugler_gentry/idle.png",
+		"atlasPath": "",
+		"frameIndex": 0
+	},
+	"baseStats": {
+		"maxHP": 16,
+		"strength": 4,
+		"special": 4,
+		"skill": 6,
+		"agility": 4,
+		"athleticism": 4,
+		"defense": 4,
+		"resistance": 5
+	},
+	"growthRates": {
+		"hp": 55,
+		"strength": 35,
+		"special": 35,
+		"skill": 55,
+		"agility": 40,
+		"athleticism": 40,
+		"defense": 40,
+		"resistance": 50
+	},
+	"physicalAttributes": {
+		"moveDistance": 4,
+		"constitution": 4,
+		"carry": 6
+	},
+	"level": 1,
+	"basePoolMoves": [
+		"Battle Cry",
+		"Fortify",
+		"Bloom",
+		"Focus",
+		"First Aid",
+		"Bonk",
+		"Sidearm",
+		"Lance",
+		"March"
+	],
+	"basePoolPassives": [
+		"Glib",
+		"Reliable",
+		"Maximum",
+		"Stellar",
+		"Cavalier",
+		"Protector",
+		"Bellows",
+		"Waste Not",
+		"Competitive"
+	]
+}

@@ -1,0 +1,61 @@
+{
+	"characterId": "desert_sniper",
+	"characterName": "Desert Sniper",
+	"primaryType": "Simple",
+	"secondaryType": "None",
+	"currentClass": "Skulk",
+	"specialization": "None",
+	"sprite": {
+		"sheetPath": "res://art/sprites/characters/desert_sniper/idle.png",
+		"atlasPath": "",
+		"frameIndex": 0
+	},
+	"baseStats": {
+		"maxHP": 14,
+		"strength": 3,
+		"special": 5,
+		"skill": 8,
+		"agility": 6,
+		"athleticism": 4,
+		"defense": 3,
+		"resistance": 4
+	},
+	"growthRates": {
+		"hp": 45,
+		"strength": 30,
+		"special": 40,
+		"skill": 65,
+		"agility": 55,
+		"athleticism": 35,
+		"defense": 25,
+		"resistance": 30
+	},
+	"physicalAttributes": {
+		"moveDistance": 4,
+		"constitution": 4,
+		"carry": 6
+	},
+	"level": 1,
+	"basePoolMoves": [
+		"Volley",
+		"Sidearm",
+		"Lance",
+		"Compressed Air",
+		"Feint",
+		"Backstab",
+		"Focus",
+		"Bonk",
+		"Klunk"
+	],
+	"basePoolPassives": [
+		"Low Profile",
+		"Capricious",
+		"Stellar",
+		"Reliable",
+		"Cavalier",
+		"Glib",
+		"Waste Not",
+		"Maximum",
+		"Competitive"
+	]
+}

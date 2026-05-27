@@ -1,0 +1,61 @@
+{
+	"characterId": "mystic",
+	"characterName": "Mystic",
+	"primaryType": "Occult",
+	"secondaryType": "None",
+	"currentClass": "Enigma",
+	"specialization": "None",
+	"sprite": {
+		"sheetPath": "res://art/sprites/characters/mystic/idle.png",
+		"atlasPath": "",
+		"frameIndex": 0
+	},
+	"baseStats": {
+		"maxHP": 14,
+		"strength": 3,
+		"special": 8,
+		"skill": 6,
+		"agility": 5,
+		"athleticism": 3,
+		"defense": 3,
+		"resistance": 7
+	},
+	"growthRates": {
+		"hp": 45,
+		"strength": 20,
+		"special": 65,
+		"skill": 55,
+		"agility": 45,
+		"athleticism": 25,
+		"defense": 25,
+		"resistance": 60
+	},
+	"physicalAttributes": {
+		"moveDistance": 4,
+		"constitution": 3,
+		"carry": 5
+	},
+	"level": 1,
+	"basePoolMoves": [
+		"Dark Energy",
+		"Void Touch",
+		"Wither",
+		"Erase",
+		"Mass Shift",
+		"Snap Freeze",
+		"Compressed Air",
+		"Focus",
+		"Battle Cry"
+	],
+	"basePoolPassives": [
+		"Capricious",
+		"Stellar",
+		"Bellows",
+		"Reliable",
+		"Cavalier",
+		"Maximum",
+		"Ghost",
+		"Anti-Gravity",
+		"Low Profile"
+	]
+}

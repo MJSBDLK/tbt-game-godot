@@ -7,9 +7,9 @@
 	"specialization": "None",
 	"portraitPath": "res://art/portraits/orcpage_portrait.png",
 	"sprite": {
-		"sheetPath": "res://art/sprites/characters/spaceman_sprites.png",
-		"atlasPath": "res://art/sprites/characters/spaceman_sprites.json",
-		"frameIndex": 3
+		"sheetPath": "res://art/sprites/characters/ogre_squire/idle.png",
+		"atlasPath": "",
+		"frameIndex": 0
 	},
 	"baseStats": {
 		"maxHP": 18,

@@ -19,6 +19,11 @@ const RECRUIT_POOL: Array[String] = [
 	"res://data/characters/gravity_captain.json",
 	"res://data/characters/ogre_squire.json",
 	"res://data/characters/elf_pirate.json",
+	"res://data/characters/desert_sniper.json",
+	"res://data/characters/healer_goblin.json",
+	"res://data/characters/healer_plant.json",
+	"res://data/characters/plant_cultist.json",
+	"res://data/characters/robot.json",
 ]
 const START_LEVEL_OPTIONS: Array[int] = [5, 20, 40, 60]
 

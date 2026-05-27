@@ -1,0 +1,61 @@
+{
+	"characterId": "traveller",
+	"characterName": "Traveller",
+	"primaryType": "Simple",
+	"secondaryType": "None",
+	"currentClass": "Mercenary",
+	"specialization": "None",
+	"sprite": {
+		"sheetPath": "res://art/sprites/characters/traveller/idle.png",
+		"atlasPath": "",
+		"frameIndex": 0
+	},
+	"baseStats": {
+		"maxHP": 15,
+		"strength": 6,
+		"special": 3,
+		"skill": 6,
+		"agility": 7,
+		"athleticism": 5,
+		"defense": 3,
+		"resistance": 3
+	},
+	"growthRates": {
+		"hp": 55,
+		"strength": 45,
+		"special": 25,
+		"skill": 55,
+		"agility": 65,
+		"athleticism": 45,
+		"defense": 30,
+		"resistance": 25
+	},
+	"physicalAttributes": {
+		"moveDistance": 4,
+		"constitution": 4,
+		"carry": 6
+	},
+	"level": 1,
+	"basePoolMoves": [
+		"Feint",
+		"Backstab",
+		"Sidearm",
+		"Uppercut",
+		"Volley",
+		"Backhand",
+		"Bonk",
+		"Klunk",
+		"Lance"
+	],
+	"basePoolPassives": [
+		"Impetuous",
+		"Impulsive",
+		"Glib",
+		"Cavalier",
+		"Low Profile",
+		"Reckless",
+		"Capricious",
+		"Flippant",
+		"Waste Not"
+	]
+}
