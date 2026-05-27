@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b0byrwkt0ng6y"
-path="res://.godot/imported/placeholder_tile.png-f9c772c6cab23b144b4e5f9fbe07d28c.ctex"
+uid="uid://c7cauk7alru2w"
+path="res://.godot/imported/tree_01.png-fd1dc83de0fc8c634db9e4242810df1e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/sprites/placeholder_terrain/placeholder_tile.png"
-dest_files=["res://.godot/imported/placeholder_tile.png-f9c772c6cab23b144b4e5f9fbe07d28c.ctex"]
+source_file="res://art/sprites/terrain_modifiers/tree_01.png"
+dest_files=["res://.godot/imported/tree_01.png-fd1dc83de0fc8c634db9e4242810df1e.ctex"]
 
 [params]
 

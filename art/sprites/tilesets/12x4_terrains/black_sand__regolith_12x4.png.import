@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c4430uiueudhl"
-path="res://.godot/imported/crater_large.png-dc02c3dee116f3a87bd6ecb227e4c8a4.ctex"
+uid="uid://nn7oox2tixo3"
+path="res://.godot/imported/black_sand__regolith_12x4.png-7610320c12d9ceee3139c360ae585d7f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/sprites/decorations/crater_large.png"
-dest_files=["res://.godot/imported/crater_large.png-dc02c3dee116f3a87bd6ecb227e4c8a4.ctex"]
+source_file="res://art/sprites/tilesets/12x4_terrains/black_sand__regolith_12x4.png"
+dest_files=["res://.godot/imported/black_sand__regolith_12x4.png-7610320c12d9ceee3139c360ae585d7f.ctex"]
 
 [params]
 
