@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b7uxmlsqmh3hw"
-path="res://.godot/imported/terrain_plains.png-c3d1d28e91a23afd9fd93140adfc1274.ctex"
+uid="uid://dcfcps0iehfc"
+path="res://.godot/imported/road__regolith_12x4.png-ad683853824797fb180c491b4070c955.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/sprites/placeholder_terrain/terrain_plains.png"
-dest_files=["res://.godot/imported/terrain_plains.png-c3d1d28e91a23afd9fd93140adfc1274.ctex"]
+source_file="res://art/sprites/tilesets/12x4_terrains/road__regolith_12x4.png"
+dest_files=["res://.godot/imported/road__regolith_12x4.png-ad683853824797fb180c491b4070c955.ctex"]
 
 [params]
 

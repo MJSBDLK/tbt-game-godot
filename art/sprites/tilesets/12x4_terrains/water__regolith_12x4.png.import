@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://mrk46120cc4f"
-path="res://.godot/imported/water__regolith_12x4.png-54e233f7d328fc9337fea1fac81646ac.ctex"
+path="res://.godot/imported/water__regolith_12x4.png-95ce03dabb377d6ffff8313b8dea1f6e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/sprites/tilesets/water__regolith_12x4.png"
-dest_files=["res://.godot/imported/water__regolith_12x4.png-54e233f7d328fc9337fea1fac81646ac.ctex"]
+source_file="res://art/sprites/tilesets/12x4_terrains/water__regolith_12x4.png"
+dest_files=["res://.godot/imported/water__regolith_12x4.png-95ce03dabb377d6ffff8313b8dea1f6e.ctex"]
 
 [params]
 

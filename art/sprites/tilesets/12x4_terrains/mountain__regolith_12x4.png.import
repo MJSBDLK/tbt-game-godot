@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://7y5yoyndgml7"
-path="res://.godot/imported/terrain_desert.png-90734625ae58ce60d094505e65a1cb18.ctex"
+uid="uid://dpo3poj5hua6c"
+path="res://.godot/imported/mountain__regolith_12x4.png-941f1085c4793be8c656f224dbaca5c0.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/sprites/placeholder_terrain/terrain_desert.png"
-dest_files=["res://.godot/imported/terrain_desert.png-90734625ae58ce60d094505e65a1cb18.ctex"]
+source_file="res://art/sprites/tilesets/12x4_terrains/mountain__regolith_12x4.png"
+dest_files=["res://.godot/imported/mountain__regolith_12x4.png-941f1085c4793be8c656f224dbaca5c0.ctex"]
 
 [params]
 

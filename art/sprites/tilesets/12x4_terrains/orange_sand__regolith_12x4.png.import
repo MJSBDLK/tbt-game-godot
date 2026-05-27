@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bkjvmtxu63l1e"
-path="res://.godot/imported/blue_sand__regolith_12x4.png-02e10509a3ea7ff0ddc1b6f9e4b95256.ctex"
+uid="uid://bldwvquu8yrvh"
+path="res://.godot/imported/orange_sand__regolith_12x4.png-bb26b7f436fa5095df683b703bba8c79.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/sprites/tilesets/blue_sand__regolith_12x4.png"
-dest_files=["res://.godot/imported/blue_sand__regolith_12x4.png-02e10509a3ea7ff0ddc1b6f9e4b95256.ctex"]
+source_file="res://art/sprites/tilesets/12x4_terrains/orange_sand__regolith_12x4.png"
+dest_files=["res://.godot/imported/orange_sand__regolith_12x4.png-bb26b7f436fa5095df683b703bba8c79.ctex"]
 
 [params]
 
