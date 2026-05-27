@@ -389,6 +389,11 @@ local function drawPreviewScene(dstImg, tileW, tileH, sceneStartY)
         for col = 1, #rowData do
             local tileIndex = rowData[col]
             if tileIndex >= 0 then
+                -- preview_data uses a compacted index space that skips
+                -- godot position (10,1) = index 22 (the empty slot).
+                if tileIndex >= 22 then
+                    tileIndex = tileIndex + 1
+                end
                 local tx = tileIndex % 12
                 local ty = math.floor(tileIndex / 12)
                 for py = 0, tileH - 1 do
