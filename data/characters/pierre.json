@@ -2,8 +2,8 @@
 	"characterId": "pierre",
 	"characterName": "Pierre",
 	"primaryType": "Gentry",
-	"secondaryType": "None",
-	"currentClass": "Fighter",
+	"secondaryType": "Chivalric",
+	"currentClass": "Duelist",
 	"specialization": "None",
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/pierre/idle.png",
@@ -11,51 +11,51 @@
 		"frameIndex": 0
 	},
 	"baseStats": {
-		"maxHP": 20,
-		"strength": 8,
-		"special": 2,
-		"skill": 4,
-		"agility": 4,
+		"maxHP": 16,
+		"strength": 4,
+		"special": 7,
+		"skill": 8,
+		"agility": 7,
 		"athleticism": 6,
 		"defense": 4,
-		"resistance": 3
+		"resistance": 4
 	},
 	"growthRates": {
-		"hp": 75,
-		"strength": 60,
-		"special": 15,
-		"skill": 35,
-		"agility": 35,
+		"hp": 50,
+		"strength": 30,
+		"special": 60,
+		"skill": 70,
+		"agility": 60,
 		"athleticism": 50,
-		"defense": 40,
-		"resistance": 25
+		"defense": 30,
+		"resistance": 40
 	},
 	"physicalAttributes": {
 		"moveDistance": 4,
-		"constitution": 5,
-		"carry": 8
+		"constitution": 4,
+		"carry": 7
 	},
 	"level": 1,
 	"basePoolMoves": [
-		"Bonk",
-		"Klunk",
-		"Uppercut",
-		"Megaton Punch",
-		"Impact",
-		"Guard Break",
-		"Backhand",
 		"Lance",
-		"March"
+		"Sidearm",
+		"Focus",
+		"Backstab",
+		"Feint",
+		"Guard Break",
+		"Uppercut",
+		"Klunk",
+		"Bonk"
 	],
 	"basePoolPassives": [
-		"Impetuous",
-		"Reckless",
-		"Maximum",
+		"Glib",
 		"Reliable",
-		"Competitive",
-		"Stellar",
+		"Impetuous",
+		"Capricious",
+		"Flippant",
+		"Low Profile",
 		"Cavalier",
-		"Protector",
-		"Flippant"
+		"Stellar",
+		"Competitive"
 	]
 }

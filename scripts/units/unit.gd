@@ -85,6 +85,12 @@ var injury_locked_move_indices: Array[int] = []
 var _start_tile_before_move: Tile = null
 var _selection_tween: Tween = null
 
+# Topmost opaque pixel of the sprite art in texture coords (canvas top-left = 0).
+# Lawrence's centered-canvas sprites have transparent padding; this is the y of
+# the actual visible art so the health bar can sit above the unit, not the canvas.
+# Loaded from the idle.json sidecar's `art_bounds.top`; 0 if no sidecar.
+var _art_top: float = 0.0
+
 # Child node references
 var _sprite: Sprite2D = null
 var _health_bar: Node2D = null
@@ -890,6 +896,7 @@ func _load_character_sprite() -> void:
 func _resolve_pivot_offset(sheet_path: String, texture: Texture2D) -> Vector2:
 	var width := float(texture.get_width())
 	var height := float(texture.get_height())
+	_art_top = 0.0
 	var sidecar_path: String = sheet_path.trim_suffix(".png") + ".json"
 	if FileAccess.file_exists(sidecar_path):
 		var content := FileAccess.get_file_as_string(sidecar_path)
@@ -899,6 +906,9 @@ func _resolve_pivot_offset(sheet_path: String, texture: Texture2D) -> Vector2:
 				var pivot: Dictionary = parsed["pivot"]
 				var px := float(pivot.get("x", width / 2.0))
 				var py := float(pivot.get("y", height))
+				if parsed.has("art_bounds"):
+					var bounds: Dictionary = parsed["art_bounds"]
+					_art_top = float(bounds.get("top", 0))
 				return Vector2(width / 2.0 - px, height / 2.0 - py)
 	return Vector2(0, -height / 2.0)
 
@@ -951,7 +961,11 @@ func _apply_faction_healthbar() -> void:
 func _update_healthbar_position() -> void:
 	if _health_bar == null or _sprite == null or _sprite.texture == null:
 		return
-	var sprite_top := _sprite.offset.y - _sprite.texture.get_height() / 2.0
+	# Texture top in sprite-local coords, then shift down by the transparent
+	# padding above the visible art so the bar sits above the unit, not above
+	# the canvas. _art_top is 0 for atlas-trimmed sprites (no sidecar) — the
+	# old behavior is preserved in that case.
+	var sprite_top := _sprite.offset.y - _sprite.texture.get_height() / 2.0 + _art_top
 	_health_bar.position.y = sprite_top - 3.0
 
 

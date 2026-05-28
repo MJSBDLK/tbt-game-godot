@@ -118,6 +118,7 @@ enum CharacterClass {
 	FIGHTER,
 	ENIGMA,
 	SKULK,    # Sneaky militia type
+	DUELIST,  # Ranged precision specialist (pistols, lunges); high SKL/AGL, light DEF
 	MAGE,
 	HEAVY,
 	GRUNT,
@@ -143,6 +144,7 @@ const CLASS_INFO: Dictionary = {
 	CharacterClass.FIGHTER:     { "tier": 1, "display_name": "Fighter" },
 	CharacterClass.ENIGMA:      { "tier": 1, "display_name": "Enigma" },
 	CharacterClass.SKULK:       { "tier": 1, "display_name": "Skulk" },
+	CharacterClass.DUELIST:     { "tier": 1, "display_name": "Duelist" },
 	CharacterClass.MAGE:        { "tier": 1, "display_name": "Mage" },
 	CharacterClass.HEAVY:       { "tier": 1, "display_name": "Heavy" },
 	CharacterClass.GRUNT:       { "tier": 1, "display_name": "Grunt" },
