@@ -51,12 +51,16 @@ func _export_file(aseprite_file_path: String, lowercase_names: bool) -> void:
 	print("AsepriteTagExporter: Found %d tags in %s" % [tags.size(), aseprite_file_path])
 
 	# Look for a slice with a pivot. If found, the exported PNGs must be
-	# canvas-sized (no --trim) so the pivot's canvas-space coords stay valid,
-	# and we'll write a JSON sidecar per output PNG that records the pivot.
+	# canvas-sized (no --trim) so the pivot's canvas-space coords stay valid.
 	var pivot: Variant = _parse_pivot(global_source)
 	var has_pivot := pivot != null
 	if has_pivot:
-		print("  Pivot: (%d, %d) — emitting sidecar JSON" % [pivot.x, pivot.y])
+		print("  Pivot: (%d, %d)" % [pivot.x, pivot.y])
+
+	# Capture per-frame durations from the .aseprite header so unit.gd can
+	# honor Lawrence's pacing (e.g. slow windup → fast impact → long hold)
+	# without per-frame timings being lost to a uniform-fps assumption.
+	var frame_durations_ms := _parse_frame_durations(global_source)
 
 	# Pass A: trimmed numbered frames — only when no pivot. Trimming would
 	# invalidate canvas-space pivot coords, so we skip it whenever a pivot exists.
@@ -160,18 +164,36 @@ func _export_file(aseprite_file_path: String, lowercase_names: bool) -> void:
 				continue
 			print("  Strip: %s (%d frames, %dx%d)" % [output_name, stitched_count, canvas_w * frames_in_tag, canvas_h])
 
-		# Emit pivot sidecar next to the PNG (canvas-space pixel-corner coords).
+		# Emit sidecar JSON next to the PNG. Contains per-frame durations
+		# (always) and pivot (when a pivot slice exists). MERGES into any
+		# existing sidecar so hand-authored / bootstrap-script fields
+		# (e.g. art_bounds for healthbar positioning) survive re-export.
+		# Durations are sliced to the tag's frame range so each clip's
+		# sidecar holds only its own timings.
+		var sidecar_path := global_output + output_name + ".json"
+		var sidecar_data: Dictionary = {}
+		if FileAccess.file_exists(sidecar_path):
+			var existing := FileAccess.get_file_as_string(sidecar_path)
+			if not existing.is_empty():
+				var parsed: Variant = JSON.parse_string(existing)
+				if parsed is Dictionary:
+					sidecar_data = parsed
 		if has_pivot:
-			var sidecar_path := global_output + output_name + ".json"
-			var sidecar_file := FileAccess.open(sidecar_path, FileAccess.WRITE)
-			if sidecar_file == null:
-				printerr("  Failed to open sidecar for write: %s (FileAccess error %d)" % [sidecar_path, FileAccess.get_open_error()])
-			else:
-				sidecar_file.store_string(JSON.stringify({
-					"pivot": { "x": pivot.x, "y": pivot.y }
-				}))
-				sidecar_file.close()
-				print("  Sidecar: %s.json (pivot %d,%d)" % [output_name, pivot.x, pivot.y])
+			sidecar_data["pivot"] = { "x": pivot.x, "y": pivot.y }
+		if not frame_durations_ms.is_empty():
+			var clip_durations: Array[int] = []
+			for fi in range(tag.from_frame, tag.to_frame + 1):
+				if fi < frame_durations_ms.size():
+					clip_durations.append(frame_durations_ms[fi])
+			sidecar_data["frame_durations_ms"] = clip_durations
+		var sidecar_file := FileAccess.open(sidecar_path, FileAccess.WRITE)
+		if sidecar_file == null:
+			printerr("  Failed to open sidecar for write: %s (FileAccess error %d)" % [sidecar_path, FileAccess.get_open_error()])
+		else:
+			sidecar_file.store_string(JSON.stringify(sidecar_data))
+			sidecar_file.close()
+			var pivot_note := "pivot %d,%d" % [pivot.x, pivot.y] if has_pivot else "no pivot"
+			print("  Sidecar: %s.json (%s, %d frame durations)" % [output_name, pivot_note, frames_in_tag])
 
 		exported_count += 1
 
@@ -323,6 +345,39 @@ func _parse_pivot(global_path: String) -> Variant:
 		file.seek(frame_start + frame_size)
 
 	return null
+
+
+## Walks every frame header and collects each frame's duration_ms. Returns an
+## array of length == frame_count where the i-th entry is frame i's duration.
+## Empty on parse failure (caller falls back to clip's JSON-declared fps).
+func _parse_frame_durations(global_path: String) -> Array[int]:
+	var durations: Array[int] = []
+	var file := FileAccess.open(global_path, FileAccess.READ)
+	if file == null:
+		return durations
+
+	var _file_size := file.get_32()
+	var magic := file.get_16()
+	if magic != ASE_MAGIC:
+		return durations
+
+	var frame_count := file.get_16()
+	file.seek(128)
+
+	for frame_index in range(frame_count):
+		var frame_start := file.get_position()
+		var frame_size := file.get_32()
+		var frame_magic := file.get_16()
+		if frame_magic != FRAME_MAGIC:
+			# Bail and return what we've got — partial is better than empty if
+			# only a late frame is corrupt.
+			return durations
+		file.get_16()  # old_chunk_count
+		var duration := file.get_16()
+		durations.append(duration)
+		file.seek(frame_start + frame_size)
+
+	return durations
 
 
 func _sanitize_filename(tag_name: String, lowercase: bool) -> String:

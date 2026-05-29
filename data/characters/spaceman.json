@@ -15,6 +15,22 @@
 		"atlasPath": "",
 		"frameIndex": 0
 	},
+	"animations": {
+		"meleeside": {
+			"path": "res://art/sprites/characters/max/meleeside.png",
+			"frames": 8,
+			"fps": 5,
+			"hit_frame": 4,
+			"use_when": { "direction": "horizontal", "range": 1 }
+		},
+		"shootside": {
+			"path": "res://art/sprites/characters/max/shootside.png",
+			"frames": 8,
+			"fps": 5,
+			"hit_frame": 4,
+			"use_when": { "direction": "horizontal", "range_min": 2 }
+		}
+	},
 	"baseStats": {
 		"maxHP": 21,
 		"strength": 6,

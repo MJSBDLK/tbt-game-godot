@@ -31,6 +31,7 @@ const HIT_DELAY: float = 0.3  # Seconds between combat hits
 const BOOP_DISTANCE: float = 8.0  # Pixels the sprite bumps toward target during attack
 const HITLAG_MIN: float = 0.05  # Minimum freeze on any hit (seconds)
 const HITLAG_MAX: float = 0.25  # Maximum freeze on a devastating hit (seconds)
+const ATTACK_CLIP_DEFAULT_FPS: int = 12  # Fallback when a clip omits "fps"
 
 
 # =============================================================================
@@ -90,6 +91,11 @@ var _selection_tween: Tween = null
 # the actual visible art so the health bar can sit above the unit, not the canvas.
 # Loaded from the idle.json sidecar's `art_bounds.top`; 0 if no sidecar.
 var _art_top: float = 0.0
+
+# Bumped every time a new attack clip starts. Pending coroutines that finish
+# the tail of the previous clip check this before mutating region_rect, so a
+# fresh clip can't be corrupted by a stale "after hit" continuation.
+var _attack_clip_generation: int = 0
 
 # Child node references
 var _sprite: Sprite2D = null
@@ -657,15 +663,24 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 	var effectiveness_text := TypeChart.get_effectiveness_text(type_multiplier)
 	var impact_weight := DamageCalculator.calculate_impact_weight(damage, target.character_data.max_hp if target.character_data else 1)
 
-	# Phase 1: Boop toward target
-	await _play_boop_out(target)
+	# Phase 1: Approach. If the attacker has a clip matching this attack's
+	# direction+range, play it through to its hit frame; otherwise nudge.
+	var clip := _pick_attack_clip(target, move)
+	var use_clip: bool = not clip.is_empty()
+	if use_clip:
+		await _play_clip_to_hit(clip, target)
+	else:
+		await _play_boop_out(target)
 
 	# Phase 2: Hitlag — both units freeze at moment of contact
 	var hitlag_duration := lerpf(HITLAG_MIN, HITLAG_MAX, impact_weight)
 	await get_tree().create_timer(hitlag_duration).timeout
 
 	# Phase 3: Snap back + hit flash + screenshake + damage (all fire together as hitlag releases)
-	_play_boop_return()
+	if use_clip:
+		_play_clip_after_hit(clip)
+	else:
+		_play_boop_return()
 	VisualFeedbackManager.apply_hit_flash(target, impact_weight)
 
 	var camera := get_viewport().get_camera_2d() as CameraController
@@ -790,6 +805,146 @@ func _play_boop_return() -> void:
 		return
 	var tween := create_tween()
 	tween.tween_property(_sprite, "position", Vector2.ZERO, 0.12).set_ease(Tween.EASE_IN)
+
+
+## Manhattan delta from self to target in tile coords. Falls back to global_position
+## divided by tile size if either unit isn't on a tile yet.
+func _attack_delta_tiles(target: Unit) -> Vector2i:
+	if current_tile != null and target != null and target.current_tile != null:
+		return Vector2i(target.current_tile.grid_x - current_tile.grid_x,
+				target.current_tile.grid_y - current_tile.grid_y)
+	if target == null:
+		return Vector2i.ZERO
+	var dp := target.global_position - global_position
+	return Vector2i(roundi(dp.x / 16.0), roundi(dp.y / 16.0))
+
+
+## Returns the best-matching clip dict from character_data.attack_animations
+## given direction-to-target and Manhattan range. Empty dict means "no match —
+## fall back to boop nudge". First-match wins; clip ordering in JSON matters
+## only when two clips' use_when filters would both pass (avoid that).
+func _pick_attack_clip(target: Unit, _move: Move) -> Dictionary:
+	if character_data == null or character_data.attack_animations.is_empty():
+		return {}
+	if target == null:
+		return {}
+	var delta := _attack_delta_tiles(target)
+	var horizontal: bool = delta.y == 0 and delta.x != 0
+	var vertical: bool = delta.x == 0 and delta.y != 0
+	var manhattan: int = absi(delta.x) + absi(delta.y)
+	for clip_name: Variant in character_data.attack_animations.keys():
+		var clip_value: Variant = character_data.attack_animations[clip_name]
+		if not (clip_value is Dictionary):
+			continue
+		var clip: Dictionary = clip_value
+		var use_when: Dictionary = clip.get("use_when", {})
+		var dir_req: String = str(use_when.get("direction", "any"))
+		if dir_req == "horizontal" and not horizontal:
+			continue
+		if dir_req == "vertical" and not vertical:
+			continue
+		if use_when.has("range") and int(use_when["range"]) != manhattan:
+			continue
+		if use_when.has("range_min") and int(use_when["range_min"]) > manhattan:
+			continue
+		if use_when.has("range_max") and int(use_when["range_max"]) < manhattan:
+			continue
+		return clip
+	return {}
+
+
+## Resolves per-frame durations in seconds for a clip. Prefers a sidecar
+## JSON's `frame_durations_ms` array (emitted by the aseprite tag exporter
+## from the .aseprite's per-frame timings — the source of truth for Lawrence's
+## pacing). Falls back to a uniform 1/fps when no sidecar / wrong length, so
+## clips authored before the exporter update still play.
+func _resolve_frame_durations(strip_path: String, clip: Dictionary, frames: int) -> Array[float]:
+	var result: Array[float] = []
+	var sidecar_path: String = strip_path.trim_suffix(".png") + ".json"
+	if FileAccess.file_exists(sidecar_path):
+		var content := FileAccess.get_file_as_string(sidecar_path)
+		if not content.is_empty():
+			var parsed: Variant = JSON.parse_string(content)
+			if parsed is Dictionary and parsed.has("frame_durations_ms"):
+				var ms_array: Array = parsed["frame_durations_ms"]
+				if ms_array.size() == frames:
+					for ms: Variant in ms_array:
+						result.append(float(ms) / 1000.0)
+					return result
+	var fps: int = max(1, int(clip.get("fps", ATTACK_CLIP_DEFAULT_FPS)))
+	var dt: float = 1.0 / float(fps)
+	for _i in range(frames):
+		result.append(dt)
+	return result
+
+
+## Plays clip frames 0..hit_frame inclusive, awaiting on each frame. Mirrors via
+## flip_h when the target is east of self (clips authored left-facing). Assumes
+## the clip's pivot.x is at frame center — off-center pivots would visibly jump
+## on flip; revisit if/when Lawrence delivers an off-center clip.
+func _play_clip_to_hit(clip: Dictionary, target: Unit) -> void:
+	if _sprite == null or clip.is_empty():
+		await get_tree().create_timer(0.08).timeout
+		return
+	var strip_path: String = clip.get("path", "")
+	var strip_texture: Texture2D = load(strip_path) as Texture2D
+	if strip_texture == null:
+		await get_tree().create_timer(0.08).timeout
+		return
+	_attack_clip_generation += 1
+	var generation: int = _attack_clip_generation
+	var frames: int = max(1, int(clip.get("frames", 1)))
+	var hit_frame: int = clampi(int(clip.get("hit_frame", frames / 2)), 0, frames - 1)
+	var durations_s: Array[float] = _resolve_frame_durations(strip_path, clip, frames)
+	var frame_width: float = float(strip_texture.get_width()) / float(frames)
+	var frame_height: float = float(strip_texture.get_height())
+
+	var delta := _attack_delta_tiles(target)
+	_sprite.flip_h = delta.x > 0
+	_sprite.texture = strip_texture
+	_sprite.region_enabled = true
+	_sprite.region_rect = Rect2(0.0, 0.0, frame_width, frame_height)
+
+	for frame_index: int in range(0, hit_frame):
+		await get_tree().create_timer(durations_s[frame_index]).timeout
+		if _attack_clip_generation != generation or _sprite == null:
+			return
+		_sprite.region_rect = Rect2((frame_index + 1) * frame_width, 0.0, frame_width, frame_height)
+
+
+## Plays the remaining frames (hit_frame+1 .. last), then restores idle.
+## Fire-and-forget — runs while damage popups/screenshake play. Guards against
+## a newer clip starting mid-tail via the generation counter.
+func _play_clip_after_hit(clip: Dictionary) -> void:
+	if _sprite == null or clip.is_empty():
+		return
+	var generation: int = _attack_clip_generation
+	var frames: int = max(1, int(clip.get("frames", 1)))
+	var hit_frame: int = clampi(int(clip.get("hit_frame", frames / 2)), 0, frames - 1)
+	var strip_path: String = clip.get("path", "")
+	var durations_s: Array[float] = _resolve_frame_durations(strip_path, clip, frames)
+	var frame_width: float = _sprite.region_rect.size.x
+	var frame_height: float = _sprite.region_rect.size.y
+	for frame_index: int in range(hit_frame + 1, frames):
+		await get_tree().create_timer(durations_s[frame_index]).timeout
+		if _attack_clip_generation != generation or _sprite == null:
+			return
+		_sprite.region_rect = Rect2(frame_index * frame_width, 0.0, frame_width, frame_height)
+	# Brief hold on the final frame before resetting to idle.
+	await get_tree().create_timer(durations_s[frames - 1]).timeout
+	if _attack_clip_generation != generation or _sprite == null:
+		return
+	_restore_idle_sprite()
+
+
+## Reverts the Sprite2D back to the idle texture+offset emitted by
+## _load_character_sprite. Called at the tail of an attack clip.
+func _restore_idle_sprite() -> void:
+	if _sprite == null or character_data == null:
+		return
+	_sprite.region_enabled = false
+	_sprite.flip_h = false
+	_load_character_sprite()
 
 
 func _spawn_damage_popup(target: Unit, damage: int, effectiveness_text: String, multiplier: float) -> void:
