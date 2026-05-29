@@ -169,9 +169,9 @@ local godot_to_gms = {
 ----------------------------------------------------------------------
 
 local settings = {
-    mode = "minitiles",
-    tileW = 16,
-    tileH = 16,
+    mode = "rpgmaker",
+    tileW = 32,
+    tileH = 32,
     leftOffset = 0,
     rightOffset = 0,
     topOffset = 0,
@@ -189,6 +189,23 @@ local dlg = nil
 local function isSpriteValid(s)
     if not s then return false end
     return pcall(function() return s.width end)
+end
+
+-- Returns true if any operation against a tilemap layer/image is in play.
+-- Editing tilemap cels (e.g. pasting into a tiled layer) fires sprite "change"
+-- events whose active image is tile-index data, not pixel data. Touching it —
+-- or doing the previewSprite focus swap mid-paste — crashes Aseprite.
+local function isTilemapContext()
+    local ok, result = pcall(function()
+        local layer = app.activeLayer
+        if layer and layer.isTilemap then return true end
+        local img = app.activeImage
+        if img and ColorMode and img.colorMode == ColorMode.TILEMAP then
+            return true
+        end
+        return false
+    end)
+    return ok and result
 end
 
 ----------------------------------------------------------------------
@@ -417,6 +434,9 @@ local function onSourceChange()
     if updating then return end
     -- If the user closed the preview, pause auto-updates until manual refresh
     if not isSpriteValid(previewSprite) then return end
+    -- Skip while the user is editing a tilemap layer (paste into a tiled layer
+    -- mid-event would crash Aseprite). Manual refresh still works.
+    if isTilemapContext() then return end
     updating = true
     pcall(updatePreviews)
     updating = false
@@ -440,14 +460,33 @@ updatePreviews = function()
         return
     end
 
-    -- Read the active cel image if source is active; else fall back to cel 1
-    local srcImg
-    if app.activeSprite == source and app.activeImage then
-        srcImg = app.activeImage
-    elseif source.cels[1] then
-        srcImg = source.cels[1].image
+    -- Read the active cel image if source is active; else fall back to cel 1.
+    -- Skip tilemap images — they store tile indices, not pixels, and feeding
+    -- them through the autotile pipeline reads garbage and can crash.
+    local function isPixelImage(img)
+        if not img then return false end
+        if ColorMode and img.colorMode == ColorMode.TILEMAP then return false end
+        return true
     end
-    if not srcImg then return end
+
+    local srcImg
+    if app.activeSprite == source and isPixelImage(app.activeImage) then
+        srcImg = app.activeImage
+    else
+        for _, cel in ipairs(source.cels) do
+            if isPixelImage(cel.image) then
+                srcImg = cel.image
+                break
+            end
+        end
+    end
+    if not srcImg then
+        if not updating then
+            app.alert("Webtyler: source has no pixel cel to read from. " ..
+                "Tilemap layers aren't supported as input — paste your tileset onto a normal layer.")
+        end
+        return
+    end
 
     local mode = settings.mode
     local tileW = settings.tileW
