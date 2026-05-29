@@ -12,7 +12,7 @@ Passives needed:
 + unit heals status effects when healing on a healing tile
 + unit ignores enemy's stat buffs
 + When hit by a move of X elemental type, unit gains a resistance to that type move until the player's next turn, whereupon this passive is disabled for the rest of the fight.
-+ 
++ [Ernesto] unit's ranged attacks hit everything between him and the target for reduced damage, (including friendly units?)
 
 Moves needed
 + attack which swaps the user's position with the tile behind it

@@ -11,6 +11,15 @@
 		"atlasPath": "",
 		"frameIndex": 0
 	},
+	"animations": {
+		"melee": {
+			"path": "res://art/sprites/characters/grasker/melee.png",
+			"frames": 3,
+			"fps": 5,
+			"hit_frame": 1,
+			"use_when": { "direction": "horizontal", "range": 1 }
+		}
+	},
 	"baseStats": {
 		"maxHP": 22,
 		"strength": 9,

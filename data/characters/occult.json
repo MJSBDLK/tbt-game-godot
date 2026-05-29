@@ -10,6 +10,22 @@
 		"atlasPath": "",
 		"frameIndex": 0
 	},
+	"animations": {
+		"meleeside": {
+			"path": "res://art/sprites/characters/occult/meleeside.png",
+			"frames": 10,
+			"fps": 10,
+			"hit_frame": 5,
+			"use_when": { "direction": "horizontal", "range": 1 }
+		},
+		"shootside": {
+			"path": "res://art/sprites/characters/occult/shootside.png",
+			"frames": 20,
+			"fps": 10,
+			"hit_frame": 10,
+			"use_when": { "direction": "horizontal", "range_min": 2 }
+		}
+	},
 	"baseStats": {
 		"maxHP": 13,
 		"strength": 2,

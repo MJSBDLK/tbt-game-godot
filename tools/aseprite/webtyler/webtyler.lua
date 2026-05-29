@@ -460,30 +460,25 @@ updatePreviews = function()
         return
     end
 
-    -- Read the active cel image if source is active; else fall back to cel 1.
-    -- Skip tilemap images — they store tile indices, not pixels, and feeding
-    -- them through the autotile pipeline reads garbage and can crash.
-    local function isPixelImage(img)
-        if not img then return false end
-        if ColorMode and img.colorMode == ColorMode.TILEMAP then return false end
-        return true
+    -- Read the FULL visible composite of the source sprite — every visible
+    -- layer merged, the way the canvas shows it — not a single cel. This means
+    -- multi-layer tilesets (e.g. scribbles over a background) render correctly,
+    -- hiding a layer excludes it from the input, and tilemap layers are
+    -- rasterized to pixels automatically (no more "tilemap not supported").
+    local frame = source.frames[1]
+    if app.activeSprite == source and app.activeFrame then
+        frame = app.activeFrame
     end
-
     local srcImg
-    if app.activeSprite == source and isPixelImage(app.activeImage) then
-        srcImg = app.activeImage
-    else
-        for _, cel in ipairs(source.cels) do
-            if isPixelImage(cel.image) then
-                srcImg = cel.image
-                break
-            end
-        end
-    end
-    if not srcImg then
+    local ok = pcall(function()
+        srcImg = Image(source.spec)
+        srcImg:clear()
+        srcImg:drawSprite(source, frame)
+    end)
+    if not ok or not srcImg then
         if not updating then
-            app.alert("Webtyler: source has no pixel cel to read from. " ..
-                "Tilemap layers aren't supported as input — paste your tileset onto a normal layer.")
+            app.alert("Webtyler: couldn't render the source sprite. " ..
+                "Open your tileset and run again.")
         end
         return
     end

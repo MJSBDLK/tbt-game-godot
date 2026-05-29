@@ -27,6 +27,11 @@ Port of [wareya's Webtyler](https://wareya.github.io/webtyler/) for generating a
 3. Run **Sprite → Webtyler Refresh Preview** (or bind a hotkey — see below) to generate/refresh the preview
    - A new sprite window opens with the 12×4 Godot-format autotile output
 
+Webtyler reads the **full visible composite** of your source sprite, so you can
+split the tileset across as many layers as you like (e.g. line art over a fill
+layer). Hiding a layer removes it from the input; showing it brings it back.
+Tilemap layers are rasterized automatically, so they work as input too.
+
 ## Supported Input Formats
 
 | Format | Description | Input Size |

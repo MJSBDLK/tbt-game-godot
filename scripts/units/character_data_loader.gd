@@ -60,6 +60,15 @@ static func _parse_character_json(data: Dictionary) -> CharacterData:
 	character.sprite_atlas_path = sprite_data.get("atlasPath", "")
 	character.sprite_frame_index = int(sprite_data.get("frameIndex", 0))
 
+	# Attack animation clips (optional). Keys are clip names like "melee",
+	# "melee_long", "shoot". See character_data.attack_animations docstring.
+	var animations_data: Variant = data.get("animations", {})
+	if animations_data is Dictionary:
+		for clip_name: Variant in animations_data.keys():
+			var clip_value: Variant = animations_data[clip_name]
+			if clip_value is Dictionary:
+				character.attack_animations[str(clip_name)] = clip_value
+
 	# Base stats
 	var stats: Dictionary = data.get("baseStats", {})
 	character.base_max_hp = int(stats.get("maxHP", 20))

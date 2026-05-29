@@ -51,6 +51,14 @@ extends Resource
 @export var sprite_atlas_path: String = ""
 @export var sprite_frame_index: int = 0
 
+# Optional attack-animation clips keyed by clip name. Each entry is a Dictionary:
+#   { "path": String, "frames": int, "fps": int, "hit_frame": int,
+#     "use_when": { "direction": "horizontal"|"vertical"|"any", "range": int|null } }
+# Strips are laid out as N frames of (idle_width × idle_height) concatenated
+# left-to-right. unit.gd picks a clip per attack via _pick_attack_clip; misses
+# fall back to the boop nudge.
+@export var attack_animations: Dictionary = {}
+
 
 # =============================================================================
 # BASE STATS (from JSON, never modified at runtime)
