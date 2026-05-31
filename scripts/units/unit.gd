@@ -853,29 +853,35 @@ func _pick_attack_clip(target: Unit, _move: Move) -> Dictionary:
 	return {}
 
 
-## Resolves per-frame durations in seconds for a clip. Prefers a sidecar
-## JSON's `frame_durations_ms` array (emitted by the aseprite tag exporter
-## from the .aseprite's per-frame timings — the source of truth for Lawrence's
-## pacing). Falls back to a uniform 1/fps when no sidecar / wrong length, so
-## clips authored before the exporter update still play.
-func _resolve_frame_durations(strip_path: String, clip: Dictionary, frames: int) -> Array[float]:
-	var result: Array[float] = []
+## Resolves both per-frame durations (seconds) and hit_frame for a clip.
+## Both are sourced from the sidecar JSON when present (the exporter writes
+## them from Lawrence's authored timings and `hit` marker tags). Falls back
+## to the clip JSON's `fps` / `hit_frame` when absent — so clips authored
+## before the exporter update still play.
+## Returns: { "durations_s": Array[float], "hit_frame": int }.
+func _resolve_clip_playback(strip_path: String, clip: Dictionary, frames: int) -> Dictionary:
+	var durations_s: Array[float] = []
+	var hit_frame: int = int(clip.get("hit_frame", frames / 2))
 	var sidecar_path: String = strip_path.trim_suffix(".png") + ".json"
 	if FileAccess.file_exists(sidecar_path):
 		var content := FileAccess.get_file_as_string(sidecar_path)
 		if not content.is_empty():
 			var parsed: Variant = JSON.parse_string(content)
-			if parsed is Dictionary and parsed.has("frame_durations_ms"):
-				var ms_array: Array = parsed["frame_durations_ms"]
-				if ms_array.size() == frames:
-					for ms: Variant in ms_array:
-						result.append(float(ms) / 1000.0)
-					return result
-	var fps: int = max(1, int(clip.get("fps", ATTACK_CLIP_DEFAULT_FPS)))
-	var dt: float = 1.0 / float(fps)
-	for _i in range(frames):
-		result.append(dt)
-	return result
+			if parsed is Dictionary:
+				if parsed.has("frame_durations_ms"):
+					var ms_array: Array = parsed["frame_durations_ms"]
+					if ms_array.size() == frames:
+						for ms: Variant in ms_array:
+							durations_s.append(float(ms) / 1000.0)
+				if parsed.has("hit_frame"):
+					hit_frame = int(parsed["hit_frame"])
+	if durations_s.is_empty():
+		var fps: int = max(1, int(clip.get("fps", ATTACK_CLIP_DEFAULT_FPS)))
+		var dt: float = 1.0 / float(fps)
+		for _i in range(frames):
+			durations_s.append(dt)
+	hit_frame = clampi(hit_frame, 0, frames - 1)
+	return { "durations_s": durations_s, "hit_frame": hit_frame }
 
 
 ## Plays clip frames 0..hit_frame inclusive, awaiting on each frame. Mirrors via
@@ -894,8 +900,9 @@ func _play_clip_to_hit(clip: Dictionary, target: Unit) -> void:
 	_attack_clip_generation += 1
 	var generation: int = _attack_clip_generation
 	var frames: int = max(1, int(clip.get("frames", 1)))
-	var hit_frame: int = clampi(int(clip.get("hit_frame", frames / 2)), 0, frames - 1)
-	var durations_s: Array[float] = _resolve_frame_durations(strip_path, clip, frames)
+	var playback: Dictionary = _resolve_clip_playback(strip_path, clip, frames)
+	var hit_frame: int = playback["hit_frame"]
+	var durations_s: Array[float] = playback["durations_s"]
 	var frame_width: float = float(strip_texture.get_width()) / float(frames)
 	var frame_height: float = float(strip_texture.get_height())
 
@@ -920,9 +927,10 @@ func _play_clip_after_hit(clip: Dictionary) -> void:
 		return
 	var generation: int = _attack_clip_generation
 	var frames: int = max(1, int(clip.get("frames", 1)))
-	var hit_frame: int = clampi(int(clip.get("hit_frame", frames / 2)), 0, frames - 1)
 	var strip_path: String = clip.get("path", "")
-	var durations_s: Array[float] = _resolve_frame_durations(strip_path, clip, frames)
+	var playback: Dictionary = _resolve_clip_playback(strip_path, clip, frames)
+	var hit_frame: int = playback["hit_frame"]
+	var durations_s: Array[float] = playback["durations_s"]
 	var frame_width: float = _sprite.region_rect.size.x
 	var frame_height: float = _sprite.region_rect.size.y
 	for frame_index: int in range(hit_frame + 1, frames):

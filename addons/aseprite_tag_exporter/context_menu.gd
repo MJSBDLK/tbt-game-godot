@@ -50,17 +50,46 @@ func _export_file(aseprite_file_path: String, lowercase_names: bool) -> void:
 
 	print("AsepriteTagExporter: Found %d tags in %s" % [tags.size(), aseprite_file_path])
 
-	# Look for a slice with a pivot. If found, the exported PNGs must be
-	# canvas-sized (no --trim) so the pivot's canvas-space coords stay valid.
+	# Resolve pivot. Prefer an explicit slice (with pivot flag) for off-center
+	# anchors. If none, fall back to canvas center — Lawrence's convention is
+	# pivot=canvas center on every animation, so the slice is only needed for
+	# the rare off-center case. Either way, has_pivot becomes true and the
+	# exporter keeps PNGs canvas-sized so the pivot's coords stay valid.
 	var pivot: Variant = _parse_pivot(global_source)
+	if pivot == null:
+		var canvas_size := _parse_canvas_size(global_source)
+		if canvas_size != Vector2i.ZERO:
+			pivot = { "x": canvas_size.x / 2, "y": canvas_size.y / 2 }
+			print("  Pivot: (%d, %d) — auto-inferred from canvas center" % [pivot.x, pivot.y])
+	else:
+		print("  Pivot: (%d, %d) — from slice" % [pivot.x, pivot.y])
 	var has_pivot := pivot != null
-	if has_pivot:
-		print("  Pivot: (%d, %d)" % [pivot.x, pivot.y])
 
 	# Capture per-frame durations from the .aseprite header so unit.gd can
 	# honor Lawrence's pacing (e.g. slow windup → fast impact → long hold)
 	# without per-frame timings being lost to a uniform-fps assumption.
 	var frame_durations_ms := _parse_frame_durations(global_source)
+
+	# Partition tags: any tag whose name matches the marker convention
+	# (`hit`, `hit_<clip>`, `<clip>_hit`) is metadata — it pins the impact
+	# frame inside a clip but doesn't get exported as a PNG itself. Build
+	# a map of clip_name -> hit_frame (relative to clip start) so the
+	# sidecar write below can include it.
+	var clip_tags: Array[Dictionary] = []
+	var marker_tags: Array[Dictionary] = []
+	for tag in tags:
+		if _is_marker_tag(tag.name):
+			marker_tags.append(tag)
+		else:
+			clip_tags.append(tag)
+	var hit_frame_for_clip: Dictionary = {}
+	for marker in marker_tags:
+		var matched_clip: Variant = _find_clip_for_marker(marker, clip_tags)
+		if matched_clip != null:
+			hit_frame_for_clip[matched_clip.name] = int(marker.from_frame) - int(matched_clip.from_frame)
+			print("  Marker '%s' -> clip '%s' hit_frame=%d" % [marker.name, matched_clip.name, hit_frame_for_clip[matched_clip.name]])
+		else:
+			print("  Marker '%s' did not match any clip — ignored" % marker.name)
 
 	# Pass A: trimmed numbered frames — only when no pivot. Trimming would
 	# invalidate canvas-space pivot coords, so we skip it whenever a pivot exists.
@@ -116,7 +145,7 @@ func _export_file(aseprite_file_path: String, lowercase_names: bool) -> void:
 
 	var global_output := ProjectSettings.globalize_path(output_directory)
 	var exported_count := 0
-	for tag in tags:
+	for tag in clip_tags:
 		var output_name := _sanitize_filename(tag.name, lowercase_names)
 		var output_path := global_output + output_name + ".png"
 		var frames_in_tag: int = tag.to_frame - tag.from_frame + 1
@@ -186,6 +215,8 @@ func _export_file(aseprite_file_path: String, lowercase_names: bool) -> void:
 				if fi < frame_durations_ms.size():
 					clip_durations.append(frame_durations_ms[fi])
 			sidecar_data["frame_durations_ms"] = clip_durations
+		if hit_frame_for_clip.has(tag.name):
+			sidecar_data["hit_frame"] = hit_frame_for_clip[tag.name]
 		var sidecar_file := FileAccess.open(sidecar_path, FileAccess.WRITE)
 		if sidecar_file == null:
 			printerr("  Failed to open sidecar for write: %s (FileAccess error %d)" % [sidecar_path, FileAccess.get_open_error()])
@@ -193,7 +224,8 @@ func _export_file(aseprite_file_path: String, lowercase_names: bool) -> void:
 			sidecar_file.store_string(JSON.stringify(sidecar_data))
 			sidecar_file.close()
 			var pivot_note := "pivot %d,%d" % [pivot.x, pivot.y] if has_pivot else "no pivot"
-			print("  Sidecar: %s.json (%s, %d frame durations)" % [output_name, pivot_note, frames_in_tag])
+			var hit_note := ", hit_frame=%d" % hit_frame_for_clip[tag.name] if hit_frame_for_clip.has(tag.name) else ""
+			print("  Sidecar: %s.json (%s, %d frame durations%s)" % [output_name, pivot_note, frames_in_tag, hit_note])
 
 		exported_count += 1
 
@@ -344,6 +376,53 @@ func _parse_pivot(global_path: String) -> Variant:
 
 		file.seek(frame_start + frame_size)
 
+	return null
+
+
+## Reads canvas width/height from the .aseprite header. Returns ZERO on
+## parse failure. Header layout: 4B file_size, 2B magic, 2B frame_count,
+## 2B width, 2B height (offsets 8 and 10).
+func _parse_canvas_size(global_path: String) -> Vector2i:
+	var file := FileAccess.open(global_path, FileAccess.READ)
+	if file == null:
+		return Vector2i.ZERO
+	var _file_size := file.get_32()
+	var magic := file.get_16()
+	if magic != ASE_MAGIC:
+		return Vector2i.ZERO
+	var _frame_count := file.get_16()
+	var width := file.get_16()
+	var height := file.get_16()
+	return Vector2i(width, height)
+
+
+## True if a tag name represents a frame marker (e.g. impact frame) rather
+## than a clip. Convention: name is exactly "hit", or starts with "hit_",
+## or ends with "_hit" (case-insensitive). Markers don't get exported as
+## PNGs; they contribute hit_frame metadata to the matching clip's sidecar.
+func _is_marker_tag(tag_name: String) -> bool:
+	var lower := str(tag_name).strip_edges().to_lower()
+	return lower == "hit" or lower.begins_with("hit_") or lower.ends_with("_hit")
+
+
+## Find the clip a marker tag should attach to. Matching rules:
+##   1. Explicit name: "<clip>_hit" or "hit_<clip>" matches a clip named "<clip>".
+##   2. Frame containment: marker's frames fully inside a clip's range.
+## Returns the matched clip dict or null. Name match wins over containment.
+func _find_clip_for_marker(marker: Dictionary, clips: Array[Dictionary]) -> Variant:
+	var lower_name: String = str(marker.name).strip_edges().to_lower()
+	var name_hint := ""
+	if lower_name.begins_with("hit_"):
+		name_hint = lower_name.substr(4)
+	elif lower_name.ends_with("_hit"):
+		name_hint = lower_name.substr(0, lower_name.length() - 4)
+	if not name_hint.is_empty():
+		for clip in clips:
+			if str(clip.name).strip_edges().to_lower() == name_hint:
+				return clip
+	for clip in clips:
+		if int(marker.from_frame) >= int(clip.from_frame) and int(marker.to_frame) <= int(clip.to_frame):
+			return clip
 	return null
 
 
