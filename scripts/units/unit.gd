@@ -97,6 +97,21 @@ var _art_top: float = 0.0
 # fresh clip can't be corrupted by a stale "after hit" continuation.
 var _attack_clip_generation: int = 0
 
+# Same-row z_index tie resolution. Attacker and defender on the same row
+# compute identical z_index ((99-row)*10 + UNITS_layer), so Godot falls back
+# to sibling tree order — later child draws on top. During an attack clip
+# (or boop nudge) we move this unit to the end of its sibling list, then
+# restore the recorded index at clip end.
+#
+# Reference-counted because multi-hit moves chain attacks via HIT_DELAY,
+# and per-hit tails are fire-and-forget — Hit 2 starts before Hit 1's tail
+# completes. Each raise increments the count and (on the first raise)
+# stashes the original sibling index; each lower decrements and only
+# actually restores tree position when the count returns to zero. Bail
+# paths in clip playback also call lower to keep the count balanced.
+var _attack_raised_original_index: int = -1
+var _attack_raise_count: int = 0
+
 # Child node references
 var _sprite: Sprite2D = null
 var _health_bar: Node2D = null
@@ -792,6 +807,9 @@ func _play_boop_out(target: Unit) -> void:
 	if _sprite == null or target == null:
 		await get_tree().create_timer(0.08).timeout
 		return
+	# Raise above same-row neighbors for the swing window. Paired with the
+	# _lower_after_attack triggered when _play_boop_return's tween finishes.
+	_raise_for_attack()
 	var direction := (target.global_position - global_position).normalized()
 	var boop_offset := direction * BOOP_DISTANCE
 	var tween := create_tween()
@@ -800,11 +818,16 @@ func _play_boop_out(target: Unit) -> void:
 
 
 ## Boop return: sprite snaps back to center. Fire-and-forget (not awaited).
+## Lowers the unit (refcount-aware) when the return tween finishes, so the
+## raise from _play_boop_out is balanced even when chained Hit 2 starts
+## before this tween completes — refcount stays consistent across hits.
 func _play_boop_return() -> void:
 	if _sprite == null:
+		_lower_after_attack()
 		return
 	var tween := create_tween()
 	tween.tween_property(_sprite, "position", Vector2.ZERO, 0.12).set_ease(Tween.EASE_IN)
+	tween.finished.connect(_lower_after_attack)
 
 
 ## Manhattan delta from self to target in tile coords. Falls back to global_position
@@ -911,6 +934,10 @@ func _play_clip_to_hit(clip: Dictionary, target: Unit) -> void:
 	_sprite.texture = strip_texture
 	_sprite.region_enabled = true
 	_sprite.region_rect = Rect2(0.0, 0.0, frame_width, frame_height)
+	# Raise above same-row neighbors for the duration of the swing —
+	# attacker should always render in front of the defender. See
+	# _raise_for_attack for the full rationale.
+	_raise_for_attack()
 
 	for frame_index: int in range(0, hit_frame):
 		await get_tree().create_timer(durations_s[frame_index]).timeout
@@ -922,8 +949,14 @@ func _play_clip_to_hit(clip: Dictionary, target: Unit) -> void:
 ## Plays the remaining frames (hit_frame+1 .. last), then restores idle.
 ## Fire-and-forget — runs while damage popups/screenshake play. Guards against
 ## a newer clip starting mid-tail via the generation counter.
+##
+## Bail paths still call _lower_after_attack to keep the raise refcount
+## balanced — the matching raise happened in _play_clip_to_hit. The newer
+## clip's own tail handles its own restore_idle_sprite; we only release our
+## refcount slot.
 func _play_clip_after_hit(clip: Dictionary) -> void:
 	if _sprite == null or clip.is_empty():
+		_lower_after_attack()
 		return
 	var generation: int = _attack_clip_generation
 	var frames: int = max(1, int(clip.get("frames", 1)))
@@ -936,23 +969,73 @@ func _play_clip_after_hit(clip: Dictionary) -> void:
 	for frame_index: int in range(hit_frame + 1, frames):
 		await get_tree().create_timer(durations_s[frame_index]).timeout
 		if _attack_clip_generation != generation or _sprite == null:
+			_lower_after_attack()
 			return
 		_sprite.region_rect = Rect2(frame_index * frame_width, 0.0, frame_width, frame_height)
 	# Brief hold on the final frame before resetting to idle.
 	await get_tree().create_timer(durations_s[frames - 1]).timeout
 	if _attack_clip_generation != generation or _sprite == null:
+		_lower_after_attack()
 		return
 	_restore_idle_sprite()
 
 
 ## Reverts the Sprite2D back to the idle texture+offset emitted by
-## _load_character_sprite. Called at the tail of an attack clip.
+## _load_character_sprite. Called at the tail of an attack clip. Also
+## restores the sibling tree position raised in _raise_for_attack.
 func _restore_idle_sprite() -> void:
 	if _sprite == null or character_data == null:
 		return
 	_sprite.region_enabled = false
 	_sprite.flip_h = false
 	_load_character_sprite()
+	_lower_after_attack()
+
+
+## Move this unit to the end of its sibling list so it draws on top of any
+## same-z_index neighbor during the attack. Same-row units share z_index
+## (computed as `(99 - row_index) * 10 + UNITS_layer`), so without this
+## tie-break the render order is determined by spawn sequence — which makes
+## the attacker render behind the defender about half the time.
+##
+## Why tree reorder and not a z_index bump:
+##   A z_index bump (e.g., attacker.z += 1) would land at a value where
+##   other units' FX (status icons, etc.) may already live, introducing
+##   new ties at +1. Sibling reorder only resolves the EXISTING tie at the
+##   unit's own z, without touching any z values.
+##
+## Refcounted: chained multi-hits raise multiple times before any tail
+## lowers. First raise stashes the original index; subsequent raises just
+## bump the count (and re-pin to end-of-siblings, which is a no-op when
+## already there). Each raise must be paired with exactly one lower.
+func _raise_for_attack() -> void:
+	var parent_node := get_parent()
+	if parent_node == null:
+		return
+	if _attack_raise_count == 0:
+		_attack_raised_original_index = get_index()
+	_attack_raise_count += 1
+	parent_node.move_child(self, parent_node.get_child_count() - 1)
+
+
+## Decrement the raise refcount. Only restores the sibling position when
+## the count returns to zero, so a chained Hit 2's raise keeps the attacker
+## on top while Hit 1's tail is still running. Clamps the target index in
+## case siblings were added/removed during the attack (defensive — turn-
+## based combat doesn't normally spawn/despawn units mid-clip).
+func _lower_after_attack() -> void:
+	if _attack_raise_count == 0:
+		return
+	_attack_raise_count -= 1
+	if _attack_raise_count > 0:
+		return
+	if _attack_raised_original_index == -1:
+		return
+	var parent_node := get_parent()
+	if parent_node != null:
+		var target_idx: int = mini(_attack_raised_original_index, parent_node.get_child_count() - 1)
+		parent_node.move_child(self, target_idx)
+	_attack_raised_original_index = -1
 
 
 func _spawn_damage_popup(target: Unit, damage: int, effectiveness_text: String, multiplier: float) -> void:
