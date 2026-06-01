@@ -52,6 +52,11 @@ Tilemap layers are rasterized automatically, so they work as input too.
 
 The preview generates a **12×4 tile** output in Godot's autotile format, which can be used directly or converted for other engines.
 
+In **rpgmaker** mode the preview also stamps the seamless interior tile (the
+"NESW full tile" — the square straddling the centre of the 2×3 reference) as a
+**3×3 grid** below the autotile output, so you can eyeball whether the interior
+tiles without visible seams.
+
 ## Hotkey
 
 No default hotkey is registered (F10 conflicts with Aseprite's Color Curves).

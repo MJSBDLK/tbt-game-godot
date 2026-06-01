@@ -427,6 +427,104 @@ local function drawPreviewScene(dstImg, tileW, tileH, sceneStartY)
     end
 end
 
+-- Crop the seamless interior tile (the "NESW full tile") from the 2×3 rpgmaker
+-- reference and stamp it as a 3×3 grid so the artist can eyeball whether the
+-- interior tiles cleanly. The crop is the square straddling the reference's
+-- centre grid intersection: source pixels [tileW/2, 3·tileH/2], size tileW×tileH.
+local function drawFillPreview(srcImg, dstImg, tileW, tileH, startX, startY)
+    local cropX = math.floor(tileW / 2)
+    local cropY = math.floor(3 * tileH / 2)
+    for ty = 0, 2 do
+        for tx = 0, 2 do
+            for y = 0, tileH - 1 do
+                for x = 0, tileW - 1 do
+                    local px = safeGetPixel(srcImg, cropX + x, cropY + y)
+                    safeDrawPixel(dstImg,
+                        startX + tx * tileW + x,
+                        startY + ty * tileH + y,
+                        px)
+                end
+            end
+        end
+    end
+end
+
+-- Flatten one tilemap cel into dst at canvas coordinates (best-effort — tilemap
+-- layers as autotile *input* are unusual, so any failure degrades to "skipped"
+-- rather than crashing). Looks each tile index up in the layer's tileset.
+local function drawTilemapCelInto(cel, layer, dst)
+    local tileset = layer.tileset
+    if not tileset then return end
+    pcall(function()
+        local tileSize = tileset.grid.tileSize
+        local tmImg = cel.image
+        for ty = 0, tmImg.height - 1 do
+            for tx = 0, tmImg.width - 1 do
+                local raw = tmImg:getPixel(tx, ty)
+                local index = raw
+                pcall(function() index = app.pixelColor.tileI(raw) end)
+                if index and index > 0 then
+                    local tileImg
+                    if not pcall(function() tileImg = tileset:getTile(index) end)
+                        or not tileImg then
+                        pcall(function() tileImg = tileset:tile(index).image end)
+                    end
+                    if tileImg then
+                        dst:drawImage(tileImg, Point(
+                            cel.position.x + tx * tileSize.width,
+                            cel.position.y + ty * tileSize.height))
+                    end
+                end
+            end
+        end
+    end)
+end
+
+-- Composite a layer (recursing into groups, honouring visibility) into dst,
+-- placing each cel at its TRUE canvas position so a transparent margin around
+-- the art is preserved.
+local function compositeLayerInto(layer, frameNumber, dst)
+    if not layer.isVisible then return end
+    if layer.isGroup then
+        for _, child in ipairs(layer.layers) do
+            compositeLayerInto(child, frameNumber, dst)
+        end
+        return
+    end
+    local cel = layer:cel(frameNumber)
+    if not cel or not cel.image then return end
+    local img = cel.image
+    if ColorMode and img.colorMode == ColorMode.TILEMAP then
+        drawTilemapCelInto(cel, layer, dst)
+        return
+    end
+    local opacity = 255
+    pcall(function() opacity = math.floor((cel.opacity * layer.opacity) / 255) end)
+    -- Try the full opacity/blend placement, fall back to a plain placement.
+    if not pcall(function()
+            dst:drawImage(img, cel.position, opacity, layer.blendMode)
+        end) then
+        pcall(function() dst:drawImage(img, cel.position) end)
+    end
+end
+
+-- Build a canvas-sized composite of all VISIBLE layers, each placed at its true
+-- canvas position. This is the critical difference from Image:drawSprite, which
+-- flushes rendered content to the image origin and so DROPS a transparent margin
+-- around the art — shifting every tile read by the margin width and producing
+-- seams in every output tile. Manual placement preserves the margin, so the tile
+-- grid stays aligned to (0,0) exactly like the web tool's PNG input.
+local function renderSourceComposite(source, frame)
+    local img = Image(source.spec)
+    img:clear()
+    local frameNumber = frame
+    pcall(function() frameNumber = frame.frameNumber end)
+    for _, layer in ipairs(source.layers) do
+        compositeLayerInto(layer, frameNumber, img)
+    end
+    return img
+end
+
 local updatePreviews  -- forward declared so onSourceChange can reference it
 
 local function onSourceChange()
@@ -461,19 +559,19 @@ updatePreviews = function()
     end
 
     -- Read the FULL visible composite of the source sprite — every visible
-    -- layer merged, the way the canvas shows it — not a single cel. This means
+    -- layer merged at its TRUE canvas position — not a single cel. This means
     -- multi-layer tilesets (e.g. scribbles over a background) render correctly,
-    -- hiding a layer excludes it from the input, and tilemap layers are
-    -- rasterized to pixels automatically (no more "tilemap not supported").
+    -- hiding a layer excludes it from the input, tilemap layers are rasterized
+    -- to pixels, and — crucially — a transparent margin around the art is kept
+    -- verbatim, so source coordinates map 1:1 to the canvas and the tile grid
+    -- stays anchored to (0,0). Transparency never shifts where tiles are read.
     local frame = source.frames[1]
     if app.activeSprite == source and app.activeFrame then
         frame = app.activeFrame
     end
     local srcImg
     local ok = pcall(function()
-        srcImg = Image(source.spec)
-        srcImg:clear()
-        srcImg:drawSprite(source, frame)
+        srcImg = renderSourceComposite(source, frame)
     end)
     if not ok or not srcImg then
         if not updating then
@@ -495,8 +593,18 @@ updatePreviews = function()
 
     local autotileH = 4 * tileH
     local sceneH = settings.showPreviewScene and (1 + 9) * tileH or 0
+    -- 3×3 seamless-fill preview lives at output (5.5·tileW, 4.5·tileH) — for the
+    -- 32px default that's the [176,144]–[271,239] block. Only the rpgmaker 2×3
+    -- reference has a meaningful centre tile to sample, so gate on that mode and
+    -- make sure the canvas is tall enough to contain the block.
+    local fillActive = (mode == "rpgmaker")
+    local fillStartX = math.floor(11 * tileW / 2)
+    local fillStartY = math.floor(9 * tileH / 2)
     local outW = 12 * tileW
     local outH = autotileH + sceneH
+    if fillActive then
+        outH = math.max(outH, fillStartY + 3 * tileH)
+    end
 
     -- Create or resize preview sprite
     if not isSpriteValid(previewSprite) then
@@ -632,6 +740,11 @@ updatePreviews = function()
     -- Draw the sample-scene region from the freshly-generated autotile
     if settings.showPreviewScene then
         drawPreviewScene(dstImg, tileW, tileH, 5 * tileH)
+    end
+
+    -- Stamp the 3×3 seamless-fill preview (rpgmaker only)
+    if fillActive then
+        drawFillPreview(srcImg, dstImg, tileW, tileH, fillStartX, fillStartY)
     end
 
     -- Apply to preview sprite without stealing focus from the source
