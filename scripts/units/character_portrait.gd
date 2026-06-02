@@ -16,6 +16,12 @@ extends RefCounted
 
 const _TARGET_SIZE: int = 32
 
+# Last-resort portrait when neither portrait_path nor the sprite-crop heuristic
+# produce something. The sprite crop is preferred because it at least carries
+# the character's silhouette/colors; this is the fallback when there's no
+# sprite either (extremely rare — usually means broken character data).
+const _DEFAULT_PORTRAIT_PATH: String = "res://art/portraits/default_portrait.png"
+
 # Glass-surface effect material applied as an HD-layer overlay above each
 # portrait — gives the line art a "projection on glass" look without
 # tinting the line art itself. Handles tint, gradient, top highlight,
@@ -159,7 +165,12 @@ static func get_sprite_crop_for(character: CharacterData) -> Texture2D:
 static func _resolve(character: CharacterData) -> Texture2D:
 	if not character.portrait_path.is_empty() and ResourceLoader.exists(character.portrait_path):
 		return load(character.portrait_path) as Texture2D
-	return _derive_from_sprite(character)
+	var sprite_crop: Texture2D = _derive_from_sprite(character)
+	if sprite_crop != null:
+		return sprite_crop
+	if ResourceLoader.exists(_DEFAULT_PORTRAIT_PATH):
+		return load(_DEFAULT_PORTRAIT_PATH) as Texture2D
+	return null
 
 
 static func _derive_from_sprite(character: CharacterData) -> Texture2D:

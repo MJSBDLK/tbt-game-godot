@@ -262,6 +262,15 @@ func show_battle_result(is_victory: bool, turn_count: int, player_units_lost: in
 	var state_manager := get_node_or_null("/root/GameStateManager")
 	if state_manager != null and state_manager.current_state != Enums.InputState.BATTLE_RESULT:
 		state_manager.push_state(Enums.InputState.BATTLE_RESULT)
+	# Belt-and-suspenders teardown of map-side panels. The state-changed
+	# handler already does this, but if we re-entered BATTLE_RESULT (push
+	# above was skipped) the handler never fires — and these panels would
+	# otherwise linger underneath the result overlay.
+	hide_unit_info()
+	hide_terrain_info()
+	hide_action_menu()
+	hide_combat_preview()
+	hide_unit_detail()
 	if _battle_result_overlay != null and _battle_result_overlay.has_method("show_result"):
 		_battle_result_overlay.show_result(is_victory, turn_count, player_units_lost,
 			enemies_defeated, total_players, total_enemies)

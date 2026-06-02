@@ -4,9 +4,20 @@
 ##
 ## All coordinates are INTEGER only. No 0.5 offsets.
 ## MOVEMENT_SCALE = 2 — internal half-tile precision for movement costs.
+## Per-tile costs are multiplied by it (Grass 1.0 → 2, Road 0.5 → 1, Sand 2.0 → 4)
+## so fractional terrain bonuses survive integer arithmetic. Unit budgets
+## (`max_movement_range`) are scaled by the same factor in unit.gd.
 extends Node
 
 const MOVEMENT_SCALE: int = 2
+
+
+## Per-tile movement cost in the scaled integer space used by both the
+## movement-range BFS and the path-cost accumulator. Pulling this through
+## one helper keeps the four call sites below in lockstep — forget to scale
+## one and units silently walk twice their `moveDistance`.
+func _scaled_tile_cost(tile: Tile, unit_type: String) -> int:
+	return roundi(tile.get_movement_cost_for_unit(unit_type) * MOVEMENT_SCALE)
 
 signal grid_ready
 
@@ -166,7 +177,7 @@ func get_movement_range(unit: Node2D) -> Array[Tile]:
 			if not neighbor.can_unit_move_to(unit_type):
 				continue
 
-			var move_cost := ceili(neighbor.get_movement_cost_for_unit(unit_type))
+			var move_cost := _scaled_tile_cost(neighbor, unit_type)
 			var cost_to_neighbor := current_cost + move_cost
 
 			if cost_to_neighbor > max_movement:
@@ -254,7 +265,7 @@ func get_remaining_movement_range(unit: Node2D) -> Array[Tile]:
 			if not neighbor.can_unit_move_to(unit_type):
 				continue
 
-			var cost_to_neighbor := current_cost + ceili(neighbor.get_movement_cost_for_unit(unit_type))
+			var cost_to_neighbor := current_cost + _scaled_tile_cost(neighbor, unit_type)
 			if cost_to_neighbor > remaining_movement:
 				continue
 			if neighbor != start_tile and _tile_blocks_passage(neighbor, unit):
@@ -429,7 +440,7 @@ func find_path(start_tile: Tile, target_tile: Tile, unit: Node2D) -> Array[Tile]
 				if occupant_faction != unit_faction:
 					continue
 
-			var new_cost := current_node.cost_from_start + ceili(neighbor.get_movement_cost_for_unit(unit_type))
+			var new_cost := current_node.cost_from_start + _scaled_tile_cost(neighbor, unit_type)
 
 			var neighbor_node: PathNode
 			if not node_map.has(neighbor):
@@ -459,7 +470,7 @@ func calculate_path_cost(path: Array[Tile], unit: Node2D = null) -> int:
 	var total_cost := 0
 	var unit_type: String = _get_unit_type(unit)
 	for tile: Tile in path:
-		total_cost += ceili(tile.get_movement_cost_for_unit(unit_type))
+		total_cost += _scaled_tile_cost(tile, unit_type)
 	return total_cost
 
 

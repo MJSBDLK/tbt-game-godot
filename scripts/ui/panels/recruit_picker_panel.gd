@@ -115,20 +115,21 @@ func _build_card(character: CharacterData, path: String) -> Control:
 	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(content)
 
-	if not character.portrait_path.is_empty() and ResourceLoader.exists(character.portrait_path):
-		var portrait_wrap := CenterContainer.new()
-		portrait_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var portrait := TextureRect.new()
-		portrait.custom_minimum_size = Vector2(48, 48)
-		portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		# bind_to_texture_rect promotes the TextureRect to an HD overlay when
-		# the character has a lineart_path; otherwise it loads the painted
-		# pixel portrait. Replaces the direct portrait_path load.
-		CharacterPortrait.bind_to_texture_rect(portrait, character)
-		portrait_wrap.add_child(portrait)
-		content.add_child(portrait_wrap)
+	# Always render a portrait slot — CharacterPortrait.bind_to_texture_rect
+	# resolves to the character's painted portrait, the line-art HD overlay,
+	# or default_portrait.png when nothing else is set. The old gate skipped
+	# this whole block when portrait_path was empty, which made portrait-less
+	# characters render as a bare name label.
+	var portrait_wrap := CenterContainer.new()
+	portrait_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var portrait := TextureRect.new()
+	portrait.custom_minimum_size = Vector2(48, 48)
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	CharacterPortrait.bind_to_texture_rect(portrait, character)
+	portrait_wrap.add_child(portrait)
+	content.add_child(portrait_wrap)
 
 	var name_label := Label.new()
 	name_label.text = character.character_name

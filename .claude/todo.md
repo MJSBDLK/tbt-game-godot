@@ -3,10 +3,13 @@
 - [x] Import all of Lawrence's new character sprites at res://art/sprites/characters/
   - [x] Auto-bootstrapped pivots (bbox bottom-center) for the new batch; ernesto/max/occult got non-trivial pivots from transparent padding. Will need real pivots once LOD wires them in.
   - [x] Authored 21 new character JSONs (berzerker, buglers, knight, etc.) with archetype stat templates; updated 9 existing JSONs to point at the new per-char idle.png. New player chars added to RECRUIT_POOL, new enemies to enemy_spawn_pool. desert_prince/mystic/battle_chicken JSONs exist but have no ALLY/NEUTRAL spawn pool yet — TODO when that wiring lands.
-  - [ ] Try implementing the animations for units that have them (ernesto melee/meleelong, grasker melee, max meleeside/shootside, occult meleeside/shootside)
-- [ ] Pivots: Lawrence is placing the pivots at the center of his canvas - if it's 64x64, pivot is at [32,32]. If it's 128x128, pivot is at [64,64]
+  - [x] Try implementing the animations for units that have them (ernesto melee/meleelong, grasker melee, max meleeside/shootside, occult meleeside/shootside)
+- [x] Pivots: Lawrence is placing the pivots at the center of his canvas - if it's 64x64, pivot is at [32,32]. If it's 128x128, pivot is at [64,64]
 ## LOD
 - [ ] **Pivot workflow**: future .aseprite files need a slice with pivot set to the character's feet. The tag-exporter plugin already emits a JSON sidecar when it finds one; without it, we fall back to bbox-bottom which is wrong for any sprite with padding (ernesto, max, occult visibly off). One slice per .aseprite, name doesn't matter, just toggle the pivot checkbox and drag to feet.
+  - **Convention (and the exporter's no-slice fallback)**: pivot at canvas center. Each character's canvas is expanded so the feet land at center — 96×96 canvas → pivot at (48, 48); 128×128 → (64, 64). Sprites authored this way get correct pivots without needing a slice.
+  - **Older sprites without expanded canvases** (e.g. grunt) need to be brought into compliance: open in Aseprite, Canvas → Resize so the feet end up at center, re-export through the plugin. Don't hand-tune the sidecar — it gets overwritten on next export.
+- [ ] **Exporter: preserve pivot through trim**. Today [addons/aseprite_tag_exporter/context_menu.gd](../addons/aseprite_tag_exporter/context_menu.gd) skips `--trim` entirely whenever a pivot exists, because trimming shifts canvas-space pivot coords. Result: PNGs ship canvas-sized (Lawrence's expanded canvases are mostly empty padding). Better: run `--trim`, then subtract the trim offset from `pivot.x/y` in the sidecar so the pivot stays on the same pixel. Aseprite emits trim deltas via `--data` JSON output (`frames[].spriteSourceSize`), or we can diff bbox pre/post. Net effect: same on-screen pivot, smaller PNGs.
 ### [x] Factions:
  bandit — currently enemy
  grunt — currently enemy
@@ -143,7 +146,7 @@ New sprites — faction needed:
 - [ ] Icon for range: 3+
 - [ ] ANY OTHER ICONS WE NEED HERE?
 
-# [ ] BUGZ 
+# [ ] BUGZ/Issues
 - [x] Zooming in and mousing around outside the window still changes the terrain preview
 - [x] unit preview panel and terrain preview panel don't move to the left side of the screen (and presumably vice versa) when the cursor is on that side (no cursor in touchscreen mode but it's clearly still a problem)
 - [ ] (see above) we need to test the above in touchscreen mode - I'm assuming it's still a problem (working great in M&K). 
@@ -155,22 +158,27 @@ New sprites — faction needed:
 - [x] It's kinda hard to see the enemy unit detail panel - some combination of clicking repeatedly seems to do it but it's unintuitive and often 
 - [x] Hypoesthesia Effect - NN scaling is yielding boxes which are 1x1, 2x1, 1x2 and 2x2 - what's causing this?
 - [x] The Ogre killed Ernesto and he got grayed out but didn't die. It was also the first time I'd seen a counterattack from a unit, which is interesting. We need to nerf the Ogre's athleticism but I'm leaving it for now to reproduce the bug.
-- [ ] When selecting a target to attack, if you mouse over an ineligible target, it still displays the combat preview panel. It should display nothing.
-- [ ] Units display class "Spaceman lv. 1" in the unit preview panel and unit detail panel - should display their real class and level.
-- [ ] In the victory screen, the terrain preview panel still displays. Should be disabled on a victory/defeat state.
-- [ ] Unit movement range seems to be doubled. I'm assuming this has to do with the double movement buff on roads. I think there are two possibilities here - either impedence isn't working on one or all of our terrain tiles, or setting the move distance to moveDistance * 2 isn't playing nice with our terrain system
+- [x] When selecting a target to attack, if you mouse over an ineligible target, it still displays the combat preview panel. It should display nothing.
+- [ ] Units display class "Spaceman lv. 1" in the unit detail panel - should display their real class and level.
+- [x] In the victory screen, the terrain preview panel still displays. Should be disabled on a victory/defeat state. (ui_manager.show_battle_result now does belt-and-suspenders teardown of all map panels in addition to the state-changed handler)
+- [x] Unit movement range seems to be doubled. Root cause: grid_manager.MOVEMENT_SCALE doubled `max_movement_range` but per-tile costs were left raw (1 for Grass, ceili(0.5)=1 for Road). Fix: route all four per-tile cost lookups through new `_scaled_tile_cost()` helper. Side benefit: Road's 0.5 penalty now actually halves cost (was rounding up to 1).
 - [ ] losing at level 1 still lets you proceed to level 2. Maybe we want this? Let's discuss.
 - [ ] the enemy's move selection isn't clear during the enemy phase
 - [ ] the ogre is still absurdly overpowered
 - [ ] Ernesto's backhand move is weirdly powerful
 - [ ] Is move accuracy implemented correctly? I've never noticed an attack miss.
 - [ ] Move distribution in the demo is wonky. Characters are getting moves which are way too powerful at level 5. This is contributing to the ogre problem
-- [ ] If a unit has no corresponding portrait, let's use default_portrait.png
+- [x] If a unit has no corresponding portrait, let's use default_portrait.png (lands as last-resort fallback in character_portrait._resolve — order is portrait_path → sprite-crop head → default_portrait.png. Recruit picker now always renders a portrait slot too, so sprite-less characters still show something.)
 - [ ] Grunt sprite has its pivot set way too low
 - [ ] Something is fucky about damage calculation in general - it doesn't feel right
 - [ ] Design: we need healers.
 - [ ] The player can be offered multiple of the same character if they reduce the pool to <3
-- [ ]
+- [ ] when an attack is more west/east than north/south, display the west/east animation (but make it easy to toggle this change off)
+- [ ] The different types of Buglers don't need their type explicitly in their name - their typing tells me this
+- [ ] Passives "Maximum" and "Stellar" should have very narrow distribution - just Max at this point.
+- [ ] When choosing a new recruit in the intermission screen, the portraits should display fullres line art if available (see unit detail panel for how this works) with a fallback to the sprites (latter bit is working)
+- [ ] bEXP GUI needs a complete rework - just prompt me to get this started.
+- [ ] 
 
 # TEST THESE MECHANICS
 - [ ] STAB + visual feedback
@@ -224,6 +232,7 @@ New sprites — faction needed:
 - [ ] Rework detail panel to use the move styleboxes we used in the preview panel
 - [ ] It's unclear to the user what's clickable in the UI and what's not - we need to apply some kind of visual design that makes it clear what is and what isn't interactible.
 - [ ] The move preview doesn't animate properly when the unit retreads its path
+- [ ] **ALLY/NEUTRAL faction spawn wiring** (post-alpha — alpha doesn't need allies or neutrals). [data/characters/desert_prince.json](../data/characters/desert_prince.json), [mystic.json](../data/characters/mystic.json), and [battle_chicken.json](../data/characters/battle_chicken.json) exist but no infrastructure spawns them. Currently `RECRUIT_POOL` is player-only and `enemy_spawn_pool` is enemy-only — there's no equivalent for `Enums.UnitFaction.ALLY` or `NEUTRAL`. Needs design first: (a) where allies come from — mission-scripted, pooled like recruits, or hand-placed in the map .tscn? (b) neutral behavior — wandering / hostile-to-all / passive decoration? (c) authoring surface — .tscn placement vs programmatic spawn. Then plumb through `TurnManager` and AI so non-PLAYER/non-ENEMY factions get turns and decisions.
 - [ ] 
 
 # Stretch Goals
