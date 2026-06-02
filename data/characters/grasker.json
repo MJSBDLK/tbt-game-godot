@@ -6,6 +6,10 @@
 	"currentClass": "Fighter",
 	"specialization": "None",
 	"portraitPath": "res://art/portraits/grasker-portrait.png",
+	"lineartPath": "res://art/lineart_fullres/grasker.png",
+	"lineartAtlases": {
+		"portrait": "res://art/lineart_fullres/grasker_portrait.tres"
+	},
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/grasker/idle.png",
 		"atlasPath": "",

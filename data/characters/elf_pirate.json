@@ -6,6 +6,7 @@
 	"currentClass": "Pirate",
 	"specialization": "None",
 	"portraitPath": "res://art/portraits/elfpirate_portrait.png",
+	"lineartPath": "res://art/portraits/elfpirate_portrait.png",
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/elf_pirate/idle.png",
 		"atlasPath": "",

@@ -6,6 +6,10 @@
 	"currentClass": "Enigma",
 	"specialization": "None",
 	"portraitPath": "res://art/portraits/gravcap_portrait.png",
+	"lineartPath": "res://art/lineart_fullres/gravity_captain.png",
+	"lineartAtlases": {
+		"portrait": "res://art/lineart_fullres/gravcap_portrait.tres"
+	},
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/gravity_captain/idle.png",
 		"atlasPath": "",

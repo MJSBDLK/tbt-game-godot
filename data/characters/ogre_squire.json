@@ -6,6 +6,10 @@
 	"currentClass": "Squire",
 	"specialization": "None",
 	"portraitPath": "res://art/portraits/orcpage_portrait.png",
+	"lineartPath": "res://art/lineart_fullres/ogre_squire.png",
+	"lineartAtlases": {
+		"portrait": "res://art/lineart_fullres/orcpage_portrait.tres"
+	},
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/ogre_squire/idle.png",
 		"atlasPath": "",
