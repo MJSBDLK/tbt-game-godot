@@ -172,7 +172,7 @@ New sprites — faction needed:
 - [ ] Grunt sprite has its pivot set way too low
 - [ ] Something is fucky about damage calculation in general - it doesn't feel right
 - [ ] Design: we need healers.
-- [ ] The player can be offered multiple of the same character if they reduce the pool to <3
+- [x] The player can be offered multiple of the same character if they reduce the pool to <3 (closed as no-repro 2026-06-02. Code path is sound: `RECRUIT_POOL` in [start_screen.gd](../scripts/ui/start_screen.gd) has no duplicate entries, and [campaign_manager._pick_recruit_candidates](../scripts/managers/campaign_manager.gd) filters against `_recruited_paths` before shuffling, then picks `mini(count, available.size())` unique entries. Algorithmically can't dupe. Reopen if it actually happens with concrete repro.)
 - [ ] when an attack is more west/east than north/south, display the west/east animation (but make it easy to toggle this change off)
 - [x] The different types of Buglers don't need their type explicitly in their name - their typing tells me this (renamed bugler_chivalric and bugler_gentry character names to just "Bugler")
 - [x] Passives "Maximum" and "Stellar" should have very narrow distribution - just Max at this point. (stripped from all 29 character JSONs except spaceman.json — both had been copy-pasted from a template into every character's basePoolPassives)
