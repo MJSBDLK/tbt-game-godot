@@ -205,6 +205,7 @@ visible = false
 
 [node name="ClassNameAndLevel" type="HBoxContainer" parent="MainRow/LeftColumnMargin/LeftColumn" unique_id=1815911924]
 layout_mode = 2
+theme_override_constants/separation = 0
 
 [node name="LeadingIconContainer" type="MarginContainer" parent="MainRow/LeftColumnMargin/LeftColumn/ClassNameAndLevel" unique_id=576139300]
 layout_mode = 2

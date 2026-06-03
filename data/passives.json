@@ -73,7 +73,7 @@
 	},
 	"Waste Not": {
 		"abbrevName": "Waste Not",
-		"description": "Recovers PP by defeating enemies"
+		"description": "Recovers move usage by defeating enemies"
 	},
 	"Zone Control": {
 		"abbrevName": "Zone Ctrl",

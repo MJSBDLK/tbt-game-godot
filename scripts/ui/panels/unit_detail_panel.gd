@@ -191,9 +191,15 @@ func _cache_node_references() -> void:
 	_type_icon_container_primary = _find_type_icon_container(unit_name_row, 0)
 	_type_icon_container_secondary = _find_type_icon_container(unit_name_row, 1)
 
-	# Class name and level
+	# Class name and level. The ClassNameAndLevel HBoxContainer holds an icon
+	# slot + a MarginContainer2/GlowLabel directly — different structure from
+	# the UnitNameAndTypes instance above (which nests its label under an
+	# auto-created HBoxContainer). _find_label_in_row assumes the latter shape
+	# and silently returns null here, leaving the scene's editor placeholder
+	# ("SPACEMAN Lv.1") on screen for every unit. Recursive find_child handles
+	# both shapes without depending on the wrapper structure.
 	var class_row: Control = left_column.get_node("ClassNameAndLevel")
-	_class_label = _find_label_in_row(class_row)
+	_class_label = class_row.find_child("GlowLabel", true, false) as Label
 
 	# HP
 	var hp_container: Control = left_column.get_node("StatsContainer/HPContainer")
