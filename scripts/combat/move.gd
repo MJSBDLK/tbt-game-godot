@@ -21,6 +21,12 @@ extends Resource
 @export var damage_type: Enums.DamageType = Enums.DamageType.PHYSICAL
 @export var element_type: Enums.ElementalType = Enums.ElementalType.NONE
 
+# Base hit chance before stat modifiers. Final hit % is computed in
+# DamageCalculator.hit_chance_pct using the RD formula
+# (accuracy + 1.5×skill − 1.5×agility + passive modifiers).
+# Default 90 matches Fire Emblem's "reliable basic weapon" baseline.
+@export var accuracy: int = 90
+
 # PP system (limited uses per mission)
 @export var max_uses: int = 30
 var current_uses: int = 0
@@ -58,14 +64,6 @@ var current_uses: int = 0
 # Status effects to remove from the target on hit (e.g. "BLEED" to cure a wound).
 # Names match Enums.StatusEffectType keys (case-insensitive — normalized in MoveData).
 @export var cleanse_effects: PackedStringArray = PackedStringArray()
-
-
-## Hit chance % (0-100). Placeholder until an accuracy stat lands on Move
-## or CharacterData. Currently every move is deterministic — returns 100. The
-## combat preview reads this so the displayed Hit% matches reality without the
-## panel having to assume.
-func hit_chance_pct() -> int:
-	return 100
 
 
 ## True if this move targets allies (ALLY or ALLY_NOT_SELF). Used by

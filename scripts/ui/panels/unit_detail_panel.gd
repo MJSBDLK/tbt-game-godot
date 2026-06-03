@@ -970,7 +970,10 @@ func _show_move_detail(index: int) -> void:
 		_move_detail_power_label.text = "%d" % move.base_power if move.base_power > 0 else "--"
 
 	if _move_detail_accuracy_label:
-		_move_detail_accuracy_label.text = "100%"  # TODO: when accuracy is added to Move
+		# Shows the move's base accuracy rating — the actual combat hit chance
+		# (which factors skill/agility/passives) is shown in the combat preview
+		# panel during target selection, where attacker + defender are known.
+		_move_detail_accuracy_label.text = "%d%%" % move.accuracy
 
 	if _move_detail_usage_label:
 		_move_detail_usage_label.text = "%d/%d" % [move.current_uses, move.max_uses]

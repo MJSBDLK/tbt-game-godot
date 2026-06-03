@@ -114,7 +114,7 @@ func show_heal_preview(caster: Node, target: Node, move: Move, heal_amount: int)
 	visible = true
 	_apply_pip_heal_colors()
 	_set_value_column_header("+HP")
-	_update_caster_section_for_heal(caster, move, heal_amount)
+	_update_caster_section_for_heal(caster, target, move, heal_amount)
 	_update_target_section_for_heal(target)
 	_update_heal_pips(caster, target, heal_amount)
 
@@ -143,7 +143,7 @@ func _update_attacker_section(attacker: Node, defender: Node, move: Move) -> voi
 	var hit_count := DamageCalculator.calculate_attack_count(attacker, defender)
 	_attacker_damage_label.text = str(damage_per_hit)
 	_set_hits_label(_attacker_hits_label, hit_count)
-	_attacker_hit_label.text = "%d%%" % move.hit_chance_pct()
+	_attacker_hit_label.text = "%d%%" % DamageCalculator.hit_chance_pct(attacker, defender, move)
 
 	# Secondary chance — status effect proc chance from the move
 	if move.status_effect_chance > 0.0 and move.status_effect_type != Enums.StatusEffectType.NONE:
@@ -181,7 +181,7 @@ func _update_defender_section(attacker: Node, defender: Node, move: Move) -> voi
 		var counter_hits := DamageCalculator.calculate_attack_count(defender, attacker)
 		_defender_damage_label.text = str(counter_damage)
 		_set_hits_label(_defender_hits_label, counter_hits)
-		_defender_hit_label.text = "%d%%" % counter_move.hit_chance_pct()
+		_defender_hit_label.text = "%d%%" % DamageCalculator.hit_chance_pct(defender, attacker, counter_move)
 
 		if counter_move.status_effect_chance > 0.0 and counter_move.status_effect_type != Enums.StatusEffectType.NONE:
 			_defender_secondary_label.text = "%d%%" % int(counter_move.status_effect_chance * 100)
@@ -411,7 +411,7 @@ func _reset_pip_colors() -> void:
 		pip.damage_glow = _DAMAGE_BAND_GLOW_DEFAULT
 
 
-func _update_caster_section_for_heal(caster: Node, move: Move, heal_amount: int) -> void:
+func _update_caster_section_for_heal(caster: Node, target: Node, move: Move, heal_amount: int) -> void:
 	var caster_name: String = caster.get("unit_name") if caster.get("unit_name") else "???"
 	_attacker_name_label.text = _truncate(caster_name)
 
@@ -426,7 +426,10 @@ func _update_caster_section_for_heal(caster: Node, move: Move, heal_amount: int)
 	_attacker_damage_label.add_theme_color_override("font_color", _HEAL_NUMBER_FONT)
 	if _attacker_damage_label.has_method("_apply_glow_color"):
 		_attacker_damage_label.set("glow_color", _HEAL_NUMBER_GLOW)
-	_attacker_hit_label.text = "%d%%" % move.hit_chance_pct()
+	# Heals roll against accuracy too, though most heal moves should be 100. Routing
+	# through the same calculator keeps the displayed number honest if a heal ever
+	# gets a sub-100 accuracy in the future.
+	_attacker_hit_label.text = "%d%%" % DamageCalculator.hit_chance_pct(caster, target, move)
 
 	# Heals are single-application, no type effectiveness. Status proc only shows
 	# if the move actually carries one (rare on heals).

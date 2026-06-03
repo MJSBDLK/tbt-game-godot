@@ -59,6 +59,60 @@ static func calculate_damage(attacker: Node2D, defender: Node2D, move: Move) -> 
 	return final_damage
 
 
+## Final hit chance (0-100), RD-style. Both panels (combat preview, move detail)
+## and the combat resolver call this so a displayed Hit% always matches reality.
+##
+## Formula: clamp(0, 100, move.accuracy + 1.5×attacker.skill − 1.5×defender.agility
+##                          + attacker accuracy passives − defender avoid passives)
+##
+## Currently wired passives:
+##   - Reliable (attacker): +50, "effectively guaranteeing hits"
+##   - Low Profile (defender, ranged moves only): +25 avoid
+## Impulsive, Flippant, and Zone Control are stubbed for follow-ups.
+const RELIABLE_ACCURACY_BONUS: int = 50
+const LOW_PROFILE_AVOID_BONUS: int = 25
+const SKILL_AGILITY_WEIGHT: float = 1.5
+
+static func hit_chance_pct(attacker: Node2D, defender: Node2D, move: Move) -> int:
+	if move == null:
+		return 100
+	if attacker == null or defender == null:
+		return move.accuracy
+
+	var attacker_data: CharacterData = attacker.get("character_data")
+	var defender_data: CharacterData = defender.get("character_data")
+	if attacker_data == null or defender_data == null:
+		return move.accuracy
+
+	var stat_contribution: float = (attacker_data.skill - defender_data.agility) * SKILL_AGILITY_WEIGHT
+	var accuracy_bonus: int = _attacker_accuracy_bonus(attacker_data, move)
+	var avoid_bonus: int = _defender_avoid_bonus(defender_data, move)
+
+	var raw: int = roundi(move.accuracy + stat_contribution + accuracy_bonus - avoid_bonus)
+	return clampi(raw, 0, 100)
+
+
+## Sum of accuracy bonuses the attacker's passives contribute against this move.
+## Conditional passives (e.g. Impulsive's first-attack-of-turn) live here so the
+## caller doesn't need to know which passive cares about which combat context.
+static func _attacker_accuracy_bonus(attacker_data: CharacterData, _move: Move) -> int:
+	var bonus: int = 0
+	if attacker_data.has_equipped_passive("Reliable"):
+		bonus += RELIABLE_ACCURACY_BONUS
+	# TODO: Impulsive (+20 on first attack each turn) — needs per-turn attack counter
+	return bonus
+
+
+## Sum of avoid bonuses the defender's passives contribute against this move.
+static func _defender_avoid_bonus(defender_data: CharacterData, move: Move) -> int:
+	var bonus: int = 0
+	if move.attack_range > 1 and defender_data.has_equipped_passive("Low Profile"):
+		bonus += LOW_PROFILE_AVOID_BONUS
+	# TODO: Flippant (-acc when attack is super-effective) — needs type matchup context
+	# TODO: Zone Control (-acc on enemies within 3 tiles) — needs proximity scan
+	return bonus
+
+
 ## Calculate number of attacks based on athleticism ratio.
 ## 4× → 4 hits, 3× → 3 hits, 2× → 2 hits, else 1. Framed as a "Brave"-weapon-style
 ## power spike: early-game stat spreads rarely reach 2×, so multi-hit is naturally

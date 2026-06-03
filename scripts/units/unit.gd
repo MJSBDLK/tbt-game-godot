@@ -672,6 +672,15 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 		await _execute_heal_hit(target, move, apply_status)
 		return
 
+	# Hit roll. Miss path plays the approach but skips damage/flash/popup/status
+	# so the swing reads as a swing-and-dodge rather than "nothing happened."
+	# Move usage is NOT refunded on miss — RD style.
+	var hit_pct := DamageCalculator.hit_chance_pct(self, target, move)
+	if randi() % 100 >= hit_pct:
+		await _play_miss(target, move)
+		DebugConfig.log_combat("Miss: %s -> %s (hit %d%%)" % [unit_name, target.unit_name, hit_pct])
+		return
+
 	# Pre-calculate damage so we know impact weight before the hit lands
 	var damage := DamageCalculator.calculate_damage(self, target, move)
 	var type_multiplier := DamageCalculator.get_type_effectiveness(self, target, move)
@@ -800,6 +809,29 @@ func _apply_cleanse(target: Unit, move: Move) -> void:
 	for effect_name: String in move.cleanse_effects:
 		StatusEffectSystem.remove_status_effect(target, effect_name)
 		DebugConfig.log_combat("Cleanse: %s removed %s from %s" % [unit_name, effect_name, target.unit_name])
+
+
+## Miss path: attacker plays its approach, brief hold so the player can read
+## "MISS" on the target, then return to idle. No damage, no flash, no
+## screenshake, no status proc, no XP — just animation + callout.
+func _play_miss(target: Unit, move: Move) -> void:
+	var clip := _pick_attack_clip(target, move)
+	var use_clip: bool = not clip.is_empty()
+	if use_clip:
+		await _play_clip_to_hit(clip, target)
+	else:
+		await _play_boop_out(target)
+
+	# Match the minimum-hitlag hold so the MISS callout has time to land before
+	# the attacker snaps back. Keeps the swing-and-dodge rhythm consistent with
+	# a low-impact hit.
+	await get_tree().create_timer(HITLAG_MIN).timeout
+
+	if use_clip:
+		_play_clip_after_hit(clip)
+	else:
+		_play_boop_return()
+	target.spawn_text_callout("MISS", GameColorPalette.get_color("Gray", 5))
 
 
 ## Boop out: sprite bumps toward the target. Awaitable — completes at the contact point.
