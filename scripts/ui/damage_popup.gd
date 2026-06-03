@@ -50,6 +50,18 @@ func initialize_heal(amount: int) -> void:
 		_effectiveness_label.visible = false
 
 
+## Generic text callout (e.g. "BACKHAND" above an enemy committing to attack).
+## Reuses the rise/fade animation and the outline shader; only the damage label's
+## text + color differ. The effectiveness label is hidden — callers can pass
+## their own one-liner without worrying about secondary content.
+func initialize_callout(text: String, color: Color) -> void:
+	if _damage_label != null:
+		_damage_label.text = text
+		_damage_label.modulate = color
+	if _effectiveness_label != null:
+		_effectiveness_label.visible = false
+
+
 func _process(delta: float) -> void:
 	_elapsed += delta
 

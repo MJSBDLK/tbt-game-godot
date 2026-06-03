@@ -1058,6 +1058,19 @@ func _spawn_heal_popup(target: Unit, amount: int) -> void:
 		popup.call("initialize_heal", amount)
 
 
+## Float a text callout above THIS unit (e.g. "BACKHAND" when an enemy
+## commits to an attack so the player knows what's about to land). Spawned
+## higher than damage popups so they can stack without overlap.
+func spawn_text_callout(text: String, color: Color) -> void:
+	var popup_scene := preload("res://scenes/ui/damage_popup.tscn")
+	var popup: Node2D = popup_scene.instantiate()
+	popup.global_position = global_position + Vector2(0, -20)
+	popup.z_index = z_index + 2
+	get_tree().current_scene.add_child(popup)
+	if popup.has_method("initialize_callout"):
+		popup.call("initialize_callout", text, color)
+
+
 ## Handle unit defeat: gray out, fade, clear tile.
 func _handle_defeat() -> void:
 	if _defeat_visuals_played:

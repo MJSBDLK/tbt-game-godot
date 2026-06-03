@@ -23,6 +23,10 @@ func execute_turn() -> void:
 		return
 
 	DebugConfig.log_ai("AI '%s' thinking..." % _unit.unit_name)
+	# Quick scale pulse on the sprite so the player can tell which enemy is
+	# acting when there are several on screen. Fits inside think_delay so the
+	# AI doesn't visibly stall waiting for it to finish.
+	_pulse_active_indicator()
 	await get_tree().create_timer(think_delay).timeout
 
 	# Pick a move. Capricious passive → random among usable moves excluding the last used one.
@@ -122,8 +126,34 @@ func _execute_attack(target: Unit) -> void:
 	var data: CharacterData = _unit.character_data
 	if data != null:
 		_unit.last_used_move_index = data.equipped_moves.find(_unit.assigned_move)
+	# Float the move name above the attacker BEFORE the swing so the player has
+	# a beat to read it. The attack_delay timer is what gives them the time.
+	_unit.spawn_text_callout(_unit.assigned_move.move_name.to_upper(), _move_callout_color())
 	await get_tree().create_timer(attack_delay).timeout
 	await _unit.execute_combat_sequence(target, _unit.assigned_move)
+
+
+## Color for the move-name callout. Uses the move's elemental-type foreground
+## color so the player also gets a hint about matchup before the hit lands.
+## Falls back to the enemy-faction red for typeless moves.
+func _move_callout_color() -> Color:
+	if _unit.assigned_move != null and _unit.assigned_move.element_type != Enums.ElementalType.NONE:
+		return GameColors.get_move_chip_foreground(_unit.assigned_move.element_type)
+	return GameColors.ENEMY_UNIT
+
+
+## One-shot scale pulse on the sprite — 1.0 → 1.15 → 1.0 over ~0.3s. Tells the
+## player "this enemy is up next." Uses sprite scale (not modulate) so it
+## doesn't fight with hit-flash or the acted/active modulate state.
+func _pulse_active_indicator() -> void:
+	if _unit == null:
+		return
+	var sprite: Sprite2D = _unit.get_node_or_null("Sprite2D")
+	if sprite == null:
+		return
+	var tween := _unit.create_tween()
+	tween.tween_property(sprite, "scale", Vector2(1.15, 1.15), 0.15).set_ease(Tween.EASE_OUT)
+	tween.tween_property(sprite, "scale", Vector2(1.0, 1.0), 0.15).set_ease(Tween.EASE_IN)
 
 
 func _assign_move_for_turn() -> void:
