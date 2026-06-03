@@ -1,6 +1,6 @@
 {
 	"characterId": "bugler_gentry",
-	"characterName": "Gentry Bugler",
+	"characterName": "Bugler",
 	"primaryType": "Gentry",
 	"secondaryType": "None",
 	"currentClass": "Noble",
@@ -50,8 +50,6 @@
 	"basePoolPassives": [
 		"Glib",
 		"Reliable",
-		"Maximum",
-		"Stellar",
 		"Cavalier",
 		"Protector",
 		"Bellows",

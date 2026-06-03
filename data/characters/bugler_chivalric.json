@@ -1,6 +1,6 @@
 {
 	"characterId": "bugler_chivalric",
-	"characterName": "Chivalric Bugler",
+	"characterName": "Bugler",
 	"primaryType": "Chivalric",
 	"secondaryType": "None",
 	"currentClass": "Noble",
@@ -50,8 +50,6 @@
 	"basePoolPassives": [
 		"Glib",
 		"Reliable",
-		"Maximum",
-		"Stellar",
 		"Cavalier",
 		"Protector",
 		"Bellows",

@@ -174,15 +174,15 @@ New sprites — faction needed:
 - [ ] Design: we need healers.
 - [ ] The player can be offered multiple of the same character if they reduce the pool to <3
 - [ ] when an attack is more west/east than north/south, display the west/east animation (but make it easy to toggle this change off)
-- [ ] The different types of Buglers don't need their type explicitly in their name - their typing tells me this
-- [ ] Passives "Maximum" and "Stellar" should have very narrow distribution - just Max at this point.
+- [x] The different types of Buglers don't need their type explicitly in their name - their typing tells me this (renamed bugler_chivalric and bugler_gentry character names to just "Bugler")
+- [x] Passives "Maximum" and "Stellar" should have very narrow distribution - just Max at this point. (stripped from all 29 character JSONs except spaceman.json — both had been copy-pasted from a template into every character's basePoolPassives)
 - [x] When choosing a new recruit in the intermission screen, the portraits should display fullres line art if available (see unit detail panel for how this works) with a fallback to the sprites (latter bit is working). Root cause: bind_to_texture_rect was already promoting to HD identically across all panels, but most recruit-pool JSONs had no `lineartPath`/`lineartAtlases` set, so the HD path returned null and fell back to the pixel pipeline. Also: elf_pirate had a hi-res image (921×921) stored under `portraitPath` and was being NN-downscaled inside HUDViewport. Wired lineartPath/lineartAtlases for grasker, gravity_captain, ogre_squire, ogre, and elf_pirate. Remaining recruit-pool characters (desert_sniper, healer_*, plant_cultist, robot) have no line art assets yet — Lawrence-blocked.
 - [ ] **Distortion shader toggle (HD portraits)**: VHS-tracking distortion (`hd_portrait_tracking.tres`) is applied to every HD line-art portrait unconditionally. Add a user-facing options toggle. The infrastructure already exists — `DebugConfig.debug_portrait_effects_disabled` flips it at runtime via [HDPortraitSlot._apply_debug_effects_state](../scripts/ui/hd_portrait_slot.gd) — needs an options-menu checkbox bound to the same flag (or a new persisted setting). See [project_shader_quality_setting memory](../../.claude/projects/-home-mjsbdlk-Documents-Projects-tbt-game-godot/memory/project_shader_quality_setting.md) for why this was deferred (accessibility-options pass), but it keeps coming up so worth its own item.
 - [ ] bEXP GUI needs a complete rework - just prompt me to get this started.
 - [ ] Damage calculation feels... off. Let's audit the formulae and find out why.
 - [ ] Capricious ability needs to apply to counterattacks too - it should equip a different move after every combat. (Not between counterattacks if it couterattacks more than once.) This means that it will use different moves if attacked repeatedly.
 - [ ] First aid - if used on self, in the combat preview panel, it shows as being used on a non-existent target. Should apply to self. Relatedly, if used on an ally, the target's health pips should be the color of that unit's faction. Currently they're red like the enemy, but if it's a friendly they  should display as blue.
-- [ ] 
+- [ ] Pathing is broken if you draw a path that crosses itself. We may need to actually implement those flag markers. (LMK if that's too ambiguous - we flagged those as a "implement if necessary" earlier. I think it's probably necessary.)
 
 # TEST THESE MECHANICS
 - [ ] STAB + visual feedback
@@ -237,7 +237,8 @@ New sprites — faction needed:
 - [ ] It's unclear to the user what's clickable in the UI and what's not - we need to apply some kind of visual design that makes it clear what is and what isn't interactible.
 - [ ] The move preview doesn't animate properly when the unit retreads its path
 - [ ] **ALLY/NEUTRAL faction spawn wiring** (post-alpha — alpha doesn't need allies or neutrals). [data/characters/desert_prince.json](../data/characters/desert_prince.json), [mystic.json](../data/characters/mystic.json), and [battle_chicken.json](../data/characters/battle_chicken.json) exist but no infrastructure spawns them. Currently `RECRUIT_POOL` is player-only and `enemy_spawn_pool` is enemy-only — there's no equivalent for `Enums.UnitFaction.ALLY` or `NEUTRAL`. Needs design first: (a) where allies come from — mission-scripted, pooled like recruits, or hand-placed in the map .tscn? (b) neutral behavior — wandering / hostile-to-all / passive decoration? (c) authoring surface — .tscn placement vs programmatic spawn. Then plumb through `TurnManager` and AI so non-PLAYER/non-ENEMY factions get turns and decisions.
-- [ ] 
+- [ ] On controller/M&K, the preview path should display while hovering the next node in the planned path.
+- [ ]
 
 # Stretch Goals
 - [ ] Sync beacons to music BPM
