@@ -180,14 +180,19 @@ Verbose labels are used for tooltips, flavor text, the codex.
 
 **Dual Type Interaction**: Both defending types are looked up and their multipliers multiplied. An `Ouch × Ouch` matchup yields `2x Ouch` (k²); an `Ouch × Resist` matchup yields neutral (k × 1/k = 1).
 
-### Damage Calculation *(Current Implementation)* 
+### Damage Calculation *(Radiant Dawn style, ported 2026-06-03)*
 ```
-Attack Stat = Physical moves use Strength, Special moves use Special
+Attack Stat  = Physical moves use Strength, Special moves use Special
 Defense Stat = Physical moves vs Defense, Special moves vs Resistance
-Base Damage = (Move Power × Attack Stat ÷ 5) - Defense Stat
+Base Damage  = (Attack Stat + Move Power) - Defense Stat
 Final Damage = Base Damage × Type Effectiveness × Other Modifiers
 Minimum Damage = 1 (always deal at least 1 damage)
 ```
+
+Additive formula instead of multiplicative — stat growth still raises damage but doesn't compound with weapon power. See [damage-audit-2026-06-02.md](damage-audit-2026-06-02.md) for the full rationale (previous `(Power × Atk ÷ 5) - Def` formula snowballed at high stats and produced the Ogre-untouchable / Backhand-overpowered symptoms).
+
+### Multi-Hit *(athleticism ratio, "Brave weapon" framing)*
+Number of attacks is determined by the ratio of attacker Athleticism to defender Athleticism: 4× → 4 hits, 3× → 3, 2× → 2, else 1. Early-game stat spreads rarely reach 2×, so multi-hit is naturally rare; it becomes a meaningful payoff for stacking athleticism into a runaway lead. Functions as the in-game equivalent of FE's "Brave" weapons — a power spike rewarding focused investment.
 
 ### Bond Bonuses
 - **Adjacent Allies**: Small stat bonuses based on elemental type synergy

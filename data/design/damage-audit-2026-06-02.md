@@ -1,5 +1,7 @@
 # Damage Calculation Audit (2026-06-02)
 
+> **Update 2026-06-03**: Damage formula ported to RD-style additive `(atk + might) - def`. Multi-hit kept as-is (ratio-based 2×/3×/4×, capped at 4 hits) after playtest — re-framed as a "Brave weapon"-style power spike for stacking athleticism. Move base_powers untouched (deferred to a later playtest pass).
+
 Audit of [scripts/combat/damage_calculator.gd](../../scripts/combat/damage_calculator.gd) prompted by recurring "damage feels off" / "Ogre overpowered" / "Backhand too strong" reports. **No code changes made yet — this is a findings doc to inform a future design call.**
 
 ## Formula in code

@@ -1,11 +1,17 @@
 ## Pure calculation helpers for combat damage, multi-hit, and counter-attack checks.
 ## All static methods — no state, no side effects.
 ##
-## Damage formula (from Unity):
-##   attack_stat = strength (physical) or special (special move)
+## Damage formula (Radiant Dawn style, additive — see damage-audit-2026-06-02.md
+## for the rationale that landed us here):
+##   attack_stat  = strength (physical) or special (special move)
 ##   defense_stat = defense (physical) or resistance (special)
-##   base_damage = (move.base_power * attack_stat / 5) - defense_stat
-##   final_damage = max(1, round(base_damage * type_multiplier))
+##   base_damage  = (attack_stat + move.base_power) - defense_stat
+##   final_damage = max(1, round(base_damage * type_multiplier * other_multipliers))
+##
+## The previous Unity-ported formula multiplied `move.base_power * attack_stat / 5`,
+## which caused damage to compound super-linearly with stat growth (Ogre-untouchable
+## + Backhand-overpowered symptoms). Additive scaling keeps high-stat units strong
+## without making them dominant.
 class_name DamageCalculator
 extends RefCounted
 
@@ -42,18 +48,23 @@ static func calculate_damage(attacker: Node2D, defender: Node2D, move: Move) -> 
 			if bellows_stacks > 0:
 				bellows_multiplier = 1.0 + (bellows_stacks * 0.25)
 
-	# Formula
-	var base_damage: float = (move.base_power * attack_stat / 5.0) - defense_stat
+	# Additive RD-style formula: stat + might - def. Stat growth still matters
+	# but doesn't compound with weapon power, so high-level units don't snowball.
+	var base_damage: int = (attack_stat + move.base_power) - defense_stat
 	var final_damage := maxi(1, roundi(base_damage * type_multiplier * bellows_multiplier))
 
-	DebugConfig.log_combat("DamageCalc: power=%d * atk=%d / 5 - def=%d = %.1f * type=%.2f * bellows=%.2f -> %d" % [
-		move.base_power, attack_stat, defense_stat, base_damage, type_multiplier, bellows_multiplier, final_damage])
+	DebugConfig.log_combat("DamageCalc: atk=%d + power=%d - def=%d = %d * type=%.2f * bellows=%.2f -> %d" % [
+		attack_stat, move.base_power, defense_stat, base_damage, type_multiplier, bellows_multiplier, final_damage])
 
 	return final_damage
 
 
 ## Calculate number of attacks based on athleticism ratio.
-## 4x = 4 hits, 3x = 3, 2x = 2, else 1.
+## 4× → 4 hits, 3× → 3 hits, 2× → 2 hits, else 1. Framed as a "Brave"-weapon-style
+## power spike: early-game stat spreads rarely reach 2×, so multi-hit is naturally
+## rare; it becomes a meaningful payoff for investing into a runaway athleticism
+## lead later on. (Considered switching to Radiant Dawn's binary +4 threshold but
+## decided the ratio cliffs are the desired design — see [damage-audit-2026-06-02.md].)
 static func calculate_attack_count(attacker: Node2D, defender: Node2D) -> int:
 	if attacker == null or defender == null:
 		return 1
