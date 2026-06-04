@@ -98,6 +98,9 @@ func show_preview(attacker: Node, defender: Node, move: Move) -> void:
 	visible = true
 	_reset_pip_colors()
 	_set_value_column_header("DMG")
+	# A prior self-cast heal preview might have hidden these — restore.
+	_defender_section.visible = true
+	_bottom_health_pips.visible = true
 	_update_attacker_section(attacker, defender, move)
 	_update_defender_section(attacker, defender, move)
 	_update_health_pips(attacker, defender, move)
@@ -115,7 +118,14 @@ func show_heal_preview(caster: Node, target: Node, move: Move, heal_amount: int)
 	_apply_pip_heal_colors()
 	_set_value_column_header("+HP")
 	_update_caster_section_for_heal(caster, target, move, heal_amount)
-	_update_target_section_for_heal(target)
+	# Self-cast collapses the bottom half entirely (no duplicate unit display,
+	# no second HP bar). The heal projection moves to the top bar instead so
+	# the +HP preview stays visible.
+	var is_self_cast: bool = caster == target
+	_defender_section.visible = not is_self_cast
+	_bottom_health_pips.visible = not is_self_cast
+	if not is_self_cast:
+		_update_target_section_for_heal(target)
 	_update_heal_pips(caster, target, heal_amount)
 
 
@@ -211,6 +221,9 @@ func _update_defender_section(attacker: Node, defender: Node, move: Move) -> voi
 # The shader renders three zones from bottom: filled, damage preview, empty.
 
 func _update_health_pips(attacker: Node, defender: Node, move: Move) -> void:
+	_apply_pip_faction_color(_top_health_pips, attacker)
+	_apply_pip_faction_color(_bottom_health_pips, defender)
+
 	var attacker_data: CharacterData = attacker.get("character_data")
 	var attacker_hp: int = attacker.get("current_hp")
 	var attacker_max_hp: int = attacker_data.max_hp if attacker_data else 1
@@ -393,6 +406,47 @@ const _HEAL_NUMBER_GLOW: Color = Color(0.176, 0.310, 0.180, 1.0)  # matches "rss
 const _DAMAGE_BAND_COLOR_DEFAULT: Color = Color(0.5, 0.5, 0.5, 1.0)
 const _DAMAGE_BAND_GLOW_DEFAULT: Color  = Color(0.3, 0.3, 0.3, 1.0)
 
+# HP-bar fill + glow colors per faction. The scene file bakes player-blue on the
+# top pip and enemy-red on the bottom assuming player→enemy combat, but heal
+# previews and any future cross-faction interactions need the colors to follow
+# the unit, not the slot. _apply_pip_faction_colors swaps these in at runtime
+# based on the unit currently displayed in each slot.
+const _PLAYER_PIP_FILL: Color = Color(0.576, 0.82, 0.961, 1.0)
+const _PLAYER_PIP_GLOW: Color = Color(0.176, 0.42, 0.612, 1.0)
+const _ENEMY_PIP_FILL: Color  = Color(0.863, 0.388, 0.31, 1.0)
+const _ENEMY_PIP_GLOW: Color  = Color(0.557, 0.145, 0.094, 1.0)
+const _ALLY_PIP_FILL: Color   = Color(0.961, 0.886, 0.42, 1.0)   # bright yellow
+const _ALLY_PIP_GLOW: Color   = Color(0.612, 0.51, 0.176, 1.0)
+const _NEUTRAL_PIP_FILL: Color = Color(0.502, 0.733, 0.388, 1.0)  # bright green
+const _NEUTRAL_PIP_GLOW: Color = Color(0.176, 0.42, 0.176, 1.0)
+
+
+## Set a pip bar's filled color + glow to match the unit's faction. Heal
+## previews route ally targets through the same bottom slot that normally
+## displays enemies — without this, an allied target's HP would render in
+## enemy red.
+func _apply_pip_faction_color(pip: HealthPipBar, unit: Node) -> void:
+	if pip == null or unit == null:
+		return
+	var fill: Color = _PLAYER_PIP_FILL
+	var glow: Color = _PLAYER_PIP_GLOW
+	var faction: Variant = unit.get("faction")
+	match faction:
+		Enums.UnitFaction.ENEMY:
+			fill = _ENEMY_PIP_FILL
+			glow = _ENEMY_PIP_GLOW
+		Enums.UnitFaction.ALLY:
+			fill = _ALLY_PIP_FILL
+			glow = _ALLY_PIP_GLOW
+		Enums.UnitFaction.NEUTRAL:
+			fill = _NEUTRAL_PIP_FILL
+			glow = _NEUTRAL_PIP_GLOW
+		_:
+			fill = _PLAYER_PIP_FILL
+			glow = _PLAYER_PIP_GLOW
+	pip.filled_color = fill
+	pip.filled_glow = glow
+
 
 func _set_value_column_header(text: String) -> void:
 	if _value_column_header != null:
@@ -461,14 +515,30 @@ func _update_target_section_for_heal(target: Node) -> void:
 
 
 func _update_heal_pips(caster: Node, target: Node, heal_amount: int) -> void:
-	# Caster's bar: just show their current HP, no band — they aren't taking or gaining damage.
+	# Faction-color both bars per their occupant. Healing routes ally targets
+	# through the bottom slot, which is enemy-red by default — without these
+	# overrides, healing an ally renders their HP bar in red.
+	_apply_pip_faction_color(_top_health_pips, caster)
+	_apply_pip_faction_color(_bottom_health_pips, target)
+
 	var caster_data: CharacterData = caster.get("character_data")
 	var caster_hp: int = caster.get("current_hp")
 	var caster_max: int = caster_data.max_hp if caster_data != null else 1
+
+	# Self-cast: there's only one unit involved, so the heal projection rides
+	# on the top (caster) bar and the bottom bar is hidden by show_heal_preview.
+	if caster == target:
+		_top_health_pips.health_fill = float(caster_hp) / float(caster_max)
+		_top_health_pips.damage_fill = float(heal_amount) / float(caster_max)
+		var caster_projected_ratio := float(caster_hp + heal_amount) / float(caster_max)
+		_position_arrow(_attacker_arrow, _top_health_pips, caster_projected_ratio, false)
+		return
+
+	# Standard heal: caster's bar is steady (they aren't taking or gaining HP),
+	# target's bar shows the projected gain band.
 	_top_health_pips.health_fill = float(caster_hp) / float(caster_max)
 	_top_health_pips.damage_fill = 0.0
 
-	# Target's bar: solid current HP at the bottom, pulsing gain band stacked on top.
 	var target_data: CharacterData = target.get("character_data")
 	var target_hp: int = target.get("current_hp")
 	var target_max: int = target_data.max_hp if target_data != null else 1
