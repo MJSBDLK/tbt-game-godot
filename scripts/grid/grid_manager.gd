@@ -433,12 +433,14 @@ func find_path(start_tile: Tile, target_tile: Tile, unit: Node2D) -> Array[Tile]
 			if not neighbor.can_unit_move_to(unit_type) or closed_set.has(neighbor):
 				continue
 
-			# Can't move through enemies
-			if neighbor.current_unit != null and neighbor != target_tile:
-				var unit_faction: Variant = unit.get("faction")
-				var occupant_faction: Variant = neighbor.current_unit.get("faction")
-				if occupant_faction != unit_faction:
-					continue
+			# Route through _tile_blocks_passage so passives (Ghost) and any
+			# future pass-through rules apply identically to the BFS preview
+			# in get_movement_range. Previously this branch had its own inline
+			# ally-vs-enemy check that didn't know about Ghost — units saw
+			# "reachable" preview tiles past enemies but find_path couldn't
+			# compute a path through them, so clicks silently failed.
+			if neighbor != target_tile and _tile_blocks_passage(neighbor, unit):
+				continue
 
 			var new_cost := current_node.cost_from_start + _scaled_tile_cost(neighbor, unit_type)
 
