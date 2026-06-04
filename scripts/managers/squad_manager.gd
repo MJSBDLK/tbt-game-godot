@@ -109,6 +109,13 @@ func _on_battle_started(player_units: Array) -> void:
 		var data: CharacterData = unit.character_data if "character_data" in unit else null
 		if data == null:
 			continue
+		# Refill PP on every equipped move. CharacterData (and its move list)
+		# persists across missions via this manager, so without this each
+		# move's current_uses would carry the depleted state from the prior
+		# battle. Enemies don't need this — they spawn from fresh JSON copies.
+		for move: Move in data.equipped_moves:
+			if move != null:
+				move.reset_uses()
 		var growth_snapshot: Dictionary = {}
 		for entry: Array in _GROWTH_FIELDS:
 			growth_snapshot[entry[1]] = data.get(entry[1])

@@ -264,6 +264,9 @@ func _auto_level_unit(unit: Unit, difficulty: Enums.EnemyDifficulty = Enums.Enem
 	# Unit.initialize() captured current_hp before auto-leveling raised max_hp.
 	# Top off so a freshly-spawned auto-leveled unit starts at full health.
 	unit.current_hp = unit.character_data.max_hp
+	# Initialize() also cached the level label at the pre-level-up value; the
+	# label only refreshes on XP-driven level-ups otherwise.
+	unit._update_level_label()
 
 
 ## Spawn a unit from a pre-existing CharacterData (the SquadManager-persistent
