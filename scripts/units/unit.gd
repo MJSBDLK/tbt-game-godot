@@ -659,9 +659,50 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 	if is_defeated():
 		await _handle_defeat()
 
+	# Capricious: each combatant who has the passive re-rolls their assigned_move
+	# for next combat. Within THIS combat the move was locked in (so a multi-hit
+	# counter doesn't swap moves mid-chain — per design); the reroll happens once
+	# now, after every hit landed, so the next time this unit fights they're
+	# using a different move.
+	_capricious_post_combat_reroll(self)
+	_capricious_post_combat_reroll(defender)
+
 	combat_completed.emit(self, defender)
 	DebugConfig.log_combat("Combat complete: %s HP=%d, %s HP=%d" % [
 		unit_name, current_hp, defender.unit_name, defender.current_hp])
+
+
+## After combat, record what move `combatant` just used and (if they have
+## Capricious) re-pick assigned_move from their remaining usable moves so
+## their next combat — including counter-attacks from enemies later this
+## turn — uses a different move. Skips silently for non-Capricious units
+## and for defeated units.
+func _capricious_post_combat_reroll(combatant: Unit) -> void:
+	if combatant == null or combatant.is_defeated():
+		return
+	var data: CharacterData = combatant.character_data
+	if data == null or not data.has_equipped_passive("Capricious"):
+		return
+	if combatant.assigned_move != null:
+		combatant.last_used_move_index = data.equipped_moves.find(combatant.assigned_move)
+
+	var usable_indices: Array[int] = []
+	for index: int in range(data.equipped_moves.size()):
+		var move: Move = data.equipped_moves[index]
+		if move.has_uses_remaining() and not combatant.is_move_index_locked(index):
+			usable_indices.append(index)
+
+	# Prefer a move different from the one just used. If only one usable
+	# move remains, keep the current assignment — Capricious can't conjure
+	# variety out of nothing.
+	var different: Array[int] = []
+	for idx: int in usable_indices:
+		if idx != combatant.last_used_move_index:
+			different.append(idx)
+	if different.is_empty():
+		return
+	var chosen: int = different[randi() % different.size()]
+	combatant.assigned_move = data.equipped_moves[chosen]
 
 
 ## Execute a single hit against a target. Calculates damage (or healing for support
