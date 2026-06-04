@@ -362,9 +362,10 @@ func _build_full_path() -> Array[Tile]:
 
 	for waypoint: Variant in planned_waypoints:
 		var segment := GridManager.find_path(start, waypoint.tile, self)
-		for tile: Tile in segment:
-			if not full_path.has(tile):
-				full_path.append(tile)
+		# Preserve duplicates so self-crossing paths walk the literal route the
+		# player drew. find_path excludes the start tile, so segments don't
+		# introduce seam dupes — every repeat reflects a real revisit.
+		full_path.append_array(segment)
 		start = waypoint.tile
 
 	return full_path

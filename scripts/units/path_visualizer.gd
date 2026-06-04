@@ -48,9 +48,12 @@ func update_path(unit: Node2D) -> void:
 		var start: Tile = current_tile
 		for waypoint: Variant in planned_waypoints:
 			var segment := GridManager.find_path(start, waypoint.tile, unit)
-			for tile: Tile in segment:
-				if not full_path.has(tile):
-					full_path.append(tile)
+			# Preserve duplicates: when a path crosses itself, the cross-tile
+			# spawns a stacked beacon whose phase = its index in full_path, so
+			# the pulse wave visits it again in walked order. find_path excludes
+			# the start tile, so segments don't introduce seam dupes — every
+			# repeat here reflects a real revisit the player drew.
+			full_path.append_array(segment)
 			start = waypoint.tile
 
 	_path_tiles = full_path
