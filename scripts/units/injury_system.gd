@@ -17,6 +17,11 @@ signal injury_expired(character_data: CharacterData, injury: Injury)
 signal unit_permadead(character_data: CharacterData)
 
 
+# Recovery battles for a Minor injury when same-type immunity applies. The
+# injury still lands (death always leaves a mark) but heals fast.
+const SAME_TYPE_MINOR_RECOVERY_BATTLES: int = 1
+
+
 # =============================================================================
 # QUEUE (mid-mission)
 # =============================================================================
@@ -54,12 +59,16 @@ func queue_injury_from_death(unit: Node2D) -> Injury:
 		severity = Enums.InjurySeverity.MAJOR
 
 	# Same-type immunity: if the unit shares an elemental type with the killing source,
-	# reduce severity by one tier. A Minor reduced past Minor becomes nothing.
-	# Uses effective types so a Crystallized unit loses its immunity along with its type.
+	# soften the injury. MAJOR drops one tier to MINOR (standard recovery). A MINOR
+	# instead gets a shortened recovery (SAME_TYPE_MINOR_RECOVERY_BATTLES) — the
+	# wound still lands so death always leaves a mark, but knowledge of your own
+	# element speeds the bounce-back. Uses effective types so a Crystallized unit
+	# loses its immunity along with its type.
 	var unit_has_type: bool = (
 		character_data.effective_primary_type() == element or
 		character_data.effective_secondary_type() == element
 	)
+	var shortened_recovery: bool = false
 	if unit_has_type:
 		match severity:
 			Enums.InjurySeverity.MAJOR:
@@ -67,15 +76,18 @@ func queue_injury_from_death(unit: Node2D) -> Injury:
 				DebugConfig.log_status("InjurySystem: %s has %s immunity — Major reduced to Minor" % [
 					unit.get("unit_name"), Enums.ElementalType.keys()[element]])
 			Enums.InjurySeverity.MINOR:
-				DebugConfig.log_status("InjurySystem: %s has %s immunity — Minor injury shrugged off" % [
-					unit.get("unit_name"), Enums.ElementalType.keys()[element]])
-				return null
+				shortened_recovery = true
+				DebugConfig.log_status("InjurySystem: %s has %s immunity — Minor recovery shortened to %d battle(s)" % [
+					unit.get("unit_name"), Enums.ElementalType.keys()[element], SAME_TYPE_MINOR_RECOVERY_BATTLES])
 
 	# Build the injury instance
 	var injury := Injury.new()
 	injury.injury_id = data.injury_id
 	injury.severity = severity
-	injury.battles_remaining = data.major_recovery_battles if severity == Enums.InjurySeverity.MAJOR else data.minor_recovery_battles
+	if shortened_recovery:
+		injury.battles_remaining = SAME_TYPE_MINOR_RECOVERY_BATTLES
+	else:
+		injury.battles_remaining = data.major_recovery_battles if severity == Enums.InjurySeverity.MAJOR else data.minor_recovery_battles
 
 	character_data.pending_injuries.append(injury)
 	DebugConfig.log_status("InjurySystem: Queued %s (%s) on %s — overkill=%d/%d (%.0f%%)" % [
