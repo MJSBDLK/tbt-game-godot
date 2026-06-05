@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+#
+# Pre-commit hook — runs the GUT unit test suite before allowing a commit.
+#
+# Mode: SOFT-FAIL. If tests fail, prints a warning but the commit still
+# proceeds. Once the suite has been stable for a couple of weeks, change
+# `exit 0` at the bottom to `exit 1` to make failing tests block commits.
+#
+# Install (or re-install after a fresh clone):
+#   ln -sf ../../tools/hooks/pre-commit .git/hooks/pre-commit
+#
+# Bypass for a single commit:    git commit --no-verify
+# Override Godot binary path:    GODOT_BIN=/path/to/godot git commit ...
+
+set -u
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT" || exit 0
+
+GODOT_BIN="${GODOT_BIN:-godot-4}"
+if ! command -v "$GODOT_BIN" >/dev/null 2>&1; then
+	echo "[pre-commit] WARNING: '$GODOT_BIN' not in PATH — skipping tests."
+	echo "[pre-commit] Set GODOT_BIN env var or install Godot to enable test runs."
+	exit 0
+fi
+
+LOG=$(mktemp -t gut-pre-commit.XXXXXX.log)
+trap 'rm -f "$LOG"' EXIT
+
+echo "[pre-commit] Running GUT unit tests..."
+# Pipe through `tee` rather than a direct `>` redirect: Godot detects when
+# stdout is a regular file and writes nothing in that case. Routing through
+# a process (tee) keeps it convinced it's a pipe.
+"$GODOT_BIN" --headless --path . -s addons/gut/gut_cmdln.gd \
+	-gdir=res://tests/unit -gexit 2>&1 | tee "$LOG" > /dev/null
+RESULT=${PIPESTATUS[0]}
+
+if [ $RESULT -ne 0 ]; then
+	echo "[pre-commit] !!! Tests FAILED (exit $RESULT)."
+	echo "[pre-commit] --- last 30 lines of output ---"
+	tail -30 "$LOG"
+	echo "[pre-commit] --- end output ---"
+	echo "[pre-commit] Soft-fail mode: commit will proceed."
+	echo "[pre-commit] To bypass entirely:  git commit --no-verify"
+	echo "[pre-commit] To enforce passing:  edit tools/hooks/pre-commit, change 'exit 0' at the bottom to 'exit 1'."
+	exit 0
+fi
+
+# Success — emit a tight one-line summary
+SUMMARY=$(grep -E "Passing Tests|Asserts|Time " "$LOG" | tr '\n' ' ' | sed 's/  */ /g')
+echo "[pre-commit] OK. $SUMMARY"
+exit 0
