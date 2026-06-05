@@ -56,6 +56,11 @@ var max_movement_range: int:
 	get:
 		if character_data == null:
 			return 0
+		# ROOTED hard-stops movement regardless of move distance. character_data
+		# only knows about injuries (Broken Bone); status effects live on Unit.
+		for effect in active_status_effects:
+			if effect != null and effect.effect_type_name == "ROOTED":
+				return 0
 		return character_data.get_effective_move_distance() * MOVEMENT_SCALE
 
 

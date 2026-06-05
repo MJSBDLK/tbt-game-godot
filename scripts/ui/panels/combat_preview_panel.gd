@@ -151,6 +151,12 @@ func _update_attacker_section(attacker: Node, defender: Node, move: Move) -> voi
 	# Damage per hit and hit count (from athleticism comparison)
 	var damage_per_hit := DamageCalculator.calculate_damage(attacker, defender, move)
 	var hit_count := DamageCalculator.calculate_attack_count(attacker, defender)
+	# Damage numbers use the SECONDARY text palette (yellow-cream font, purple
+	# glow). Set explicitly each time so a prior heal preview's green override
+	# doesn't leak into the next attack.
+	_attacker_damage_label.add_theme_color_override("font_color", GameColors.TEXT_SECONDARY)
+	if _attacker_damage_label.has_method("_apply_glow_color"):
+		_attacker_damage_label.set("glow_color", GameColors.TEXT_SECONDARY_GLOW)
 	_attacker_damage_label.text = str(damage_per_hit)
 	_set_hits_label(_attacker_hits_label, hit_count)
 	_attacker_hit_label.text = "%d%%" % DamageCalculator.hit_chance_pct(attacker, defender, move)
