@@ -158,6 +158,11 @@ func _update_attacker_section(attacker: Node, defender: Node, move: Move) -> voi
 	if _attacker_damage_label.has_method("_apply_glow_color"):
 		_attacker_damage_label.set("glow_color", GameColors.TEXT_SECONDARY_GLOW)
 	_attacker_damage_label.text = str(damage_per_hit)
+	# Runtime invariant: damage preview must always end in the secondary palette.
+	# Fires immediately if a future change re-introduces the heal-color leak.
+	# Compiled out in release builds.
+	assert(_attacker_damage_label.get_theme_color("font_color").is_equal_approx(GameColors.TEXT_SECONDARY),
+			"combat_preview: damage label font_color is not TEXT_SECONDARY at end of _update_attacker_section — heal color leaked?")
 	_set_hits_label(_attacker_hits_label, hit_count)
 	_attacker_hit_label.text = "%d%%" % DamageCalculator.hit_chance_pct(attacker, defender, move)
 
