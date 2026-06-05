@@ -26,7 +26,7 @@ enum ElementalType {
 	ROBO,
 	SIMPLE,
 	VOID,
-	OBSIDIAN,   # Enemies only, highly resistant to everything
+	OBSIDIAN,   # Enemies only, highly resistant to almost everything
 }
 
 enum DamageType {
