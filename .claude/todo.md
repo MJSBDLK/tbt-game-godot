@@ -2,7 +2,7 @@
 ## [ ] RQD
 - [ ] How hard would it be to make a crater (terrain modifier) grant a defensive bonus against melee attacks and a penalty against ranged attacks?
 ## [ ] LOD
-- [ ] 
+- [ ] Export as many modifiers and decos as you can
 
 # [ ] Meeting 20260531
 ## [x] RQD

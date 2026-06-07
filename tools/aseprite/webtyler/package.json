@@ -2,7 +2,7 @@
   "name": "webtyler",
   "displayName": "Webtyler Autotile",
   "description": "Generate autotile previews from various tileset formats (minitiles, 3x3, 4x4, RPGMaker, etc). Port of wareya's Webtyler.",
-  "version": "1.0.7",
+  "version": "1.0.10",
   "author": "Ported from wareya's Webtyler (https://wareya.github.io/webtyler/)",
   "license": "MIT",
   "contributes": {

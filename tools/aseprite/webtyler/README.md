@@ -57,6 +57,23 @@ In **rpgmaker** mode the preview also stamps the seamless interior tile (the
 **3×3 grid** below the autotile output, so you can eyeball whether the interior
 tiles without visible seams.
 
+### Animation
+
+If your source has multiple **timeline frames** (e.g. animated water/lava, each
+frame a full tileset), the preview becomes multi-frame too: every source frame
+is autotiled into the matching preview frame and frame durations are copied over,
+so the preview plays back the animated autotile. A single-frame source behaves
+exactly as before.
+
+Two options help when working with animation (both in the Webtyler dialog):
+
+- **Follow source frame** — when you switch to the preview, it snaps to the
+  frame you were editing in the source. (Aseprite's active frame is global, so
+  it follows on tab-switch rather than live, which avoids focus flicker.)
+- **Show source** — stamps the raw source tileset to the right of the output in
+  the same preview document, so pressing play shows input and output animating
+  together in one window.
+
 ## Hotkey
 
 No default hotkey is registered (F10 conflicts with Aseprite's Color Curves).

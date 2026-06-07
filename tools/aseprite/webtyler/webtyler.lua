@@ -178,13 +178,21 @@ local settings = {
     bottomOffset = 0,
     liveUpdate = true,
     showPreviewScene = true,
+    followFrame = true,
+    showInput = true,
 }
 
 local previewSprite = nil
 local sourceSprite = nil
 local sourceChangeKey = nil
+local appSiteChangeKey = nil
 local updating = false
 local dlg = nil
+
+-- Frame-follow state (see onSiteChange)
+local syncingFrame = false
+local pendingPreviewFrame = 1
+local lastActiveWasPreview = false
 
 local function isSpriteValid(s)
     if not s then return false end
@@ -525,6 +533,13 @@ local function renderSourceComposite(source, frame)
     return img
 end
 
+-- Stamp the raw source tileset (this frame's composite) into the preview canvas
+-- so the single preview document shows input AND output animating together —
+-- sidestepping Aseprite's one-active-frame-per-document limit. Optional.
+local function drawSourceInput(srcImg, dstImg, startX, startY)
+    pcall(function() dstImg:drawImage(srcImg, Point(startX, startY)) end)
+end
+
 local updatePreviews  -- forward declared so onSourceChange can reference it
 
 local function onSourceChange()
@@ -538,6 +553,37 @@ local function onSourceChange()
     updating = true
     pcall(updatePreviews)
     updating = false
+end
+
+-- Frame-follow: remember which frame the user is on in the SOURCE, and snap the
+-- preview to the matching frame the instant they switch over to it. We snap only
+-- on the switch INTO the preview (not on every site event) so the user can still
+-- scrub/play the preview freely once they're looking at it. Aseprite's active
+-- frame is global, so there's no way to move the preview's frame live while the
+-- source stays focused without flicker — hence the snap-on-switch design.
+local function onSiteChange()
+    if updating then return end
+    if not settings.followFrame then return end
+    if syncingFrame then return end
+    if not isSpriteValid(previewSprite) then return end
+
+    local active = app.activeSprite
+    local nowPreview = (active == previewSprite)
+    if active == sourceSprite then
+        local f = app.activeFrame
+        if f then pendingPreviewFrame = f.frameNumber end
+    elseif nowPreview and not lastActiveWasPreview then
+        local n = pendingPreviewFrame
+        if n > #previewSprite.frames then n = #previewSprite.frames end
+        if n < 1 then n = 1 end
+        local cur = app.activeFrame
+        if cur and cur.frameNumber ~= n and previewSprite.frames[n] then
+            syncingFrame = true
+            pcall(function() app.activeFrame = previewSprite.frames[n] end)
+            syncingFrame = false
+        end
+    end
+    lastActiveWasPreview = nowPreview
 end
 
 updatePreviews = function()
@@ -558,29 +604,10 @@ updatePreviews = function()
         return
     end
 
-    -- Read the FULL visible composite of the source sprite — every visible
-    -- layer merged at its TRUE canvas position — not a single cel. This means
-    -- multi-layer tilesets (e.g. scribbles over a background) render correctly,
-    -- hiding a layer excludes it from the input, tilemap layers are rasterized
-    -- to pixels, and — crucially — a transparent margin around the art is kept
-    -- verbatim, so source coordinates map 1:1 to the canvas and the tile grid
-    -- stays anchored to (0,0). Transparency never shifts where tiles are read.
-    local frame = source.frames[1]
-    if app.activeSprite == source and app.activeFrame then
-        frame = app.activeFrame
-    end
-    local srcImg
-    local ok = pcall(function()
-        srcImg = renderSourceComposite(source, frame)
-    end)
-    if not ok or not srcImg then
-        if not updating then
-            app.alert("Webtyler: couldn't render the source sprite. " ..
-                "Open your tileset and run again.")
-        end
-        return
-    end
-
+    -- Each visible layer is composited at its TRUE canvas position (see
+    -- renderSourceComposite): margins are preserved, coordinates map 1:1, and
+    -- every timeline frame is rendered below so an animated source tileset
+    -- yields an animated autotile preview.
     local mode = settings.mode
     local tileW = settings.tileW
     local tileH = settings.tileH
@@ -606,6 +633,17 @@ updatePreviews = function()
         outH = math.max(outH, fillStartY + 3 * tileH)
     end
 
+    -- Reserve a column to the right of the 12-wide output for the raw source
+    -- tileset, so input and output sit in one document and animate in lockstep.
+    local inputActive = settings.showInput
+    local inputStartX, inputStartY = 0, 0
+    if inputActive then
+        inputStartX = 12 * tileW + tileW      -- 1-tile gap right of the output
+        inputStartY = 0
+        outW = inputStartX + source.width
+        outH = math.max(outH, source.height)
+    end
+
     -- Create or resize preview sprite
     if not isSpriteValid(previewSprite) then
         previewSprite = Sprite(outW, outH, source.colorMode)
@@ -617,8 +655,28 @@ updatePreviews = function()
         previewSprite:resize(outW, outH)
     end
 
-    local dstImg = Image(outW, outH, srcImg.colorMode)
-    dstImg:clear()
+    -- Match the preview's frame count to the source timeline, then render every
+    -- frame so an animated source tileset produces an animated autotile preview.
+    -- (For a single-frame source this loops exactly once — same as before.)
+    local prevActive = app.activeSprite
+    app.activeSprite = previewSprite
+    while #previewSprite.frames < #source.frames do previewSprite:newFrame() end
+    while #previewSprite.frames > #source.frames do
+        previewSprite:deleteFrame(#previewSprite.frames)
+    end
+    local previewLayer = previewSprite.layers[1]
+    local renderOk = true
+    for frameIndex = 1, #source.frames do
+        local srcFrame = source.frames[frameIndex]
+        local srcImg
+        if not pcall(function() srcImg = renderSourceComposite(source, srcFrame) end)
+            or not srcImg then
+            renderOk = false
+            break
+        end
+
+        local dstImg = Image(outW, outH, srcImg.colorMode)
+        dstImg:clear()
 
     -- Process based on mode (writes 12×4 autotile into top of dstImg)
     if mode == "minitiles" then
@@ -747,12 +805,34 @@ updatePreviews = function()
         drawFillPreview(srcImg, dstImg, tileW, tileH, fillStartX, fillStartY)
     end
 
-    -- Apply to preview sprite without stealing focus from the source
-    local prevActive = app.activeSprite
-    app.activeSprite = previewSprite
-    previewSprite.cels[1].image = dstImg
+        -- Stamp the raw source tileset alongside the output (optional).
+        if inputActive then
+            drawSourceInput(srcImg, dstImg, inputStartX, inputStartY)
+        end
+
+        -- Write this frame into the matching preview frame, copy its duration.
+        local cel = previewLayer:cel(frameIndex)
+        if cel then
+            cel.image = dstImg
+            cel.position = Point(0, 0)
+        else
+            previewSprite:newCel(previewLayer, frameIndex, dstImg, Point(0, 0))
+        end
+        pcall(function()
+            previewSprite.frames[frameIndex].duration = srcFrame.duration
+        end)
+    end  -- for frameIndex
+
+    -- Restore focus to whatever the user had active (usually the source).
     if isSpriteValid(prevActive) and prevActive ~= previewSprite then
         app.activeSprite = prevActive
+    end
+    if not renderOk then
+        if not updating then
+            app.alert("Webtyler: couldn't render the source sprite. " ..
+                "Open your tileset and run again.")
+        end
+        return
     end
     app.refresh()
 
@@ -884,6 +964,25 @@ local function showDialog()
         end
     }
 
+    dlg:check{
+        id = "followFrame",
+        label = "Follow source frame:",
+        selected = settings.followFrame,
+        onclick = function()
+            settings.followFrame = dlg.data.followFrame
+        end
+    }
+
+    dlg:check{
+        id = "showInput",
+        label = "Show source:",
+        selected = settings.showInput,
+        onclick = function()
+            settings.showInput = dlg.data.showInput
+            updatePreviews()
+        end
+    }
+
     dlg:separator()
 
     dlg:button{
@@ -925,6 +1024,13 @@ function init(plugin)
         group = "sprite_properties",
         onclick = updatePreviews
     }
+
+    -- Listen for active-frame/sprite changes so the preview can follow the
+    -- source's current frame (see onSiteChange). Wrapped: if this Aseprite build
+    -- doesn't expose app.events, frame-follow is simply inactive.
+    pcall(function()
+        appSiteChangeKey = app.events:on("sitechange", onSiteChange)
+    end)
 end
 
 function exit(plugin)
@@ -934,6 +1040,10 @@ function exit(plugin)
     if isSpriteValid(sourceSprite) and sourceChangeKey then
         pcall(function() sourceSprite.events:off(sourceChangeKey) end)
     end
+    if appSiteChangeKey then
+        pcall(function() app.events:off(appSiteChangeKey) end)
+    end
     sourceSprite = nil
     sourceChangeKey = nil
+    appSiteChangeKey = nil
 end
