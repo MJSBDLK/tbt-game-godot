@@ -603,6 +603,12 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 			if ally == null:
 				DebugConfig.log_combat("FriendlyFire: %s hesitated (no ally in range)" % unit_name)
 				return
+			# Surface the proc to the player BEFORE the swing animation so the
+			# cause-and-effect ("Corruption fired → I hit my ally") reads cleanly
+			# instead of looking like a bug. Brief pause lets the callout register
+			# before the attacker pivots toward the new target.
+			spawn_text_callout("CORRUPTION", GameColors.TEXT_DANGER)
+			await get_tree().create_timer(0.4).timeout
 			DebugConfig.log_combat("FriendlyFire: %s redirected attack from %s to %s" % [
 				unit_name, defender.unit_name, ally.unit_name])
 			defender = ally

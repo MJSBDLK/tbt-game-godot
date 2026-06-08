@@ -180,6 +180,7 @@ local settings = {
     showPreviewScene = true,
     followFrame = true,
     showInput = true,
+    lockToTag = true,
 }
 
 local previewSprite = nil
@@ -193,6 +194,11 @@ local dlg = nil
 local syncingFrame = false
 local pendingPreviewFrame = 1
 local lastActiveWasPreview = false
+-- Range of SOURCE frames currently feeding the preview (1..N, or a tag's span
+-- when "Lock to tag" is on). previewStartFrame is the source frame that maps to
+-- preview frame 1, so frame-follow can offset correctly.
+local previewStartFrame = 1
+local previewEndFrame = 1
 
 local function isSpriteValid(s)
     if not s then return false end
@@ -555,25 +561,57 @@ local function onSourceChange()
     updating = false
 end
 
--- Frame-follow: remember which frame the user is on in the SOURCE, and snap the
--- preview to the matching frame the instant they switch over to it. We snap only
--- on the switch INTO the preview (not on every site event) so the user can still
--- scrub/play the preview freely once they're looking at it. Aseprite's active
--- frame is global, so there's no way to move the preview's frame live while the
--- source stays focused without flicker — hence the snap-on-switch design.
+-- Return the [from, to] source-frame span of the tag containing `frameNum`.
+-- Falls back to the whole timeline (1..totalFrames) when the frame is untagged
+-- or the build doesn't expose tags. Lets several tagged resources share a file.
+local function tagRangeForFrame(sprite, frameNum, totalFrames)
+    local ok, from, to = pcall(function()
+        for _, tag in ipairs(sprite.tags) do
+            local f = tag.fromFrame.frameNumber
+            local t = tag.toFrame.frameNumber
+            if frameNum >= f and frameNum <= t then
+                return f, t
+            end
+        end
+        return nil
+    end)
+    if ok and from then return from, to end
+    return 1, totalFrames
+end
+
+-- Two jobs, both fired when the active frame/sprite changes:
+--  • Frame-follow: snap the preview to the source's current frame the instant
+--    you switch INTO the preview (only on switch-in, so you can still scrub/play
+--    freely). The active frame is global in Aseprite, so live following without
+--    flicker isn't possible — snap-on-switch is the clean compromise.
+--  • Lock-to-tag: if the selected source frame moves into a DIFFERENT tag than
+--    the one currently previewed, rebuild the preview for that tag.
 local function onSiteChange()
     if updating then return end
-    if not settings.followFrame then return end
     if syncingFrame then return end
     if not isSpriteValid(previewSprite) then return end
 
     local active = app.activeSprite
     local nowPreview = (active == previewSprite)
+
     if active == sourceSprite then
         local f = app.activeFrame
-        if f then pendingPreviewFrame = f.frameNumber end
-    elseif nowPreview and not lastActiveWasPreview then
-        local n = pendingPreviewFrame
+        local frameNum = f and f.frameNumber or 1
+        pendingPreviewFrame = frameNum
+        if settings.lockToTag then
+            local from, to = tagRangeForFrame(sourceSprite, frameNum, #sourceSprite.frames)
+            if from ~= previewStartFrame or to ~= previewEndFrame then
+                -- Crossed into another tag — rebuild for it.
+                updating = true
+                pcall(updatePreviews)
+                updating = false
+                lastActiveWasPreview = false
+                return
+            end
+        end
+    elseif nowPreview and not lastActiveWasPreview and settings.followFrame then
+        -- Map the source frame into the preview's range (offset by the tag start).
+        local n = (pendingPreviewFrame - previewStartFrame) + 1
         if n > #previewSprite.frames then n = #previewSprite.frames end
         if n < 1 then n = 1 end
         local cur = app.activeFrame
@@ -655,19 +693,35 @@ updatePreviews = function()
         previewSprite:resize(outW, outH)
     end
 
-    -- Match the preview's frame count to the source timeline, then render every
-    -- frame so an animated source tileset produces an animated autotile preview.
-    -- (For a single-frame source this loops exactly once — same as before.)
+    -- Decide which source frames feed the preview. With "Lock to tag" on we use
+    -- only the tag containing the currently-selected source frame, so several
+    -- tagged resources can live in one file and each preview independently.
+    -- Otherwise we use the whole timeline.
+    local sourceFrameNum = pendingPreviewFrame or 1
+    if app.activeSprite == source and app.activeFrame then
+        sourceFrameNum = app.activeFrame.frameNumber
+    end
+    local startFrame, endFrame = 1, #source.frames
+    if settings.lockToTag then
+        startFrame, endFrame = tagRangeForFrame(source, sourceFrameNum, #source.frames)
+    end
+    previewStartFrame = startFrame
+    previewEndFrame = endFrame
+    local frameCount = endFrame - startFrame + 1
+
+    -- Match the preview's frame count to that range, then render each frame so an
+    -- animated source tileset produces an animated autotile preview. (A single
+    -- frame / untagged single resource loops once — same as before.)
     local prevActive = app.activeSprite
     app.activeSprite = previewSprite
-    while #previewSprite.frames < #source.frames do previewSprite:newFrame() end
-    while #previewSprite.frames > #source.frames do
+    while #previewSprite.frames < frameCount do previewSprite:newFrame() end
+    while #previewSprite.frames > frameCount do
         previewSprite:deleteFrame(#previewSprite.frames)
     end
     local previewLayer = previewSprite.layers[1]
     local renderOk = true
-    for frameIndex = 1, #source.frames do
-        local srcFrame = source.frames[frameIndex]
+    for frameIndex = 1, frameCount do
+        local srcFrame = source.frames[startFrame + frameIndex - 1]
         local srcImg
         if not pcall(function() srcImg = renderSourceComposite(source, srcFrame) end)
             or not srcImg then
@@ -979,6 +1033,16 @@ local function showDialog()
         selected = settings.showInput,
         onclick = function()
             settings.showInput = dlg.data.showInput
+            updatePreviews()
+        end
+    }
+
+    dlg:check{
+        id = "lockToTag",
+        label = "Lock to tag:",
+        selected = settings.lockToTag,
+        onclick = function()
+            settings.lockToTag = dlg.data.lockToTag
             updatePreviews()
         end
     }

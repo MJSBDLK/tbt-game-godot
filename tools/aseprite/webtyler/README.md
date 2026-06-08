@@ -73,6 +73,10 @@ Two options help when working with animation (both in the Webtyler dialog):
 - **Show source** — stamps the raw source tileset to the right of the output in
   the same preview document, so pressing play shows input and output animating
   together in one window.
+- **Lock to tag** — when your file holds several tagged resources, the preview
+  uses only the **tag containing the currently-selected frame** instead of the
+  whole timeline. Selecting a frame in a different tag rebuilds the preview for
+  that tag. Untagged frames fall back to the whole timeline.
 
 ## Hotkey
 

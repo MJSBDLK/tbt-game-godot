@@ -1,8 +1,15 @@
+# [ ] Meeting 2026.06.14
+## [ ] RQD
+- [ ] Webtyler - lock preview animations to their tag
+- [ ] more bugfixes, work on the issues Lawrence identified in playtesting
+## [ ] LOD
+- [ ] Void lock effect animation
+- [ ] Export as many modifiers and decos as you can
+
 # [ ] Meeting 20260603
 ## [ ] RQD
 - [ ] How hard would it be to make a crater (terrain modifier) grant a defensive bonus against melee attacks and a penalty against ranged attacks?
 ## [ ] LOD
-- [ ] Export as many modifiers and decos as you can
 
 # [ ] Meeting 20260531
 ## [x] RQD
@@ -193,7 +200,36 @@ New sprites — faction needed:
 - [x] "Rooted" debuff doesn't do anything. **Fixed 2026-06-04**: [Unit.max_movement_range](../scripts/units/unit.gd) getter now returns 0 if the unit has a ROOTED status effect active. Root cause: `character_data.get_effective_move_distance()` only consulted injuries (Broken Bone), never status effects, because `active_status_effects` lives on Unit, not CharacterData. Added the ROOTED scan in Unit's getter, after the character_data lookup. Freeze ("can't act") would deserve the same treatment but is a separate bug — flag if it shows up.
 - [x] The "healing" color is now applying to (seemingly) all player faction attacks in the combat preview panel - when attacking the color should be the secondary colors (text/glow) and when healing these should be green (like they are now) **Fixed 2026-06-04**: [combat_preview_panel._update_attacker_section](../scripts/ui/panels/combat_preview_panel.gd) now explicitly sets `_attacker_damage_label`'s font_color to `GameColors.TEXT_SECONDARY` (yellow-cream) and glow_color to `GameColors.TEXT_SECONDARY_GLOW` (purple) before writing the damage number. Root cause: `_update_caster_section_for_heal` overrode the damage label's font + glow to green for heal previews, but the attack preview path only set the label's text — so the green stuck. Setting both colors explicitly each time prevents the leak and ensures damage always reads in the secondary palette (was previously rendering primary cyan font + leftover purple/green glow).
 - [x] In my testing, Ernesto was defeated in my first mission, but did not sustain an injury in the intermission screen. We should probably write a (some) unit test(s) so that this does not regress. We should probably do this for lots of mechanics. **Fixed 2026-06-05** + **first regression test**: [InjurySystem.queue_injury_from_death](../scripts/units/injury_system.gd) used to drop a MINOR injury entirely when same-type immunity applied — confirmed via log diagnosis (Ernesto, Simple-primary, killed by a Simple-physical move with low overkill, "Minor injury shrugged off"). Redesigned per RQD: same-type Minor still lands but recovers in 1 battle instead of the usual 4 (`SAME_TYPE_MINOR_RECOVERY_BATTLES`). Major→Minor reduction unchanged (uses default minor recovery). Test coverage in [tests/unit/test_injury_system.gd](../tests/unit/test_injury_system.gd) (5 cases: same-type Minor, same-type Major, cross-type, two null guards) — first real-code test using the new [TestFakeUnit](../tests/helpers/fake_unit.gd) helper.
-- [ ] 
+- [ ] At certain zoom levels, you can see seams between tiles at certain  camera positions. Hard to reproduce. The seam appears z-indexed at roughly the same level as the enemy sprite - it's a vertical line of subpixel (?) resolution when the camera is not centered. (grab a screenshot)
+- [ ] (minor) Changing the zoom mode from NN/integer makes zooming in/out a lot more/less sensitive (they zoom in/out faster depending on the mode) and this is jarring to players.
+- [ ] We should include move range in the 
+- [ ] simply double clicking on an enemy uses the equipped move on the enemy, and this is confusing to new players - make this an option advanced users can toggle on
+- [ ] We literally list the range nowhere in the unit detail panel or the move preview panel
+- [ ] The visual design of the preview panel makes it look interactible, and this is also confusing to new players
+- [ ] The level up screen (mid-battle) didn't appear, but then it appeared after the mission
+- [ ] the terrain preview is STILL active during the bEXP screen
+- [ ] Lawrence wants a VICTORY screen with no information first, then the info panel slides in (from the side, top, whatever). But the first thign should be a "you won" or "you lost" with no additional information - we can repurpose the "player turn/enemy turn" banner, with some alterations, for this
+- [ ] We can't see injuries on the intermission screen
+- [ ] Make the statup star the same color as the "X/Y unspent" so the user can tell easily what's being modified. Modified stats can also be that color
+- [ ] If you press a disabled button on the stat up edit screen, flash red the information which communicates to the user why that press failed.
+- [ ] Injuries aren't appearing in the next battle - is this because single-battle minor injuries have their counter reset at the beginning of the next battle, effectively making them last 0 battles?
+- [ ] in font size 5, it's very hard to read, particularly the numeral "8"
+- [ ] assigned move should display in the action menu before you click "wait" 
+- [ ] "Flamethrower Phoenix" is too long - need either an abbreviation, or to pick a different name. "Phoenix Pirate" maybe
+- [ ] locked moves need a visual - like a literal lock with chain links. Maybe a "void" effect for the moves locked by void. Strikethrough text?
+- [ ] Lawrence asks, "is there anywhere you can see what all these icons mean?" - tooltip mode, maybe? Probably wouldn't hurt to have an in-game legend/glossary
+- [working_as_designed] ~~Something VERY odd happened. In playtesting, Lawrence moved Max within 3 spaces of the enemy (adjacent to Grasker, who's a player unit), selected "laser" and clicked on the enemy. Instead, Max attacked Grasker, who then counterattacked Max. What on earth? Can laser even target friendly units? What would make that happen? This happened again a bit later - targeted the enemy, and he shoots Grasker (now 2 spaces away)
+- update - Ma'am hit him too! He's just a move magnet!~~
+- [partial] We need much better visual feedback so that we understand what's happening whan a corrupted unit "goes rogue." What's the proc chance, by the way?
+  - **Proc chance**: per-injury magnitude — `corruption_gentry` and `corruption_obsidian` define `10.0` (Minor) and `20.0` (Major), summed across all active Corruption injuries via [character_data.friendly_fire_chance_pct](../scripts/units/character_data.gd). Capped at 100%.
+  - **Done 2026-06-05**: "CORRUPTION" red callout spawns on the attacker BEFORE the swing animation when the retarget fires (re-uses the existing `spawn_text_callout` pipeline), with a 0.4s pause so the player reads the cause before the swing pivots. See [unit.gd](../scripts/units/unit.gd) — `execute_combat_sequence`, friendly-fire block.
+  - [ ] **Fizzle-case design call (RQD pending)**: when Corruption procs but no ally is in range, the attack currently fizzles (PP saved, action consumed, zero visual). Decide whether to (a) keep fizzle + add a "HESITATED" callout so it's not invisible, or (b) fall through to the originally-clicked enemy on no-ally. Until decided, fizzle stays silent — second symptom of the same bug.
+  - [ ] **Combat preview misfire chip**: show a clear `⚠ XX% misfire` indicator on the combat preview when the attacker has Corruption, so the player decides with full info. Use the concrete `friendly_fire_chance_pct` from character_data. Visual design needs a pass — could be a chip near the hit% area, or a banner across the preview. RQD to mock up.
+- [ ] Moves need to be tagged as either "melee" or "ranged," because currently a ranged move used at 1 space away plays the melee animation
+- [ ] Enemy pathing is really stupid and they can't path through obstacles 
+- [ ] Guard break - should have a chance to apply vulnerable
+- [ ] First Aid needs its power lowered by ~2
+- [ ] Compressed Air should have its range lowered to 1-2
 
 # TEST THESE MECHANICS
 - [ ] STAB + visual feedback
@@ -250,6 +286,7 @@ New sprites — faction needed:
 - [ ] **ALLY/NEUTRAL faction spawn wiring** (post-alpha — alpha doesn't need allies or neutrals). [data/characters/desert_prince.json](../data/characters/desert_prince.json), [mystic.json](../data/characters/mystic.json), and [battle_chicken.json](../data/characters/battle_chicken.json) exist but no infrastructure spawns them. Currently `RECRUIT_POOL` is player-only and `enemy_spawn_pool` is enemy-only — there's no equivalent for `Enums.UnitFaction.ALLY` or `NEUTRAL`. Needs design first: (a) where allies come from — mission-scripted, pooled like recruits, or hand-placed in the map .tscn? (b) neutral behavior — wandering / hostile-to-all / passive decoration? (c) authoring surface — .tscn placement vs programmatic spawn. Then plumb through `TurnManager` and AI so non-PLAYER/non-ENEMY factions get turns and decisions.
 - [ ] On controller/M&K, the preview path should display while hovering the next node in the planned path.
 - [ ] Bringing up the unit preview panel on an enemy should display their attack range on the map (pause before implementing this - should this be on a different hotkey?)
+- [ ] Let ice types walk on water
 - [ ] 
 
 # Stretch Goals
