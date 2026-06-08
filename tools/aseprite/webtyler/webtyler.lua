@@ -557,7 +557,9 @@ local function onSourceChange()
     -- mid-event would crash Aseprite). Manual refresh still works.
     if isTilemapContext() then return end
     updating = true
-    pcall(updatePreviews)
+    -- Live edit: re-render only the active frame so drawing and frame add/delete
+    -- stay responsive. The full animation rebuilds on a manual Refresh.
+    pcall(function() updatePreviews(true) end)
     updating = false
 end
 
@@ -598,16 +600,16 @@ local function onSiteChange()
         local f = app.activeFrame
         local frameNum = f and f.frameNumber or 1
         pendingPreviewFrame = frameNum
-        if settings.lockToTag then
-            local from, to = tagRangeForFrame(sourceSprite, frameNum, #sourceSprite.frames)
-            if from ~= previewStartFrame or to ~= previewEndFrame then
-                -- Crossed into another tag — rebuild for it.
-                updating = true
-                pcall(updatePreviews)
-                updating = false
-                lastActiveWasPreview = false
-                return
-            end
+        if settings.lockToTag
+            and (frameNum < previewStartFrame or frameNum > previewEndFrame) then
+            -- Selected frame left the previewed tag's span — rebuild for the new
+            -- tag. (Range membership, not tag bounds, so merely adding or deleting
+            -- frames inside the current tag no longer triggers a costly rebuild.)
+            updating = true
+            pcall(updatePreviews)
+            updating = false
+            lastActiveWasPreview = false
+            return
         end
     elseif nowPreview and not lastActiveWasPreview and settings.followFrame then
         -- Map the source frame into the preview's range (offset by the tag start).
@@ -624,7 +626,7 @@ local function onSiteChange()
     lastActiveWasPreview = nowPreview
 end
 
-updatePreviews = function()
+updatePreviews = function(activeFrameOnly)
     -- Source = active sprite, unless active IS the preview (then use last-known source).
     local source = app.activeSprite
     if source == previewSprite or not source then
@@ -693,38 +695,54 @@ updatePreviews = function()
         previewSprite:resize(outW, outH)
     end
 
-    -- Decide which source frames feed the preview. With "Lock to tag" on we use
-    -- only the tag containing the currently-selected source frame, so several
-    -- tagged resources can live in one file and each preview independently.
-    -- Otherwise we use the whole timeline.
+    -- Resolve the source's active frame number (drives which frame we touch).
     local sourceFrameNum = pendingPreviewFrame or 1
     if app.activeSprite == source and app.activeFrame then
         sourceFrameNum = app.activeFrame.frameNumber
     end
-    local startFrame, endFrame = 1, #source.frames
-    if settings.lockToTag then
-        startFrame, endFrame = tagRangeForFrame(source, sourceFrameNum, #source.frames)
-    end
-    previewStartFrame = startFrame
-    previewEndFrame = endFrame
-    local frameCount = endFrame - startFrame + 1
+    sourceFrameNum = math.max(1, math.min(sourceFrameNum, #source.frames))
 
-    -- Match the preview's frame count to that range, then render each frame so an
-    -- animated source tileset produces an animated autotile preview. (A single
-    -- frame / untagged single resource loops once — same as before.)
     local prevActive = app.activeSprite
     app.activeSprite = previewSprite
-    while #previewSprite.frames < frameCount do previewSprite:newFrame() end
-    while #previewSprite.frames > frameCount do
-        previewSprite:deleteFrame(#previewSprite.frames)
-    end
     local previewLayer = previewSprite.layers[1]
     local renderOk = true
-    for frameIndex = 1, frameCount do
-        local srcFrame = source.frames[startFrame + frameIndex - 1]
+
+    -- Build the list of {source frame, preview frame} render jobs.
+    --  • Live edits (activeFrameOnly) touch ONLY the active frame — no frame-count
+    --    sync, no duration copy — so drawing and adding/deleting frames stay
+    --    responsive. The full animation is rebuilt on a manual Refresh.
+    --  • A full rebuild recomputes the tag range (when "Lock to tag" is on),
+    --    matches the preview's frame count to it, and renders every frame.
+    local jobs = {}
+    if activeFrameOnly and #previewSprite.frames >= 1 then
+        local pIdx = sourceFrameNum - previewStartFrame + 1
+        if pIdx < 1 then pIdx = 1 end
+        if pIdx > #previewSprite.frames then pIdx = #previewSprite.frames end
+        jobs[1] = { src = sourceFrameNum, dst = pIdx, dur = false }
+    else
+        local startFrame, endFrame = 1, #source.frames
+        if settings.lockToTag then
+            startFrame, endFrame =
+                tagRangeForFrame(source, sourceFrameNum, #source.frames)
+        end
+        previewStartFrame = startFrame
+        previewEndFrame = endFrame
+        local frameCount = endFrame - startFrame + 1
+        while #previewSprite.frames < frameCount do previewSprite:newFrame() end
+        while #previewSprite.frames > frameCount do
+            previewSprite:deleteFrame(#previewSprite.frames)
+        end
+        for i = 1, frameCount do
+            jobs[i] = { src = startFrame + i - 1, dst = i, dur = true }
+        end
+    end
+
+    for _, job in ipairs(jobs) do
+        local srcFrame = source.frames[job.src]
         local srcImg
-        if not pcall(function() srcImg = renderSourceComposite(source, srcFrame) end)
-            or not srcImg then
+        if not srcFrame or not pcall(function()
+                srcImg = renderSourceComposite(source, srcFrame)
+            end) or not srcImg then
             renderOk = false
             break
         end
@@ -864,18 +882,20 @@ updatePreviews = function()
             drawSourceInput(srcImg, dstImg, inputStartX, inputStartY)
         end
 
-        -- Write this frame into the matching preview frame, copy its duration.
-        local cel = previewLayer:cel(frameIndex)
+        -- Write this frame into the matching preview frame.
+        local cel = previewLayer:cel(job.dst)
         if cel then
             cel.image = dstImg
             cel.position = Point(0, 0)
         else
-            previewSprite:newCel(previewLayer, frameIndex, dstImg, Point(0, 0))
+            previewSprite:newCel(previewLayer, job.dst, dstImg, Point(0, 0))
         end
-        pcall(function()
-            previewSprite.frames[frameIndex].duration = srcFrame.duration
-        end)
-    end  -- for frameIndex
+        if job.dur then
+            pcall(function()
+                previewSprite.frames[job.dst].duration = srcFrame.duration
+            end)
+        end
+    end  -- for job
 
     -- Restore focus to whatever the user had active (usually the source).
     if isSpriteValid(prevActive) and prevActive ~= previewSprite then
@@ -1086,7 +1106,9 @@ function init(plugin)
         id = "WebtylerRefresh",
         title = "Webtyler Refresh Preview",
         group = "sprite_properties",
-        onclick = updatePreviews
+        -- Wrapped so no command arg leaks in as activeFrameOnly — manual
+        -- Refresh always does the full multi-frame rebuild.
+        onclick = function() updatePreviews(false) end
     }
 
     -- Listen for active-frame/sprite changes so the preview can follow the
