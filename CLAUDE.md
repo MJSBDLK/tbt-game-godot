@@ -120,3 +120,12 @@ Before any UI work, read [data/design/ui-style-guide.md](data/design/ui-style-gu
 source of truth for palette use, typography, panel components, icon sizes, and the
 TBD/LOCK status of every visual decision. Don't hardcode hex values — reach for
 `GameColorPalette`. Don't introduce non-integer pixel sizing in gameplay UI.
+
+## Terrain Modifiers & Decorations
+
+Before touching the modifier/decoration sprite pipeline, layer architecture,
+shadow rendering, or tile registration, read
+[data/design/terrain_modifiers_and_decorations.md](data/design/terrain_modifiers_and_decorations.md).
+Source of truth for Lawrence's `.aseprite` authoring conventions, the
+TileMapLayer semantics (paint-layer determines gameplay vs. visual-only), and
+the runtime shadow renderer.
