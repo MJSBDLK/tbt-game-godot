@@ -51,17 +51,39 @@ layers consistently.
 
 ### For Lawrence — how to organize a `.aseprite` file
 
-Each `.aseprite` file can contain many sprites. The **tag** is the
-identity:
+This works exactly like the existing character-sprite workflow you already
+use ("Export Tags as PNGs" from the right-click menu). One `.aseprite`
+file can hold one sprite or many — the **tag** is the identity:
 
 - One tag = one stampable sprite. The tag name becomes the file name on
   export (e.g., a tag called `crater_small` exports as `crater_small.png`).
 - A tag's frames are the sprite's animation. A single-frame tag = a static
-  sprite (most modifiers/decorations).
-- All tags in the file share the same layer structure.
+  sprite (most modifiers/decorations probably). Multi-frame tags export as
+  a horizontal strip of frames — same as character animations.
+- All tags in the file share the same layer structure and the same pivot
+  (the existing plugin treats pivot as file-wide, one slice covers all
+  tags).
+- Per-frame durations from the `.aseprite` header are captured into the
+  sidecar JSON, so animations preserve your pacing.
 
-**Naming tags**: snake_case, descriptive, no spaces. Examples:
-`crater_small`, `tree_dead`, `rock_round`, `flowers_yellow`.
+**Naming tags**: snake_case, descriptive, no spaces — the plugin
+sanitizes anything else (lowercases and replaces non-alphanumerics with
+underscores). Examples: `crater_small`, `tree_dead`, `rock_round`,
+`flowers_yellow`.
+
+**Reserved tag names — don't use these for sprites**: the plugin treats
+any tag named exactly `hit`, or starting with `hit_`, or ending with
+`_hit`, as a *frame marker* (used to pin impact frames on combat
+animations), not a sprite. Marker tags don't export as PNGs. For
+terrain modifiers/decorations this convention won't conflict with normal
+sprite names, but worth knowing if you ever want a sprite called
+"shockwave_hit" — it would silently get skipped.
+
+Both workflows are supported and equivalent:
+- **One sprite per file** (e.g. `crater_small.aseprite` with one tag).
+- **Many sprites per file** (e.g. `decorations_and_modifiers.aseprite`
+  with N tags). This is the more efficient option when sprites are
+  related or share a layer/palette setup.
 
 ### For Lawrence — shadow layer
 
@@ -125,7 +147,18 @@ new assets or kept as placeholder fallbacks. TBD which.
 ## Export pipeline
 
 Right-click a `.aseprite` file in the FileSystem dock → **Export Tags as
-PNGs**.
+PNGs**. Same menu item we already use for character sprites — same
+plugin, extended for shadow handling.
+
+The existing plugin already handles: tag parsing, per-tag PNG output
+(with frame-strip stitching for animated tags), pivot capture from
+slices, per-frame duration capture, sidecar JSON emission with merging
+(hand-authored sidecar fields survive re-export).
+
+The terrain-modifier work adds two things to the same flow:
+1. Shadow layer detection + separation into a paired `_shadow.png`.
+2. Footprint declaration in the sidecar (from optional `footprint`
+   slice or inferred from canvas size).
 
 For each tag in the file, the plugin produces these outputs in a sibling
 folder named after the `.aseprite` file:
@@ -133,20 +166,24 @@ folder named after the `.aseprite` file:
 - `<tag>.png` — the main sprite art, with any shadow layer **hidden**
   during export so the shadow isn't baked in
 - `<tag>_shadow.png` — the shadow layer only, if a shadow layer exists
-  and has content for this tag
-- `<tag>.json` — sidecar metadata:
+  and has content for this tag (omitted if the shadow layer is empty for
+  this tag's frames)
+- `<tag>.json` — sidecar metadata, merging with any existing sidecar so
+  hand-authored fields (e.g. `art_bounds` from healthbar bootstrapping)
+  survive re-export:
   ```json
   {
-    "pivot": [x, y],            // pixel coordinates (existing convention)
-    "footprint": [w, h],        // tile cells (from slice or canvas / 32)
-    "shadow_path": "...",       // "<tag>_shadow.png" or null
-    "frame_durations_ms": [...] // for animated tags (existing convention)
+    "pivot": { "x": <int>, "y": <int> },   // existing — from slice or canvas center
+    "frame_durations_ms": [...],           // existing — per-frame durations
+    "footprint": [<w>, <h>],               // new — tile cells
+    "shadow_path": "<tag>_shadow.png"      // new — null/absent if no shadow
   }
   ```
 
-For animated tags (multiple frames), the main PNG is a horizontal strip of
-frames (existing plugin convention). If a shadow exists for the tag,
-`<tag>_shadow.png` is a parallel strip with the same number of frames.
+For animated tags (multiple frames), the main PNG is a horizontal strip
+of frames (existing plugin convention). If a shadow exists for the tag,
+`<tag>_shadow.png` is a parallel strip with the same number of frames so
+frame-to-frame alignment is preserved at render time.
 
 ### Shadow detection
 
