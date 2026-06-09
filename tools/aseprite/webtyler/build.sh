@@ -15,8 +15,10 @@ if [ -z "$VERSION" ]; then
     echo "ERROR: couldn't read version from package.json" >&2
     exit 1
 fi
+# Version goes BEFORE the extension — the file MUST end in `.aseprite-extension`
+# or Aseprite's "Add Extension" picker filters it out.
 VTAG="v${VERSION//./_}"
-OUT="webtyler.aseprite-extension_${VTAG}"
+OUT="webtyler_${VTAG}.aseprite-extension"
 
 # Build the version-stamped archive (flat zip of the two extension files).
 rm -f "$OUT"

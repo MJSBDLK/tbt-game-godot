@@ -1,6 +1,6 @@
 # [ ] Meeting 2026.06.14
 ## [ ] RQD
-- [ ] Webtyler - lock preview animations to their tag
+- [x] Webtyler - lock preview animations to their tag
 - [ ] more bugfixes, work on the issues Lawrence identified in playtesting
 ## [ ] LOD
 - [ ] Void lock effect animation
