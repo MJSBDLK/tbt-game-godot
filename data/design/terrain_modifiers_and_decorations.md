@@ -88,17 +88,26 @@ Both workflows are supported and equivalent:
 ### For Lawrence — shadow layer
 
 If a sprite has a shadow, draw the shadow on a dedicated layer in the
-`.aseprite`. The layer can be named anything — the plugin detects shadow
-layers by content, not by name:
+`.aseprite`. The plugin will identify the shadow layer via two checks
+(name first, content second):
 
-> A shadow layer is identified as any layer whose non-transparent pixels
-> are all pure black at ~40% opacity. The export plugin scans for this
-> signature.
+1. **Layer name** — any layer named exactly `shadow` (case-insensitive)
+   or with a `_shadow` suffix (case-insensitive) is treated as the
+   shadow layer. Examples: `Shadow`, `shadow`, `crater_shadow`,
+   `tree_canopy_shadow`. This is the unambiguous case.
+2. **Content scan fallback** — if no layer name matches, the plugin
+   scans each layer and treats any layer whose non-transparent pixels
+   are all pure black at ~40% opacity (Lawrence's convention) as the
+   shadow.
 
-This means: if Lawrence keeps shadows as pure-black-40%-alpha (which is
-the current convention), no naming rule applies. If shadows ever depart
-from that signature (colored shadows, different opacity), we'd need to
-revisit detection.
+Why both: the name check is bulletproof but requires Lawrence to follow
+the naming. The content scan is a safety net so a layer that LOOKS like
+a shadow but is named "Shadows Cast" or "darken" still gets caught.
+
+The `_shadow` suffix is also the escape hatch for animated shadows where
+some frames have no shadow content (an empty frame within an animated
+shadow strip would fail content detection). Marking the layer explicitly
+with `_shadow` tells the plugin "trust me, this is a shadow."
 
 If a tag has no shadow content (i.e. the shadow layer is empty for that
 tag's frames), no shadow file is emitted for that tag.
@@ -171,6 +180,14 @@ folder named after the `.aseprite` file:
 - `<tag>.json` — sidecar metadata, merging with any existing sidecar so
   hand-authored fields (e.g. `art_bounds` from healthbar bootstrapping)
   survive re-export:
+
+When a shadow layer is present, the main + shadow strips are **trimmed
+to a shared bounding rect** computed across both layers + all frames of
+the tag, then **padded to the nearest 32-pixel multiple** on each axis
+(bottom-aligned, so the bottom row of the output PNG corresponds to the
+gameplay tile row). This means a tag whose content is 19×40 pixels lands
+as a 32×64 PNG (1×2 cells). Footprint in the sidecar is derived from
+the padded dimensions unless an explicit `footprint` slice is present.
   ```json
   {
     "pivot": { "x": <int>, "y": <int> },   // existing — from slice or canvas center
