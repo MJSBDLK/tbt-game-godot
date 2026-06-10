@@ -11,6 +11,9 @@ extends Node
 # Parsed terrain definitions keyed by terrain name
 var _terrains: Dictionary = {}
 var _is_loaded: bool = false
+# Unknown terrain names we've already warned about — one loud warning per
+# unique name instead of spam on every walkability query.
+var _warned_unknown_terrains: Dictionary = {}
 
 
 func _ready() -> void:
@@ -120,8 +123,14 @@ func can_unit_walk_on_terrain(terrain_type: String, unit_type: String = "") -> b
 	if not _is_loaded:
 		return true
 	if not _terrains.has(terrain_type):
-		DebugConfig.warn_grid("Unknown terrain type: %s. Assuming walkable." % terrain_type)
-		return true
+		# Unknown modifier/terrain name = probably a typo in the tile's custom
+		# data or a missing terrain_data.json entry. Impassable + one loud
+		# warning per unique name so the gap gets caught during development
+		# instead of silently producing walkable mystery tiles.
+		if not _warned_unknown_terrains.has(terrain_type):
+			_warned_unknown_terrains[terrain_type] = true
+			push_warning("TerrainDataManager: Unknown terrain type '%s' — treating as IMPASSABLE. Add it to terrain_data.json or fix the tile's terrain_type custom data." % terrain_type)
+		return false
 	var terrain: TerrainDefinition = _terrains[terrain_type]
 	return terrain.walkable.get_value(unit_type) > 0.0
 

@@ -22,8 +22,19 @@ const TILE_SIZE := 32
 # data/terrain_data.json. Tiles without a match get empty terrain_type and
 # are treated as pure decoration unless painted on ModifierTileLayer with
 # the field hand-filled in the TileSet editor.
+# Many sprites map to one type (bulbforest/darkforest/etc → Plant).
 const TERRAIN_TYPE_BY_PREFIX := {
 	"crater": "Crater",
+	"bulbforest": "Plant",
+	"darkforest": "Plant",
+	"shelltree": "Plant",
+	"piperoot": "Plant",
+	"firetopradish": "Plant",
+	"volcano": "Volcano",
+	"building": "StoneEdifice",
+	"arch": "StoneEdifice",
+	"castle": "Castle",
+	"bridge": "Bridge",
 }
 
 

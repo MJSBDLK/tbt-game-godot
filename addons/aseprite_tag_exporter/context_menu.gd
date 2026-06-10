@@ -253,6 +253,10 @@ func _export_file(aseprite_file_path: String, lowercase_names: bool) -> void:
 					continue
 				main_frames.append(main_img)
 				if shadow_img != null:
+					# Erase shadow pixels under the object's own silhouette so
+					# the runtime can render shadows above same-row modifiers
+					# without the caster tinting its own base.
+					_mask_shadow_by_object(shadow_img, main_img)
 					shadow_frames.append(shadow_img)
 			if main_frames.is_empty():
 				continue
@@ -1015,6 +1019,25 @@ static func _crop_rect_around_pivot_for_footprint(
 	var pos: Vector2i = pivot - size / 2
 	_unused(canvas)
 	return Rect2i(pos, size)
+
+
+## Erases shadow pixels that sit underneath the object's own opaque pixels
+## (same canvas coordinates). Those pixels are invisible when the shadow
+## renders below its caster, but the runtime renderer can also draw shadows
+## ABOVE same-row modifiers (so a shadow spills onto an east neighbor); the
+## masking keeps the caster's own base from being tinted by its own shadow
+## in that mode. Mutates `shadow` in place.
+static func _mask_shadow_by_object(shadow: Image, object: Image) -> void:
+	if shadow == null or object == null:
+		return
+	var w: int = mini(shadow.get_width(), object.get_width())
+	var h: int = mini(shadow.get_height(), object.get_height())
+	for y in range(h):
+		for x in range(w):
+			if int(round(object.get_pixel(x, y).a * 255.0)) > SHADOW_ALPHA_MIN_OPAQUE:
+				var px := shadow.get_pixel(x, y)
+				if px.a > 0.0:
+					shadow.set_pixel(x, y, Color(px.r, px.g, px.b, 0.0))
 
 
 ## Blits the portion of `source` that overlaps `crop_rect` (in source

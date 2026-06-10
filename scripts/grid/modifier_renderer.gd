@@ -18,6 +18,17 @@ extends Node2D
 ## TileMapLayer whose cells drive the overlay sprites. Resolved at _ready.
 @export var modifier_layer_path: NodePath = ^"../ModifierTileLayer"
 
+# EXPERIMENT (issue: "shadows protrude against elements to the right"):
+# when true, shadows render one z-slot ABOVE same-row modifiers instead of
+# below all of them (TERRAIN_EFFECTS). Combined with the export-time masking
+# (shadow pixels under the caster's own silhouette are erased), this makes a
+# shadow spill onto the east-neighbor modifier's pixels — reading as the
+# shadow falling ON the neighbor — while the caster itself stays unshaded.
+# Southern neighbors (lower row index, +10 z band) still cover the shadow.
+# Flip to false to restore shadows-under-everything.
+const SHADOWS_ABOVE_MODIFIERS := true
+
+const _OOB_FADE_SHADER: Shader = preload("res://shaders/modifier_oob_fade.gdshader")
 
 var _modifier_layer: TileMapLayer = null
 var _sprites: Array[Sprite2D] = []
@@ -46,6 +57,16 @@ func refresh() -> void:
 	var grid_height: int = 100
 	var grid_offset_y: int = GridManager.grid_offset_y
 
+	# Out-of-bounds fade: darken overlay pixels past the map edge with the
+	# same function the floor vignette uses, so modifier overhang doesn't
+	# glow at full brightness over the faded border. One shared material —
+	# the params are identical for every sprite.
+	var map_rect: Rect2 = GridManager.get_map_world_rect()
+	var fade_material := ShaderMaterial.new()
+	fade_material.shader = _OOB_FADE_SHADER
+	fade_material.set_shader_parameter("map_min", map_rect.position)
+	fade_material.set_shader_parameter("map_max", map_rect.end)
+
 	for cell: Vector2i in _modifier_layer.get_used_cells():
 		var source_id: int = _modifier_layer.get_cell_source_id(cell)
 		if source_id < 0:
@@ -73,8 +94,15 @@ func refresh() -> void:
 		var row_index: int = front_row_index(cell.y, footprint.y, grid_offset_y)
 		var modifier_z: int = ZIndexCalculator.calculate_sorting_order(
 				row_index, grid_height, ZIndexCalculator.ZIndexLayer.TERRAIN_MODIFIERS)
-		var shadow_z: int = ZIndexCalculator.calculate_sorting_order(
-				row_index, grid_height, ZIndexCalculator.ZIndexLayer.TERRAIN_EFFECTS)
+		var shadow_z: int
+		if SHADOWS_ABOVE_MODIFIERS:
+			# One slot above same-row modifiers (slot 3 in the row's z band) —
+			# spills over east neighbors; export-time masking keeps the caster
+			# itself unshaded. See the const's doc comment.
+			shadow_z = modifier_z + 1
+		else:
+			shadow_z = ZIndexCalculator.calculate_sorting_order(
+					row_index, grid_height, ZIndexCalculator.ZIndexLayer.TERRAIN_EFFECTS)
 
 		# Spawn shadow first so it sits behind everything else added at the
 		# same world position. The shadow PNG file lives next to the source
@@ -90,6 +118,7 @@ func refresh() -> void:
 				shadow_sprite.position = visual_center
 				shadow_sprite.z_index = shadow_z
 				shadow_sprite.z_as_relative = false
+				shadow_sprite.material = fade_material
 				add_child(shadow_sprite)
 				_sprites.append(shadow_sprite)
 
@@ -100,6 +129,7 @@ func refresh() -> void:
 		sprite.position = visual_center
 		sprite.z_index = modifier_z
 		sprite.z_as_relative = false
+		sprite.material = fade_material
 		add_child(sprite)
 		_sprites.append(sprite)
 

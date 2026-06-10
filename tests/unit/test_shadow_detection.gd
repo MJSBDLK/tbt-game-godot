@@ -303,6 +303,34 @@ func test_bbox_union_covers_both_inputs() -> void:
 
 
 # =============================================================================
+# Shadow masking by object silhouette
+# =============================================================================
+
+func test_mask_erases_shadow_under_opaque_object_pixels() -> void:
+	var shadow := _make_image_filled(4, 4, Color8(0, 0, 0, 102))
+	var object := _make_image_filled(4, 4, Color(0, 0, 0, 0))
+	object.set_pixel(1, 1, Color8(200, 100, 50, 255))
+	object.set_pixel(2, 2, Color8(200, 100, 50, 255))
+
+	ContextMenu._mask_shadow_by_object(shadow, object)
+
+	assert_eq(shadow.get_pixel(1, 1).a, 0.0, "Shadow erased under object pixel")
+	assert_eq(shadow.get_pixel(2, 2).a, 0.0, "Shadow erased under object pixel")
+	assert_almost_eq(shadow.get_pixel(0, 0).a, 0.4, 0.01,
+			"Shadow outside the object silhouette untouched")
+
+
+func test_mask_noop_when_object_is_empty() -> void:
+	var shadow := _make_image_filled(4, 4, Color8(0, 0, 0, 102))
+	var object := _make_image_filled(4, 4, Color(0, 0, 0, 0))
+
+	ContextMenu._mask_shadow_by_object(shadow, object)
+
+	assert_almost_eq(shadow.get_pixel(2, 2).a, 0.4, 0.01,
+			"No object pixels → shadow untouched")
+
+
+# =============================================================================
 # Integration — layer parser against Lawrence's real test asset
 # =============================================================================
 

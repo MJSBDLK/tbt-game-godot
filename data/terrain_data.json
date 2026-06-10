@@ -200,7 +200,13 @@
     "avoidMultiplier": { "default": 1.1, "Air": 1.0 }
   },
   "StoneEdifice": {
-    "_doc": "Stone buildings, resistant to fire, strong defensive properties, bonuses to Gentry units"
+    "_doc": "Stone buildings, resistant to fire, strong defensive properties, bonuses to Gentry units. First pass: impassable structure body, used by the building_*/arch_* modifier sprites. Walkability of arches and per-cell castle passage TBD.",
+    "walkable": { "default": false },
+    "movePenalty": { "default": 1 },
+    "attackMultiplier": { "default": 1 },
+    "terrainStatusImmunity": ["Electric", "Scorch", "Flood"],
+    "defenseMultiplier": { "default": 1.0 },
+    "avoidMultiplier": { "default": 1.0 }
   },
   "Taiga": {},
   "Tarpit": {
@@ -220,7 +226,15 @@
     "defenseMultiplier": { "default": 1.0, "Void": 1.2 },
     "avoidMultiplier": { "default": 1.0, "Void": 1.1 }
   },
-  "Volcano": {},
+  "Volcano": {
+    "_doc": "First pass: volcanic cones/vents from the volcano_* modifier sprites. Impassable to grounded units; fliers cross at normal cost but get no cover. Immune to fire/scorch by nature.",
+    "walkable": { "default": false, "Air": true },
+    "movePenalty": { "default": 1, "Air": 1 },
+    "attackMultiplier": { "default": 1, "Fire": 1.2 },
+    "terrainStatusImmunity": ["Scorch", "Snow", "Flood"],
+    "defenseMultiplier": { "default": 1.0 },
+    "avoidMultiplier": { "default": 1.0 }
+  },
   "Water": {
     "walkable": { "default": false, "Air": true, "Ice": true },
     "movePenalty": { "default": 1, "Ice": 2 },

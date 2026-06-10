@@ -805,6 +805,7 @@ resource_name = "arch_a"
 texture = ExtResource("3_i1d7l")
 texture_region_size = Vector2i(32, 32)
 1:0/0 = 0
+1:0/0/custom_data_0 = "StoneEdifice"
 1:0/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_b5odb"]
@@ -812,6 +813,7 @@ resource_name = "bridge_a"
 texture = ExtResource("4_ulkv2")
 texture_region_size = Vector2i(32, 32)
 1:1/0 = 0
+1:1/0/custom_data_0 = "Bridge"
 1:1/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_imfo2"]
@@ -819,6 +821,7 @@ resource_name = "building_a"
 texture = ExtResource("5_b5odb")
 texture_region_size = Vector2i(32, 32)
 1:0/0 = 0
+1:0/0/custom_data_0 = "StoneEdifice"
 1:0/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_twjnu"]
@@ -826,6 +829,7 @@ resource_name = "building_b"
 texture = ExtResource("6_imfo2")
 texture_region_size = Vector2i(32, 32)
 2:1/0 = 0
+2:1/0/custom_data_0 = "StoneEdifice"
 2:1/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_j8qob"]
@@ -833,6 +837,7 @@ resource_name = "building_c"
 texture = ExtResource("7_twjnu")
 texture_region_size = Vector2i(32, 32)
 2:1/0 = 0
+2:1/0/custom_data_0 = "StoneEdifice"
 2:1/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_lsu1n"]
@@ -840,6 +845,7 @@ resource_name = "building_d"
 texture = ExtResource("8_j8qob")
 texture_region_size = Vector2i(32, 32)
 1:0/0 = 0
+1:0/0/custom_data_0 = "StoneEdifice"
 1:0/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_5m8w4"]
@@ -847,6 +853,7 @@ resource_name = "building_e"
 texture = ExtResource("9_lsu1n")
 texture_region_size = Vector2i(32, 32)
 1:1/0 = 0
+1:1/0/custom_data_0 = "StoneEdifice"
 1:1/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_pabpm"]
@@ -854,6 +861,7 @@ resource_name = "building_f"
 texture = ExtResource("10_5m8w4")
 texture_region_size = Vector2i(32, 32)
 1:1/0 = 0
+1:1/0/custom_data_0 = "StoneEdifice"
 1:1/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_t3486"]
@@ -861,6 +869,7 @@ resource_name = "bulbforest_a"
 texture = ExtResource("11_pabpm")
 texture_region_size = Vector2i(32, 32)
 1:1/0 = 0
+1:1/0/custom_data_0 = "Plant"
 1:1/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_1g4vy"]
@@ -868,6 +877,7 @@ resource_name = "bulbforest_b"
 texture = ExtResource("12_t3486")
 texture_region_size = Vector2i(32, 32)
 1:1/0 = 0
+1:1/0/custom_data_0 = "Plant"
 1:1/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_dpw7y"]
@@ -877,6 +887,7 @@ texture_region_size = Vector2i(32, 32)
 1:1/size_in_atlas = Vector2i(2, 2)
 1:1/0 = 0
 1:1/0/texture_origin = Vector2i(-16, -16)
+1:1/0/custom_data_0 = "Castle"
 1:1/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_qslgl"]
@@ -924,6 +935,7 @@ resource_name = "darkforest_a"
 texture = ExtResource("19_by2ye")
 texture_region_size = Vector2i(32, 32)
 1:1/0 = 0
+1:1/0/custom_data_0 = "Plant"
 1:1/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_rjjjg"]
@@ -931,6 +943,7 @@ resource_name = "darkforest_b"
 texture = ExtResource("20_u28qv")
 texture_region_size = Vector2i(32, 32)
 1:0/0 = 0
+1:0/0/custom_data_0 = "Plant"
 1:0/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_bwrg4"]
@@ -938,6 +951,7 @@ resource_name = "firetopradish_a"
 texture = ExtResource("21_rjjjg")
 texture_region_size = Vector2i(32, 32)
 1:1/0 = 0
+1:1/0/custom_data_0 = "Plant"
 1:1/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_gfn5d"]
@@ -945,6 +959,7 @@ resource_name = "firetopradish_b"
 texture = ExtResource("22_bwrg4")
 texture_region_size = Vector2i(32, 32)
 1:1/0 = 0
+1:1/0/custom_data_0 = "Plant"
 1:1/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_dymmi"]
@@ -952,6 +967,7 @@ resource_name = "piperoot_a"
 texture = ExtResource("23_gfn5d")
 texture_region_size = Vector2i(32, 32)
 1:0/0 = 0
+1:0/0/custom_data_0 = "Plant"
 1:0/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ugccy"]
@@ -959,6 +975,7 @@ resource_name = "piperoot_b"
 texture = ExtResource("24_dymmi")
 texture_region_size = Vector2i(32, 32)
 1:0/0 = 0
+1:0/0/custom_data_0 = "Plant"
 1:0/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_bi8yr"]
@@ -966,6 +983,7 @@ resource_name = "piperoot_c"
 texture = ExtResource("25_ugccy")
 texture_region_size = Vector2i(32, 32)
 1:1/0 = 0
+1:1/0/custom_data_0 = "Plant"
 1:1/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_tps6t"]
@@ -973,6 +991,7 @@ resource_name = "shelltree_a"
 texture = ExtResource("26_bi8yr")
 texture_region_size = Vector2i(32, 32)
 1:0/0 = 0
+1:0/0/custom_data_0 = "Plant"
 1:0/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_hdqvp"]
@@ -980,6 +999,7 @@ resource_name = "shelltree_b"
 texture = ExtResource("27_ulkv2")
 texture_region_size = Vector2i(32, 32)
 1:1/0 = 0
+1:1/0/custom_data_0 = "Plant"
 1:1/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_5avr4"]
@@ -987,6 +1007,7 @@ resource_name = "volcano_a"
 texture = ExtResource("27_tps6t")
 texture_region_size = Vector2i(32, 32)
 1:0/0 = 0
+1:0/0/custom_data_0 = "Volcano"
 1:0/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_t6rrm"]
@@ -994,6 +1015,7 @@ resource_name = "volcano_b"
 texture = ExtResource("28_hdqvp")
 texture_region_size = Vector2i(32, 32)
 1:1/0 = 0
+1:1/0/custom_data_0 = "Volcano"
 1:1/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_1lx3e"]
@@ -1001,6 +1023,7 @@ resource_name = "volcano_c"
 texture = ExtResource("29_5avr4")
 texture_region_size = Vector2i(32, 32)
 1:1/0 = 0
+1:1/0/custom_data_0 = "Volcano"
 1:1/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_j1cq7"]
@@ -1008,6 +1031,7 @@ resource_name = "volcano_d"
 texture = ExtResource("30_t6rrm")
 texture_region_size = Vector2i(32, 32)
 1:1/0 = 0
+1:1/0/custom_data_0 = "Volcano"
 1:1/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_rxx1s"]
@@ -1015,6 +1039,7 @@ resource_name = "volcano_e"
 texture = ExtResource("31_1lx3e")
 texture_region_size = Vector2i(32, 32)
 1:1/0 = 0
+1:1/0/custom_data_0 = "Volcano"
 1:1/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_4jktq"]
@@ -1022,6 +1047,7 @@ resource_name = "volcano_f"
 texture = ExtResource("32_j1cq7")
 texture_region_size = Vector2i(32, 32)
 1:1/0 = 0
+1:1/0/custom_data_0 = "Volcano"
 1:1/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_lfpqc"]
