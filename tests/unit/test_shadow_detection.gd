@@ -108,32 +108,52 @@ func test_content_bbox_tight_to_opaque_pixels() -> void:
 
 
 # =============================================================================
-# Bbox padding to cell multiples
+# Bbox padding around pivot
 # =============================================================================
 
-func test_pad_bbox_round_to_cells() -> void:
-	# 19x40 content centered in 128x128 canvas → padded to 32x64 (1x2 cells).
-	# Bottom-aligned, so y-end stays where content y-end was.
-	var src_bbox := Rect2i(50, 30, 19, 40)  # ends at y=70
-	var padded: Rect2i = ContextMenu._pad_bbox_to_cells(src_bbox, Vector2i(128, 128))
-	assert_eq(padded.size, Vector2i(32, 64),
-			"19x40 rounds up to 32x64 (1x2 cells)")
-	assert_eq(padded.position.y + padded.size.y, 70,
-			"Bottom edge preserved (bottom-aligned padding)")
+func test_pad_bbox_around_pivot_content_symmetric() -> void:
+	# 30x30 content symmetric around pivot (64, 64): bbox (49, 49, 30, 30).
+	# Should pad to 32x32 (next cell multiple containing 30) centered on pivot.
+	var src_bbox := Rect2i(49, 49, 30, 30)
+	var pivot := Vector2i(64, 64)
+	var padded: Rect2i = ContextMenu._pad_bbox_around_pivot(src_bbox, pivot, Vector2i(128, 128))
+	assert_eq(padded.size, Vector2i(32, 32),
+			"30x30 symmetric content pads to 32x32 (1x1 cell)")
+	# Pivot lands at center of padded rect.
+	assert_eq(pivot - padded.position, Vector2i(16, 16),
+			"Pivot at (16, 16) in cropped image == center of 32x32")
 
 
-func test_pad_bbox_no_op_when_already_cell_sized() -> void:
-	# 32x32 stays 32x32.
-	var src_bbox := Rect2i(0, 0, 32, 32)
-	var padded: Rect2i = ContextMenu._pad_bbox_to_cells(src_bbox, Vector2i(128, 128))
-	assert_eq(padded.size, Vector2i(32, 32))
+func test_pad_bbox_around_pivot_asymmetric_expands_to_contain() -> void:
+	# Content extends further left of pivot (24) than right (4). Padded width
+	# must cover the worse half (24), so full extent ≥ 48 → rounds up to 64.
+	var src_bbox := Rect2i(40, 60, 28, 8)  # pivot at 64 → dist_left=24, dist_right=4
+	var pivot := Vector2i(64, 64)
+	var padded: Rect2i = ContextMenu._pad_bbox_around_pivot(src_bbox, pivot, Vector2i(128, 128))
+	assert_eq(padded.size.x, 64,
+			"Asymmetric content expands the rect on both sides of pivot (2 cells wide)")
+	# Pivot still at the center of the padded rect (no clamping happened).
+	assert_eq(pivot.x - padded.position.x, 32,
+			"Pivot at x=32 in cropped == center of 64-wide image")
 
 
-func test_pad_bbox_clamps_to_canvas() -> void:
-	# Content near top edge — padded rect would extend above canvas, clamp it.
-	var src_bbox := Rect2i(50, 5, 19, 30)
-	var padded: Rect2i = ContextMenu._pad_bbox_to_cells(src_bbox, Vector2i(128, 128))
-	assert_true(padded.position.y >= 0, "Padded rect doesn't go negative")
+func test_pad_bbox_around_pivot_minimum_one_cell() -> void:
+	# A tiny 5x5 content still produces at least a 32x32 padded output.
+	var src_bbox := Rect2i(62, 62, 5, 5)
+	var pivot := Vector2i(64, 64)
+	var padded: Rect2i = ContextMenu._pad_bbox_around_pivot(src_bbox, pivot, Vector2i(128, 128))
+	assert_eq(padded.size, Vector2i(32, 32),
+			"Tiny content still produces minimum 1x1 cell output")
+
+
+func test_pad_bbox_around_pivot_clamps_to_canvas_edge() -> void:
+	# Pivot near canvas edge — padded rect would extend past the boundary, clamp.
+	var src_bbox := Rect2i(5, 5, 10, 10)
+	var pivot := Vector2i(10, 10)
+	var padded: Rect2i = ContextMenu._pad_bbox_around_pivot(src_bbox, pivot, Vector2i(128, 128))
+	assert_true(padded.position.x >= 0, "Padded rect can't have negative position")
+	assert_true(padded.position.y >= 0, "Padded rect can't have negative position")
+	assert_true(padded.position.x + padded.size.x <= 128, "Padded rect fits canvas")
 	assert_true(padded.position.y + padded.size.y <= 128, "Padded rect fits canvas")
 
 

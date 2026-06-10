@@ -224,6 +224,10 @@ func _export_file(aseprite_file_path: String, lowercase_names: bool) -> void:
 		# branch. The no-shadow branch leaves it as the slice value (or zero).
 		var footprint_for_tag := footprint_from_slice
 		var shadow_emitted := false
+		# When the shadow-aware path crops, this records the rect (in source
+		# canvas coords) so the sidecar block can translate the pivot to be
+		# relative to the cropped PNG. Zero rect means no cropping happened.
+		var crop_offset := Rect2i()
 
 		if has_shadow_layer:
 			# Shadow-aware path: load all frames of main + shadow, compute a
@@ -247,19 +251,30 @@ func _export_file(aseprite_file_path: String, lowercase_names: bool) -> void:
 			var canvas_h := main_frames[0].get_height()
 			var canvas_size := Vector2i(canvas_w, canvas_h)
 
-			# Union bbox across all frames of both layers.
-			var union_bbox := Rect2i()
+			# Footprint is the GAMEPLAY area, derived from main content only
+			# (shadows are decorative and may extend past the gameplay tile).
+			# Including the shadow in the crop bbox would pull the rect
+			# off-center whenever the shadow casts asymmetrically — and they
+			# always do — so the main visual ends up corner-pinned in its
+			# tile. Crop the shadow to the same rect so it stays aligned to
+			# main; shadow pixels outside the rect get clipped, which is
+			# acceptable for the small cast offsets Lawrence draws.
+			var main_bbox := Rect2i()
 			for img in main_frames:
-				union_bbox = _bbox_union(union_bbox, _content_bbox(img))
-			var shadow_total_bbox := Rect2i()
-			for img in shadow_frames:
-				shadow_total_bbox = _bbox_union(shadow_total_bbox, _content_bbox(img))
-			union_bbox = _bbox_union(union_bbox, shadow_total_bbox)
-			if union_bbox.size.x <= 0 or union_bbox.size.y <= 0:
+				main_bbox = _bbox_union(main_bbox, _content_bbox(img))
+			# Shadow-only tags (no main content) fall back to shadow bbox.
+			if main_bbox.size.x <= 0:
+				for img in shadow_frames:
+					main_bbox = _bbox_union(main_bbox, _content_bbox(img))
+			if main_bbox.size.x <= 0 or main_bbox.size.y <= 0:
 				printerr("  Warning: Tag '%s' is empty across all frames — skipping" % tag.name)
 				continue
 
-			var crop_rect := _pad_bbox_to_cells(union_bbox, canvas_size)
+			# Position the crop around the source pivot so Lawrence's
+			# canvas-center anchor convention survives the trim.
+			var crop_pivot := Vector2i(pivot.x, pivot.y) if has_pivot else canvas_size / 2
+			var crop_rect := _pad_bbox_around_pivot(main_bbox, crop_pivot, canvas_size)
+			crop_offset = crop_rect  # for the sidecar pivot adjustment below
 			var cell_w: int = crop_rect.size.x / TILE_SIZE_PX
 			var cell_h: int = crop_rect.size.y / TILE_SIZE_PX
 			if footprint_for_tag == Vector2i.ZERO:
@@ -353,7 +368,15 @@ func _export_file(aseprite_file_path: String, lowercase_names: bool) -> void:
 				if parsed is Dictionary:
 					sidecar_data = parsed
 		if has_pivot:
-			sidecar_data["pivot"] = { "x": pivot.x, "y": pivot.y }
+			# When the shadow-aware path cropped, translate the pivot into the
+			# cropped PNG's coordinate space. Without this, the pivot would
+			# reference a point that may be entirely outside the trimmed image.
+			var pivot_x_out: int = int(pivot.x)
+			var pivot_y_out: int = int(pivot.y)
+			if crop_offset.size.x > 0 and crop_offset.size.y > 0:
+				pivot_x_out -= crop_offset.position.x
+				pivot_y_out -= crop_offset.position.y
+			sidecar_data["pivot"] = { "x": pivot_x_out, "y": pivot_y_out }
 		if not frame_durations_ms.is_empty():
 			var clip_durations: Array[int] = []
 			for fi in range(tag.from_frame, tag.to_frame + 1):
@@ -871,20 +894,40 @@ static func _content_bbox(img: Image) -> Rect2i:
 	return Rect2i(min_x, min_y, max_x - min_x + 1, max_y - min_y + 1)
 
 
-## Expand a bbox to the smallest axis-aligned rect whose dimensions are
-## multiples of TILE_SIZE_PX, bottom-aligned (preserves the bottom edge so
-## sprites with vertical canvas overhang anchor to their gameplay tile).
-static func _pad_bbox_to_cells(bbox: Rect2i, canvas: Vector2i) -> Rect2i:
+## Compute the smallest axis-aligned rect that (a) contains `bbox`, (b) has
+## both dimensions as multiples of TILE_SIZE_PX, and (c) is centered on the
+## source pivot. The third constraint preserves Lawrence's canvas-center
+## pivot convention so cropped sprites stay anchored to the same point
+## they were drawn around in the source.
+##
+## If `bbox` doesn't fit symmetrically around `pivot` (content extends
+## farther on one side than the other), the rect expands on the long
+## side to contain the content — pivot then ends up off-center in the
+## cropped output, which is correct (Lawrence's offset was intentional).
+##
+## The result is clamped to the canvas. Callers should compute the
+## final pivot position via `pivot - result.position` rather than
+## assuming center, because canvas-edge clamping can also push pivot
+## off-center.
+static func _pad_bbox_around_pivot(bbox: Rect2i, pivot: Vector2i, canvas: Vector2i) -> Rect2i:
 	if bbox.size.x <= 0 or bbox.size.y <= 0:
 		return bbox
-	var padded_w: int = int(ceil(float(bbox.size.x) / float(TILE_SIZE_PX))) * TILE_SIZE_PX
-	var padded_h: int = int(ceil(float(bbox.size.y) / float(TILE_SIZE_PX))) * TILE_SIZE_PX
-	# Center horizontally within the padded width, but anchor bottom edge.
-	var new_x: int = bbox.position.x - int(floor(float(padded_w - bbox.size.x) / 2.0))
-	var new_y: int = bbox.position.y + bbox.size.y - padded_h
-	# Clamp to canvas — don't extend past the source image.
-	new_x = clampi(new_x, 0, canvas.x - padded_w)
-	new_y = clampi(new_y, 0, canvas.y - padded_h)
+	# How far must the rect extend on each side of the pivot to contain content?
+	var dist_left: int = pivot.x - bbox.position.x
+	var dist_right: int = (bbox.position.x + bbox.size.x) - pivot.x
+	var dist_top: int = pivot.y - bbox.position.y
+	var dist_bottom: int = (bbox.position.y + bbox.size.y) - pivot.y
+	# Symmetric half-extent: take the worse side so the rect covers both.
+	var half_w: int = maxi(maxi(dist_left, dist_right), TILE_SIZE_PX / 2)
+	var half_h: int = maxi(maxi(dist_top, dist_bottom), TILE_SIZE_PX / 2)
+	# Round full extent up to the next 32-multiple.
+	var padded_w: int = int(ceil(float(2 * half_w) / float(TILE_SIZE_PX))) * TILE_SIZE_PX
+	var padded_h: int = int(ceil(float(2 * half_h) / float(TILE_SIZE_PX))) * TILE_SIZE_PX
+	# Position centered on pivot, clamped to canvas.
+	var new_x: int = pivot.x - padded_w / 2
+	var new_y: int = pivot.y - padded_h / 2
+	new_x = clampi(new_x, 0, maxi(0, canvas.x - padded_w))
+	new_y = clampi(new_y, 0, maxi(0, canvas.y - padded_h))
 	return Rect2i(new_x, new_y, padded_w, padded_h)
 
 
