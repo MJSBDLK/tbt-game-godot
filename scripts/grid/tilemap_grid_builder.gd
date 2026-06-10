@@ -125,10 +125,12 @@ func _build_grid() -> void:
 
 	# Keep TileMapLayers visible — they display the actual tileset art.
 	# Tile nodes are invisible gameplay objects (selection, occupancy, terrain queries).
-	# Modifier layer is hidden because its gameplay effect is already baked into the
-	# Tile node's terrain_type_name (three-tier replacement).
+	# Modifier layer was previously hidden because there was no modifier art to
+	# render. With the terrain-modifier sprite pipeline shipping, modifier tiles
+	# now render between floor and decoration. The gameplay effect still bakes
+	# into the Tile node's terrain_type_name (three-tier replacement rule).
 	if _modifier_layer != null:
-		_modifier_layer.visible = false
+		_modifier_layer.z_index = 2  # Between floor (0/1) and decoration (3)
 	if _spawn_layer != null:
 		_spawn_layer.visible = false
 	if _decoration_layer != null:
