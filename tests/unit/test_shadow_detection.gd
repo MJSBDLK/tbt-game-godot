@@ -196,6 +196,69 @@ func test_dimension_suffix_only_matches_at_end() -> void:
 
 
 # =============================================================================
+# Cell-aligned crop for sprites with marked footprints
+# =============================================================================
+
+func test_crop_for_footprint_fits_in_minimum_when_content_is_small() -> void:
+	# Tiny content centered on pivot, footprint 1x1. Output should be exactly
+	# 32x32 (the minimum for a 1x1 footprint).
+	var bbox := Rect2i(62, 62, 5, 5)
+	var pivot := Vector2i(64, 64)
+	var fp := Vector2i(1, 1)
+	var rect: Rect2i = ContextMenu._crop_rect_around_pivot_for_footprint(
+			bbox, pivot, Vector2i(128, 128), fp)
+	assert_eq(rect.size, Vector2i(32, 32))
+	# Pivot lands at exact center of the 32x32 (cell center for 1x1).
+	assert_eq(pivot - rect.position, Vector2i(16, 16))
+
+
+func test_crop_for_footprint_expands_to_3_cells_when_overhang_present() -> void:
+	# Content extends 24 px above the pivot (e.g. a tall tree above its
+	# trunk). 1x1 footprint can't fit (half-extent of 16 < 24), so the
+	# output expands to footprint + 2k = 3 cells (= 96 px), giving 48 px
+	# of half-extent on each side.
+	var bbox := Rect2i(56, 40, 16, 32)  # extends from y=40 to y=72 around pivot y=64
+	var pivot := Vector2i(64, 64)
+	var fp := Vector2i(1, 1)
+	var rect: Rect2i = ContextMenu._crop_rect_around_pivot_for_footprint(
+			bbox, pivot, Vector2i(128, 128), fp)
+	# Output height jumps from 32 → 96 (1+2*1 cells), never 64.
+	assert_eq(rect.size.y, 96,
+			"1x1 footprint with vertical overhang pads to 96 (1+2 cells), not 64")
+	# Pivot stays at PNG-center vertically; with 96 height, that's y=48 → cell 1 center.
+	assert_eq(pivot.y - rect.position.y, 48)
+
+
+func test_crop_for_footprint_2x2_pads_in_even_cell_count() -> void:
+	# 2x2 footprint with horizontal overhang that exceeds 32 px past pivot.
+	# Half-extent must be > 32 to push beyond 2x2's 64-wide native size.
+	# Output pads to 2+2k cells = 4 (never 3, which wouldn't preserve the
+	# 2x2 gameplay area's centering).
+	var bbox := Rect2i(24, 56, 80, 16)  # x=24..104, half-extent 40 on each side of pivot
+	var pivot := Vector2i(64, 64)
+	var fp := Vector2i(2, 2)
+	var rect: Rect2i = ContextMenu._crop_rect_around_pivot_for_footprint(
+			bbox, pivot, Vector2i(256, 256), fp)
+	assert_eq(rect.size.x, 128,
+			"2x2 footprint with 40 px overhang pads to 128 (2+2 cells), not 96")
+	# 2x2 footprint sits in the center cells [k, k+1] = [1, 2]. Pivot at PNG center
+	# (x=64) is the boundary between cells 1 and 2.
+	assert_eq(pivot.x - rect.position.x, 64)
+
+
+func test_crop_for_footprint_minimum_size_when_no_content_overflow() -> void:
+	# Content fits inside the marked footprint cleanly. Output stays at
+	# exactly footprint × 32, no extra cells.
+	var bbox := Rect2i(50, 56, 28, 16)
+	var pivot := Vector2i(64, 64)
+	var fp := Vector2i(2, 1)
+	var rect: Rect2i = ContextMenu._crop_rect_around_pivot_for_footprint(
+			bbox, pivot, Vector2i(128, 128), fp)
+	assert_eq(rect.size, Vector2i(64, 32),
+			"2x1 footprint with no overhang stays at 64x32")
+
+
+# =============================================================================
 # Bbox union
 # =============================================================================
 

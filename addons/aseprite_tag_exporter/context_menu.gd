@@ -260,42 +260,33 @@ func _export_file(aseprite_file_path: String, lowercase_names: bool) -> void:
 			var canvas_h := main_frames[0].get_height()
 			var canvas_size := Vector2i(canvas_w, canvas_h)
 
-			# Footprint is the GAMEPLAY area, derived from main content only
-			# (shadows are decorative and may extend past the gameplay tile).
-			# Including the shadow in the crop bbox would pull the rect
-			# off-center whenever the shadow casts asymmetrically — and they
-			# always do — so the main visual ends up corner-pinned in its
-			# tile. Crop the shadow to the same rect so it stays aligned to
-			# main; shadow pixels outside the rect get clipped, which is
-			# acceptable for the small cast offsets Lawrence draws.
-			var main_bbox := Rect2i()
+			# Cropped PNG contains the FULL visual extent (main + shadow union)
+			# centered on the source pivot. The marked footprint (e.g. "_1x1")
+			# is the GAMEPLAY rectangle around the pivot; the visual usually
+			# exceeds it (a tree with footprint 1x1 has a tall canopy of
+			# overhang pixels that need to render at runtime). Cropped
+			# dimensions are kept symmetric around the pivot AND constrained
+			# to `footprint + 2k cells` per axis, so the gameplay rectangle
+			# always lands on cell-aligned atlas coordinates when the tileset
+			# registration places the atlas tile.
+			var union_bbox := Rect2i()
 			for img in main_frames:
-				main_bbox = _bbox_union(main_bbox, _content_bbox(img))
-			# Shadow-only tags (no main content) fall back to shadow bbox.
-			if main_bbox.size.x <= 0:
-				for img in shadow_frames:
-					main_bbox = _bbox_union(main_bbox, _content_bbox(img))
-			if main_bbox.size.x <= 0 or main_bbox.size.y <= 0:
+				union_bbox = _bbox_union(union_bbox, _content_bbox(img))
+			for img in shadow_frames:
+				union_bbox = _bbox_union(union_bbox, _content_bbox(img))
+			if union_bbox.size.x <= 0 or union_bbox.size.y <= 0:
 				printerr("  Warning: Tag '%s' is empty across all frames — skipping" % tag.name)
 				continue
 
-			# Position the crop around the source pivot so Lawrence's
-			# canvas-center anchor convention survives the trim.
 			var crop_pivot := Vector2i(pivot.x, pivot.y) if has_pivot else canvas_size / 2
 			var crop_rect: Rect2i
 			if footprint_for_tag != Vector2i.ZERO:
-				# Authoritative footprint from the tag-name suffix (or slice).
-				# Crop to EXACTLY footprint × 32 centered on pivot — overhang
-				# pixels get clipped to the marked cell area, which is what
-				# Lawrence wants the tilemap to occupy.
-				var rect_size := footprint_for_tag * TILE_SIZE_PX
-				var rect_pos := crop_pivot - rect_size / 2
-				rect_pos.x = clampi(rect_pos.x, 0, maxi(0, canvas_size.x - rect_size.x))
-				rect_pos.y = clampi(rect_pos.y, 0, maxi(0, canvas_size.y - rect_size.y))
-				crop_rect = Rect2i(rect_pos, rect_size)
+				crop_rect = _crop_rect_around_pivot_for_footprint(
+						union_bbox, crop_pivot, canvas_size, footprint_for_tag)
 			else:
-				# No authoritative footprint — fall back to bbox-derived crop.
-				crop_rect = _pad_bbox_around_pivot(main_bbox, crop_pivot, canvas_size)
+				# No authoritative footprint — fall back to bbox-derived crop
+				# (character-sprite workflow).
+				crop_rect = _pad_bbox_around_pivot(union_bbox, crop_pivot, canvas_size)
 				footprint_for_tag = Vector2i(
 					crop_rect.size.x / TILE_SIZE_PX,
 					crop_rect.size.y / TILE_SIZE_PX)
@@ -975,6 +966,49 @@ static func _pad_bbox_around_pivot(bbox: Rect2i, pivot: Vector2i, canvas: Vector
 	new_x = clampi(new_x, 0, maxi(0, canvas.x - padded_w))
 	new_y = clampi(new_y, 0, maxi(0, canvas.y - padded_h))
 	return Rect2i(new_x, new_y, padded_w, padded_h)
+
+
+## Computes the cropped rectangle for a sprite with an authoritative
+## gameplay footprint. The output rectangle:
+##   - Is centered on the pivot (so Lawrence's canvas-center convention
+##     survives the trim).
+##   - Has dimensions `footprint + 2k cells` per axis. This means the
+##     gameplay footprint is wrapped in a symmetric halo of overhang
+##     cells (k cells on each side), making the gameplay rectangle land
+##     on cell-aligned atlas coordinates when the tileset is registered.
+##   - Is at least large enough to contain `union_bbox`, which holds
+##     all visual content (main + shadow).
+##
+## For a 1×1 footprint, valid output widths are 32, 96, 160, … (never 64).
+## For a 2×2 footprint, valid widths are 64, 128, 192, … (never 96).
+## In both cases the gameplay footprint is the central footprint×32 chunk
+## of the output, with `k` cells of overhang on each side.
+static func _crop_rect_around_pivot_for_footprint(
+		union_bbox: Rect2i,
+		pivot: Vector2i,
+		canvas: Vector2i,
+		footprint: Vector2i) -> Rect2i:
+	# Worst-case extent from pivot to a content edge, per axis.
+	var half_w_needed: int = maxi(
+			pivot.x - union_bbox.position.x,
+			(union_bbox.position.x + union_bbox.size.x) - pivot.x)
+	var half_h_needed: int = maxi(
+			pivot.y - union_bbox.position.y,
+			(union_bbox.position.y + union_bbox.size.y) - pivot.y)
+	# Minimum cell count satisfying both constraints (footprint+2k and half-extent).
+	var cells_w: int = footprint.x
+	while cells_w * TILE_SIZE_PX / 2 < half_w_needed:
+		cells_w += 2
+	var cells_h: int = footprint.y
+	while cells_h * TILE_SIZE_PX / 2 < half_h_needed:
+		cells_h += 2
+	var size := Vector2i(cells_w * TILE_SIZE_PX, cells_h * TILE_SIZE_PX)
+	var pos: Vector2i = pivot - size / 2
+	# Clamp to canvas; if the source isn't big enough we lose some overhang
+	# rather than crashing.
+	pos.x = clampi(pos.x, 0, maxi(0, canvas.x - size.x))
+	pos.y = clampi(pos.y, 0, maxi(0, canvas.y - size.y))
+	return Rect2i(pos, size)
 
 
 ## Returns the union of two bboxes. Either may be empty (size <= 0); in

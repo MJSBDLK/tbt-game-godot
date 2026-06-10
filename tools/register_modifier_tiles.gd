@@ -102,16 +102,25 @@ func _register_all() -> int:
 		source.texture_region_size = Vector2i(TILE_SIZE, TILE_SIZE)
 		source.resource_name = basename  # shows up as the source label in the TileSet editor
 
-		# Atlas cell at (0,0); multi-cell tiles span the footprint.
-		# create_tile's second arg sizes the tile in atlas cells.
-		source.create_tile(Vector2i(0, 0), footprint)
+		# Place the atlas tile at the CENTER cell(s) of the source so the
+		# tilemap renders the gameplay area (centered on the pivot), not the
+		# top-left of the PNG. The plugin emits cropped PNGs with the
+		# footprint as the central footprint×32 chunk of the texture; the
+		# surrounding cells are visual overhang (rendered by the runtime
+		# Sprite2D overlay).
+		var png_cells_x: int = tex.get_width() / TILE_SIZE
+		var png_cells_y: int = tex.get_height() / TILE_SIZE
+		var atlas_pos := Vector2i(
+				(png_cells_x - footprint.x) / 2,
+				(png_cells_y - footprint.y) / 2)
+		source.create_tile(atlas_pos, footprint)
 
 		# Register the source in the tileset FIRST so TileData's set_custom_data
 		# can resolve the layer-name lookup (which walks back through the source's
 		# parent tileset). Setting custom data on a detached TileData silently
 		# no-ops.
 		tileset.add_source(source, next_id)
-		var tile_data: TileData = source.get_tile_data(Vector2i(0, 0), 0)
+		var tile_data: TileData = source.get_tile_data(atlas_pos, 0)
 		if tile_data != null:
 			# Custom data layers (defined on the tileset itself):
 			#   layer 0 = terrain_type (String)

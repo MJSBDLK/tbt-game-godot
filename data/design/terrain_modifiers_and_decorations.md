@@ -124,26 +124,35 @@ tag's frames), no shadow file is emitted for that tag.
 
 ### For Lawrence — gameplay footprint vs. visual extent
 
-The game runs on a 32×32 grid. The **footprint** (cells the tile
-occupies for gameplay) is **the `_WxH` suffix on the tag name**, full
-stop. It's not inferred from canvas or content — Lawrence decides.
+The game runs on a 32×32 grid. The **footprint** is the gameplay
+rectangle — the cells that block movement, accept damage modifiers,
+etc. It's **the `_WxH` suffix on the tag name**, full stop, and
+extends 16px on each axis from the pivot per cell (so a `_1x1` is the
+32×32 square centered on the pivot).
 
-What about visuals that exceed the footprint (e.g. a `1×1` tree whose
-canopy is much taller than 32px)?
+The **visual** (the actual cropped PNG) usually exceeds the footprint —
+a tree with footprint `_1x1` typically has a canopy that extends well
+above its trunk. The plugin preserves this overhang and the runtime
+renderer draws the full visual at the tile's position, so overhanging
+trees, wide arches, and tall buildings all show correctly.
 
-For V1: **visual content is clipped to footprint × 32 px** centered on
-the pivot. Anything outside that rect gets dropped during export.
+Concretely, for a tag marked `_WxH`:
+- The PNG dimensions are the smallest **`W + 2k` × `H + 2j`** cells
+  (for non-negative integer k, j) large enough to contain the visual
+  content centered on the pivot.
+- The gameplay footprint is the central `W × H` chunk of the PNG.
+- The surrounding cells of overhang are visual-only and don't affect
+  gameplay.
 
-Practical effect: if Lawrence draws a tree with a 32×96 visual on a
-`tag_name_1x1` tag, only the bottom 32×32 (centered on the pivot)
-survives the export. The upper 64 pixels are clipped.
+For a 1×1 footprint, valid PNG widths are 32, 96, 160, … (footprint
+plus an odd number of overhang cells per axis). For a 2×2 footprint,
+valid widths are 64, 128, 192, … In both cases the gameplay area lands
+on cell-aligned atlas coordinates so the tileset registration can
+place the tile cleanly without partial-cell math.
 
-This is a real V1 limitation. If/when overhang support lands (Phase 2),
-larger visuals will be allowed to render above their gameplay tile
-without affecting collision. For V1, Lawrence should either:
-- shrink the visual to fit the marked footprint, or
-- bump the footprint to cover the visual (and accept the larger
-  gameplay area).
+If Lawrence wants to limit a sprite's overhang, he can simply trim
+content in the source `.aseprite` — anything outside the bbox of the
+visible pixels doesn't contribute to PNG dimensions.
 
 ### Character sprites (no dimension suffix)
 
@@ -183,8 +192,9 @@ The terrain-modifier work adds three things to the same flow:
 1. Shadow layer detection + separation into a paired `_shadow.png`.
 2. Footprint declaration in the sidecar, sourced from the tag-name
    `_WxH` suffix (authoritative — overrides any computed value).
-3. Pivot-centered crop: the cropped PNG is exactly `footprint × 32 px`
-   centered on the source pivot. Overhanging visual content is clipped.
+3. Pivot-centered crop: the cropped PNG is the smallest cell-aligned
+   rect containing all visual content centered on the pivot, with
+   dimensions `footprint + 2k cells` per axis (overhang preserved).
 
 For each tag in the file, the plugin produces these outputs in a sibling
 folder named after the `.aseprite` file:
@@ -199,10 +209,13 @@ folder named after the `.aseprite` file:
   survive re-export:
 
 For tags with a `_WxH` dimension suffix, the output dimensions are
-exactly `W*32 × H*32` pixels — the crop rect is sized to the marked
-footprint and centered on the pivot. The visual gets clipped to this
-rect. The output PNG basename has the suffix stripped (so `arch_a_2x1`
-exports as `arch_a.png`).
+the smallest cell-aligned rect that (a) contains all visual content
+(main + shadow union), (b) is centered on the source pivot, and
+(c) has dimensions `W + 2k` × `H + 2j` cells. This keeps the gameplay
+area (the central `W × H` chunk) on cell-aligned atlas coordinates
+when the tileset registration places the atlas tile. The output PNG
+basename has the suffix stripped (so `arch_a_2x1` exports as
+`arch_a.png`).
 
 For tags without the suffix (character animations), the main + shadow
 strips are **trimmed
