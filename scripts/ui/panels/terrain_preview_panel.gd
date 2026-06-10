@@ -68,28 +68,35 @@ func show_tile(tile: Tile) -> void:
 	var definition: Variant = terrain_manager.get_terrain_definition(tile.terrain_type_name)
 
 	# Default row
+	var default_walkable: bool = tile.can_unit_move_to()
 	var default_move: float = tile.get_movement_cost_for_unit()
 	var default_def: float = tile.get_defense_multiplier_for_unit()
 	var default_avoid: float = tile.get_avoid_multiplier_for_unit()
 	var default_atk: float = tile.get_attack_multiplier_for_unit()
 
-	_add_row(null, default_move, default_def, default_avoid, default_atk)
+	_add_row(null, default_walkable, default_move, default_def, default_avoid, default_atk)
 
 	# Override rows — check each unit type for differences
 	if definition != null:
 		var override_types: Array[String] = _get_override_types(definition)
 		for unit_type: String in override_types:
+			var walkable: bool = terrain_manager.can_unit_walk_on_terrain(tile.terrain_type_name, unit_type)
 			var move: float = terrain_manager.get_movement_cost(tile.terrain_type_name, unit_type)
 			var def_mod: float = terrain_manager.get_defense_multiplier(tile.terrain_type_name, unit_type)
 			var avoid: float = terrain_manager.get_avoid_multiplier(tile.terrain_type_name, unit_type)
 			var atk: float = terrain_manager.get_attack_multiplier(tile.terrain_type_name, unit_type)
 
-			# Only add row if at least one value differs from default
-			if not is_equal_approx(move, default_move) or \
+			# Add a row if ANY attribute differs from default — including
+			# walkability. Without the walkability check, a type that can cross
+			# an otherwise-impassable terrain (fliers over a Wall) whose
+			# move/def/avoid/atk happen to match the default would be silently
+			# dropped, hiding the one thing that makes it special.
+			if walkable != default_walkable or \
+					not is_equal_approx(move, default_move) or \
 					not is_equal_approx(def_mod, default_def) or \
 					not is_equal_approx(avoid, default_avoid) or \
 					not is_equal_approx(atk, default_atk):
-				_add_row(unit_type, move, def_mod, avoid, atk)
+				_add_row(unit_type, walkable, move, def_mod, avoid, atk)
 
 
 func hide_panel() -> void:
@@ -102,7 +109,7 @@ func hide_panel() -> void:
 # GRID ROW BUILDING
 # =============================================================================
 
-func _add_row(unit_type: Variant, move_cost: float, defense: float, avoid: float, attack: float) -> void:
+func _add_row(unit_type: Variant, walkable: bool, move_cost: float, defense: float, avoid: float, attack: float) -> void:
 	# Column 1: type icon or "default" placeholder
 	if unit_type == null:
 		var placeholder := _create_icon_cell(load("res://art/sprites/ui/placeholder_10x10.png"))
@@ -119,10 +126,16 @@ func _add_row(unit_type: Variant, move_cost: float, defense: float, avoid: float
 		_add_tap_tooltip(icon_cell)
 		_grid.add_child(icon_cell)
 
-	# Column 2: movement cost (color-coded, inverted — lower is better)
-	var move_color: Color = GameColors.get_movement_cost_color(move_cost)
-	var move_glow: Color = GameColors.get_movement_cost_bg_color(move_cost)
-	_add_value_cell(str(ceili(move_cost)), move_color, move_glow)
+	# Column 2: movement cost — or a red X when this type can't enter at all.
+	# Impassable terrain's movePenalty default is still 1, so without this it
+	# would read as a normal cost of "1" and look walkable.
+	if not walkable:
+		_add_value_cell("X", GameColors.TEXT_DANGER, GameColors.TEXT_DANGER_GLOW,
+				"Impassable — this type cannot enter.")
+	else:
+		var move_color: Color = GameColors.get_movement_cost_color(move_cost)
+		var move_glow: Color = GameColors.get_movement_cost_bg_color(move_cost)
+		_add_value_cell(str(ceili(move_cost)), move_color, move_glow)
 
 	# Column 3: defense multiplier (color-coded)
 	_add_multiplier_cell(defense)
@@ -134,7 +147,7 @@ func _add_row(unit_type: Variant, move_cost: float, defense: float, avoid: float
 	_add_multiplier_cell(attack)
 
 
-func _add_value_cell(text: String, color: Color, glow: Color = Color(-1, -1, -1)) -> void:
+func _add_value_cell(text: String, color: Color, glow: Color = Color(-1, -1, -1), tooltip: String = "") -> void:
 	if _text_container_scene != null:
 		var cell: Control = _text_container_scene.instantiate()
 		var label: Label = cell.get_node("Label") as Label
@@ -142,11 +155,16 @@ func _add_value_cell(text: String, color: Color, glow: Color = Color(-1, -1, -1)
 		label.add_theme_color_override("font_color", color)
 		if glow.r >= 0.0 and label is GlowLabel:
 			label.glow_color = glow
+		if tooltip != "":
+			cell.tooltip_text = tooltip
+			_add_tap_tooltip(cell)
 		_grid.add_child(cell)
 	else:
 		var label := Label.new()
 		label.text = text
 		label.add_theme_color_override("font_color", color)
+		if tooltip != "":
+			label.tooltip_text = tooltip
 		_grid.add_child(label)
 
 
