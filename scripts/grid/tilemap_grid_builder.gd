@@ -78,13 +78,22 @@ func _build_grid() -> void:
 	DebugConfig.log_tilemap("TilemapGridBuilder: Building grid from %d floor cells, bounds [%d,%d]->[%d,%d]" % [
 		floor_cells.size(), min_x, min_y, max_x, max_y])
 
-	# Get modifier cells for three-tier lookup
+	# Get modifier cells for three-tier lookup. A painted cell is the ANCHOR
+	# (top-left / north-west) of its tile's footprint: multi-cell tiles
+	# (e.g. a 2x2 castle) expand east and south from the anchor, applying
+	# the same terrain_type to every covered cell. Godot's TileMapLayer
+	# stores only the anchor cell; footprint occupancy is our convention
+	# (see data/design/terrain_modifiers_and_decorations.md).
 	var modifier_cells: Dictionary = {}  # Vector2i -> terrain_type
 	if _modifier_layer != null:
 		for cell: Vector2i in _modifier_layer.get_used_cells():
 			var terrain_type := _get_terrain_type_from_layer(_modifier_layer, cell)
-			if terrain_type != "":
-				modifier_cells[cell] = terrain_type
+			if terrain_type == "":
+				continue
+			var footprint := _get_footprint_from_layer(_modifier_layer, cell)
+			for dx in range(footprint.x):
+				for dy in range(footprint.y):
+					modifier_cells[cell + Vector2i(dx, dy)] = terrain_type
 
 	# Build tiles
 	var tile_size: int = _floor_layer.tile_set.tile_size.x
@@ -125,17 +134,8 @@ func _build_grid() -> void:
 
 	# Keep TileMapLayers visible — they display the actual tileset art.
 	# Tile nodes are invisible gameplay objects (selection, occupancy, terrain queries).
-	# Modifier layer renders only the gameplay-area chunk (small slice of each
-	# source PNG); the full visual (including overhang above/around the tile)
-	# is drawn by ModifierRenderer as Sprite2D overlays, which also takes
-	# care of z-ordering for occlusion. ModifierRenderer hides the modifier
-	# tilemap layer itself at runtime to avoid double-rendering.
 	if _modifier_layer != null:
 		_modifier_layer.z_index = 2  # Between floor (0/1) and decoration (3)
-		var modifier_renderer := ModifierRenderer.new()
-		modifier_renderer.name = "ModifierRenderer"
-		modifier_renderer.modifier_layer_path = NodePath("../" + str(modifier_layer_path).get_file())
-		add_child(modifier_renderer)
 	if _spawn_layer != null:
 		_spawn_layer.visible = false
 	if _decoration_layer != null:
@@ -153,6 +153,18 @@ func _build_grid() -> void:
 	else:
 		GridManager.set_grid_bounds(grid_width, grid_height, min_x, -max_y, tile_size)
 
+	# Spawn the modifier overlay AFTER set_grid_bounds — ModifierRenderer
+	# reads GridManager.grid_offset_y in its _ready to compute front-row z
+	# indices, so the bounds must be final first. The renderer draws each
+	# modifier's full PNG (including overhang above/around the gameplay
+	# tile) as Sprite2D overlays with occlusion-correct z, and hides the
+	# modifier tilemap layer to avoid double-rendering.
+	if _modifier_layer != null:
+		var modifier_renderer := ModifierRenderer.new()
+		modifier_renderer.name = "ModifierRenderer"
+		modifier_renderer.modifier_layer_path = NodePath("../" + str(modifier_layer_path).get_file())
+		add_child(modifier_renderer)
+
 	DebugConfig.log_tilemap("TilemapGridBuilder: Created %d tile nodes" % tile_count)
 
 
@@ -166,6 +178,19 @@ func _get_terrain_type_from_layer(layer: TileMapLayer, cell: Vector2i) -> String
 		return terrain_type
 
 	return ""
+
+
+## Reads the painted cell's tile footprint (size_in_atlas) from its atlas
+## source. (1, 1) for plain tiles, missing cells, or non-atlas sources.
+func _get_footprint_from_layer(layer: TileMapLayer, cell: Vector2i) -> Vector2i:
+	var source_id := layer.get_cell_source_id(cell)
+	if source_id < 0 or layer.tile_set == null:
+		return Vector2i.ONE
+	var source := layer.tile_set.get_source(source_id) as TileSetAtlasSource
+	if source == null:
+		return Vector2i.ONE
+	var atlas_coords := layer.get_cell_atlas_coords(cell)
+	return source.get_tile_size_in_atlas(atlas_coords)
 
 
 ## Loads `scene_path` (a mission .tscn) off-tree and counts the cells on its

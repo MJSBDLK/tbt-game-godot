@@ -128,6 +128,17 @@ func _register_all() -> int:
 			var terrain_type: String = _terrain_type_for(basename)
 			tile_data.set_custom_data("terrain_type", terrain_type)
 			tile_data.set_custom_data("is_modifier", true)
+			# Godot draws a tile's texture centered on the painted cell. For
+			# multi-cell tiles our anchor convention is "painted cell = NW
+			# corner, expands east/south", so shift the editor-preview texture
+			# down-right by half a cell per extra footprint cell. Positive
+			# texture_origin moves the texture up-left, hence the negation.
+			# Runtime visuals don't use this (ModifierRenderer positions its
+			# own sprites); this is purely so painting looks right in-editor.
+			if footprint != Vector2i.ONE:
+				tile_data.texture_origin = -Vector2i(
+						(footprint.x - 1) * TILE_SIZE / 2,
+						(footprint.y - 1) * TILE_SIZE / 2)
 
 		var shadow_note: String = ", +shadow" if shadow_path != "" else ""
 		var terrain_note: String = " [%s]" % _terrain_type_for(basename) if _terrain_type_for(basename) != "" else ""

@@ -44,6 +44,7 @@ func refresh() -> void:
 	# Grid height arg to ZIndexCalculator is ignored by the formula
 	# (per the existing implementation), but pass something sane.
 	var grid_height: int = 100
+	var grid_offset_y: int = GridManager.grid_offset_y
 
 	for cell: Vector2i in _modifier_layer.get_used_cells():
 		var source_id: int = _modifier_layer.get_cell_source_id(cell)
@@ -57,21 +58,23 @@ func refresh() -> void:
 
 		# Cell center for the painted cell; for multi-cell tiles the visual
 		# anchor is the center of the footprint rectangle (offset by half a
-		# cell per extra footprint cell on each axis).
+		# cell per extra footprint cell on each axis). Painted cell is the
+		# footprint's north-west anchor; it expands east and south.
 		var cell_center: Vector2 = _modifier_layer.map_to_local(cell)
 		var visual_center := cell_center + Vector2(
 				float(footprint.x - 1) * float(tile_size.x) / 2.0,
 				float(footprint.y - 1) * float(tile_size.y) / 2.0)
 
-		# Z-index uses the cell's grid row. Higher row = more north = lower Y
-		# = renders BELOW (so a unit standing in front / more south naturally
-		# sits above the modifier). For overhang above the modifier (e.g. a
-		# tall building canopy), a unit further north (higher row, lower z)
-		# correctly renders behind the overhang's drawn pixels.
+		# Row index follows the project's front-row-zero convention (same as
+		# Unit._update_z_index): row 0 = southernmost = highest z. A modifier
+		# sorts by its SOUTHERN footprint edge so a multi-cell building
+		# occludes units standing behind (north of) its body, while units in
+		# front (south) render above it.
+		var row_index: int = front_row_index(cell.y, footprint.y, grid_offset_y)
 		var modifier_z: int = ZIndexCalculator.calculate_sorting_order(
-				cell.y, grid_height, ZIndexCalculator.ZIndexLayer.TERRAIN_MODIFIERS)
+				row_index, grid_height, ZIndexCalculator.ZIndexLayer.TERRAIN_MODIFIERS)
 		var shadow_z: int = ZIndexCalculator.calculate_sorting_order(
-				cell.y, grid_height, ZIndexCalculator.ZIndexLayer.TERRAIN_EFFECTS)
+				row_index, grid_height, ZIndexCalculator.ZIndexLayer.TERRAIN_EFFECTS)
 
 		# Spawn shadow first so it sits behind everything else added at the
 		# same world position. The shadow PNG file lives next to the source
@@ -118,3 +121,13 @@ static func _shadow_path_for(texture_path: String) -> String:
 	if not texture_path.ends_with(".png"):
 		return ""
 	return texture_path.substr(0, texture_path.length() - 4) + "_shadow.png"
+
+
+## Converts a modifier's anchor cell + footprint into the project's
+## front-row-zero row index (the convention Unit._update_z_index and the
+## tile GridZIndexHandlers use): row = grid_y - grid_offset_y, where
+## grid_y = -cell_y (tilemap Y-down → game grid Y-up) and the modifier
+## sorts by its southernmost footprint row (anchor_cell_y + footprint_y - 1).
+static func front_row_index(anchor_cell_y: int, footprint_y: int, grid_offset_y: int) -> int:
+	var south_cell_y: int = anchor_cell_y + footprint_y - 1
+	return -south_cell_y - grid_offset_y
