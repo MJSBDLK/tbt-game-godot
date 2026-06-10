@@ -258,6 +258,31 @@ func test_crop_for_footprint_minimum_size_when_no_content_overflow() -> void:
 			"2x1 footprint with no overhang stays at 64x32")
 
 
+func test_crop_for_footprint_overflows_source_canvas_stays_pivot_centered() -> void:
+	# Shadow extending far past pivot on one side forces a 5-cell-wide crop
+	# (footprint+2k=5). On Lawrence's 128x128 source canvas this means the
+	# crop rect extends OUTSIDE the canvas — the function still returns a
+	# rect centered on the pivot (no canvas-clamping). The blit code handles
+	# the partial overlap downstream so the output PNG keeps its pivot at
+	# the center.
+	var bbox := Rect2i(48, 56, 67, 16)  # shadow tail extends to x=115 (51 px past pivot)
+	var pivot := Vector2i(64, 64)
+	var fp := Vector2i(1, 1)
+	var rect: Rect2i = ContextMenu._crop_rect_around_pivot_for_footprint(
+			bbox, pivot, Vector2i(128, 128), fp)
+	assert_eq(rect.size.x, 160,
+			"5-cell crop emitted even when source canvas is smaller (128)")
+	# Crop position is pivot - size/2 = 64 - 80 = -16, which is outside the
+	# source canvas. That's intended — blit handles the clipping while
+	# preserving pivot-at-PNG-center.
+	assert_eq(rect.position.x, -16,
+			"Crop position not clamped to canvas; preserves symmetric centering")
+	# Pivot lands at PNG center in the cropped output: -16 + 80 = 64, which
+	# corresponds to a position of 80 in the cropped PNG's own coords.
+	assert_eq(pivot.x - rect.position.x, 80,
+			"Pivot at center of 160-wide output (x=80)")
+
+
 # =============================================================================
 # Bbox union
 # =============================================================================

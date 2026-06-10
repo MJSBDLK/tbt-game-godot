@@ -292,10 +292,14 @@ func _export_file(aseprite_file_path: String, lowercase_names: bool) -> void:
 					crop_rect.size.y / TILE_SIZE_PX)
 			crop_offset = crop_rect  # for the sidecar pivot adjustment below
 
-			# Stitch main strip from cropped frames.
+			# Stitch main strip from cropped frames. crop_rect may extend past
+			# the source canvas (negative position or position+size > canvas
+			# size); blit only the source-overlapping sub-rect at the right
+			# destination offset so the output PNG keeps its declared size and
+			# pivot center.
 			var main_strip := Image.create(crop_rect.size.x * frames_in_tag, crop_rect.size.y, false, Image.FORMAT_RGBA8)
 			for fi in range(frames_in_tag):
-				main_strip.blit_rect(main_frames[fi], crop_rect, Vector2i(fi * crop_rect.size.x, 0))
+				_blit_with_offset(main_strip, main_frames[fi], crop_rect, fi * crop_rect.size.x)
 			var main_save_err := main_strip.save_png(output_path)
 			if main_save_err != OK:
 				printerr("  Failed to write main PNG for tag '%s' (error %d)" % [tag.name, main_save_err])
@@ -308,7 +312,7 @@ func _export_file(aseprite_file_path: String, lowercase_names: bool) -> void:
 				var shadow_strip := Image.create(crop_rect.size.x * frames_in_tag, crop_rect.size.y, false, Image.FORMAT_RGBA8)
 				var any_shadow := false
 				for fi in range(frames_in_tag):
-					shadow_strip.blit_rect(shadow_frames[fi], crop_rect, Vector2i(fi * crop_rect.size.x, 0))
+					_blit_with_offset(shadow_strip, shadow_frames[fi], crop_rect, fi * crop_rect.size.x)
 					if _content_bbox(shadow_frames[fi]).size.x > 0:
 						any_shadow = true
 				if any_shadow:
@@ -1003,12 +1007,41 @@ static func _crop_rect_around_pivot_for_footprint(
 	while cells_h * TILE_SIZE_PX / 2 < half_h_needed:
 		cells_h += 2
 	var size := Vector2i(cells_w * TILE_SIZE_PX, cells_h * TILE_SIZE_PX)
+	# Position centered on pivot. May extend past source canvas — the blit
+	# code handles that by copying only the canvas-overlapping portion at
+	# the right destination offset, so the output PNG keeps its pivot at
+	# the center even when Lawrence's source isn't big enough to fully
+	# contain the symmetric crop.
 	var pos: Vector2i = pivot - size / 2
-	# Clamp to canvas; if the source isn't big enough we lose some overhang
-	# rather than crashing.
-	pos.x = clampi(pos.x, 0, maxi(0, canvas.x - size.x))
-	pos.y = clampi(pos.y, 0, maxi(0, canvas.y - size.y))
+	_unused(canvas)
 	return Rect2i(pos, size)
+
+
+## Blits the portion of `source` that overlaps `crop_rect` (in source
+## coords) into `destination` at the right offset so the cropped output
+## ends up as if `crop_rect` had been copied wholesale, even when
+## `crop_rect` extends past the source's bounds. The non-overlapping
+## destination pixels are left as their original value (transparent in
+## a freshly-created Image). `dst_x_offset` is the additional X offset
+## for strip stitching.
+static func _blit_with_offset(destination: Image, source: Image, crop_rect: Rect2i, dst_x_offset: int) -> void:
+	if source == null:
+		return
+	var src_size := Vector2i(source.get_width(), source.get_height())
+	# Intersect crop_rect with source bounds.
+	var src_x0: int = maxi(0, crop_rect.position.x)
+	var src_y0: int = maxi(0, crop_rect.position.y)
+	var src_x1: int = mini(src_size.x, crop_rect.position.x + crop_rect.size.x)
+	var src_y1: int = mini(src_size.y, crop_rect.position.y + crop_rect.size.y)
+	if src_x1 <= src_x0 or src_y1 <= src_y0:
+		return  # no overlap
+	var intersect := Rect2i(src_x0, src_y0, src_x1 - src_x0, src_y1 - src_y0)
+	# Destination offset: where the overlapping pixels land inside the cropped
+	# output. Negative crop_rect.position pushes content rightward.
+	var dst_pos := Vector2i(
+			dst_x_offset + (intersect.position.x - crop_rect.position.x),
+			intersect.position.y - crop_rect.position.y)
+	destination.blit_rect(source, intersect, dst_pos)
 
 
 ## Returns the union of two bboxes. Either may be empty (size <= 0); in
