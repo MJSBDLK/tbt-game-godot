@@ -69,3 +69,12 @@ func test_volcanic_plant_boosts_fire_and_plant() -> void:
 func test_stone_edifice_medium_defense_bonus() -> void:
 	assert_almost_eq(TerrainDataManager.get_defense_multiplier("StoneEdifice"), 1.2, 0.001,
 			"StoneEdifice grants a medium defensive bonus to the default type")
+
+
+func test_wall_impassable_except_fliers() -> void:
+	assert_false(TerrainDataManager.can_unit_walk_on_terrain("Wall"),
+			"Wall blocks grounded units")
+	assert_false(TerrainDataManager.can_unit_walk_on_terrain("Wall", "SIMPLE"),
+			"Wall blocks a normal grounded type")
+	assert_true(TerrainDataManager.can_unit_walk_on_terrain("Wall", "AIR"),
+			"Wall is passable to Air-types (fliers)")

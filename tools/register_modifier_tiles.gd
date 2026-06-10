@@ -3,10 +3,17 @@
 ## TileSet. Reads the sidecar JSON to size multi-cell tiles. Idempotent —
 ## sources whose texture path is already registered are skipped.
 ##
+## This tool ONLY mints paintable tiles (texture, footprint sizing, editor
+## anchoring). It does NOT assign terrain — that lives in
+## data/modifier_terrain.json and is resolved at scene build by
+## tilemap_grid_builder via ModifierTerrainMap. So re-run this ONLY when new
+## sprites arrive; retuning terrain assignments is a JSON edit + battle reload,
+## no re-registration needed. See
+## data/design/terrain_modifiers_and_decorations.md, "Architecture: terrain
+## across three systems".
+##
 ## Run from the project root via:
 ##   godot-4 --headless --path . --script tools/register_modifier_tiles.gd
-##
-## When new sprites land from Lawrence, re-run; only new ones get added.
 @tool
 extends SceneTree
 
@@ -15,27 +22,6 @@ const SOURCE_DIR := "res://art/sprites/decorations/decorations_and_modifiers/"
 const TILESET_PATH := "res://resources/battle_tileset.tres"
 const MODIFIER_SOURCE_ID_BASE := 100
 const TILE_SIZE := 32
-
-# Filename-prefix → terrain_type mapping. Adding a key here makes the script
-# auto-populate `custom_data_0 = "<terrain_type>"` for matching sprites,
-# enabling gameplay properties (movement cost, defense, etc.) defined in
-# data/terrain_data.json. Tiles without a match get empty terrain_type and
-# are treated as pure decoration unless painted on ModifierTileLayer with
-# the field hand-filled in the TileSet editor.
-# Many sprites map to one type (bulbforest/darkforest/etc → Plant).
-const TERRAIN_TYPE_BY_PREFIX := {
-	"crater": "Crater",
-	"bulbforest": "Plant",
-	"darkforest": "Plant",
-	"shelltree": "Plant",
-	"piperoot": "Plant",
-	"firetopradish": "VolcanicPlant",
-	"volcano": "Volcano",
-	"building": "StoneEdifice",
-	"arch": "StoneEdifice",
-	"castle": "Castle",
-	"bridge": "Bridge",
-}
 
 
 func _init() -> void:
@@ -133,11 +119,8 @@ func _register_all() -> int:
 		tileset.add_source(source, next_id)
 		var tile_data: TileData = source.get_tile_data(atlas_pos, 0)
 		if tile_data != null:
-			# Custom data layers (defined on the tileset itself):
-			#   layer 0 = terrain_type (String)
-			#   layer 1 = is_modifier (bool)
-			var terrain_type: String = _terrain_type_for(basename)
-			tile_data.set_custom_data("terrain_type", terrain_type)
+			# is_modifier (custom_data_1) is a self-describing flag; terrain
+			# assignment lives in data/modifier_terrain.json, NOT here.
 			tile_data.set_custom_data("is_modifier", true)
 			# Godot draws a tile's texture centered on the painted cell. For
 			# multi-cell tiles our anchor convention is "painted cell = NW
@@ -152,9 +135,8 @@ func _register_all() -> int:
 						(footprint.y - 1) * TILE_SIZE / 2)
 
 		var shadow_note: String = ", +shadow" if shadow_path != "" else ""
-		var terrain_note: String = " [%s]" % _terrain_type_for(basename) if _terrain_type_for(basename) != "" else ""
-		print("  Added: %s (footprint %dx%d, id %d%s)%s" % [
-			basename, footprint.x, footprint.y, next_id, shadow_note, terrain_note])
+		print("  Added: %s (footprint %dx%d, id %d%s)" % [
+			basename, footprint.x, footprint.y, next_id, shadow_note])
 		next_id += 1
 		added += 1
 
@@ -168,10 +150,3 @@ func _register_all() -> int:
 	else:
 		print("register_modifier_tiles: no new tiles to register (%d already registered)" % skipped)
 	return 0
-
-
-static func _terrain_type_for(basename: String) -> String:
-	for prefix in TERRAIN_TYPE_BY_PREFIX.keys():
-		if basename.begins_with(prefix as String):
-			return TERRAIN_TYPE_BY_PREFIX[prefix]
-	return ""

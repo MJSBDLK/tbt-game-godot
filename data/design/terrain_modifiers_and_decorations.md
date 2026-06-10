@@ -24,6 +24,73 @@ the doc.
 - The system supports multi-cell footprints (2×2 craters) and oversized
   canvases (tall trees that visually extend beyond their gameplay tile).
 
+## Architecture: terrain across three systems
+
+If you open `terrain_data.json`, `modifier_terrain.json`, and the tileset
+cold and think "three systems for terrain? why not one?" — this section is
+for you. The split is deliberate. Each file answers a different question,
+is keyed differently, and changes for a different reason:
+
+| System | File(s) | Answers | Keyed by | Edited when |
+|---|---|---|---|---|
+| **Terrain rules** | `data/terrain_data.json` | "What does terrain X *do*?" walk/cost/def/avoid/immunity, per unit type | terrain_type name | you rebalance gameplay |
+| **Sprite → terrain map** | `data/modifier_terrain.json` | "Which terrain does each *cell* of this sprite get?" | sprite name (prefix or exact, per-cell rows) | art ships / a sprite is reclassified |
+| **Paintable tiles** | `resources/battle_tileset.tres` + `tools/register_modifier_tiles.gd` | "How is this sprite *painted and rendered*?" source, footprint, anchor | tile source | new art arrives |
+
+Why they can't collapse into one file:
+
+1. **Reuse (many-to-one).** A dozen plant sprites (`bulbforest_*`,
+   `darkforest_*`, `shelltree_*`, `piperoot_*`) all point at one `Plant`
+   rule set. If rules lived per-sprite, retuning "Plant move cost" would
+   mean editing twelve entries. `terrain_data.json` is a normalized lookup
+   table: define once, reference many.
+2. **Different editors, different cadences.** Rules change when the
+   *designer* rebalances. The sprite map changes when the *artist* ships or
+   we recategorize. Tile registration changes mechanically when *new art*
+   arrives. Fusing them means every art drop risks touching balance numbers
+   and vice-versa.
+3. **Different shapes.** Rules are per-type (one entry per terrain). The map
+   is per-sprite-per-cell (rows inside a footprint). Tiles are
+   per-atlas-source. One schema holding all three makes all three awkward.
+
+**The join, at runtime:** for each modifier cell —
+`sprite name → (modifier_terrain.json) → terrain_type → (terrain_data.json)
+→ gameplay`. Two chained lookups. The map is the join table between art and
+rules. The builder ([tilemap_grid_builder.gd](../../scripts/grid/tilemap_grid_builder.gd))
+does this during scene build via
+[ModifierTerrainMap](../../scripts/grid/modifier_terrain_map.gd).
+
+**One asymmetry to know:** *floor* terrains carry their `terrain_type`
+baked into the tileset's custom_data (they're simple per-atlas-cell
+autotiles — Sand, Water, Road). Only *modifiers* route through
+`modifier_terrain.json`, because they need per-cell-within-footprint
+resolution (a 2×2 castle is `Wall` on top, `Castle` below) and live-editable
+assignment. Different mechanisms because they're genuinely different shapes
+— not an oversight.
+
+**Practical consequence:** the registration tool only *mints paintable
+tiles*. It does not assign terrain. So you re-run it only when new sprites
+arrive; retuning which terrain a sprite maps to is a `modifier_terrain.json`
+edit + battle reload, no re-registration.
+
+### `modifier_terrain.json` resolution order
+
+For a sprite painted at a cell, terrain for footprint offset `(dx, dy)`
+(dy = rows north→south from the anchor) resolves as:
+
+1. `by_sprite[name].cells[dy][dx]` — full per-cell control (rarely needed)
+2. `by_sprite[name].rows[dy]` — whole-row terrain (the castle case)
+3. `by_prefix` longest-matching prefix — the bulk default
+4. no match → not a gameplay modifier (pure decoration)
+
+Example — the 2×2 castle:
+```json
+"by_sprite": { "castle_a": { "rows": ["Wall", "Castle"] } }
+```
+Top row (both cells) → `Wall` (impassable except fliers); bottom row →
+`Castle` (walkable, defensive bonus). A flier can perch on the keep; ground
+units must take the gate.
+
 ## Layer architecture
 
 A map scene has these TileMapLayers under `TilemapBuilder`, in z-order

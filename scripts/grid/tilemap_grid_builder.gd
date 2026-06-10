@@ -80,20 +80,29 @@ func _build_grid() -> void:
 
 	# Get modifier cells for three-tier lookup. A painted cell is the ANCHOR
 	# (top-left / north-west) of its tile's footprint: multi-cell tiles
-	# (e.g. a 2x2 castle) expand east and south from the anchor, applying
-	# the same terrain_type to every covered cell. Godot's TileMapLayer
-	# stores only the anchor cell; footprint occupancy is our convention
-	# (see data/design/terrain_modifiers_and_decorations.md).
+	# (e.g. a 2x2 castle) expand east and south from the anchor. Per-cell
+	# terrain is resolved from data/modifier_terrain.json by SPRITE NAME (the
+	# atlas source's resource_name) via ModifierTerrainMap, so a castle's top
+	# row can be Wall and its bottom row Castle. Godot's TileMapLayer stores
+	# only the anchor cell; footprint occupancy is our convention.
+	#
+	# Note the asymmetry with the floor path below: floor autotiles carry
+	# terrain_type in baked tileset custom_data, while modifiers resolve from
+	# the JSON map. Different mechanisms for different shapes — see
+	# data/design/terrain_modifiers_and_decorations.md, "Architecture: terrain
+	# across three systems".
 	var modifier_cells: Dictionary = {}  # Vector2i -> terrain_type
 	if _modifier_layer != null:
 		for cell: Vector2i in _modifier_layer.get_used_cells():
-			var terrain_type := _get_terrain_type_from_layer(_modifier_layer, cell)
-			if terrain_type == "":
+			var sprite_name := _get_sprite_name_from_layer(_modifier_layer, cell)
+			if sprite_name == "":
 				continue
 			var footprint := _get_footprint_from_layer(_modifier_layer, cell)
 			for dx in range(footprint.x):
 				for dy in range(footprint.y):
-					modifier_cells[cell + Vector2i(dx, dy)] = terrain_type
+					var cell_terrain := ModifierTerrainMap.resolve(sprite_name, Vector2i(dx, dy))
+					if cell_terrain != "":
+						modifier_cells[cell + Vector2i(dx, dy)] = cell_terrain
 
 	# Build tiles
 	var tile_size: int = _floor_layer.tile_set.tile_size.x
@@ -178,6 +187,20 @@ func _get_terrain_type_from_layer(layer: TileMapLayer, cell: Vector2i) -> String
 		return terrain_type
 
 	return ""
+
+
+## Reads the painted modifier's sprite name — the atlas source's
+## resource_name, set by the registration tool to the sprite basename
+## (e.g. "castle_a"). Used to look up per-cell terrain in ModifierTerrainMap.
+## Returns "" if the cell isn't an atlas tile.
+func _get_sprite_name_from_layer(layer: TileMapLayer, cell: Vector2i) -> String:
+	var source_id := layer.get_cell_source_id(cell)
+	if source_id < 0 or layer.tile_set == null:
+		return ""
+	var source := layer.tile_set.get_source(source_id) as TileSetAtlasSource
+	if source == null:
+		return ""
+	return source.resource_name
 
 
 ## Reads the painted cell's tile footprint (size_in_atlas) from its atlas

@@ -50,7 +50,8 @@
       "Terrain hierarchy: Plains (basic) -> specialized terrains with conditional bonuses",
       "Weather integration: Terrain status effects double as weather conditions",
       "v3.0: defenseModifier/avoidModifier renamed to defenseMultiplier/avoidMultiplier (1.0 = neutral)"
-    ]
+    ],
+    "related_systems": "This file is ONE of three terrain systems and answers only 'what does terrain X do'. It is keyed by terrain_type and reused by many sprites. Which terrain each modifier SPRITE maps to lives in data/modifier_terrain.json; how sprites become paintable tiles lives in the tileset + tools/register_modifier_tiles.gd. If you're wondering why this isn't one big file, read data/design/terrain_modifiers_and_decorations.md, section 'Architecture: terrain across three systems'."
   },
   "Agriculture": {
     "_doc": "Farmland, vulnerable to fire, neutral defensive properties, slight bonuses to Plant units"
@@ -245,9 +246,18 @@
     "defenseMultiplier": { "default": 1.0, "Plant": 1.1, "Fire": 1.1 },
     "avoidMultiplier": { "default": 1.0 }
   },
+  "Wall": {
+    "_doc": "Solid vertical barrier — castle keep, fortress wall, building upper storey. Impassable to grounded units; only Air-types (fliers) cross. No cover bonus: it's a barrier, not a foothold. Assigned to the top row(s) of multi-cell structures via modifier_terrain.json (e.g. castle_a rows = [Wall, Castle]).",
+    "walkable": { "default": false, "Air": true },
+    "movePenalty": { "default": 1, "Air": 1 },
+    "attackMultiplier": { "default": 1 },
+    "terrainStatusImmunity": ["Electric", "Scorch", "Flood"],
+    "defenseMultiplier": { "default": 1.0 },
+    "avoidMultiplier": { "default": 1.0 }
+  },
   "Water": {
     "walkable": { "default": false, "Air": true, "Cold": true },
-    "movePenalty": { "default": 1, "Cold": 2 },
+    "movePenalty": { "default": 1 },
     "attackMultiplier": { "default": 1, "Cold": 1.2 },
     "terrainStatusImmunity": [],
     "defenseMultiplier": { "default": 0.9, "Cold": 1.0 },
