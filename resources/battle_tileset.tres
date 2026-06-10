@@ -951,7 +951,7 @@ resource_name = "firetopradish_a"
 texture = ExtResource("21_rjjjg")
 texture_region_size = Vector2i(32, 32)
 1:1/0 = 0
-1:1/0/custom_data_0 = "Plant"
+1:1/0/custom_data_0 = "VolcanicPlant"
 1:1/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_gfn5d"]
@@ -959,7 +959,7 @@ resource_name = "firetopradish_b"
 texture = ExtResource("22_bwrg4")
 texture_region_size = Vector2i(32, 32)
 1:1/0 = 0
-1:1/0/custom_data_0 = "Plant"
+1:1/0/custom_data_0 = "VolcanicPlant"
 1:1/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_dymmi"]

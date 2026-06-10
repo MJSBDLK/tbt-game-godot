@@ -29,7 +29,7 @@ const TERRAIN_TYPE_BY_PREFIX := {
 	"darkforest": "Plant",
 	"shelltree": "Plant",
 	"piperoot": "Plant",
-	"firetopradish": "Plant",
+	"firetopradish": "VolcanicPlant",
 	"volcano": "Volcano",
 	"building": "StoneEdifice",
 	"arch": "StoneEdifice",

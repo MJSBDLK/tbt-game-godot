@@ -102,15 +102,19 @@ func _parse_terrain_property(property_data: Variant) -> TerrainProperty:
 			else:
 				property.default_value = float(default_value)
 
-		# Parse unit-type overrides (any key that isn't "default")
+		# Parse unit-type overrides (any key that isn't "default"). Keys are
+		# normalized to UPPERCASE because the game queries with raw
+		# ElementalType enum key strings ("COLD", "AIR") while the JSON is
+		# authored in Title Case ("Cold", "Air") — without normalization on
+		# both sides every per-type override silently never matches.
 		for key: String in dict:
 			if key == "default":
 				continue
 			var override_value: Variant = dict[key]
 			if override_value is bool:
-				property.unit_type_overrides[key] = 1.0 if override_value else 0.0
+				property.unit_type_overrides[key.to_upper()] = 1.0 if override_value else 0.0
 			else:
-				property.unit_type_overrides[key] = float(override_value)
+				property.unit_type_overrides[key.to_upper()] = float(override_value)
 
 	return property
 
@@ -192,8 +196,12 @@ class TerrainProperty:
 	var unit_type_overrides: Dictionary = {}
 
 	func get_value(unit_type: String = "") -> float:
-		if unit_type != "" and unit_type_overrides.has(unit_type):
-			return unit_type_overrides[unit_type]
+		# Overrides are stored uppercase (see _parse_terrain_property);
+		# normalize the query so "Cold", "COLD", and "cold" all match.
+		if unit_type != "":
+			var key := unit_type.to_upper()
+			if unit_type_overrides.has(key):
+				return unit_type_overrides[key]
 		return default_value
 
 	func get_bool_value(unit_type: String = "") -> bool:

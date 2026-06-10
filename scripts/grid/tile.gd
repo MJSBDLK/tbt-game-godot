@@ -146,28 +146,69 @@ func set_color(color: Color) -> void:
 
 ## Returns the tile's visual texture from the TileMapLayer tileset.
 ## Used by UI panels that need a snapshot of what this tile looks like.
+## Prefers the modifier covering this cell (three-tier rule: the modifier
+## IS this tile's identity when present); falls back to the floor art.
 func get_tile_texture() -> Texture2D:
 	var builder: Node = get_parent().get_parent()  # Tiles -> TilemapGridBuilder
 	if builder == null:
 		return null
 
+	# Convert game-grid coords back to tilemap cell coords (Y-flip)
+	var cell := Vector2i(grid_x, -grid_y)
+
+	var modifier_layer: TileMapLayer = builder.get_node_or_null("ModifierTileLayer") as TileMapLayer
+	var modifier_texture := _texture_from_modifier_layer(modifier_layer, cell)
+	if modifier_texture != null:
+		return modifier_texture
+
 	var floor_layer: TileMapLayer = builder.get_node_or_null("TerrainTileLayer") as TileMapLayer
 	if floor_layer == null:
 		return null
+	return _texture_from_layer_cell(floor_layer, cell, cell)
 
-	# Convert game-grid coords back to tilemap cell coords (Y-flip)
-	var cell := Vector2i(grid_x, -grid_y)
-	var source_id := floor_layer.get_cell_source_id(cell)
+
+## Texture for the modifier covering `cell`, or null when none does. The
+## layer stores only each modifier's anchor (NW) cell, so cells covered by
+## a multi-cell footprint (e.g. the other 3 cells of a 2x2 castle) need a
+## scan over painted anchors testing footprint rects.
+func _texture_from_modifier_layer(layer: TileMapLayer, cell: Vector2i) -> Texture2D:
+	if layer == null:
+		return null
+	# Fast path: the cell itself is an anchor.
+	if layer.get_cell_source_id(cell) >= 0:
+		return _texture_from_layer_cell(layer, cell, cell)
+	# Slow path: any anchor whose footprint rect covers this cell.
+	for anchor: Vector2i in layer.get_used_cells():
+		var source := layer.tile_set.get_source(layer.get_cell_source_id(anchor)) as TileSetAtlasSource
+		if source == null:
+			continue
+		var footprint: Vector2i = source.get_tile_size_in_atlas(layer.get_cell_atlas_coords(anchor))
+		if Rect2i(anchor, footprint).has_point(cell):
+			return _texture_from_layer_cell(layer, anchor, cell)
+	return null
+
+
+## AtlasTexture for the painted tile at `painted_cell` on `layer`. When the
+## tile is multi-cell, returns just the one 32x32 sub-cell corresponding to
+## `query_cell` so the preview shows the chunk the cursor is actually on.
+func _texture_from_layer_cell(layer: TileMapLayer, painted_cell: Vector2i, query_cell: Vector2i) -> Texture2D:
+	var source_id := layer.get_cell_source_id(painted_cell)
 	if source_id < 0:
 		return null
-
-	var tile_set := floor_layer.tile_set
-	var source := tile_set.get_source(source_id) as TileSetAtlasSource
+	var source := layer.tile_set.get_source(source_id) as TileSetAtlasSource
 	if source == null:
 		return null
 
-	var atlas_coords := floor_layer.get_cell_atlas_coords(cell)
+	var atlas_coords := layer.get_cell_atlas_coords(painted_cell)
 	var region := source.get_tile_texture_region(atlas_coords)
+
+	# Multi-cell tile: narrow the region to the 32x32 sub-cell under query_cell.
+	var cell_offset := query_cell - painted_cell
+	if cell_offset != Vector2i.ZERO:
+		var cell_px: Vector2i = layer.tile_set.tile_size
+		region = Rect2i(
+				region.position + Vector2i(cell_offset.x * cell_px.x, cell_offset.y * cell_px.y),
+				cell_px)
 
 	var atlas_texture := AtlasTexture.new()
 	atlas_texture.atlas = source.texture

@@ -195,19 +195,9 @@ func _get_override_types(definition: Variant) -> Array[String]:
 
 
 func _unit_type_string_to_enum(unit_type: String) -> Enums.ElementalType:
-	match unit_type:
-		"Fire": return Enums.ElementalType.FIRE
-		"Electric": return Enums.ElementalType.ELECTRIC
-		"Plant": return Enums.ElementalType.PLANT
-		"Ice", "Cold": return Enums.ElementalType.COLD
-		"Air": return Enums.ElementalType.AIR
-		"Gravity": return Enums.ElementalType.GRAVITY
-		"Void": return Enums.ElementalType.VOID
-		"Occult": return Enums.ElementalType.OCCULT
-		"Chivalric": return Enums.ElementalType.CHIVALRIC
-		"Heraldic": return Enums.ElementalType.HERALDIC
-		"Gentry": return Enums.ElementalType.GENTRY
-		"Robo": return Enums.ElementalType.ROBO
-		"Obsidian": return Enums.ElementalType.OBSIDIAN
-		"Simple": return Enums.ElementalType.SIMPLE
-		_: return Enums.ElementalType.NONE
+	# Case-insensitive: override keys arrive UPPERCASE from
+	# TerrainDataManager's normalized storage. "Ice" is a legacy alias for
+	# COLD that may linger in older data.
+	if unit_type.to_upper() == "ICE":
+		return Enums.ElementalType.COLD
+	return Enums.string_to_elemental_type(unit_type)
