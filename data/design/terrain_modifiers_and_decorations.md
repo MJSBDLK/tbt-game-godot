@@ -66,10 +66,20 @@ file can hold one sprite or many — the **tag** is the identity:
 - Per-frame durations from the `.aseprite` header are captured into the
   sidecar JSON, so animations preserve your pacing.
 
-**Naming tags**: snake_case, descriptive, no spaces — the plugin
-sanitizes anything else (lowercases and replaces non-alphanumerics with
-underscores). Examples: `crater_small`, `tree_dead`, `rock_round`,
-`flowers_yellow`.
+**Naming tags**: snake_case + an authoritative `_WxH` dimension suffix
+marking the gameplay footprint in tile cells. The suffix gets stripped
+when the file is exported (so the output PNG is `<basename>.png`, no
+suffix).
+
+Examples:
+- `crater_small_1x1` → `crater_small.png`, footprint 1×1
+- `arch_a_2x1`       → `arch_a.png`,       footprint 2×1
+- `castle_a_2x2`     → `castle_a.png`,     footprint 2×2
+- `building_b_3x2`   → `building_b.png`,   footprint 3×2
+
+The plugin sanitizes any non-alphanumerics in the basename (lowercases,
+replaces with underscores). The dimension suffix is what makes a tag a
+*terrain sprite* vs a *character sprite* — see "Character sprites" below.
 
 **Reserved tag names — don't use these for sprites**: the plugin treats
 any tag named exactly `hit`, or starting with `hit_`, or ending with
@@ -112,31 +122,36 @@ with `_shadow` tells the plugin "trust me, this is a shadow."
 If a tag has no shadow content (i.e. the shadow layer is empty for that
 tag's frames), no shadow file is emitted for that tag.
 
-### For Lawrence — multi-cell footprints
+### For Lawrence — gameplay footprint vs. visual extent
 
-The game runs on a 32×32 grid. A sprite's footprint (the tiles it
-occupies for gameplay) is normally inferred from canvas size:
+The game runs on a 32×32 grid. The **footprint** (cells the tile
+occupies for gameplay) is **the `_WxH` suffix on the tag name**, full
+stop. It's not inferred from canvas or content — Lawrence decides.
 
-- 32×32 canvas → 1×1 footprint
-- 64×32 canvas → 2×1 footprint
-- 64×64 canvas → 2×2 footprint
+What about visuals that exceed the footprint (e.g. a `1×1` tree whose
+canopy is much taller than 32px)?
 
-**Exception — oversized canvas** (sprite visually extends beyond its
-footprint, e.g. a tall tree where only the trunk blocks movement): add a
-slice named `footprint` covering the gameplay area in the bottom row.
-Anything outside the slice is treated as visual overhang and rendered
-above floor but doesn't block movement.
+For V1: **visual content is clipped to footprint × 32 px** centered on
+the pivot. Anything outside that rect gets dropped during export.
 
-Example: a tree with a 32×96 canvas (1 wide, 3 tall) where only the
-bottom cell is the trunk:
-1. Draw the tree across the full 32×96 canvas
-2. Add a slice named `footprint` covering the bottom 32×32
-3. Export — the plugin emits the tree with `footprint: [1, 1]` and
-   computes the correct visual offset so the tree's base sits on the
-   gameplay tile and the canopy extends above
+Practical effect: if Lawrence draws a tree with a 32×96 visual on a
+`tag_name_1x1` tag, only the bottom 32×32 (centered on the pivot)
+survives the export. The upper 64 pixels are clipped.
 
-If no `footprint` slice exists, the plugin assumes the full canvas is the
-footprint.
+This is a real V1 limitation. If/when overhang support lands (Phase 2),
+larger visuals will be allowed to render above their gameplay tile
+without affecting collision. For V1, Lawrence should either:
+- shrink the visual to fit the marked footprint, or
+- bump the footprint to cover the visual (and accept the larger
+  gameplay area).
+
+### Character sprites (no dimension suffix)
+
+Tags without the `_WxH` suffix are treated as character animations —
+the existing character workflow (idle, melee, etc.) keeps using
+bbox-derived sizing without footprint handling. So `idle` and
+`melee_long` continue to work exactly as they did before this system
+landed.
 
 ### Folder layout
 
@@ -164,10 +179,12 @@ The existing plugin already handles: tag parsing, per-tag PNG output
 slices, per-frame duration capture, sidecar JSON emission with merging
 (hand-authored sidecar fields survive re-export).
 
-The terrain-modifier work adds two things to the same flow:
+The terrain-modifier work adds three things to the same flow:
 1. Shadow layer detection + separation into a paired `_shadow.png`.
-2. Footprint declaration in the sidecar (from optional `footprint`
-   slice or inferred from canvas size).
+2. Footprint declaration in the sidecar, sourced from the tag-name
+   `_WxH` suffix (authoritative — overrides any computed value).
+3. Pivot-centered crop: the cropped PNG is exactly `footprint × 32 px`
+   centered on the source pivot. Overhanging visual content is clipped.
 
 For each tag in the file, the plugin produces these outputs in a sibling
 folder named after the `.aseprite` file:
@@ -181,7 +198,14 @@ folder named after the `.aseprite` file:
   hand-authored fields (e.g. `art_bounds` from healthbar bootstrapping)
   survive re-export:
 
-When a shadow layer is present, the main + shadow strips are **trimmed
+For tags with a `_WxH` dimension suffix, the output dimensions are
+exactly `W*32 × H*32` pixels — the crop rect is sized to the marked
+footprint and centered on the pivot. The visual gets clipped to this
+rect. The output PNG basename has the suffix stripped (so `arch_a_2x1`
+exports as `arch_a.png`).
+
+For tags without the suffix (character animations), the main + shadow
+strips are **trimmed
 to a shared bounding rect** computed across both layers + all frames of
 the tag, then **padded to the nearest 32-pixel multiple** on each axis
 (bottom-aligned, so the bottom row of the output PNG corresponds to the

@@ -214,15 +214,24 @@ func _export_file(aseprite_file_path: String, lowercase_names: bool) -> void:
 	var global_output := ProjectSettings.globalize_path(output_directory)
 	var exported_count := 0
 	for tag in clip_tags:
-		var output_name := _sanitize_filename(tag.name, lowercase_names)
+		# Tag-name `_WxH` suffix (Lawrence's terrain bundle convention) marks
+		# the gameplay footprint. Strip it before building the output filename
+		# so e.g. `arch_a_1x1` exports as `arch_a.png`. Tags without the suffix
+		# (character workflow) keep their full name and a zero footprint, which
+		# falls through to the existing bbox-derived computation.
+		var dim_info: Dictionary = _parse_dimension_suffix(tag.name)
+		var footprint_from_tag: Vector2i = dim_info["footprint"]
+		var output_basename: String = _sanitize_filename(dim_info["basename"], lowercase_names)
+		var output_name := output_basename
 		var output_path := global_output + output_name + ".png"
 		var shadow_output_path := global_output + output_name + "_shadow.png"
 		var frames_in_tag: int = tag.to_frame - tag.from_frame + 1
 
-		# Per-tag footprint defaults to the explicit slice if one was authored,
-		# otherwise gets recomputed from the cropped bbox in the shadow-aware
-		# branch. The no-shadow branch leaves it as the slice value (or zero).
-		var footprint_for_tag := footprint_from_slice
+		# Footprint precedence: tag-name suffix > explicit `footprint` slice >
+		# bbox-derived (set inside the shadow-aware branch). Authoritative wins
+		# even when the visual bbox is larger — those extra pixels get clipped
+		# to the marked cell area, which is Lawrence's stated intent.
+		var footprint_for_tag := footprint_from_tag if footprint_from_tag != Vector2i.ZERO else footprint_from_slice
 		var shadow_emitted := false
 		# When the shadow-aware path crops, this records the rect (in source
 		# canvas coords) so the sidecar block can translate the pivot to be
@@ -273,12 +282,24 @@ func _export_file(aseprite_file_path: String, lowercase_names: bool) -> void:
 			# Position the crop around the source pivot so Lawrence's
 			# canvas-center anchor convention survives the trim.
 			var crop_pivot := Vector2i(pivot.x, pivot.y) if has_pivot else canvas_size / 2
-			var crop_rect := _pad_bbox_around_pivot(main_bbox, crop_pivot, canvas_size)
+			var crop_rect: Rect2i
+			if footprint_for_tag != Vector2i.ZERO:
+				# Authoritative footprint from the tag-name suffix (or slice).
+				# Crop to EXACTLY footprint × 32 centered on pivot — overhang
+				# pixels get clipped to the marked cell area, which is what
+				# Lawrence wants the tilemap to occupy.
+				var rect_size := footprint_for_tag * TILE_SIZE_PX
+				var rect_pos := crop_pivot - rect_size / 2
+				rect_pos.x = clampi(rect_pos.x, 0, maxi(0, canvas_size.x - rect_size.x))
+				rect_pos.y = clampi(rect_pos.y, 0, maxi(0, canvas_size.y - rect_size.y))
+				crop_rect = Rect2i(rect_pos, rect_size)
+			else:
+				# No authoritative footprint — fall back to bbox-derived crop.
+				crop_rect = _pad_bbox_around_pivot(main_bbox, crop_pivot, canvas_size)
+				footprint_for_tag = Vector2i(
+					crop_rect.size.x / TILE_SIZE_PX,
+					crop_rect.size.y / TILE_SIZE_PX)
 			crop_offset = crop_rect  # for the sidecar pivot adjustment below
-			var cell_w: int = crop_rect.size.x / TILE_SIZE_PX
-			var cell_h: int = crop_rect.size.y / TILE_SIZE_PX
-			if footprint_for_tag == Vector2i.ZERO:
-				footprint_for_tag = Vector2i(cell_w, cell_h)
 
 			# Stitch main strip from cropped frames.
 			var main_strip := Image.create(crop_rect.size.x * frames_in_tag, crop_rect.size.y, false, Image.FORMAT_RGBA8)
@@ -308,7 +329,8 @@ func _export_file(aseprite_file_path: String, lowercase_names: bool) -> void:
 
 			print("  Strip: %s (%d frames, %dx%d → cells %dx%d%s)" % [
 				output_name, frames_in_tag, crop_rect.size.x, crop_rect.size.y,
-				cell_w, cell_h, ", +shadow" if shadow_emitted else ""])
+				footprint_for_tag.x, footprint_for_tag.y,
+				", +shadow" if shadow_emitted else ""])
 		else:
 			# Source temp dir for single-frame tags: aligned (untrimmed) when pivot
 			# exists, trimmed otherwise. Multi-frame tags always pull from aligned.
@@ -580,6 +602,30 @@ func _parse_canvas_size(global_path: String) -> Vector2i:
 func _is_marker_tag(tag_name: String) -> bool:
 	var lower := str(tag_name).strip_edges().to_lower()
 	return lower == "hit" or lower.begins_with("hit_") or lower.ends_with("_hit")
+
+
+## Parses a `_WxH` tile-dimension suffix off a tag name. Lawrence's terrain
+## bundle uses this convention (e.g. `arch_a_1x1`, `castle_a_2x2`) to mark
+## the GAMEPLAY footprint of each sprite — the cell occupancy used by the
+## tile registration, regardless of how big the visual canvas is.
+##
+## Returns a dict with keys:
+##   "footprint": Vector2i  (zero if no suffix detected)
+##   "basename":  String    (the tag name with the suffix stripped)
+##
+## Suffix-less names get a zero footprint, and the basename is returned
+## unchanged so character-sprite workflows (idle, melee, etc.) keep
+## working exactly as before.
+static func _parse_dimension_suffix(tag_name: String) -> Dictionary:
+	var regex := RegEx.new()
+	regex.compile("^(?<base>.+)_(?<w>\\d+)x(?<h>\\d+)$")
+	var m := regex.search(tag_name)
+	if m == null:
+		return { "footprint": Vector2i.ZERO, "basename": tag_name }
+	return {
+		"footprint": Vector2i(m.get_string("w").to_int(), m.get_string("h").to_int()),
+		"basename": m.get_string("base"),
+	}
 
 
 ## Find the clip a marker tag should attach to. Matching rules:

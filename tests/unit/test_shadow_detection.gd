@@ -158,6 +158,44 @@ func test_pad_bbox_around_pivot_clamps_to_canvas_edge() -> void:
 
 
 # =============================================================================
+# Dimension suffix parsing — Lawrence's `_WxH` tag-name convention
+# =============================================================================
+
+func test_dimension_suffix_parses_1x1() -> void:
+	var info: Dictionary = ContextMenu._parse_dimension_suffix("arch_a_1x1")
+	assert_eq(info["footprint"], Vector2i(1, 1))
+	assert_eq(info["basename"], "arch_a")
+
+
+func test_dimension_suffix_parses_multi_cell() -> void:
+	var info: Dictionary = ContextMenu._parse_dimension_suffix("castle_a_2x2")
+	assert_eq(info["footprint"], Vector2i(2, 2))
+	assert_eq(info["basename"], "castle_a")
+	var info2: Dictionary = ContextMenu._parse_dimension_suffix("building_b_3x2")
+	assert_eq(info2["footprint"], Vector2i(3, 2))
+	assert_eq(info2["basename"], "building_b")
+
+
+func test_dimension_suffix_handles_no_suffix() -> void:
+	# Character workflow: tags like "idle" or "melee" have no dimension suffix.
+	# Returns zero footprint and unchanged basename so the existing pipeline
+	# falls through to bbox-derived sizing.
+	var info: Dictionary = ContextMenu._parse_dimension_suffix("idle")
+	assert_eq(info["footprint"], Vector2i.ZERO)
+	assert_eq(info["basename"], "idle")
+	var info2: Dictionary = ContextMenu._parse_dimension_suffix("melee_long")
+	assert_eq(info2["footprint"], Vector2i.ZERO)
+	assert_eq(info2["basename"], "melee_long")
+
+
+func test_dimension_suffix_only_matches_at_end() -> void:
+	# "10x10" anywhere except the end shouldn't match (false positive guard).
+	var info: Dictionary = ContextMenu._parse_dimension_suffix("size_10x10_test")
+	assert_eq(info["footprint"], Vector2i.ZERO,
+			"_WxH must be at end of name, not in middle")
+
+
+# =============================================================================
 # Bbox union
 # =============================================================================
 
