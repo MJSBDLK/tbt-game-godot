@@ -1,7 +1,7 @@
 [gd_scene format=4 uid="uid://cwt5m7xp4q1k3"]
 
 [ext_resource type="Script" uid="uid://cagsbo3vqi3rj" path="res://scripts/grid/tilemap_grid_builder.gd" id="1_builder"]
-[ext_resource type="TileSet" uid="uid://cgxe6s4agw8ll" path="res://resources/battle_tileset.tres" id="2_tileset"]
+[ext_resource type="TileSet" uid="uid://ck862ngktubj" path="res://resources/battle_tileset.tres" id="2_tileset"]
 [ext_resource type="Script" uid="uid://dh782uwwdpc6y" path="res://scripts/managers/battle_scene.gd" id="3_battle"]
 [ext_resource type="Script" uid="uid://cvfd4cf0sb8g1" path="res://scripts/managers/camera_controller.gd" id="4_camera"]
 
@@ -22,7 +22,7 @@ tile_set = ExtResource("2_tileset")
 tile_set = ExtResource("2_tileset")
 
 [node name="SpawnTileLayer" type="TileMapLayer" parent="TilemapBuilder" unique_id=151676986]
-tile_map_data = PackedByteArray("AAAJAAUABwADAAAAAAD2/wUABwADAAAAAAAJAPv/BwADAAAAAAD2//v/BwADAAAAAAD//wMABwABAAAAAAD+/wQABwABAAAAAAABAAQABwABAAAAAAD9//7/BwACAAAAAAABAP3/BwACAAAAAAD7//z/BwACAAAAAAADAPv/BwACAAAAAAAGAP3/BwACAAAAAAD5//3/BwACAAAAAAAAAAUABwABAAAAAAA=")
+tile_map_data = PackedByteArray("AAAJAAUABwADAAAAAAD2/wUABwADAAAAAAAJAPv/BwADAAAAAAD2//v/BwADAAAAAAD//wMABwABAAAAAAD+/wQABwABAAAAAAABAAQABwABAAAAAAD9//7/BwACAAAAAAABAP3/BwACAAAAAAD7//z/BwACAAAAAAADAPv/BwACAAAAAAAGAP3/BwACAAAAAAD5//3/BwACAAAAAAAAAAUABwABAAAAAAACAAMABwABAAAAAAA=")
 tile_set = ExtResource("2_tileset")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1875369592]

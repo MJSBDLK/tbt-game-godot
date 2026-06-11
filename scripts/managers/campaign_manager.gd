@@ -36,6 +36,7 @@ const CHARACTER_START_LEVELS: Dictionary = {
 	"spaceman": 1,
 	"ernesto": 5,
 	"maam": 11,
+	"elfPirate": 5,
 }
 const FALLBACK_DEFAULT_LEVEL: int = 5
 

@@ -55,10 +55,14 @@ const BONUS_XP_PER_VICTORY: int = 150
 
 
 # Default roster bootstrapped at game start.
+# ElfPirate is the squad's only Air-type — kept in the starting roster on
+# purpose so terrain that's only traversable by fliers (Wall, Volcano, Water)
+# is always testable without rolling for them in the recruit picker.
 const DEFAULT_ROSTER_PATHS: Array[String] = [
 	"res://data/characters/spaceman.json",
 	"res://data/characters/ernesto.json",
 	"res://data/characters/maam.json",
+	"res://data/characters/elf_pirate.json",
 ]
 
 # character_id -> CharacterData (active roster)
