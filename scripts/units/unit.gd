@@ -33,6 +33,16 @@ const HITLAG_MIN: float = 0.05  # Minimum freeze on any hit (seconds)
 const HITLAG_MAX: float = 0.25  # Maximum freeze on a devastating hit (seconds)
 const ATTACK_CLIP_DEFAULT_FPS: int = 12  # Fallback when a clip omits "fps"
 
+# When true, an attack that isn't a due north/south (vertical) shot uses the
+# horizontal (east/west) clip instead of falling back to the boop nudge — so a
+# diagonal attack shows the side-swing, mirrored by flip_h on delta.x's sign
+# (NE flips east, NW stays west). Range then matches on Chebyshev (ring)
+# distance so a diagonally-adjacent target still reads as range 1 and picks the
+# melee clip, not the ranged one. Flip to false to restore strict matching
+# (horizontal clips only for a due east/west delta; diagonals boop). See
+# _select_attack_clip.
+const DIAGONAL_USES_SIDE_ANIMATION: bool = true
+
 
 # =============================================================================
 # EXPORTS
@@ -928,20 +938,46 @@ func _attack_delta_tiles(target: Unit) -> Vector2i:
 
 
 ## Returns the best-matching clip dict from character_data.attack_animations
-## given direction-to-target and Manhattan range. Empty dict means "no match —
-## fall back to boop nudge". First-match wins; clip ordering in JSON matters
-## only when two clips' use_when filters would both pass (avoid that).
+## given direction-to-target and range. Empty dict means "no match — fall back
+## to boop nudge". Thin wrapper that resolves the tile delta, then defers to the
+## pure _select_attack_clip so the matching logic stays unit-testable.
 func _pick_attack_clip(target: Unit, _move: Move) -> Dictionary:
 	if character_data == null or character_data.attack_animations.is_empty():
 		return {}
 	if target == null:
 		return {}
-	var delta := _attack_delta_tiles(target)
-	var horizontal: bool = delta.y == 0 and delta.x != 0
+	return _select_attack_clip(character_data.attack_animations,
+			_attack_delta_tiles(target), DIAGONAL_USES_SIDE_ANIMATION)
+
+
+## Pure clip selection: given the animation table and the attacker→target tile
+## delta, return the first clip whose use_when filters pass. First-match wins;
+## clip ordering in JSON matters only when two clips' filters would both pass
+## (avoid that). Empty dict means no match (caller boops).
+##
+## direction filter: "vertical" needs a due north/south delta; "horizontal"
+## needs an east/west component. When diagonal_as_side is true a diagonal counts
+## as horizontal (shows the side-swing, mirrored later by flip_h) and range is
+## matched on Chebyshev (ring) distance, so a diagonally-adjacent target reads as
+## range 1 and picks melee rather than the ranged clip. Chebyshev == Manhattan
+## for orthogonal attacks, so straight-line matching is untouched. With the flag
+## off, diagonals match neither directional clip (legacy boop fallback) and range
+## is Manhattan — exactly the original behavior.
+##
+## Static + pure so it's testable without a scene tree, tiles, or live targets.
+static func _select_attack_clip(attack_animations: Dictionary, delta: Vector2i,
+		diagonal_as_side: bool) -> Dictionary:
 	var vertical: bool = delta.x == 0 and delta.y != 0
-	var manhattan: int = absi(delta.x) + absi(delta.y)
-	for clip_name: Variant in character_data.attack_animations.keys():
-		var clip_value: Variant = character_data.attack_animations[clip_name]
+	var horizontal: bool
+	var range_distance: int
+	if diagonal_as_side:
+		horizontal = delta.x != 0  # pure east/west OR any diagonal
+		range_distance = maxi(absi(delta.x), absi(delta.y))  # Chebyshev / ring
+	else:
+		horizontal = delta.y == 0 and delta.x != 0
+		range_distance = absi(delta.x) + absi(delta.y)  # Manhattan
+	for clip_name: Variant in attack_animations.keys():
+		var clip_value: Variant = attack_animations[clip_name]
 		if not (clip_value is Dictionary):
 			continue
 		var clip: Dictionary = clip_value
@@ -951,11 +987,11 @@ func _pick_attack_clip(target: Unit, _move: Move) -> Dictionary:
 			continue
 		if dir_req == "vertical" and not vertical:
 			continue
-		if use_when.has("range") and int(use_when["range"]) != manhattan:
+		if use_when.has("range") and int(use_when["range"]) != range_distance:
 			continue
-		if use_when.has("range_min") and int(use_when["range_min"]) > manhattan:
+		if use_when.has("range_min") and int(use_when["range_min"]) > range_distance:
 			continue
-		if use_when.has("range_max") and int(use_when["range_max"]) < manhattan:
+		if use_when.has("range_max") and int(use_when["range_max"]) < range_distance:
 			continue
 		return clip
 	return {}
