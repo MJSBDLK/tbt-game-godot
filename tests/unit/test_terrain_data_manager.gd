@@ -13,12 +13,15 @@ func test_known_terrain_still_walkable() -> void:
 			"Plains stays walkable — the unknown-type fallback must not affect known types")
 
 
-func test_known_impassable_terrain_unaffected() -> void:
-	# StoneEdifice is walkable: {default: false} per terrain_data.json.
-	assert_false(TerrainDataManager.can_unit_walk_on_terrain("StoneEdifice"),
-			"StoneEdifice impassable by data, not by fallback")
-	# But Air... no Air override on StoneEdifice — stays false for all.
-	assert_false(TerrainDataManager.can_unit_walk_on_terrain("StoneEdifice", "Air"))
+func test_stone_edifice_is_walkable_structure() -> void:
+	# StoneEdifice is a walkable structure (castle-gate design: units stand on
+	# structure cells, gated per-cell). No per-type overrides, so it's walkable
+	# for every type including Air; the data-driven IMPASSABLE path is covered
+	# by test_volcano_air_passage / test_wall_impassable_except_fliers.
+	assert_true(TerrainDataManager.can_unit_walk_on_terrain("StoneEdifice"),
+			"StoneEdifice is walkable (castle-gate structure)")
+	assert_true(TerrainDataManager.can_unit_walk_on_terrain("StoneEdifice", "Air"),
+			"No per-type override — walkable for all types, Air included")
 
 
 func test_volcano_air_passage() -> void:

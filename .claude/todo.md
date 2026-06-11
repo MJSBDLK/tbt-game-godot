@@ -302,7 +302,7 @@ New sprites — faction needed:
 - [ ] On controller/M&K, the preview path should display while hovering the next node in the planned path.
 - [ ] Bringing up the unit preview panel on an enemy should display their attack range on the map (pause before implementing this - should this be on a different hotkey?)
 - [ ] Let ice types walk on water
-- [ ] 
+- [ ] Add moves: [Club (basic low-med power attack for the Ogre), Hook Swipe (low damage, chance to root) ]
 
 # Stretch Goals
 - [ ] Sync beacons to music BPM
