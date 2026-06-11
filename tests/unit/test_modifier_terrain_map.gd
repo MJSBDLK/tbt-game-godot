@@ -69,3 +69,14 @@ func test_is_modifier_true_for_mapped_sprites() -> void:
 
 func test_is_modifier_false_for_unmapped_sprite() -> void:
 	assert_false(ModifierTerrainMap.is_modifier("some_pure_decoration"))
+
+
+# =============================================================================
+# occlude_mode — render hint, defaults to interleave
+# =============================================================================
+
+func test_occlude_mode_defaults_to_interleave() -> void:
+	# castle_a has no `occlude` field → the correct-depth default.
+	assert_eq(ModifierTerrainMap.occlude_mode("castle_a"), ModifierTerrainMap.OCCLUDE_INTERLEAVE)
+	# An unmapped sprite also defaults to interleave (fails safe).
+	assert_eq(ModifierTerrainMap.occlude_mode("totally_unknown_xyz"), ModifierTerrainMap.OCCLUDE_INTERLEAVE)

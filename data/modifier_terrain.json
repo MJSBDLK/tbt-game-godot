@@ -3,6 +3,7 @@
     "description": "Maps modifier/decoration SPRITES to terrain types. This is the join table between art (sprite names) and gameplay rules (terrain_data.json). It is intentionally separate from terrain_data.json — see data/design/terrain_modifiers_and_decorations.md, section 'Architecture: terrain across three systems', for the full why.",
     "by_prefix": "sprite-name prefix -> terrain_type. The bulk default; the LONGEST matching prefix wins (so 'firetopradish' beats a hypothetical 'fire'). Every 'volcano_*' sprite resolves to Volcano, etc.",
     "by_sprite": "exact sprite name -> per-cell override, used for multi-cell sprites whose cells differ. 'rows' lists terrain_type NORTH->SOUTH (row 0 = the anchor/top row), one entry per footprint row, applied across the whole row. Optional 'cells' is a 2D [row][col] array for full per-cell control. by_sprite always wins over by_prefix.",
+    "occlude": "Optional per-sprite render hint (in a by_sprite entry): 'interleave' (default) sorts each footprint row at its own depth so a unit can stand on a back row and be drawn over the rows behind it; 'solid' sorts the whole sprite at its south row so any unit on its body reads as standing behind/inside it. Only affects footprint height > 1. Read by ModifierRenderer at scene build; no tile re-registration needed.",
     "resolution_order": [
       "by_sprite[name].cells[row][col]",
       "by_sprite[name].rows[row]",

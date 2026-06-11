@@ -60,6 +60,82 @@ func test_front_row_occlusion_ordering() -> void:
 			"Same-row unit renders above the modifier via layer offset")
 
 
+# =============================================================================
+# Per-row strips ("interleave" mode) — multi-row sprites split into one
+# horizontal strip per footprint row so a unit on a back row interleaves.
+# =============================================================================
+# Setup mirrors the 2x2 castle: 64x96 texture (16px tower overhang on top of a
+# 2-row, 64px footprint), anchored at cell y=3, map grid_offset_y = -8.
+
+const _TEX := Vector2i(64, 96)
+const _FOOTPRINT := Vector2i(2, 2)
+const _TILE := Vector2i(32, 32)
+const _ANCHOR_Y := 3
+const _OFFSET_Y := -8
+
+
+func test_strips_one_per_footprint_row() -> void:
+	var strips := ModifierRenderer.compute_row_strips(_TEX, _FOOTPRINT, _TILE, _ANCHOR_Y, _OFFSET_Y)
+	assert_eq(strips.size(), _FOOTPRINT.y, "One strip per footprint row")
+
+
+func test_strips_tile_the_texture_contiguously() -> void:
+	var strips := ModifierRenderer.compute_row_strips(_TEX, _FOOTPRINT, _TILE, _ANCHOR_Y, _OFFSET_Y)
+	# North strip owns the top overhang (starts at texture y=0); south strip
+	# runs to the bottom edge; bands are gapless and cover the full height.
+	var top: Rect2 = strips[0]["region_rect"]
+	var bottom: Rect2 = strips[strips.size() - 1]["region_rect"]
+	assert_eq(top.position.y, 0.0, "North strip starts at the texture top (owns overhang)")
+	assert_eq(bottom.end.y, float(_TEX.y), "South strip reaches the texture bottom")
+	var covered: float = 0.0
+	var cursor: float = 0.0
+	for strip: Dictionary in strips:
+		var r: Rect2 = strip["region_rect"]
+		assert_eq(r.position.y, cursor, "Strips are contiguous with no gap/overlap")
+		assert_eq(r.size.x, float(_TEX.x), "Strips span the full texture width")
+		cursor = r.end.y
+		covered += r.size.y
+	assert_eq(covered, float(_TEX.y), "Strips cover the whole texture height")
+
+
+func test_strips_offset_reconstructs_original_position() -> void:
+	# Each strip's offset must place its top pixel where the centered full
+	# sprite would have drawn it, so the split image is pixel-identical.
+	var strips := ModifierRenderer.compute_row_strips(_TEX, _FOOTPRINT, _TILE, _ANCHOR_Y, _OFFSET_Y)
+	for strip: Dictionary in strips:
+		var region: Rect2 = strip["region_rect"]
+		var offset: Vector2 = strip["offset"]
+		# centered full sprite maps texture-y `v` to local y (-tex_h/2 + v).
+		var expected_local_top: float = -float(_TEX.y) / 2.0 + region.position.y
+		assert_eq(offset.y, expected_local_top, "Strip offset keeps pixels aligned")
+		assert_eq(offset.x, -float(_TEX.x) / 2.0, "Strips left-align to the texture")
+
+
+func test_strips_sort_front_to_back() -> void:
+	var strips := ModifierRenderer.compute_row_strips(_TEX, _FOOTPRINT, _TILE, _ANCHOR_Y, _OFFSET_Y)
+	# Row 0 is north (back, higher row_index); the last row is south (front).
+	assert_gt(int(strips[0]["row_index"]), int(strips[strips.size() - 1]["row_index"]),
+			"North strip is further back (higher row index) than the south strip")
+
+
+func test_overhang_strip_occludes_units_behind_the_modifier() -> void:
+	# THE invariant: the north strip (which carries all overhang) must out-sort
+	# any unit standing north of the footprint, so towers still occlude units
+	# behind the castle — including "two rows above the bottom row".
+	var strips := ModifierRenderer.compute_row_strips(_TEX, _FOOTPRINT, _TILE, _ANCHOR_Y, _OFFSET_Y)
+	var north_strip_z: int = ZIndexCalculator.calculate_sorting_order(
+			int(strips[0]["row_index"]), 100, ZIndexCalculator.ZIndexLayer.TERRAIN_MODIFIERS)
+
+	# Footprint spans cells y=3 (top) and y=4 (bottom). "Two rows above the
+	# bottom row" = cell y=2; one further = y=1. Both must be occluded.
+	for behind_cell_y: int in [2, 1]:
+		var unit_row: int = ModifierRenderer.front_row_index(behind_cell_y, 1, _OFFSET_Y)
+		var unit_z: int = ZIndexCalculator.calculate_sorting_order(
+				unit_row, 100, ZIndexCalculator.ZIndexLayer.UNITS)
+		assert_gt(north_strip_z, unit_z,
+				"Overhang strip occludes a unit standing at cell y=%d (behind the castle)" % behind_cell_y)
+
+
 func test_shadow_path_convention() -> void:
 	assert_eq(ModifierRenderer._shadow_path_for("res://art/x/castle_a.png"),
 			"res://art/x/castle_a_shadow.png")

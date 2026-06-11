@@ -17,6 +17,18 @@ extends RefCounted
 
 const DATA_PATH := "res://data/modifier_terrain.json"
 
+## How a multi-row modifier sorts against units standing on its body.
+##   "interleave" (default): each footprint row sorts at its own depth, so a
+##                unit on a back row draws over the rows behind it and behind
+##                the rows in front of it (correct 2.5D depth).
+##   "solid":     the whole sprite sorts at its southernmost row, so any unit
+##                on a covered row reads as standing behind/inside it.
+## Only affects sprites with footprint height > 1; 1x1 sprites render the same
+## either way. See data/design/terrain_modifiers_and_decorations.md.
+const OCCLUDE_INTERLEAVE := "interleave"
+const OCCLUDE_SOLID := "solid"
+const DEFAULT_OCCLUDE_MODE := OCCLUDE_INTERLEAVE
+
 static var _by_prefix: Dictionary = {}
 static var _by_sprite: Dictionary = {}
 static var _loaded := false
@@ -85,6 +97,19 @@ static func _prefix_match(sprite_name: String) -> String:
 			best = str(_by_prefix[p])
 			best_len = p.length()
 	return best
+
+
+## Render-time occlusion mode for a sprite (see the OCCLUDE_* constants).
+## Per-sprite via by_sprite[name].occlude; defaults to interleave. Any value
+## other than "solid" is treated as interleave so a typo fails safe to the
+## correct-depth default rather than the legacy block-occlude behavior.
+static func occlude_mode(sprite_name: String) -> String:
+	_ensure_loaded()
+	if _by_sprite.has(sprite_name):
+		var entry: Dictionary = _by_sprite[sprite_name]
+		if entry.has("occlude") and str(entry["occlude"]) == OCCLUDE_SOLID:
+			return OCCLUDE_SOLID
+	return DEFAULT_OCCLUDE_MODE
 
 
 ## True if this sprite has any terrain mapping (i.e. is a gameplay modifier

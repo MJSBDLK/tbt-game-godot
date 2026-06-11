@@ -87,22 +87,23 @@ func refresh() -> void:
 				float(footprint.y - 1) * float(tile_size.y) / 2.0)
 
 		# Row index follows the project's front-row-zero convention (same as
-		# Unit._update_z_index): row 0 = southernmost = highest z. A modifier
-		# sorts by its SOUTHERN footprint edge so a multi-cell building
-		# occludes units standing behind (north of) its body, while units in
-		# front (south) render above it.
-		var row_index: int = front_row_index(cell.y, footprint.y, grid_offset_y)
-		var modifier_z: int = ZIndexCalculator.calculate_sorting_order(
-				row_index, grid_height, ZIndexCalculator.ZIndexLayer.TERRAIN_MODIFIERS)
+		# Unit._update_z_index): row 0 = southernmost = highest z. The SOUTHERN
+		# footprint row drives the shadow and the legacy "solid" occlusion mode.
+		# In the default "interleave" mode each row is sorted independently below
+		# (see compute_row_strips), so a unit standing on a back row isn't
+		# swallowed by the whole sprite.
+		var south_row_index: int = front_row_index(cell.y, footprint.y, grid_offset_y)
+		var south_modifier_z: int = ZIndexCalculator.calculate_sorting_order(
+				south_row_index, grid_height, ZIndexCalculator.ZIndexLayer.TERRAIN_MODIFIERS)
 		var shadow_z: int
 		if SHADOWS_ABOVE_MODIFIERS:
 			# One slot above same-row modifiers (slot 3 in the row's z band) —
 			# spills over east neighbors; export-time masking keeps the caster
 			# itself unshaded. See the const's doc comment.
-			shadow_z = modifier_z + 1
+			shadow_z = south_modifier_z + 1
 		else:
 			shadow_z = ZIndexCalculator.calculate_sorting_order(
-					row_index, grid_height, ZIndexCalculator.ZIndexLayer.TERRAIN_EFFECTS)
+					south_row_index, grid_height, ZIndexCalculator.ZIndexLayer.TERRAIN_EFFECTS)
 
 		# Spawn shadow first so it sits behind everything else added at the
 		# same world position. The shadow PNG file lives next to the source
@@ -122,16 +123,41 @@ func refresh() -> void:
 				add_child(shadow_sprite)
 				_sprites.append(shadow_sprite)
 
-		var sprite := Sprite2D.new()
-		sprite.texture = source.texture
-		sprite.centered = true
-		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		sprite.position = visual_center
-		sprite.z_index = modifier_z
-		sprite.z_as_relative = false
-		sprite.material = fade_material
-		add_child(sprite)
-		_sprites.append(sprite)
+		# Occlusion mode. Multi-row sprites default to per-row strips so a unit
+		# on a back row interleaves correctly; a sprite can opt back to the
+		# single-sprite "solid" block via modifier_terrain.json's `occlude`.
+		var sprite_name: String = source.resource_name
+		var mode: String = ModifierTerrainMap.occlude_mode(sprite_name)
+		if footprint.y > 1 and mode != ModifierTerrainMap.OCCLUDE_SOLID:
+			var tex_size: Vector2i = Vector2i(source.texture.get_size())
+			var strips: Array[Dictionary] = compute_row_strips(
+					tex_size, footprint, tile_size, cell.y, grid_offset_y)
+			for strip: Dictionary in strips:
+				var strip_sprite := Sprite2D.new()
+				strip_sprite.texture = source.texture
+				strip_sprite.centered = false
+				strip_sprite.region_enabled = true
+				strip_sprite.region_rect = strip["region_rect"]
+				strip_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+				strip_sprite.position = visual_center + strip["offset"]
+				strip_sprite.z_index = ZIndexCalculator.calculate_sorting_order(
+						strip["row_index"], grid_height,
+						ZIndexCalculator.ZIndexLayer.TERRAIN_MODIFIERS)
+				strip_sprite.z_as_relative = false
+				strip_sprite.material = fade_material
+				add_child(strip_sprite)
+				_sprites.append(strip_sprite)
+		else:
+			var sprite := Sprite2D.new()
+			sprite.texture = source.texture
+			sprite.centered = true
+			sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			sprite.position = visual_center
+			sprite.z_index = south_modifier_z
+			sprite.z_as_relative = false
+			sprite.material = fade_material
+			add_child(sprite)
+			_sprites.append(sprite)
 
 	# Hide the tilemap layer so it doesn't double-render the gameplay-area
 	# chunk underneath the overlay. The Tile nodes (invisible gameplay state)
@@ -161,3 +187,51 @@ static func _shadow_path_for(texture_path: String) -> String:
 static func front_row_index(anchor_cell_y: int, footprint_y: int, grid_offset_y: int) -> int:
 	var south_cell_y: int = anchor_cell_y + footprint_y - 1
 	return -south_cell_y - grid_offset_y
+
+
+## Splits a multi-row modifier texture into one horizontal strip per footprint
+## row so each row can sort at its own depth ("interleave" mode). Returns one
+## Dictionary per row (north→south) with:
+##   region_rect: Rect2 — the slice of the texture for this row
+##   offset:      Vector2 — top-left of that slice relative to the sprite's
+##                visual_center (add visual_center to get world position; the
+##                strip Sprite2D uses centered = false)
+##   row_index:   int — front-row-zero index for ZIndexCalculator
+##
+## Invariant the strips preserve: ALL vertical overhang (towers, canopy) lives
+## in the NORTH (top) strip and therefore sorts at the top footprint row. Since
+## overhang only extends north and anything north of the top row is further
+## back, the top strip always out-sorts a unit standing in those cells — so a
+## tall modifier still occludes everything behind it, exactly as the single
+## sprite did. Assumes overhang extends north only (true for our assets); any
+## south-extending overhang would belong to the bottom strip and is not split
+## out here.
+##
+## Pure/static so it's unit-testable without a scene tree or real texture.
+static func compute_row_strips(tex_size: Vector2i, footprint: Vector2i,
+		tile_size: Vector2i, anchor_cell_y: int, grid_offset_y: int) -> Array[Dictionary]:
+	var strips: Array[Dictionary] = []
+	var rows: int = footprint.y
+	var tile_h: int = tile_size.y
+	var tex_w: float = float(tex_size.x)
+	var tex_h: float = float(tex_size.y)
+	# The footprint occupies the central `rows * tile_h` band of the texture;
+	# the crop is symmetric around the pivot, so the overhang splits evenly and
+	# the footprint's top edge sits `overhang_top` pixels down from the texture
+	# top.
+	var overhang_top: float = (tex_h - float(rows * tile_h)) / 2.0
+	for row: int in range(rows):
+		var band_top: float = overhang_top + float(row * tile_h)
+		var band_bottom: float = band_top + float(tile_h)
+		if row == 0:
+			band_top = 0.0  # north strip swallows all top overhang
+		if row == rows - 1:
+			band_bottom = tex_h  # south strip swallows any bottom margin
+		var region := Rect2(0.0, band_top, tex_w, band_bottom - band_top)
+		var offset := Vector2(-tex_w / 2.0, -tex_h / 2.0 + band_top)
+		strips.append({
+			"region_rect": region,
+			"offset": offset,
+			"row_index": front_row_index(anchor_cell_y + row, 1, grid_offset_y),
+		})
+	return strips
