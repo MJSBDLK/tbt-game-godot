@@ -22,6 +22,7 @@ config/features=PackedStringArray("4.6", "Forward Plus")
 [autoload]
 
 DebugConfig="*res://scripts/core/debug_config.gd"
+Settings="*res://scripts/core/settings.gd"
 SceneRouter="*res://scripts/managers/scene_router.gd"
 TerrainDataManager="*res://scripts/grid/terrain_data_manager.gd"
 GridManager="*res://scripts/grid/grid_manager.gd"

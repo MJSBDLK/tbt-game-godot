@@ -81,6 +81,10 @@ func _ready() -> void:
 	# equals the 640×360 reference resolution — what the design canvas assumes.
 	_target_zoom = _default_zoom_for_window()
 	zoom = Vector2(_target_zoom, _target_zoom)
+	# Honor the player's persisted Zoom Mode preference (Options menu). The
+	# setter snaps _target_zoom to an integer when enabled — the default zoom is
+	# already integer, so this is a no-op there, but it keeps the invariant.
+	integer_zoom_mode = Settings.integer_zoom_mode
 	if GridManager.is_grid_ready():
 		_set_bounds_from_grid()
 	else:
