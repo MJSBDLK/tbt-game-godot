@@ -19,3 +19,4 @@ Moves needed
 + ice/physical/rng 1/power 4/acc 100/use 15 - priority move (attacks before the opponent unless their move also has elevated priority)
 + attack which 
 + ice/special/rng 1/power 9/acc 100/use 10 - 
+
