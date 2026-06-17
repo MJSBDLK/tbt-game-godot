@@ -5,9 +5,11 @@
 ##
 ## Flow:
 ##   start_screen.gd           -> CampaignManager.start_campaign(level, missions, pool)
-##   post_mission_report_panel -> CampaignManager.advance_mission()
-##   advance_mission()         -> show recruit picker -> register choice -> load next scene
+##   post_mission_report_panel -> CampaignManager.conclude_mission(is_victory)
+##   conclude_mission(true)    -> advance_mission() -> recruit picker -> next scene
 ##                              | end_campaign() if no missions remain
+##   conclude_mission(false)   -> _restart_current_mission() — replay the same
+##                                mission when RESTART_MISSION_ON_LOSS (else advance)
 ##
 ## Stub-first scope (alpha item #1): mission_index increment + scene routing.
 ## Auto-leveling (item #2) reads start_level when it lands. Squad roster mutation
@@ -19,6 +21,7 @@ extends Node
 
 signal campaign_started(start_level: int, mission_paths: Array)
 signal mission_advanced(new_index: int)
+signal mission_restarted(index: int)
 signal recruit_added(character_data: CharacterData)
 signal campaign_ended()
 
@@ -28,6 +31,17 @@ const PREP_SCREEN_PATH: String = "res://scenes/ui/prep_screen.tscn"
 const CAMPAIGN_COMPLETE_SCREEN_PATH: String = "res://scenes/ui/campaign_complete_screen.tscn"
 const RECRUIT_OFFER_COUNT: int = 3
 
+## TESTING-PHASE behavior: when true, losing a mission replays that same mission
+## instead of advancing to the next one. Either way the player's persistent
+## roster — levels and any injuries committed during battle_ended — carries over,
+## because SquadManager owns that state and doesn't branch on the win/loss
+## outcome. So a loss costs you progress on this mission but not your characters'
+## growth. Flip to false to restore the old placeholder "advance regardless of
+## outcome" behavior. The shipping game will handle defeat differently; this is a
+## balance-playtest convenience (todo: "restart the level on loss, keep injuries
+## and levels").
+const RESTART_MISSION_ON_LOSS: bool = true
+
 # Per-character starting levels. Lookup by character_id. Anyone not listed
 # defaults to the squad's current average level at the moment they're recruited
 # (see _resolve_target_level). Move/passive pools are still shallow — once they
@@ -36,6 +50,7 @@ const CHARACTER_START_LEVELS: Dictionary = {
 	"spaceman": 1,
 	"ernesto": 5,
 	"maam": 11,
+	"elfPirate": 5,
 }
 const FALLBACK_DEFAULT_LEVEL: int = 5
 
@@ -83,7 +98,31 @@ func start_campaign(start_level: int, mission_paths: Array[String],
 	SceneRouter.change_scene_to(PREP_SCREEN_PATH)
 
 
-## Called by post_mission_report_panel after the player clicks Continue.
+## Entry point called by post_mission_report_panel after the player clicks
+## Continue. Routes on the battle outcome: a victory advances to the next
+## mission; a defeat replays the current one (RESTART_MISSION_ON_LOSS) so the
+## player retries with the roster — levels and injuries — they finished the loss
+## holding. With the toggle off, a defeat advances like a victory (the old
+## placeholder behavior).
+func conclude_mission(is_victory: bool) -> void:
+	if not is_active():
+		push_warning("CampaignManager: conclude_mission() called with no active campaign")
+		_return_to_start_screen()
+		return
+	if _should_advance_after(is_victory, RESTART_MISSION_ON_LOSS):
+		advance_mission()
+	else:
+		_restart_current_mission()
+
+
+## Pure decision behind conclude_mission, factored out so the advance-vs-replay
+## logic is unit-testable without triggering scene routing. Returns true to
+## advance to the next mission, false to replay the current one.
+static func _should_advance_after(is_victory: bool, restart_on_loss: bool) -> bool:
+	return is_victory or not restart_on_loss
+
+
+## The victory branch of conclude_mission (also the no-restart defeat branch).
 ## At each mission boundary, offers the player a choice of N candidates from
 ## the recruit pool (defaults to RECRUIT_OFFER_COUNT = 3). Awaits the picker;
 ## once chosen, registers the recruit and loads the next mission. Skips the
@@ -110,6 +149,20 @@ func advance_mission() -> void:
 
 	mission_advanced.emit(_current_mission_index)
 	DebugConfig.log_unit_init("CampaignManager: Advancing to mission %d/%d (via prep screen)" % [
+		_current_mission_index + 1, _mission_paths.size()])
+	SceneRouter.change_scene_to(PREP_SCREEN_PATH)
+
+
+## The defeat branch of conclude_mission. Replays the current mission without
+## advancing the index and without offering a recruit (a loss isn't progress, so
+## no between-mission reward). The persistent roster already carried over via
+## SquadManager's battle_ended processing, so the player retries with whatever
+## levels/injuries they finished the defeat holding. Routes back through the prep
+## screen so they can re-pick their deployment.
+func _restart_current_mission() -> void:
+	assert(is_active(), "_restart_current_mission requires an active campaign")
+	mission_restarted.emit(_current_mission_index)
+	DebugConfig.log_unit_init("CampaignManager: Replaying mission %d/%d after defeat" % [
 		_current_mission_index + 1, _mission_paths.size()])
 	SceneRouter.change_scene_to(PREP_SCREEN_PATH)
 

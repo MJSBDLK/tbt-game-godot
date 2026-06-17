@@ -150,6 +150,10 @@ func _unhandled_input(event: InputEvent) -> void:
 					_cheat_refresh_hovered_unit()
 					get_viewport().set_input_as_handled()
 					return
+				KEY_K:
+					_cheat_kill_hovered_unit()
+					get_viewport().set_input_as_handled()
+					return
 
 	if not input_enabled:
 		return
@@ -647,3 +651,39 @@ func _cheat_refresh_hovered_unit() -> void:
 		return
 	unit.refresh_unit()
 	print("CHEAT: Refreshed '%s'" % unit.unit_name)
+
+
+## Kill whichever unit the mouse is over, and — for player units — queue a random
+## injury onto its character. Exercises the full death + injury pipeline for
+## balance testing: the unit dies now; the injury commits at mission end through
+## the normal slot-check / permadeath path. We pass an EMPTY killing source so
+## take_damage's own (type-based) death-injury queue no-ops, leaving the random
+## injury as the only one queued. Enemies just die — their character_data isn't
+## persisted, so injuring them is meaningless.
+func _cheat_kill_hovered_unit() -> void:
+	var tile := GridManager.get_tile_at_position(_get_world_mouse_position())
+	if tile == null or tile.current_unit == null or not tile.current_unit is Unit:
+		return
+	var unit := tile.current_unit as Unit
+	if unit.is_defeated():
+		return
+	# Queue the random injury BEFORE the kill. Killing the last player unit can
+	# end the battle synchronously (unit_defeated → victory check → battle_ended),
+	# which commits pending injuries right then — so it must already be queued.
+	var summary: String = "CHEAT: Killed '%s'" % unit.unit_name
+	if unit.faction == Enums.UnitFaction.PLAYER and unit.character_data != null:
+		var injury: Injury = InjurySystem.queue_random_injury(unit.character_data)
+		if injury != null:
+			var injury_data: InjuryData = injury.get_data()
+			var label: String = injury_data.display_name if injury_data != null else injury.injury_id
+			summary += " + random injury %s (%s)" % [label, Enums.InjurySeverity.keys()[injury.severity]]
+	# Empty killing source → take_damage's own (type-based) death injury no-ops,
+	# leaving the random injury as the only one queued.
+	unit.take_damage(unit.current_hp, {})
+	# take_damage only zeroes HP + emits unit_defeated (the victory check). The
+	# visual death — gray out, fade, and clearing tile occupancy — lives in
+	# _handle_defeat, which combat awaits after the hit. Run it here too
+	# (fire-and-forget; it self-guards via _defeat_visuals_played) so the
+	# cheat-killed unit actually leaves the map instead of sitting at 0 HP.
+	unit._handle_defeat()
+	print(summary)

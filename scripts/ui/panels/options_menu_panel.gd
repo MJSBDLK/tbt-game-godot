@@ -19,6 +19,8 @@ var _border_overlay: PanelBorderOverlay = null
 # Current setting values
 var _zoom_mode_smooth_button: Button = null
 var _zoom_mode_integer_button: Button = null
+var _portrait_effects_on_button: Button = null
+var _portrait_effects_off_button: Button = null
 
 # Style caches
 var _toggle_style_active: StyleBoxFlat = null
@@ -109,6 +111,9 @@ func _populate_options() -> void:
 	# Zoom Mode
 	_create_zoom_mode_option()
 
+	# Portrait Effects (HD line-art distortion / glass shaders)
+	_create_portrait_effects_option()
+
 	# Close button at bottom
 	_create_separator()
 	_create_close_button()
@@ -153,8 +158,9 @@ func _create_zoom_mode_option() -> void:
 	var button_container := HBoxContainer.new()
 	button_container.add_theme_constant_override("separation", 2)
 
-	var camera := _get_camera()
-	var current_integer: bool = camera != null and camera.integer_zoom_mode
+	# Settings is the source of truth — it's correct even when no camera exists
+	# (e.g. Options opened from a menu scene), and the camera mirrors it on spawn.
+	var current_integer: bool = Settings.integer_zoom_mode
 
 	_zoom_mode_smooth_button = _create_toggle_button("Smooth", not current_integer)
 	_zoom_mode_smooth_button.pressed.connect(_on_zoom_mode_smooth)
@@ -251,9 +257,60 @@ func _on_zoom_mode_integer() -> void:
 
 
 func _set_zoom_mode(integer: bool) -> void:
+	# Persist first (survives restart), then apply live to the current camera.
+	Settings.set_integer_zoom_mode(integer)
 	var camera := _get_camera()
 	if camera != null:
 		camera.integer_zoom_mode = integer
+
+
+# =============================================================================
+# PORTRAIT EFFECTS CALLBACKS
+# =============================================================================
+# Toggles the HD line-art portrait distortion/glass shaders. Accessibility
+# setting (motion / flicker sensitivity). Persisted via Settings; every
+# HDPortraitSlot re-applies live off the Settings.changed signal.
+
+func _create_portrait_effects_option() -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+
+	var label := Label.new()
+	label.text = "Portrait FX"
+	label.custom_minimum_size = Vector2(OPTION_LABEL_WIDTH, 0)
+	label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
+	var glow: ShaderMaterial = GLOW_MATERIAL.duplicate()
+	glow.set_shader_parameter("glow_color", GameColors.TEXT_PRIMARY_GLOW)
+	label.material = glow
+	row.add_child(label)
+
+	var button_container := HBoxContainer.new()
+	button_container.add_theme_constant_override("separation", 2)
+
+	var enabled: bool = Settings.portrait_effects_enabled
+
+	_portrait_effects_on_button = _create_toggle_button("On", enabled)
+	_portrait_effects_on_button.pressed.connect(_on_portrait_effects_on)
+	button_container.add_child(_portrait_effects_on_button)
+
+	_portrait_effects_off_button = _create_toggle_button("Off", not enabled)
+	_portrait_effects_off_button.pressed.connect(_on_portrait_effects_off)
+	button_container.add_child(_portrait_effects_off_button)
+
+	row.add_child(button_container)
+	_content_container.add_child(row)
+
+
+func _on_portrait_effects_on() -> void:
+	Settings.set_portrait_effects_enabled(true)
+	_apply_toggle_state(_portrait_effects_on_button, true)
+	_apply_toggle_state(_portrait_effects_off_button, false)
+
+
+func _on_portrait_effects_off() -> void:
+	Settings.set_portrait_effects_enabled(false)
+	_apply_toggle_state(_portrait_effects_on_button, false)
+	_apply_toggle_state(_portrait_effects_off_button, true)
 
 
 func _get_camera() -> CameraController:
@@ -275,6 +332,8 @@ func _clear_items() -> void:
 		child.queue_free()
 	_zoom_mode_smooth_button = null
 	_zoom_mode_integer_button = null
+	_portrait_effects_on_button = null
+	_portrait_effects_off_button = null
 
 
 func _ensure_border_overlay() -> void:

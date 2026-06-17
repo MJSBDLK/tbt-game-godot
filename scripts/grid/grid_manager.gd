@@ -70,6 +70,18 @@ func set_grid_bounds(width: int, height: int, offset_x: int = 0, offset_y: int =
 	grid_ready.emit()
 
 
+## World-space (pixel) rectangle covering the playable map area. Used by the
+## out-of-bounds vignette and the modifier overlay's edge-fade shader so both
+## darken with the same boundary. Grid offsets are in game-grid coords (Y-up);
+## the rect is in tilemap/world pixels (Y-down) — hence the Y flip.
+func get_map_world_rect() -> Rect2:
+	var origin_x: float = _grid_offset_x * _tile_size
+	var min_tilemap_y: int = -_grid_offset_y - _grid_height + 1
+	var origin_y: float = min_tilemap_y * _tile_size
+	var size := Vector2(_grid_width * _tile_size, _grid_height * _tile_size)
+	return Rect2(Vector2(origin_x, origin_y), size)
+
+
 func is_grid_ready() -> bool:
 	return _grid.size() > 0
 

@@ -18,7 +18,10 @@ const RECRUIT_POOL: Array[String] = [
 	"res://data/characters/grasker.json",
 	"res://data/characters/gravity_captain.json",
 	"res://data/characters/ogre_squire.json",
-	"res://data/characters/elf_pirate.json",
+	# elf_pirate is now in SquadManager.DEFAULT_ROSTER_PATHS (starting squad),
+	# so it's deliberately omitted here — the recruit picker doesn't filter
+	# against the bootstrapped roster, and re-offering an already-owned unit
+	# would burn a recruit slot.
 	"res://data/characters/desert_sniper.json",
 	"res://data/characters/healer_goblin.json",
 	"res://data/characters/healer_plant.json",

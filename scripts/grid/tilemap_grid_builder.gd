@@ -78,13 +78,31 @@ func _build_grid() -> void:
 	DebugConfig.log_tilemap("TilemapGridBuilder: Building grid from %d floor cells, bounds [%d,%d]->[%d,%d]" % [
 		floor_cells.size(), min_x, min_y, max_x, max_y])
 
-	# Get modifier cells for three-tier lookup
+	# Get modifier cells for three-tier lookup. A painted cell is the ANCHOR
+	# (top-left / north-west) of its tile's footprint: multi-cell tiles
+	# (e.g. a 2x2 castle) expand east and south from the anchor. Per-cell
+	# terrain is resolved from data/modifier_terrain.json by SPRITE NAME (the
+	# atlas source's resource_name) via ModifierTerrainMap, so a castle's top
+	# row can be Wall and its bottom row Castle. Godot's TileMapLayer stores
+	# only the anchor cell; footprint occupancy is our convention.
+	#
+	# Note the asymmetry with the floor path below: floor autotiles carry
+	# terrain_type in baked tileset custom_data, while modifiers resolve from
+	# the JSON map. Different mechanisms for different shapes — see
+	# data/design/terrain_modifiers_and_decorations.md, "Architecture: terrain
+	# across three systems".
 	var modifier_cells: Dictionary = {}  # Vector2i -> terrain_type
 	if _modifier_layer != null:
 		for cell: Vector2i in _modifier_layer.get_used_cells():
-			var terrain_type := _get_terrain_type_from_layer(_modifier_layer, cell)
-			if terrain_type != "":
-				modifier_cells[cell] = terrain_type
+			var sprite_name := _get_sprite_name_from_layer(_modifier_layer, cell)
+			if sprite_name == "":
+				continue
+			var footprint := _get_footprint_from_layer(_modifier_layer, cell)
+			for dx in range(footprint.x):
+				for dy in range(footprint.y):
+					var cell_terrain := ModifierTerrainMap.resolve(sprite_name, Vector2i(dx, dy))
+					if cell_terrain != "":
+						modifier_cells[cell + Vector2i(dx, dy)] = cell_terrain
 
 	# Build tiles
 	var tile_size: int = _floor_layer.tile_set.tile_size.x
@@ -125,10 +143,8 @@ func _build_grid() -> void:
 
 	# Keep TileMapLayers visible — they display the actual tileset art.
 	# Tile nodes are invisible gameplay objects (selection, occupancy, terrain queries).
-	# Modifier layer is hidden because its gameplay effect is already baked into the
-	# Tile node's terrain_type_name (three-tier replacement).
 	if _modifier_layer != null:
-		_modifier_layer.visible = false
+		_modifier_layer.z_index = 2  # Between floor (0/1) and decoration (3)
 	if _spawn_layer != null:
 		_spawn_layer.visible = false
 	if _decoration_layer != null:
@@ -146,6 +162,18 @@ func _build_grid() -> void:
 	else:
 		GridManager.set_grid_bounds(grid_width, grid_height, min_x, -max_y, tile_size)
 
+	# Spawn the modifier overlay AFTER set_grid_bounds — ModifierRenderer
+	# reads GridManager.grid_offset_y in its _ready to compute front-row z
+	# indices, so the bounds must be final first. The renderer draws each
+	# modifier's full PNG (including overhang above/around the gameplay
+	# tile) as Sprite2D overlays with occlusion-correct z, and hides the
+	# modifier tilemap layer to avoid double-rendering.
+	if _modifier_layer != null:
+		var modifier_renderer := ModifierRenderer.new()
+		modifier_renderer.name = "ModifierRenderer"
+		modifier_renderer.modifier_layer_path = NodePath("../" + str(modifier_layer_path).get_file())
+		add_child(modifier_renderer)
+
 	DebugConfig.log_tilemap("TilemapGridBuilder: Created %d tile nodes" % tile_count)
 
 
@@ -159,6 +187,33 @@ func _get_terrain_type_from_layer(layer: TileMapLayer, cell: Vector2i) -> String
 		return terrain_type
 
 	return ""
+
+
+## Reads the painted modifier's sprite name — the atlas source's
+## resource_name, set by the registration tool to the sprite basename
+## (e.g. "castle_a"). Used to look up per-cell terrain in ModifierTerrainMap.
+## Returns "" if the cell isn't an atlas tile.
+func _get_sprite_name_from_layer(layer: TileMapLayer, cell: Vector2i) -> String:
+	var source_id := layer.get_cell_source_id(cell)
+	if source_id < 0 or layer.tile_set == null:
+		return ""
+	var source := layer.tile_set.get_source(source_id) as TileSetAtlasSource
+	if source == null:
+		return ""
+	return source.resource_name
+
+
+## Reads the painted cell's tile footprint (size_in_atlas) from its atlas
+## source. (1, 1) for plain tiles, missing cells, or non-atlas sources.
+func _get_footprint_from_layer(layer: TileMapLayer, cell: Vector2i) -> Vector2i:
+	var source_id := layer.get_cell_source_id(cell)
+	if source_id < 0 or layer.tile_set == null:
+		return Vector2i.ONE
+	var source := layer.tile_set.get_source(source_id) as TileSetAtlasSource
+	if source == null:
+		return Vector2i.ONE
+	var atlas_coords := layer.get_cell_atlas_coords(cell)
+	return source.get_tile_size_in_atlas(atlas_coords)
 
 
 ## Loads `scene_path` (a mission .tscn) off-tree and counts the cells on its

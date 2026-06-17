@@ -11,6 +11,9 @@ extends Node
 # Parsed terrain definitions keyed by terrain name
 var _terrains: Dictionary = {}
 var _is_loaded: bool = false
+# Unknown terrain names we've already warned about — one loud warning per
+# unique name instead of spam on every walkability query.
+var _warned_unknown_terrains: Dictionary = {}
 
 
 func _ready() -> void:
@@ -99,15 +102,19 @@ func _parse_terrain_property(property_data: Variant) -> TerrainProperty:
 			else:
 				property.default_value = float(default_value)
 
-		# Parse unit-type overrides (any key that isn't "default")
+		# Parse unit-type overrides (any key that isn't "default"). Keys are
+		# normalized to UPPERCASE because the game queries with raw
+		# ElementalType enum key strings ("COLD", "AIR") while the JSON is
+		# authored in Title Case ("Cold", "Air") — without normalization on
+		# both sides every per-type override silently never matches.
 		for key: String in dict:
 			if key == "default":
 				continue
 			var override_value: Variant = dict[key]
 			if override_value is bool:
-				property.unit_type_overrides[key] = 1.0 if override_value else 0.0
+				property.unit_type_overrides[key.to_upper()] = 1.0 if override_value else 0.0
 			else:
-				property.unit_type_overrides[key] = float(override_value)
+				property.unit_type_overrides[key.to_upper()] = float(override_value)
 
 	return property
 
@@ -120,8 +127,14 @@ func can_unit_walk_on_terrain(terrain_type: String, unit_type: String = "") -> b
 	if not _is_loaded:
 		return true
 	if not _terrains.has(terrain_type):
-		DebugConfig.warn_grid("Unknown terrain type: %s. Assuming walkable." % terrain_type)
-		return true
+		# Unknown modifier/terrain name = probably a typo in the tile's custom
+		# data or a missing terrain_data.json entry. Impassable + one loud
+		# warning per unique name so the gap gets caught during development
+		# instead of silently producing walkable mystery tiles.
+		if not _warned_unknown_terrains.has(terrain_type):
+			_warned_unknown_terrains[terrain_type] = true
+			push_warning("TerrainDataManager: Unknown terrain type '%s' — treating as IMPASSABLE. Add it to terrain_data.json or fix the tile's terrain_type custom data." % terrain_type)
+		return false
 	var terrain: TerrainDefinition = _terrains[terrain_type]
 	return terrain.walkable.get_value(unit_type) > 0.0
 
@@ -183,8 +196,12 @@ class TerrainProperty:
 	var unit_type_overrides: Dictionary = {}
 
 	func get_value(unit_type: String = "") -> float:
-		if unit_type != "" and unit_type_overrides.has(unit_type):
-			return unit_type_overrides[unit_type]
+		# Overrides are stored uppercase (see _parse_terrain_property);
+		# normalize the query so "Cold", "COLD", and "cold" all match.
+		if unit_type != "":
+			var key := unit_type.to_upper()
+			if unit_type_overrides.has(key):
+				return unit_type_overrides[key]
 		return default_value
 
 	func get_bool_value(unit_type: String = "") -> bool:

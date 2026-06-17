@@ -15,15 +15,16 @@
     "unit_types": [
       "Air",
       "Chivalric",
+      "Cold",
       "Electric",
       "Fire",
       "Gentry",
       "Gravity",
       "Heraldic",
-      "Ice",
       "Obsidian",
       "Occult",
       "Plant",
+      "Robo",
       "Simple",
       "Void"
     ],
@@ -49,7 +50,8 @@
       "Terrain hierarchy: Plains (basic) -> specialized terrains with conditional bonuses",
       "Weather integration: Terrain status effects double as weather conditions",
       "v3.0: defenseModifier/avoidModifier renamed to defenseMultiplier/avoidMultiplier (1.0 = neutral)"
-    ]
+    ],
+    "related_systems": "This file is ONE of three terrain systems and answers only 'what does terrain X do'. It is keyed by terrain_type and reused by many sprites. Which terrain each modifier SPRITE maps to lives in data/modifier_terrain.json; how sprites become paintable tiles lives in the tileset + tools/register_modifier_tiles.gd. If you're wondering why this isn't one big file, read data/design/terrain_modifiers_and_decorations.md, section 'Architecture: terrain across three systems'."
   },
   "Agriculture": {
     "_doc": "Farmland, vulnerable to fire, neutral defensive properties, slight bonuses to Plant units"
@@ -73,15 +75,15 @@
   "Coast": {
     "walkable": { "default": true },
     "movePenalty": { "default": 2, "Air": 1 },
-    "attackMultiplier": { "default": 1, "Ice": 1.2 },
+    "attackMultiplier": { "default": 1, "Cold": 1.2 },
     "terrainStatusImmunity": [],
     "defenseMultiplier": { "default": 1.0 },
     "avoidMultiplier": { "default": 0.99 }
   },
   "ColdDesert": {
     "walkable": { "default": true },
-    "movePenalty": { "default": 2, "Ice": 1 },
-    "attackMultiplier": { "default": 1, "Fire": 0.8, "Ice": 1.2 },
+    "movePenalty": { "default": 2, "Cold": 1 },
+    "attackMultiplier": { "default": 1, "Fire": 0.8, "Cold": 1.2 },
     "terrainStatusImmunity": ["Scorch", "Flood"],
     "defenseMultiplier": { "default": 1.0 },
     "avoidMultiplier": { "default": 1.0, "Fire": 1.05 }
@@ -200,7 +202,13 @@
     "avoidMultiplier": { "default": 1.1, "Air": 1.0 }
   },
   "StoneEdifice": {
-    "_doc": "Stone buildings, resistant to fire, strong defensive properties, bonuses to Gentry units"
+    "_doc": "Stone buildings, resistant to fire, strong defensive properties, bonuses to Gentry units. First pass: impassable structure body, used by the building_*/arch_* modifier sprites. Medium defensive bonus applies once per-cell passage (castle gate design) lets units stand on structure cells. Walkability of arches TBD.",
+    "walkable": { "default": true },
+    "movePenalty": { "default": 1 },
+    "attackMultiplier": { "default": 1 },
+    "terrainStatusImmunity": ["Electric", "Scorch", "Flood"],
+    "defenseMultiplier": { "default": 1.2 },
+    "avoidMultiplier": { "default": 1.1 }
   },
   "Taiga": {},
   "Tarpit": {
@@ -209,7 +217,7 @@
     "attackMultiplier": { "default": 1, "Plant": 0.8 },
     "terrainStatusImmunity": [],
     "defenseMultiplier": { "default": 1.0 },
-    "avoidMultiplier": { "default": 1.05, "Void": 1.1 }
+    "avoidMultiplier": { "default": 1.1, "Void": 1.2 }
   },
   "Tundra": {},
   "Void": {
@@ -220,13 +228,39 @@
     "defenseMultiplier": { "default": 1.0, "Void": 1.2 },
     "avoidMultiplier": { "default": 1.0, "Void": 1.1 }
   },
-  "Volcano": {},
+  "Volcano": {
+    "_doc": "First pass: volcanic cones/vents from the volcano_* modifier sprites. Impassable to grounded units; fliers cross at normal cost but get no cover. Immune to fire/scorch by nature.",
+    "walkable": { "default": false, "Air": true, "Fire": true },
+    "movePenalty": { "default": 1, "Air": 1 },
+    "attackMultiplier": { "default": 1, "Fire": 1.2 },
+    "terrainStatusImmunity": ["Scorch", "Snow", "Flood"],
+    "defenseMultiplier": { "default": 1.0 },
+    "avoidMultiplier": { "default": 1.0 }
+  },
+  "VolcanicPlant": {
+    "_doc": "Volcanic-jungle flora (firetopradish_* and future volcano-biome plants). Boosts both Fire and Plant units: they move through freely and fight stronger from it. Other types push through at a penalty.",
+    "walkable": { "default": true },
+    "movePenalty": { "default": 2, "Plant": 1, "Fire": 1 },
+    "attackMultiplier": { "default": 1, "Plant": 1.2, "Fire": 1.2 },
+    "terrainStatusImmunity": ["Scorch"],
+    "defenseMultiplier": { "default": 1.0, "Plant": 1.1, "Fire": 1.1 },
+    "avoidMultiplier": { "default": 1.0 }
+  },
+  "Wall": {
+    "_doc": "Solid vertical barrier — castle keep, fortress wall, building upper storey. Impassable to grounded units; only Air-types (fliers) cross. No cover bonus: it's a barrier, not a foothold. Assigned to the top row(s) of multi-cell structures via modifier_terrain.json (e.g. castle_a rows = [Wall, Castle]).",
+    "walkable": { "default": false, "Air": true },
+    "movePenalty": { "default": 1, "Air": 1 },
+    "attackMultiplier": { "default": 1 },
+    "terrainStatusImmunity": ["Electric", "Scorch", "Flood"],
+    "defenseMultiplier": { "default": 1.0 },
+    "avoidMultiplier": { "default": 1.0 }
+  },
   "Water": {
-    "walkable": { "default": false, "Air": true, "Ice": true },
-    "movePenalty": { "default": 1, "Ice": 2 },
-    "attackMultiplier": { "default": 1, "Ice": 1.2 },
+    "walkable": { "default": false, "Air": true, "Cold": true },
+    "movePenalty": { "default": 1 },
+    "attackMultiplier": { "default": 1, "Cold": 1.2 },
     "terrainStatusImmunity": [],
-    "defenseMultiplier": { "default": 0.9, "Ice": 1.0 },
+    "defenseMultiplier": { "default": 0.9, "Cold": 1.0 },
     "avoidMultiplier": { "default": 1.0 }
   },
   "WoodenEdifice": {

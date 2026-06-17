@@ -157,13 +157,9 @@ func _spawn_units_from_tiles(positions: Array, faction: Enums.UnitFaction, chara
 ## treatment (impassable terrain, custom sprites, fog, decorations, sky) will
 ## layer on top of this.
 func _build_vignette() -> void:
-	var tile_size: int = GridManager.tile_size
-	var origin_x: float = GridManager.grid_offset_x * tile_size
-	var min_tilemap_y: int = -GridManager.grid_offset_y - GridManager.grid_height + 1
-	var origin_y: float = min_tilemap_y * tile_size
-	var map_min := Vector2(origin_x, origin_y)
-	var map_size := Vector2(GridManager.grid_width * tile_size, GridManager.grid_height * tile_size)
-	var map_max := map_min + map_size
+	var map_rect: Rect2 = GridManager.get_map_world_rect()
+	var map_min := map_rect.position
+	var map_max := map_rect.end
 
 	# Polygon must extend far enough past the map that the camera can never pan
 	# its edge into view. 4096px of padding is effectively infinite at current
