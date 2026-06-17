@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://bi5c4qib3plu"
+path="res://.godot/imported/void_lock_effect.aseprite-01e8ebe90ba5cdb4a4f8c81f5212491c.res"
+
+[deps]
+
+source_file="res://art/sprites/ui/void_lock_effect.aseprite"
+dest_files=["res://.godot/imported/void_lock_effect.aseprite-01e8ebe90ba5cdb4a4f8c81f5212491c.res"]
+
+[params]
+
