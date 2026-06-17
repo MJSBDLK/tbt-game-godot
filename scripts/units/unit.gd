@@ -1439,10 +1439,7 @@ func _apply_random_debug_injuries() -> void:
 		var slots: int = 2 if severity == Enums.InjurySeverity.MAJOR else 1
 		if not character_data.can_accept_injury(slots):
 			continue
-		var injury := Injury.new()
-		injury.injury_id = data.injury_id
-		injury.severity = severity
-		injury.battles_remaining = data.major_recovery_battles if severity == Enums.InjurySeverity.MAJOR else data.minor_recovery_battles
+		var injury: Injury = InjurySystem.build_injury(data, severity)
 		character_data.current_injuries.append(injury)
 		added += 1
 	InjurySystem.recalculate_injury_modifiers(character_data)
@@ -1461,14 +1458,8 @@ func _apply_debug_hypoesthesia() -> void:
 	for entry: Injury in character_data.current_injuries:
 		if entry.injury_id == "hypoesthesia":
 			return
-	var injury := Injury.new()
-	injury.injury_id = "hypoesthesia"
-	if DebugConfig.testing_hypoesthesia_major:
-		injury.severity = Enums.InjurySeverity.MAJOR
-		injury.battles_remaining = data.major_recovery_battles
-	else:
-		injury.severity = Enums.InjurySeverity.MINOR
-		injury.battles_remaining = data.minor_recovery_battles
+	var severity: Enums.InjurySeverity = Enums.InjurySeverity.MAJOR if DebugConfig.testing_hypoesthesia_major else Enums.InjurySeverity.MINOR
+	var injury: Injury = InjurySystem.build_injury(data, severity)
 	character_data.current_injuries.append(injury)
 	InjurySystem.recalculate_injury_modifiers(character_data)
 

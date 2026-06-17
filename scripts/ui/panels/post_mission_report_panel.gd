@@ -11,6 +11,13 @@ signal closed
 @onready var _log_label: RichTextLabel = %ReportLabel
 @onready var _continue_button: Button = %ContinueButton
 
+# Battle outcome for the report currently being shown. Drives whether Continue
+# advances to the next mission (victory) or replays the current one (defeat) —
+# see CampaignManager.conclude_mission. Captured in show_report from the report's
+# is_victory flag so _on_continue_pressed (also reachable via key input) can read
+# it without re-deriving from the report array.
+var _is_victory: bool = true
+
 
 func _ready() -> void:
 	visible = false
@@ -18,6 +25,7 @@ func _ready() -> void:
 
 
 func show_report(report: Array) -> void:
+	_is_victory = report[0].get("is_victory", true) if not report.is_empty() else true
 	_log_label.clear()
 	_log_label.append_text(_format_report(report))
 	visible = true
@@ -37,7 +45,9 @@ func _on_continue_pressed() -> void:
 	closed.emit()
 	var campaign_manager: Node = get_node_or_null("/root/CampaignManager")
 	if campaign_manager != null and campaign_manager.is_active():
-		campaign_manager.advance_mission()
+		# Victory advances; defeat replays this mission (CampaignManager owns the
+		# advance-vs-replay policy, gated by RESTART_MISSION_ON_LOSS).
+		campaign_manager.conclude_mission(_is_victory)
 	else:
 		# No active campaign (e.g. launched a map directly from the editor).
 		# Fall back to the start screen so the player can pick a campaign.

@@ -80,19 +80,50 @@ func queue_injury_from_death(unit: Node2D) -> Injury:
 				DebugConfig.log_status("InjurySystem: %s has %s immunity — Minor recovery shortened to %d battle(s)" % [
 					unit.get("unit_name"), Enums.ElementalType.keys()[element], SAME_TYPE_MINOR_RECOVERY_BATTLES])
 
-	# Build the injury instance
-	var injury := Injury.new()
-	injury.injury_id = data.injury_id
-	injury.severity = severity
+	# Build the injury instance (shared factory picks the severity-appropriate
+	# recovery; same-type immunity then overrides it with the shortened duration).
+	var injury: Injury = build_injury(data, severity)
 	if shortened_recovery:
 		injury.battles_remaining = SAME_TYPE_MINOR_RECOVERY_BATTLES
-	else:
-		injury.battles_remaining = data.major_recovery_battles if severity == Enums.InjurySeverity.MAJOR else data.minor_recovery_battles
 
 	character_data.pending_injuries.append(injury)
 	DebugConfig.log_status("InjurySystem: Queued %s (%s) on %s — overkill=%d/%d (%.0f%%)" % [
 		data.display_name, Enums.InjurySeverity.keys()[severity], unit.get("unit_name"),
 		overkill, max_hp, overkill_pct * 100.0])
+	injury_queued.emit(character_data, injury)
+	return injury
+
+
+## Constructs an Injury from a definition + severity, stamping the
+## severity-appropriate recovery duration. The single place injury instances are
+## built — the death path, the spawn-debug paths (unit.gd), and the dev cheat all
+## route through here so the "Major = major_recovery_battles, else minor" rule
+## lives in one spot.
+func build_injury(data: InjuryData, severity: Enums.InjurySeverity) -> Injury:
+	var injury := Injury.new()
+	injury.injury_id = data.injury_id
+	injury.severity = severity
+	injury.battles_remaining = data.major_recovery_battles if severity == Enums.InjurySeverity.MAJOR else data.minor_recovery_battles
+	return injury
+
+
+## Queues a randomly-chosen injury (random definition, severity biased toward
+## Minor) onto a character's PENDING list — same destination as a real death
+## injury, so it commits through the normal mission-end pipeline (slot check,
+## possible permadeath). Returns the queued Injury, or null if the character is
+## null or no injury definitions exist. Powers the Ctrl+K dev cheat.
+func queue_random_injury(character_data: CharacterData) -> Injury:
+	if character_data == null:
+		return null
+	var all_injuries: Array[InjuryData] = InjuryDatabase.get_all_injuries()
+	if all_injuries.is_empty():
+		return null
+	var data: InjuryData = all_injuries.pick_random()
+	var severity: Enums.InjurySeverity = Enums.InjurySeverity.MAJOR if randf() < 0.3 else Enums.InjurySeverity.MINOR
+	var injury: Injury = build_injury(data, severity)
+	character_data.pending_injuries.append(injury)
+	DebugConfig.log_status("InjurySystem: Queued RANDOM %s (%s) on %s" % [
+		data.display_name, Enums.InjurySeverity.keys()[severity], character_data.character_name])
 	injury_queued.emit(character_data, injury)
 	return injury
 
