@@ -144,11 +144,14 @@ func _build_grid() -> void:
 	# Keep TileMapLayers visible — they display the actual tileset art.
 	# Tile nodes are invisible gameplay objects (selection, occupancy, terrain queries).
 	if _modifier_layer != null:
-		_modifier_layer.z_index = 2  # Between floor (0/1) and decoration (3)
+		# Flat band base for the whole layer; the per-cell ModifierRenderer
+		# overlay does the real per-row sorting on top. Enum ref (not a magic
+		# number) so it tracks the band across renumbers (e.g. FOOT_TRACKS).
+		_modifier_layer.z_index = int(ZIndexCalculator.ZIndexLayer.TERRAIN_MODIFIERS)
 	if _spawn_layer != null:
 		_spawn_layer.visible = false
 	if _decoration_layer != null:
-		_decoration_layer.z_index = 3  # Above floor tiles, below units
+		_decoration_layer.z_index = int(ZIndexCalculator.ZIndexLayer.PURE_DECORATIONS)
 
 	# Apply boundary markers if any were placed
 	var boundary := get_boundary_rect()

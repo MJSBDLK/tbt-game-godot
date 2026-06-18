@@ -37,6 +37,40 @@ func test_max_movement_range_baseline_with_no_status_effects() -> void:
 			"Baseline = move_distance * MOVEMENT_SCALE")
 
 
+func test_foot_tracks_emit_on_commit_not_on_walk() -> void:
+	# Regression: tracks must lay only when the move is committed (set_acted),
+	# not during the tentative walk — else "preview move + cancel" leaves
+	# footprints behind. Here the stash exists but no commit has happened yet.
+	var unit := Unit.new()
+	autofree(unit)
+	watch_signals(unit)
+	var path: Array[Tile] = [_make_loose_tile(), _make_loose_tile()]
+	unit._pending_track_tiles = path
+	assert_signal_not_emitted(unit, "path_traversed", "no tracks before commit")
+	unit.set_acted()
+	assert_signal_emitted(unit, "path_traversed", "tracks lay on set_acted()")
+
+
+func test_foot_tracks_cancelled_move_lays_none() -> void:
+	# Regression for the reported bug: a cancelled tentative move must lay no
+	# tracks, even if the unit later acts.
+	var unit := Unit.new()
+	autofree(unit)
+	watch_signals(unit)
+	var path: Array[Tile] = [_make_loose_tile(), _make_loose_tile()]
+	unit._pending_track_tiles = path
+	unit.cancel_movement()
+	unit.set_acted()
+	assert_signal_not_emitted(unit, "path_traversed",
+			"a cancelled move lays nothing even after a later commit")
+
+
+func _make_loose_tile() -> Tile:
+	var tile := Tile.new()
+	autofree(tile)
+	return tile
+
+
 func test_max_movement_range_zero_when_rooted() -> void:
 	# Regression: ROOTED debuff used to do nothing because the getter only
 	# consulted character_data.get_effective_move_distance() (which scans

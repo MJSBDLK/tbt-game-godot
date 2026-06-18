@@ -1,0 +1,4 @@
+{
+	"_doc": "Maps a terrain_type (a terrain_data.json key) to a foot-track variant, for cases where the variant name does NOT equal the terrain name. Lookup is case-insensitive and an override here wins over name-matching. Terrains whose name already equals a variant (e.g. Regolith -> regolith) need NO entry. PENDING: when Lawrence ships the snow biome, map the snowy terrains (PolarIce / Tundra / Taiga / ColdDesert) to \"snow\" here. Until then the snow atlas exists but matches no terrain and renders nothing.",
+	"overrides": {}
+}

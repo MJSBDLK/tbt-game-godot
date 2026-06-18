@@ -39,12 +39,19 @@ extends Node2D
 var _unit_scene: PackedScene = preload("res://scenes/battle/unit.tscn")
 var _vignette_shader: Shader = preload("res://shaders/vignette.gdshader")
 var _units_container: Node2D = null
+var _foot_track_renderer: FootTrackRenderer = null
 
 
 func _ready() -> void:
 	_units_container = Node2D.new()
 	_units_container.name = "Units"
 	add_child(_units_container)
+
+	# Foot-track overlay lives at the world root so its per-cell sprites sort by
+	# the same row-based z as tiles/units. Units are registered after spawn.
+	_foot_track_renderer = FootTrackRenderer.new()
+	_foot_track_renderer.name = "FootTrackRenderer"
+	add_child(_foot_track_renderer)
 
 	if GridManager.is_grid_ready():
 		_on_grid_ready()
@@ -85,6 +92,16 @@ func _on_grid_ready() -> void:
 	var passive_effects: Node = get_node_or_null("/root/PassiveEffectsSystem")
 	if passive_effects != null:
 		passive_effects.register_battle_units(player_units, enemy_units)
+
+	# Foot tracks: connect each unit's path_traversed signal so the overlay
+	# draws a trail along the route it actually walks, then ingest any
+	# designer-painted seed tracks (a "FootTrackTileLayer" in the map) as the
+	# depth-1 base the runtime stacks onto.
+	if _foot_track_renderer != null:
+		_foot_track_renderer.register_battle_units(player_units, enemy_units)
+		var seed_layer := find_child("FootTrackTileLayer", true, false) as TileMapLayer
+		if seed_layer != null:
+			_foot_track_renderer.ingest_seed_layer(seed_layer)
 
 
 # =============================================================================
@@ -169,11 +186,11 @@ func _build_vignette() -> void:
 	var poly_max := map_max + Vector2(pad, pad)
 
 	# Live in the default world CanvasLayer so the vignette participates in the
-	# same z_index ordering as tiles/units. z_index = 4 puts it above floor +
-	# decoration tilemap layers (z=0 and z=3) but below every unit layer
-	# (ZIndexLayer.UNITS = 5 and up). Tall unit sprites / HP bars / status
-	# icons poking into OOB therefore render on top of the fade rather than
-	# being darkened by it.
+	# same z_index ordering as tiles/units. The PATH_INDICATORS band sits above
+	# the floor / foot-track / modifier / decoration tilemap layers but below
+	# every per-row unit (UNITS band and up), so tall unit sprites / HP bars /
+	# status icons poking into OOB render on top of the fade rather than being
+	# darkened by it. Enum ref (not a magic number) so it tracks the band.
 	var poly := Polygon2D.new()
 	poly.name = "MapVignette"
 	poly.polygon = PackedVector2Array([
@@ -182,7 +199,7 @@ func _build_vignette() -> void:
 		Vector2(poly_max.x, poly_max.y),
 		Vector2(poly_min.x, poly_max.y),
 	])
-	poly.z_index = 4
+	poly.z_index = int(ZIndexCalculator.ZIndexLayer.PATH_INDICATORS)
 
 	var mat := ShaderMaterial.new()
 	mat.shader = _vignette_shader
