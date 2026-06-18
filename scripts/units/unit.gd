@@ -14,6 +14,9 @@ signal unit_deselected(unit: Unit)
 signal movement_started(unit: Unit)
 signal movement_completed(unit: Unit)
 signal movement_cancelled(unit: Unit)
+## Emitted after a committed move finishes, carrying the exact walked path
+## (start tile first, duplicates preserved). Drives foot-track rendering.
+signal path_traversed(unit: Unit, tiles: Array[Tile])
 signal health_changed(unit: Unit, new_hp: int, max_hp: int)
 signal unit_defeated(unit: Unit)
 signal combat_started(attacker: Unit, defender: Unit)
@@ -99,6 +102,10 @@ var last_damage_overkill: int = 0
 var injury_locked_move_indices: Array[int] = []
 
 var _start_tile_before_move: Tile = null
+# The committed walk (start tile first), captured during the tentative move and
+# held until the action is finalized. Foot tracks lay on set_acted() (commit),
+# NOT on the tentative walk — so a cancelled move (Escape) leaves none.
+var _pending_track_tiles: Array[Tile] = []
 var _selection_tween: Tween = null
 
 # Topmost opaque pixel of the sprite art in texture coords (canvas top-left = 0).
@@ -297,6 +304,16 @@ func execute_planned_movement() -> void:
 
 	var full_path := _build_full_path()
 
+	# Capture the walk for foot tracks: the start tile (which _build_full_path
+	# excludes) followed by every tile actually traversed, duplicates preserved
+	# so self-crossings overlay. current_tile is still the start tile here. The
+	# move is tentative until set_acted(), so we only STASH now and lay tracks on
+	# commit — a cancelled move (Escape) must leave none.
+	var traversed_tiles: Array[Tile] = []
+	if _start_tile_before_move != null:
+		traversed_tiles.append(_start_tile_before_move)
+	traversed_tiles.append_array(full_path)
+
 	if _path_visualizer != null and _path_visualizer.has_method("clear_arrows"):
 		_path_visualizer.call("clear_arrows")
 
@@ -304,6 +321,7 @@ func execute_planned_movement() -> void:
 
 	is_moving = false
 	planned_waypoints.clear()
+	_pending_track_tiles = traversed_tiles
 	# NOTE: _start_tile_before_move is intentionally kept alive here.
 	# It persists until set_acted() or cancel_movement() so the player
 	# can press Escape to snap back after moving but before acting.
@@ -315,6 +333,8 @@ func cancel_movement() -> void:
 		move_to_tile(_start_tile_before_move)
 		_start_tile_before_move = null
 
+	# Drop the un-committed walk so the undone move leaves no foot tracks.
+	_pending_track_tiles = []
 	planned_waypoints.clear()
 	if _path_visualizer != null and _path_visualizer.has_method("clear_arrows"):
 		_path_visualizer.call("clear_arrows")
@@ -432,6 +452,10 @@ func refresh_unit() -> void:
 func set_acted() -> void:
 	can_act = false
 	_start_tile_before_move = null
+	# Move is now committed — lay the foot tracks captured during the walk.
+	if _pending_track_tiles.size() > 1:
+		path_traversed.emit(self, _pending_track_tiles)
+	_pending_track_tiles = []
 	_apply_acted_modulate()
 
 

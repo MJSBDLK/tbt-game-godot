@@ -27,6 +27,7 @@ func _popup_menu(paths: PackedStringArray) -> void:
 	for path in paths:
 		if path.ends_with(".aseprite") or path.ends_with(".ase"):
 			add_context_menu_item("Export Tags as PNGs", _export_tags)
+			add_context_menu_item("Export Foot Tracks", _export_foot_tracks)
 			return
 
 
@@ -432,6 +433,174 @@ func _export_file(aseprite_file_path: String, lowercase_names: bool) -> void:
 		if needs_aligned_pass:
 			_cleanup_temp(temp_aligned)
 	print("AsepriteTagExporter: Exported %d tag(s) to %s" % [exported_count, output_directory])
+
+
+# =============================================================================
+# FOOT TRACKS EXPORT
+# =============================================================================
+# Foot tracks are a different beast from the tag exporter above: each tag is a
+# terrain VARIANT whose single frame holds a fixed 32x32 grid of directional
+# track sprites (see data/design/foot_tracks.md). We slice by FIXED cell
+# offsets — never trim, never bbox-crop. The exported atlas is the variant's
+# frame as-is; a sidecar maps each direction to its (col, row) atlas cell so
+# tile registration and the runtime renderer stay data-driven.
+
+const FOOT_TRACK_PREFIX := "foot_tracks_"
+
+# Direction label -> [col, row] cell in the variant grid, mirroring the
+# authoring layout (cardinals on row 0; corners + straights below). The N-S and
+# E-W straight axes each carry two interchangeable cells (SN/NS, WE/EW) for
+# anti-repeat — see FootTrackDirections in the runtime.
+const FOOT_TRACK_CELLS := {
+	"E": Vector2i(0, 0), "S": Vector2i(1, 0), "W": Vector2i(2, 0), "N": Vector2i(3, 0),
+	"SE": Vector2i(0, 1), "WE": Vector2i(1, 1), "WS": Vector2i(2, 1),
+	"SN": Vector2i(0, 2), "NS": Vector2i(2, 2),
+	"EN": Vector2i(0, 3), "EW": Vector2i(1, 3), "NW": Vector2i(2, 3),
+}
+
+
+func _export_foot_tracks(_paths: Array) -> void:
+	for path in _paths:
+		if not path.ends_with(".aseprite") and not path.ends_with(".ase"):
+			continue
+		_export_foot_tracks_file(path)
+	EditorInterface.get_resource_filesystem().scan()
+
+
+func _export_foot_tracks_file(aseprite_file_path: String) -> void:
+	var global_source := ProjectSettings.globalize_path(aseprite_file_path)
+	if not FileAccess.file_exists(global_source):
+		printerr("FootTracksExporter: Source file not found: %s" % aseprite_file_path)
+		return
+
+	# Output to a sibling directory named after the file — same convention as the
+	# tag exporter (foot_tracks.aseprite -> foot_tracks/).
+	var base_name := aseprite_file_path.get_file().get_basename()
+	var output_directory := aseprite_file_path.get_base_dir() + "/" + base_name + "/"
+	if not DirAccess.dir_exists_absolute(output_directory):
+		DirAccess.make_dir_recursive_absolute(output_directory)
+
+	var aseprite_command := _get_aseprite_command()
+
+	# Each tag is one variant; its single frame is the directional grid.
+	var tags := _parse_tags(global_source)
+	if tags.is_empty():
+		printerr("FootTracksExporter: No tags found in %s" % aseprite_file_path)
+		return
+
+	# Untrimmed, full-canvas export — one PNG per frame. We MUST NOT trim
+	# (trimming destroys the fixed grid alignment) and can't use --tag (broken in
+	# this build), so export every frame and pick each variant's frame by index.
+	var temp_dir := OS.get_cache_dir() + "/foot_tracks_export/"
+	_cleanup_temp(temp_dir)
+	DirAccess.make_dir_recursive_absolute(temp_dir)
+	var args := PackedStringArray([
+		"-b", global_source,
+		"--save-as", temp_dir + "{frame0000}.png",
+	])
+	var output := []
+	var exit := OS.execute(aseprite_command, args, output, true, true)
+	if exit != 0:
+		printerr("FootTracksExporter: Aseprite export failed (exit %d)" % exit)
+		if not output.is_empty():
+			printerr("  %s" % output[0])
+		_cleanup_temp(temp_dir)
+		return
+
+	var global_output := ProjectSettings.globalize_path(output_directory)
+	var exported := 0
+	for tag in tags:
+		if _is_marker_tag(tag.name):
+			continue
+		var variant := _foot_track_variant_name(tag.name)
+		# A variant is a single frame for V1; warn (don't fail) if a tag spans
+		# frames so we notice when per-variant animation actually lands.
+		if tag.to_frame > tag.from_frame:
+			print("  Note: variant '%s' spans frames %d..%d — V1 uses frame %d only (animation is future work)" % [
+				variant, tag.from_frame, tag.to_frame, tag.from_frame])
+		var frame_img := Image.load_from_file(temp_dir + "%04d.png" % tag.from_frame)
+		if frame_img == null:
+			printerr("  Warning: missing frame %d for variant '%s'" % [tag.from_frame, variant])
+			continue
+
+		# Validate against the fixed grid: each mapped cell must fit the canvas,
+		# and at least one must carry pixels (catches a wrong/empty frame).
+		var width := frame_img.get_width()
+		var height := frame_img.get_height()
+		var cells := {}
+		var non_empty := 0
+		var empty_cells: Array[String] = []
+		for dir_name in FOOT_TRACK_CELLS:
+			var cell: Vector2i = FOOT_TRACK_CELLS[dir_name]
+			if cell.x * TILE_SIZE_PX + TILE_SIZE_PX > width or cell.y * TILE_SIZE_PX + TILE_SIZE_PX > height:
+				printerr("  Warning: variant '%s' cell %s (%s) is outside the %dx%d canvas — omitted" % [
+					variant, dir_name, str(cell), width, height])
+				continue
+			cells[dir_name] = [cell.x, cell.y]
+			if _cell_has_content(frame_img, cell):
+				non_empty += 1
+			else:
+				empty_cells.append(dir_name)
+		if non_empty == 0:
+			printerr("  Warning: variant '%s' frame %d has no track pixels in any mapped cell — skipping" % [
+				variant, tag.from_frame])
+			continue
+		if not empty_cells.is_empty():
+			print("  Note: variant '%s' empty cells: %s (ok if intentionally omitted)" % [
+				variant, ", ".join(empty_cells)])
+
+		# Atlas = the variant frame as-is (the grid is already laid out in source).
+		var atlas_path := global_output + variant + ".png"
+		var save_err := frame_img.save_png(atlas_path)
+		if save_err != OK:
+			printerr("  Failed to write atlas for variant '%s' (error %d)" % [variant, save_err])
+			continue
+
+		# Sidecar: cell size + direction -> [col, row]. Merges with any existing
+		# sidecar so hand-authored fields survive re-export.
+		var sidecar_path := global_output + variant + ".json"
+		var sidecar: Dictionary = {}
+		if FileAccess.file_exists(sidecar_path):
+			var existing := FileAccess.get_file_as_string(sidecar_path)
+			if not existing.is_empty():
+				var parsed: Variant = JSON.parse_string(existing)
+				if parsed is Dictionary:
+					sidecar = parsed
+		sidecar["cell_size"] = TILE_SIZE_PX
+		sidecar["cells"] = cells
+		var sidecar_file := FileAccess.open(sidecar_path, FileAccess.WRITE)
+		if sidecar_file == null:
+			printerr("  Failed to open sidecar for write: %s" % sidecar_path)
+		else:
+			sidecar_file.store_string(JSON.stringify(sidecar))
+			sidecar_file.close()
+
+		print("  Variant: %s (%dx%d px, %d directional cells)" % [variant, width, height, non_empty])
+		exported += 1
+
+	_cleanup_temp(temp_dir)
+	print("FootTracksExporter: Exported %d variant(s) to %s" % [exported, output_directory])
+
+
+## Strips the conventional `foot_tracks_` prefix off a tag name to get the
+## terrain-variant name (`foot_tracks_regolith` -> `regolith`). A tag without
+## the prefix is used verbatim (sanitized).
+func _foot_track_variant_name(tag_name: String) -> String:
+	var variant_name := tag_name.strip_edges()
+	if variant_name.to_lower().begins_with(FOOT_TRACK_PREFIX):
+		variant_name = variant_name.substr(FOOT_TRACK_PREFIX.length())
+	return _sanitize_filename(variant_name, true)
+
+
+## True if the 32x32 cell at grid coord `cell` has any opaque pixel.
+func _cell_has_content(img: Image, cell: Vector2i) -> bool:
+	var x0 := cell.x * TILE_SIZE_PX
+	var y0 := cell.y * TILE_SIZE_PX
+	for y in range(y0, y0 + TILE_SIZE_PX):
+		for x in range(x0, x0 + TILE_SIZE_PX):
+			if int(round(img.get_pixel(x, y).a * 255.0)) > SHADOW_ALPHA_MIN_OPAQUE:
+				return true
+	return false
 
 
 func _get_aseprite_command() -> String:

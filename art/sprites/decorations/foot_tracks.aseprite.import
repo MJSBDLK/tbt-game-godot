@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://bmiqgkkxfw6kn"
+path="res://.godot/imported/foot_tracks.aseprite-77a1aa7cdf16400dcb23cf6dfacc8bb0.res"
+
+[deps]
+
+source_file="res://art/sprites/decorations/foot_tracks.aseprite"
+dest_files=["res://.godot/imported/foot_tracks.aseprite-77a1aa7cdf16400dcb23cf6dfacc8bb0.res"]
+
+[params]
+

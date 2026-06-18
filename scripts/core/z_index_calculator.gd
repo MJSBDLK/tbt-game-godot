@@ -12,20 +12,24 @@ class_name ZIndexCalculator
 enum ZIndexLayer {
 	## TIER 1: Floor Tiles (base terrain)
 	FLOOR_TILES = 0,
+	## Foot tracks (walk trails) — overlay on the floor, beneath terrain effects
+	## so a modifier's cast shadow falls over the tracks beneath it.
+	## See data/design/foot_tracks.md.
+	FOOT_TRACKS = 1,
 	## Terrain effects on floor (fire, rain, status effects on ground)
-	TERRAIN_EFFECTS = 1,
+	TERRAIN_EFFECTS = 2,
 	## TIER 2: Terrain Modifiers (gameplay-affecting: trees, rocks, walls)
-	TERRAIN_MODIFIERS = 2,
+	TERRAIN_MODIFIERS = 3,
 	## TIER 3: Pure Decorations (visual-only: flowers, grass tufts)
-	PURE_DECORATIONS = 3,
+	PURE_DECORATIONS = 4,
 	## Movement arrows, range indicators
-	PATH_INDICATORS = 4,
+	PATH_INDICATORS = 5,
 	## Characters, enemies
-	UNITS = 5,
+	UNITS = 6,
 	## Status icons above units
-	UNIT_EFFECTS = 6,
+	UNIT_EFFECTS = 7,
 	## Health bars, floating text
-	UI = 7,
+	UI = 8,
 }
 
 
@@ -46,8 +50,10 @@ static func calculate_sorting_order(row_index: int, _grid_height: int, layer: ZI
 	fine = clampi(fine, 0, 9)
 
 	# Adapted formula for Godot's z_index range (-4096..4096)
-	# (99 - row) * 10 gives 0-990, layer adds 0-7, fine adds via separate channel
-	# Total range: 0 to 997 — well within Godot's limits
+	# (99 - row) * 10 gives 0-990, layer adds 0-8.
+	# Total range: 0 to 998 — well within Godot's limits.
+	# NOTE: `fine` is reserved but NOT applied — the *10 spacing leaves no bit
+	# room for it. Don't rely on it for intra-layer ordering.
 	var z: int = (99 - row_index) * 10 + int(layer)
 
 	return z
@@ -73,13 +79,14 @@ static func decode_z_index(z: int) -> String:
 	# Check if it's a valid ZIndexLayer value
 	match layer_value:
 		0: layer_name = "FloorTiles"
-		1: layer_name = "TerrainEffects"
-		2: layer_name = "TerrainModifiers"
-		3: layer_name = "PureDecorations"
-		4: layer_name = "PathIndicators"
-		5: layer_name = "Units"
-		6: layer_name = "UnitEffects"
-		7: layer_name = "UI"
+		1: layer_name = "FootTracks"
+		2: layer_name = "TerrainEffects"
+		3: layer_name = "TerrainModifiers"
+		4: layer_name = "PureDecorations"
+		5: layer_name = "PathIndicators"
+		6: layer_name = "Units"
+		7: layer_name = "UnitEffects"
+		8: layer_name = "UI"
 
 	return "Row %d, Layer %s -> %d" % [row_index, layer_name, z]
 
