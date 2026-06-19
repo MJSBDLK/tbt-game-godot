@@ -46,6 +46,28 @@ var turn_manager: bool = false
 # Cheats (dev-only keybinds — Ctrl+W instawin, Ctrl+L instalose, Ctrl+R refresh hovered unit)
 var cheats_enabled: bool = true
 
+# ===== DEV: BOOT STRAIGHT INTO A TEST MAP =====
+# Normally the game boots to the start screen. To skip that and load one
+# specific scene on launch (handy for iterating on a single map), type its name
+# between the quotes below, then run the game (F5):
+#
+#     var dev_launch_scene: String = "empty_test_map"
+#         -> boots res://scenes/battle/maps/empty_test_map.tscn
+#
+# Set it back to "" to restore the normal start-screen boot.
+#
+# What goes in the quotes:
+#   - a bare map name          -> "empty_test_map"  (found in scenes/battle/maps/)
+#   - a full path to any scene -> "res://scenes/ui/start_screen.tscn"
+#
+# Don't want to edit this file (e.g. so it can't get committed by accident)?
+# Pass the same value on the command line instead — it overrides this field and
+# changes no files:
+#     godot --path . -- --map=empty_test_map
+var dev_launch_scene: String = ""
+# Uncomment the next line (and comment out the one above) to boot empty_test_map:
+#var dev_launch_scene: String = "empty_test_map"
+
 # Visual debug — HD portrait pipeline. When true, HDPortraitSlot bypasses
 # its overlay (glass shader) and mirror material (tracking shader), so the
 # raw line art renders clean. Toggled by left-clicking on a portrait while

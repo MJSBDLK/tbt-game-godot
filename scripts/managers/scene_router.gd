@@ -136,4 +136,48 @@ func _target_for(scene_root: Node) -> Node:
 
 
 func _load_initial_scene() -> void:
-	change_scene_to(_START_SCENE_PATH)
+	change_scene_to(_resolve_initial_scene())
+
+
+## The scene to boot into: a dev override if one is set and loadable
+## (`--map=` command-line arg, then DebugConfig.dev_launch_scene), otherwise the
+## start screen. Routing still goes through change_scene_to, so a battle map
+## launched this way gets the normal GameRoot/camera/HUD setup.
+func _resolve_initial_scene() -> String:
+	var token := _dev_launch_token()
+	if token.is_empty():
+		return _START_SCENE_PATH
+	var path := resolve_scene_path(token)
+	if not ResourceLoader.exists(path):
+		push_warning("SceneRouter: dev launch scene '%s' (from '%s') not found — using start screen" % [path, token])
+		return _START_SCENE_PATH
+	print("SceneRouter: dev launch → %s" % path)
+	return path
+
+
+## Raw dev-launch token: the `--map=` command-line arg (after `--`) if present,
+## else DebugConfig.dev_launch_scene, else "" (normal start-screen flow).
+func _dev_launch_token() -> String:
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--map="):
+			return arg.substr("--map=".length())
+	if not DebugConfig.dev_launch_scene.is_empty():
+		return DebugConfig.dev_launch_scene
+	return ""
+
+
+## Expands a dev-launch token to a res:// scene path. Accepts a full res:// path,
+## a project-relative path (contains "/"), or a bare battle-map name (expands to
+## res://scenes/battle/maps/<name>.tscn, adding .tscn if missing). Pure +
+## testable; returns "" for an empty token.
+static func resolve_scene_path(token: String) -> String:
+	var trimmed := token.strip_edges()
+	if trimmed.is_empty():
+		return ""
+	if trimmed.begins_with("res://"):
+		return trimmed
+	if trimmed.contains("/"):
+		return "res://" + trimmed
+	if not trimmed.ends_with(".tscn"):
+		trimmed += ".tscn"
+	return "res://scenes/battle/maps/" + trimmed
