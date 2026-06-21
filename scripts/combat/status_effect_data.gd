@@ -163,7 +163,10 @@ static func get_default_configs() -> Dictionary:
 	rooted.abbrev_name = "Rooted"
 	rooted.description = "Cannot move."
 	rooted.max_stacks = 2
-	rooted.default_apply_stacks = 2
+	# 1 stack = 1 lost turn (StatusEffectSystem.process_control_locks). Was 2 as a
+	# band-aid for the old decrement-before-gate bug; now that the bug's fixed, 1
+	# keeps existing root moves at their prior effective duration.
+	rooted.default_apply_stacks = 1
 	rooted.icon_path = "res://art/sprites/ui/status_effect_icons_6x6_v2/rooted_0000.png"
 	configs["ROOTED"] = rooted
 
@@ -173,7 +176,8 @@ static func get_default_configs() -> Dictionary:
 	freeze.abbrev_name = "Freeze"
 	freeze.description = "Cannot move or act."
 	freeze.max_stacks = 2
-	freeze.default_apply_stacks = 2
+	# 1 stack = 1 lost turn (move + action). See ROOTED note above.
+	freeze.default_apply_stacks = 1
 	freeze.icon_path = "res://art/sprites/ui/status_effect_icons_6x6_v2/freeze_0000.png"
 	configs["FREEZE"] = freeze
 

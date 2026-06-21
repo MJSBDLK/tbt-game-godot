@@ -16,3 +16,5 @@ var faction: Enums.UnitFaction = Enums.UnitFaction.PLAYER
 var current_hp: int = 0
 var active_status_effects: Array = []
 var current_tile: Tile = null
+var can_act: bool = true
+var can_move: bool = true

@@ -72,11 +72,16 @@ func _make_loose_tile() -> Tile:
 
 
 func test_max_movement_range_zero_when_rooted() -> void:
-	# Regression: ROOTED debuff used to do nothing because the getter only
-	# consulted character_data.get_effective_move_distance() (which scans
-	# injuries, never status effects). active_status_effects lives on Unit.
+	# ROOTED collapses movement via the can_move latch. process_control_locks
+	# sets can_move=false at turn start (gate-then-decrement); the getter reads
+	# the latch, not live stacks — so a stack that's about to be consumed this
+	# turn still gates it. See StatusEffectSystem.process_control_locks.
 	var unit := _make_unit_with_move_distance(5)
-	unit.active_status_effects.append(_make_rooted_effect())
+	var effect := _make_rooted_effect()
+	effect.stacks = 1
+	unit.active_status_effects.append(effect)
+	unit.can_move = true  # as refresh_unit sets it at turn start
+	StatusEffectSystem.process_control_locks(unit)
 	assert_eq(unit.max_movement_range, 0,
 			"Rooted unit can't move regardless of move_distance")
 

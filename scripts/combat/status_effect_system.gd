@@ -167,6 +167,13 @@ func process_turn_start_effects(unit: Node2D) -> void:
 		if config.tick_trigger != "turn_start":
 			continue
 
+		# Movement/action locks (ROOTED, FREEZE) are gated AND decremented in
+		# process_control_locks, which runs AFTER refresh so the lock latches for
+		# this turn before the stack drops. Skip them here or we'd double-decrement
+		# and break "1 stack = 1 turn".
+		if effect.effect_type_name == "ROOTED" or effect.effect_type_name == "FREEZE":
+			continue
+
 		# DoT: deal cached per-tick damage before consuming the stack
 		if effect.dot_damage_per_tick > 0:
 			var source: Dictionary = {
@@ -213,30 +220,61 @@ func process_turn_start_effects(unit: Node2D) -> void:
 # QUERIES
 # =============================================================================
 
-## Check if unit can move (blocked by ROOTED or FREEZE).
+## Latch movement/action locks from control debuffs (ROOTED, FREEZE) for THIS
+## turn, then consume one stack. MUST run AFTER the unit is refreshed (which
+## resets can_move/can_act to true) so the lock sticks for the turn instead of
+## being immediately reset.
+##
+## Gate-first-decrement-second is the whole point: a stack applied at ANY time
+## before the unit's turn (player phase, enemy phase, or via counterattack) still
+## gates that turn before being consumed, so one stack reliably costs exactly one
+## turn. ROOTED locks movement only; FREEZE locks movement and action.
+## process_turn_start_effects deliberately skips these two so they aren't
+## double-decremented.
+func process_control_locks(unit: Node2D) -> void:
+	if unit == null:
+		return
+	var active_effects: Array = unit.get("active_status_effects")
+	if active_effects == null or active_effects.is_empty():
+		return
+
+	var effects_to_remove: Array[StatusEffect] = []
+	for effect: StatusEffect in active_effects:
+		if effect.effect_type_name == "ROOTED":
+			unit.set("can_move", false)
+		elif effect.effect_type_name == "FREEZE":
+			unit.set("can_move", false)
+			unit.set("can_act", false)
+		else:
+			continue
+		# Gate is latched for this turn — now consume one stack.
+		effect.stacks -= 1
+		if effect.stacks <= 0:
+			effects_to_remove.append(effect)
+		else:
+			DebugConfig.log_status("StatusEffectSystem: %s stacks → %d on %s" % [
+				effect.effect_type_name, effect.stacks, unit.get("unit_name")])
+
+	for effect: StatusEffect in effects_to_remove:
+		active_effects.erase(effect)
+		DebugConfig.log_status("StatusEffectSystem: %s expired on %s" % [
+			effect.effect_type_name, unit.get("unit_name")])
+		status_effect_removed.emit(unit, effect.effect_type_name)
+
+
+## Check if unit can move. Reads the turn-scoped latch set by
+## process_control_locks (the source of truth), not live stacks.
 func can_unit_move(unit: Node2D) -> bool:
 	if unit == null:
 		return false
-	var active_effects: Array = unit.get("active_status_effects")
-	if active_effects == null:
-		return true
-	for effect: StatusEffect in active_effects:
-		if effect.effect_type_name == "ROOTED" or effect.effect_type_name == "FREEZE":
-			return false
-	return true
+	return bool(unit.get("can_move"))
 
 
-## Check if unit can act (blocked by FREEZE).
+## Check if unit can act (blocked by FREEZE). Reads the can_act latch.
 func can_unit_act(unit: Node2D) -> bool:
 	if unit == null:
 		return false
-	var active_effects: Array = unit.get("active_status_effects")
-	if active_effects == null:
-		return true
-	for effect: StatusEffect in active_effects:
-		if effect.effect_type_name == "FREEZE":
-			return false
-	return true
+	return bool(unit.get("can_act"))
 
 
 ## Get the current stack count for an effect on a unit. Returns 0 if not present.

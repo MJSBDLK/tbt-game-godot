@@ -118,8 +118,10 @@ func start_player_phase() -> void:
 
 	_process_status_effects(_player_units)
 	_refresh_units(_player_units)
-	# Run injury per-turn effects AFTER refresh, so PTSD's can_act=false
-	# isn't immediately reset.
+	# Control locks (ROOTED/FREEZE) and injury effects both run AFTER refresh so
+	# their can_move/can_act=false latches aren't immediately reset. Control locks
+	# gate movement for THIS turn, then consume a stack — "1 stack = 1 turn".
+	_process_control_locks(_player_units)
 	_process_injury_turn_effects(_player_units)
 
 	if input_manager != null:
@@ -160,6 +162,7 @@ func start_enemy_phase() -> void:
 
 	_process_status_effects(_enemy_units)
 	_refresh_units(_enemy_units)
+	_process_control_locks(_enemy_units)
 	_process_injury_turn_effects(_enemy_units)
 
 	enemy_phase_started.emit()
@@ -289,6 +292,15 @@ func _process_status_effects(units: Array[Unit]) -> void:
 	for unit: Unit in units:
 		if not unit.is_defeated():
 			status_system.process_turn_start_effects(unit)
+
+
+func _process_control_locks(units: Array[Unit]) -> void:
+	var status_system: Node = get_node_or_null("/root/StatusEffectSystem")
+	if status_system == null:
+		return
+	for unit: Unit in units:
+		if not unit.is_defeated():
+			status_system.process_control_locks(unit)
 
 
 func _process_injury_turn_effects(units: Array[Unit]) -> void:

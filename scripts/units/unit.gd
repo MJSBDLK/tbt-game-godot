@@ -69,11 +69,14 @@ var max_movement_range: int:
 	get:
 		if character_data == null:
 			return 0
-		# ROOTED hard-stops movement regardless of move distance. character_data
-		# only knows about injuries (Broken Bone); status effects live on Unit.
-		for effect in active_status_effects:
-			if effect != null and effect.effect_type_name == "ROOTED":
-				return 0
+		# ROOTED/FREEZE hard-stop movement for the whole turn. The lock is latched
+		# into can_move at turn start (StatusEffectSystem.process_control_locks)
+		# BEFORE the stack is decremented — that ordering is what makes a single
+		# stack reliably cost exactly one turn. Read the latch, not live stacks:
+		# a stack applied before this turn must still gate it even though it's
+		# about to be consumed this turn.
+		if not can_move:
+			return 0
 		return character_data.get_effective_move_distance() * MOVEMENT_SCALE
 
 
@@ -83,6 +86,10 @@ var max_movement_range: int:
 
 var is_selected: bool = false
 var can_act: bool = true
+# Turn-scoped movement lock, mirroring can_act. Reset true each turn by
+# refresh_unit, then set false by StatusEffectSystem.process_control_locks when
+# ROOTED/FREEZE is active. max_movement_range reads this latch.
+var can_move: bool = true
 var is_moving: bool = false
 var is_defeated_flag: bool = false
 var _defeat_visuals_played: bool = false
@@ -204,6 +211,7 @@ func initialize(starting_tile: Tile) -> void:
 	_update_health_bar()
 
 	can_act = true
+	can_move = true
 	is_selected = false
 
 	DebugConfig.log_unit_init("Unit '%s' at %s | faction=%s type=%s HP=%d move=%d" % [
@@ -445,6 +453,7 @@ func _stop_selection_pulse() -> void:
 
 func refresh_unit() -> void:
 	can_act = true
+	can_move = true
 	_start_tile_before_move = current_tile
 	_apply_active_modulate()
 
