@@ -6,8 +6,8 @@
 - [ ] intermission screens - interactive buttons must be obviously interactive
 - [ ] bEXP screen
 - [ ] remove "*1" from character panel on the left when all statUps are allocated
-- [ ] Give all characters at least 9 moves and 9 passives
-- [ ] add level next to enemy (and friendly?) health bars
+- [~] Give all characters at least 9 moves and 9 passives
+- [x] add level next to enemy (and friendly?) health bars
 ### [ ] LOD
 - [ ] more terrain modifiers and decorations
 - [ ] more animations
@@ -19,6 +19,127 @@
 - [ ] new characters and/or
 - [ ] new jungle biome terrain (see concept art)
 - [ ] ice desert biome terrain
+
+# Combat Effect Pipeline + consumers (move/passive system rework)
+*Captured 2026-06-21 from the move-template design pass ([scratch/move_and_passive_templates_simple.md](../scratch/move_and_passive_templates_simple.md)).*
+
+**Architecture decision:** move-effects, passives, and afflictions all hook the SAME combat phases — so build ONE pipeline with three handler sources, not three parallel systems. Declarative JSON (`statusEffect` / `onHit` / `heal`) compiles into built-in handlers; "custom scripts" are just named handlers in the same registry. Staged so every phase ships GUT-green and behavior-preserving before the next.
+
+**Do in order:** Phase 0 Foundation → 1 Crit pilot → 2 Passives → 3 Displacement → 4 Conditional + scheduled. Phases 2–4 are *consumers* of the Phase 0 pipeline.
+
+### The shared model (reference for all phases)
+Resolution order for a single attack:
+```
+gather          collect handlers from: the move's effects, attacker passives,
+                defender passives, both units' active afflictions/boosts
+modify_accuracy roll to hit
+modify_damage   crit, Glib, Impetuous, Bellows, STAB, type, Vulnerable/Fortified
+(apply damage)
+on_hit          apply affliction, displace, cleanse, conditional-by-target
+on_hit_self     rider boosts
+on_kill         Waste Not, ...
+```
+Out of band (turn loop): `on_turn_start` — regen, auras, DoT ticks, control-lock decrement (shipped 2026-06-21), and FIRE scheduled effects.
+
+Each **handler** (`CombatEffect`) implements only the phases it cares about (base = no-op virtuals). The dispatcher tags each with its owner (attacker / defender / self) so `modify_damage` handlers read the correct side. Context object `CombatHitContext { attacker, defender, move, base_damage, damage (mutable), accuracy (mutable), is_crit, hit, ... }`. Terminology: code keeps `BUFF`/`DEBUFF`; player-facing strings say **boosts** / **afflictions**.
+
+## [ ] PHASE 0 — Foundation: Combat Effect Pipeline
+**Goal:** stand up the pipeline and route EXISTING declarative effects through it with zero gameplay change. Pure infra + refactor; net behavior identical, GUT green.
+
+To create:
+- `scripts/combat/combat_effect.gd` — `CombatEffect` base (no-op virtuals: `modify_accuracy` / `modify_damage` / `on_hit` / `on_hit_self` / `on_kill` / `on_turn_start`).
+- `scripts/combat/combat_hit_context.gd` — mutable per-hit context.
+- `scripts/combat/combat_effect_pipeline.gd` — dispatcher: `gather(attacker, defender, move) -> Array[CombatEffect]`, then run phases in order.
+- `scripts/combat/effects/` built-ins (compiled from JSON), each mirroring current behavior EXACTLY:
+  - `apply_affliction_effect.gd` (from `statusEffect`; `on_hit`, or `on_hit_self` when target=self)
+  - `heal_effect.gd` (from `heal:true`)
+  - `cleanse_effect.gd` (from `onHit.cleanse`)
+  - `displace_effect.gd` (from `onHit.displace`; thin wrapper over current DisplacementSystem for now — generalized in Phase 3)
+
+To modify:
+- `scripts/combat/move_data.gd` — compile parsed fields into an `Array` of effect specs on the Move (keep raw `@export` fields during migration).
+- `scripts/units/unit.gd` — `_execute_single_hit` / `_execute_heal_hit` build a `CombatHitContext` and run the pipeline instead of the inline status/displace/cleanse calls. `DamageCalculator.calculate_damage` stays the BASE-damage source (type + Bellows remain there for now); the pipeline's `modify_damage` only layers on top. (Migrating type/Bellows into handlers is optional cleanup, deferred.)
+
+Work items:
+- [ ] Base class + context + dispatcher.
+- [ ] Four built-in handlers mirroring current behavior exactly.
+- [ ] move_data compiles `statusEffect` / `heal` / `onHit` → effect specs.
+- [ ] Rewire unit.gd hit execution onto the pipeline.
+- [ ] GUT: pipeline ordering; each built-in handler; regression that an existing move (Scorch→Burn, First Aid→heal+cleanse, a displace move) behaves identically pre/post.
+
+**Acceptance:** full GUT suite green; in-game a Burn / heal / cleanse / displace move behaves exactly as before.
+
+## [ ] PHASE 1 — Crit pilot (smallest custom handler; removes crit-as-status)
+**Why first:** crit is the smallest `modify_damage` handler and proves the pipeline end-to-end. Also fixes a LIVE BUG: crit is currently a NO-OP — `calculate_damage` never reads the CRITICAL status, so Focus/Uppercut do nothing.
+
+**Design:** a hit either crits or it doesn't → `ctx.damage *= CRIT_MULTIPLIER` (2.0; single constant, playtest-tunable — 1.5 was tried and felt weak). Two flag sources, both funnel to one handler:
+- secondary `crit` on a move → rolls THIS hit (the one-secondary-slot rule: a move's secondary is a status OR crit, mutually exclusive).
+- `pending_crit` transient flag on the attacker (set by setup moves, consumed on next attack). NOT an affliction/boost — lives in the pipeline, honoring "crit isn't a status."
+
+Work items:
+- [ ] `scripts/combat/effects/crit_effect.gd` — `modify_damage`: if rolled or `attacker.pending_crit`, ×CRIT_MULTIPLIER and set `ctx.is_crit`; consume `pending_crit`.
+- [ ] `CRIT_MULTIPLIER` constant (DamageCalculator or a CombatConstants).
+- [ ] `pending_crit: bool` on Unit (reset on consume + on turn refresh).
+- [ ] Move JSON: support secondary `crit`.
+- [ ] **Remove CRITICAL** from `Enums.StatusEffectType` + `status_effect_data.gd` configs + the icon wiring.
+- [ ] **Repoint Focus + Uppercut** off CRITICAL → set `pending_crit` (banked-crit option **(b)**; flippable to repointing onto FOCUSED if banked crit feels bad).
+- [ ] Map feedback: "CRIT!" popup + bigger hit flash via `VisualFeedbackManager`.
+- [ ] GUT: crit doubles damage; `pending_crit` consumed exactly once; secondary-crit roll; removing CRITICAL doesn't break status tests.
+
+**Acceptance:** a crit visibly doubles damage with feedback; Focus/Uppercut bank a crit that fires on the next hit; no CRITICAL anywhere in the status system.
+
+## [ ] PHASE 2 — Passives as pipeline consumers
+**Why:** only 5 of 20 passives are coded, via scattered `has_equipped_passive("X")` checks (grid_manager, unit, damage_calculator, status_effect_system). Doesn't scale. Full status table + per-passive hook mapping in [scratch/move_and_passive_templates_simple.md](../scratch/move_and_passive_templates_simple.md) "Passive Implementation Status".
+
+**Design:** passives ARE `CombatEffect` handlers (no separate `PassiveHandler` class). Registered per-unit from `equipped_passives`, gathered into the SAME pipeline as move-effects. A few passives also need non-combat hooks (`modify_range`, pathfinding) — add those phases to the base as needed.
+
+Work items:
+- [ ] Add any passive-only phases to the `CombatEffect` base (`modify_range`, `modify_stats`/auras, `redirect_target`).
+- [ ] Per-unit passive registration into `gather`.
+- [ ] Migrate the 5 ad-hoc passives (Ghost, Capricious, Competitive, Reliable, Bellows) onto handlers; delete the inline `has_equipped_passive` checks.
+- [ ] Implement the 15 description-only passives (see scratch table for each one's hook).
+- [ ] **Regenerator** (new) — separate turn-start heal CHANNEL, not the REGEN status, so it stacks with the REGEN boost (two independent heals).
+- [ ] **Bravery** (new) — grants Chivalric's *mechanical status-interactions* (challenged by Roar, immune to Shriek) WITHOUT the Chivalric type's weaknesses/resistances. Backs `is_brave()` (see Phase 4).
+- [ ] GUT per handler.
+
+## [ ] PHASE 3 — Displacement (the `displace_effect` handler, fully generalized)
+**Why:** Bounce Out, Stampede charge-behind, Razor Wing charge-through, Soar self-reposition, Roar-knockback, plus the "knockback/pull/swap/spin" family are all ONE parameterized handler. Gravity moves trade offense for strong CC — this is their budget. Constitution is the universal resist stat (does NOT level up — fixed until class change, so it's a stable balance lever).
+
+**Current state:** [displacement_system.gd](../scripts/combat/displacement_system.gd) does only single-target `away_from_attacker` / `toward_attacker`, single-sided save (`dc_source > target.stat`); `on_blocked` only implements `stop`; `on_hit_script` parsed but never executed.
+
+**Target schema** (the `onHit.displace` object → `displace_effect.gd`):
+```jsonc
+"displace": {
+  "subject": "target",        // target | self | others_in_shape
+  "shape":   "single",        // single | line(len) | row(width) | ring(radius)
+  "vector":  "away_from_attacker",  // away/toward_attacker | away/toward_point | rotate_cw | rotate_ccw
+  "distance": 1,
+  "save":    { "contest": "constitution", "margin": 1 },  // attacker CONST − target CONST > margin
+  "on_blocked": "stop"        // stop | swap | bonus_damage | fall_through | push_chain
+}
+```
+**Pattern coverage to verify:** target-backward-on-failed-CONST-check; attacker recoil back 1; swap with friendly behind (subject:self + on_blocked:swap); push enemies back in a row-of-three (shape:row); spin units around a point target (shape:ring + rotate). "Behind" is computed from unit positions (no facing system).
+
+Work items:
+- [ ] Generalize `_resolve_vector` for point/rotational vectors + shapes.
+- [ ] Replace single-sided save with the stat-contest model (`attacker.<stat> − target.<stat> > margin`); default constitution.
+- [ ] Implement `on_blocked` policies (swap, bonus_damage, fall_through, push_chain).
+- [ ] AoE/multi-subject resolution (gather units in shape, resolve each).
+- [ ] Wire `subject: self` (attacker repositioning — Soar, recoil).
+- [ ] Retire the `on_hit_script` escape hatch for these cases (now declarative).
+- [ ] GUT: vector math, shape gathering, save contest, each on_blocked policy.
+- [ ] Author: Bounce Out (`contest: constitution, margin: 1`); revisit Stampede/Razor Wing (charge = displace self into target's far tile + rider) and Roar-knockback.
+
+## [ ] PHASE 4 — Conditional + scheduled effects (Roar, Shriek)
+**Why:** two new effect capabilities that the pipeline makes cheap once it exists.
+
+- [ ] `is_brave()` — Unit/CharacterData helper: `primary_type == Chivalric OR has Bravery passive`. Shared by the whole fear-interaction cluster.
+- [ ] **Conditional-by-target** effect: an `on_hit` handler that branches on a predicate. Roar → SHOCKED normally, CHALLENGED to brave units.
+- [ ] **Scheduled effect queue**: per-unit list `{ turns_remaining, effect, params }`, ticked in `on_turn_start`. Generalizes "happens N turns later."
+- [ ] Author **Roar** — support, self-target, AOE 2, applies the conditional affliction (accuracy 255 ≈ can't-miss).
+- [ ] Author **Shriek of the Damned** — Occult, self-target, AOE 5 (playtest the radius), brave-immune, schedules a Chain Lightning proc on non-brave units one turn later.
+
+**Cross-cutting (Chivalric fear cluster):** Roar (CHALLENGED-on-brave) and Shriek (skips brave) both lean on `is_brave()`.
 
 # Meetings Archive
 ## [x] Meeting 2026.06.14
