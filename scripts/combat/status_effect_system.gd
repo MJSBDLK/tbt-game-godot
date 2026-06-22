@@ -351,26 +351,9 @@ func clear_all_effects(unit: Node2D) -> void:
 # PASSIVE TRIGGERS
 # =============================================================================
 
-## Check if a unit has a specific passive equipped.
-func _unit_has_passive(unit: Node2D, passive_name: String) -> bool:
-	var character_data: Variant = unit.get("character_data")
-	if character_data == null:
-		return false
-	var passives: Array = character_data.get("equipped_passives")
-	if passives == null:
-		return false
-	return passive_name in passives
-
-
-## Called after a unit takes attack damage. Checks for passive triggers like Bellows.
-## Currently only triggers on damaging attacks; non-damaging air moves do not trigger Bellows.
-func check_passive_triggers_on_hit(attacker: Node2D, target: Node2D, move: Move) -> void:
-	if target == null or move == null:
-		return
-
-	# Bellows: air-type attack damage grants fire buff stacks
-	if move.element_type == Enums.ElementalType.AIR and _unit_has_passive(target, "Bellows"):
-		apply_status_effect_by_name(attacker, target, "BELLOWS")
+# Per-hit passive triggers (e.g. Bellows) moved to the combat effect pipeline as
+# CombatEffect handlers — see BellowsPassive / PassiveRegistry. They're gathered
+# per hit in CombatEffectPipeline.gather instead of a dedicated call here.
 
 
 # =============================================================================

@@ -849,13 +849,11 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 	DebugConfig.log_combat("Hit: %s -> %s for %d damage (x%.2f %s, impact=%.2f, hitlag=%.3fs)" % [
 		unit_name, target.unit_name, damage, type_multiplier, effectiveness_text, impact_weight, hitlag_duration])
 
-	# On-hit rider effects (afflictions, cleanse, displacement) run through the
-	# combat effect pipeline using the handlers gathered above. Affliction applies
-	# on first hit only (apply_status); cleanse + displacement run every hit.
+	# On-hit rider effects (afflictions, cleanse, displacement) and per-hit passive
+	# triggers (e.g. Bellows) run through the combat effect pipeline using the
+	# handlers gathered above. Affliction applies on first hit only (apply_status);
+	# cleanse, displacement, and passive triggers run every hit.
 	await CombatEffectPipeline.run_on_hit(ctx, effects)
-
-	# Check passive triggers (e.g. Bellows: air hit grants fire buff)
-	StatusEffectSystem.check_passive_triggers_on_hit(self, target, move)
 
 
 ## Heal-side counterpart to _execute_single_hit. No hit flash, no screenshake,

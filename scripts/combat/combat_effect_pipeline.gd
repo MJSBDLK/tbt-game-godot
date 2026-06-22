@@ -41,7 +41,25 @@ static func gather(ctx: CombatHitContext) -> Array[CombatEffect]:
 	if not ctx.is_heal and move.displace_distance > 0:
 		effects.append(DisplaceEffect.new())
 
+	# Passive handlers from both combatants participate in the per-hit phases
+	# (damage hits only — matches the old check_passive_triggers_on_hit, which
+	# never ran on heals). Appended after move effects so passive on-hit triggers
+	# (e.g. Bellows) fire after the move's own riders, preserving prior order.
+	# Each handler checks ctx for the relevant unit, so adding both sides is safe;
+	# dedup keeps a shared passive from firing twice.
+	if not ctx.is_heal:
+		_append_passives(effects, ctx.attacker)
+		_append_passives(effects, ctx.defender)
+
 	return effects
+
+
+static func _append_passives(effects: Array[CombatEffect], unit: Node2D) -> void:
+	if unit == null:
+		return
+	for handler: CombatEffect in PassiveRegistry.get_handlers_for(unit.get("character_data")):
+		if not effects.has(handler):
+			effects.append(handler)
 
 
 ## Run the damage-modifier phase. Mutates ctx.damage. No-op in Phase 0 (no
