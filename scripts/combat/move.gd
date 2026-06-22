@@ -43,6 +43,15 @@ var current_uses: int = 0
 # This is how rider buffs work — a damage move that buffs the user on hit.
 @export var status_effect_self_target: bool = false
 
+# Secondary crit. Crit is NOT a status — it's a one-time damage doubling resolved
+# by CritEffect in the combat pipeline. A move's secondary slot holds EITHER a
+# status effect OR crit (mutually exclusive). crit_chance > 0 means the secondary
+# is crit. When crit_self_target is true (JSON target: "self"), a successful roll
+# BANKS a crit on the caster (pending_crit) for their next attack — e.g. Focus,
+# Uppercut. Otherwise a successful roll crits THIS hit.
+@export var crit_chance: float = 0.0
+@export var crit_self_target: bool = false
+
 # On-hit displacement (instant, non-lingering). 0 = no displacement.
 # Resolved by DisplacementSystem after damage. Save formula: target fails when
 # the chosen dc_source on the hit exceeds target.<displace_save_stat>.

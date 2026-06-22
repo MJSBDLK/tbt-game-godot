@@ -43,7 +43,7 @@ Out of band (turn loop): `on_turn_start` — regen, auras, DoT ticks, control-lo
 
 Each **handler** (`CombatEffect`) implements only the phases it cares about (base = no-op virtuals). The dispatcher tags each with its owner (attacker / defender / self) so `modify_damage` handlers read the correct side. Context object `CombatHitContext { attacker, defender, move, base_damage, damage (mutable), accuracy (mutable), is_crit, hit, ... }`. Terminology: code keeps `BUFF`/`DEBUFF`; player-facing strings say **boosts** / **afflictions**.
 
-## [ ] PHASE 0 — Foundation: Combat Effect Pipeline
+## [x] PHASE 0 — Foundation: Combat Effect Pipeline
 **Goal:** stand up the pipeline and route EXISTING declarative effects through it with zero gameplay change. Pure infra + refactor; net behavior identical, GUT green.
 
 To create:
@@ -69,7 +69,7 @@ Work items:
 
 **Acceptance:** full GUT suite green; in-game a Burn / heal / cleanse / displace move behaves exactly as before.
 
-## [ ] PHASE 1 — Crit pilot (smallest custom handler; removes crit-as-status)
+## [x] PHASE 1 — Crit pilot (smallest custom handler; removes crit-as-status)
 **Why first:** crit is the smallest `modify_damage` handler and proves the pipeline end-to-end. Also fixes a LIVE BUG: crit is currently a NO-OP — `calculate_damage` never reads the CRITICAL status, so Focus/Uppercut do nothing.
 
 **Design:** a hit either crits or it doesn't → `ctx.damage *= CRIT_MULTIPLIER` (2.0; single constant, playtest-tunable — 1.5 was tried and felt weak). Two flag sources, both funnel to one handler:
@@ -87,6 +87,10 @@ Work items:
 - [ ] GUT: crit doubles damage; `pending_crit` consumed exactly once; secondary-crit roll; removing CRITICAL doesn't break status tests.
 
 **Acceptance:** a crit visibly doubles damage with feedback; Focus/Uppercut bank a crit that fires on the next hit; no CRITICAL anywhere in the status system.
+
+Follow-ups (polish, not blocking):
+- [ ] **Banked-crit indicator** — repurpose the freed-up `critical_0000.png` icon as an on-unit indicator that a unit is carrying a banked `pending_crit` (its next attack will crit). pending_crit isn't a status, so this needs surfacing in the unit's indicator UI separately from active_status_effects. RQD liked this.
+- [ ] In-game eyeball of crit feedback (CRIT! popup + flash) — not headless-testable.
 
 ## [ ] PHASE 2 — Passives as pipeline consumers
 **Why:** only 5 of 20 passives are coded, via scattered `has_equipped_passive("X")` checks (grid_manager, unit, damage_calculator, status_effect_system). Doesn't scale. Full status table + per-passive hook mapping in [scratch/move_and_passive_templates_simple.md](../scratch/move_and_passive_templates_simple.md) "Passive Implementation Status".

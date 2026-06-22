@@ -63,7 +63,7 @@ enum StatusEffectType {
 	NONE = 0,
 	# --- Buffs ---
 	BELLOWS,          # Stacking fire damage buff, gained when a unit with the Bellows passive takes air damage
-	CRITICAL,         # Next attack deals double damage
+	# (CRITICAL removed — crit is a pipeline damage event now, not a status. See CritEffect.)
 	RALLIED,          # +% strength
 	FORTIFIED,        # +% defense
 	HASTED,           # +% agility

@@ -97,6 +97,11 @@ var current_hp: int = 0
 var assigned_move: Move = null
 var last_used_move_index: int = -1  # Index into equipped_moves of the most recently executed move (for Capricious passive)
 var active_status_effects: Array = []  # Array of StatusEffect
+# Banked crit (from a setup move like Focus/Uppercut). The unit's next damaging
+# hit crits, then this clears (CritEffect consumes it). Persists across turns —
+# a setup move spends the turn, so the crit must survive to the next attack. Not
+# an affliction/boost; lives purely in the combat pipeline. Reset at battle init.
+var pending_crit: bool = false
 
 # Set by take_damage when the killing blow lands. Used by InjurySystem to
 # pick the right injury when the unit_defeated handler runs.
@@ -212,6 +217,7 @@ func initialize(starting_tile: Tile) -> void:
 
 	can_act = true
 	can_move = true
+	pending_crit = false
 	is_selected = false
 
 	DebugConfig.log_unit_init("Unit '%s' at %s | faction=%s type=%s HP=%d move=%d" % [
@@ -796,6 +802,11 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 	var effectiveness_text := TypeChart.get_effectiveness_text(type_multiplier)
 	var impact_weight := DamageCalculator.calculate_impact_weight(damage, target.character_data.max_hp if target.character_data else 1)
 
+	# Crits hit harder — floor the impact so even a low-power crit gets a weighty
+	# flash/shake/hitlag. The doubled damage already shows in the popup.
+	if ctx.is_crit:
+		impact_weight = maxf(impact_weight, 0.8)
+
 	# Phase 1: Approach. If the attacker has a clip matching this attack's
 	# direction+range, play it through to its hit frame; otherwise nudge.
 	var clip := _pick_attack_clip(target, move)
@@ -832,6 +843,8 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 	combat_hit.emit(self, target, damage)
 
 	_spawn_damage_popup(target, damage, effectiveness_text, type_multiplier)
+	if ctx.is_crit:
+		spawn_text_callout("CRIT!", GameColors.TEXT_SECONDARY)
 
 	DebugConfig.log_combat("Hit: %s -> %s for %d damage (x%.2f %s, impact=%.2f, hitlag=%.3fs)" % [
 		unit_name, target.unit_name, damage, type_multiplier, effectiveness_text, impact_weight, hitlag_duration])

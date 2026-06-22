@@ -18,3 +18,4 @@ var active_status_effects: Array = []
 var current_tile: Tile = null
 var can_act: bool = true
 var can_move: bool = true
+var pending_crit: bool = false

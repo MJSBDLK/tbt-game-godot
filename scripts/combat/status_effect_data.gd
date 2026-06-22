@@ -49,15 +49,9 @@ static func get_default_configs() -> Dictionary:
 	bellows.icon_path = "res://art/sprites/ui/status_effect_icons_6x6_v2/bellows_0000.png"
 	configs["BELLOWS"] = bellows
 
-	var critical := StatusEffectData.new()
-	critical.effect_type = "CRITICAL"
-	critical.category = Enums.EffectCategory.BUFF
-	critical.abbrev_name = "Crit"
-	critical.description = "Next attack deals double damage."
-	critical.max_stacks = 1
-	critical.default_apply_stacks = 1
-	critical.icon_path = "res://art/sprites/ui/status_effect_icons_6x6_v2/critical_0000.png"
-	configs["CRITICAL"] = critical
+	# CRITICAL removed — crit is now a one-time damage event resolved in the combat
+	# pipeline (CritEffect), not a status/boost. Setup moves (Focus, Uppercut) bank
+	# it via Unit.pending_crit instead of applying a status.
 
 	var rallied := StatusEffectData.new()
 	rallied.effect_type = "RALLIED"

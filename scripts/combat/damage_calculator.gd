@@ -16,6 +16,12 @@ class_name DamageCalculator
 extends RefCounted
 
 
+## Crit damage multiplier. A crit (from a banked pending_crit or a move's secondary
+## crit roll) multiplies the hit by this. Started at 1.5 in playtest, bumped to 2.0
+## (1.5 felt weak). Applied in CritEffect.modify_damage — single source of truth.
+const CRIT_MULTIPLIER: float = 2.0
+
+
 ## Calculate damage for a single hit.
 static func calculate_damage(attacker: Node2D, defender: Node2D, move: Move) -> int:
 	if attacker == null or defender == null or move == null:

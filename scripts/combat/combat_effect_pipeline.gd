@@ -20,6 +20,14 @@ static func gather(ctx: CombatHitContext) -> Array[CombatEffect]:
 	if move == null:
 		return effects
 
+	# Crit (damage hits only). Added when the move has a secondary crit, or the
+	# attacker is carrying a banked pending_crit to spend on this hit. Runs in the
+	# modify_damage phase (this-hit crit) and/or on_hit (banking setup moves).
+	if not ctx.is_heal:
+		var attacker_pending: bool = ctx.attacker != null and bool(ctx.attacker.get("pending_crit"))
+		if move.crit_chance > 0.0 or attacker_pending:
+			effects.append(CritEffect.new())
+
 	# Affliction/boost rider (applies on first hit only; the handler gates on
 	# ctx.apply_status). Self-vs-target routing is inside apply_status_effect.
 	if move.status_effect_type != Enums.StatusEffectType.NONE:
