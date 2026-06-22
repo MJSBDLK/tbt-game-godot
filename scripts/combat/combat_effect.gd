@@ -37,3 +37,13 @@ func on_hit_self(_ctx: CombatHitContext) -> void:
 ## Fires when this hit defeats the target. (Reserved — Waste Not, etc.)
 func on_kill(_ctx: CombatHitContext) -> void:
 	pass
+
+
+## Stat aura: write passive_bonus_* onto the unit's CharacterData based on
+## battlefield state (ally positions, etc.). Dispatched from
+## PassiveEffectsSystem.recompute (turn/move/defeat), NOT the per-hit pipeline —
+## bonuses are zeroed before each recompute, so handlers just add. Typed as Unit
+## (the aura dispatch works with live Units) unlike the Node2D-duck-typed per-hit
+## hooks. (Competitive now; Stellar / Zone Control to follow.)
+func apply_stat_aura(_unit: Unit, _faction_units: Array[Unit]) -> void:
+	pass
