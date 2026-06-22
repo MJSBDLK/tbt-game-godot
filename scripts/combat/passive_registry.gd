@@ -23,6 +23,8 @@ static func _ensure_initialized() -> void:
 	if _initialized:
 		return
 	_handlers["Bellows"] = BellowsPassive.new()
+	_handlers["Reliable"] = ReliablePassive.new()
+	_handlers["Low Profile"] = LowProfilePassive.new()
 	_initialized = true
 
 

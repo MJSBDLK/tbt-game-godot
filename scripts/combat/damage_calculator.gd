@@ -71,10 +71,10 @@ static func calculate_damage(attacker: Node2D, defender: Node2D, move: Move) -> 
 ## Formula: clamp(0, 100, move.accuracy + 1.5×attacker.skill − 1.5×defender.agility
 ##                          + attacker accuracy passives − defender avoid passives)
 ##
-## Currently wired passives:
-##   - Reliable (attacker): +50, "effectively guaranteeing hits"
-##   - Low Profile (defender, ranged moves only): +25 avoid
-## Impulsive, Flippant, and Zone Control are stubbed for follow-ups.
+## Passive accuracy/avoid modifiers are CombatEffect handlers (Reliable,
+## Low Profile, and follow-ups Impulsive/Flippant/Zone Control) dispatched via
+## their modify_accuracy hook — see PassiveRegistry. Each handler checks the ctx
+## for the relevant unit, so both combatants' passives can run in one pass.
 const RELIABLE_ACCURACY_BONUS: int = 50
 const LOW_PROFILE_AVOID_BONUS: int = 25
 const SKILL_AGILITY_WEIGHT: float = 1.5
@@ -91,32 +91,31 @@ static func hit_chance_pct(attacker: Node2D, defender: Node2D, move: Move) -> in
 		return move.accuracy
 
 	var stat_contribution: float = (attacker_data.skill - defender_data.agility) * SKILL_AGILITY_WEIGHT
-	var accuracy_bonus: int = _attacker_accuracy_bonus(attacker_data, move)
-	var avoid_bonus: int = _defender_avoid_bonus(defender_data, move)
 
-	var raw: int = roundi(move.accuracy + stat_contribution + accuracy_bonus - avoid_bonus)
-	return clampi(raw, 0, 100)
+	var ctx := CombatHitContext.new()
+	ctx.attacker = attacker
+	ctx.defender = defender
+	ctx.move = move
+	ctx.accuracy = move.accuracy + stat_contribution
 
+	# Run passive accuracy/avoid modifiers. Both combatants' handlers participate;
+	# each gates on the relevant unit (attacker for accuracy, defender for avoid).
+	for handler: CombatEffect in _accuracy_handlers(attacker_data, defender_data):
+		handler.modify_accuracy(ctx)
 
-## Sum of accuracy bonuses the attacker's passives contribute against this move.
-## Conditional passives (e.g. Impulsive's first-attack-of-turn) live here so the
-## caller doesn't need to know which passive cares about which combat context.
-static func _attacker_accuracy_bonus(attacker_data: CharacterData, _move: Move) -> int:
-	var bonus: int = 0
-	if attacker_data.has_equipped_passive("Reliable"):
-		bonus += RELIABLE_ACCURACY_BONUS
-	# TODO: Impulsive (+20 on first attack each turn) — needs per-turn attack counter
-	return bonus
+	return clampi(roundi(ctx.accuracy), 0, 100)
 
 
-## Sum of avoid bonuses the defender's passives contribute against this move.
-static func _defender_avoid_bonus(defender_data: CharacterData, move: Move) -> int:
-	var bonus: int = 0
-	if move.attack_range > 1 and defender_data.has_equipped_passive("Low Profile"):
-		bonus += LOW_PROFILE_AVOID_BONUS
-	# TODO: Flippant (-acc when attack is super-effective) — needs type matchup context
-	# TODO: Zone Control (-acc on enemies within 3 tiles) — needs proximity scan
-	return bonus
+## Passive handlers from both combatants, deduped, for the accuracy phase.
+static func _accuracy_handlers(attacker_data: CharacterData, defender_data: CharacterData) -> Array[CombatEffect]:
+	var handlers: Array[CombatEffect] = []
+	for handler: CombatEffect in PassiveRegistry.get_handlers_for(attacker_data):
+		if not handlers.has(handler):
+			handlers.append(handler)
+	for handler: CombatEffect in PassiveRegistry.get_handlers_for(defender_data):
+		if not handlers.has(handler):
+			handlers.append(handler)
+	return handlers
 
 
 ## Calculate number of attacks based on athleticism ratio.

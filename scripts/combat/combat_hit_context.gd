@@ -23,6 +23,11 @@ var damage: int = 0
 # Set by a crit modify_damage handler (Phase 1) so feedback/popups can react.
 var is_crit: bool = false
 
+# Hit chance accumulator for the modify_accuracy phase (DamageCalculator.hit_chance_pct).
+# Float so the skill/agility contribution and passive bonuses accumulate before a
+# single round + clamp. Unused outside accuracy calc.
+var accuracy: float = 0.0
+
 # True only on a combat's first hit (and the first counter). Afflictions apply
 # on the first hit only; cleanse + displacement run every hit. Mirrors the old
 # `apply_status` parameter on _execute_single_hit.
