@@ -777,8 +777,21 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 		DebugConfig.log_combat("Miss: %s -> %s (hit %d%%)" % [unit_name, target.unit_name, hit_pct])
 		return
 
-	# Pre-calculate damage so we know impact weight before the hit lands
-	var damage := DamageCalculator.calculate_damage(self, target, move)
+	# Build the combat context + gather effect handlers, then run damage modifiers
+	# (crit, etc.) so the final damage drives impact weight, the hit, and the
+	# popup. Phase 0 has no damage-modifying handlers, so damage == base.
+	var ctx := CombatHitContext.new()
+	ctx.attacker = self
+	ctx.defender = target
+	ctx.move = move
+	ctx.apply_status = apply_status
+	var effects := CombatEffectPipeline.gather(ctx)
+
+	ctx.base_damage = DamageCalculator.calculate_damage(self, target, move)
+	ctx.damage = ctx.base_damage
+	CombatEffectPipeline.run_modify_damage(ctx, effects)
+	var damage := ctx.damage
+
 	var type_multiplier := DamageCalculator.get_type_effectiveness(self, target, move)
 	var effectiveness_text := TypeChart.get_effectiveness_text(type_multiplier)
 	var impact_weight := DamageCalculator.calculate_impact_weight(damage, target.character_data.max_hp if target.character_data else 1)
@@ -823,15 +836,10 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 	DebugConfig.log_combat("Hit: %s -> %s for %d damage (x%.2f %s, impact=%.2f, hitlag=%.3fs)" % [
 		unit_name, target.unit_name, damage, type_multiplier, effectiveness_text, impact_weight, hitlag_duration])
 
-	# Apply status effect on first hit only
-	if apply_status and move.status_effect_type != Enums.StatusEffectType.NONE:
-		StatusEffectSystem.apply_status_effect(self, target, move)
-
-	# On-hit cleanse: remove specified status effects from the target.
-	_apply_cleanse(target, move)
-
-	# On-hit instant effects (displacement, etc.). Runs every hit, after damage.
-	await DisplacementSystem.resolve(self, target, move, damage)
+	# On-hit rider effects (afflictions, cleanse, displacement) run through the
+	# combat effect pipeline using the handlers gathered above. Affliction applies
+	# on first hit only (apply_status); cleanse + displacement run every hit.
+	await CombatEffectPipeline.run_on_hit(ctx, effects)
 
 	# Check passive triggers (e.g. Bellows: air hit grants fire buff)
 	StatusEffectSystem.check_passive_triggers_on_hit(self, target, move)
@@ -855,10 +863,16 @@ func _execute_heal_hit(target: Unit, move: Move, apply_status: bool) -> void:
 	DebugConfig.log_combat("Heal: %s -> %s for %d HP (move=%s)" % [
 		unit_name, target.unit_name, heal_amount, move.move_name])
 
-	if apply_status and move.status_effect_type != Enums.StatusEffectType.NONE:
-		StatusEffectSystem.apply_status_effect(self, target, move)
-
-	_apply_cleanse(target, move)
+	# On-hit riders (affliction on first hit, cleanse every hit). Heals never
+	# displace, so the pipeline omits displacement for is_heal contexts.
+	var ctx := CombatHitContext.new()
+	ctx.attacker = self
+	ctx.defender = target
+	ctx.move = move
+	ctx.is_heal = true
+	ctx.apply_status = apply_status
+	var effects := CombatEffectPipeline.gather(ctx)
+	await CombatEffectPipeline.run_on_hit(ctx, effects)
 
 
 ## Grant combat XP to this unit (the attacker) for a hit on `target`. Only
@@ -897,14 +911,6 @@ func _award_heal_xp(target: Unit, amount: int) -> void:
 	if levels_gained > 0:
 		_update_level_label()
 		_update_health_bar()
-
-
-func _apply_cleanse(target: Unit, move: Move) -> void:
-	if move.cleanse_effects.is_empty():
-		return
-	for effect_name: String in move.cleanse_effects:
-		StatusEffectSystem.remove_status_effect(target, effect_name)
-		DebugConfig.log_combat("Cleanse: %s removed %s from %s" % [unit_name, effect_name, target.unit_name])
 
 
 ## Miss path: attacker plays its approach, brief hold so the player can read
