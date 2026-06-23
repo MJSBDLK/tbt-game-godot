@@ -1,12 +1,37 @@
-## Base class for a single combat effect handler. Subclasses override only the
-## phase hooks they care about; the rest stay no-ops.
+## Base class for a combat effect handler — the shared substrate for the whole
+## move/passive system. Move effects, passives, and (eventually) afflictions are
+## all CombatEffect subclasses. A subclass overrides only the hooks it needs;
+## the rest stay no-ops. THIS HEADER IS THE LIVING MAP of the system — start here.
 ##
-## This is the shared substrate for the whole move/passive rework (see
-## .claude/todo.md "Combat Effect Pipeline"): move-effects, passives, and
-## afflictions all become CombatEffect handlers gathered into one pipeline.
-## Phase 0 only invokes modify_damage + on_hit; the other hooks are declared
-## now so later phases (crit, passives, displacement) drop in without touching
-## the dispatcher's shape.
+## WHERE EACH HOOK FIRES (the key thing: hooks run at DIFFERENT dispatch points,
+## not all in one loop):
+##
+##   Per-hit combat — CombatEffectPipeline.gather() collects a hit's handlers
+##   (the move's own effects + BOTH combatants' passives) and runs:
+##     • modify_accuracy   dispatched from DamageCalculator.hit_chance_pct
+##                         (so the combat preview shows the same number)
+##     • modify_damage     CombatEffectPipeline.run_modify_damage  (crit, ...)
+##     • on_hit/on_hit_self CombatEffectPipeline.run_on_hit  (afflictions,
+##                         cleanse, displacement, Bellows, ...)
+##     • on_kill           (reserved — Waste Not, etc.)
+##   Stat auras  — apply_stat_aura, from PassiveEffectsSystem.recompute
+##                 (fires on turn start / movement / defeat).
+##   Pathfinding — passes_through_units, from GridManager._tile_blocks_passage.
+##
+## OWNER RULE: per-hit, gather() pools the move's effects AND both combatants'
+## passive handlers (deduped by identity), so a passive handler can't assume it's
+## "the attacker's" — it checks ctx for the unit it cares about (Bellows checks
+## ctx.defender, Reliable checks ctx.attacker). Aura/pathfinding hooks are
+## dispatched per-owner, so those act on the unit passed in directly.
+##
+## WHERE THINGS LIVE: move-effect handlers in scripts/combat/effects/, passive
+## handlers in scripts/combat/passives/ (resolved by name via PassiveRegistry).
+## Per-hit state rides on CombatHitContext; handlers are STATELESS shared
+## singletons — never store per-hit state on them.
+##
+## TYPING: per-hit hooks take Node2D (duck-typed, matching DamageCalculator /
+## DisplacementSystem); apply_stat_aura takes Unit (the aura dispatch works with
+## live Units).
 class_name CombatEffect
 extends RefCounted
 
@@ -47,3 +72,9 @@ func on_kill(_ctx: CombatHitContext) -> void:
 ## hooks. (Competitive now; Stellar / Zone Control to follow.)
 func apply_stat_aura(_unit: Unit, _faction_units: Array[Unit]) -> void:
 	pass
+
+
+## Pathfinding: does this passive let its owner move THROUGH enemy-occupied tiles?
+## Queried by GridManager._tile_blocks_passage on the mover's own passives. (Ghost.)
+func passes_through_units() -> bool:
+	return false

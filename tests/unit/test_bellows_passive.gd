@@ -76,9 +76,9 @@ func test_registry_unknown_passive_is_null() -> void:
 
 func test_registry_dedupes_and_skips_unknown() -> void:
 	var data := CharacterData.new()
-	data.equipped_passives = ["Bellows", "Bellows", "Ghost"]  # dup + not-yet-coded
+	data.equipped_passives = ["Bellows", "Bellows", "NotARealPassive"]  # dup + unknown
 	var handlers := PassiveRegistry.get_handlers_for(data)
-	assert_eq(handlers.size(), 1, "Deduped to one Bellows; Ghost skipped (not coded yet)")
+	assert_eq(handlers.size(), 1, "Deduped to one Bellows; unknown name skipped")
 
 
 # =============================================================================

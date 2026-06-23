@@ -221,11 +221,12 @@ func _tile_blocks_passage(tile: Tile, moving_unit: Node2D) -> bool:
 	var mover_faction: Variant = moving_unit.get("faction")
 	if occupant_faction == mover_faction:
 		return false  # Allies always pass through.
-	# Enemy in the way — check for Ghost.
+	# Enemy in the way — passes unless a passive lets the mover move through units.
 	var character_data: Variant = moving_unit.get("character_data")
-	if character_data != null and character_data.has_method("has_equipped_passive"):
-		if character_data.has_equipped_passive("Ghost"):
-			return false
+	if character_data != null:
+		for handler: CombatEffect in PassiveRegistry.get_handlers_for(character_data):
+			if handler.passes_through_units():
+				return false
 	return true
 
 
