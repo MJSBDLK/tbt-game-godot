@@ -1,5 +1,6 @@
 ## [ ] Meeting 2026.06.21
 ### [ ] RQD
+- [ ] PRIORITY BUG: attack/defense/avoid multipliers are computed for the preview panel but never applied in combat
 - [ ] void FX shader
  - [ ] + desaturate + shadow layer @ 50%
 - [ ] How hard would it be to make a crater (terrain modifier) grant a defensive bonus against melee attacks and a penalty against ranged attacks?
@@ -111,8 +112,8 @@ Work items:
 
 **Remaining = net-new passive CONTENT (no migration; needs per-passive design/balance).**
 Dispatch points that still need wiring are noted per group:
-- [ ] modify_damage handlers (phase exists): **Glib**, **Impetuous**, **Reckless**, **Flippant**(dmg).
-- [ ] modify_accuracy handlers (phase exists): **Impulsive** (needs a per-turn attack counter), **Flippant**(acc).
+- [x] modify_damage handlers: **Glib** (reworked into the sarcastic-squad avoid aura), **Impetuous**, **Flippant**(dmg). [ ] **Reckless** — BLOCKED: terrain combat multipliers are preview-only, not applied in combat; wire terrain bonuses into damage/accuracy first, then Reckless amplifies them.
+- [x] modify_accuracy: **Flippant**(acc). [ ] **Impulsive** — now cheap: the `attacks_this_turn` counter (built for Impetuous) is in place; just needs the handler.
 - [ ] apply_stat_aura handlers (phase exists): **Stellar**, **Zone Control**(buffs), **Maximum** (stat floor — may need a stat-calc hook, not just aura).
 - [ ] NEW dispatch: `on_kill` wiring in unit.gd → **Waste Not**.
 - [ ] NEW dispatch: turn-start pass → **Jury Rig**, **Anti-Gravity**, **Regenerator** (separate heal channel, stacks with the REGEN boost).
@@ -445,6 +446,7 @@ New sprites — faction needed:
 - [ ] Bringing up the unit preview panel on an enemy should display their attack range on the map (pause before implementing this - should this be on a different hotkey?)
 - [ ] Let ice types walk on water
 - [ ] Add moves: [Club (basic low-med power attack for the Ogre), Hook Swipe (low damage, chance to root) ]
+- [ ] In enums.gd, we have StatusEffectType which needs to be separated into AfflictType and BoostType (debuff/buff) - this is likely a significant undertaking because we need to rewire a lot of the game logic. I don't think there's an alternative because units need to be able to have a boost and an affliction at the same time.
 
 # Stretch Goalsls
 - [ ] Sync beacons to music BPM
