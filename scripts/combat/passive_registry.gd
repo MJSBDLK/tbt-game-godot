@@ -31,6 +31,7 @@ static func _ensure_initialized() -> void:
 	_handlers["Glib"] = GlibPassive.new()
 	_handlers["Impetuous"] = ImpetuousPassive.new()
 	_handlers["Flippant"] = FlippantPassive.new()
+	_handlers["Impulsive"] = ImpulsivePassive.new()
 	_initialized = true
 
 
