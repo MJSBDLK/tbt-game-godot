@@ -89,22 +89,28 @@ func recompute_all() -> void:
 	var turn_manager: Node = get_node_or_null("/root/TurnManager")
 	if turn_manager == null:
 		return
-	var players: Array[Unit] = turn_manager.get_player_units()
-	var enemies: Array[Unit] = turn_manager.get_enemy_units()
-
-	for unit: Unit in players:
-		_recompute_unit(unit, players)
-	for unit: Unit in enemies:
-		_recompute_unit(unit, enemies)
+	recompute_faction(turn_manager.get_player_units())
+	recompute_faction(turn_manager.get_enemy_units())
 
 
-func _recompute_unit(unit: Unit, faction_units: Array[Unit]) -> void:
-	if unit == null or unit.is_defeated() or unit.character_data == null:
-		return
-	# Zero, then let each stat-aura passive handler add its bonuses from scratch.
-	_zero_passive_bonuses(unit.character_data)
-	for handler: CombatEffect in PassiveRegistry.get_handlers_for(unit.character_data):
-		handler.apply_stat_aura(unit, faction_units)
+## Recompute stat auras for one faction in TWO passes: zero EVERY unit first, then
+## apply every unit's auras. The two-pass split is required because auras may write
+## to OTHER units (Glib boosts/penalizes allies; Stellar grants Maximum to allies)
+## — a single interleaved zero+apply would clobber an emitter's write when its
+## target is zeroed later in the loop. Auras that only write to self (Competitive)
+## work fine either way. Also the public entry point used by tests.
+func recompute_faction(units: Array[Unit]) -> void:
+	for unit: Unit in units:
+		if _is_live(unit):
+			_zero_passive_bonuses(unit.character_data)
+	for unit: Unit in units:
+		if _is_live(unit):
+			for handler: CombatEffect in PassiveRegistry.get_handlers_for(unit.character_data):
+				handler.apply_stat_aura(unit, units)
+
+
+func _is_live(unit: Unit) -> bool:
+	return unit != null and not unit.is_defeated() and unit.character_data != null
 
 
 func _zero_passive_bonuses(data: CharacterData) -> void:
@@ -116,9 +122,9 @@ func _zero_passive_bonuses(data: CharacterData) -> void:
 	data.passive_bonus_athleticism = 0
 	data.passive_bonus_defense = 0
 	data.passive_bonus_resistance = 0
+	data.passive_bonus_avoid = 0
 
 
-# Stat-aura passives (Competitive, and future Stellar / Zone Control) live as
-# CombatEffect handlers with an apply_stat_aura hook — see CompetitivePassive.
-# _recompute_unit dispatches to them; this system just owns the zero + the
-# recompute triggers.
+# Stat-aura passives (Competitive, Glib, and future Stellar / Zone Control) live as
+# CombatEffect handlers with an apply_stat_aura hook. recompute_faction dispatches
+# to them in two passes; this system owns the zero + the recompute triggers.

@@ -33,7 +33,7 @@
 	},
 	"Glib": {
 		"abbrevName": "Glib",
-		"description": "Bonus if target's special is lower, penalty if higher"
+		"description": "Gets along with other sarcastic types: nearby sarcastic allies dodge better, but earnest allies nearby dodge worse."
 	},
 	"Impetuous": {
 		"abbrevName": "Impetuous",

@@ -19,3 +19,4 @@ var current_tile: Tile = null
 var can_act: bool = true
 var can_move: bool = true
 var pending_crit: bool = false
+var attacks_this_turn: int = 0

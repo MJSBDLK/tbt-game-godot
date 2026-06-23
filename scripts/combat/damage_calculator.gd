@@ -96,7 +96,10 @@ static func hit_chance_pct(attacker: Node2D, defender: Node2D, move: Move) -> in
 	ctx.attacker = attacker
 	ctx.defender = defender
 	ctx.move = move
-	ctx.accuracy = move.accuracy + stat_contribution
+	# Dedicated avoid channel (aura-written, e.g. Glib) — separate from agility so
+	# it doesn't bleed into turn speed. Conditional per-hit avoid (Low Profile)
+	# still rides modify_accuracy below.
+	ctx.accuracy = move.accuracy + stat_contribution - defender_data.passive_bonus_avoid
 
 	# Run passive accuracy/avoid modifiers. Both combatants' handlers participate;
 	# each gates on the relevant unit (attacker for accuracy, defender for avoid).

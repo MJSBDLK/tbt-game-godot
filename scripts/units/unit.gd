@@ -102,6 +102,10 @@ var active_status_effects: Array = []  # Array of StatusEffect
 # a setup move spends the turn, so the crit must survive to the next attack. Not
 # an affliction/boost; lives purely in the combat pipeline. Reset at battle init.
 var pending_crit: bool = false
+# Move-uses this unit has INITIATED since its last turn refresh (counters don't
+# count — only combats this unit starts). Drives Impetuous (+20% on the 1st, then
+# -10% per use after). Counts every move use, attack or support.
+var attacks_this_turn: int = 0
 
 # Set by take_damage when the killing blow lands. Used by InjurySystem to
 # pick the right injury when the unit_defeated handler runs.
@@ -218,6 +222,7 @@ func initialize(starting_tile: Tile) -> void:
 	can_act = true
 	can_move = true
 	pending_crit = false
+	attacks_this_turn = 0
 	is_selected = false
 
 	DebugConfig.log_unit_init("Unit '%s' at %s | faction=%s type=%s HP=%d move=%d" % [
@@ -460,6 +465,7 @@ func _stop_selection_pulse() -> void:
 func refresh_unit() -> void:
 	can_act = true
 	can_move = true
+	attacks_this_turn = 0
 	_start_tile_before_move = current_tile
 	_apply_active_modulate()
 
@@ -663,6 +669,10 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 			defender = ally
 
 	combat_started.emit(self, defender)
+	# Count this move use for the turn (Impetuous reads it). Fizzled friendly-fire
+	# returned above, so it doesn't count; counters go through _execute_single_hit,
+	# not here, so they don't count either.
+	attacks_this_turn += 1
 	DebugConfig.log_combat("Combat: %s (move=%s) vs %s" % [unit_name, attacker_move.move_name, defender.unit_name])
 
 	# Ally-targeting moves (heals, buffs): single application, no counter, no multi-hit.

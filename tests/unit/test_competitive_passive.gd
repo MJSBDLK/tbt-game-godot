@@ -60,20 +60,22 @@ func test_registry_resolves_competitive() -> void:
 	assert_true(PassiveRegistry.get_handler("Competitive") is CompetitivePassive)
 
 
-func test_recompute_unit_applies_competitive_and_zeroes_first() -> void:
+func test_recompute_applies_competitive_and_zeroes_first() -> void:
 	var unit := _make_unit(0, 0, ["Competitive"])
 	var ally := _make_unit(1, 0)
 	ally.character_data.base_defense = 30
 	# Stale bonus from a previous recompute must be cleared before re-applying.
 	unit.character_data.passive_bonus_strength = 99
-	PassiveEffectsSystem._recompute_unit(unit, [unit, ally])
+	var units: Array[Unit] = [unit, ally]
+	PassiveEffectsSystem.recompute_faction(units)
 	assert_eq(unit.character_data.passive_bonus_strength, 0, "recompute zeroes stale bonuses")
 	assert_eq(unit.character_data.passive_bonus_defense, CompetitivePassive.BONUS, "defense copied from ally")
 
 
-func test_recompute_unit_no_passive_grants_nothing() -> void:
+func test_recompute_no_passive_grants_nothing() -> void:
 	var unit := _make_unit(0, 0, [])          # no Competitive
 	var ally := _make_unit(1, 0)
 	ally.character_data.base_strength = 30
-	PassiveEffectsSystem._recompute_unit(unit, [unit, ally])
+	var units: Array[Unit] = [unit, ally]
+	PassiveEffectsSystem.recompute_faction(units)
 	assert_eq(unit.character_data.passive_bonus_strength, 0, "no Competitive → no aura")

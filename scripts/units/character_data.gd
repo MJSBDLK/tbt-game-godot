@@ -148,6 +148,11 @@ var passive_bonus_agility: int = 0
 var passive_bonus_athleticism: int = 0
 var passive_bonus_defense: int = 0
 var passive_bonus_resistance: int = 0
+# Dedicated avoid channel (NOT a base stat — no getter). A flat dodge modifier
+# subtracted from incoming hit chance in DamageCalculator.hit_chance_pct. Written
+# by stat-aura passives (Glib) and zeroed each recompute alongside the bonuses
+# above. Kept separate from agility so avoid doesn't bleed into turn speed / doubles.
+var passive_bonus_avoid: int = 0
 
 # Injury modifiers (semi-permanent, from being killed in past missions).
 # Computed from current_injuries via InjurySystem.recalculate_injury_modifiers().
