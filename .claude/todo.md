@@ -100,12 +100,25 @@ Follow-ups (polish, not blocking):
 **Design:** passives ARE `CombatEffect` handlers (no separate `PassiveHandler` class). Registered per-unit from `equipped_passives`, gathered into the SAME pipeline as move-effects. A few passives also need non-combat hooks (`modify_range`, pathfinding) — add those phases to the base as needed.
 
 Work items:
-- [ ] Add any passive-only phases to the `CombatEffect` base (`modify_range`, `modify_stats`/auras, `redirect_target`).
-- [ ] Per-unit passive registration into `gather`.
-- [ ] Migrate the 5 ad-hoc passives (Ghost, Capricious, Competitive, Reliable, Bellows) onto handlers; delete the inline `has_equipped_passive` checks.
-- [ ] Implement the 15 description-only passives (see scratch table for each one's hook).
-- [ ] **Regenerator** (new) — separate turn-start heal CHANNEL, not the REGEN status, so it stacks with the REGEN boost (two independent heals).
-- [ ] **Bravery** (new) — grants Chivalric's *mechanical status-interactions* (challenged by Roar, immune to Shriek) WITHOUT the Chivalric type's weaknesses/resistances. Backs `is_brave()` (see Phase 4).
+- [x] Per-unit passive registration (PassiveRegistry) gathered into the pipeline.
+- [x] **Infrastructure + all coded-passive migrations** — done across dispatch contexts:
+  - [x] on-hit (Bellows), accuracy (Reliable, Low Profile), stat-aura (Competitive),
+        pathfinding (Ghost), move-selection (Capricious). No scattered
+        `has_equipped_passive` combat checks remain (only the debug toggle).
+  - [x] Base hooks added so far: `modify_accuracy`, `modify_damage`, `on_hit`,
+        `on_kill` (declared), `apply_stat_aura`, `passes_through_units`,
+        `randomizes_move`.
+
+**Remaining = net-new passive CONTENT (no migration; needs per-passive design/balance).**
+Dispatch points that still need wiring are noted per group:
+- [ ] modify_damage handlers (phase exists): **Glib**, **Impetuous**, **Reckless**, **Flippant**(dmg).
+- [ ] modify_accuracy handlers (phase exists): **Impulsive** (needs a per-turn attack counter), **Flippant**(acc).
+- [ ] apply_stat_aura handlers (phase exists): **Stellar**, **Zone Control**(buffs), **Maximum** (stat floor — may need a stat-calc hook, not just aura).
+- [ ] NEW dispatch: `on_kill` wiring in unit.gd → **Waste Not**.
+- [ ] NEW dispatch: turn-start pass → **Jury Rig**, **Anti-Gravity**, **Regenerator** (separate heal channel, stacks with the REGEN boost).
+- [ ] NEW dispatch: `redirect_target` → **Protector**.
+- [ ] NEW dispatch: `modify_range` → **Extendo**.
+- [ ] **Bravery** (new) — `is_brave()` flag (challenged by Roar, immune to Shriek) without Chivalric's type weaknesses/resistances. Backs the Phase 4 fear cluster.
 - [ ] GUT per handler.
 
 ## [ ] PHASE 3 — Displacement (the `displace_effect` handler, fully generalized)
