@@ -78,3 +78,10 @@ func apply_stat_aura(_unit: Unit, _faction_units: Array[Unit]) -> void:
 ## Queried by GridManager._tile_blocks_passage on the mover's own passives. (Ghost.)
 func passes_through_units() -> bool:
 	return false
+
+
+## Move selection: does this passive re-randomize the unit's move each combat
+## (avoiding back-to-back repeats)? Queried by EnemyAI (turn move-pick) and
+## Unit (post-combat reroll); the selection logic lives there. (Capricious.)
+func randomizes_move() -> bool:
+	return false

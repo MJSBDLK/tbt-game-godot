@@ -162,13 +162,19 @@ func _assign_move_for_turn() -> void:
 		_unit.auto_assign_first_usable_move()
 		return
 
-	# Non-Capricious enemies: preserve existing behavior (keep assigned_move if set).
-	if not data.has_equipped_passive("Capricious"):
+	# Move-randomizer passives (Capricious) re-pick each turn; others keep their
+	# assignment. Capability is read from the passive handlers, not a name string.
+	var should_randomize: bool = false
+	for handler: CombatEffect in PassiveRegistry.get_handlers_for(data):
+		if handler.randomizes_move():
+			should_randomize = true
+			break
+	if not should_randomize:
 		if _unit.assigned_move == null:
 			_unit.auto_assign_first_usable_move()
 		return
 
-	# Capricious: pick randomly from usable moves, excluding last_used_move_index.
+	# Randomize: pick from usable moves, excluding last_used_move_index.
 	var usable_indices: Array[int] = []
 	for index: int in range(data.equipped_moves.size()):
 		var move: Move = data.equipped_moves[index]

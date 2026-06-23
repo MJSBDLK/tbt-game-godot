@@ -27,6 +27,7 @@ static func _ensure_initialized() -> void:
 	_handlers["Low Profile"] = LowProfilePassive.new()
 	_handlers["Competitive"] = CompetitivePassive.new()
 	_handlers["Ghost"] = GhostPassive.new()
+	_handlers["Capricious"] = CapriciousPassive.new()
 	_initialized = true
 
 

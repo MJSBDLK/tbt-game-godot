@@ -733,16 +733,24 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 		unit_name, current_hp, defender.unit_name, defender.current_hp])
 
 
-## After combat, record what move `combatant` just used and (if they have
-## Capricious) re-pick assigned_move from their remaining usable moves so
-## their next combat — including counter-attacks from enemies later this
-## turn — uses a different move. Skips silently for non-Capricious units
-## and for defeated units.
+## After combat, record what move `combatant` just used and (if they have a
+## move-randomizer passive, i.e. Capricious) re-pick assigned_move from their
+## remaining usable moves so their next combat — including counter-attacks from
+## enemies later this turn — uses a different move. Skips silently for units
+## without the capability and for defeated units.
 func _capricious_post_combat_reroll(combatant: Unit) -> void:
 	if combatant == null or combatant.is_defeated():
 		return
 	var data: CharacterData = combatant.character_data
-	if data == null or not data.has_equipped_passive("Capricious"):
+	if data == null:
+		return
+	# Only move-randomizer passives (Capricious) reroll. Read from the handlers.
+	var should_randomize: bool = false
+	for handler: CombatEffect in PassiveRegistry.get_handlers_for(data):
+		if handler.randomizes_move():
+			should_randomize = true
+			break
+	if not should_randomize:
 		return
 	if combatant.assigned_move != null:
 		combatant.last_used_move_index = data.equipped_moves.find(combatant.assigned_move)
