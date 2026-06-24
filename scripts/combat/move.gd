@@ -177,6 +177,11 @@ func consume_use() -> void:
 	current_uses = maxi(0, current_uses - 1)
 
 
+## Give a use back, capped at max_uses. Used by Waste Not (recover PP on kill).
+func refund_use() -> void:
+	current_uses = mini(max_uses, current_uses + 1)
+
+
 ## PP tier calculation matching Unity's formula.
 ## Lower power = more uses, higher power = fewer uses.
 static func calculate_max_uses_from_power(power: int) -> int:

@@ -77,3 +77,11 @@ static func run_on_hit(ctx: CombatHitContext, effects: Array[CombatEffect]) -> v
 		# synchronously. Await unconditionally so async handlers complete in order.
 		@warning_ignore("redundant_await")
 		await effect.on_hit(ctx)
+
+
+## Run the on-kill phase. Call only when the hit defeated the target. Handlers
+## react to the kill (e.g. Waste Not refunds the killer's move use); each checks
+## ctx for the relevant unit (Waste Not checks ctx.attacker, the killer).
+static func run_on_kill(ctx: CombatHitContext, effects: Array[CombatEffect]) -> void:
+	for effect: CombatEffect in effects:
+		effect.on_kill(ctx)

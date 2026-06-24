@@ -873,6 +873,11 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 	# cleanse, displacement, and passive triggers run every hit.
 	await CombatEffectPipeline.run_on_hit(ctx, effects)
 
+	# On-kill effects (e.g. Waste Not refunds the killer's move use) when this hit
+	# defeated the target. Handlers gate on the relevant unit (killer = attacker).
+	if target.is_defeated():
+		CombatEffectPipeline.run_on_kill(ctx, effects)
+
 
 ## Heal-side counterpart to _execute_single_hit. No hit flash, no screenshake,
 ## no displacement. Heal amount = caster.special + move.base_power.

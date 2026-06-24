@@ -35,6 +35,7 @@ static func _ensure_initialized() -> void:
 	_handlers["Anti-Gravity"] = AntiGravityPassive.new()
 	_handlers["Regenerator"] = RegeneratorPassive.new()
 	_handlers["Jury Rig"] = JuryRigPassive.new()
+	_handlers["Waste Not"] = WasteNotPassive.new()
 	_initialized = true
 
 
