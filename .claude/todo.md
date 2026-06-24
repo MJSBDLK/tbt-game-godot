@@ -113,13 +113,14 @@ Work items:
 **Remaining = net-new passive CONTENT (no migration; needs per-passive design/balance).**
 Dispatch points that still need wiring are noted per group:
 - [x] modify_damage handlers: **Glib** (reworked into the sarcastic-squad avoid aura), **Impetuous**, **Flippant**(dmg). [ ] **Reckless** — BLOCKED: terrain combat multipliers are preview-only, not applied in combat; wire terrain bonuses into damage/accuracy first, then Reckless amplifies them.
-- [x] modify_accuracy: **Flippant**(acc). [ ] **Impulsive** — now cheap: the `attacks_this_turn` counter (built for Impetuous) is in place; just needs the handler.
-- [ ] apply_stat_aura handlers (phase exists): **Stellar**, **Zone Control**(buffs), **Maximum** (stat floor — may need a stat-calc hook, not just aura).
-- [ ] NEW dispatch: `on_kill` wiring in unit.gd → **Waste Not**.
-- [ ] NEW dispatch: turn-start pass → **Jury Rig**, **Anti-Gravity**, **Regenerator** (separate heal channel, stacks with the REGEN boost).
-- [ ] NEW dispatch: `redirect_target` → **Protector**.
-- [ ] NEW dispatch: `modify_range` → **Extendo**.
+- [x] modify_accuracy: **Flippant**(acc), **Impulsive**.
+- [x] NEW dispatch: turn-start pass (on_turn_start) → **Anti-Gravity**, **Regenerator**, **Jury Rig**.
+- [ ] apply_stat_aura / stat-calc: **Maximum** (stat floor — needs a stat-calc hook), **Stellar** (grants Maximum to allies — depends on Maximum; aura two-pass ready), **Zone Control** (aura + movement/acc, multi-part), **Cavalier** (block buff/debuff on attacking stats — status-apply guard).
+- [ ] NEW dispatch: `on_kill` wiring → **Waste Not** (recover PP on kill).
+- [ ] NEW dispatch: `redirect_target` → **Protector** (intercept ranged attacks).
+- [ ] NEW dispatch: `modify_range` → **Extendo** (+1 physical range, not through impassable).
 - [ ] **Bravery** (new) — `is_brave()` flag (challenged by Roar, immune to Shriek) without Chivalric's type weaknesses/resistances. Backs the Phase 4 fear cluster.
+- [ ] **Reckless** — BLOCKED on terrain-combat integration (see modify_damage line).
 - [ ] GUT per handler.
 
 ## [ ] PHASE 3 — Displacement (the `displace_effect` handler, fully generalized)
