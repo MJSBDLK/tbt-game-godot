@@ -392,6 +392,10 @@ func _recalculate_stat_modifiers(unit: Node2D) -> void:
 		var contribution: float = config.pct_per_stack * effect.stacks
 		stat_pcts[effect.affected_stat] = stat_pcts.get(effect.affected_stat, 0.0) + contribution
 
+	# Maximum (passive or Stellar aura): status debuffs can't lower stats below
+	# base — floor any negative modifier at 0. Buffs are unaffected.
+	var maximum_protected: bool = character_data.has_maximum_protection()
+
 	# Apply each summed % to the unmodified stat
 	for stat_name: String in stat_pcts.keys():
 		var pct: float = stat_pcts[stat_name]
@@ -399,8 +403,17 @@ func _recalculate_stat_modifiers(unit: Node2D) -> void:
 			continue
 		var unmodified: int = character_data.get_unmodified_stat(stat_name)
 		var modifier: int = _apply_pct_with_floor(unmodified, pct)
+		if maximum_protected and modifier < 0:
+			modifier = 0
 		var field: String = "status_modifier_%s" % stat_name
 		character_data.set(field, modifier)
+
+
+## Public entry point to recompute a unit's status stat modifiers. Called by
+## PassiveEffectsSystem after the aura pass so Maximum/Stellar protection reflects
+## the latest aura flags (Stellar's grant changes with positions).
+func recalculate_stat_modifiers(unit: Node2D) -> void:
+	_recalculate_stat_modifiers(unit)
 
 
 ## Apply a percentage to a base value with floor-toward-zero rounding and a

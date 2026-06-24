@@ -107,6 +107,13 @@ func recompute_faction(units: Array[Unit]) -> void:
 		if _is_live(unit):
 			for handler: CombatEffect in PassiveRegistry.get_handlers_for(unit.character_data):
 				handler.apply_stat_aura(unit, units)
+	# Auras may have changed Maximum protection (Stellar grants it by proximity),
+	# so recompute status stat modifiers — the Maximum clamp reads the fresh flags.
+	var status_system: Node = get_node_or_null("/root/StatusEffectSystem")
+	if status_system != null:
+		for unit: Unit in units:
+			if _is_live(unit):
+				status_system.recalculate_stat_modifiers(unit)
 
 
 func _is_live(unit: Unit) -> bool:
@@ -123,6 +130,7 @@ func _zero_passive_bonuses(data: CharacterData) -> void:
 	data.passive_bonus_defense = 0
 	data.passive_bonus_resistance = 0
 	data.passive_bonus_avoid = 0
+	data.maximum_from_aura = false
 
 
 # Stat-aura passives (Competitive, Glib, and future Stellar / Zone Control) live as

@@ -153,6 +153,10 @@ var passive_bonus_resistance: int = 0
 # by stat-aura passives (Glib) and zeroed each recompute alongside the bonuses
 # above. Kept separate from agility so avoid doesn't bleed into turn speed / doubles.
 var passive_bonus_avoid: int = 0
+# True while a nearby Stellar ally is granting the Maximum effect. Set by the
+# Stellar aura each recompute (and zeroed alongside passive bonuses). Combined
+# with the Maximum passive in has_maximum_protection().
+var maximum_from_aura: bool = false
 
 # Injury modifiers (semi-permanent, from being killed in past missions).
 # Computed from current_injuries via InjurySystem.recalculate_injury_modifiers().
@@ -271,6 +275,13 @@ func has_equipped_passive(passive_name: String) -> bool:
 		if name_str.to_lower() == target:
 			return true
 	return false
+
+
+## True if this unit's stats are protected from being lowered by status debuffs —
+## either from the Maximum passive or a nearby Stellar ally's aura. Read by
+## StatusEffectSystem._recalculate_stat_modifiers to floor negative modifiers at 0.
+func has_maximum_protection() -> bool:
+	return has_equipped_passive("Maximum") or maximum_from_aura
 
 
 # =============================================================================
