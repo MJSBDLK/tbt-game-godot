@@ -74,6 +74,14 @@ func apply_stat_aura(_unit: Unit, _faction_units: Array[Unit]) -> void:
 	pass
 
 
+## Turn-start effect: one-shot actions at the start of the unit's faction phase
+## (heal, clear a debuff, ...). Dispatched from TurnManager._process_passive_turn_start.
+## `allies` is the unit's faction list (for passives that affect nearby allies,
+## e.g. Jury Rig). Distinct from apply_stat_aura, which only writes stat bonuses.
+func on_turn_start(_unit: Unit, _allies: Array[Unit]) -> void:
+	pass
+
+
 ## Pathfinding: does this passive let its owner move THROUGH enemy-occupied tiles?
 ## Queried by GridManager._tile_blocks_passage on the mover's own passives. (Ghost.)
 func passes_through_units() -> bool:

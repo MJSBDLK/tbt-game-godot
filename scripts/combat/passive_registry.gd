@@ -32,6 +32,7 @@ static func _ensure_initialized() -> void:
 	_handlers["Impetuous"] = ImpetuousPassive.new()
 	_handlers["Flippant"] = FlippantPassive.new()
 	_handlers["Impulsive"] = ImpulsivePassive.new()
+	_handlers["Anti-Gravity"] = AntiGravityPassive.new()
 	_initialized = true
 
 
