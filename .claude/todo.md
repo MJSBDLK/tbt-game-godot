@@ -112,7 +112,7 @@ Work items:
 
 **Remaining = net-new passive CONTENT (no migration; needs per-passive design/balance).**
 Dispatch points that still need wiring are noted per group:
-- [x] modify_damage handlers: **Glib** (reworked into the sarcastic-squad avoid aura), **Impetuous**, **Flippant**(dmg). [ ] **Reckless** — BLOCKED: terrain combat multipliers are preview-only, not applied in combat; wire terrain bonuses into damage/accuracy first, then Reckless amplifies them.
+- [x] modify_damage handlers: **Glib** (reworked into the sarcastic-squad avoid aura), **Impetuous**, **Flippant**(dmg), **Reckless** — terrain combat integration shipped: DamageCalculator now applies attack/defense/avoid terrain multipliers (attacker tile → outgoing dmg; defender tile → defense stat + dodge), honoring unit typing; Reckless doubles the deviation-from-neutral of its own tile's multipliers. It's a calculator rule (visible in the preview), not a pipeline handler. Tests in test_terrain_combat.gd.
 - [x] modify_accuracy: **Flippant**(acc), **Impulsive**.
 - [x] NEW dispatch: turn-start pass (on_turn_start) → **Anti-Gravity**, **Regenerator**, **Jury Rig**.
 - [x] stat-calc rules: **Maximum** (debuff floor), **Stellar** (grants Maximum to allies within 2 via aura + post-aura recalc), **Cavalier** (attacking stats immune to buff/debuff). [ ] **Zone Control** (aura + movement/acc penalties to enemies / buffs to allies — multi-part, still to do).
@@ -120,7 +120,7 @@ Dispatch points that still need wiring are noted per group:
 - [ ] NEW dispatch: `redirect_target` → **Protector** (intercept ranged attacks).
 - [ ] NEW dispatch: `modify_range` → **Extendo** (+1 physical range, not through impassable).
 - [ ] **Bravery** (new) — `is_brave()` flag (challenged by Roar, immune to Shriek) without Chivalric's type weaknesses/resistances. Backs the Phase 4 fear cluster.
-- [ ] **Reckless** — BLOCKED on terrain-combat integration (see modify_damage line).
+- [x] **Reckless** — terrain-combat integration shipped (see modify_damage line). Unblocked the terrain multipliers in DamageCalculator. NOTE: `terrainStatusImmunity` is still loaded-but-unwired (separate weather/status feature, not a Reckless dependency).
 - [ ] GUT per handler.
 
 ## [ ] PHASE 3 — Displacement (the `displace_effect` handler, fully generalized)

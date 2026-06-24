@@ -22,6 +22,71 @@ extends RefCounted
 const CRIT_MULTIPLIER: float = 2.0
 
 
+# =============================================================================
+# TERRAIN COMBAT MULTIPLIERS
+# =============================================================================
+# Terrain attack/defense/avoid multipliers are applied HERE, in the pure
+# calculator — NOT in the CombatEffectPipeline — so the damage/hit preview
+# (which calls calculate_damage / hit_chance_pct directly and never runs the
+# pipeline) always matches what positioning actually does. Same reason the
+# Bellows fire multiplier lives here and not in a handler.
+#
+# Each multiplier is tied to ONE combatant's current tile and honors that unit's
+# typing (semantics defined in data/terrain_data.json):
+#   attackMultiplier  — attacker's tile → scales outgoing damage   (1.4 = +40%)
+#   defenseMultiplier — defender's tile → scales the defense stat   (1.3 = +30% def)
+#   avoidMultiplier   — defender's tile → lowers attacker's hit %   (1.2 = +20% dodge)
+#
+# Reckless ("Increased terrain bonuses and penalties") doubles the DEVIATION from
+# neutral (1.0) of the multipliers tied to the Reckless unit's OWN tile: good
+# terrain helps it twice as much, bad terrain hurts it twice as much. It's a
+# calculator rule (like Bellows above and the Maximum/Cavalier stat clamps), not
+# a CombatEffect handler, precisely because it must be visible in the preview.
+
+## How hard Reckless leans on terrain. 2.0 = "double the bonus AND the penalty".
+const RECKLESS_TERRAIN_FACTOR: float = 2.0
+
+
+## Push a terrain multiplier's distance from neutral out by RECKLESS_TERRAIN_FACTOR
+## when the owning unit is Reckless: 1.3 → 1.6, 0.9 → 0.8. Identity otherwise.
+static func reckless_adjust(multiplier: float, is_reckless: bool) -> float:
+	if not is_reckless:
+		return multiplier
+	return 1.0 + (multiplier - 1.0) * RECKLESS_TERRAIN_FACTOR
+
+
+## The terrain multiplier a unit gets from its current tile for one property,
+## honoring dual typing: whichever of the unit's two effective types interacts
+## most strongly with the terrain (furthest from neutral) wins, so a
+## Chivalric/Fire knight still claims the Chivalric castle bonus. Returns 1.0
+## when the unit has no tile (e.g. unit-test fixtures or off-grid units), so
+## combat math is unchanged off the grid. `getter` is one of Tile's
+## get_*_multiplier_for_unit method names.
+static func terrain_multiplier_for(unit: Node2D, getter: StringName) -> float:
+	if unit == null:
+		return 1.0
+	var tile: Variant = unit.get("current_tile")
+	if tile == null:
+		return 1.0
+	# A tile not in the scene tree can't reach TerrainDataManager (its getters do
+	# an absolute get_node), so terrain is unknowable — treat it as neutral. Real
+	# game tiles are always parented under the grid builder; this only spares
+	# off-grid fixtures the lookup (and the detached-node error it would raise).
+	if not tile.is_inside_tree():
+		return 1.0
+	var primary_type := ""
+	var secondary_type := ""
+	var data: CharacterData = unit.get("character_data")
+	if data != null:
+		primary_type = Enums.elemental_type_to_string(data.effective_primary_type())
+		secondary_type = Enums.elemental_type_to_string(data.effective_secondary_type())
+	var primary_value: float = tile.call(getter, primary_type)
+	var secondary_value: float = tile.call(getter, secondary_type)
+	if absf(secondary_value - 1.0) > absf(primary_value - 1.0):
+		return secondary_value
+	return primary_value
+
+
 ## Calculate damage for a single hit.
 static func calculate_damage(attacker: Node2D, defender: Node2D, move: Move) -> int:
 	if attacker == null or defender == null or move == null:
@@ -54,13 +119,24 @@ static func calculate_damage(attacker: Node2D, defender: Node2D, move: Move) -> 
 			if bellows_stacks > 0:
 				bellows_multiplier = 1.0 + (bellows_stacks * 0.25)
 
+	# Terrain: the attacker's tile scales outgoing damage; the defender's tile
+	# scales its defense stat. Reckless on either side doubles its own terrain's
+	# deviation from neutral. See the TERRAIN COMBAT MULTIPLIERS block above.
+	var attack_terrain := reckless_adjust(
+			terrain_multiplier_for(attacker, &"get_attack_multiplier_for_unit"),
+			attacker_data.has_equipped_passive("Reckless"))
+	var defense_terrain := reckless_adjust(
+			terrain_multiplier_for(defender, &"get_defense_multiplier_for_unit"),
+			defender_data.has_equipped_passive("Reckless"))
+	var effective_defense := roundi(defense_stat * defense_terrain)
+
 	# Additive RD-style formula: stat + might - def. Stat growth still matters
 	# but doesn't compound with weapon power, so high-level units don't snowball.
-	var base_damage: int = (attack_stat + move.base_power) - defense_stat
-	var final_damage := maxi(1, roundi(base_damage * type_multiplier * bellows_multiplier))
+	var base_damage: int = (attack_stat + move.base_power) - effective_defense
+	var final_damage := maxi(1, roundi(base_damage * type_multiplier * bellows_multiplier * attack_terrain))
 
-	DebugConfig.log_combat("DamageCalc: atk=%d + power=%d - def=%d = %d * type=%.2f * bellows=%.2f -> %d" % [
-		attack_stat, move.base_power, defense_stat, base_damage, type_multiplier, bellows_multiplier, final_damage])
+	DebugConfig.log_combat("DamageCalc: atk=%d + power=%d - def=%d(x%.2f) = %d * type=%.2f * bellows=%.2f * atkterrain=%.2f -> %d" % [
+		attack_stat, move.base_power, defense_stat, defense_terrain, base_damage, type_multiplier, bellows_multiplier, attack_terrain, final_damage])
 
 	return final_damage
 
@@ -105,6 +181,15 @@ static func hit_chance_pct(attacker: Node2D, defender: Node2D, move: Move) -> in
 	# each gates on the relevant unit (attacker for accuracy, defender for avoid).
 	for handler: CombatEffect in _accuracy_handlers(attacker_data, defender_data):
 		handler.modify_accuracy(ctx)
+
+	# Terrain avoid: the defender's tile makes it harder to hit. A 1.2 avoid
+	# multiplier means ~20% fewer hits land; Reckless on the defender amplifies it.
+	# Treated as a linear dodge and floored at 0, so a Reckless dodge-terrain stack
+	# can drive hit chance to 0 but never invert into a hit-chance bonus.
+	var avoid_terrain := reckless_adjust(
+			terrain_multiplier_for(defender, &"get_avoid_multiplier_for_unit"),
+			defender_data.has_equipped_passive("Reckless"))
+	ctx.accuracy *= maxf(0.0, 2.0 - avoid_terrain)
 
 	return clampi(roundi(ctx.accuracy), 0, 100)
 
