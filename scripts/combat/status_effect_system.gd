@@ -360,6 +360,10 @@ func clear_all_effects(unit: Node2D) -> void:
 # PRIVATE HELPERS
 # =============================================================================
 
+# Stats Cavalier shields from move buffs/debuffs (the "attacking stats").
+const CAVALIER_PROTECTED_STATS: Array[String] = ["strength", "special"]
+
+
 ## Recalculate every status_modifier_* on a unit's character_data using the
 ## three-pass percentage model:
 ##   pass 1 (raw_passive) = base + growth + allocated + bond + passive
@@ -395,6 +399,9 @@ func _recalculate_stat_modifiers(unit: Node2D) -> void:
 	# Maximum (passive or Stellar aura): status debuffs can't lower stats below
 	# base — floor any negative modifier at 0. Buffs are unaffected.
 	var maximum_protected: bool = character_data.has_maximum_protection()
+	# Cavalier: the unit's attacking stats can't be buffed OR debuffed by moves —
+	# their status modifier is forced to 0 regardless of sign.
+	var cavalier: bool = character_data.has_equipped_passive("Cavalier")
 
 	# Apply each summed % to the unmodified stat
 	for stat_name: String in stat_pcts.keys():
@@ -403,7 +410,9 @@ func _recalculate_stat_modifiers(unit: Node2D) -> void:
 			continue
 		var unmodified: int = character_data.get_unmodified_stat(stat_name)
 		var modifier: int = _apply_pct_with_floor(unmodified, pct)
-		if maximum_protected and modifier < 0:
+		if cavalier and stat_name in CAVALIER_PROTECTED_STATS:
+			modifier = 0
+		elif maximum_protected and modifier < 0:
 			modifier = 0
 		var field: String = "status_modifier_%s" % stat_name
 		character_data.set(field, modifier)
