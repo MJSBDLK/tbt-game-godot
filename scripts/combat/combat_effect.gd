@@ -20,6 +20,9 @@
 ##   Targeting   — extra_attack_range, from MoveTargeting.effective_attack_range
 ##                 (additive range bonus; tiles past base range need a clear reach
 ##                 via GridGeometry.reach_is_clear). (Extendo.)
+##   Redirect    — intercepts_attack, from MoveTargeting.resolve_actual_target
+##                 (a unit between attacker and target body-blocks the hit). The
+##                 resolver does the geometry/faction pre-filter. (Protector.)
 ##
 ## OWNER RULE: per-hit, gather() pools the move's effects AND both combatants'
 ## passive handlers (deduped by identity), so a passive handler can't assume it's
@@ -105,3 +108,13 @@ func randomizes_move() -> bool:
 ## reach can't cross terrain impassable for the attacker. (Extendo: +1 physical.)
 func extra_attack_range(_move: Move) -> int:
 	return 0
+
+
+## Targeting redirect: should `interceptor` body-block an attack aimed at someone
+## else? Queried by MoveTargeting.resolve_actual_target only on units that already
+## sit strictly between attacker and the intended target on a compass axis AND are
+## allies of the target (the geometric + faction + offensive pre-filter lives in
+## the resolver), so a handler just decides its own extra conditions. Return true
+## to take the hit instead of the target. (Protector: unconditional.)
+func intercepts_attack(_interceptor: Unit, _attacker: Unit, _target: Unit, _move: Move) -> bool:
+	return false

@@ -248,7 +248,10 @@ func _update_combat_preview(tile: Tile) -> void:
 				# Non-healing buff/support — no preview UI yet, defer that pass.
 				ui_manager.hide_combat_preview()
 				return
-			ui_manager.show_combat_preview(_attacking_unit, target, _attack_move)
+			# Preview the unit the shot will actually hit — a Protector between the
+			# attacker and the aimed-at enemy body-blocks, so show it taking the hit.
+			var actual: Unit = MoveTargeting.resolve_actual_target(_attacking_unit, target, _attack_move)
+			ui_manager.show_combat_preview(_attacking_unit, actual, _attack_move)
 			return
 
 	ui_manager.hide_combat_preview()

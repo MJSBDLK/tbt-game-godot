@@ -90,6 +90,51 @@ static func can_target(attacker: Unit, target: Unit, move: Move) -> bool:
 	return true
 
 
+## The unit an attack actually lands on. If a ranged offensive shot from
+## `attacker` at `intended` passes over an ally of `intended` that body-blocks
+## (Protector), the NEAREST such bodyguard takes the hit instead. Returns
+## `intended` unchanged for ally-targeting/non-single moves, off-axis shots, or
+## adjacency (no cell between = nothing to block — which is why this is naturally
+## "ranged only"). Called from Unit.execute_combat_sequence (covers player + AI
+## execution in one place) and the combat preview, so both always agree.
+static func resolve_actual_target(attacker: Unit, intended: Unit, move: Move) -> Unit:
+	if attacker == null or intended == null or move == null:
+		return intended
+	# Only offensive single-target attacks redirect; healing/buffing never does.
+	if move.targets_allies() or move.target_type != Enums.TargetType.SINGLE:
+		return intended
+	if intended.faction == attacker.faction:
+		return intended
+	if attacker.current_tile == null or intended.current_tile == null:
+		return intended
+
+	var from := Vector2i(attacker.current_tile.grid_x, attacker.current_tile.grid_y)
+	var to := Vector2i(intended.current_tile.grid_x, intended.current_tile.grid_y)
+	# cells_between_on_axis is ordered from the cell next to the attacker, so the
+	# first qualifying bodyguard is the nearest one — the body the shot hits first.
+	for cell: Vector2i in GridGeometry.cells_between_on_axis(from, to):
+		var tile := GridManager.get_tile(cell.x, cell.y)
+		if tile == null or tile.current_unit == null or not tile.current_unit is Unit:
+			continue
+		var blocker := tile.current_unit as Unit
+		# Allies-only: a bodyguard shields its own faction (the intended target's).
+		if blocker.is_defeated() or blocker.faction != intended.faction:
+			continue
+		if _intercepts(blocker, attacker, intended, move):
+			return blocker
+	return intended
+
+
+## Does any of `blocker`'s passives elect to intercept this attack? The resolver
+## has already confirmed `blocker` is a between, non-defeated ally of the target
+## on an offensive single-target shot; the handler adds its own conditions.
+static func _intercepts(blocker: Unit, attacker: Unit, target: Unit, move: Move) -> bool:
+	for handler: CombatEffect in PassiveRegistry.get_handlers_for(blocker.character_data):
+		if handler.intercepts_attack(blocker, attacker, target, move):
+			return true
+	return false
+
+
 ## Extended-reach line check: can a poke from `from_tile` get to `to_tile`
 ## without crossing terrain impassable for `unit_type`? Units in the way do NOT
 ## block (the reach goes over them) — only terrain does (the design call from the

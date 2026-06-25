@@ -38,6 +38,7 @@ static func _ensure_initialized() -> void:
 	_handlers["Waste Not"] = WasteNotPassive.new()
 	_handlers["Stellar"] = StellarPassive.new()
 	_handlers["Extendo"] = ExtendoPassive.new()
+	_handlers["Protector"] = ProtectorPassive.new()
 	# NB: Maximum has no handler — it's a stat-calc rule (the clamp in
 	# StatusEffectSystem._recalculate_stat_modifiers reads has_maximum_protection),
 	# not a dispatchable effect. Stellar above just sets the maximum_from_aura flag.

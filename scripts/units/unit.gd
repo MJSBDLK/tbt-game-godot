@@ -668,6 +668,13 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 				unit_name, defender.unit_name, ally.unit_name])
 			defender = ally
 
+	# Protector: a ranged offensive attack that passes over an ally-bodyguard of
+	# the target hits the bodyguard instead. No-op for ally moves, off-axis shots,
+	# or adjacency. Runs after friendly-fire (if that procced, the target is now
+	# our own ally and nothing redirects). Single point that covers player + AI.
+	if not is_ally_move:
+		defender = MoveTargeting.resolve_actual_target(self, defender, attacker_move)
+
 	combat_started.emit(self, defender)
 	# Count this move use for the turn (Impetuous reads it). Fizzled friendly-fire
 	# returned above, so it doesn't count; counters go through _execute_single_hit,
