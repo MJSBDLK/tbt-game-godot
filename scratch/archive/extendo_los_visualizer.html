@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Extendo / Line-of-Sight diagonal rule explorer</title>
+<style>
+  :root {
+    --open:#2a2f3a; --open2:#222732; --wall:#11141b; --grid:#39414f;
+    --atk:#3d7dff; --tgt:#ff5d57; --ring:#f6c453; --used:#39d98a; --blocked:#ff5d57;
+    --ink:#e7ebf3; --muted:#9aa3b2;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#161a22; color:var(--ink);
+    font:14px/1.5 system-ui,Segoe UI,Roboto,sans-serif; }
+  .wrap { display:flex; gap:28px; padding:24px; flex-wrap:wrap; align-items:flex-start; }
+  h1 { font-size:18px; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 18px; max-width:720px; }
+  #grid { display:grid; gap:2px; background:var(--grid); padding:2px; border-radius:6px;
+    user-select:none; touch-action:none; }
+  .cell { width:38px; height:38px; background:var(--open); border-radius:3px;
+    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:15px;
+    position:relative; cursor:pointer; transition:background .05s; }
+  .cell.alt { background:var(--open2); }
+  .cell.wall { background:var(--wall); color:#4a5161; }
+  .cell.wall::after { content:"▦"; color:#3a414f; font-size:18px; }
+  .cell.atk { background:var(--atk); color:#fff; cursor:default; }
+  .cell.tgt { outline:3px solid var(--tgt); outline-offset:-3px; }
+  .cell.used { box-shadow: inset 0 0 0 3px var(--used); }
+  .cell.crossed { box-shadow: inset 0 0 0 3px var(--blocked); }
+  .cell.ring-ok::before { content:""; position:absolute; inset:6px; border-radius:50%;
+    border:2px dashed var(--used); }
+  .cell.ring-no::before { content:""; position:absolute; inset:6px; border-radius:50%;
+    border:2px dashed #5a6172; }
+  .panel { min-width:300px; max-width:360px; }
+  .rule { border:1px solid #2d3340; border-radius:8px; padding:12px 14px; margin-bottom:10px;
+    cursor:pointer; background:#1b202a; }
+  .rule.active { border-color:var(--atk); background:#1e2533; }
+  .rule h3 { margin:0 0 2px; font-size:14px; display:flex; justify-content:space-between; align-items:center; }
+  .rule p { margin:0; color:var(--muted); font-size:12.5px; }
+  .verdict { font-weight:800; font-size:13px; padding:2px 8px; border-radius:10px; }
+  .v-ok { background:rgba(57,217,138,.15); color:var(--used); }
+  .v-no { background:rgba(255,93,87,.15); color:var(--blocked); }
+  .controls { display:flex; gap:8px; flex-wrap:wrap; margin:14px 0; }
+  button { background:#262d3a; color:var(--ink); border:1px solid #333b49; border-radius:6px;
+    padding:7px 11px; cursor:pointer; font-size:13px; }
+  button:hover { background:#2f3849; }
+  label.chk { display:flex; gap:7px; align-items:center; color:var(--muted); font-size:13px; margin:6px 0; cursor:pointer; }
+  .legend { display:flex; gap:14px; flex-wrap:wrap; color:var(--muted); font-size:12px; margin-top:8px; }
+  .legend span { display:flex; gap:5px; align-items:center; }
+  .sw { width:13px; height:13px; border-radius:3px; display:inline-block; }
+  .hint { color:var(--muted); font-size:12.5px; margin-top:10px; }
+  code { background:#11141b; padding:1px 5px; border-radius:4px; color:#cdd6e6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div>
+    <h1>Diagonal reach / line-of-sight explorer</h1>
+    <p class="sub">
+      <b>A</b> = attacker (fixed, center). <b>Click</b> any cell to toggle a wall (impassable).
+      <b>Hover</b> a cell to make it the target <b>T</b> and see whether the attack reaches under
+      each rule. Straight-line targets behave identically under all three &mdash; this only diverges
+      on diagonals. The dashed circles show Extendo's actual case: the <b>+1 ring</b> (every tile at
+      distance&nbsp;2), green where reachable under the selected rule.
+    </p>
+    <div id="grid"></div>
+    <div class="controls">
+      <button id="clear">Clear walls</button>
+      <button data-preset="corner">Preset: 1 walled corner</button>
+      <button data-preset="bothcorners">Preset: both corners</button>
+      <button data-preset="wall">Preset: wall line</button>
+    </div>
+    <label class="chk"><input type="checkbox" id="showring" checked> Shade Extendo +1 ring (reachable under selected rule)</label>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--atk)"></i>attacker</span>
+      <span><i class="sw" style="outline:3px solid var(--tgt);outline-offset:-3px;background:var(--open)"></i>target (hover)</span>
+      <span><i class="sw" style="background:var(--wall)"></i>wall</span>
+      <span><i class="sw" style="box-shadow:inset 0 0 0 3px var(--used)"></i>cells the rule uses</span>
+      <span><i class="sw" style="box-shadow:inset 0 0 0 3px var(--blocked)"></i>wall the ray crosses</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div style="color:var(--muted);font-size:12.5px;margin-bottom:8px;">
+      Target: <b id="tinfo">hover a cell</b>
+    </div>
+    <div class="rule active" data-rule="forgiving">
+      <h3>Reach around (forgiving) <span class="verdict" id="v-forgiving">&mdash;</span></h3>
+      <p>Open if any minimal staircase of open tiles connects A to T. Only a fully-walled
+         corner stops a diagonal. Generalizes to "is there an unobstructed L-path."</p>
+    </div>
+    <div class="rule" data-rule="strict">
+      <h3>Any wall blocks (strict) <span class="verdict" id="v-strict">&mdash;</span></h3>
+      <p>Open only if <i>every</i> tile in the bounding box between A and T is open. Any wall in
+         the gap stops it. Walls feel solid; positioning matters most.</p>
+    </div>
+    <div class="rule" data-rule="ray">
+      <h3>True sightline (ray) <span class="verdict" id="v-ray">&mdash;</span></h3>
+      <p>A geometric ray from center to center. Only a wall whose interior the line actually
+         crosses blocks it &mdash; corner-only touches slip through. Most permissive.</p>
+    </div>
+    <p class="hint">
+      Tip: load <b>"1 walled corner"</b> and hover the diagonal tile (top-right of A). That single
+      cell is the whole decision: forgiving &amp; ray reach it, strict does not. Then try the
+      <b>"wall line"</b> preset at longer range to see how ray diverges from the path-based rules.
+    </p>
+    <p class="hint">
+      Each rule maps directly to one GDScript implementation in <code>GridGeometry</code>:
+      forgiving = monotone open-path search, strict = bounding-box all-clear, ray = segment vs
+      open-square test. Pick the feel; I'll port that one and keep the others a drop-in swap.
+    </p>
+  </div>
+</div>
+
+<script>
+const N = 11;
+const A = { x: 5, y: 5 };           // attacker at center (0-indexed)
+const walls = new Set();
+let rule = "forgiving";
+let target = null;
+const key = (x,y) => x + "," + y;
+const parse = s => s.split(",").map(Number);
+const inb = (x,y) => x>=0 && x<N && y>=0 && y<N;
+const open = (x,y) => inb(x,y) && !walls.has(key(x,y));
+
+// ---- the three candidate rules (this is the spec for GridGeometry) ----
+
+// strict: every tile in the bounding rectangle between A and T (endpoints excluded) is open
+function strictClear(a,t){
+  const x0=Math.min(a.x,t.x), x1=Math.max(a.x,t.x), y0=Math.min(a.y,t.y), y1=Math.max(a.y,t.y);
+  for(let x=x0;x<=x1;x++) for(let y=y0;y<=y1;y++){
+    if((x===a.x&&y===a.y)||(x===t.x&&y===t.y)) continue;
+    if(!open(x,y)) return false;
+  }
+  return true;
+}
+
+// forgiving: a minimal monotone staircase of open tiles exists from A to T
+function forgivingClear(a,t){
+  const sx=Math.sign(t.x-a.x), sy=Math.sign(t.y-a.y);
+  const adx=Math.abs(t.x-a.x), ady=Math.abs(t.y-a.y);
+  const reach=Array.from({length:adx+1},()=>Array(ady+1).fill(false));
+  for(let i=0;i<=adx;i++) for(let j=0;j<=ady;j++){
+    const x=a.x+i*sx, y=a.y+j*sy;
+    if(i===0&&j===0){ reach[i][j]=true; continue; }
+    if(!open(x,y)){ reach[i][j]=false; continue; }
+    reach[i][j] = (i>0&&reach[i-1][j]) || (j>0&&reach[i][j-1]);
+  }
+  return reach[adx][ady];
+}
+
+// ray: no wall whose OPEN interior is crossed by the center-to-center segment (Liang-Barsky)
+function segHitsOpenSquare(a,t,cx,cy){
+  const dx=t.x-a.x, dy=t.y-a.y;
+  let tmin=0, tmax=1;
+  const p=[-dx,dx,-dy,dy];
+  const q=[a.x-(cx-0.5),(cx+0.5)-a.x,a.y-(cy-0.5),(cy+0.5)-a.y];
+  for(let i=0;i<4;i++){
+    if(Math.abs(p[i])<1e-12){ if(q[i]<=0) return false; }
+    else { const tt=q[i]/p[i];
+      if(p[i]<0){ if(tt>tmin)tmin=tt; } else { if(tt<tmax)tmax=tt; } }
+  }
+  return tmax - tmin > 1e-9;
+}
+function rayClear(a,t){
+  for(const w of walls){ const [x,y]=parse(w);
+    if((x===a.x&&y===a.y)||(x===t.x&&y===t.y)) continue;
+    if(segHitsOpenSquare(a,t,x,y)) return false;
+  }
+  return true;
+}
+const RULES = { forgiving:forgivingClear, strict:strictClear, ray:rayClear };
+
+// cells the active rule "uses" (for highlighting)
+function usedCells(a,t){
+  if(rule==="strict"){
+    const out=[]; const x0=Math.min(a.x,t.x),x1=Math.max(a.x,t.x),y0=Math.min(a.y,t.y),y1=Math.max(a.y,t.y);
+    for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++){ if((x===a.x&&y===a.y)||(x===t.x&&y===t.y))continue; out.push({x,y,bad:!open(x,y)}); }
+    return out;
+  }
+  if(rule==="forgiving"){
+    // reconstruct one open staircase if it exists
+    if(!forgivingClear(a,t)) return [];
+    const sx=Math.sign(t.x-a.x), sy=Math.sign(t.y-a.y);
+    let x=a.x,y=a.y; const out=[];
+    while(x!==t.x||y!==t.y){
+      if(x!==t.x && open(x+sx,y)){ x+=sx; }
+      else if(y!==t.y && open(x,y+sy)){ y+=sy; }
+      else break;
+      if(!(x===t.x&&y===t.y)) out.push({x,y,bad:false});
+    }
+    return out;
+  }
+  // ray: walls it crosses
+  const out=[];
+  for(const w of walls){ const [x,y]=parse(w);
+    if((x===a.x&&y===a.y)||(x===t.x&&y===t.y))continue;
+    if(segHitsOpenSquare(a,t,x,y)) out.push({x,y,bad:true});
+  }
+  return out;
+}
+
+// ---- rendering ----
+const gridEl = document.getElementById("grid");
+gridEl.style.gridTemplateColumns = `repeat(${N},38px)`;
+const cells = [];
+for(let y=0;y<N;y++) for(let x=0;x<N;x++){
+  const d=document.createElement("div");
+  d.className="cell"+(((x+y)%2)?" alt":"");
+  d.dataset.x=x; d.dataset.y=y;
+  gridEl.appendChild(d); cells.push(d);
+}
+const at = (x,y)=>cells[y*N+x];
+
+function render(){
+  const showRing=document.getElementById("showring").checked;
+  for(let y=0;y<N;y++) for(let x=0;x<N;x++){
+    const c=at(x,y); c.className="cell"+(((x+y)%2)?" alt":"");
+    c.textContent="";
+    if(x===A.x&&y===A.y){ c.classList.add("atk"); c.textContent="A"; continue; }
+    if(walls.has(key(x,y))) c.classList.add("wall");
+    // +1 ring shading
+    if(showRing){
+      const dist=Math.abs(x-A.x)+Math.abs(y-A.y);
+      if(dist===2 && open(x,y)){
+        c.classList.add(RULES[rule](A,{x,y}) ? "ring-ok" : "ring-no");
+      }
+    }
+  }
+  // verdicts
+  for(const r of ["forgiving","strict","ray"]){
+    const el=document.getElementById("v-"+r);
+    if(!target){ el.textContent="—"; el.className="verdict"; continue; }
+    const ok=RULES[r](A,target);
+    el.textContent = ok?"reaches":"blocked";
+    el.className="verdict "+(ok?"v-ok":"v-no");
+  }
+  document.getElementById("tinfo").textContent = target
+    ? `(${target.x-A.x>=0?"+":""}${target.x-A.x}, ${target.y-A.y>=0?"+":""}${-(target.y-A.y)})  ·  distance ${Math.abs(target.x-A.x)+Math.abs(target.y-A.y)}`
+    : "hover a cell";
+  // active-rule highlight + target
+  if(target){
+    const tc=at(target.x,target.y); if(!(target.x===A.x&&target.y===A.y)) tc.classList.add("tgt");
+    for(const u of usedCells(A,target)){
+      at(u.x,u.y).classList.add(u.bad?"crossed":"used");
+    }
+  }
+}
+
+// ---- interaction ----
+let painting=false, paintVal=true;
+gridEl.addEventListener("pointerdown",e=>{
+  const c=e.target.closest(".cell"); if(!c) return;
+  const x=+c.dataset.x, y=+c.dataset.y; if(x===A.x&&y===A.y) return;
+  painting=true; paintVal=!walls.has(key(x,y));
+  paintVal?walls.add(key(x,y)):walls.delete(key(x,y)); render();
+});
+gridEl.addEventListener("pointerover",e=>{
+  const c=e.target.closest(".cell"); if(!c) return;
+  const x=+c.dataset.x, y=+c.dataset.y;
+  if(painting && !(x===A.x&&y===A.y)){ paintVal?walls.add(key(x,y)):walls.delete(key(x,y)); }
+  target = (x===A.x&&y===A.y)? null : {x,y};
+  render();
+});
+window.addEventListener("pointerup",()=>painting=false);
+
+document.querySelectorAll(".rule").forEach(r=>r.addEventListener("click",()=>{
+  rule=r.dataset.rule;
+  document.querySelectorAll(".rule").forEach(x=>x.classList.toggle("active",x===r));
+  render();
+}));
+document.getElementById("clear").onclick=()=>{ walls.clear(); render(); };
+document.getElementById("showring").onchange=render;
+document.querySelectorAll("[data-preset]").forEach(b=>b.onclick=()=>{
+  walls.clear();
+  if(b.dataset.preset==="corner"){ walls.add(key(A.x+1,A.y)); }
+  if(b.dataset.preset==="bothcorners"){ walls.add(key(A.x+1,A.y)); walls.add(key(A.x,A.y-1)); }
+  if(b.dataset.preset==="wall"){ for(let dy=-2;dy<=2;dy++) walls.add(key(A.x+1,A.y+dy)); }
+  render();
+});
+
+render();
+</script>
+</body>
+</html>

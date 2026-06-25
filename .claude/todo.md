@@ -122,6 +122,7 @@ Dispatch points that still need wiring are noted per group:
 - [ ] **Bravery** (new) — `is_brave()` flag (challenged by Roar, immune to Shriek) without Chivalric's type weaknesses/resistances. Backs the Phase 4 fear cluster.
 - [x] **Reckless** — terrain-combat integration shipped (see modify_damage line). Unblocked the terrain multipliers in DamageCalculator. NOTE: `terrainStatusImmunity` is still loaded-but-unwired (separate weather/status feature, not a Reckless dependency).
 - [ ] GUT per handler.
+- [ ] AFTER Phase 2: batch-testing guide — how to load specific move/passive sets in-game to eyeball passives efficiently (Extendo reach, Protector body-block + preview, the aura passives, etc.). Deferred until Phase 2 is complete.
 
 ## [ ] PHASE 3 — Displacement (the `displace_effect` handler, fully generalized)
 **Why:** Bounce Out, Stampede charge-behind, Razor Wing charge-through, Soar self-reposition, Roar-knockback, plus the "knockback/pull/swap/spin" family are all ONE parameterized handler. Gravity moves trade offense for strong CC — this is their budget. Constitution is the universal resist stat (does NOT level up — fixed until class change, so it's a stable balance lever).
