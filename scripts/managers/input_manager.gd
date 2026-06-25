@@ -399,11 +399,12 @@ func _handle_movement_planning_click() -> void:
 	if clicked_tile.current_unit != null and clicked_tile.current_unit is Unit:
 		var clicked_unit := clicked_tile.current_unit as Unit
 
-		# Click enemy while unit selected → combat (shortcut if already in range)
+		# Click enemy while unit selected → combat (shortcut if already in range).
+		# can_target matches the highlighted attack tiles exactly (effective range
+		# + Extendo reach LoS), so the shortcut never fires on an unreachable tile.
 		if _selected_unit != null and clicked_unit.faction != _selected_unit.faction:
 			if not clicked_unit.is_defeated() and _selected_unit.assigned_move != null:
-				var distance := DamageCalculator.get_manhattan_distance(_selected_unit, clicked_unit)
-				if distance <= _selected_unit.assigned_move.attack_range:
+				if MoveTargeting.can_target(_selected_unit, clicked_unit, _selected_unit.assigned_move):
 					_execute_direct_combat(clicked_unit)
 					return
 

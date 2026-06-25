@@ -118,7 +118,7 @@ Dispatch points that still need wiring are noted per group:
 - [x] stat-calc rules: **Maximum** (debuff floor), **Stellar** (grants Maximum to allies within 2 via aura + post-aura recalc), **Cavalier** (attacking stats immune to buff/debuff). [ ] **Zone Control** (aura + movement/acc penalties to enemies / buffs to allies — multi-part, still to do).
 - [x] NEW dispatch: `on_kill` wiring → **Waste Not** (refunds the killing move's use).
 - [ ] NEW dispatch: `redirect_target` → **Protector** (intercept ranged attacks).
-- [ ] NEW dispatch: `modify_range` → **Extendo** (+1 physical range, not through impassable).
+- [x] NEW dispatch: range hook (`extra_attack_range`) → **Extendo** (+1 physical range). Bonus tiles past base range require a forgiving GridGeometry reach (terrain-blocked for the attacker's type; units don't block). Unified `MoveTargeting.effective_attack_range`/`can_target`/`is_reach_clear` as the single source across player targeting, highlights, AI, click-shortcut, and counters. Shared geometry in [[grid_geometry]]. Tests in test_extendo_passive.gd.
 - [ ] **Bravery** (new) — `is_brave()` flag (challenged by Roar, immune to Shriek) without Chivalric's type weaknesses/resistances. Backs the Phase 4 fear cluster.
 - [x] **Reckless** — terrain-combat integration shipped (see modify_damage line). Unblocked the terrain multipliers in DamageCalculator. NOTE: `terrainStatusImmunity` is still loaded-but-unwired (separate weather/status feature, not a Reckless dependency).
 - [ ] GUT per handler.

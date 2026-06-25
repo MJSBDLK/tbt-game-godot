@@ -312,10 +312,18 @@ static func can_counter_attack(defender: Node2D, attacker: Node2D) -> bool:
 	if defender_move.damage_type == Enums.DamageType.SUPPORT:
 		return false
 
-	# Must be in range
+	# Must be in range — including the defender's own range passives (Extendo), so
+	# an extended-reach unit counters at its bonus range too. Beyond base range,
+	# the counter needs a clear reach just like an opening attack would.
 	var distance := get_manhattan_distance(defender, attacker)
-	if distance > defender_move.attack_range:
+	if distance > MoveTargeting.effective_attack_range(defender, defender_move):
 		return false
+	if distance > defender_move.attack_range:
+		var defender_tile: Variant = defender.get("current_tile")
+		var attacker_tile: Variant = attacker.get("current_tile")
+		var unit_type: String = GridManager.get_unit_type(defender)
+		if not MoveTargeting.is_reach_clear(defender_tile, attacker_tile, unit_type):
+			return false
 
 	return true
 

@@ -115,8 +115,9 @@ func _can_attack_target(target: Unit) -> bool:
 		return false
 	if not _unit.assigned_move.has_uses_remaining():
 		return false
-	var distance := DamageCalculator.get_manhattan_distance(_unit, target)
-	return distance <= _unit.assigned_move.attack_range
+	# can_target folds in effective range + Extendo's reach LoS, so the AI honors
+	# range passives and never "attacks through" a wall on a bonus tile.
+	return MoveTargeting.can_target(_unit, target, _unit.assigned_move)
 
 
 func _execute_attack(target: Unit) -> void:

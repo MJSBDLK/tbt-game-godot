@@ -522,6 +522,13 @@ func _retrace_path(start_node: PathNode, end_node: PathNode) -> Array[Tile]:
 	return path
 
 
+## Public accessor for a unit's terrain-type key (its primary ElementalType as a
+## string) — the same value movement and pathfinding use. MoveTargeting reaches
+## for this when building Extendo's reach predicate, so the rule stays single-source.
+func get_unit_type(unit: Node2D) -> String:
+	return _get_unit_type(unit)
+
+
 func _get_unit_type(unit: Node2D) -> String:
 	if unit == null:
 		return ""

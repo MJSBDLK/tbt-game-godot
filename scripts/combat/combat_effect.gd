@@ -17,6 +17,9 @@
 ##   Stat auras  — apply_stat_aura, from PassiveEffectsSystem.recompute
 ##                 (fires on turn start / movement / defeat).
 ##   Pathfinding — passes_through_units, from GridManager._tile_blocks_passage.
+##   Targeting   — extra_attack_range, from MoveTargeting.effective_attack_range
+##                 (additive range bonus; tiles past base range need a clear reach
+##                 via GridGeometry.reach_is_clear). (Extendo.)
 ##
 ## OWNER RULE: per-hit, gather() pools the move's effects AND both combatants'
 ## passive handlers (deduped by identity), so a passive handler can't assume it's
@@ -93,3 +96,12 @@ func passes_through_units() -> bool:
 ## Unit (post-combat reroll); the selection logic lives there. (Capricious.)
 func randomizes_move() -> bool:
 	return false
+
+
+## Targeting: extra attack range (additive) this passive grants its owner for the
+## given move. Gathered from the ATTACKER's passives by
+## MoveTargeting.effective_attack_range. Tiles beyond the move's base range are
+## only legal with an unobstructed reach (GridGeometry.reach_is_clear) — extended
+## reach can't cross terrain impassable for the attacker. (Extendo: +1 physical.)
+func extra_attack_range(_move: Move) -> int:
+	return 0
