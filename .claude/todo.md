@@ -110,16 +110,25 @@ Work items:
         `on_kill` (declared), `apply_stat_aura`, `passes_through_units`,
         `randomizes_move`.
 
+**PHASE 2 STATUS — substantively complete.** All migrations + Reckless, Extendo,
+Protector, and the shared [[grid_geometry]] foundation shipped (suite 324 green).
+The only remaining passives are deliberate deferrals, NOT loose ends: **Zone
+Control** (reframed as a zone-of-control free-attack; blocked on the threat-overlay
+viz) and **Bravery** (inert until the Phase 4 Roar/Shriek cluster). Safe to move to
+playtest / Phase 3.
+
 **Remaining = net-new passive CONTENT (no migration; needs per-passive design/balance).**
 Dispatch points that still need wiring are noted per group:
 - [x] modify_damage handlers: **Glib** (reworked into the sarcastic-squad avoid aura), **Impetuous**, **Flippant**(dmg), **Reckless** — terrain combat integration shipped: DamageCalculator now applies attack/defense/avoid terrain multipliers (attacker tile → outgoing dmg; defender tile → defense stat + dodge), honoring unit typing; Reckless doubles the deviation-from-neutral of its own tile's multipliers. It's a calculator rule (visible in the preview), not a pipeline handler. Tests in test_terrain_combat.gd.
 - [x] modify_accuracy: **Flippant**(acc), **Impulsive**.
 - [x] NEW dispatch: turn-start pass (on_turn_start) → **Anti-Gravity**, **Regenerator**, **Jury Rig**.
-- [x] stat-calc rules: **Maximum** (debuff floor), **Stellar** (grants Maximum to allies within 2 via aura + post-aura recalc), **Cavalier** (attacking stats immune to buff/debuff). [ ] **Zone Control** (aura + movement/acc penalties to enemies / buffs to allies — multi-part, still to do).
+- [x] stat-calc rules: **Maximum** (debuff floor), **Stellar** (grants Maximum to allies within 2 via aura + post-aura recalc), **Cavalier** (attacking stats immune to buff/debuff).
 - [x] NEW dispatch: `on_kill` wiring → **Waste Not** (refunds the killing move's use).
 - [x] NEW dispatch: redirect hook (`intercepts_attack`) → **Protector** (body-blocks ranged offensive attacks aimed at an ally further along its row/column/diagonal). `MoveTargeting.resolve_actual_target` scans `cells_between_on_axis` for the nearest non-defeated ally-of-target with the hook; naturally ranged-only (adjacent shots have no cell between). One wiring point in `Unit.execute_combat_sequence` (covers player + AI) + the combat preview. Shared geometry in [[grid_geometry]]. Tests in test_protector_passive.gd.
 - [x] NEW dispatch: range hook (`extra_attack_range`) → **Extendo** (+1 physical range). Bonus tiles past base range require a forgiving GridGeometry reach (terrain-blocked for the attacker's type; units don't block). Unified `MoveTargeting.effective_attack_range`/`can_target`/`is_reach_clear` as the single source across player targeting, highlights, AI, click-shortcut, and counters. Shared geometry in [[grid_geometry]]. Tests in test_extendo_passive.gd.
-- [ ] **Bravery** (new) — `is_brave()` flag (challenged by Roar, immune to Shriek) without Chivalric's type weaknesses/resistances. Backs the Phase 4 fear cluster.
+- [ ] **Bravery** (new) — `is_brave()` flag (challenged by Roar, immune to Shriek) without Chivalric's type weaknesses/resistances. Backs the Phase 4 fear cluster. **Deferred to Phase 4** (inert until Roar/Shriek exist; building it now = a flag with no consumer).
+- [ ] **Zone Control** — **DEFERRED + reframed.** Dropping the stat-aura spec entirely (it was just a fourth `passive_bonus_*` aura with no identity). Zone Control is now a Songs-of-Conquest **zone of control**: an enemy that moves within this unit's attack range triggers an immediate **free attack** (no counter, no use cost — a reaction variant of `Unit.execute_combat_sequence`). `data/passives.json` description updated to match. Depends on the threat-overlay viz below as its telegraph (unfair without it) and needs OoO decisions (trigger on enter/within/leave; stop-on-hit vs continue; one-per-turn vs per-move).
+- [ ] **Threat-overlay system** (prereq for Zone Control's AoO; Alpha-worthy on its own — an FE-style danger zone helps planning against *every* enemy, not just ZC). Render enemy **move-zone**, **danger-zone** (move + attack), and **passive-danger-zone** as styled tile overlays. Build as ONE overlay system with multiple sources/styles, not three hardcoded features. The math already exists: `MoveTargeting.effective_attack_range` + GridManager reachable-tiles + [[grid_geometry]] compute each enemy's threat — this is mostly *rendering* what we can already calculate, plus the reaction trigger.
 - [x] **Reckless** — terrain-combat integration shipped (see modify_damage line). Unblocked the terrain multipliers in DamageCalculator. NOTE: `terrainStatusImmunity` is still loaded-but-unwired (separate weather/status feature, not a Reckless dependency).
 - [ ] GUT per handler.
 - [ ] AFTER Phase 2: batch-testing guide — how to load specific move/passive sets in-game to eyeball passives efficiently (Extendo reach, Protector body-block + preview, the aura passives, etc.). Deferred until Phase 2 is complete.
