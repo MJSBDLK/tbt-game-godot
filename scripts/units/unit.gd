@@ -97,6 +97,15 @@ var current_hp: int = 0
 var assigned_move: Move = null
 var last_used_move_index: int = -1  # Index into equipped_moves of the most recently executed move (for Capricious passive)
 var active_status_effects: Array = []  # Array of StatusEffect
+# Banked crit (from a setup move like Focus/Uppercut). The unit's next damaging
+# hit crits, then this clears (CritEffect consumes it). Persists across turns —
+# a setup move spends the turn, so the crit must survive to the next attack. Not
+# an affliction/boost; lives purely in the combat pipeline. Reset at battle init.
+var pending_crit: bool = false
+# Move-uses this unit has INITIATED since its last turn refresh (counters don't
+# count — only combats this unit starts). Drives Impetuous (+20% on the 1st, then
+# -10% per use after). Counts every move use, attack or support.
+var attacks_this_turn: int = 0
 
 # Set by take_damage when the killing blow lands. Used by InjurySystem to
 # pick the right injury when the unit_defeated handler runs.
@@ -212,6 +221,8 @@ func initialize(starting_tile: Tile) -> void:
 
 	can_act = true
 	can_move = true
+	pending_crit = false
+	attacks_this_turn = 0
 	is_selected = false
 
 	DebugConfig.log_unit_init("Unit '%s' at %s | faction=%s type=%s HP=%d move=%d" % [
@@ -454,6 +465,7 @@ func _stop_selection_pulse() -> void:
 func refresh_unit() -> void:
 	can_act = true
 	can_move = true
+	attacks_this_turn = 0
 	_start_tile_before_move = current_tile
 	_apply_active_modulate()
 
@@ -656,7 +668,18 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 				unit_name, defender.unit_name, ally.unit_name])
 			defender = ally
 
+	# Protector: a ranged offensive attack that passes over an ally-bodyguard of
+	# the target hits the bodyguard instead. No-op for ally moves, off-axis shots,
+	# or adjacency. Runs after friendly-fire (if that procced, the target is now
+	# our own ally and nothing redirects). Single point that covers player + AI.
+	if not is_ally_move:
+		defender = MoveTargeting.resolve_actual_target(self, defender, attacker_move)
+
 	combat_started.emit(self, defender)
+	# Count this move use for the turn (Impetuous reads it). Fizzled friendly-fire
+	# returned above, so it doesn't count; counters go through _execute_single_hit,
+	# not here, so they don't count either.
+	attacks_this_turn += 1
 	DebugConfig.log_combat("Combat: %s (move=%s) vs %s" % [unit_name, attacker_move.move_name, defender.unit_name])
 
 	# Ally-targeting moves (heals, buffs): single application, no counter, no multi-hit.
@@ -727,16 +750,24 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 		unit_name, current_hp, defender.unit_name, defender.current_hp])
 
 
-## After combat, record what move `combatant` just used and (if they have
-## Capricious) re-pick assigned_move from their remaining usable moves so
-## their next combat — including counter-attacks from enemies later this
-## turn — uses a different move. Skips silently for non-Capricious units
-## and for defeated units.
+## After combat, record what move `combatant` just used and (if they have a
+## move-randomizer passive, i.e. Capricious) re-pick assigned_move from their
+## remaining usable moves so their next combat — including counter-attacks from
+## enemies later this turn — uses a different move. Skips silently for units
+## without the capability and for defeated units.
 func _capricious_post_combat_reroll(combatant: Unit) -> void:
 	if combatant == null or combatant.is_defeated():
 		return
 	var data: CharacterData = combatant.character_data
-	if data == null or not data.has_equipped_passive("Capricious"):
+	if data == null:
+		return
+	# Only move-randomizer passives (Capricious) reroll. Read from the handlers.
+	var should_randomize: bool = false
+	for handler: CombatEffect in PassiveRegistry.get_handlers_for(data):
+		if handler.randomizes_move():
+			should_randomize = true
+			break
+	if not should_randomize:
 		return
 	if combatant.assigned_move != null:
 		combatant.last_used_move_index = data.equipped_moves.find(combatant.assigned_move)
@@ -777,11 +808,29 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 		DebugConfig.log_combat("Miss: %s -> %s (hit %d%%)" % [unit_name, target.unit_name, hit_pct])
 		return
 
-	# Pre-calculate damage so we know impact weight before the hit lands
-	var damage := DamageCalculator.calculate_damage(self, target, move)
+	# Build the combat context + gather effect handlers, then run damage modifiers
+	# (crit, etc.) so the final damage drives impact weight, the hit, and the
+	# popup. Phase 0 has no damage-modifying handlers, so damage == base.
+	var ctx := CombatHitContext.new()
+	ctx.attacker = self
+	ctx.defender = target
+	ctx.move = move
+	ctx.apply_status = apply_status
+	var effects := CombatEffectPipeline.gather(ctx)
+
+	ctx.base_damage = DamageCalculator.calculate_damage(self, target, move)
+	ctx.damage = ctx.base_damage
+	CombatEffectPipeline.run_modify_damage(ctx, effects)
+	var damage := ctx.damage
+
 	var type_multiplier := DamageCalculator.get_type_effectiveness(self, target, move)
 	var effectiveness_text := TypeChart.get_effectiveness_text(type_multiplier)
 	var impact_weight := DamageCalculator.calculate_impact_weight(damage, target.character_data.max_hp if target.character_data else 1)
+
+	# Crits hit harder — floor the impact so even a low-power crit gets a weighty
+	# flash/shake/hitlag. The doubled damage already shows in the popup.
+	if ctx.is_crit:
+		impact_weight = maxf(impact_weight, 0.8)
 
 	# Phase 1: Approach. If the attacker has a clip matching this attack's
 	# direction+range, play it through to its hit frame; otherwise nudge.
@@ -819,22 +868,22 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 	combat_hit.emit(self, target, damage)
 
 	_spawn_damage_popup(target, damage, effectiveness_text, type_multiplier)
+	if ctx.is_crit:
+		spawn_text_callout("CRIT!", GameColors.TEXT_SECONDARY)
 
 	DebugConfig.log_combat("Hit: %s -> %s for %d damage (x%.2f %s, impact=%.2f, hitlag=%.3fs)" % [
 		unit_name, target.unit_name, damage, type_multiplier, effectiveness_text, impact_weight, hitlag_duration])
 
-	# Apply status effect on first hit only
-	if apply_status and move.status_effect_type != Enums.StatusEffectType.NONE:
-		StatusEffectSystem.apply_status_effect(self, target, move)
+	# On-hit rider effects (afflictions, cleanse, displacement) and per-hit passive
+	# triggers (e.g. Bellows) run through the combat effect pipeline using the
+	# handlers gathered above. Affliction applies on first hit only (apply_status);
+	# cleanse, displacement, and passive triggers run every hit.
+	await CombatEffectPipeline.run_on_hit(ctx, effects)
 
-	# On-hit cleanse: remove specified status effects from the target.
-	_apply_cleanse(target, move)
-
-	# On-hit instant effects (displacement, etc.). Runs every hit, after damage.
-	await DisplacementSystem.resolve(self, target, move, damage)
-
-	# Check passive triggers (e.g. Bellows: air hit grants fire buff)
-	StatusEffectSystem.check_passive_triggers_on_hit(self, target, move)
+	# On-kill effects (e.g. Waste Not refunds the killer's move use) when this hit
+	# defeated the target. Handlers gate on the relevant unit (killer = attacker).
+	if target.is_defeated():
+		CombatEffectPipeline.run_on_kill(ctx, effects)
 
 
 ## Heal-side counterpart to _execute_single_hit. No hit flash, no screenshake,
@@ -855,10 +904,16 @@ func _execute_heal_hit(target: Unit, move: Move, apply_status: bool) -> void:
 	DebugConfig.log_combat("Heal: %s -> %s for %d HP (move=%s)" % [
 		unit_name, target.unit_name, heal_amount, move.move_name])
 
-	if apply_status and move.status_effect_type != Enums.StatusEffectType.NONE:
-		StatusEffectSystem.apply_status_effect(self, target, move)
-
-	_apply_cleanse(target, move)
+	# On-hit riders (affliction on first hit, cleanse every hit). Heals never
+	# displace, so the pipeline omits displacement for is_heal contexts.
+	var ctx := CombatHitContext.new()
+	ctx.attacker = self
+	ctx.defender = target
+	ctx.move = move
+	ctx.is_heal = true
+	ctx.apply_status = apply_status
+	var effects := CombatEffectPipeline.gather(ctx)
+	await CombatEffectPipeline.run_on_hit(ctx, effects)
 
 
 ## Grant combat XP to this unit (the attacker) for a hit on `target`. Only
@@ -897,14 +952,6 @@ func _award_heal_xp(target: Unit, amount: int) -> void:
 	if levels_gained > 0:
 		_update_level_label()
 		_update_health_bar()
-
-
-func _apply_cleanse(target: Unit, move: Move) -> void:
-	if move.cleanse_effects.is_empty():
-		return
-	for effect_name: String in move.cleanse_effects:
-		StatusEffectSystem.remove_status_effect(target, effect_name)
-		DebugConfig.log_combat("Cleanse: %s removed %s from %s" % [unit_name, effect_name, target.unit_name])
 
 
 ## Miss path: attacker plays its approach, brief hold so the player can read

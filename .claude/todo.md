@@ -1,5 +1,7 @@
-## [ ] Meeting 2026.06.21
+## [ ] Meeting 2026.06.28
 ### [ ] RQD
+- [ ] For Lawrence: what do we want the various levels of threat overlay to look like? (move range, attack range, passive range)
+- [ ] PRIORITY BUG: attack/defense/avoid multipliers are computed for the preview panel but never applied in combat
 - [ ] void FX shader
  - [ ] + desaturate + shadow layer @ 50%
 - [ ] How hard would it be to make a crater (terrain modifier) grant a defensive bonus against melee attacks and a penalty against ranged attacks?
@@ -8,6 +10,7 @@
 - [ ] remove "*1" from character panel on the left when all statUps are allocated
 - [~] Give all characters at least 9 moves and 9 passives
 - [x] add level next to enemy (and friendly?) health bars
+- [ ] Decorations layer does not have any of the sprite handling of the modifiers layer - image cropped, no shadows
 ### [ ] LOD
 - [ ] more terrain modifiers and decorations
 - [ ] more animations
@@ -22,6 +25,8 @@
 
 # Combat Effect Pipeline + consumers (move/passive system rework)
 *Captured 2026-06-21 from the move-template design pass ([scratch/move_and_passive_templates_simple.md](../scratch/move_and_passive_templates_simple.md)).*
+
+> **Living architecture map lives in code:** the header of [scripts/combat/combat_effect.gd](../scripts/combat/combat_effect.gd) — where every hook fires, the owner rule, where handlers live. This section is the plan/checklist (historical once shipped); the code header is the source of truth.
 
 **Architecture decision:** move-effects, passives, and afflictions all hook the SAME combat phases — so build ONE pipeline with three handler sources, not three parallel systems. Declarative JSON (`statusEffect` / `onHit` / `heal`) compiles into built-in handlers; "custom scripts" are just named handlers in the same registry. Staged so every phase ships GUT-green and behavior-preserving before the next.
 
@@ -43,7 +48,7 @@ Out of band (turn loop): `on_turn_start` — regen, auras, DoT ticks, control-lo
 
 Each **handler** (`CombatEffect`) implements only the phases it cares about (base = no-op virtuals). The dispatcher tags each with its owner (attacker / defender / self) so `modify_damage` handlers read the correct side. Context object `CombatHitContext { attacker, defender, move, base_damage, damage (mutable), accuracy (mutable), is_crit, hit, ... }`. Terminology: code keeps `BUFF`/`DEBUFF`; player-facing strings say **boosts** / **afflictions**.
 
-## [ ] PHASE 0 — Foundation: Combat Effect Pipeline
+## [x] PHASE 0 — Foundation: Combat Effect Pipeline
 **Goal:** stand up the pipeline and route EXISTING declarative effects through it with zero gameplay change. Pure infra + refactor; net behavior identical, GUT green.
 
 To create:
@@ -69,7 +74,7 @@ Work items:
 
 **Acceptance:** full GUT suite green; in-game a Burn / heal / cleanse / displace move behaves exactly as before.
 
-## [ ] PHASE 1 — Crit pilot (smallest custom handler; removes crit-as-status)
+## [x] PHASE 1 — Crit pilot (smallest custom handler; removes crit-as-status)
 **Why first:** crit is the smallest `modify_damage` handler and proves the pipeline end-to-end. Also fixes a LIVE BUG: crit is currently a NO-OP — `calculate_damage` never reads the CRITICAL status, so Focus/Uppercut do nothing.
 
 **Design:** a hit either crits or it doesn't → `ctx.damage *= CRIT_MULTIPLIER` (2.0; single constant, playtest-tunable — 1.5 was tried and felt weak). Two flag sources, both funnel to one handler:
@@ -88,19 +93,50 @@ Work items:
 
 **Acceptance:** a crit visibly doubles damage with feedback; Focus/Uppercut bank a crit that fires on the next hit; no CRITICAL anywhere in the status system.
 
+Follow-ups (polish, not blocking):
+- [ ] **Banked-crit indicator** — repurpose the freed-up `critical_0000.png` icon as an on-unit indicator that a unit is carrying a banked `pending_crit` (its next attack will crit). pending_crit isn't a status, so this needs surfacing in the unit's indicator UI separately from active_status_effects. RQD liked this.
+- [ ] In-game eyeball of crit feedback (CRIT! popup + flash) — not headless-testable.
+
 ## [ ] PHASE 2 — Passives as pipeline consumers
 **Why:** only 5 of 20 passives are coded, via scattered `has_equipped_passive("X")` checks (grid_manager, unit, damage_calculator, status_effect_system). Doesn't scale. Full status table + per-passive hook mapping in [scratch/move_and_passive_templates_simple.md](../scratch/move_and_passive_templates_simple.md) "Passive Implementation Status".
 
 **Design:** passives ARE `CombatEffect` handlers (no separate `PassiveHandler` class). Registered per-unit from `equipped_passives`, gathered into the SAME pipeline as move-effects. A few passives also need non-combat hooks (`modify_range`, pathfinding) — add those phases to the base as needed.
 
 Work items:
-- [ ] Add any passive-only phases to the `CombatEffect` base (`modify_range`, `modify_stats`/auras, `redirect_target`).
-- [ ] Per-unit passive registration into `gather`.
-- [ ] Migrate the 5 ad-hoc passives (Ghost, Capricious, Competitive, Reliable, Bellows) onto handlers; delete the inline `has_equipped_passive` checks.
-- [ ] Implement the 15 description-only passives (see scratch table for each one's hook).
-- [ ] **Regenerator** (new) — separate turn-start heal CHANNEL, not the REGEN status, so it stacks with the REGEN boost (two independent heals).
-- [ ] **Bravery** (new) — grants Chivalric's *mechanical status-interactions* (challenged by Roar, immune to Shriek) WITHOUT the Chivalric type's weaknesses/resistances. Backs `is_brave()` (see Phase 4).
+- [x] Per-unit passive registration (PassiveRegistry) gathered into the pipeline.
+- [x] **Infrastructure + all coded-passive migrations** — done across dispatch contexts:
+  - [x] on-hit (Bellows), accuracy (Reliable, Low Profile), stat-aura (Competitive),
+        pathfinding (Ghost), move-selection (Capricious). No scattered
+        `has_equipped_passive` combat checks remain (only the debug toggle).
+  - [x] Base hooks added so far: `modify_accuracy`, `modify_damage`, `on_hit`,
+        `on_kill` (declared), `apply_stat_aura`, `passes_through_units`,
+        `randomizes_move`.
+
+**PHASE 2 STATUS — substantively complete.** All migrations + Reckless, Extendo,
+Protector, and the shared [[grid_geometry]] foundation shipped (suite 324 green).
+The only remaining passives are deliberate deferrals, NOT loose ends: **Zone
+Control** (reframed as a zone-of-control free-attack; blocked on the threat-overlay
+viz) and **Bravery** (inert until the Phase 4 Roar/Shriek cluster). Safe to move to
+playtest / Phase 3.
+
+**Remaining = net-new passive CONTENT (no migration; needs per-passive design/balance).**
+Dispatch points that still need wiring are noted per group:
+- [x] modify_damage handlers: **Glib** (reworked into the sarcastic-squad avoid aura), **Impetuous**, **Flippant**(dmg), **Reckless** — terrain combat integration shipped: DamageCalculator now applies attack/defense/avoid terrain multipliers (attacker tile → outgoing dmg; defender tile → defense stat + dodge), honoring unit typing; Reckless doubles the deviation-from-neutral of its own tile's multipliers. It's a calculator rule (visible in the preview), not a pipeline handler. Tests in test_terrain_combat.gd.
+- [x] modify_accuracy: **Flippant**(acc), **Impulsive**.
+- [x] NEW dispatch: turn-start pass (on_turn_start) → **Anti-Gravity**, **Regenerator**, **Jury Rig**.
+- [x] stat-calc rules: **Maximum** (debuff floor), **Stellar** (grants Maximum to allies within 2 via aura + post-aura recalc), **Cavalier** (attacking stats immune to buff/debuff).
+- [x] NEW dispatch: `on_kill` wiring → **Waste Not** (refunds the killing move's use).
+- [x] NEW dispatch: redirect hook (`intercepts_attack`) → **Protector** (body-blocks ranged offensive attacks aimed at an ally further along its row/column/diagonal). `MoveTargeting.resolve_actual_target` scans `cells_between_on_axis` for the nearest non-defeated ally-of-target with the hook; naturally ranged-only (adjacent shots have no cell between). One wiring point in `Unit.execute_combat_sequence` (covers player + AI) + the combat preview. Shared geometry in [[grid_geometry]]. Tests in test_protector_passive.gd.
+- [x] NEW dispatch: range hook (`extra_attack_range`) → **Extendo** (+1 physical range). Bonus tiles past base range require a forgiving GridGeometry reach (terrain-blocked for the attacker's type; units don't block). Unified `MoveTargeting.effective_attack_range`/`can_target`/`is_reach_clear` as the single source across player targeting, highlights, AI, click-shortcut, and counters. Shared geometry in [[grid_geometry]]. Tests in test_extendo_passive.gd.
+- [ ] **Bravery** (new) — `is_brave()` flag (challenged by Roar, immune to Shriek) without Chivalric's type weaknesses/resistances. Backs the Phase 4 fear cluster. **Deferred to Phase 4** (inert until Roar/Shriek exist; building it now = a flag with no consumer).
+- [ ] **Zone Control** — **DEFERRED + reframed.** Dropping the stat-aura spec entirely (it was just a fourth `passive_bonus_*` aura with no identity). Zone Control is now a Songs-of-Conquest **zone of control**: an enemy that moves within this unit's attack range triggers an immediate **free attack** (no counter, no use cost — a reaction variant of `Unit.execute_combat_sequence`). `data/passives.json` description updated to match. Depends on the threat-overlay viz below as its telegraph (unfair without it) and needs OoO decisions (trigger on enter/within/leave; stop-on-hit vs continue; one-per-turn vs per-move).
+- [~] **Threat-overlay system** (prereq for Zone Control's AoO; Alpha-worthy on its own — an FE-style danger zone helps planning against *every* enemy, not just ZC). Render enemy **move-zone**, **danger-zone** (move + attack), and **passive-danger-zone** as styled tile overlays. Build as ONE overlay system with multiple sources/styles, not three hardcoded features. Model/view split so Lawrence can swap the visuals without touching logic.
+  - [x] **Model** — `ThreatCalculator` (pure: `compute_danger_zone(units)` for any list → cell→count; honors Extendo reach; V1 = move+attack, Manhattan ball, no per-tile LoS). Tests in test_threat_calculator.gd.
+  - [ ] **View** — `ThreatOverlayRenderer`, its OWN layer (NOT `tile.set_color`, so it coexists with move/selection highlights and is wholly replaceable). Tiny contract: `render(map)` / `clear()`. Default = placeholder tint; Lawrence replaces.
+  - [ ] **Controller** — two toggles (all-enemies / individual-enemies, additive subset) off the one model; visuals must make clear *what's* shown (one/several per-enemy vs whole army). Recompute on unit-moved / phase change. (Hover-to-show: leaning no.)
+- [x] **Reckless** — terrain-combat integration shipped (see modify_damage line). Unblocked the terrain multipliers in DamageCalculator. NOTE: `terrainStatusImmunity` is still loaded-but-unwired (separate weather/status feature, not a Reckless dependency).
 - [ ] GUT per handler.
+- [ ] AFTER Phase 2: batch-testing guide — how to load specific move/passive sets in-game to eyeball passives efficiently (Extendo reach, Protector body-block + preview, the aura passives, etc.). Deferred until Phase 2 is complete.
 
 ## [ ] PHASE 3 — Displacement (the `displace_effect` handler, fully generalized)
 **Why:** Bounce Out, Stampede charge-behind, Razor Wing charge-through, Soar self-reposition, Roar-knockback, plus the "knockback/pull/swap/spin" family are all ONE parameterized handler. Gravity moves trade offense for strong CC — this is their budget. Constitution is the universal resist stat (does NOT level up — fixed until class change, so it's a stable balance lever).
@@ -426,6 +462,8 @@ New sprites — faction needed:
 - [ ] Bringing up the unit preview panel on an enemy should display their attack range on the map (pause before implementing this - should this be on a different hotkey?)
 - [ ] Let ice types walk on water
 - [ ] Add moves: [Club (basic low-med power attack for the Ogre), Hook Swipe (low damage, chance to root) ]
+- [ ] In enums.gd, we have StatusEffectType which needs to be separated into AfflictType and BoostType (debuff/buff) - this is likely a significant undertaking because we need to rewire a lot of the game logic. I don't think there's an alternative because units need to be able to have a boost and an affliction at the same time.
+- [ ] We need clear visual feedback for EVERY passive that triggers.
 
 # Stretch Goalsls
 - [ ] Sync beacons to music BPM

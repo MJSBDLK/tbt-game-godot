@@ -5,10 +5,10 @@
 ## downstream reader (UI, combat resolver) sees the updated value with no
 ## extra wiring.
 ##
-## Currently implements:
-##   • Competitive — +3 to whichever stat is the highest single value among
-##     allied units within 3 Manhattan tiles. Encourages running Max next
-##     to your strongest unit so he "tries to keep up."
+## Dispatches to stat-aura passive handlers (CombatEffect.apply_stat_aura) each
+## recompute — e.g. Competitive (+3 to an ally's highest stat within 3 tiles).
+## This system owns the zero-then-recompute orchestration and the triggers; the
+## per-passive logic lives in the handlers (see CompetitivePassive).
 ##
 ## Triggers a recompute on:
 ##   • TurnManager.player_phase_started — covers buff/debuff turn ticks,
@@ -20,17 +20,6 @@
 ## per-unit signals via TurnManager.initialize_battle (which fires before
 ## the first phase signal).
 extends Node
-
-
-# Stats Competitive can boost. HP intentionally excluded — narratively a
-# competitive personality copies offensive/defensive stats, not vitality;
-# mechanically a +3 HP bump on a comparative passive is too lifesteal-y.
-const _COMPARABLE_STATS: Array[String] = [
-	"strength", "special", "skill", "agility",
-	"athleticism", "defense", "resistance",
-]
-const _COMPETITIVE_RANGE: int = 3
-const _COMPETITIVE_BONUS: int = 3
 
 
 func _ready() -> void:
@@ -100,22 +89,35 @@ func recompute_all() -> void:
 	var turn_manager: Node = get_node_or_null("/root/TurnManager")
 	if turn_manager == null:
 		return
-	var players: Array[Unit] = turn_manager.get_player_units()
-	var enemies: Array[Unit] = turn_manager.get_enemy_units()
-
-	for unit: Unit in players:
-		_recompute_unit(unit, players)
-	for unit: Unit in enemies:
-		_recompute_unit(unit, enemies)
+	recompute_faction(turn_manager.get_player_units())
+	recompute_faction(turn_manager.get_enemy_units())
 
 
-func _recompute_unit(unit: Unit, faction_units: Array[Unit]) -> void:
-	if unit == null or unit.is_defeated() or unit.character_data == null:
-		return
-	var data: CharacterData = unit.character_data
-	_zero_passive_bonuses(data)
-	if data.has_equipped_passive("Competitive"):
-		_apply_competitive(unit, data, faction_units)
+## Recompute stat auras for one faction in TWO passes: zero EVERY unit first, then
+## apply every unit's auras. The two-pass split is required because auras may write
+## to OTHER units (Glib boosts/penalizes allies; Stellar grants Maximum to allies)
+## — a single interleaved zero+apply would clobber an emitter's write when its
+## target is zeroed later in the loop. Auras that only write to self (Competitive)
+## work fine either way. Also the public entry point used by tests.
+func recompute_faction(units: Array[Unit]) -> void:
+	for unit: Unit in units:
+		if _is_live(unit):
+			_zero_passive_bonuses(unit.character_data)
+	for unit: Unit in units:
+		if _is_live(unit):
+			for handler: CombatEffect in PassiveRegistry.get_handlers_for(unit.character_data):
+				handler.apply_stat_aura(unit, units)
+	# Auras may have changed Maximum protection (Stellar grants it by proximity),
+	# so recompute status stat modifiers — the Maximum clamp reads the fresh flags.
+	var status_system: Node = get_node_or_null("/root/StatusEffectSystem")
+	if status_system != null:
+		for unit: Unit in units:
+			if _is_live(unit):
+				status_system.recalculate_stat_modifiers(unit)
+
+
+func _is_live(unit: Unit) -> bool:
+	return unit != null and not unit.is_defeated() and unit.character_data != null
 
 
 func _zero_passive_bonuses(data: CharacterData) -> void:
@@ -127,77 +129,10 @@ func _zero_passive_bonuses(data: CharacterData) -> void:
 	data.passive_bonus_athleticism = 0
 	data.passive_bonus_defense = 0
 	data.passive_bonus_resistance = 0
+	data.passive_bonus_avoid = 0
+	data.maximum_from_aura = false
 
 
-# =============================================================================
-# COMPETITIVE
-# =============================================================================
-
-## Finds the single highest stat value among allies within range and grants
-## +_COMPETITIVE_BONUS to that stat. Ties broken by the order of
-## _COMPARABLE_STATS — first stat encountered wins. Self is excluded; if
-## no allies are in range, no bonus is applied.
-func _apply_competitive(unit: Unit, data: CharacterData, faction_units: Array[Unit]) -> void:
-	if unit.current_tile == null:
-		return
-	var nearby: Array[Unit] = _allies_within_range(
-		unit, faction_units, _COMPETITIVE_RANGE)
-	if nearby.is_empty():
-		return
-
-	var best_stat_name: String = ""
-	var best_value: int = -1
-	for stat_name: String in _COMPARABLE_STATS:
-		for ally: Unit in nearby:
-			var value: int = _read_stat(ally.character_data, stat_name)
-			if value > best_value:
-				best_value = value
-				best_stat_name = stat_name
-
-	if best_stat_name == "":
-		return
-	_add_passive_bonus(data, best_stat_name, _COMPETITIVE_BONUS)
-
-
-func _allies_within_range(unit: Unit, faction_units: Array[Unit], range_tiles: int) -> Array[Unit]:
-	var out: Array[Unit] = []
-	if unit.current_tile == null:
-		return out
-	var origin_x: int = unit.current_tile.grid_x
-	var origin_y: int = unit.current_tile.grid_y
-	for ally: Unit in faction_units:
-		if ally == null or ally == unit or ally.is_defeated():
-			continue
-		if ally.current_tile == null:
-			continue
-		var dx: int = absi(ally.current_tile.grid_x - origin_x)
-		var dy: int = absi(ally.current_tile.grid_y - origin_y)
-		if dx + dy <= range_tiles:
-			out.append(ally)
-	return out
-
-
-func _read_stat(data: CharacterData, stat_name: String) -> int:
-	# Read through the public getters so we see the ally's *current* stat
-	# (including their own passive bonuses, status modifiers, etc.). Avoids
-	# a feedback loop because Competitive doesn't read max_hp.
-	match stat_name:
-		"strength": return data.strength
-		"special": return data.special
-		"skill": return data.skill
-		"agility": return data.agility
-		"athleticism": return data.athleticism
-		"defense": return data.defense
-		"resistance": return data.resistance
-		_: return 0
-
-
-func _add_passive_bonus(data: CharacterData, stat_name: String, amount: int) -> void:
-	match stat_name:
-		"strength": data.passive_bonus_strength += amount
-		"special": data.passive_bonus_special += amount
-		"skill": data.passive_bonus_skill += amount
-		"agility": data.passive_bonus_agility += amount
-		"athleticism": data.passive_bonus_athleticism += amount
-		"defense": data.passive_bonus_defense += amount
-		"resistance": data.passive_bonus_resistance += amount
+# Stat-aura passives (Competitive, Glib, and future Stellar / Zone Control) live as
+# CombatEffect handlers with an apply_stat_aura hook. recompute_faction dispatches
+# to them in two passes; this system owns the zero + the recompute triggers.

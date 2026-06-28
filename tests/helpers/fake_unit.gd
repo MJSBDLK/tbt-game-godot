@@ -18,3 +18,10 @@ var active_status_effects: Array = []
 var current_tile: Tile = null
 var can_act: bool = true
 var can_move: bool = true
+var pending_crit: bool = false
+var attacks_this_turn: int = 0
+
+
+## Mirrors Unit.is_defeated() — MoveTargeting.is_valid_target reads it.
+func is_defeated() -> bool:
+	return current_hp <= 0

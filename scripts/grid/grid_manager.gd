@@ -221,11 +221,12 @@ func _tile_blocks_passage(tile: Tile, moving_unit: Node2D) -> bool:
 	var mover_faction: Variant = moving_unit.get("faction")
 	if occupant_faction == mover_faction:
 		return false  # Allies always pass through.
-	# Enemy in the way — check for Ghost.
+	# Enemy in the way — passes unless a passive lets the mover move through units.
 	var character_data: Variant = moving_unit.get("character_data")
-	if character_data != null and character_data.has_method("has_equipped_passive"):
-		if character_data.has_equipped_passive("Ghost"):
-			return false
+	if character_data != null:
+		for handler: CombatEffect in PassiveRegistry.get_handlers_for(character_data):
+			if handler.passes_through_units():
+				return false
 	return true
 
 
@@ -519,6 +520,13 @@ func _retrace_path(start_node: PathNode, end_node: PathNode) -> Array[Tile]:
 
 	path.reverse()
 	return path
+
+
+## Public accessor for a unit's terrain-type key (its primary ElementalType as a
+## string) — the same value movement and pathfinding use. MoveTargeting reaches
+## for this when building Extendo's reach predicate, so the rule stays single-source.
+func get_unit_type(unit: Node2D) -> String:
+	return _get_unit_type(unit)
 
 
 func _get_unit_type(unit: Node2D) -> String:

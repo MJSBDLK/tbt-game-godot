@@ -109,16 +109,24 @@ static func _parse_move_entry(move_name: String, data: Dictionary) -> Move:
 				cleansed.append(String(entry).to_upper())
 			move.cleanse_effects = cleansed
 
-	# Status effect (data only)
+	# Status effect / crit (the single secondary slot — mutually exclusive).
 	var status_data: Variant = data.get("statusEffect", null)
 	if status_data is Dictionary:
 		var effect_name: String = status_data.get("effect", "")
-		move.status_effect_chance = float(status_data.get("chance", 0.0))
-		move.status_effect_type = _parse_status_effect(effect_name)
-		move.status_effect_stacks = int(status_data.get("stacks", 0))
-		move.status_effect_replaces = bool(status_data.get("replaces", false))
+		var effect_upper: String = effect_name.to_upper()
 		var status_target: String = String(status_data.get("target", "target")).to_lower()
-		move.status_effect_self_target = status_target == "self"
+		if effect_upper == "CRIT" or effect_upper == "CRITICAL":
+			# Crit is resolved as a damage event in the pipeline, not a status.
+			# target: "self" banks a crit for the next attack (Focus, Uppercut);
+			# otherwise the roll crits this hit.
+			move.crit_chance = float(status_data.get("chance", 0.0))
+			move.crit_self_target = status_target == "self"
+		else:
+			move.status_effect_chance = float(status_data.get("chance", 0.0))
+			move.status_effect_type = _parse_status_effect(effect_name)
+			move.status_effect_stacks = int(status_data.get("stacks", 0))
+			move.status_effect_replaces = bool(status_data.get("replaces", false))
+			move.status_effect_self_target = status_target == "self"
 
 	return move
 

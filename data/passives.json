@@ -33,7 +33,7 @@
 	},
 	"Glib": {
 		"abbrevName": "Glib",
-		"description": "Bonus if target's special is lower, penalty if higher"
+		"description": "Gets along with other sarcastic types: nearby sarcastic allies dodge better, but earnest allies nearby dodge worse."
 	},
 	"Impetuous": {
 		"abbrevName": "Impetuous",
@@ -77,6 +77,6 @@
 	},
 	"Zone Control": {
 		"abbrevName": "Zone Ctrl",
-		"description": "Enemies suffer movement and accuracy penalties within 3 tiles; allies are buffed"
+		"description": "Enemies that move within this unit's attack range trigger an immediate free attack"
 	}
 }

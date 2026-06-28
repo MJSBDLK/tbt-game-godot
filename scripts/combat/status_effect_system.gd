@@ -351,31 +351,18 @@ func clear_all_effects(unit: Node2D) -> void:
 # PASSIVE TRIGGERS
 # =============================================================================
 
-## Check if a unit has a specific passive equipped.
-func _unit_has_passive(unit: Node2D, passive_name: String) -> bool:
-	var character_data: Variant = unit.get("character_data")
-	if character_data == null:
-		return false
-	var passives: Array = character_data.get("equipped_passives")
-	if passives == null:
-		return false
-	return passive_name in passives
-
-
-## Called after a unit takes attack damage. Checks for passive triggers like Bellows.
-## Currently only triggers on damaging attacks; non-damaging air moves do not trigger Bellows.
-func check_passive_triggers_on_hit(attacker: Node2D, target: Node2D, move: Move) -> void:
-	if target == null or move == null:
-		return
-
-	# Bellows: air-type attack damage grants fire buff stacks
-	if move.element_type == Enums.ElementalType.AIR and _unit_has_passive(target, "Bellows"):
-		apply_status_effect_by_name(attacker, target, "BELLOWS")
+# Per-hit passive triggers (e.g. Bellows) moved to the combat effect pipeline as
+# CombatEffect handlers — see BellowsPassive / PassiveRegistry. They're gathered
+# per hit in CombatEffectPipeline.gather instead of a dedicated call here.
 
 
 # =============================================================================
 # PRIVATE HELPERS
 # =============================================================================
+
+# Stats Cavalier shields from move buffs/debuffs (the "attacking stats").
+const CAVALIER_PROTECTED_STATS: Array[String] = ["strength", "special"]
+
 
 ## Recalculate every status_modifier_* on a unit's character_data using the
 ## three-pass percentage model:
@@ -409,6 +396,13 @@ func _recalculate_stat_modifiers(unit: Node2D) -> void:
 		var contribution: float = config.pct_per_stack * effect.stacks
 		stat_pcts[effect.affected_stat] = stat_pcts.get(effect.affected_stat, 0.0) + contribution
 
+	# Maximum (passive or Stellar aura): status debuffs can't lower stats below
+	# base — floor any negative modifier at 0. Buffs are unaffected.
+	var maximum_protected: bool = character_data.has_maximum_protection()
+	# Cavalier: the unit's attacking stats can't be buffed OR debuffed by moves —
+	# their status modifier is forced to 0 regardless of sign.
+	var cavalier: bool = character_data.has_equipped_passive("Cavalier")
+
 	# Apply each summed % to the unmodified stat
 	for stat_name: String in stat_pcts.keys():
 		var pct: float = stat_pcts[stat_name]
@@ -416,8 +410,19 @@ func _recalculate_stat_modifiers(unit: Node2D) -> void:
 			continue
 		var unmodified: int = character_data.get_unmodified_stat(stat_name)
 		var modifier: int = _apply_pct_with_floor(unmodified, pct)
+		if cavalier and stat_name in CAVALIER_PROTECTED_STATS:
+			modifier = 0
+		elif maximum_protected and modifier < 0:
+			modifier = 0
 		var field: String = "status_modifier_%s" % stat_name
 		character_data.set(field, modifier)
+
+
+## Public entry point to recompute a unit's status stat modifiers. Called by
+## PassiveEffectsSystem after the aura pass so Maximum/Stellar protection reflects
+## the latest aura flags (Stellar's grant changes with positions).
+func recalculate_stat_modifiers(unit: Node2D) -> void:
+	_recalculate_stat_modifiers(unit)
 
 
 ## Apply a percentage to a base value with floor-toward-zero rounding and a

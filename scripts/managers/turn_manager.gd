@@ -123,6 +123,7 @@ func start_player_phase() -> void:
 	# gate movement for THIS turn, then consume a stack — "1 stack = 1 turn".
 	_process_control_locks(_player_units)
 	_process_injury_turn_effects(_player_units)
+	_process_passive_turn_start(_player_units)
 
 	if input_manager != null:
 		input_manager.enable_input()
@@ -164,6 +165,7 @@ func start_enemy_phase() -> void:
 	_refresh_units(_enemy_units)
 	_process_control_locks(_enemy_units)
 	_process_injury_turn_effects(_enemy_units)
+	_process_passive_turn_start(_enemy_units)
 
 	enemy_phase_started.emit()
 	await _process_enemy_phase()
@@ -301,6 +303,18 @@ func _process_control_locks(units: Array[Unit]) -> void:
 	for unit: Unit in units:
 		if not unit.is_defeated():
 			status_system.process_control_locks(unit)
+
+
+## Run each live unit's passive on_turn_start hooks (heals, debuff-clears, ...).
+## Runs after status/control/injury so passives react to the settled turn-start
+## state. `units` is the faction list, passed through so ally-targeting passives
+## (Jury Rig) can find neighbours.
+func _process_passive_turn_start(units: Array[Unit]) -> void:
+	for unit: Unit in units:
+		if unit.is_defeated() or unit.character_data == null:
+			continue
+		for handler: CombatEffect in PassiveRegistry.get_handlers_for(unit.character_data):
+			handler.on_turn_start(unit, units)
 
 
 func _process_injury_turn_effects(units: Array[Unit]) -> void:
