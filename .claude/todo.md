@@ -10,6 +10,7 @@
 - [ ] remove "*1" from character panel on the left when all statUps are allocated
 - [~] Give all characters at least 9 moves and 9 passives
 - [x] add level next to enemy (and friendly?) health bars
+- [ ] Decorations layer does not have any of the sprite handling of the modifiers layer - image cropped, no shadows
 ### [ ] LOD
 - [ ] more terrain modifiers and decorations
 - [ ] more animations

@@ -40,6 +40,7 @@ var _unit_scene: PackedScene = preload("res://scenes/battle/unit.tscn")
 var _vignette_shader: Shader = preload("res://shaders/vignette.gdshader")
 var _units_container: Node2D = null
 var _foot_track_renderer: FootTrackRenderer = null
+var _threat_overlay: ThreatOverlayController = null
 
 
 func _ready() -> void:
@@ -52,6 +53,12 @@ func _ready() -> void:
 	_foot_track_renderer = FootTrackRenderer.new()
 	_foot_track_renderer.name = "FootTrackRenderer"
 	add_child(_foot_track_renderer)
+
+	# Threat overlay (enemy danger zone). Controller owns its swappable renderer;
+	# lives at the world root so the renderer's tile-aligned draw matches tiles.
+	_threat_overlay = ThreatOverlayController.new()
+	_threat_overlay.name = "ThreatOverlayController"
+	add_child(_threat_overlay)
 
 	if GridManager.is_grid_ready():
 		_on_grid_ready()
@@ -97,6 +104,9 @@ func _on_grid_ready() -> void:
 	# draws a trail along the route it actually walks, then ingest any
 	# designer-painted seed tracks (a "FootTrackTileLayer" in the map) as the
 	# depth-1 base the runtime stacks onto.
+	if _threat_overlay != null:
+		_threat_overlay.register_battle_units(player_units, enemy_units)
+
 	if _foot_track_renderer != null:
 		_foot_track_renderer.register_battle_units(player_units, enemy_units)
 		var seed_layer := find_child("FootTrackTileLayer", true, false) as TileMapLayer
