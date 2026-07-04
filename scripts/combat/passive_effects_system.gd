@@ -105,7 +105,7 @@ func recompute_faction(units: Array[Unit]) -> void:
 			_zero_passive_bonuses(unit.character_data)
 	for unit: Unit in units:
 		if _is_live(unit):
-			for handler: CombatEffect in PassiveRegistry.get_handlers_for(unit.character_data):
+			for handler: CombatEffect in PassiveRegistry.get_handlers_for(unit.character_data, unit):
 				handler.apply_stat_aura(unit, units)
 	# Auras may have changed Maximum protection (Stellar grants it by proximity),
 	# so recompute status stat modifiers — the Maximum clamp reads the fresh flags.

@@ -25,3 +25,14 @@ var attacks_this_turn: int = 0
 ## Mirrors Unit.is_defeated() — MoveTargeting.is_valid_target reads it.
 func is_defeated() -> bool:
 	return current_hp <= 0
+
+
+## Mirror Unit's VOID-lock queries. PassiveRegistry.get_handlers_for(data, unit)
+## skips locked passive slots, and move-selection consults the move variant, so
+## fake units used in those paths need both.
+func is_move_index_locked(index: int) -> bool:
+	return StatusEffectSystem.is_move_locked(self, index)
+
+
+func is_passive_index_locked(index: int) -> bool:
+	return StatusEffectSystem.is_passive_locked(self, index)

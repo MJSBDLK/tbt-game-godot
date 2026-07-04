@@ -12,6 +12,10 @@ const _OptionsMenuPanel: GDScript = preload("res://scripts/ui/panels/options_men
 const _HDPortraitSlot: GDScript = preload("res://scripts/ui/hd_portrait_slot.gd")
 const _CameraController: GDScript = preload("res://scripts/managers/camera_controller.gd")
 const _Settings: GDScript = preload("res://scripts/core/settings.gd")
+const _UnitPreviewPanel: GDScript = preload("res://scripts/ui/panels/unit_preview_panel.gd")
+const _VoidLockOverlay: GDScript = preload("res://scripts/ui/components/void_lock_overlay.gd")
+const _UnitDetailPanel: GDScript = preload("res://scripts/ui/panels/unit_detail_panel.gd")
+const _ActionMenuPanel: GDScript = preload("res://scripts/ui/panels/action_menu_panel.gd")
 
 
 func test_harness_is_alive() -> void:
@@ -19,7 +23,8 @@ func test_harness_is_alive() -> void:
 
 
 func test_autoload_dependent_scripts_compile() -> void:
-	for script: GDScript in [_OptionsMenuPanel, _HDPortraitSlot, _CameraController, _Settings]:
+	for script: GDScript in [_OptionsMenuPanel, _HDPortraitSlot, _CameraController, _Settings,
+			_UnitPreviewPanel, _VoidLockOverlay, _UnitDetailPanel, _ActionMenuPanel]:
 		assert_not_null(script, "script preloaded and compiled cleanly")
 
 

@@ -179,7 +179,7 @@ static func hit_chance_pct(attacker: Node2D, defender: Node2D, move: Move) -> in
 
 	# Run passive accuracy/avoid modifiers. Both combatants' handlers participate;
 	# each gates on the relevant unit (attacker for accuracy, defender for avoid).
-	for handler: CombatEffect in _accuracy_handlers(attacker_data, defender_data):
+	for handler: CombatEffect in _accuracy_handlers(attacker, defender):
 		handler.modify_accuracy(ctx)
 
 	# Terrain avoid: the defender's tile makes it harder to hit. A 1.2 avoid
@@ -194,13 +194,14 @@ static func hit_chance_pct(attacker: Node2D, defender: Node2D, move: Move) -> in
 	return clampi(roundi(ctx.accuracy), 0, 100)
 
 
-## Passive handlers from both combatants, deduped, for the accuracy phase.
-static func _accuracy_handlers(attacker_data: CharacterData, defender_data: CharacterData) -> Array[CombatEffect]:
+## Passive handlers from both combatants, deduped, for the accuracy phase. Takes
+## the units (not just their data) so VOID-locked passives are excluded.
+static func _accuracy_handlers(attacker: Node2D, defender: Node2D) -> Array[CombatEffect]:
 	var handlers: Array[CombatEffect] = []
-	for handler: CombatEffect in PassiveRegistry.get_handlers_for(attacker_data):
+	for handler: CombatEffect in PassiveRegistry.get_handlers_for(attacker.get("character_data"), attacker):
 		if not handlers.has(handler):
 			handlers.append(handler)
-	for handler: CombatEffect in PassiveRegistry.get_handlers_for(defender_data):
+	for handler: CombatEffect in PassiveRegistry.get_handlers_for(defender.get("character_data"), defender):
 		if not handlers.has(handler):
 			handlers.append(handler)
 	return handlers

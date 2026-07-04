@@ -694,8 +694,11 @@ func _update_move_tablets() -> void:
 			if type_icon:
 				type_icon.texture = _get_elemental_icon(move.element_type)
 				type_icon.visible = move.element_type != Enums.ElementalType.NONE
+			# VOID lock FX — only meaningful with a live unit (lock state is per-battle).
+			VoidLockOverlay.set_locked(panel, _unit != null and _unit.is_move_index_locked(i))
 		else:
 			panel.visible = false
+			VoidLockOverlay.set_locked(panel, false)
 
 
 func _update_passive_tablets() -> void:
@@ -719,8 +722,12 @@ func _update_passive_tablets() -> void:
 			panel.visible = true
 			if name_label:
 				name_label.text = str(passive_names[i]).to_upper()
+			# VOID can lock passives too; is_passive_index_locked is false when the
+			# panel is showing base-pool passives (nothing equipped to lock).
+			VoidLockOverlay.set_locked(panel, _unit != null and _unit.is_passive_index_locked(i))
 		else:
 			panel.visible = false
+			VoidLockOverlay.set_locked(panel, false)
 
 	if _passives_section:
 		_passives_section.visible = not passive_names.is_empty()

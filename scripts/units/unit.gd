@@ -237,6 +237,9 @@ func initialize(starting_tile: Tile) -> void:
 	if DebugConfig.testing_status_effects:
 		_apply_random_debug_status_effects()
 
+	if DebugConfig.testing_void_lock_debuff:
+		_apply_debug_void_lock()
+
 	if DebugConfig.testing_random_injuries_on_spawn and faction == Enums.UnitFaction.PLAYER:
 		_apply_random_debug_injuries()
 
@@ -586,6 +589,13 @@ func is_move_index_locked(index: int) -> bool:
 	return false
 
 
+## Returns true if the given passive slot index (into character_data.equipped_passives)
+## is locked by VOID. A locked passive is skipped wherever passive handlers are
+## gathered (see PassiveRegistry.get_handlers_for), so its combat effect goes inert.
+func is_passive_index_locked(index: int) -> bool:
+	return StatusEffectSystem.is_passive_locked(self, index)
+
+
 func auto_assign_first_usable_move() -> void:
 	if character_data == null:
 		return
@@ -763,7 +773,7 @@ func _capricious_post_combat_reroll(combatant: Unit) -> void:
 		return
 	# Only move-randomizer passives (Capricious) reroll. Read from the handlers.
 	var should_randomize: bool = false
-	for handler: CombatEffect in PassiveRegistry.get_handlers_for(data):
+	for handler: CombatEffect in PassiveRegistry.get_handlers_for(data, combatant):
 		if handler.randomizes_move():
 			should_randomize = true
 			break
@@ -1497,6 +1507,16 @@ func _apply_random_debug_status_effects() -> void:
 	for i: int in range(count):
 		StatusEffectSystem.apply_status_effect_by_name(null, self, all_types[i])
 	_debug_status_unit_count += 1
+
+
+## Debug: slap 1-4 stacks of VOID (the real max) on the unit so the void-lock FX +
+## the move/passive-inert mechanic can be eyeballed on every spawn (players AND
+## enemies). replace_existing so it lands even if another debuff already holds the
+## lone debuff slot.
+func _apply_debug_void_lock() -> void:
+	var stacks: int = randi_range(1, 4)
+	StatusEffectSystem.apply_status_effect_by_name(null, self, "VOID", stacks, true)
+	DebugConfig.log_unit_init("Debug VOID lock on '%s': %d stack(s)" % [unit_name, stacks])
 
 
 ## Debug: directly inject 0-4 random injuries into character_data.current_injuries.

@@ -198,8 +198,11 @@ func _update_moves(unit: Unit) -> void:
 			var move: Move = moves[i]
 			chip.visible = true
 			_update_move_chip(chip, move)
+			# VOID lock: greys the chip + adds the shadow/sparkle overlay.
+			VoidLockOverlay.set_locked(chip, unit.is_move_index_locked(i))
 		else:
 			chip.visible = false
+			VoidLockOverlay.set_locked(chip, false)
 
 
 func _update_move_chip(chip: ColorRect, move: Move) -> void:
@@ -252,8 +255,11 @@ func _update_passives(unit: Unit) -> void:
 				elif passives[i].get("passive_name") != null:
 					passive_name = passives[i].passive_name
 				label.text = _get_passive_abbrev(passive_name)
+			# VOID can lock a passive slot too (same combined pool as moves).
+			VoidLockOverlay.set_locked(chip, unit.is_passive_index_locked(i))
 		else:
 			chip.visible = false
+			VoidLockOverlay.set_locked(chip, false)
 
 	_passives_container.visible = not passives.is_empty()
 

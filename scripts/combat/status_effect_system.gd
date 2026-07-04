@@ -131,9 +131,9 @@ func apply_status_effect_by_name(caster: Node2D, target: Node2D, effect_type_nam
 	if config.hot_heal_per_stack > 0:
 		effect.hot_heal_per_tick = _calculate_dot_damage_value(effect.caster_level, target)
 
-	# VOID: lock random move(s) — one per stack
+	# VOID: lock random move/passive slot(s) — one per stack
 	if effect_type_name == "VOID":
-		_assign_void_locked_moves(effect, target)
+		_assign_void_locks(effect, target)
 
 	active_effects.append(effect)
 	_recalculate_stat_modifiers(target)
@@ -202,9 +202,9 @@ func process_turn_start_effects(unit: Node2D) -> void:
 		else:
 			DebugConfig.log_status("StatusEffectSystem: %s stacks → %d on %s" % [
 				effect.effect_type_name, effect.stacks, unit.get("unit_name")])
-			# VOID: pop the most recently locked move when stacks drop
-			if effect.effect_type_name == "VOID" and effect.locked_move_indices.size() > effect.stacks:
-				effect.locked_move_indices.pop_back()
+			# VOID: pop the most recently locked slot when stacks drop
+			if effect.effect_type_name == "VOID" and effect.locked_slots.size() > effect.stacks:
+				effect.locked_slots.pop_back()
 
 	for effect: StatusEffect in effects_to_remove:
 		active_effects.erase(effect)
@@ -298,15 +298,24 @@ func get_effect_max_stacks(effect_type_name: String) -> int:
 	return config.max_stacks
 
 
-## Check if a specific move index is locked by VOID.
+## Check if a specific move slot index is locked by VOID.
 func is_move_locked(unit: Node2D, move_index: int) -> bool:
+	return _is_slot_locked(unit, StatusEffect.SLOT_MOVE, move_index)
+
+
+## Check if a specific passive slot index is locked by VOID.
+func is_passive_locked(unit: Node2D, passive_index: int) -> bool:
+	return _is_slot_locked(unit, StatusEffect.SLOT_PASSIVE, passive_index)
+
+
+func _is_slot_locked(unit: Node2D, kind: String, index: int) -> bool:
 	if unit == null:
 		return false
 	var active_effects: Array = unit.get("active_status_effects")
 	if active_effects == null:
 		return false
 	for effect: StatusEffect in active_effects:
-		if effect.effect_type_name == "VOID" and move_index in effect.locked_move_indices:
+		if effect.effect_type_name == "VOID" and effect._has_locked_slot(kind, index):
 			return true
 	return false
 
@@ -459,22 +468,33 @@ func _refresh_effect_on_restack(effect: StatusEffect, config: StatusEffectData, 
 	if config.hot_heal_per_stack > 0:
 		effect.hot_heal_per_tick = _calculate_dot_damage_value(effect.caster_level, target)
 	if effect.effect_type_name == "VOID":
-		# Top up locked move indices to match new stack count
-		_assign_void_locked_moves(effect, target)
+		# Top up locked slots to match new stack count
+		_assign_void_locks(effect, target)
 
 
-## Pick random unlocked move slots equal to (effect.stacks - already locked) and
-## append them to effect.locked_move_indices.
-func _assign_void_locked_moves(effect: StatusEffect, target: Node2D) -> void:
+## Lock random unlocked slots until effect.locked_slots matches effect.stacks,
+## drawing from a single combined pool of the target's move AND passive slots.
+## Each new lock is appended in acquisition order (so the most recent pops first
+## when a stack expires). A move slot and a passive slot can share an index — the
+## pool tags each entry with its kind to keep them distinct.
+func _assign_void_locks(effect: StatusEffect, target: Node2D) -> void:
 	var character_data: Variant = target.get("character_data") if target != null else null
 	if character_data == null:
 		return
-	var equipped: Array[Move] = character_data.equipped_moves
-	while effect.locked_move_indices.size() < effect.stacks:
-		var unlocked: Array[int] = []
-		for i: int in range(equipped.size()):
-			if i not in effect.locked_move_indices:
-				unlocked.append(i)
-		if unlocked.is_empty():
+	var move_count: int = character_data.equipped_moves.size()
+	var passive_count: int = 0
+	var passives: Variant = character_data.get("equipped_passives")
+	if passives != null:
+		passive_count = passives.size()
+
+	while effect.locked_slots.size() < effect.stacks:
+		var candidates: Array[Dictionary] = []
+		for i: int in range(move_count):
+			if not effect.is_move_slot_locked(i):
+				candidates.append({"kind": StatusEffect.SLOT_MOVE, "index": i})
+		for i: int in range(passive_count):
+			if not effect.is_passive_slot_locked(i):
+				candidates.append({"kind": StatusEffect.SLOT_PASSIVE, "index": i})
+		if candidates.is_empty():
 			break
-		effect.locked_move_indices.append(unlocked[randi() % unlocked.size()])
+		effect.locked_slots.append(candidates[randi() % candidates.size()])

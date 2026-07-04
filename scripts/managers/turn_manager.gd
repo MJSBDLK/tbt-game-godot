@@ -313,7 +313,7 @@ func _process_passive_turn_start(units: Array[Unit]) -> void:
 	for unit: Unit in units:
 		if unit.is_defeated() or unit.character_data == null:
 			continue
-		for handler: CombatEffect in PassiveRegistry.get_handlers_for(unit.character_data):
+		for handler: CombatEffect in PassiveRegistry.get_handlers_for(unit.character_data, unit):
 			handler.on_turn_start(unit, units)
 
 

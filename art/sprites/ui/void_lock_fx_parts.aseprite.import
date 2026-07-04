@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://d3brmsdnq3117"
+path="res://.godot/imported/void_lock_fx_parts.aseprite-e92d2d01fa0657edd4c183c17bb3ab43.res"
+
+[deps]
+
+source_file="res://art/sprites/ui/void_lock_fx_parts.aseprite"
+dest_files=["res://.godot/imported/void_lock_fx_parts.aseprite-e92d2d01fa0657edd4c183c17bb3ab43.res"]
+
+[params]
+

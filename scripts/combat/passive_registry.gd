@@ -53,7 +53,13 @@ static func get_handler(passive_name: String) -> CombatEffect:
 
 ## All coded handlers for a unit's equipped passives, deduped. Returns shared
 ## singletons — never mutate them.
-static func get_handlers_for(character_data: Variant) -> Array[CombatEffect]:
+##
+## When `unit` is supplied, passive slots locked by VOID (unit.is_passive_index_locked)
+## are skipped, so a void-locked passive's combat effect goes inert. The argument is
+## optional and defaults to null (no gating) to keep the many non-combat callers and
+## the tests that pass only character_data working unchanged. Pass the unit from any
+## call site that has it so locking is honored consistently.
+static func get_handlers_for(character_data: Variant, unit: Node2D = null) -> Array[CombatEffect]:
 	_ensure_initialized()
 	var out: Array[CombatEffect] = []
 	if character_data == null:
@@ -61,8 +67,11 @@ static func get_handlers_for(character_data: Variant) -> Array[CombatEffect]:
 	var passives: Variant = character_data.get("equipped_passives")
 	if passives == null:
 		return out
-	for passive_name: Variant in passives:
-		var handler: CombatEffect = _handlers.get(passive_name, null)
+	var can_check_lock: bool = unit != null and unit.has_method("is_passive_index_locked")
+	for index: int in range(passives.size()):
+		if can_check_lock and unit.is_passive_index_locked(index):
+			continue
+		var handler: CombatEffect = _handlers.get(passives[index], null)
 		if handler != null and not out.has(handler):
 			out.append(handler)
 	return out

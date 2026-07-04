@@ -191,7 +191,7 @@ static func get_default_configs() -> Dictionary:
 	void_effect.effect_type = "VOID"
 	void_effect.category = Enums.EffectCategory.DEBUFF
 	void_effect.abbrev_name = "Void"
-	void_effect.description = "Locks a random move per stack."
+	void_effect.description = "Locks a random move or passive per stack."
 	void_effect.max_stacks = 4
 	void_effect.default_apply_stacks = 1
 	void_effect.icon_path = "res://art/sprites/ui/status_effect_icons_6x6_v2/void_0000.png"

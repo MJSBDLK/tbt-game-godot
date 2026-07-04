@@ -57,7 +57,7 @@ static func gather(ctx: CombatHitContext) -> Array[CombatEffect]:
 static func _append_passives(effects: Array[CombatEffect], unit: Node2D) -> void:
 	if unit == null:
 		return
-	for handler: CombatEffect in PassiveRegistry.get_handlers_for(unit.get("character_data")):
+	for handler: CombatEffect in PassiveRegistry.get_handlers_for(unit.get("character_data"), unit):
 		if not effects.has(handler):
 			effects.append(handler)
 

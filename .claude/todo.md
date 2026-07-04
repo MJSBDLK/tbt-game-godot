@@ -1,9 +1,21 @@
 ## [ ] Meeting 2026.06.28
 ### [ ] RQD
-- [ ] For Lawrence: what do we want the various levels of threat overlay to look like? (move range, attack range, passive range)
-- [ ] PRIORITY BUG: attack/defense/avoid multipliers are computed for the preview panel but never applied in combat
-- [ ] void FX shader
- - [ ] + desaturate + shadow layer @ 50%
+- [x] For Lawrence: what do we want the various levels of threat overlay to look like? (move range, attack range, passive range)
+- [x] PRIORITY BUG: attack/defense/avoid multipliers are computed for the preview panel but never applied in combat
+- [~] void FX shader
+ - [x] + desaturate + shadow layer @ 50% (ported Lawrence's void_lock_effect mockup:
+   move_chip_fill.gdshader `lock_desaturate` greys the chip body; void_lock_overlay.gdshader
+   adds the ~50% shadow scrim + animated gold motes. Reusable [VoidLockOverlay](../scripts/ui/components/void_lock_overlay.gd)
+   `set_locked(control, bool)` drops onto any chip/tablet for moves AND passives, wired into
+   all three surfaces: unit_preview_panel (hover), unit_detail_panel (click — StyleBoxFlat
+   tablets get scrim+motes but no hue-desaturate, no chip shader there), and action_menu
+   (move-select — locked moves now SHOWN greyed + non-selectable instead of filtered out).
+   VOID now locks a random move OR passive per stack — unified pool in StatusEffect.locked_slots,
+   gated at PassiveRegistry.get_handlers_for so a locked passive goes inert. Debug:
+   DebugConfig.testing_void_lock_debuff (1-4 stacks on every unit). Tests:
+   test_void_passive_lock.gd, test_void_lock_overlay.gd. PENDING: in-game GPU eyeball +
+   Lawrence to tune mote density/extent (his mockup spills motes above the chip), the
+   icon→void-glyph swap, and whether detail-panel tablets need true desaturation.)
 - [ ] How hard would it be to make a crater (terrain modifier) grant a defensive bonus against melee attacks and a penalty against ranged attacks?
 - [ ] intermission screens - interactive buttons must be obviously interactive
 - [ ] bEXP screen
@@ -11,10 +23,22 @@
 - [~] Give all characters at least 9 moves and 9 passives
 - [x] add level next to enemy (and friendly?) health bars
 - [ ] Decorations layer does not have any of the sprite handling of the modifiers layer - image cropped, no shadows
+- [ ] Can we make the threat overlay like the scanlines for the highres portraits?
+- [ ] the backgrounds of the UI panels are getting the alpha values changed and editing the .tscn files isn't fixing it - let's make a unit test to ensure the color values are being set properly
+- [ ] RQD: figure out what properties the new "monster" type needs to have
+ Weaknesses: Plant, Heraldic
+ Resistances: Void
+ Strong against: Simple
+ Weak against: Chivalric, Gentry, Heraldic
+- [ ] RQD: Beast type
+ Weaknesses: Monster
+ Resistances: 
+ Strong against: Simple
+ Weak against: 
 ### [ ] LOD
 - [ ] more terrain modifiers and decorations
 - [ ] more animations
-- [ ] export/merge void bubble/void lock animations
+- [x] export/merge void bubble/void lock animations
 - [x] Spend some time organizing your art folder with the game project
 - [x] Get me the new character sprites that fit properly on the map (Berserker, healers, ice archer, etc)
 #### [ ] LOD - options if you get bored

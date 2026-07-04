@@ -1,0 +1,423 @@
+{
+    "void fizzle 1": {
+        "file": "void_fizzle_1.png",
+        "frames": 14,
+        "fw": 96,
+        "fh": 28,
+        "durations": [
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100
+        ],
+        "bbox": [
+            39,
+            6,
+            17,
+            15
+        ]
+    },
+    "void fizzle 2": {
+        "file": "void_fizzle_2.png",
+        "frames": 14,
+        "fw": 96,
+        "fh": 28,
+        "durations": [
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100
+        ],
+        "bbox": [
+            39,
+            6,
+            17,
+            15
+        ]
+    },
+    "void fizzle 3": {
+        "file": "void_fizzle_3.png",
+        "frames": 14,
+        "fw": 96,
+        "fh": 28,
+        "durations": [
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100
+        ],
+        "bbox": [
+            39,
+            6,
+            17,
+            15
+        ]
+    },
+    "void fizzle 4": {
+        "file": "void_fizzle_4.png",
+        "frames": 14,
+        "fw": 96,
+        "fh": 28,
+        "durations": [
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100
+        ],
+        "bbox": [
+            39,
+            6,
+            17,
+            15
+        ]
+    },
+    "void fizzle 5": {
+        "file": "void_fizzle_5.png",
+        "frames": 14,
+        "fw": 96,
+        "fh": 28,
+        "durations": [
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100
+        ],
+        "bbox": [
+            39,
+            6,
+            17,
+            15
+        ]
+    },
+    "void fizzle 6": {
+        "file": "void_fizzle_6.png",
+        "frames": 14,
+        "fw": 96,
+        "fh": 28,
+        "durations": [
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100
+        ],
+        "bbox": [
+            39,
+            6,
+            17,
+            15
+        ]
+    },
+    "void fizzle 7": {
+        "file": "void_fizzle_7.png",
+        "frames": 14,
+        "fw": 96,
+        "fh": 28,
+        "durations": [
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100
+        ],
+        "bbox": [
+            39,
+            6,
+            17,
+            15
+        ]
+    },
+    "void bubble 1": {
+        "file": "void_bubble_1.png",
+        "frames": 5,
+        "fw": 96,
+        "fh": 28,
+        "durations": [
+            100,
+            100,
+            100,
+            100,
+            100
+        ],
+        "bbox": [
+            42,
+            7,
+            11,
+            14
+        ]
+    },
+    "void bubble 2": {
+        "file": "void_bubble_2.png",
+        "frames": 5,
+        "fw": 96,
+        "fh": 28,
+        "durations": [
+            100,
+            100,
+            100,
+            100,
+            100
+        ],
+        "bbox": [
+            42,
+            7,
+            11,
+            14
+        ]
+    },
+    "void bubble 3": {
+        "file": "void_bubble_3.png",
+        "frames": 5,
+        "fw": 96,
+        "fh": 28,
+        "durations": [
+            100,
+            100,
+            100,
+            100,
+            100
+        ],
+        "bbox": [
+            42,
+            7,
+            11,
+            14
+        ]
+    },
+    "void bubble 4": {
+        "file": "void_bubble_4.png",
+        "frames": 5,
+        "fw": 96,
+        "fh": 28,
+        "durations": [
+            100,
+            100,
+            100,
+            100,
+            100
+        ],
+        "bbox": [
+            42,
+            7,
+            11,
+            14
+        ]
+    },
+    "void bubble 5": {
+        "file": "void_bubble_5.png",
+        "frames": 5,
+        "fw": 96,
+        "fh": 28,
+        "durations": [
+            100,
+            100,
+            100,
+            100,
+            100
+        ],
+        "bbox": [
+            42,
+            7,
+            11,
+            14
+        ]
+    },
+    "void bubble 6": {
+        "file": "void_bubble_6.png",
+        "frames": 5,
+        "fw": 96,
+        "fh": 28,
+        "durations": [
+            100,
+            100,
+            100,
+            100,
+            100
+        ],
+        "bbox": [
+            42,
+            7,
+            11,
+            14
+        ]
+    },
+    "void star 1": {
+        "file": "void_star_1.png",
+        "frames": 4,
+        "fw": 96,
+        "fh": 28,
+        "durations": [
+            100,
+            100,
+            100,
+            100
+        ],
+        "bbox": [
+            38,
+            4,
+            19,
+            20
+        ]
+    },
+    "void star 2": {
+        "file": "void_star_2.png",
+        "frames": 4,
+        "fw": 96,
+        "fh": 28,
+        "durations": [
+            100,
+            100,
+            100,
+            100
+        ],
+        "bbox": [
+            38,
+            4,
+            19,
+            20
+        ]
+    },
+    "void star 3": {
+        "file": "void_star_3.png",
+        "frames": 4,
+        "fw": 96,
+        "fh": 28,
+        "durations": [
+            100,
+            100,
+            100,
+            100
+        ],
+        "bbox": [
+            38,
+            4,
+            19,
+            20
+        ]
+    },
+    "void star 4": {
+        "file": "void_star_4.png",
+        "frames": 4,
+        "fw": 96,
+        "fh": 28,
+        "durations": [
+            100,
+            100,
+            100,
+            100
+        ],
+        "bbox": [
+            36,
+            1,
+            24,
+            25
+        ]
+    },
+    "void star lines": {
+        "file": "void_star_lines.png",
+        "frames": 4,
+        "fw": 96,
+        "fh": 28,
+        "durations": [
+            100,
+            100,
+            100,
+            100
+        ],
+        "bbox": [
+            34,
+            7,
+            28,
+            13
+        ]
+    },
+    "void star lines 2": {
+        "file": "void_star_lines_2.png",
+        "frames": 7,
+        "fw": 96,
+        "fh": 28,
+        "durations": [
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100
+        ],
+        "bbox": [
+            1,
+            6,
+            93,
+            16
+        ]
+    }
+}

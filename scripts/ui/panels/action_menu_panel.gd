@@ -107,13 +107,19 @@ func show_main_menu() -> void:
 func _populate_main_menu(unit: Unit) -> void:
 	_clear_items()
 
-	# Attack moves with valid targets — displayed as move chips.
-	var usable_moves := unit.get_usable_moves()
-	for move: Move in usable_moves:
-		var valid_targets := MoveTargeting.get_valid_target_tiles(unit, move)
-		if valid_targets.size() > 0:
+	# Moves: usable + targetable ones are selectable chips; VOID-locked ones are
+	# shown greyed and non-selectable so the player sees what the lock took away.
+	var data: CharacterData = unit.character_data
+	var equipped: Array[Move] = data.equipped_moves if data != null else []
+	for i: int in range(equipped.size()):
+		var move: Move = equipped[i]
+		if move == null:
+			continue
+		var captured_move := move
+		if unit.is_move_index_locked(i):
+			_create_move_chip(captured_move, false, Callable(), true)
+		elif move.has_uses_remaining() and MoveTargeting.get_valid_target_tiles(unit, move).size() > 0:
 			var is_assigned := (unit.assigned_move == move)
-			var captured_move := move
 			_create_move_chip(captured_move, is_assigned, func() -> void: move_selected.emit(captured_move))
 
 	# Text buttons for non-move actions.
@@ -129,11 +135,18 @@ func _populate_assign_submenu(unit: Unit) -> void:
 	_clear_items()
 	_is_assign_submenu = true
 
-	var usable_moves := unit.get_usable_moves()
-	for move: Move in usable_moves:
-		var is_assigned := (unit.assigned_move == move)
+	var data: CharacterData = unit.character_data
+	var equipped: Array[Move] = data.equipped_moves if data != null else []
+	for i: int in range(equipped.size()):
+		var move: Move = equipped[i]
+		if move == null:
+			continue
 		var captured_move := move
-		_create_move_chip(captured_move, is_assigned, func() -> void: assign_move_selected.emit(captured_move))
+		if unit.is_move_index_locked(i):
+			_create_move_chip(captured_move, false, Callable(), true)
+		elif move.has_uses_remaining():
+			var is_assigned := (unit.assigned_move == move)
+			_create_move_chip(captured_move, is_assigned, func() -> void: assign_move_selected.emit(captured_move))
 
 	_create_button("Back", func() -> void:
 		_is_assign_submenu = false
@@ -146,7 +159,7 @@ func _populate_assign_submenu(unit: Unit) -> void:
 # MOVE CHIP BUILDING
 # =============================================================================
 
-func _create_move_chip(move: Move, is_assigned: bool, callback: Callable) -> Control:
+func _create_move_chip(move: Move, is_assigned: bool, callback: Callable, locked: bool = false) -> Control:
 	# Clickable wrapper — Button with transparent style, containing the chip visuals.
 	var button := Button.new()
 	button.custom_minimum_size = Vector2(BUTTON_WIDTH, CHIP_HEIGHT)
@@ -157,7 +170,12 @@ func _create_move_chip(move: Move, is_assigned: bool, callback: Callable) -> Con
 	button.add_theme_stylebox_override("hover", transparent_style)
 	button.add_theme_stylebox_override("pressed", transparent_style)
 	button.add_theme_stylebox_override("focus", transparent_style)
-	button.pressed.connect(callback)
+	# Void-locked moves are shown for telegraphing but can't be picked.
+	if locked:
+		button.disabled = true
+		button.focus_mode = Control.FOCUS_NONE
+	else:
+		button.pressed.connect(callback)
 
 	# MoveChip background (the colored fill bar).
 	var chip := MoveChip.new()
@@ -179,6 +197,9 @@ func _create_move_chip(move: Move, is_assigned: bool, callback: Callable) -> Con
 	if move.current_uses <= 0:
 		chip.fill_color = Color(0.15, 0.15, 0.15, 1.0)
 		chip.empty_color = Color(0.08, 0.08, 0.08, 1.0)
+
+	if locked:
+		VoidLockOverlay.set_locked(chip, true)
 
 	button.add_child(chip)
 

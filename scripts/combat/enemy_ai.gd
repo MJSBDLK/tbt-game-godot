@@ -166,7 +166,7 @@ func _assign_move_for_turn() -> void:
 	# Move-randomizer passives (Capricious) re-pick each turn; others keep their
 	# assignment. Capability is read from the passive handlers, not a name string.
 	var should_randomize: bool = false
-	for handler: CombatEffect in PassiveRegistry.get_handlers_for(data):
+	for handler: CombatEffect in PassiveRegistry.get_handlers_for(data, _unit):
 		if handler.randomizes_move():
 			should_randomize = true
 			break

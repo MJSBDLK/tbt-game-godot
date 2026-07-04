@@ -63,7 +63,7 @@ static func effective_attack_range(attacker: Node2D, move: Move) -> int:
 	var total := move.attack_range
 	if attacker != null:
 		var data: Variant = attacker.get("character_data")
-		for handler: CombatEffect in PassiveRegistry.get_handlers_for(data):
+		for handler: CombatEffect in PassiveRegistry.get_handlers_for(data, attacker):
 			total += handler.extra_attack_range(move)
 	return total
 
@@ -129,7 +129,7 @@ static func resolve_actual_target(attacker: Unit, intended: Unit, move: Move) ->
 ## has already confirmed `blocker` is a between, non-defeated ally of the target
 ## on an offensive single-target shot; the handler adds its own conditions.
 static func _intercepts(blocker: Unit, attacker: Unit, target: Unit, move: Move) -> bool:
-	for handler: CombatEffect in PassiveRegistry.get_handlers_for(blocker.character_data):
+	for handler: CombatEffect in PassiveRegistry.get_handlers_for(blocker.character_data, blocker):
 		if handler.intercepts_attack(blocker, attacker, target, move):
 			return true
 	return false

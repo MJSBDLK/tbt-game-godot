@@ -8,6 +8,10 @@ uniform float skew_angle : hint_range(0.0, 45.0) = 45.0;
 uniform float border_px : hint_range(0.0, 4.0) = 1.0;
 uniform float radius_px : hint_range(0.0, 10.0) = 3.0;
 uniform vec2 rect_size = vec2(100.0, 14.0);
+// VOID lock: 0 = normal, 1 = fully grayscale. Pulls the chip's fill/border toward
+// luminance grey so a void-locked move/passive reads as "dead." Pairs with the
+// void_lock_overlay (shadow + sparkles) drawn on top. See VoidLockOverlay.
+uniform float lock_desaturate : hint_range(0.0, 1.0) = 0.0;
 
 float rounded_box_sdf(vec2 center_dist, vec2 half_size, float radius) {
 	vec2 q = abs(center_dist) - half_size + vec2(radius);
@@ -28,6 +32,12 @@ void fragment() {
 	// Blend border -> inner using SDF distance
 	float border_blend = smoothstep(0.0, -border_px, dist);
 	vec4 shape_color = mix(border_color, inner, border_blend);
+
+	// VOID lock: collapse toward perceived luminance (Rec. 601 weights).
+	if (lock_desaturate > 0.0) {
+		float luma = dot(shape_color.rgb, vec3(0.299, 0.587, 0.114));
+		shape_color.rgb = mix(shape_color.rgb, vec3(luma), lock_desaturate);
+	}
 
 	// Anti-aliased outer edge
 	float alpha = 1.0 - smoothstep(-0.5, 0.5, dist);

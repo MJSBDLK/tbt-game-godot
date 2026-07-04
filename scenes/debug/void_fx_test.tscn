@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://b8vfx0lock0test"]
+
+[ext_resource type="Script" path="res://scenes/debug/void_fx_test.gd" id="1_vfxt"]
+
+[node name="VoidFxTest" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+script = ExtResource("1_vfxt")
