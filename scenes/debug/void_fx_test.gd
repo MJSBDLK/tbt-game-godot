@@ -27,12 +27,19 @@ func _ready() -> void:
 
 	_label = Label.new()
 	_label.position = Vector2(20, 16)
-	_label.text = "void-lock fx — programmatic smoke + baked bubbles/stars\n[R] re-roll   [ESC] quit"
 	add_child(_label)
 
 	await get_tree().process_frame
 	for fx: VoidLockEffect in _effects:
 		_play(fx)
+
+
+func _process(_delta: float) -> void:
+	# Live FPS + cap so you can confirm the effect's speed is framerate-independent:
+	# flip the cap and the smoke/sweep should keep the same wall-clock pace.
+	var cap := Engine.max_fps
+	_label.text = "void-lock fx    %d FPS   (cap: %s)\n[R] re-roll   [1] 60fps  [2] 120fps  [3] uncapped   [ESC] quit" % [
+			Engine.get_frames_per_second(), "uncapped" if cap == 0 else str(cap)]
 
 
 func _make_sample(screen_pos: Vector2, ref_size: Vector2) -> void:
@@ -65,5 +72,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_R:
 			for fx: VoidLockEffect in _effects:
 				_play(fx)
+		KEY_1:
+			Engine.max_fps = 60
+		KEY_2:
+			Engine.max_fps = 120
+		KEY_3:
+			Engine.max_fps = 0
 		KEY_ESCAPE:
 			get_tree().quit()
