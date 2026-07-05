@@ -199,7 +199,8 @@ func _create_move_chip(move: Move, is_assigned: bool, callback: Callable, locked
 		chip.empty_color = Color(0.08, 0.08, 0.08, 1.0)
 
 	if locked:
-		VoidLockOverlay.set_locked(chip, true)
+		# Subdued (bubbles only) — the tight menu can't spill the smoke/crackle.
+		VoidLockOverlay.set_locked(chip, true, true)
 
 	button.add_child(chip)
 
@@ -220,9 +221,14 @@ func _create_move_chip(move: Move, is_assigned: bool, callback: Callable, locked
 	label.text = display_name
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
-	var glow: ShaderMaterial = GLOW_MATERIAL.duplicate()
-	glow.set_shader_parameter("glow_color", GameColors.TEXT_PRIMARY_GLOW)
-	label.material = glow
+	if locked:
+		# The label/icon sit over the chip (outside its overlay scrim), so grey them
+		# directly instead of relying on the desaturate/shadow that covers the body.
+		label.material = VoidLockOverlay.icon_gray_material()
+	else:
+		var glow: ShaderMaterial = GLOW_MATERIAL.duplicate()
+		glow.set_shader_parameter("glow_color", GameColors.TEXT_PRIMARY_GLOW)
+		label.material = glow
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hbox.add_child(label)
 
@@ -239,6 +245,8 @@ func _create_move_chip(move: Move, is_assigned: bool, callback: Callable, locked
 		icon.texture = icon_texture
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if locked:
+			icon.material = VoidLockOverlay.icon_gray_material()
 		hbox.add_child(icon)
 
 	button.add_child(hbox)

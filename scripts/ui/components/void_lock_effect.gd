@@ -18,6 +18,12 @@
 class_name VoidLockEffect
 extends Node2D
 
+# Which emitters run. A subdued variant (bubbles only) is used where the surface is
+# too tight for the crackle + smoke to spill (e.g. the action menu).
+@export var emit_smoke: bool = true
+@export var emit_bubbles: bool = true
+@export var emit_stars: bool = true
+
 # --- Smoke jet tuning (RQD's spec; degrees measured clockwise from straight up) ---
 @export var smoke_left_bound_deg: float = 15.0
 @export var smoke_right_bound_deg: float = 45.0
@@ -89,7 +95,7 @@ func _process(delta: float) -> void:
 	# the sweep. Cap it so a spike can't distort the effect. Below ~20 fps this makes
 	# the effect run in slow-mo rather than teleport, which is the better failure.
 	delta = minf(delta, 0.05)
-	if _running:
+	if _running and emit_bubbles:
 		_tick_bubbles(delta)
 	_tick_smoke(delta)   # jets/pixels keep going after stop() until they finish
 	_tick_stars(delta)   # finish an in-flight sweep even after stop()
@@ -101,8 +107,8 @@ func _process(delta: float) -> void:
 # =============================================================================
 
 func _tick_smoke(delta: float) -> void:
-	# Refill jets to the cap (only while running — stopping lets existing ones die).
-	while _running and _jets.size() < SMOKE_JETS:
+	# Refill jets to the cap (only while running + enabled — stopping lets existing die).
+	while _running and emit_smoke and _jets.size() < SMOKE_JETS:
 		var origin := _pick_jet_origin()
 		if origin.x == INF:
 			break
@@ -171,8 +177,10 @@ func _draw() -> void:
 
 
 func _random_perimeter_point() -> Vector2:
-	var w := _size.x
-	var h := _size.y
+	# Use the LAST valid pixel index (size - 1), not size — otherwise the right/bottom
+	# edges land one pixel past the chip, spawning smoke just outside the stylebox.
+	var w := maxf(1.0, _size.x - 1.0)
+	var h := maxf(1.0, _size.y - 1.0)
 	var d := randf() * 2.0 * (w + h)
 	if d < w:
 		return Vector2(d, 0.0)
@@ -204,7 +212,7 @@ func _tick_bubbles(delta: float) -> void:
 
 func _tick_stars(delta: float) -> void:
 	if not _sweep_active:
-		if not _running:
+		if not _running or not emit_stars:
 			return
 		_sweep_gap -= delta
 		if _sweep_gap <= 0.0:
