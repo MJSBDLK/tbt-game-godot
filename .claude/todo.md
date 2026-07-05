@@ -488,6 +488,10 @@ New sprites — faction needed:
 - [ ] Add moves: [Club (basic low-med power attack for the Ogre), Hook Swipe (low damage, chance to root) ]
 - [ ] In enums.gd, we have StatusEffectType which needs to be separated into AfflictType and BoostType (debuff/buff) - this is likely a significant undertaking because we need to rewire a lot of the game logic. I don't think there's an alternative because units need to be able to have a boost and an affliction at the same time.
 - [ ] We need clear visual feedback for EVERY passive that triggers.
+- [ ] Need clear visual feedback when boosts and affliction effects clear
+- [ ] Void lock effect is not applied to the "assign move" menu
+- [ ] Void lock effect - tweak the density of the FX (frequency as applicable) for larger styleboxes
+- [ ] If color-swapped sprite variants is something we wish to do, is designing around indexed palettes super important right now?
 
 # Stretch Goalsls
 - [ ] Sync beacons to music BPM
@@ -530,6 +534,9 @@ New sprites — faction needed:
 ## Art Pipeline
 - [ ] Figure out how normal maps work with the Aseprite -> Aseprite Wizard -> Godot workflow
 - [ ] Understand how timing on frames works within the Aseprite -> Aseprite Wizard -> Godot workflow
+
+### Aseprite Plugins
+- [ ] A tool where you can input (or eyedropper) two colors: the plugin will select every pixel of the first color, only if it is adjacent to the second color.
 
 ## Misc
 - [ ] Optimize controls for touchscreen
