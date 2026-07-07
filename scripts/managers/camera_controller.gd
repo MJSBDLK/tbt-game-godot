@@ -27,6 +27,10 @@ extends Camera2D
 @export var edge_pan_border: float = 20.0
 
 @export_group("Zoom")
+## Smooth-mode zoom: each scroll notch scales zoom by (1 + zoom_step), so a
+## notch changes the view by the same PROPORTION at any depth. Additive 0.25
+## steps felt dead when zoomed in and made smooth mode ~4x less sensitive than
+## integer mode's whole-level steps — jarring when switching modes.
 @export var zoom_step: float = 0.25
 ## Minimum camera zoom = screen pixels per world pixel. 1.0 means 1 world pixel
 ## = 1 screen pixel = pixel-perfect maximum zoom-out. Going lower would render
@@ -112,16 +116,10 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	# Zoom
 	if event.is_action_pressed("zoom_in"):
-		var step: float = 1.0 if integer_zoom_mode else zoom_step
-		_target_zoom = clampf(_target_zoom + step, min_zoom, max_zoom)
-		if integer_zoom_mode:
-			_target_zoom = roundf(_target_zoom)
+		_step_zoom(1)
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("zoom_out"):
-		var step: float = 1.0 if integer_zoom_mode else zoom_step
-		_target_zoom = clampf(_target_zoom - step, min_zoom, max_zoom)
-		if integer_zoom_mode:
-			_target_zoom = roundf(_target_zoom)
+		_step_zoom(-1)
 		get_viewport().set_input_as_handled()
 
 	# Middle-mouse drag
@@ -138,6 +136,20 @@ func _unhandled_input(event: InputEvent) -> void:
 		var current_mouse := get_global_mouse_position()
 		_target_position -= (current_mouse - _drag_start_position)
 		_drag_start_position = get_global_mouse_position()
+
+
+## One scroll notch of zoom in `direction` (+1 in, -1 out). Integer mode steps
+## whole pixel-scale levels (1x → 2x → 3x). Smooth mode is MULTIPLICATIVE —
+## zoom scales by (1 + zoom_step) per notch — so the per-notch visual change is
+## proportional everywhere and lands close to integer mode's step size around
+## the default zoom (3x on 1080p), keeping the two modes' scroll sensitivity
+## comparable when the player flips Zoom Mode.
+func _step_zoom(direction: int) -> void:
+	if integer_zoom_mode:
+		_target_zoom = roundf(clampf(_target_zoom + float(direction), min_zoom, max_zoom))
+		return
+	var factor: float = (1.0 + zoom_step) if direction > 0 else 1.0 / (1.0 + zoom_step)
+	_target_zoom = clampf(_target_zoom * factor, min_zoom, max_zoom)
 
 
 func _handle_keyboard_pan(delta: float) -> void:
