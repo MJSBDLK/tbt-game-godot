@@ -6,7 +6,16 @@ extends Control
 
 signal continue_pressed()
 
+## How far above its rest position the stats content starts its slide-in.
+const SLIDE_IN_DISTANCE: float = 40.0
+const SLIDE_IN_DURATION: float = 0.35
+
 var _background: ColorRect = null
+var _content: VBoxContainer = null
+# The content container's at-rest anchor offsets, captured at build time so the
+# slide-in can displace and restore them without assuming they were zero.
+var _content_rest_top: float = 0.0
+var _content_rest_bottom: float = 0.0
 var _header_label: Label = null
 var _stats_label: Label = null
 var _continue_button: Button = null
@@ -37,10 +46,23 @@ func show_result(is_victory: bool, turn_count: int, player_units_lost: int,
 		turn_count, player_units_lost, total_players,
 		enemies_defeated, total_enemies]
 
+	# Banner-first flow: the bare VICTORY/DEFEAT banner has already played by
+	# the time this shows (UIManager awaits it), so the panel doesn't repeat
+	# that reveal — the background fades up while the stats content slides
+	# down into place from just above its rest position.
 	visible = true
-	modulate.a = 0.0
-	var tween := create_tween()
-	tween.tween_property(self, "modulate:a", 1.0, 0.5)
+	modulate.a = 1.0
+	_background.modulate.a = 0.0
+	_content.modulate.a = 0.0
+	_content.offset_top = _content_rest_top - SLIDE_IN_DISTANCE
+	_content.offset_bottom = _content_rest_bottom - SLIDE_IN_DISTANCE
+	var tween := create_tween().set_parallel(true)
+	tween.tween_property(_background, "modulate:a", 1.0, 0.3)
+	tween.tween_property(_content, "modulate:a", 1.0, SLIDE_IN_DURATION)
+	tween.tween_property(_content, "offset_top", _content_rest_top, SLIDE_IN_DURATION) \
+			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tween.tween_property(_content, "offset_bottom", _content_rest_bottom, SLIDE_IN_DURATION) \
+			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 
 
 func hide_result() -> void:
@@ -84,6 +106,9 @@ func _build_content() -> void:
 	center.add_theme_constant_override("separation", 8)
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(center)
+	_content = center
+	_content_rest_top = center.offset_top
+	_content_rest_bottom = center.offset_bottom
 
 	# VICTORY / DEFEAT header
 	_header_label = Label.new()
