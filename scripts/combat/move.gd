@@ -97,6 +97,14 @@ func effective_animation_style() -> String:
 	return "ranged" if attack_range >= 2 else "melee"
 
 
+## The game-wide melee/ranged classification of this move. Animations AND
+## gameplay (e.g. Crater's defense split: bonus vs melee, penalty vs ranged)
+## read this one source of truth, so it's a property of the MOVE — a Laser
+## fired point-blank is still a ranged attack.
+func is_ranged_style() -> bool:
+	return effective_animation_style() == "ranged"
+
+
 ## Returns true if this move would have a meaningful effect on `target`.
 ## Drives both the action menu's "should this chip appear" decision and the
 ## in-targeting valid-tile filter, so users never see a move that lights up

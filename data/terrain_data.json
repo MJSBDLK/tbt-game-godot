@@ -89,12 +89,14 @@
     "avoidMultiplier": { "default": 1.0, "Fire": 1.05 }
   },
   "Crater": {
-    "doc": "Rough terrain that applies a defensive penalty to grounded units, fliers can traverse with normal movement cost and without defensive penalties.",
+    "doc": "Rough terrain. Dug-in defenders take less from melee but are exposed to ranged fire; fliers hover above the pit and get neither, with normal movement cost.",
     "walkable": { "default": true },
     "movePenalty": { "default": 2, "Air": 1 },
     "attackMultiplier": { "default": 1, "Gravity": 1.3 },
     "terrainStatusImmunity": ["Electric", "Scorch"],
-    "defenseMultiplier": { "default": 1.1 },
+    "defenseMultiplier": { "default": 1 },
+    "defenseMultiplierVsMelee": { "default": 1.2, "Air": 1 },
+    "defenseMultiplierVsRanged": { "default": 0.85, "Air": 1 },
     "avoidMultiplier": { "default": 0.9 }
   },
   "Desert": {

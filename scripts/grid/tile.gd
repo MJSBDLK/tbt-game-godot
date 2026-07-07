@@ -95,6 +95,23 @@ func get_defense_multiplier_for_unit(unit_type: String = "") -> float:
 	return defense_multiplier
 
 
+## Style-conditional defense (layered on top of get_defense_multiplier_for_unit
+## by DamageCalculator, keyed on the incoming move's melee/ranged style).
+## Neutral 1.0 fallback — only terrains that opt in (Crater) deviate.
+func get_defense_vs_melee_multiplier_for_unit(unit_type: String = "") -> float:
+	var terrain_manager: Node = get_node_or_null("/root/TerrainDataManager")
+	if terrain_manager != null:
+		return terrain_manager.get_defense_multiplier_vs_melee(terrain_type_name, unit_type)
+	return 1.0
+
+
+func get_defense_vs_ranged_multiplier_for_unit(unit_type: String = "") -> float:
+	var terrain_manager: Node = get_node_or_null("/root/TerrainDataManager")
+	if terrain_manager != null:
+		return terrain_manager.get_defense_multiplier_vs_ranged(terrain_type_name, unit_type)
+	return 1.0
+
+
 func get_avoid_multiplier_for_unit(unit_type: String = "") -> float:
 	var terrain_manager: Node = get_node_or_null("/root/TerrainDataManager")
 	if terrain_manager != null:

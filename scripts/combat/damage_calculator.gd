@@ -42,6 +42,9 @@ const STAB_MULTIPLIER: float = 1.2
 #   attackMultiplier  — attacker's tile → scales outgoing damage   (1.4 = +40%)
 #   defenseMultiplier — defender's tile → scales the defense stat   (1.3 = +30% def)
 #   avoidMultiplier   — defender's tile → lowers attacker's hit %   (1.2 = +20% dodge)
+#   defenseMultiplierVsMelee / VsRanged — defender's tile, layered onto
+#     defenseMultiplier depending on the incoming move's style
+#     (Move.is_ranged_style). Crater: dug-in vs melee, exposed to ranged.
 #
 # Reckless ("Increased terrain bonuses and penalties") doubles the DEVIATION from
 # neutral (1.0) of the multipliers tied to the Reckless unit's OWN tile: good
@@ -87,6 +90,13 @@ static func terrain_multiplier_for(unit: Node2D, getter: StringName) -> float:
 		primary_type = Enums.elemental_type_to_string(data.effective_primary_type())
 		secondary_type = Enums.elemental_type_to_string(data.effective_secondary_type())
 	var primary_value: float = tile.call(getter, primary_type)
+	# A mono-typed unit interacts through its primary type ONLY. Querying the
+	# NONE secondary returns the terrain's default value, and "furthest from
+	# neutral wins" would let that default out-deviate an explicit per-type
+	# neutral override — e.g. Air's 1.0 exemption from Crater's melee cover
+	# losing to the grounded 1.2 default.
+	if data == null or data.effective_secondary_type() == Enums.ElementalType.NONE:
+		return primary_value
 	var secondary_value: float = tile.call(getter, secondary_type)
 	if absf(secondary_value - 1.0) > absf(primary_value - 1.0):
 		return secondary_value
@@ -134,8 +144,14 @@ static func calculate_damage(attacker: Node2D, defender: Node2D, move: Move) -> 
 	var attack_terrain := reckless_adjust(
 			terrain_multiplier_for(attacker, &"get_attack_multiplier_for_unit"),
 			attacker_data.has_equipped_passive("Reckless"))
+	# Style split: some terrains defend differently against melee vs ranged
+	# (Crater). The style multiplier layers onto the base one, and both share
+	# the defender's Reckless amplification since they're the same tile's gift.
+	var style_defense_getter: StringName = &"get_defense_vs_ranged_multiplier_for_unit" \
+			if move.is_ranged_style() else &"get_defense_vs_melee_multiplier_for_unit"
 	var defense_terrain := reckless_adjust(
-			terrain_multiplier_for(defender, &"get_defense_multiplier_for_unit"),
+			terrain_multiplier_for(defender, &"get_defense_multiplier_for_unit")
+					* terrain_multiplier_for(defender, style_defense_getter),
 			defender_data.has_equipped_passive("Reckless"))
 	var effective_defense := roundi(defense_stat * defense_terrain)
 

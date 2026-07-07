@@ -72,6 +72,10 @@ func _parse_terrain_database(data: Dictionary) -> void:
 			definition.attack_multiplier = _parse_terrain_property(terrain_dict["attackMultiplier"])
 		if terrain_dict.has("defenseMultiplier"):
 			definition.defense_multiplier = _parse_terrain_property(terrain_dict["defenseMultiplier"])
+		if terrain_dict.has("defenseMultiplierVsMelee"):
+			definition.defense_multiplier_vs_melee = _parse_terrain_property(terrain_dict["defenseMultiplierVsMelee"])
+		if terrain_dict.has("defenseMultiplierVsRanged"):
+			definition.defense_multiplier_vs_ranged = _parse_terrain_property(terrain_dict["defenseMultiplierVsRanged"])
 		if terrain_dict.has("avoidMultiplier"):
 			definition.avoid_multiplier = _parse_terrain_property(terrain_dict["avoidMultiplier"])
 		if terrain_dict.has("terrainStatusImmunity"):
@@ -160,6 +164,23 @@ func get_defense_multiplier(terrain_type: String, unit_type: String = "") -> flo
 	return terrain.defense_multiplier.get_value(unit_type)
 
 
+## Style-conditional defense multipliers (Crater et al.) — neutral 1.0 for
+## unknown terrain, unlike the base getters' 0.0, because these layer
+## multiplicatively on top of defense_multiplier and must be a no-op by default.
+func get_defense_multiplier_vs_melee(terrain_type: String, unit_type: String = "") -> float:
+	if not _is_loaded or not _terrains.has(terrain_type):
+		return 1.0
+	var terrain: TerrainDefinition = _terrains[terrain_type]
+	return terrain.defense_multiplier_vs_melee.get_value(unit_type)
+
+
+func get_defense_multiplier_vs_ranged(terrain_type: String, unit_type: String = "") -> float:
+	if not _is_loaded or not _terrains.has(terrain_type):
+		return 1.0
+	var terrain: TerrainDefinition = _terrains[terrain_type]
+	return terrain.defense_multiplier_vs_ranged.get_value(unit_type)
+
+
 func get_avoid_multiplier(terrain_type: String, unit_type: String = "") -> float:
 	if not _is_loaded or not _terrains.has(terrain_type):
 		return 0.0
@@ -223,6 +244,11 @@ class TerrainDefinition:
 			return avoid_multiplier
 		set(value):
 			avoid_multiplier = value
+	# Style-conditional defense: multiplied ON TOP of defense_multiplier when the
+	# incoming move is melee/ranged (Move.is_ranged_style). Neutral 1.0 unless the
+	# terrain opts in (e.g. Crater: dug-in vs melee, exposed to ranged).
+	var defense_multiplier_vs_melee := TerrainProperty.new()
+	var defense_multiplier_vs_ranged := TerrainProperty.new()
 	var terrain_status_immunity: Array[String] = []
 
 	func _init() -> void:
@@ -230,3 +256,5 @@ class TerrainDefinition:
 		defense_multiplier.default_value = 1.0
 		avoid_multiplier = TerrainProperty.new()
 		avoid_multiplier.default_value = 1.0
+		defense_multiplier_vs_melee.default_value = 1.0
+		defense_multiplier_vs_ranged.default_value = 1.0

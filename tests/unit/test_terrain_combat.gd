@@ -201,3 +201,63 @@ func test_plains_matches_off_grid_baseline() -> void:
 			DamageCalculator.hit_chance_pct(attacker, defender, _move()),
 			DamageCalculator.hit_chance_pct(tileless_attacker, tileless_defender, _move()),
 			"Plains equals the off-grid baseline hit chance")
+
+
+# =============================================================================
+# Crater — style-conditional defense (defenseMultiplierVsMelee / VsRanged,
+# keyed on Move.is_ranged_style; layered onto the base defenseMultiplier)
+# =============================================================================
+
+func _ranged_move(power := 10) -> Move:
+	var move := _move(power)
+	move.attack_range = 2
+	return move
+
+
+func test_crater_blunts_melee_attacks() -> void:
+	var attacker := _unit()
+	var dug_in := _unit(Enums.ElementalType.NONE, Enums.ElementalType.NONE, [], "Crater")
+	var in_the_open := _unit()
+	assert_lt(
+			DamageCalculator.calculate_damage(attacker, dug_in, _move()),
+			DamageCalculator.calculate_damage(attacker, in_the_open, _move()),
+			"a dug-in defender takes less from melee than one on Plains")
+
+
+func test_crater_exposes_defender_to_ranged_fire() -> void:
+	var attacker := _unit()
+	var dug_in := _unit(Enums.ElementalType.NONE, Enums.ElementalType.NONE, [], "Crater")
+	var in_the_open := _unit()
+	assert_gt(
+			DamageCalculator.calculate_damage(attacker, dug_in, _ranged_move()),
+			DamageCalculator.calculate_damage(attacker, in_the_open, _ranged_move()),
+			"a defender in a crater takes more from ranged fire than one on Plains")
+
+
+func test_style_override_decides_the_crater_split() -> void:
+	# A range-1 move explicitly tagged ranged (animationStyle) counts as ranged
+	# for the split — the classification is the move's, not the firing distance.
+	var attacker := _unit()
+	var dug_in := _unit(Enums.ElementalType.NONE, Enums.ElementalType.NONE, [], "Crater")
+	var point_blank_shot := _move()
+	point_blank_shot.animation_style = "ranged"
+	assert_gt(
+			DamageCalculator.calculate_damage(attacker, dug_in, point_blank_shot),
+			DamageCalculator.calculate_damage(attacker, dug_in, _move()),
+			"a tagged-ranged move punishes the crater dweller where a melee move is blunted")
+
+
+func test_fliers_hover_above_the_crater_split() -> void:
+	# Air override is 1.0 on both style multipliers — a flier is above the pit,
+	# so it gets neither the melee cover nor the ranged exposure.
+	var attacker := _unit()
+	var flier_in_crater := _unit(Enums.ElementalType.AIR, Enums.ElementalType.NONE, [], "Crater")
+	var flier_in_open := _unit(Enums.ElementalType.AIR, Enums.ElementalType.NONE, [], "Plains")
+	assert_eq(
+			DamageCalculator.calculate_damage(attacker, flier_in_crater, _move()),
+			DamageCalculator.calculate_damage(attacker, flier_in_open, _move()),
+			"flier takes normal melee damage in a crater")
+	assert_eq(
+			DamageCalculator.calculate_damage(attacker, flier_in_crater, _ranged_move()),
+			DamageCalculator.calculate_damage(attacker, flier_in_open, _ranged_move()),
+			"flier takes normal ranged damage in a crater")
