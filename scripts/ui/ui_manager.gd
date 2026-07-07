@@ -63,6 +63,10 @@ var _bonus_xp_panel: BonusXpPanel = null
 # PostMissionReportPanel.show_report, since each screen accepts the same
 # payload but renders in sequence.
 var _pending_post_mission_report: Array = []
+# Outcome recorded by show_battle_result (which _end_battle calls before
+# emitting battle_ended) so the banner played at the top of the post-mission
+# chain knows what to say.
+var _pending_result_is_victory: bool = true
 var _recruit_picker_panel: Node = null
 
 
@@ -271,14 +275,15 @@ func show_battle_result(is_victory: bool, turn_count: int, player_units_lost: in
 	hide_action_menu()
 	hide_combat_preview()
 	hide_unit_detail()
-	# Banner-first flow (Lawrence, playtesting): the FIRST thing the player sees
-	# is a bare "VICTORY"/"DEFEAT" riding the phase-transition banner — no
-	# numbers, no button. Only after it clears does the stats panel slide in.
-	var banner_color: Color = GameColors.PLAYER_UNIT if is_victory else GameColors.ENEMY_UNIT
-	await show_phase_transition("VICTORY" if is_victory else "DEFEAT", banner_color)
-	if _battle_result_overlay != null and _battle_result_overlay.has_method("show_result"):
-		_battle_result_overlay.show_result(is_victory, turn_count, player_units_lost,
-			enemies_defeated, total_players, total_enemies)
+	# Record the outcome for the banner. _end_battle calls this BEFORE emitting
+	# battle_ended, so the flag is always fresh when the post-mission chain
+	# (_on_post_mission_report_ready) reads it.
+	_pending_result_is_victory = is_victory
+	# The legacy stats overlay is DELIBERATELY NOT shown. The post-mission
+	# chain suppresses it via hide_battle_result() in the same frame anyway
+	# (its Continue button has no listeners — it's dead UI pending the
+	# battle-result rebuild). Showing it after an awaited banner resurrected
+	# it as an undismissable zombie underneath the bEXP screen (2026-07-07).
 
 
 func hide_battle_result() -> void:
@@ -587,6 +592,17 @@ func _on_post_mission_report_ready(report: Array) -> void:
 	hide_unit_detail()
 
 	_pending_post_mission_report = report
+	# Banner-first flow (Lawrence, playtesting): the FIRST thing the player
+	# sees at battle end is a bare "VICTORY"/"DEFEAT" riding the phase banner —
+	# no numbers, no buttons. The await here holds back the entire level-up →
+	# bEXP → report chain until the banner clears; map input is already dead
+	# because POST_MISSION_REPORT was pushed above. This must live HERE, not in
+	# show_battle_result — the chain starts off battle_ended and would race a
+	# banner played anywhere else (it did: bEXP screen over the banner).
+	var banner_color: Color = GameColors.PLAYER_UNIT if _pending_result_is_victory \
+			else GameColors.ENEMY_UNIT
+	await show_phase_transition(
+			"VICTORY" if _pending_result_is_victory else "DEFEAT", banner_color)
 	if _level_up_report_panel != null:
 		# LevelUpReportPanel filters internally; if nobody leveled it emits
 		# `closed` immediately and the chain continues without delay.
