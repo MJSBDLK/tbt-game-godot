@@ -6,12 +6,14 @@ const JSON_PATH: String = "res://data/type_chart.json"
 
 const TYPES: Array[String] = [
 	"Air", "Chivalric", "Cold", "Electric", "Fire", "Gentry", "Gravity",
-	"Heraldic", "Occult", "Plant", "Robo", "Simple", "Void", "Obsidian"
+	"Heraldic", "Occult", "Plant", "Robo", "Simple", "Void", "Obsidian",
+	"Monster", "Beast"
 ]
 
 const TYPE_ABBREVS: Array[String] = [
 	"Air", "Chv", "Cld", "Elc", "Fir", "Gen", "Grv",
-	"Her", "Occ", "Plt", "Rob", "Sim", "Vod", "Obs"
+	"Her", "Occ", "Plt", "Rob", "Sim", "Vod", "Obs",
+	"Mon", "Bst"
 ]
 
 const CELL_SIZE := Vector2(50, 50)

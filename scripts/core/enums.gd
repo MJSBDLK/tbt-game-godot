@@ -27,6 +27,8 @@ enum ElementalType {
 	SIMPLE,
 	VOID,
 	OBSIDIAN,   # Enemies only, highly resistant to almost everything
+	MONSTER,    # Weak to Plant/Heraldic, resists Void; strong vs Simple, weak vs Chivalric/Gentry/Heraldic
+	BEAST,      # Weak to Monster; strong vs Simple
 }
 
 enum DamageType {

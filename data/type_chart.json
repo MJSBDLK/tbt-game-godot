@@ -27,6 +27,11 @@
 			"effect": "ouch"
 		},
 		{
+			"attacking": "Beast",
+			"defending": "Simple",
+			"effect": "ouch"
+		},
+		{
 			"attacking": "Chivalric",
 			"defending": "Heraldic",
 			"effect": "ouch"
@@ -203,8 +208,38 @@
 		},
 		{
 			"attacking": "Heraldic",
+			"defending": "Monster",
+			"effect": "ouch"
+		},
+		{
+			"attacking": "Heraldic",
 			"defending": "Obsidian",
 			"effect": "resist"
+		},
+		{
+			"attacking": "Monster",
+			"defending": "Beast",
+			"effect": "ouch"
+		},
+		{
+			"attacking": "Monster",
+			"defending": "Chivalric",
+			"effect": "resist"
+		},
+		{
+			"attacking": "Monster",
+			"defending": "Gentry",
+			"effect": "resist"
+		},
+		{
+			"attacking": "Monster",
+			"defending": "Heraldic",
+			"effect": "resist"
+		},
+		{
+			"attacking": "Monster",
+			"defending": "Simple",
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Obsidian",
@@ -270,6 +305,11 @@
 			"attacking": "Plant",
 			"defending": "Fire",
 			"effect": "resist"
+		},
+		{
+			"attacking": "Plant",
+			"defending": "Monster",
+			"effect": "ouch"
 		},
 		{
 			"attacking": "Plant",
@@ -340,6 +380,11 @@
 			"attacking": "Void",
 			"defending": "Gravity",
 			"effect": "ouch"
+		},
+		{
+			"attacking": "Void",
+			"defending": "Monster",
+			"effect": "resist"
 		},
 		{
 			"attacking": "Void",
