@@ -632,14 +632,13 @@ func is_defeated() -> bool:
 ## Returns a random non-defeated ally within manhattan `attack_range` of this unit,
 ## or null if none exist. Used by the FRIENDLY_FIRE injury mechanic to retarget.
 func _pick_random_ally_in_range(attack_range: int) -> Unit:
-	var turn_manager: Node = get_node_or_null("/root/TurnManager")
-	if turn_manager == null:
-		return null
+	# Autoload accessed by global name (house style) — also keeps this callable
+	# from units not yet in the tree (tests).
 	var pool: Array[Unit] = []
 	if faction == Enums.UnitFaction.PLAYER:
-		pool = turn_manager.get_player_units()
+		pool = TurnManager.get_player_units()
 	else:
-		pool = turn_manager.get_enemy_units()
+		pool = TurnManager.get_enemy_units()
 
 	var candidates: Array[Unit] = []
 	for ally: Unit in pool:
@@ -652,6 +651,18 @@ func _pick_random_ally_in_range(attack_range: int) -> Unit:
 	if candidates.is_empty():
 		return null
 	return candidates[randi() % candidates.size()]
+
+
+## Corruption's retarget decision, split out for testability: the ally-victim
+## on a proc, or the ORIGINAL defender when no ally is in range. Never null —
+## a proc with nobody around proceeds normally instead of fizzling (design call
+## 2026-07-06: isolating a corrupted unit from its allies is the counterplay,
+## so standing alone must be safe, not wasted).
+func resolve_friendly_fire_victim(original_defender: Unit, move: Move) -> Unit:
+	var ally: Unit = _pick_random_ally_in_range(move.attack_range)
+	if ally == null:
+		return original_defender
+	return ally
 
 
 # =============================================================================
@@ -668,23 +679,25 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 
 	# Friendly fire (Corruption injury): the attacker has been "acting shifty."
 	# On a proc, retarget a random ally in range. If no ally is in range, the
-	# attack fizzles entirely — flavor: the unit hesitates.
+	# attack proceeds against the original target — Corruption never fizzles
+	# (design call 2026-07-06: isolating a corrupted unit from its allies is the
+	# counterplay, so standing alone must be safe, not wasted).
 	# Skipped for ally-targeting moves (they're already friendly).
 	if not is_ally_move and character_data != null and character_data.friendly_fire_chance_pct() > 0.0:
 		if randf() * 100.0 < character_data.friendly_fire_chance_pct():
-			var ally: Unit = _pick_random_ally_in_range(attacker_move.attack_range)
-			if ally == null:
-				DebugConfig.log_combat("FriendlyFire: %s hesitated (no ally in range)" % unit_name)
-				return
-			# Surface the proc to the player BEFORE the swing animation so the
-			# cause-and-effect ("Corruption fired → I hit my ally") reads cleanly
-			# instead of looking like a bug. Brief pause lets the callout register
-			# before the attacker pivots toward the new target.
-			spawn_text_callout("CORRUPTION", GameColors.TEXT_DANGER)
-			await get_tree().create_timer(0.4).timeout
-			DebugConfig.log_combat("FriendlyFire: %s redirected attack from %s to %s" % [
-				unit_name, defender.unit_name, ally.unit_name])
-			defender = ally
+			var victim: Unit = resolve_friendly_fire_victim(defender, attacker_move)
+			if victim == defender:
+				DebugConfig.log_combat("FriendlyFire: %s procced with no ally in range — attack proceeds normally" % unit_name)
+			else:
+				# Surface the proc to the player BEFORE the swing animation so the
+				# cause-and-effect ("Corruption fired → I hit my ally") reads cleanly
+				# instead of looking like a bug. Brief pause lets the callout register
+				# before the attacker pivots toward the new target.
+				spawn_text_callout("CORRUPTION", GameColors.TEXT_DANGER)
+				await get_tree().create_timer(0.4).timeout
+				DebugConfig.log_combat("FriendlyFire: %s redirected attack from %s to %s" % [
+					unit_name, defender.unit_name, victim.unit_name])
+				defender = victim
 
 	# Protector: a ranged offensive attack that passes over an ally-bodyguard of
 	# the target hits the bodyguard instead. No-op for ally moves, off-axis shots,
@@ -694,9 +707,8 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 		defender = MoveTargeting.resolve_actual_target(self, defender, attacker_move)
 
 	combat_started.emit(self, defender)
-	# Count this move use for the turn (Impetuous reads it). Fizzled friendly-fire
-	# returned above, so it doesn't count; counters go through _execute_single_hit,
-	# not here, so they don't count either.
+	# Count this move use for the turn (Impetuous reads it). Counters go through
+	# _execute_single_hit, not here, so they don't count.
 	attacks_this_turn += 1
 	DebugConfig.log_combat("Combat: %s (move=%s) vs %s" % [unit_name, attacker_move.move_name, defender.unit_name])
 
