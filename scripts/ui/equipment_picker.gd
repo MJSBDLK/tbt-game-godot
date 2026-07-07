@@ -272,6 +272,9 @@ func _build_stats_body(root: VBoxContainer, ui_manager: Node) -> void:
 
 	_stat_pool_label = Label.new()
 	_stat_pool_label.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	# Same Yellow-5 accent as the roster cards' ★N badge and the allocation
+	# pluses — one color = "this is the stat-up currency" wherever it appears.
+	_stat_pool_label.add_theme_color_override("font_color", GameColorPalette.get_color("Yellow", 5))
 	if ui_manager != null:
 		_stat_pool_label.add_theme_font_override("font", ui_manager.font_8px)
 		_stat_pool_label.add_theme_font_size_override("font_size", 8)
@@ -1006,12 +1009,14 @@ func _make_stat_row(stat_name: String, abbrev: String, points_remaining: int) ->
 	if ui_manager != null:
 		value_label.add_theme_font_override("normal_font", ui_manager.font_8px)
 		value_label.add_theme_font_size_override("normal_font_size", 8)
-	var green_hex: String = GameColorPalette.get_color("Green", 6).to_html(false)
+	# Yellow 5 = the stat-up accent (matches the ★N badge + pool counter), so
+	# "what's being modified" and "what's left to spend" read as one system.
+	var accent_hex: String = GameColorPalette.get_color("Yellow", 5).to_html(false)
 	var pluses: String = "+".repeat(points)
 	var trailer: String = ""
 	if points > 0 and resulting != level_value:
 		trailer = "  → %d" % resulting
-	value_label.text = "%d[color=#%s]%s[/color]%s" % [level_value, green_hex, pluses, trailer]
+	value_label.text = "%d[color=#%s]%s%s[/color]" % [level_value, accent_hex, pluses, trailer]
 	row.add_child(value_label)
 
 	var plus_button := Button.new()
@@ -1025,6 +1030,14 @@ func _make_stat_row(stat_name: String, abbrev: String, points_remaining: int) ->
 		plus_button.add_theme_font_size_override("font_size", 8)
 	plus_button.pressed.connect(_on_stat_increment.bind(stat_name))
 	row.add_child(plus_button)
+
+	# Disabled buttons swallow clicks silently — gui_input still fires on them,
+	# so a press on a greyed +/- red-flashes the info that explains WHY it's
+	# disabled (pool counter when out of points, the row's value otherwise).
+	minus_button.gui_input.connect(
+			_on_disabled_stat_button_input.bind(minus_button, stat_name, value_label))
+	plus_button.gui_input.connect(
+			_on_disabled_stat_button_input.bind(plus_button, stat_name, value_label))
 
 	# Trailing spacer absorbs the row's leftover width so the -/value/+ cluster
 	# stays packed on the left edge instead of stretching across the panel.
@@ -1070,6 +1083,38 @@ func _on_stat_reset_pressed() -> void:
 	_refresh_summary()
 	_refresh_stats_body()
 	stats_changed.emit()
+
+
+## Pressing a DISABLED +/- button gives no feedback by default (disabled
+## buttons never emit `pressed`), which reads as "the screen is broken".
+## gui_input still fires on them, so flash the info that explains the refusal:
+## the pool counter when the press failed for lack of points, otherwise the
+## row's own value (per-stat cap reached / nothing allocated to remove).
+func _on_disabled_stat_button_input(event: InputEvent, button: Button,
+		stat_name: String, value_label: Control) -> void:
+	if not button.disabled or _character_data == null:
+		return
+	if not (event is InputEventMouseButton):
+		return
+	var mouse_event := event as InputEventMouseButton
+	if not mouse_event.pressed or mouse_event.button_index != MOUSE_BUTTON_LEFT:
+		return
+	var points: int = _character_data.get_allocated_points(stat_name)
+	var out_of_points: bool = \
+			_character_data.allocated_total() >= _character_data.available_stat_ups
+	if button.text == "+" and out_of_points and points < StatAllocation.PER_STAT_CAP:
+		_flash_denied(_stat_pool_label)
+	else:
+		_flash_denied(value_label)
+
+
+## Quick red pulse on `control` — the "that's why not" gesture.
+func _flash_denied(control: Control) -> void:
+	if control == null or not control.is_inside_tree():
+		return
+	var tween := control.create_tween()
+	tween.tween_property(control, "modulate", Color(1.0, 0.25, 0.25), 0.05)
+	tween.tween_property(control, "modulate", Color.WHITE, 0.35)
 
 
 # =============================================================================
