@@ -41,6 +41,18 @@ var click_to_attack_enabled: bool = false
 ## a real design pass.
 var unit_type_icons_enabled: bool = false
 
+## Audio volumes, linear 0.0–1.0, applied to the AudioServer buses. SFX and
+## Music buses are minted at load if missing (the project ships no bus layout
+## yet), so future AudioStreamPlayers can route by bus name from day one.
+## Defaults per design: 0.8.
+var master_volume: float = 0.8
+var sfx_volume: float = 0.8
+var music_volume: float = 0.8
+
+## Framerate cap, applied to Engine.max_fps. 0 = uncapped (VSync still applies
+## on top). The Options slider offers Off / 30–1000.
+var max_fps: int = 0
+
 ## The file settings load from / save to. Overridable so tests can point at a
 ## throwaway path instead of clobbering the player's real settings file.
 var settings_path: String = DEFAULT_SETTINGS_PATH
@@ -55,16 +67,26 @@ func _ready() -> void:
 ## newly-added setting just uses its default until the player changes it.
 func load_settings() -> void:
 	var config := ConfigFile.new()
-	if config.load(settings_path) != OK:
-		return  # No saved settings yet — keep the defaults.
-	portrait_effects_enabled = bool(config.get_value(
-			"visuals", "portrait_effects_enabled", portrait_effects_enabled))
-	integer_zoom_mode = bool(config.get_value(
-			"display", "integer_zoom_mode", integer_zoom_mode))
-	click_to_attack_enabled = bool(config.get_value(
-			"controls", "click_to_attack_enabled", click_to_attack_enabled))
-	unit_type_icons_enabled = bool(config.get_value(
-			"display", "unit_type_icons_enabled", unit_type_icons_enabled))
+	if config.load(settings_path) == OK:
+		portrait_effects_enabled = bool(config.get_value(
+				"visuals", "portrait_effects_enabled", portrait_effects_enabled))
+		integer_zoom_mode = bool(config.get_value(
+				"display", "integer_zoom_mode", integer_zoom_mode))
+		click_to_attack_enabled = bool(config.get_value(
+				"controls", "click_to_attack_enabled", click_to_attack_enabled))
+		unit_type_icons_enabled = bool(config.get_value(
+				"display", "unit_type_icons_enabled", unit_type_icons_enabled))
+		master_volume = clampf(float(config.get_value(
+				"audio", "master_volume", master_volume)), 0.0, 1.0)
+		sfx_volume = clampf(float(config.get_value(
+				"audio", "sfx_volume", sfx_volume)), 0.0, 1.0)
+		music_volume = clampf(float(config.get_value(
+				"audio", "music_volume", music_volume)), 0.0, 1.0)
+		max_fps = clampi(int(config.get_value(
+				"display", "max_fps", max_fps)), 0, 1000)
+	# Engine-level prefs (fps cap, bus volumes) must apply even with no file —
+	# a fresh install still needs the buses minted and defaults pushed.
+	_apply_engine_settings()
 
 
 ## Persists + notifies. No-ops when the value is unchanged so we don't thrash
@@ -104,6 +126,82 @@ func set_unit_type_icons_enabled(value: bool) -> void:
 	changed.emit()
 
 
+## Persists + applies to the Master bus + notifies. Clamped to 0–1.
+func set_master_volume(value: float) -> void:
+	value = clampf(value, 0.0, 1.0)
+	if is_equal_approx(value, master_volume):
+		return
+	master_volume = value
+	_apply_engine_settings()
+	_save()
+	changed.emit()
+
+
+## Persists + applies to the SFX bus + notifies. Clamped to 0–1.
+func set_sfx_volume(value: float) -> void:
+	value = clampf(value, 0.0, 1.0)
+	if is_equal_approx(value, sfx_volume):
+		return
+	sfx_volume = value
+	_apply_engine_settings()
+	_save()
+	changed.emit()
+
+
+## Persists + applies to the Music bus + notifies. Clamped to 0–1.
+func set_music_volume(value: float) -> void:
+	value = clampf(value, 0.0, 1.0)
+	if is_equal_approx(value, music_volume):
+		return
+	music_volume = value
+	_apply_engine_settings()
+	_save()
+	changed.emit()
+
+
+## Persists + applies Engine.max_fps + notifies. 0 = uncapped; else 30–1000.
+func set_max_fps(value: int) -> void:
+	value = 0 if value <= 0 else clampi(value, 30, 1000)
+	if value == max_fps:
+		return
+	max_fps = value
+	_apply_engine_settings()
+	_save()
+	changed.emit()
+
+
+## Push engine-level prefs into the engine singletons. Engine and AudioServer
+## are core singletons, not autoloads, so the "no autoload dependencies" rule
+## in the header still holds.
+func _apply_engine_settings() -> void:
+	Engine.max_fps = max_fps
+	_ensure_audio_buses()
+	_apply_bus_volume("Master", master_volume)
+	_apply_bus_volume("SFX", sfx_volume)
+	_apply_bus_volume("Music", music_volume)
+
+
+## The project ships no default_bus_layout.tres yet — mint the SFX/Music buses
+## at load so the volume settings have somewhere to land and future
+## AudioStreamPlayers can route by bus name from day one.
+func _ensure_audio_buses() -> void:
+	for bus_name: String in ["SFX", "Music"]:
+		if AudioServer.get_bus_index(bus_name) == -1:
+			AudioServer.add_bus()
+			var index: int = AudioServer.bus_count - 1
+			AudioServer.set_bus_name(index, bus_name)
+			AudioServer.set_bus_send(index, &"Master")
+
+
+func _apply_bus_volume(bus_name: String, linear: float) -> void:
+	var index: int = AudioServer.get_bus_index(bus_name)
+	if index == -1:
+		return
+	# linear_to_db(0) is -inf; mute instead so the slider's bottom is true silence.
+	AudioServer.set_bus_mute(index, linear <= 0.001)
+	AudioServer.set_bus_volume_db(index, linear_to_db(maxf(linear, 0.001)))
+
+
 ## Writes the full settings set to disk. Loads the existing file first so any
 ## keys other systems may have written survive the round-trip (forward-
 ## compatible — we never blow away sections we don't know about).
@@ -114,6 +212,10 @@ func _save() -> void:
 	config.set_value("display", "integer_zoom_mode", integer_zoom_mode)
 	config.set_value("controls", "click_to_attack_enabled", click_to_attack_enabled)
 	config.set_value("display", "unit_type_icons_enabled", unit_type_icons_enabled)
+	config.set_value("audio", "master_volume", master_volume)
+	config.set_value("audio", "sfx_volume", sfx_volume)
+	config.set_value("audio", "music_volume", music_volume)
+	config.set_value("display", "max_fps", max_fps)
 	var err: int = config.save(settings_path)
 	if err != OK:
 		push_warning("Settings: failed to save %s (error %d)" % [settings_path, err])

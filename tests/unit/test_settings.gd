@@ -84,9 +84,9 @@ func test_missing_file_keeps_defaults() -> void:
 func test_save_preserves_unknown_keys() -> void:
 	# Pre-seed the file with a section Settings doesn't manage. Saving a known
 	# setting must load-then-write so the unrelated key survives (forward-compat
-	# for whenever audio/etc. settings land).
+	# for future settings written by other systems or newer builds).
 	var seed_config := ConfigFile.new()
-	seed_config.set_value("audio", "master_volume", 0.5)
+	seed_config.set_value("mods", "example_flag", 0.5)
 	assert_eq(seed_config.save(_TEST_PATH), OK, "seed write succeeds")
 
 	var settings := _make_settings()
@@ -94,7 +94,79 @@ func test_save_preserves_unknown_keys() -> void:
 
 	var reread := ConfigFile.new()
 	assert_eq(reread.load(_TEST_PATH), OK, "file still loads after Settings saved over it")
-	assert_almost_eq(float(reread.get_value("audio", "master_volume", -1.0)), 0.5, 0.001,
+	assert_almost_eq(float(reread.get_value("mods", "example_flag", -1.0)), 0.5, 0.001,
 			"Saving known settings preserves unrelated keys")
 	assert_true(bool(reread.get_value("display", "integer_zoom_mode", false)),
 			"…and still writes its own keys")
+
+
+# =============================================================================
+# Audio volumes + framerate cap (engine-level prefs)
+# =============================================================================
+
+func test_audio_and_fps_defaults() -> void:
+	var settings := _make_settings()
+	assert_almost_eq(settings.master_volume, 0.8, 0.001, "master volume defaults to 0.8")
+	assert_almost_eq(settings.sfx_volume, 0.8, 0.001, "sfx volume defaults to 0.8")
+	assert_almost_eq(settings.music_volume, 0.8, 0.001, "music volume defaults to 0.8")
+	assert_eq(settings.max_fps, 0, "framerate cap defaults to 0 (uncapped)")
+
+
+func test_audio_and_fps_persist_across_instances() -> void:
+	var writer := _make_settings()
+	writer.set_master_volume(0.5)
+	writer.set_sfx_volume(0.25)
+	writer.set_music_volume(0.0)
+	writer.set_max_fps(144)
+	var reader := _make_settings()
+	reader.load_settings()
+	assert_almost_eq(reader.master_volume, 0.5, 0.001, "master volume persisted")
+	assert_almost_eq(reader.sfx_volume, 0.25, 0.001, "sfx volume persisted")
+	assert_almost_eq(reader.music_volume, 0.0, 0.001, "music volume persisted")
+	assert_eq(reader.max_fps, 144, "framerate cap persisted")
+
+
+func test_volume_setter_clamps() -> void:
+	var settings := _make_settings()
+	settings.set_master_volume(1.5)
+	assert_almost_eq(settings.master_volume, 1.0, 0.001, "volume clamps to 1.0")
+	settings.set_master_volume(-0.5)
+	assert_almost_eq(settings.master_volume, 0.0, 0.001, "volume clamps to 0.0")
+
+
+func test_max_fps_setter_clamps() -> void:
+	var settings := _make_settings()
+	settings.set_max_fps(9999)
+	assert_eq(settings.max_fps, 1000, "cap clamps to the 1000 Hz ceiling")
+	settings.set_max_fps(10)
+	assert_eq(settings.max_fps, 30, "sub-30 positive values clamp up to 30")
+	settings.set_max_fps(0)
+	assert_eq(settings.max_fps, 0, "0 = uncapped is always allowed")
+
+
+func test_volume_setter_noop_when_unchanged() -> void:
+	var settings := _make_settings()
+	watch_signals(settings)
+	settings.set_sfx_volume(0.8)  # already the default
+	assert_signal_emit_count(settings, "changed", 0,
+			"setting a volume to its current value doesn't emit changed")
+
+
+func test_load_mints_audio_buses_and_applies_engine_prefs() -> void:
+	var settings := _make_settings()
+	settings.set_max_fps(120)  # runs _apply_engine_settings
+	assert_true(AudioServer.get_bus_index("SFX") != -1, "SFX bus minted")
+	assert_true(AudioServer.get_bus_index("Music") != -1, "Music bus minted")
+	assert_eq(Engine.max_fps, 120, "Engine.max_fps mirrors the setting")
+	settings.set_max_fps(0)  # restore uncapped so the test leaves no residue
+	assert_eq(Engine.max_fps, 0, "0 restores uncapped")
+
+
+func test_zero_volume_mutes_the_bus() -> void:
+	var settings := _make_settings()
+	settings.set_music_volume(0.0)
+	var music_index: int = AudioServer.get_bus_index("Music")
+	assert_true(AudioServer.is_bus_mute(music_index),
+			"a 0% slider is true silence (mute), not just very quiet")
+	settings.set_music_volume(0.8)
+	assert_false(AudioServer.is_bus_mute(music_index), "raising the volume unmutes")

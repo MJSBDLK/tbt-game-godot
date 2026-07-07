@@ -124,6 +124,12 @@ func _populate_options() -> void:
 	# On-map elemental type icons beside unit health bars
 	_create_type_icons_option()
 
+	# Framerate cap slider (Off / 30–1000)
+	_create_max_fps_option()
+
+	# Volume sliders (buses are minted by Settings at load)
+	_create_volume_options()
+
 	# Close button at bottom
 	_create_separator()
 	_create_close_button()
@@ -414,6 +420,79 @@ func _on_type_icons_off() -> void:
 	Settings.set_unit_type_icons_enabled(false)
 	_apply_toggle_state(_type_icons_on_button, false)
 	_apply_toggle_state(_type_icons_off_button, true)
+
+
+# =============================================================================
+# SLIDER ROWS (framerate cap + volumes)
+# =============================================================================
+
+## Generic label + HSlider + live value readout row. `format_value` maps the
+## slider value to its display string; `on_changed` receives the raw slider
+## value. The row is freed wholesale by _clear_items, and the value label is
+## captured by the closure, so no member refs are needed.
+func _create_slider_option(label_text: String, tooltip: String, min_value: float,
+		max_value: float, step: float, current: float,
+		format_value: Callable, on_changed: Callable) -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+
+	var label := Label.new()
+	label.text = label_text
+	label.tooltip_text = tooltip
+	label.custom_minimum_size = Vector2(OPTION_LABEL_WIDTH, 0)
+	label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
+	var glow: ShaderMaterial = GLOW_MATERIAL.duplicate()
+	glow.set_shader_parameter("glow_color", GameColors.TEXT_PRIMARY_GLOW)
+	label.material = glow
+	row.add_child(label)
+
+	var slider := HSlider.new()
+	slider.min_value = min_value
+	slider.max_value = max_value
+	slider.step = step
+	slider.value = current
+	slider.custom_minimum_size = Vector2(80, OPTION_HEIGHT)
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(slider)
+
+	var value_label := Label.new()
+	value_label.text = str(format_value.call(current))
+	value_label.custom_minimum_size = Vector2(30, 0)
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	value_label.add_theme_color_override("font_color", GameColors.TEXT_SECONDARY)
+	row.add_child(value_label)
+
+	slider.value_changed.connect(func(value: float) -> void:
+		value_label.text = str(format_value.call(value))
+		on_changed.call(value))
+
+	_content_container.add_child(row)
+
+
+## FPS cap: leftmost slider notch (below 30) reads as "Off" → Engine.max_fps 0.
+func _create_max_fps_option() -> void:
+	var format := func(value: float) -> String:
+		return "Off" if value < 30.0 else "%d" % roundi(value)
+	var current: float = float(Settings.max_fps) if Settings.max_fps >= 30 else 20.0
+	_create_slider_option("FPS Cap", "Cap the framerate. Off = uncapped (VSync still applies).",
+			20.0, 1000.0, 10.0, current, format,
+			func(value: float) -> void:
+				Settings.set_max_fps(0 if value < 30.0 else roundi(value)))
+
+
+func _create_volume_options() -> void:
+	var to_percent := func(value: float) -> String:
+		return "%d%%" % roundi(value * 100.0)
+	_create_slider_option("Master Vol.", "Overall game volume.",
+			0.0, 1.0, 0.05, Settings.master_volume, to_percent,
+			func(value: float) -> void: Settings.set_master_volume(value))
+	_create_slider_option("SFX Vol.", "Sound effect volume.",
+			0.0, 1.0, 0.05, Settings.sfx_volume, to_percent,
+			func(value: float) -> void: Settings.set_sfx_volume(value))
+	_create_slider_option("Music Vol.", "Music volume.",
+			0.0, 1.0, 0.05, Settings.music_volume, to_percent,
+			func(value: float) -> void: Settings.set_music_volume(value))
 
 
 func _get_camera() -> CameraController:
