@@ -536,7 +536,7 @@ New sprites — faction needed:
 - [ ] Understand how timing on frames works within the Aseprite -> Aseprite Wizard -> Godot workflow
 
 ### Aseprite Plugins
-- [ ] A tool where you can input (or eyedropper) two colors: the plugin will select every pixel of the first color, only if it is adjacent to the second color.
+- [x] A tool where you can input (or eyedropper) two colors: the plugin will select every pixel of the first color, only if it is adjacent to the second color. → `tools/aseprite/adjacent_color_select/` (needs a smoke test in Aseprite)
 
 ## Misc
 - [ ] Optimize controls for touchscreen
