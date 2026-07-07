@@ -73,6 +73,7 @@ var _move_detail_element_icon: TextureRect = null
 var _move_detail_damage_type_icon: TextureRect = null
 var _move_detail_damage_type_container: Control = null
 var _move_detail_power_label: Label = null
+var _move_detail_range_label: Label = null
 var _move_detail_accuracy_label: Label = null
 var _move_detail_usage_label: Label = null
 var _move_detail_effect_label: Label = null
@@ -301,6 +302,18 @@ func _cache_node_references() -> void:
 	_move_detail_power_label = _find_label_in_panel(power_acc_usg.get_node("PowerPanelContainer"), 1)
 	_move_detail_accuracy_label = _find_label_in_panel(power_acc_usg.get_node("AccuracyPanelContainer"), 1)
 	_move_detail_usage_label = _find_label_in_panel(power_acc_usg.get_node("UsagePanelContainer"), 1)
+
+	# Range mini-panel — cloned from Accuracy at runtime (the row's mini-panels
+	# are structurally identical) instead of authored into the .tscn. Sits
+	# between Power and Accuracy. Range was previously listed NOWHERE in the UI.
+	var range_panel: PanelContainer = power_acc_usg.get_node("AccuracyPanelContainer").duplicate()
+	range_panel.name = "RangePanelContainer"
+	power_acc_usg.add_child(range_panel)
+	power_acc_usg.move_child(range_panel, power_acc_usg.get_node("PowerPanelContainer").get_index() + 1)
+	var range_header: Label = _find_label_in_panel(range_panel, 0)
+	if range_header != null:
+		range_header.text = "Rng."
+	_move_detail_range_label = _find_label_in_panel(range_panel, 1)
 
 	# Secondary effect panel
 	_move_detail_effect_panel = _move_description.get_node("PowerPanelContainer")
@@ -975,6 +988,11 @@ func _show_move_detail(index: int) -> void:
 
 	if _move_detail_power_label:
 		_move_detail_power_label.text = "%d" % move.base_power if move.base_power > 0 else "--"
+
+	if _move_detail_range_label:
+		# Base reach only — Extendo's +1 and other passives are situational and
+		# belong to the combat preview, not the move's stat sheet.
+		_move_detail_range_label.text = "%d" % move.attack_range
 
 	if _move_detail_accuracy_label:
 		# Shows the move's base accuracy rating — the actual combat hit chance
