@@ -340,14 +340,36 @@ func _refresh_summary() -> void:
 	var prim: String = Enums.elemental_type_to_string(_character_data.primary_type).capitalize()
 	var sec: String = Enums.elemental_type_to_string(_character_data.secondary_type).capitalize()
 	var type_str: String = prim if sec == "None" or sec == "" else "%s / %s" % [prim, sec]
-	var injury_str: String = "—"
-	if _character_data.current_injuries != null and _character_data.current_injuries.size() > 0:
-		injury_str = "%d" % _character_data.current_injuries.size()
 	_summary_label.text = "[b]%s[/b]  Lv %d  %s  %s   Inj: %s\nHP %d  STR %d  SPC %d  SKL %d  AGL %d  ATH %d  DEF %d  RES %d" % [
-		_character_data.character_name, _character_data.level, type_str, class_str, injury_str,
+		_character_data.character_name, _character_data.level, type_str, class_str,
+		_injury_summary_bbcode(),
 		_character_data.max_hp, _character_data.strength, _character_data.special, _character_data.skill,
 		_character_data.agility, _character_data.athleticism, _character_data.defense, _character_data.resistance,
 	]
+
+
+## The summary used to show only an injury COUNT — "we can't see injuries on
+## the intermission screen" (playtest). Now each injury renders inline as its
+## icon + name + battles-remaining, with severity/description on hover via
+## [hint]. Falls back to the display name alone when an icon is missing.
+func _injury_summary_bbcode() -> String:
+	var injuries: Array = _character_data.current_injuries
+	if injuries == null or injuries.is_empty():
+		return "—"
+	var parts: PackedStringArray = PackedStringArray()
+	for injury: Injury in injuries:
+		var data: InjuryData = injury.get_data()
+		var display_name: String = data.display_name if data != null else injury.injury_id.capitalize()
+		var severity_name: String = "Major" if injury.severity == Enums.InjurySeverity.MAJOR else "Minor"
+		var icon_tag: String = ""
+		if data != null and data.icon_path != "" and ResourceLoader.exists(data.icon_path):
+			icon_tag = "[img]%s[/img] " % data.icon_path
+		parts.append("[hint=%s (%s) — %d battle%s left]%s%s (%d)[/hint]" % [
+			display_name, severity_name, injury.battles_remaining,
+			"" if injury.battles_remaining == 1 else "s",
+			icon_tag, display_name, injury.battles_remaining,
+		])
+	return ", ".join(parts)
 
 
 func _refresh_mode_toggle() -> void:
