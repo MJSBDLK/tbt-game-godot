@@ -4,16 +4,17 @@ extends MarginContainer
 
 const JSON_PATH: String = "res://data/type_chart.json"
 
+# Alphabetical, except Obsidian pinned last (the enemies-only special case).
 const TYPES: Array[String] = [
-	"Air", "Chivalric", "Cold", "Electric", "Fire", "Gentry", "Gravity",
-	"Heraldic", "Occult", "Plant", "Robo", "Simple", "Void", "Obsidian",
-	"Monster", "Beast"
+	"Air", "Beast", "Chivalric", "Cold", "Electric", "Fire", "Gentry",
+	"Gravity", "Heraldic", "Monster", "Occult", "Plant", "Robo", "Simple",
+	"Void", "Obsidian"
 ]
 
 const TYPE_ABBREVS: Array[String] = [
-	"Air", "Chv", "Cld", "Elc", "Fir", "Gen", "Grv",
-	"Her", "Occ", "Plt", "Rob", "Sim", "Vod", "Obs",
-	"Mon", "Bst"
+	"Air", "Bst", "Chv", "Cld", "Elc", "Fir", "Gen",
+	"Grv", "Her", "Mon", "Occ", "Plt", "Rob", "Sim",
+	"Vod", "Obs"
 ]
 
 const CELL_SIZE := Vector2(50, 50)
