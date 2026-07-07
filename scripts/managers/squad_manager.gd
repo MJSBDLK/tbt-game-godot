@@ -158,10 +158,17 @@ const _GROWTH_FIELDS: Array = [
 
 
 ## Called when TurnManager emits battle_ended. Walks the active roster:
-##   1. Commits any pending injuries on each character (slot overflow → permadeath)
-##   2. Ticks recovery on every active roster member (regardless of participation)
+##   1. Ticks recovery on each character's PRE-EXISTING injuries
+##   2. Commits any pending injuries earned this battle (slot overflow → permadeath)
 ##   3. On victory, runs LEVELS_PER_VICTORY level-up rolls on each survivor so
 ##      growths + stat-up points flow into the prep-screen allocation UI.
+##
+## Tick-before-commit order is load-bearing: commit-then-tick burned a recovery
+## battle off the injury the unit JUST earned, so a 1-battle injury (same-type
+## Minor) expired inside the same battle_ended pass and never appeared in any
+## fight. Ticking first also means an injury that expires this pass frees its
+## slot before the overflow/permadeath check — the recovery happened during the
+## same downtime, so the freed slot fairly counts.
 func _on_battle_ended(is_victory: bool) -> void:
 	# Snapshot active roster — mark_permadead mutates the dict during iteration.
 	var snapshot: Array[CharacterData] = get_active_roster()
@@ -171,13 +178,17 @@ func _on_battle_ended(is_victory: bool) -> void:
 		var new_injuries: Array = character.pending_injuries.duplicate()
 		var pre_tick_snapshot: Array = character.current_injuries.duplicate()
 
+		InjurySystem.tick_recovery(character)
+		var recovered: Array = []
+		for prior in pre_tick_snapshot:
+			if not character.current_injuries.has(prior):
+				recovered.append(prior)
+
 		var alive: bool = InjurySystem.commit_pending_injuries(character)
 		var permadead: bool = not alive
 		if permadead:
 			mark_permadead(character)
 
-		# Tick recovery only if the character survived commit.
-		var recovered: Array = []
 		# The pre-battle snapshot is the source of truth for level_before /
 		# pool_before / which growths happened — combat XP can grow either of
 		# them mid-battle, so the values at battle_ended don't reflect "what
@@ -189,10 +200,6 @@ func _on_battle_ended(is_victory: bool) -> void:
 		var pre_growths: Dictionary = pre_snapshot.get("growth_gains", {})
 		var growths_gained: Array[String] = []
 		if not permadead:
-			InjurySystem.tick_recovery(character)
-			for prior in pre_tick_snapshot:
-				if not character.current_injuries.has(prior):
-					recovered.append(prior)
 			# Reset transient battle state so the next spawn starts clean —
 			# otherwise stale status_modifier_* values (from buffs/debuffs active
 			# at battle end) leak into the next mission and can zero out HP.

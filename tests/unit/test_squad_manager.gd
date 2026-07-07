@@ -87,3 +87,65 @@ func test_battle_start_handles_null_unit_in_list() -> void:
 
 	assert_eq(move.current_uses, 5,
 			"Null unit skipped, valid unit still processed")
+
+
+# =============================================================================
+# Battle-end injury tick ordering
+# =============================================================================
+# Regression: _on_battle_ended used to commit pending injuries and THEN tick
+# recovery in the same pass, so the just-earned injury lost a recovery battle
+# immediately — a 1-battle injury (same-type Minor) expired before the next
+# mission ever started and was never seen in a fight. Recovery must tick on
+# pre-existing injuries only, i.e. tick BEFORE commit.
+
+const _TEST_CHARACTER_ID: String = "__test_injury_tick_ordering"
+
+
+func after_each() -> void:
+	SquadManager._roster_by_id.erase(_TEST_CHARACTER_ID)
+	SquadManager._permadead_ids.erase(_TEST_CHARACTER_ID)
+
+
+func _roster_character_with_pending_injury(battles_remaining: int) -> CharacterData:
+	var data := CharacterData.new()
+	data.character_id = _TEST_CHARACTER_ID
+	data.character_name = "Tick Ordering Subject"
+	var injury := Injury.new()
+	injury.injury_id = "burn_scar"
+	injury.severity = Enums.InjurySeverity.MINOR
+	injury.battles_remaining = battles_remaining
+	data.pending_injuries.append(injury)
+	SquadManager._roster_by_id[_TEST_CHARACTER_ID] = data
+	return data
+
+
+func test_fresh_injury_is_not_ticked_in_the_battle_it_was_earned() -> void:
+	var data := _roster_character_with_pending_injury(1)
+
+	SquadManager._on_battle_ended(false)
+
+	assert_eq(data.current_injuries.size(), 1,
+			"Injury earned this battle committed and survives the same battle_ended pass")
+	assert_eq(data.current_injuries[0].battles_remaining, 1,
+			"Recovery counter untouched in the battle the injury was earned")
+
+
+func test_one_battle_injury_recovers_after_exactly_one_more_battle() -> void:
+	var data := _roster_character_with_pending_injury(1)
+
+	SquadManager._on_battle_ended(false)
+	SquadManager._on_battle_ended(false)
+
+	assert_eq(data.current_injuries.size(), 0,
+			"1-battle injury expires at the end of the NEXT battle, having been active in it")
+
+
+func test_multi_battle_injury_counts_down_once_per_subsequent_battle() -> void:
+	var data := _roster_character_with_pending_injury(4)
+
+	SquadManager._on_battle_ended(false)
+	assert_eq(data.current_injuries[0].battles_remaining, 4,
+			"No tick on the earning battle")
+	SquadManager._on_battle_ended(false)
+	assert_eq(data.current_injuries[0].battles_remaining, 3,
+			"One tick per battle after the earning one")
