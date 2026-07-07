@@ -1,5 +1,6 @@
 ## [ ] Meeting 2026.06.28
 ### [ ] RQD
+- [ ] I made a mess with the intermission screens. Need to fix all of it
 - [x] For Lawrence: what do we want the various levels of threat overlay to look like? (move range, attack range, passive range)
 - [x] PRIORITY BUG: attack/defense/avoid multipliers are computed for the preview panel but never applied in combat
 - [~] void FX shader
@@ -16,7 +17,7 @@
    test_void_passive_lock.gd, test_void_lock_overlay.gd. PENDING: in-game GPU eyeball +
    Lawrence to tune mote density/extent (his mockup spills motes above the chip), the
    icon→void-glyph swap, and whether detail-panel tablets need true desaturation.)
-- [x] How hard would it be to make a crater (terrain modifier) grant a defensive bonus against melee attacks and a penalty against ranged attacks? (Answer: easy — shipped 2026-07-06. New terrain keys `defenseMultiplierVsMelee`/`VsRanged` layer onto the base defense multiplier, keyed on the move's melee/ranged style (a point-blank Laser still counts as ranged). Crater: 1.2 vs melee, 0.85 vs ranged, Air exempt (hovering); the old flat 1.1 retired. NUMBERS ARE TUNING GUESSES. Any terrain can now opt into the split via JSON. Bonus fix: per-type "exempt" overrides (like Air's) never worked for mono-typed units — terrain_multiplier_for let the terrain default out-deviate an explicit neutral override.)
+- [x] How hard would it be to make a crater (terrain modifier) grant a defensive bonus against melee attacks and a penalty against ranged attacks? (Answer: easy — shipped 2026-07-06. New terrain keys `defenseMultiplierVsMelee`/`VsRanged` layer onto the base defense multiplier, keyed on the move's melee/ranged style (a point-blank Laser still counts as ranged). Crater: 1.2 vs melee, 0.85 vs ranged, Air exempt (hovering); the old flat 1.1 retired. NUMBERS ARE TUNING GUESSES. Any terrain can now opt into the split via JSON. Bonus fix: per-type "exempt" overrides (like Air's) never worked for mono-typed units — terrain_multiplier_for let the terrain default out-deviate an explicit neutral override. TERRAIN PREVIEW (2026-07-07): split terrains render the defense column as two stacked color-coded lines — "M1.2" / "R0.8" (combined base×style values) — with a tap-tooltip spelling it out; unsplit terrains keep the single cell, so only Crater pays the extra row height. M/R letters are placeholders for Lawrence's melee/ranged glyphs (added to Art Needed). Eyeball the two-line row height in game.)
 - [ ] intermission screens - interactive buttons must be obviously interactive - this was input received via playtesting. The intermission screens are getting a full redesign, but more broadly - what's the best way to differentiate interactible from non-interactible buttons? Remember, the visual design looks like a projection against glass. So how would an interactible vs non-interactible button look in this context?
 - [ ] bEXP screen
 - [x] remove "*1" from character panel on the left when all statUps are allocated (verified 2026-07-06 — already implemented: `prep_screen._make_unspent_badge` returns null at 0 unspent, `_refresh_card_badge` rebuilds on `stats_changed`. If a stale ★N still shows in-game, grab a repro.)
@@ -326,6 +327,7 @@ New sprites — faction needed:
 
 # [ ] Art Needed (Lawrence)
 - [ ] A 10x10 "Swap" icon (like 🔁, kinda, straighter arrows)
+- [ ] Tiny "melee" and "ranged" glyphs (~5px tall, sit inline beside a 5px-font number) — the terrain preview's split defense cell (Crater: bonus vs melee, penalty vs ranged) shows "M1.2" / "R0.8" with letter prefixes as placeholders until these land
 - [ ] 
 ## [ ] Range Icons
 - [ ] Icon for range: 1

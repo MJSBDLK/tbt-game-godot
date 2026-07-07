@@ -70,14 +70,19 @@ func show_tile(tile: Tile) -> void:
 
 	var definition: Variant = terrain_manager.get_terrain_definition(tile.terrain_type_name)
 
-	# Default row
+	# Default row. Defense carries the melee/ranged style split (Crater et al.)
+	# folded in: what's shown is the COMBINED base×style multiplier per style,
+	# because that's what the defender actually experiences.
 	var default_walkable: bool = tile.can_unit_move_to()
 	var default_move: float = tile.get_movement_cost_for_unit()
 	var default_def: float = tile.get_defense_multiplier_for_unit()
+	var default_def_melee: float = default_def * tile.get_defense_vs_melee_multiplier_for_unit()
+	var default_def_ranged: float = default_def * tile.get_defense_vs_ranged_multiplier_for_unit()
 	var default_avoid: float = tile.get_avoid_multiplier_for_unit()
 	var default_atk: float = tile.get_attack_multiplier_for_unit()
 
-	_add_row(null, default_walkable, default_move, default_def, default_avoid, default_atk)
+	_add_row(null, default_walkable, default_move, default_def_melee, default_def_ranged,
+			default_avoid, default_atk)
 
 	# Override rows — check each unit type for differences
 	if definition != null:
@@ -86,6 +91,10 @@ func show_tile(tile: Tile) -> void:
 			var walkable: bool = terrain_manager.can_unit_walk_on_terrain(tile.terrain_type_name, unit_type)
 			var move: float = terrain_manager.get_movement_cost(tile.terrain_type_name, unit_type)
 			var def_mod: float = terrain_manager.get_defense_multiplier(tile.terrain_type_name, unit_type)
+			var def_melee: float = def_mod * terrain_manager.get_defense_multiplier_vs_melee(
+					tile.terrain_type_name, unit_type)
+			var def_ranged: float = def_mod * terrain_manager.get_defense_multiplier_vs_ranged(
+					tile.terrain_type_name, unit_type)
 			var avoid: float = terrain_manager.get_avoid_multiplier(tile.terrain_type_name, unit_type)
 			var atk: float = terrain_manager.get_attack_multiplier(tile.terrain_type_name, unit_type)
 
@@ -96,10 +105,11 @@ func show_tile(tile: Tile) -> void:
 			# dropped, hiding the one thing that makes it special.
 			if walkable != default_walkable or \
 					not is_equal_approx(move, default_move) or \
-					not is_equal_approx(def_mod, default_def) or \
+					not is_equal_approx(def_melee, default_def_melee) or \
+					not is_equal_approx(def_ranged, default_def_ranged) or \
 					not is_equal_approx(avoid, default_avoid) or \
 					not is_equal_approx(atk, default_atk):
-				_add_row(unit_type, walkable, move, def_mod, avoid, atk)
+				_add_row(unit_type, walkable, move, def_melee, def_ranged, avoid, atk)
 
 	_fit_height_to_rows()
 
@@ -126,7 +136,8 @@ func hide_panel() -> void:
 # GRID ROW BUILDING
 # =============================================================================
 
-func _add_row(unit_type: Variant, walkable: bool, move_cost: float, defense: float, avoid: float, attack: float) -> void:
+func _add_row(unit_type: Variant, walkable: bool, move_cost: float, defense_vs_melee: float,
+		defense_vs_ranged: float, avoid: float, attack: float) -> void:
 	# Column 1: type icon or "default" placeholder
 	if unit_type == null:
 		var placeholder := _create_icon_cell(load("res://art/sprites/ui/placeholder_10x10.png"))
@@ -154,8 +165,14 @@ func _add_row(unit_type: Variant, walkable: bool, move_cost: float, defense: flo
 		var move_glow: Color = GameColors.get_movement_cost_bg_color(move_cost)
 		_add_value_cell(_format_move_cost(move_cost), move_color, move_glow)
 
-	# Column 3: defense multiplier (color-coded)
-	_add_multiplier_cell(defense)
+	# Column 3: defense multiplier (color-coded). When the terrain defends
+	# differently against melee vs ranged (Crater), the cell splits into two
+	# stacked M/R lines so both numbers are visible at a glance — a single
+	# value here would hide the tile's whole identity.
+	if is_equal_approx(defense_vs_melee, defense_vs_ranged):
+		_add_multiplier_cell(defense_vs_melee)
+	else:
+		_add_split_defense_cell(defense_vs_melee, defense_vs_ranged)
 
 	# Column 4: avoid multiplier (color-coded)
 	_add_multiplier_cell(avoid)
@@ -208,6 +225,43 @@ func _add_multiplier_cell(value: float) -> void:
 	_add_value_cell(text, color, glow)
 
 
+## The two display lines of a split defense cell. "M"/"R" letter prefixes are
+## the interim melee/ranged markers until Lawrence's 5px glyphs land (see Art
+## Needed in todo.md); values print explicitly (no "—") because the contrast
+## between the two lines IS the information.
+static func _format_split_defense(melee_value: float, ranged_value: float) -> Array[String]:
+	return ["M%.1f" % melee_value, "R%.1f" % ranged_value]
+
+
+## Defense column when melee and ranged differ: two stacked mini-lines, each
+## color-coded like a normal multiplier cell, sharing one tap-tooltip.
+func _add_split_defense_cell(melee_value: float, ranged_value: float) -> void:
+	var stack := VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 0)
+	var lines: Array[String] = _format_split_defense(melee_value, ranged_value)
+	var values: Array[float] = [melee_value, ranged_value]
+	for i: int in range(lines.size()):
+		if _text_container_scene != null:
+			var cell: Control = _text_container_scene.instantiate()
+			var label: Label = cell.get_node("Label") as Label
+			label.text = lines[i]
+			label.add_theme_color_override("font_color",
+					GameColors.get_terrain_modifier_color(values[i]))
+			if label is GlowLabel:
+				label.glow_color = GameColors.get_terrain_modifier_bg_color(values[i])
+			stack.add_child(cell)
+		else:
+			var label := Label.new()
+			label.text = lines[i]
+			label.add_theme_color_override("font_color",
+					GameColors.get_terrain_modifier_color(values[i]))
+			stack.add_child(label)
+	stack.tooltip_text = "Defense vs melee attacks: x%.1f\nDefense vs ranged attacks: x%.1f" % [
+			melee_value, ranged_value]
+	_add_tap_tooltip(stack)
+	_grid.add_child(stack)
+
+
 func _create_icon_cell(texture: Texture2D) -> MarginContainer:
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_top", 0)
@@ -231,7 +285,8 @@ func _add_tap_tooltip(control: Control) -> void:
 ## Collects all unit type strings that have overrides in any property.
 func _get_override_types(definition: Variant) -> Array[String]:
 	var types: Array[String] = []
-	var properties: Array[String] = ["move_penalty", "attack_multiplier", "defense_multiplier", "avoid_multiplier", "walkable"]
+	var properties: Array[String] = ["move_penalty", "attack_multiplier", "defense_multiplier",
+			"defense_multiplier_vs_melee", "defense_multiplier_vs_ranged", "avoid_multiplier", "walkable"]
 	for prop_name: String in properties:
 		var prop: Variant = definition.get(prop_name)
 		if prop != null and "unit_type_overrides" in prop:
