@@ -211,6 +211,32 @@ func get_movement_range(unit: Node2D) -> Array[Tile]:
 	return valid_tiles
 
 
+## Terrain-aware approach-cost field: floods scaled movement costs outward from
+## `goal_tile` across tiles the unit's type can walk, IGNORING unit occupancy
+## (units move between turns; terrain doesn't). Returns Dictionary<Tile, int> —
+## cheapest route cost from each tile to the goal. A missing key means no
+## terrain route exists at all. Used by EnemyAI to pick approach tiles that
+## route AROUND obstacles instead of beelining into a dead end against them.
+func get_approach_cost_field(goal_tile: Tile, unit: Node2D) -> Dictionary:
+	var route_costs: Dictionary = {}
+	if goal_tile == null or unit == null:
+		return route_costs
+	var unit_type: String = _get_unit_type(unit)
+	route_costs[goal_tile] = 0
+	var frontier: Array[Tile] = [goal_tile]
+	while not frontier.is_empty():
+		var current: Tile = frontier.pop_front()
+		var current_cost: int = route_costs[current]
+		for neighbor: Tile in get_neighbors(current):
+			if not neighbor.can_unit_move_to(unit_type):
+				continue
+			var cost_to_neighbor: int = current_cost + _scaled_tile_cost(neighbor, unit_type)
+			if not route_costs.has(neighbor) or cost_to_neighbor < route_costs[neighbor]:
+				route_costs[neighbor] = cost_to_neighbor
+				frontier.append(neighbor)
+	return route_costs
+
+
 ## True if the given tile would block `moving_unit` from PASSING THROUGH.
 ## Allies never block. Enemies block unless moving_unit has the "Ghost" passive.
 ## Future-proofed to read additional passives without touching pathfinding code.

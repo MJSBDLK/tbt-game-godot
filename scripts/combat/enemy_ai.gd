@@ -5,6 +5,9 @@ class_name EnemyAI
 extends Node
 
 
+## Sentinel route cost for "no terrain path to the target from this tile."
+const UNREACHABLE: int = 0x7FFFFFFF
+
 @export var behavior_type: Enums.AIBehaviorType = Enums.AIBehaviorType.AGGRESSIVE
 @export var think_delay: float = 0.3
 @export var move_delay: float = 0.5
@@ -225,15 +228,28 @@ func _find_best_move_tile(target: Unit) -> Tile:
 	if target_tile == null:
 		return null
 
+	# Score candidates by REAL route distance — a terrain-aware cost field
+	# flooded outward from the target — not straight-line Manhattan. Crow-flies
+	# scoring walked the AI into the dead end nearest the target and parked it
+	# against obstacle walls instead of routing around them.
+	var route_costs: Dictionary = GridManager.get_approach_cost_field(target_tile, _unit)
+
 	var best_tile: Tile = null
-	var best_distance: int = 999999
+	var best_route_cost: int = UNREACHABLE
+	var best_manhattan: int = UNREACHABLE
 
 	for tile: Tile in movement_tiles:
 		if tile.current_unit != null:
 			continue
-		var distance := absi(tile.grid_x - target_tile.grid_x) + absi(tile.grid_y - target_tile.grid_y)
-		if distance < best_distance:
-			best_distance = distance
+		var route_cost: int = route_costs.get(tile, UNREACHABLE)
+		# Manhattan breaks route ties, and carries the whole decision when no
+		# terrain route exists (e.g. target on an island) so the enemy still
+		# closes the gap instead of standing frozen.
+		var manhattan := absi(tile.grid_x - target_tile.grid_x) + absi(tile.grid_y - target_tile.grid_y)
+		if route_cost < best_route_cost \
+				or (route_cost == best_route_cost and manhattan < best_manhattan):
+			best_route_cost = route_cost
+			best_manhattan = manhattan
 			best_tile = tile
 
 	return best_tile
