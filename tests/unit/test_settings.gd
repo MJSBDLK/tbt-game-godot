@@ -36,18 +36,22 @@ func test_defaults() -> void:
 	var settings := _make_settings()
 	assert_true(settings.portrait_effects_enabled, "Portrait effects default on (intended look)")
 	assert_false(settings.integer_zoom_mode, "Zoom mode defaults to smooth")
+	assert_false(settings.click_to_attack_enabled,
+			"Click-to-attack shortcut defaults OFF (new players kept misfiring attacks)")
 
 
 func test_persists_and_reloads_across_instances() -> void:
 	var writer := _make_settings()
 	writer.set_portrait_effects_enabled(false)
 	writer.set_integer_zoom_mode(true)
+	writer.set_click_to_attack_enabled(true)
 	# A fresh instance reading the same file sees the saved values — this is the
 	# "survives restart" guarantee.
 	var reader := _make_settings()
 	reader.load_settings()
 	assert_false(reader.portrait_effects_enabled, "portrait_effects_enabled persisted to disk")
 	assert_true(reader.integer_zoom_mode, "integer_zoom_mode persisted to disk")
+	assert_true(reader.click_to_attack_enabled, "click_to_attack_enabled persisted to disk")
 
 
 func test_setter_noop_when_value_unchanged() -> void:

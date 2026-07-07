@@ -405,7 +405,11 @@ func _handle_movement_planning_click() -> void:
 		# Click enemy while unit selected → combat (shortcut if already in range).
 		# can_target matches the highlighted attack tiles exactly (effective range
 		# + Extendo reach LoS), so the shortcut never fires on an unreachable tile.
-		if _selected_unit != null and clicked_unit.faction != _selected_unit.faction:
+		# Opt-in (Settings, default off): new players kept attacking enemies they
+		# meant to inspect. Disabled, the click falls through to show-unit-info
+		# and attacks go through the action menu's explicit target step.
+		if Settings.click_to_attack_enabled \
+				and _selected_unit != null and clicked_unit.faction != _selected_unit.faction:
 			if not clicked_unit.is_defeated() and _selected_unit.assigned_move != null:
 				if MoveTargeting.can_target(_selected_unit, clicked_unit, _selected_unit.assigned_move):
 					_execute_direct_combat(clicked_unit)

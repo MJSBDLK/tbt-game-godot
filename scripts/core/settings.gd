@@ -29,6 +29,12 @@ var portrait_effects_enabled: bool = true
 ## menu's Zoom Mode toggle.
 var integer_zoom_mode: bool = false
 
+## When true, clicking an enemy while your unit is selected immediately attacks
+## with the assigned move (power-user shortcut). Default OFF: new players kept
+## triggering attacks while trying to inspect enemies. Disabled, that click
+## shows the enemy's info panel instead; attacks go through the action menu.
+var click_to_attack_enabled: bool = false
+
 ## The file settings load from / save to. Overridable so tests can point at a
 ## throwaway path instead of clobbering the player's real settings file.
 var settings_path: String = DEFAULT_SETTINGS_PATH
@@ -49,6 +55,8 @@ func load_settings() -> void:
 			"visuals", "portrait_effects_enabled", portrait_effects_enabled))
 	integer_zoom_mode = bool(config.get_value(
 			"display", "integer_zoom_mode", integer_zoom_mode))
+	click_to_attack_enabled = bool(config.get_value(
+			"controls", "click_to_attack_enabled", click_to_attack_enabled))
 
 
 ## Persists + notifies. No-ops when the value is unchanged so we don't thrash
@@ -70,6 +78,15 @@ func set_integer_zoom_mode(value: bool) -> void:
 	changed.emit()
 
 
+## Persists + notifies. No-ops when unchanged (see set_portrait_effects_enabled).
+func set_click_to_attack_enabled(value: bool) -> void:
+	if value == click_to_attack_enabled:
+		return
+	click_to_attack_enabled = value
+	_save()
+	changed.emit()
+
+
 ## Writes the full settings set to disk. Loads the existing file first so any
 ## keys other systems may have written survive the round-trip (forward-
 ## compatible — we never blow away sections we don't know about).
@@ -78,6 +95,7 @@ func _save() -> void:
 	config.load(settings_path)  # ignore error — a fresh file is fine
 	config.set_value("visuals", "portrait_effects_enabled", portrait_effects_enabled)
 	config.set_value("display", "integer_zoom_mode", integer_zoom_mode)
+	config.set_value("controls", "click_to_attack_enabled", click_to_attack_enabled)
 	var err: int = config.save(settings_path)
 	if err != OK:
 		push_warning("Settings: failed to save %s (error %d)" % [settings_path, err])
