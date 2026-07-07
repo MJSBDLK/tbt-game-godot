@@ -571,6 +571,15 @@ func _on_post_mission_report_ready(report: Array) -> void:
 	var state_manager := get_node_or_null("/root/GameStateManager")
 	if state_manager != null and state_manager.current_state != Enums.InputState.POST_MISSION_REPORT:
 		state_manager.push_state(Enums.InputState.POST_MISSION_REPORT)
+	# Belt-and-suspenders map-panel teardown (mirrors show_battle_result): if
+	# POST_MISSION_REPORT was already on the stack the push above is skipped,
+	# the state-changed handler never fires, and a hovered terrain preview
+	# would sit under the level-up → bEXP → report chain.
+	hide_unit_info()
+	hide_terrain_info()
+	hide_action_menu()
+	hide_combat_preview()
+	hide_unit_detail()
 
 	_pending_post_mission_report = report
 	if _level_up_report_panel != null:

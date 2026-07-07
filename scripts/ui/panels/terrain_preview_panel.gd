@@ -55,10 +55,13 @@ func show_tile(tile: Tile) -> void:
 	if tile_texture:
 		_terrain_icon.texture = tile_texture
 
-	# Clear dynamic rows (everything after the first 5 header icons)
+	# Clear dynamic rows (everything after the first 5 header icons). Freed
+	# immediately (not queue_free) so the height fit below measures only the
+	# rows actually being shown, not last hover's corpses.
 	var children: Array[Node] = _grid.get_children()
 	for i: int in range(children.size() - 1, 4, -1):
-		children[i].queue_free()
+		_grid.remove_child(children[i])
+		children[i].free()
 
 	# Get terrain definition for override data
 	var terrain_manager: Node = get_node_or_null("/root/TerrainDataManager")
@@ -98,6 +101,20 @@ func show_tile(tile: Tile) -> void:
 					not is_equal_approx(atk, default_atk):
 				_add_row(unit_type, walkable, move, def_mod, avoid, atk)
 
+	_fit_height_to_rows()
+
+
+## 140x140 is the design size, but terrains with several per-type override rows
+## (a 4-entry modifier) need more. Grow the panel downward so the icon+title
+## stay pinned at the top and the anchored background stretches with the rows —
+## previously the full-rect containers grew in BOTH directions and shoved the
+## header off the panel's top edge.
+func _fit_height_to_rows() -> void:
+	var content: Control = get_node_or_null("ContentMargin")
+	if content == null:
+		return
+	size = Vector2(140.0, maxf(140.0, content.get_combined_minimum_size().y))
+
 
 func hide_panel() -> void:
 	TapTooltip.dismiss()
@@ -135,7 +152,7 @@ func _add_row(unit_type: Variant, walkable: bool, move_cost: float, defense: flo
 	else:
 		var move_color: Color = GameColors.get_movement_cost_color(move_cost)
 		var move_glow: Color = GameColors.get_movement_cost_bg_color(move_cost)
-		_add_value_cell(str(ceili(move_cost)), move_color, move_glow)
+		_add_value_cell(_format_move_cost(move_cost), move_color, move_glow)
 
 	# Column 3: defense multiplier (color-coded)
 	_add_multiplier_cell(defense)
@@ -145,6 +162,18 @@ func _add_row(unit_type: Variant, walkable: bool, move_cost: float, defense: flo
 
 	# Column 5: attack multiplier (color-coded)
 	_add_multiplier_cell(attack)
+
+
+## Movement costs can be fractional (Road = 0.5) — ceiling them to "1" made
+## cheap terrain look ordinary. Halves render with the ½ glyph (present in
+## UndeadPixelLight8, the grid-cell font); anything else falls back to decimals.
+static func _format_move_cost(cost: float) -> String:
+	var whole := int(cost)
+	if is_equal_approx(cost, float(whole)):
+		return str(whole)
+	if is_equal_approx(cost - float(whole), 0.5):
+		return "½" if whole == 0 else "%d½" % whole
+	return String.num(cost, 2)
 
 
 func _add_value_cell(text: String, color: Color, glow: Color = Color(-1, -1, -1), tooltip: String = "") -> void:
