@@ -112,7 +112,8 @@ func is_unit_shown(unit: Unit) -> bool:
 	return _mode == Mode.INDIVIDUAL and _shown.has(unit)
 
 
-## Recompute and redraw for the current mode.
+## Recompute and redraw for the current mode. Pinned zones render in the
+## renderer's PINNED palette so they never masquerade as the army-wide sweep.
 func refresh() -> void:
 	if _renderer == null:
 		return
@@ -120,7 +121,9 @@ func refresh() -> void:
 	if _mode == Mode.OFF:
 		_renderer.clear()
 		return
-	_renderer.set_map(ThreatCalculator.compute_danger_zone(_threateners()))
+	var style: int = ThreatOverlayRenderer.Style.ARMY if _mode == Mode.ALL_ENEMIES \
+			else ThreatOverlayRenderer.Style.PINNED
+	_renderer.set_map(ThreatCalculator.compute_danger_zone(_threateners()), style)
 
 
 ## Pinned enemies can die (or be freed) while their zone is up; drop them so a

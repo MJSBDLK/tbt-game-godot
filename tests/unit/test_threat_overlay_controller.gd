@@ -107,6 +107,20 @@ func test_defeated_pin_is_pruned_on_refresh() -> void:
 	assert_false(controller.is_showing(), "sole pin dying turns the overlay off")
 
 
+func test_pinned_and_army_zones_use_distinct_render_styles() -> void:
+	# The player must always be able to tell "one enemy's zone" from "the whole
+	# army" — the controller selects the renderer palette per mode.
+	var controller := _controller()
+	var renderer: ThreatOverlayRenderer = controller.get_node("ThreatOverlayRenderer")
+	controller.toggle_all_enemies()
+	assert_eq(renderer._style, ThreatOverlayRenderer.Style.ARMY,
+			"army-wide zone renders in the ARMY palette")
+	controller.clear_all()
+	controller.toggle_unit(_enemy())
+	assert_eq(renderer._style, ThreatOverlayRenderer.Style.PINNED,
+			"pinned zones render in the PINNED palette")
+
+
 func test_changed_signal_fires_on_state_transitions() -> void:
 	var controller := _controller()
 	watch_signals(controller)
