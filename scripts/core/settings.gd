@@ -35,6 +35,12 @@ var integer_zoom_mode: bool = false
 ## shows the enemy's info panel instead; attacks go through the action menu.
 var click_to_attack_enabled: bool = false
 
+## When true, units render their elemental type icon(s) beside the in-world
+## health bar (primary + secondary, right of the bar). Default OFF — playtest
+## verdict was "too noisy"; kept as an opt-in until on-map typing display gets
+## a real design pass.
+var unit_type_icons_enabled: bool = false
+
 ## The file settings load from / save to. Overridable so tests can point at a
 ## throwaway path instead of clobbering the player's real settings file.
 var settings_path: String = DEFAULT_SETTINGS_PATH
@@ -57,6 +63,8 @@ func load_settings() -> void:
 			"display", "integer_zoom_mode", integer_zoom_mode))
 	click_to_attack_enabled = bool(config.get_value(
 			"controls", "click_to_attack_enabled", click_to_attack_enabled))
+	unit_type_icons_enabled = bool(config.get_value(
+			"display", "unit_type_icons_enabled", unit_type_icons_enabled))
 
 
 ## Persists + notifies. No-ops when the value is unchanged so we don't thrash
@@ -87,6 +95,15 @@ func set_click_to_attack_enabled(value: bool) -> void:
 	changed.emit()
 
 
+## Persists + notifies. No-ops when unchanged (see set_portrait_effects_enabled).
+func set_unit_type_icons_enabled(value: bool) -> void:
+	if value == unit_type_icons_enabled:
+		return
+	unit_type_icons_enabled = value
+	_save()
+	changed.emit()
+
+
 ## Writes the full settings set to disk. Loads the existing file first so any
 ## keys other systems may have written survive the round-trip (forward-
 ## compatible — we never blow away sections we don't know about).
@@ -96,6 +113,7 @@ func _save() -> void:
 	config.set_value("visuals", "portrait_effects_enabled", portrait_effects_enabled)
 	config.set_value("display", "integer_zoom_mode", integer_zoom_mode)
 	config.set_value("controls", "click_to_attack_enabled", click_to_attack_enabled)
+	config.set_value("display", "unit_type_icons_enabled", unit_type_icons_enabled)
 	var err: int = config.save(settings_path)
 	if err != OK:
 		push_warning("Settings: failed to save %s (error %d)" % [settings_path, err])

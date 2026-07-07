@@ -38,6 +38,8 @@ func test_defaults() -> void:
 	assert_false(settings.integer_zoom_mode, "Zoom mode defaults to smooth")
 	assert_false(settings.click_to_attack_enabled,
 			"Click-to-attack shortcut defaults OFF (new players kept misfiring attacks)")
+	assert_false(settings.unit_type_icons_enabled,
+			"On-map type icons default OFF (playtest verdict: too noisy)")
 
 
 func test_persists_and_reloads_across_instances() -> void:
@@ -45,6 +47,7 @@ func test_persists_and_reloads_across_instances() -> void:
 	writer.set_portrait_effects_enabled(false)
 	writer.set_integer_zoom_mode(true)
 	writer.set_click_to_attack_enabled(true)
+	writer.set_unit_type_icons_enabled(true)
 	# A fresh instance reading the same file sees the saved values — this is the
 	# "survives restart" guarantee.
 	var reader := _make_settings()
@@ -52,6 +55,7 @@ func test_persists_and_reloads_across_instances() -> void:
 	assert_false(reader.portrait_effects_enabled, "portrait_effects_enabled persisted to disk")
 	assert_true(reader.integer_zoom_mode, "integer_zoom_mode persisted to disk")
 	assert_true(reader.click_to_attack_enabled, "click_to_attack_enabled persisted to disk")
+	assert_true(reader.unit_type_icons_enabled, "unit_type_icons_enabled persisted to disk")
 
 
 func test_setter_noop_when_value_unchanged() -> void:

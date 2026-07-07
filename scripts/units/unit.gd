@@ -188,6 +188,10 @@ func _ready() -> void:
 	set_process(true)
 	StatusEffectSystem.status_effect_applied.connect(_on_status_effect_changed)
 	StatusEffectSystem.status_effect_removed.connect(_on_status_effect_changed)
+	# Type icons are gated on a live setting — rebuild when the player flips
+	# the Options toggle mid-battle. Rebuilding on unrelated setting changes is
+	# a cheap idempotent no-op (same pattern as HDPortraitSlot).
+	Settings.changed.connect(_update_type_icons)
 
 
 func initialize(starting_tile: Tile) -> void:
@@ -1458,13 +1462,17 @@ const _TYPE_ICON_SPACING: float = 11.0
 
 ## Rebuilds the elemental type icon(s) to the right of the health bar — the
 ## in-world mirror of the level number on the left, so typing is readable
-## without opening a panel. Uses effective_* types (Crystallization strips
-## them) and skips types with no icon on disk (e.g. new types pending art).
+## without opening a panel. Opt-in via Settings.unit_type_icons_enabled
+## (default off — playtest found it noisy). Uses effective_* types
+## (Crystallization strips them) and skips types with no icon on disk
+## (e.g. new types pending art).
 func _update_type_icons() -> void:
 	for icon: Sprite2D in _type_icons:
 		icon.queue_free()
 	_type_icons.clear()
-	if _health_bar == null or character_data == null:
+	if not Settings.unit_type_icons_enabled:
+		return
+	if _health_bar == null or character_data == null or is_defeated_flag:
 		return
 	var types: Array[Enums.ElementalType] = [
 		character_data.effective_primary_type(),
