@@ -16,6 +16,12 @@ extends Resource
 @export var area_of_effect: int = 0
 @export var target_type: Enums.TargetType = Enums.TargetType.SINGLE
 
+# Animation style hint (JSON key: animationStyle). "auto" derives from
+# attack_range (>= 2 reads as ranged); "melee"/"ranged" force the clip family
+# regardless of the distance the move is actually used at — e.g. a range-2
+# spear thrust that should still look like a stab tags itself "melee".
+@export var animation_style: String = "auto"
+
 # Damage
 @export var base_power: int = 0
 @export var damage_type: Enums.DamageType = Enums.DamageType.PHYSICAL
@@ -80,6 +86,15 @@ var current_uses: int = 0
 ## and to skip counter-attacks during combat resolution.
 func targets_allies() -> bool:
 	return target_type == Enums.TargetType.ALLY or target_type == Enums.TargetType.ALLY_NOT_SELF
+
+
+## Resolves the animation_style hint to a concrete "melee" or "ranged".
+## Drives attack-clip selection: a ranged move fired point-blank should still
+## read as a shot, not a sword swing. See Unit.select_styled_attack_clip.
+func effective_animation_style() -> String:
+	if animation_style == "melee" or animation_style == "ranged":
+		return animation_style
+	return "ranged" if attack_range >= 2 else "melee"
 
 
 ## Returns true if this move would have a meaningful effect on `target`.

@@ -1028,16 +1028,49 @@ func _attack_delta_tiles(target: Unit) -> Vector2i:
 
 
 ## Returns the best-matching clip dict from character_data.attack_animations
-## given direction-to-target and range. Empty dict means "no match — fall back
-## to boop nudge". Thin wrapper that resolves the tile delta, then defers to the
-## pure _select_attack_clip so the matching logic stays unit-testable.
-func _pick_attack_clip(target: Unit, _move: Move) -> Dictionary:
+## given direction-to-target, range, and the move's animation style. Empty dict
+## means "no match — fall back to boop nudge". Thin wrapper that resolves the
+## tile delta, then defers to the pure select_styled_attack_clip so the
+## matching logic stays unit-testable.
+func _pick_attack_clip(target: Unit, move: Move) -> Dictionary:
 	if character_data == null or character_data.attack_animations.is_empty():
 		return {}
 	if target == null:
 		return {}
-	return _select_attack_clip(character_data.attack_animations,
-			_attack_delta_tiles(target), DIAGONAL_USES_SIDE_ANIMATION)
+	return select_styled_attack_clip(character_data.attack_animations,
+			_attack_delta_tiles(target), move, DIAGONAL_USES_SIDE_ANIMATION)
+
+
+## Style-aware clip selection: a ranged move fired point-blank should read as a
+## shot, not a melee swing (and an explicitly melee-tagged reach move as a
+## swing, not a shot). Tries the move's effective_animation_style first by
+## projecting the delta to a distance that matches that style, then falls back
+## to the true distance — so a melee-only sprite using a ranged move up close
+## still swings instead of booping.
+static func select_styled_attack_clip(attack_animations: Dictionary, delta: Vector2i,
+		move: Move, diagonal_as_side: bool) -> Dictionary:
+	var styled_delta := _style_adjusted_delta(delta, move)
+	if styled_delta != delta:
+		var styled := _select_attack_clip(attack_animations, styled_delta, diagonal_as_side)
+		if not styled.is_empty():
+			return styled
+	return _select_attack_clip(attack_animations, delta, diagonal_as_side)
+
+
+## Projects an attack delta to the distance band matching the move's animation
+## style, preserving direction: ranged moves read as at least ring distance 2,
+## melee moves as the adjacent ring. Identity for null moves or when the delta
+## already sits in the style's band.
+static func _style_adjusted_delta(delta: Vector2i, move: Move) -> Vector2i:
+	if move == null or delta == Vector2i.ZERO:
+		return delta
+	match move.effective_animation_style():
+		"ranged":
+			if maxi(absi(delta.x), absi(delta.y)) < 2:
+				return delta * 2
+		"melee":
+			return Vector2i(signi(delta.x), signi(delta.y))
+	return delta
 
 
 ## Pure clip selection: given the animation table and the attacker→target tile

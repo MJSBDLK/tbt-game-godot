@@ -241,3 +241,68 @@ func test_orthogonal_range_matching_is_flag_independent() -> void:
 		var clip := Unit._select_attack_clip(_attack_anim_table(), Vector2i(-2, 0), flag)
 		assert_true(clip.get("use_when", {}).has("range_min"),
 				"Horizontal range-2 attack picks the ranged clip regardless of toggle (flag=%s)" % flag)
+
+
+# =============================================================================
+# Style-aware clip selection (select_styled_attack_clip)
+# =============================================================================
+# A ranged move used at distance 1 used to play the melee swing (clip choice
+# was purely distance-based). The move's animation style ("auto" derives from
+# attack_range; explicit "melee"/"ranged" via JSON animationStyle) now projects
+# the matching distance into the style's band first, with a fallback to the
+# true distance so melee-only sprites keep their swing.
+
+func _ranged_move(explicit_style: String = "auto") -> Move:
+	var move := Move.new()
+	move.attack_range = 3
+	move.animation_style = explicit_style
+	return move
+
+
+func _melee_move() -> Move:
+	var move := Move.new()
+	move.attack_range = 1
+	return move
+
+
+func test_ranged_move_at_point_blank_picks_ranged_clip() -> void:
+	var clip := Unit.select_styled_attack_clip(_attack_anim_table(), Vector2i(1, 0),
+			_ranged_move(), true)
+	assert_true(clip.get("use_when", {}).has("range_min"),
+			"A range-3 move fired at an adjacent target still plays the shot clip")
+
+
+func test_ranged_move_point_blank_falls_back_when_no_ranged_clip() -> void:
+	# Melee-only sprite (e.g. grasker): the styled pass finds nothing, the true
+	# distance keeps the swing rather than degrading to a boop.
+	var melee_only := { "melee": { "use_when": { "direction": "horizontal", "range": 1 } } }
+	var clip := Unit.select_styled_attack_clip(melee_only, Vector2i(1, 0), _ranged_move(), true)
+	assert_eq(int(clip.get("use_when", {}).get("range", -1)), 1,
+			"No ranged clip in the table → fall back to the melee swing")
+
+
+func test_melee_move_at_distance_one_unchanged() -> void:
+	var clip := Unit.select_styled_attack_clip(_attack_anim_table(), Vector2i(1, 0),
+			_melee_move(), true)
+	assert_eq(int(clip.get("use_when", {}).get("range", -1)), 1,
+			"Range-1 move at distance 1 picks the melee clip exactly as before")
+
+
+func test_explicit_melee_tag_overrides_reach() -> void:
+	# A range-3 move tagged "melee" (spear-thrust archetype) reads as adjacent.
+	var clip := Unit.select_styled_attack_clip(_attack_anim_table(), Vector2i(2, 0),
+			_ranged_move("melee"), true)
+	assert_eq(int(clip.get("use_when", {}).get("range", -1)), 1,
+			"animationStyle=melee forces the swing even at distance 2")
+
+
+func test_null_move_keeps_distance_based_selection() -> void:
+	var clip := Unit.select_styled_attack_clip(_attack_anim_table(), Vector2i(1, 0), null, true)
+	assert_eq(int(clip.get("use_when", {}).get("range", -1)), 1,
+			"Null move (counters without context) = pure distance matching")
+
+
+func test_effective_animation_style_derivation() -> void:
+	assert_eq(_melee_move().effective_animation_style(), "melee", "range 1 → melee")
+	assert_eq(_ranged_move().effective_animation_style(), "ranged", "range 3 → ranged")
+	assert_eq(_ranged_move("melee").effective_animation_style(), "melee", "explicit tag wins")

@@ -53,6 +53,7 @@ static func _parse_move_entry(move_name: String, data: Dictionary) -> Move:
 	move.area_of_effect = int(data.get("areaOfEffect", 0))
 	move.base_power = int(data.get("basePower", 0))
 	move.accuracy = int(data.get("accuracy", 90))
+	move.animation_style = String(data.get("animationStyle", "auto")).to_lower()
 
 	# PP from power tier + optional offset
 	var base_pp := Move.calculate_max_uses_from_power(move.base_power)
