@@ -157,6 +157,9 @@ var _health_bar_background: ColorRect = null
 var _health_bar_fill: ColorRect = null
 var _status_indicator: StatusEffectIndicator = null
 var _level_label: Label = null
+# Elemental type icon sprites, mirrored right of the health bar (level sits
+# left). Rebuilt by _update_type_icons.
+var _type_icons: Array[Sprite2D] = []
 var _path_visualizer: Node2D = null  # PathVisualizer
 var _static_overlay: Sprite2D = null
 var _static_tick_accum: float = 0.0
@@ -215,6 +218,7 @@ func initialize(starting_tile: Tile) -> void:
 	_load_character_sprite()
 	_apply_faction_healthbar()
 	_update_level_label()
+	_update_type_icons()
 	_update_healthbar_position()
 	_update_z_index()
 	_update_health_bar()
@@ -1339,6 +1343,8 @@ func _handle_defeat() -> void:
 		_status_indicator.visible = false
 	if _level_label != null:
 		_level_label.visible = false
+	for icon: Sprite2D in _type_icons:
+		icon.visible = false
 
 	# Fade out over 1 second
 	var tween := create_tween()
@@ -1441,6 +1447,44 @@ func _update_level_label() -> void:
 	if _level_label == null or character_data == null:
 		return
 	_level_label.text = "%d" % character_data.level
+
+
+const _TYPE_ICON_DIRECTORY: String = "res://art/sprites/ui/elemental_type_icons_10x10/"
+# First icon center sits 6px past the bar's right edge (bar half-width 12 + 6);
+# a second (dual-type) icon follows with a 1px gap.
+const _TYPE_ICON_START_X: float = 18.0
+const _TYPE_ICON_SPACING: float = 11.0
+
+
+## Rebuilds the elemental type icon(s) to the right of the health bar — the
+## in-world mirror of the level number on the left, so typing is readable
+## without opening a panel. Uses effective_* types (Crystallization strips
+## them) and skips types with no icon on disk (e.g. new types pending art).
+func _update_type_icons() -> void:
+	for icon: Sprite2D in _type_icons:
+		icon.queue_free()
+	_type_icons.clear()
+	if _health_bar == null or character_data == null:
+		return
+	var types: Array[Enums.ElementalType] = [
+		character_data.effective_primary_type(),
+		character_data.effective_secondary_type(),
+	]
+	var slot: int = 0
+	for element_type: Enums.ElementalType in types:
+		if element_type == Enums.ElementalType.NONE:
+			continue
+		var icon_path: String = _TYPE_ICON_DIRECTORY \
+				+ Enums.elemental_type_to_string(element_type).to_lower() + ".png"
+		if not ResourceLoader.exists(icon_path):
+			continue
+		var sprite := Sprite2D.new()
+		sprite.texture = load(icon_path)
+		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		sprite.position = Vector2(_TYPE_ICON_START_X + slot * _TYPE_ICON_SPACING, 0.0)
+		_health_bar.add_child(sprite)
+		_type_icons.append(sprite)
+		slot += 1
 
 
 ## Set health bar fill to faction color. Background stays dark for contrast.
