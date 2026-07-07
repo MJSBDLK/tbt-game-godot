@@ -31,6 +31,9 @@ var _moves_container: VBoxContainer = null
 var _passives_container: GridContainer = null
 var _status_container: GridContainer = null
 
+# Threat-zone pin chip (enemies only) — see _build_range_toggle
+var _range_toggle_button: Button = null
+
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -82,6 +85,7 @@ func _resolve_nodes() -> void:
 	_moves_container = vbox.get_node("MovesContainer") as VBoxContainer
 	_passives_container = vbox.get_node("PassivesContainer") as GridContainer
 	_status_container = vbox.get_node("StatusContainer") as GridContainer
+	_build_range_toggle(vbox)
 
 
 # =============================================================================
@@ -101,6 +105,7 @@ func show_unit(unit: Unit) -> void:
 	_update_moves(unit)
 	_update_passives(unit)
 	_update_statuses(unit)
+	_update_range_toggle(unit)
 
 
 func hide_panel() -> void:
@@ -116,6 +121,68 @@ func refresh() -> void:
 # =============================================================================
 # DISPLAY UPDATES
 # =============================================================================
+
+# =============================================================================
+# THREAT-ZONE PIN CHIP
+# =============================================================================
+# Enemies only: toggles this enemy's danger zone via ThreatOverlayController.
+# Pins PERSIST after the panel closes (design call 2026-07: tap-anywhere
+# dismisses the panel, so panel lifetime can't own zone lifetime); V /
+# clear-all is the global off-switch. Built in code — the panel scene predates
+# the threat overlay. The panel root is MOUSE_FILTER_IGNORE by design; the
+# button itself is STOP, so it's the one clickable thing on the panel and its
+# press is consumed in HUDViewport (won't leak a map click underneath).
+
+func _build_range_toggle(vbox: VBoxContainer) -> void:
+	_range_toggle_button = Button.new()
+	_range_toggle_button.visible = false
+	_range_toggle_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	_range_toggle_button.custom_minimum_size = Vector2(0, 12)
+	_range_toggle_button.tooltip_text = "Show this enemy's danger zone on the map. Stays on until toggled off (V clears all)."
+	var ui_manager: Node = UIManager
+	if ui_manager != null:
+		_range_toggle_button.add_theme_font_override("font", ui_manager.font_5px)
+		_range_toggle_button.add_theme_font_size_override("font_size", 5)
+	_range_toggle_button.pressed.connect(_on_range_toggle_pressed)
+	vbox.add_child(_range_toggle_button)
+
+
+func _threat_controller() -> ThreatOverlayController:
+	# The controller lives world-side (battle_scene); this panel lives in
+	# HUDViewport. Groups span the whole SceneTree, so lookup works across
+	# viewports. Null outside battles (prep screen, menus).
+	return get_tree().get_first_node_in_group(
+			ThreatOverlayController.GROUP_NAME) as ThreatOverlayController
+
+
+func _on_range_toggle_pressed() -> void:
+	var controller := _threat_controller()
+	if controller == null or _tracked_unit == null or not is_instance_valid(_tracked_unit):
+		return
+	controller.toggle_unit(_tracked_unit)
+	_update_range_toggle(_tracked_unit)
+
+
+func _update_range_toggle(unit: Unit) -> void:
+	if _range_toggle_button == null:
+		return
+	var controller := _threat_controller()
+	var is_living_enemy: bool = unit != null and is_instance_valid(unit) \
+			and unit.faction == Enums.UnitFaction.ENEMY and not unit.is_defeated()
+	_range_toggle_button.visible = is_living_enemy and controller != null
+	if not _range_toggle_button.visible:
+		return
+	# Track external state changes (V clearing all, pin pruned on death) so the
+	# chip's label never lies while the panel is up.
+	if not controller.changed.is_connected(_on_threat_state_changed):
+		controller.changed.connect(_on_threat_state_changed)
+	_range_toggle_button.text = "HIDE RANGE" if controller.is_unit_shown(unit) else "SHOW RANGE"
+
+
+func _on_threat_state_changed() -> void:
+	if visible and _tracked_unit != null and is_instance_valid(_tracked_unit):
+		_update_range_toggle(_tracked_unit)
+
 
 func _update_header(unit: Unit) -> void:
 	var data: CharacterData = unit.character_data
