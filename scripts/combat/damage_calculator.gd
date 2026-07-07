@@ -21,6 +21,12 @@ extends RefCounted
 ## (1.5 felt weak). Applied in CritEffect.modify_damage — single source of truth.
 const CRIT_MULTIPLIER: float = 2.0
 
+## Same-type attack bonus: a move whose element matches the attacker's own typing
+## hits harder (Pokemon-style STAB). Lives in the calculator, not a pipeline
+## handler, for the same reason as terrain/Bellows: the combat preview calls
+## calculate_damage directly and must always match the real hit.
+const STAB_MULTIPLIER: float = 1.2
+
 
 # =============================================================================
 # TERRAIN COMBAT MULTIPLIERS
@@ -110,6 +116,9 @@ static func calculate_damage(attacker: Node2D, defender: Node2D, move: Move) -> 
 	# Type effectiveness
 	var type_multiplier := get_type_effectiveness(attacker, defender, move)
 
+	# Same-type attack bonus
+	var stab_multiplier := get_stab_multiplier(attacker, move)
+
 	# Bellows: +25% fire damage per stack
 	var bellows_multiplier := 1.0
 	if move.element_type == Enums.ElementalType.FIRE:
@@ -133,12 +142,29 @@ static func calculate_damage(attacker: Node2D, defender: Node2D, move: Move) -> 
 	# Additive RD-style formula: stat + might - def. Stat growth still matters
 	# but doesn't compound with weapon power, so high-level units don't snowball.
 	var base_damage: int = (attack_stat + move.base_power) - effective_defense
-	var final_damage := maxi(1, roundi(base_damage * type_multiplier * bellows_multiplier * attack_terrain))
+	var final_damage := maxi(1, roundi(base_damage * type_multiplier * stab_multiplier * bellows_multiplier * attack_terrain))
 
-	DebugConfig.log_combat("DamageCalc: atk=%d + power=%d - def=%d(x%.2f) = %d * type=%.2f * bellows=%.2f * atkterrain=%.2f -> %d" % [
-		attack_stat, move.base_power, defense_stat, defense_terrain, base_damage, type_multiplier, bellows_multiplier, attack_terrain, final_damage])
+	DebugConfig.log_combat("DamageCalc: atk=%d + power=%d - def=%d(x%.2f) = %d * type=%.2f * stab=%.2f * bellows=%.2f * atkterrain=%.2f -> %d" % [
+		attack_stat, move.base_power, defense_stat, defense_terrain, base_damage, type_multiplier, stab_multiplier, bellows_multiplier, attack_terrain, final_damage])
 
 	return final_damage
+
+
+## STAB for one attacker/move pairing: STAB_MULTIPLIER when the move's element
+## matches either of the attacker's effective types, else 1.0. Reads the
+## effective_* accessors so Crystallization stripping a type also strips its STAB.
+static func get_stab_multiplier(attacker: Node2D, move: Move) -> float:
+	if attacker == null or move == null:
+		return 1.0
+	if move.element_type == Enums.ElementalType.NONE:
+		return 1.0
+	var data: CharacterData = attacker.get("character_data")
+	if data == null:
+		return 1.0
+	if move.element_type == data.effective_primary_type() \
+			or move.element_type == data.effective_secondary_type():
+		return STAB_MULTIPLIER
+	return 1.0
 
 
 ## Final hit chance (0-100), RD-style. Both panels (combat preview, move detail)
