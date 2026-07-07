@@ -22,6 +22,33 @@
 		"elementType": "Simple",
 		"targetType": "Single"
 	},
+	"Club": {
+		"description": "A broad, heavy swing with a blunt weapon.",
+		"abbrevName": "Club",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 5,
+		"accuracy": 90,
+		"damageType": "Physical",
+		"elementType": "Simple",
+		"targetType": "Single"
+	},
+	"Hook Swipe": {
+		"description": "A raking hook that can snag the target in place.",
+		"abbrevName": "Hook Swp",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 3,
+		"accuracy": 95,
+		"damageType": "Physical",
+		"elementType": "Simple",
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Rooted",
+			"chance": 0.4,
+			"stacks": 1
+		}
+	},
 	"Uppercut": {
 		"description": "A rising strike that knocks the target off balance and primes a follow-up.",
 		"abbrevName": "Uppercut",
@@ -60,7 +87,7 @@
 	"Compressed Air": {
 		"description": "A pressurized burst of air fired at range. The recoil propels the user.",
 		"abbrevName": "Comp Air",
-		"range": 3,
+		"range": 2,
 		"areaOfEffect": 0,
 		"basePower": 4,
 		"accuracy": 95,
@@ -106,7 +133,12 @@
 		"accuracy": 90,
 		"damageType": "Physical",
 		"elementType": "Chivalric",
-		"targetType": "Single"
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Vulnerable",
+			"chance": 0.3,
+			"stacks": 3
+		}
 	},
 
 	"Snap Freeze": {
@@ -585,7 +617,7 @@
 		"abbrevName": "First Aid",
 		"range": 1,
 		"areaOfEffect": 0,
-		"basePower": 4,
+		"basePower": 2,
 		"accuracy": 100,
 		"damageType": "Support",
 		"elementType": "Simple",
