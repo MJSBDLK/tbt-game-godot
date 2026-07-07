@@ -22,9 +22,13 @@ extends Node
 
 @onready var _hud_viewport: SubViewport = $"../HUDViewport"
 @onready var _hud_display: TextureRect = $"../HUDLayer/HUDDisplay"
+@onready var _tap_feedback: TapFeedbackLayer = $"../TapFeedbackLayer"
 
 
 func _input(event: InputEvent) -> void:
+	# Input-receipt pulse fires FIRST, before anything can consume the event —
+	# it must appear whether or not the press hit something interactible.
+	_pulse_tap_feedback(event)
 	_forward_to_hud(event)
 	# Mouse motion is broadcast (HUD wants hover state, world wants tile preview);
 	# never consume at root for motion.
@@ -32,6 +36,21 @@ func _input(event: InputEvent) -> void:
 		return
 	if _hud_viewport.is_input_handled():
 		get_viewport().set_input_as_handled()
+
+
+## The "your tap registered" ring (TapFeedbackLayer). Presses only — releases,
+## motion, and the scroll wheel don't pulse. Touch taps also deliver an
+## EMULATED mouse press (device == DEVICE_ID_EMULATION); the touch branch owns
+## those, so the mouse branch skips them to avoid a double pulse.
+func _pulse_tap_feedback(event: InputEvent) -> void:
+	if _tap_feedback == null:
+		return
+	if event is InputEventMouseButton and event.pressed and not event.is_echo() \
+			and event.device != InputEvent.DEVICE_ID_EMULATION \
+			and (event.button_index == MOUSE_BUTTON_LEFT or event.button_index == MOUSE_BUTTON_RIGHT):
+		_tap_feedback.pulse_at(event.position)
+	elif event is InputEventScreenTouch and event.pressed:
+		_tap_feedback.pulse_at(event.position)
 
 
 func _forward_to_hud(event: InputEvent) -> void:

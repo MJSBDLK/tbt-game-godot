@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://scenes/game_root.gd" id="1_root"]
 [ext_resource type="Script" path="res://scripts/managers/input_router.gd" id="2_inputrouter"]
+[ext_resource type="Script" path="res://scripts/ui/components/tap_feedback.gd" id="3_tapfeedback"]
 
 [node name="GameRoot" type="Node"]
 script = ExtResource("1_root")
@@ -25,6 +26,10 @@ expand_mode = 1
 
 [node name="HDLayer" type="CanvasLayer" parent="."]
 layer = 100
+
+[node name="TapFeedbackLayer" type="CanvasLayer" parent="."]
+layer = 110
+script = ExtResource("3_tapfeedback")
 
 [node name="InputRouter" type="Node" parent="."]
 script = ExtResource("2_inputrouter")
