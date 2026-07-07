@@ -17,20 +17,20 @@
    Lawrence to tune mote density/extent (his mockup spills motes above the chip), the
    icon→void-glyph swap, and whether detail-panel tablets need true desaturation.)
 - [ ] How hard would it be to make a crater (terrain modifier) grant a defensive bonus against melee attacks and a penalty against ranged attacks?
-- [ ] intermission screens - interactive buttons must be obviously interactive
+- [ ] intermission screens - interactive buttons must be obviously interactive - this was input received via playtesting. The intermission screens are getting a full redesign, but more broadly - what's the best way to differentiate interactible from non-interactible buttons? Remember, the visual design looks like a projection against glass. So how would an interactible vs non-interactible button look in this context?
 - [ ] bEXP screen
-- [ ] remove "*1" from character panel on the left when all statUps are allocated
+- [x] remove "*1" from character panel on the left when all statUps are allocated (verified 2026-07-06 — already implemented: `prep_screen._make_unspent_badge` returns null at 0 unspent, `_refresh_card_badge` rebuilds on `stats_changed`. If a stale ★N still shows in-game, grab a repro.)
 - [~] Give all characters at least 9 moves and 9 passives
 - [x] add level next to enemy (and friendly?) health bars
 - [ ] Decorations layer does not have any of the sprite handling of the modifiers layer - image cropped, no shadows
-- [ ] Can we make the threat overlay like the scanlines for the highres portraits?
-- [ ] the backgrounds of the UI panels are getting the alpha values changed and editing the .tscn files isn't fixing it - let's make a unit test to ensure the color values are being set properly
-- [ ] RQD: figure out what properties the new "monster" type needs to have
+- [ ] Can we make the threat overlay like the scanlines for the highres portraits? - we have the shader already; just need to tweak the color/intensity of the effect.
+- [x] the backgrounds of the UI panels are getting the alpha values changed and editing the .tscn files isn't fixing it - let's make a unit test to ensure the color values are being set properly (Done 2026-07-06. ROOT CAUSE: panels build their background StyleBoxFlat in code at `_ready` — .tscn styleboxes get replaced — and `GameColors.HUD_PANEL_BACKGROUND` bakes 0.85 alpha via `with_alpha()`. Panel opacity is edited in ONE place: game_colors.gd:111. Pinned by test_panel_backgrounds.gd so drift fails loudly.)
+- [x] RQD: figure out what properties the new "monster" type needs to have (shipped 2026-07-06: MONSTER in enums + type_chart.json per the spec below + editor arrays + test_type_chart.gd. Icon pending Lawrence — missing icons hide gracefully; chip colors fall back to the Gray ramp until a palette is picked.)
  Weaknesses: Plant, Heraldic
  Resistances: Void
  Strong against: Simple
  Weak against: Chivalric, Gentry, Heraldic
-- [ ] RQD: Beast type
+- [x] RQD: Beast type (shipped 2026-07-06 alongside Monster, same caveats)
  Weaknesses: Monster
  Resistances: 
  Strong against: Simple
@@ -354,7 +354,7 @@ New sprites — faction needed:
 - [x] the ogre is still absurdly overpowered
 - [x] Ernesto's backhand move is weirdly powerful
 - [x] moves don't seem to actually make any accuracy checks. I have never seen a move miss in my weeks of testing. **Wired 2026-06-03**: RD-adapted formula `clamp(0, 100, move.accuracy + 1.5×skill − 1.5×agility + passive_bonuses)` lives in [DamageCalculator.hit_chance_pct](../scripts/combat/damage_calculator.gd). Default `accuracy = 90` on Move; configurable per move in JSON. Combat rolls in [unit._execute_single_hit](../scripts/units/unit.gd) — miss plays the swing + spawns a "MISS" callout, no damage/flash/status. Passives wired: **Reliable** (+50 attacker accuracy) and **Low Profile** (+25 defender avoid against ranged moves). Stubs in place for Impulsive / Flippant / Zone Control. Combat preview + detail panel now read real hit% instead of hardcoded 100%.
-- [ ] Move distribution in the demo is wonky. Characters are getting moves which are way too powerful at level 5. This is contributing to the ogre problem
+- [ ] Move distribution in the demo is wonky. Characters are getting moves which are way too powerful at level 5. This is contributing to the ogre problem. Putting this one off until we have a much wider move bank.
 - [x] If a unit has no corresponding portrait, let's use default_portrait.png (lands as last-resort fallback in character_portrait._resolve — order is portrait_path → sprite-crop head → default_portrait.png. Recruit picker now always renders a portrait slot too, so sprite-less characters still show something.)
 - [x] Grunt sprite has its pivot set way too low
 - [x] Something is fucky about damage calculation in general - it doesn't feel right
@@ -379,21 +379,22 @@ New sprites — faction needed:
 - [x] The "healing" color is now applying to (seemingly) all player faction attacks in the combat preview panel - when attacking the color should be the secondary colors (text/glow) and when healing these should be green (like they are now) **Fixed 2026-06-04**: [combat_preview_panel._update_attacker_section](../scripts/ui/panels/combat_preview_panel.gd) now explicitly sets `_attacker_damage_label`'s font_color to `GameColors.TEXT_SECONDARY` (yellow-cream) and glow_color to `GameColors.TEXT_SECONDARY_GLOW` (purple) before writing the damage number. Root cause: `_update_caster_section_for_heal` overrode the damage label's font + glow to green for heal previews, but the attack preview path only set the label's text — so the green stuck. Setting both colors explicitly each time prevents the leak and ensures damage always reads in the secondary palette (was previously rendering primary cyan font + leftover purple/green glow).
 - [x] In my testing, Ernesto was defeated in my first mission, but did not sustain an injury in the intermission screen. We should probably write a (some) unit test(s) so that this does not regress. We should probably do this for lots of mechanics. **Fixed 2026-06-05** + **first regression test**: [InjurySystem.queue_injury_from_death](../scripts/units/injury_system.gd) used to drop a MINOR injury entirely when same-type immunity applied — confirmed via log diagnosis (Ernesto, Simple-primary, killed by a Simple-physical move with low overkill, "Minor injury shrugged off"). Redesigned per RQD: same-type Minor still lands but recovers in 1 battle instead of the usual 4 (`SAME_TYPE_MINOR_RECOVERY_BATTLES`). Major→Minor reduction unchanged (uses default minor recovery). Test coverage in [tests/unit/test_injury_system.gd](../tests/unit/test_injury_system.gd) (5 cases: same-type Minor, same-type Major, cross-type, two null guards) — first real-code test using the new [TestFakeUnit](../tests/helpers/fake_unit.gd) helper.
 - [ ] At certain zoom levels, you can see seams between tiles at certain  camera positions. Hard to reproduce. The seam appears z-indexed at roughly the same level as the enemy sprite - it's a vertical line of subpixel (?) resolution when the camera is not centered. (grab a screenshot)
-- [ ] (minor) Changing the zoom mode from NN/integer makes zooming in/out a lot more/less sensitive (they zoom in/out faster depending on the mode) and this is jarring to players.
-- [ ] We should include move range in the 
-- [ ] simply double clicking on an enemy uses the equipped move on the enemy, and this is confusing to new players - make this an option advanced users can toggle on
-- [ ] We literally list the range nowhere in the unit detail panel or the move preview panel
-- [ ] The visual design of the preview panel makes it look interactible, and this is also confusing to new players
+- [x] (minor) Changing the zoom mode from NN/integer makes zooming in/out a lot more/less sensitive (they zoom in/out faster depending on the mode) and this is jarring to players. (Fixed 2026-07-06: smooth zoom is now multiplicative — ×1.25 per notch instead of +0.25 flat — so per-notch change is proportional at any depth and lands near integer mode's step around the default 3x. Feel-test in game.)
+- [ ] We should include an icon that includes the target type and range wherever we display a move button (alongside elemental type and move type)
+- [x] simply double clicking on an enemy uses the equipped move on the enemy, and this is confusing to new players - make this an option advanced users can toggle on (Done 2026-07-06: gated on new persisted `Settings.click_to_attack_enabled`, default OFF, "Quick Attack" On/Off row in Options. Disabled, that click shows the enemy info panel; attacks go through the action menu's explicit target step.)
+- [x] We literally list the range nowhere in the unit detail panel or the move preview panel (Done 2026-07-06: "Rng." mini-panel between Power and Accuracy in the unit detail move row, cloned at runtime from the Accuracy panel. Shows base reach; situational bonuses like Extendo stay in the combat preview. Lawrence's range ICONS — see Art Needed — can replace the text later.)
+- [ ] The visual design of the preview panel makes it look interactible, and this is also confusing to new players.
+  -> maybe non-interactible buttons have dull/dark borders, while interactible buttons have a glow to the border?
 - [ ] The level up screen (mid-battle) didn't appear, but then it appeared after the mission
-- [ ] the terrain preview is STILL active during the bEXP screen
+- [x] the terrain preview is STILL active during the bEXP screen (Fixed 2026-07-06: `_on_post_mission_report_ready` now does the same belt-and-suspenders map-panel teardown as show_battle_result, covering the whole level-up → bEXP → report chain even on state re-entry.)
 - [ ] Lawrence wants a VICTORY screen with no information first, then the info panel slides in (from the side, top, whatever). But the first thign should be a "you won" or "you lost" with no additional information - we can repurpose the "player turn/enemy turn" banner, with some alterations, for this
-- [ ] We can't see injuries on the intermission screen
-- [ ] Make the statup star the same color as the "X/Y unspent" so the user can tell easily what's being modified. Modified stats can also be that color
-- [ ] If you press a disabled button on the stat up edit screen, flash red the information which communicates to the user why that press failed.
-- [ ] Injuries aren't appearing in the next battle - is this because single-battle minor injuries have their counter reset at the beginning of the next battle, effectively making them last 0 battles?
-- [ ] in font size 5, it's very hard to read, particularly the numeral "8"
-- [ ] assigned move should display in the action menu before you click "wait" 
-- [ ] "Flamethrower Phoenix" is too long - need either an abbreviation, or to pick a different name. "Phoenix Pirate" maybe
+- [x] We can't see injuries on the intermission screen (Done 2026-07-06: equipment picker summary now renders each injury inline — icon + name + battles-remaining, severity/recovery on hover — instead of a bare count. Eyeball line-height with the 10x10 inline icons.)
+- [x] Make the statup star the same color as the "X/Y unspent" so the user can tell easily what's being modified. Modified stats can also be that color (Done 2026-07-06: ★N badge, pool counter, and allocation pluses/→arrow all share the Yellow-5 accent — pool label was default white, pluses were green.)
+- [x] If you press a disabled button on the stat up edit screen, flash red the information which communicates to the user why that press failed. (Done 2026-07-06: disabled +/- presses red-flash the pool counter when out of points, or the row's value at per-stat cap / nothing-to-remove. Hooks `gui_input` since disabled buttons never emit `pressed`. Eyeball the flash timing in game.)
+- [x] Injuries aren't appearing in the next battle - is this because single-battle minor injuries have their counter reset at the beginning of the next battle, effectively making them last 0 battles? (Fixed 2026-07-06 — hypothesis right about the effect, wrong about the timing: `_on_battle_ended` committed the fresh injury and THEN ticked recovery in the same pass, so a 1-battle injury expired before the next mission ever started. Recovery now ticks pre-existing injuries BEFORE committing pending ones. Side effect, intended: an injury expiring in that pass frees its slot before the permadeath overflow check. 3 regression tests in test_squad_manager.gd.)
+- [ ] in font size 5, it's very hard to read, particularly the numeral "8" - solution: replace the numeral "8". I've drawn the sprite, but how best to implement this? Note: the bottom pixel of the 8 drops below the writing like, like a g/j/p/q/y.
+- [x] assigned move should display in the action menu before you click "wait" (verified 2026-07-06 — already implemented: the assigned move's chip gets a "> " prefix in both the main menu and assign submenu. Caveat: the marker only shows when the move is usable AND has valid targets; a void-locked or target-less assigned move renders unmarked. Flag if that caveat is the actual complaint.)
+- [x] "Flamethrower Phoenix" is too long - need either an abbreviation, or to pick a different name. "Phoenix Pirate" maybe (Done 2026-07-06: renamed to "Phoenix Pirate". File/id unchanged — display name only.)
 - [ ] locked moves need a visual - like a literal lock with chain links. Maybe a "void" effect for the moves locked by void. Strikethrough text?
 - [ ] Lawrence asks, "is there anywhere you can see what all these icons mean?" - tooltip mode, maybe? Probably wouldn't hurt to have an in-game legend/glossary
 - [working_as_designed] ~~Something VERY odd happened. In playtesting, Lawrence moved Max within 3 spaces of the enemy (adjacent to Grasker, who's a player unit), selected "laser" and clicked on the enemy. Instead, Max attacked Grasker, who then counterattacked Max. What on earth? Can laser even target friendly units? What would make that happen? This happened again a bit later - targeted the enemy, and he shoots Grasker (now 2 spaces away)
@@ -401,21 +402,22 @@ New sprites — faction needed:
 - [partial] We need much better visual feedback so that we understand what's happening whan a corrupted unit "goes rogue." What's the proc chance, by the way?
   - **Proc chance**: per-injury magnitude — `corruption_gentry` and `corruption_obsidian` define `10.0` (Minor) and `20.0` (Major), summed across all active Corruption injuries via [character_data.friendly_fire_chance_pct](../scripts/units/character_data.gd). Capped at 100%.
   - **Done 2026-06-05**: "CORRUPTION" red callout spawns on the attacker BEFORE the swing animation when the retarget fires (re-uses the existing `spawn_text_callout` pipeline), with a 0.4s pause so the player reads the cause before the swing pivots. See [unit.gd](../scripts/units/unit.gd) — `execute_combat_sequence`, friendly-fire block.
-  - [ ] **Fizzle-case design call (RQD pending)**: when Corruption procs but no ally is in range, the attack currently fizzles (PP saved, action consumed, zero visual). Decide whether to (a) keep fizzle + add a "HESITATED" callout so it's not invisible, or (b) fall through to the originally-clicked enemy on no-ally. Until decided, fizzle stays silent — second symptom of the same bug.
+  - [ ] **Fizzle-case design call (RQD pending)**: when Corruption procs but no ally is in range, the attack currently fizzles (PP saved, action consumed, zero visual). Decide whether to (a) keep fizzle + add a "HESITATED" callout so it's not invisible, or (b) fall through to the originally-clicked enemy on no-ally. Until decided, fizzle stays silent — second symptom of the same bug. -> I think we just want Corruption not to fizzle in this case. Incentivizes the separation of the unit from friendlies, which carries its own tactical depth.
   - [ ] **Combat preview misfire chip**: show a clear `⚠ XX% misfire` indicator on the combat preview when the attacker has Corruption, so the player decides with full info. Use the concrete `friendly_fire_chance_pct` from character_data. Visual design needs a pass — could be a chip near the hit% area, or a banner across the preview. RQD to mock up.
-- [ ] Moves need to be tagged as either "melee" or "ranged," because currently a ranged move used at 1 space away plays the melee animation
+- [x] Moves need to be tagged as either "melee" or "ranged," because currently a ranged move used at 1 space away plays the melee animation (Done 2026-07-06: moves carry an animation style — "auto" derives from range (>=2 = ranged), JSON `animationStyle: "melee"/"ranged"` overrides per move. Style's distance band is tried first with fallback to true distance, so melee-only sprites keep their swing at point blank instead of booping. All moves currently on auto; tag exceptions as they're found. 6 tests in test_unit.gd.)
 - [ ] Enemy pathing is really stupid and they can't path through obstacles 
-- [ ] Guard break - should have a chance to apply vulnerable
-- [ ] First Aid needs its power lowered by ~2
-- [ ] Compressed Air should have its range lowered to 1-2
-- [ ] Roads correctly comsume 0.5 movement, but the terrain preview still reads "1" instead of "½" or "0.5"
+- [x] Guard break - should have a chance to apply vulnerable (Done 2026-07-06: 30% chance, 3 stacks — Vulnerable's standard application. NOTE for tuning: Vulnerable lowers RESISTANCE (special bulk) while Guard Break is Physical; if you meant "punch through DEFENSE," the matching debuff is Subversion — say the word and it's a one-line swap.)
+- [x] First Aid needs its power lowered by ~2 (Done 2026-07-06: basePower 4 → 2)
+- [x] Compressed Air should have its range lowered to 1-2 (Done 2026-07-06: range 3 → 2. Note: range is a single max value — "1-2" = usable at 1 or 2. A true min-range ("can't fire point blank") doesn't exist yet; flag if you want that mechanic.)
+- [x] Roads correctly comsume 0.5 movement, but the terrain preview still reads "1" instead of "½" or "0.5" (Fixed 2026-07-06: half costs render as "½" — the glyph exists in UndeadPixelLight8, the grid-cell font. Cost was being `ceil`'d for display.)
 - [x] When a terrain is impassable for the default unit type, it's confusing that the terrain preview panel reads the impedence as "1" - while technically correct, it looks like that terrain is walkable by all units. I'm considering a red X under the movement penalty, with separate entries for the types which can actually traverse it. This does create some bad UX where there can be multiple types with the same attributes, but that might be ok **Done 2026-06-10**: [terrain_preview_panel](../scripts/ui/panels/terrain_preview_panel.gd) renders a red **X** (TEXT_DANGER, tap-tooltip "Impassable — this type cannot enter.") in the movement column instead of the misleading "1" whenever a row's type can't enter. Also fixed a latent bug: the override-row diff check ignored walkability, so a type that could cross an otherwise-impassable terrain but had identical move/def/avoid/atk (e.g. fliers over a Wall — all 1.0) was silently dropped; now walkability is part of the diff, so traversing types always get their own row. Result on a Wall: default row = X, Air row = "1". Per-type rows kept (accepted the "multiple types with same attributes" tradeoff); grouping identical types into one multi-icon row is a possible future polish if it gets noisy.
-- [ ] In the case where a terrain has four entries, the image preview and title at the top is getting pushed off the top-edge of the terrain preview panel.
+- [x] In the case where a terrain has four entries, the image preview and title at the top is getting pushed off the top-edge of the terrain preview panel. (Fixed 2026-07-06: the panel now grows DOWNWARD past its 140px design height when override rows overflow — the full-rect containers were growing in both directions, shoving the header off the top.)
 - [x] unit preview panel and terrain preview panel don't move to the left side of the screen (and presumably vice versa) when the cursor is on that side (no cursor in touchscreen mode but it's clearly still a problem)
 - [ ] (see above) we need to test the above in touchscreen mode - I'm assuming it's still a problem (working great in M&K). 
 - [ ] Accidental double clicks:
- - [ ] text box which describes what step you're in
- - [ ] user option to enable attack shortcut (default DISBALED)
+ - [ ] text box which describes what step you're in -> new playtesters are struggling with which step they're in, e.g. once they've selected a unit, they need to know "pick where to move," "select a move," "select a target," etc. This should be an option in the options menu that experienced players can turn off.
+  -> we might even want "select a unit," but I didn't see anyone fail to do that part - that step is pretty intuitive.
+ - [x] user option to enable attack shortcut (default DISBALED) (Done 2026-07-06 — same change as the double-click item above: `Settings.click_to_attack_enabled`, "Quick Attack" row in Options, default off.)
 
 
 ## [x] Modifiers and Decorations - issues
@@ -427,11 +429,10 @@ New sprites — faction needed:
 - [x] In the terrain preview panel, the preview image should include the preview of the modifier, not the terrain beneath it **Done 2026-06-10**: [Tile.get_tile_texture](../scripts/grid/tile.gd) now prefers the modifier covering the cell (three-tier rule: the modifier IS the tile's identity). Handles multi-cell tiles: cells covered by an anchor's footprint scan painted anchors and show the specific 32×32 sub-cell the cursor is on (e.g. hovering the castle's NE cell shows the NE chunk).
 - [x] Stone Edifice should grant a medium defensive bonus to the default elemental type **Done 2026-06-10**: defenseMultiplier default 1.2 (between Crater 1.1 and Castle 1.3). Note: only matters once units can stand on structure cells — StoneEdifice is impassable until the per-cell passage design (castle gate) lands.
 - [x] *firetopradish* - we have a whole volcano jungle biome in development, so we probably want a volcanic plant type which boosts both fire and plant types **Done 2026-06-10**: new "VolcanicPlant" terrain — walkable, movePenalty 2 (Fire/Plant move free), attack ×1.2 and defense ×1.1 for both Fire and Plant, Scorch-immune. firetopradish_* remapped from Plant → VolcanicPlant in the registration tool; tileset re-registered.
-- [ ] 
 
 # TEST THESE MECHANICS
-- [ ] STAB + visual feedback
-- [ ] Unit sprites should not capture mousedown events (you click tiles, not units)
+- [~] STAB + visual feedback (mechanic SHIPPED 2026-07-06: 1.2x `STAB_MULTIPLIER` in DamageCalculator, matches either effective type, Crystallization strips it, preview inherits it automatically, test_stab.gd. Still open: in-game eyeball + whether STAB deserves its own callout/badge beyond the bigger number.)
+- [x] Unit sprites should not capture mousedown events (you click tiles, not units) (verified 2026-07-06 — already true: unit.tscn has no Area2D/input handling, health-bar ColorRects are mouse_filter IGNORE, and all clicks resolve tile-first in InputManager.)
 
 # Todo
 - [x] Merge Lawrence's branch
@@ -458,8 +459,7 @@ New sprites — faction needed:
 - [x] Options menu
 - [x] Add a toggle for "nearest neighbor scaling" vs. "only allow integer scaled zoom levels" (and come up with a concise way of saying that, like zoom mode: nearest neighbor/integer)
 - [ ] Tooltips: controller focus-navigation mode (Dark Souls pattern — hotkey grabs focus on tooltip-bearing icons, stick navigates, focus_entered shows themed popup, B/Back releases). Click-to-show already works on M&K and touch via TapTooltip; controller is the remaining gap.
-- [ ] Touchscreen UX: preview panels occlude tiles the user might want to tap. Decide between (a) don't show preview panel during action planning — separate "select for action" from "inspect", (b) auto-pan/zoom camera to keep the unit's eligible range visible beside the panel, (c) long-press to peek-through, (d) panel fades + becomes tap-transparent after a moment
-  - **Test device plan (real touch required — desktop `emulate_touch_from_mouse` is single-finger only, can't emulate multi-touch or pressure):**
+- [ ][w] Touchscreen UX: preview panels occlude tiles the user might want to tap. Decide between (a) don't show preview panel during action planning — separate "select for action" from "inspect", (b) auto-pan/zoom camera to keep the unit's eligible range visible beside the panel, (c) long-press to peek-through, (d) panel fades + becomes tap-transparent after a moment. Need to actually playtest on a touch screen to make an informed decision.
     - **Primary: GrapheneOS phone** — daily-driver for touch iteration. Enable Developer Options + USB debugging, use Godot's One-Click Deploy (Project → Install Android Build Template once, then phone icon in toolbar). GrapheneOS has no Play Protect so dev-signed APKs install without nags; actually *easier* than stock Android.
     - **Secondary: old Android tablet** — larger screen closer to Steam Deck aspect ratio; useful for layout/form-factor validation. Any Android 6+ works.
     - **Final: Steam Deck** — real target hardware. Remote debug via `--remote-debug tcp://<dev-ip>:6007` or install Godot editor directly on Deck in desktop mode. Bring in once touch UX stabilizes on phone.
@@ -469,46 +469,34 @@ New sprites — faction needed:
 - [ ] PRIORITY: Create in-between mission squad management screen.
 - [x] programmer art for 5 enemy types
 - [ ] When controlling using M+K it would be nice if the menus had hotkeys. Probably 1-4 for moves, then QERFZXCV for non-moves? Have them disappear if we detect controller or touchscreen input
-- [ ] Autosave on every turn?
+- [ ] Save system. I've never implemented one of these, but can't we just take the game state from memory and write it to a restorable file? Or is it more complicated than that?
+- [ ] Autosave on every turn -> once we have a save system. I anticipate save scumming will just be part of the game, so let's have a checkpoint whenever control is handed back to the player.
 - [ ] Add support for icons in text boxes - need full elementalType, boost, affliction, injury icon sets (anything else?)
 - [ ] Tap/click feedback particle — one-shot particle effect at every input position (tap, click, controller A-button), fires whether or not the input hit something interactible. Kills the "dead input" feeling. FE Heroes-style; single GPUParticles2D or shader-driven ring at world/screen position.
-- [ ] Have Ma'am start at lv 11, Max at lv 1, Ernesto at lv 5 (we'll need to playtest all of that of course)
-- [ ] Something I'm noticing is that copying the 2x/4x/0.5x/0.25x system from Pokémon isn't working great in a TBS. Super effective moves are just devastating. We might try using a different multiplier: 2/3 for ineffective and 3/2 for super effective. I think this would mean 4/9x for double resisted moves and 2.25x for double weakness. We should do this: pick a coefficient in one place and change it as needed.
-- [ ] It would be useful to see units' typing and level with the additional info HUD (the one that shows their active boost/afflictions)
-- [ ] Unit "I'm injured I gotta fall back" monologue on injury the first time it happens
+- [x] Have Ma'am start at lv 11, Max at lv 1, Ernesto at lv 5 (we'll need to playtest all of that of course) (verified 2026-07-06 — already implemented: `CampaignManager.CHARACTER_START_LEVELS` has exactly these values; the start-screen level picker is intentionally disabled in favor of it.)
+- [x] Something I'm noticing is that copying the 2x/4x/0.5x/0.25x system from Pokémon isn't working great in a TBS. Super effective moves are just devastating. We might try using a different multiplier: 2/3 for ineffective and 3/2 for super effective. I think this would mean 4/9x for double resisted moves and 2.25x for double weakness. We should do this: pick a coefficient in one place and change it as needed. (verified 2026-07-06 — stale: the one-place coefficient shipped in the 20260510 rebalance as `TYPE_COEFFICIENT` in type_chart.gd, currently 1.2. If you now want your proposed 3/2, that's the one line to change.)
+- [x] It would be useful to see units' typing and level with the additional info HUD (the one that shows their active boost/afflictions) (Done 2026-07-06: type icon(s) now render right of the in-world health bar, mirroring the level number on the left. Uses effective types; skips icons not on disk. Eyeball placement next to tall units + dual-types.)
+- [ ] Unit "I'm injured I gotta fall back" monologue on injury the first time it happens - need dialogue system first
 - [ ] Create a template for a checklist for each character which includes everything we need for each character - 92x92 portrait, 32x32 portrait, idle animation, attack_physical_adjacent_north, attack_special_ranged_east, growth rates, base stats, just everything. Then we need to develop a file hierarchy.
-- [ ] Did we add STAB mechanics? Should be a 1.2x multiplier
+- [x] Did we add STAB mechanics? Should be a 1.2x multiplier (We hadn't — grep confirmed no STAB anywhere. Shipped 2026-07-06 at exactly 1.2x; see the TEST THESE MECHANICS entry.)
 - [ ] Rework detail panel to use the move styleboxes we used in the preview panel
-- [ ] It's unclear to the user what's clickable in the UI and what's not - we need to apply some kind of visual design that makes it clear what is and what isn't interactible.
+- [ ] It's unclear to the user what's clickable in the UI and what's not - we need to apply some kind of visual design that makes it clear what is and what isn't interactible. -> see above
 - [ ] The move preview doesn't animate properly when the unit retreads its path
 - [ ] **ALLY/NEUTRAL faction spawn wiring** (post-alpha — alpha doesn't need allies or neutrals). [data/characters/desert_prince.json](../data/characters/desert_prince.json), [mystic.json](../data/characters/mystic.json), and [battle_chicken.json](../data/characters/battle_chicken.json) exist but no infrastructure spawns them. Currently `RECRUIT_POOL` is player-only and `enemy_spawn_pool` is enemy-only — there's no equivalent for `Enums.UnitFaction.ALLY` or `NEUTRAL`. Needs design first: (a) where allies come from — mission-scripted, pooled like recruits, or hand-placed in the map .tscn? (b) neutral behavior — wandering / hostile-to-all / passive decoration? (c) authoring surface — .tscn placement vs programmatic spawn. Then plumb through `TurnManager` and AI so non-PLAYER/non-ENEMY factions get turns and decisions.
 - [ ] On controller/M&K, the preview path should display while hovering the next node in the planned path.
-- [ ] Bringing up the unit preview panel on an enemy should display their attack range on the map (pause before implementing this - should this be on a different hotkey?)
-- [ ] Let ice types walk on water
-- [ ] Add moves: [Club (basic low-med power attack for the Ogre), Hook Swipe (low damage, chance to root) ]
+- [ ] Bringing up the unit preview panel on an enemy should display their attack range on the map
+  - we've added a threat zone function, not sure if this function was implemented
+  - we probably want to bind this to a hotkey, but we may want to preview the threat range on hover. Let's try it both ways (toggle in the options menu)
+- [x] Let ice types walk on water (verified 2026-07-06 — stale: already true since the 2026-06-10 Water fix; terrain_data.json has `walkable: {default: false, Air: true, Cold: true}`.)
+- [x] Add moves: [Club (basic low-med power attack for the Ogre), Hook Swipe (low damage, chance to root) ] (Done 2026-07-06: Club pwr 5/acc 90, Hook Swipe pwr 3/acc 95 with 40% Rooted (1 stack) — both Simple/Physical range 1, both added to Ogre's basePoolMoves. Chance/stacks are tuning guesses.)
 - [ ] In enums.gd, we have StatusEffectType which needs to be separated into AfflictType and BoostType (debuff/buff) - this is likely a significant undertaking because we need to rewire a lot of the game logic. I don't think there's an alternative because units need to be able to have a boost and an affliction at the same time.
 - [ ] We need clear visual feedback for EVERY passive that triggers.
 - [ ] Need clear visual feedback when boosts and affliction effects clear
-- [ ] Void lock effect is not applied to the "assign move" menu
+- [x] Void lock effect is not applied to the "assign move" menu (verified 2026-07-06 — already shipped in 5c45a8a: `_populate_assign_submenu` renders locked slots as greyed chips with VoidLockOverlay, same as the main menu. If it's a DIFFERENT surface you meant, point me at it.)
 - [ ] Void lock effect - tweak the density of the FX (frequency as applicable) for larger styleboxes
-- [ ] If color-swapped sprite variants is something we wish to do, is designing around indexed palettes super important right now?
+- [x] If color-swapped sprite variants is something we wish to do, is designing around indexed palettes super important right now? -> decided against this -> we're using layers that can be swapped out
 
-# Stretch Goalsls
-- [ ] Sync beacons to music BPM
-
----
-
-## Buff/Debuff System (shipped 2026-04-09)
-- [x] Unified stack/percentage model — every effect uses stacks (no separate `duration`); stat effects are % of unmodified stat
-- [x] 1 buff slot + 1 debuff slot per unit, with same-category immunity (and `replaces` override flag on moves)
-- [x] 5 new buffs added: Rallied (+STR), Fortified (+DEF), Hasted (+AGL), Focused (+SKL), Regen (HoT)
-- [x] 6 weak moves got self-target buff riders (Compressed Air, Uppercut, Feint, Sidearm, Laser, March)
-- [x] 4 dedicated Support moves added: Fortify, Bloom, Focus, Battle Cry
-- [x] UI updated: detail panel, in-world indicator, preview panel all show 1 buff + 1 debuff
-- [ ] **Icon requests pending from Lawrence**: Rallied, Fortified, Hasted, Focused, Regen, plus the long-missing Bellows
-- [ ] Combat preview: indicate buffs/debuffs in play (deferred — combat numbers will pull from effective stats automatically once the panel reads `character_data.strength` etc.)
-- [ ] Ally-target support moves (e.g. Rally) — combat selection doesn't yet support ally-target; defer until needed
-
+# Stretch Goals
 - [ ] Sync beacons to music BPM
 
 ---
