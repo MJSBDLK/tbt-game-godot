@@ -29,6 +29,12 @@ var portrait_effects_enabled: bool = true
 ## menu's Zoom Mode toggle.
 var integer_zoom_mode: bool = false
 
+## When false, the interactive-UI border vocabulary keeps its state COLORS but
+## drops all motion: selection brackets park, call-to-action rings vanish (the
+## border stays bright), the focus backlight snaps instead of fading.
+## Accessibility setting, same spirit as portrait_effects_enabled. Default on.
+var ui_motion_enabled: bool = true
+
 ## When true, clicking an enemy while your unit is selected immediately attacks
 ## with the assigned move (power-user shortcut). Default OFF: new players kept
 ## triggering attacks while trying to inspect enemies. Disabled, that click
@@ -72,6 +78,8 @@ func load_settings() -> void:
 				"visuals", "portrait_effects_enabled", portrait_effects_enabled))
 		integer_zoom_mode = bool(config.get_value(
 				"display", "integer_zoom_mode", integer_zoom_mode))
+		ui_motion_enabled = bool(config.get_value(
+				"visuals", "ui_motion_enabled", ui_motion_enabled))
 		click_to_attack_enabled = bool(config.get_value(
 				"controls", "click_to_attack_enabled", click_to_attack_enabled))
 		unit_type_icons_enabled = bool(config.get_value(
@@ -95,6 +103,15 @@ func set_portrait_effects_enabled(value: bool) -> void:
 	if value == portrait_effects_enabled:
 		return
 	portrait_effects_enabled = value
+	_save()
+	changed.emit()
+
+
+## Persists + notifies. No-ops when unchanged (see set_portrait_effects_enabled).
+func set_ui_motion_enabled(value: bool) -> void:
+	if value == ui_motion_enabled:
+		return
+	ui_motion_enabled = value
 	_save()
 	changed.emit()
 
@@ -209,6 +226,7 @@ func _save() -> void:
 	var config := ConfigFile.new()
 	config.load(settings_path)  # ignore error — a fresh file is fine
 	config.set_value("visuals", "portrait_effects_enabled", portrait_effects_enabled)
+	config.set_value("visuals", "ui_motion_enabled", ui_motion_enabled)
 	config.set_value("display", "integer_zoom_mode", integer_zoom_mode)
 	config.set_value("controls", "click_to_attack_enabled", click_to_attack_enabled)
 	config.set_value("display", "unit_type_icons_enabled", unit_type_icons_enabled)

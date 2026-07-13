@@ -133,6 +133,38 @@ static var ACTION_BUTTON_BG_PRESSED: Color:
 
 
 # =============================================================================
+# INTERACTIVE STATE COLORS — the border vocabulary (ui-style-guide.md §14).
+# Lit border = pressable. Used by InteractiveButton; don't reuse these hues for
+# non-interactive decoration or the vocabulary stops meaning anything.
+# =============================================================================
+
+## Steady lit border: "you can press this."
+static var INTERACTIVE_BORDER_IDLE: Color:
+	get: return GameColorPalette.get_color("Azure", 7)
+## Brighter border while hovered / controller-focused.
+static var INTERACTIVE_BORDER_FOCUS: Color:
+	get: return GameColorPalette.get_color("Azure", 9)
+## Hue the focused button's background lifts toward ("backlight"). The button
+## quantizes the mix into 4 discrete shades — see InteractiveButton.
+static var INTERACTIVE_BACKLIGHT_TINT: Color:
+	get: return GameColorPalette.get_color("Azure", 5)
+## Selected corner ticks — near-white; selection is shape, not color (purple
+## was retired from selection semantics 2026-07-15).
+static var INTERACTIVE_BRACKET: Color:
+	get: return GameColorPalette.get_color("Azure", 10)
+## Call-to-action converging rings + border catch-flash.
+static var CALL_TO_ACTION_BRIGHT: Color:
+	get: return GameColorPalette.get_color("YellowOrange", 7)
+static var CALL_TO_ACTION_DIM: Color:
+	get: return GameColorPalette.get_color("YellowOrange", 4)
+## Disabled: darkest tier — darker than any static border so it never reads lit.
+static var INTERACTIVE_BORDER_DISABLED: Color:
+	get: return GameColorPalette.get_color("Gray", 4)
+static var INTERACTIVE_TEXT_DISABLED: Color:
+	get: return GameColorPalette.get_color("Gray", 6)
+
+
+# =============================================================================
 # TEXT COLORS
 # =============================================================================
 

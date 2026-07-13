@@ -21,6 +21,8 @@ var _zoom_mode_smooth_button: Button = null
 var _zoom_mode_integer_button: Button = null
 var _portrait_effects_on_button: Button = null
 var _portrait_effects_off_button: Button = null
+var _ui_motion_on_button: Button = null
+var _ui_motion_off_button: Button = null
 var _click_attack_on_button: Button = null
 var _click_attack_off_button: Button = null
 var _type_icons_on_button: Button = null
@@ -117,6 +119,9 @@ func _populate_options() -> void:
 
 	# Portrait Effects (HD line-art distortion / glass shaders)
 	_create_portrait_effects_option()
+
+	# UI Motion (border-vocabulary animations; accessibility kill switch)
+	_create_ui_motion_option()
 
 	# Quick Attack (click enemy = instant attack; power-user shortcut)
 	_create_click_attack_option()
@@ -327,6 +332,54 @@ func _on_portrait_effects_off() -> void:
 	Settings.set_portrait_effects_enabled(false)
 	_apply_toggle_state(_portrait_effects_on_button, false)
 	_apply_toggle_state(_portrait_effects_off_button, true)
+
+
+# Toggles the interactive-UI border-vocabulary animations (selection brackets,
+# call-to-action rings, focus backlight fade). Colors always stay — only motion
+# stops. Accessibility setting, persisted via Settings; InteractiveButton reads
+# the flag live every frame, so this applies instantly.
+
+func _create_ui_motion_option() -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+
+	var label := Label.new()
+	label.text = "UI Motion"
+	label.tooltip_text = "Animated button borders. Off keeps the colors but stops the movement."
+	label.custom_minimum_size = Vector2(OPTION_LABEL_WIDTH, 0)
+	label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
+	var glow: ShaderMaterial = GLOW_MATERIAL.duplicate()
+	glow.set_shader_parameter("glow_color", GameColors.TEXT_PRIMARY_GLOW)
+	label.material = glow
+	row.add_child(label)
+
+	var button_container := HBoxContainer.new()
+	button_container.add_theme_constant_override("separation", 2)
+
+	var enabled: bool = Settings.ui_motion_enabled
+
+	_ui_motion_on_button = _create_toggle_button("On", enabled)
+	_ui_motion_on_button.pressed.connect(_on_ui_motion_on)
+	button_container.add_child(_ui_motion_on_button)
+
+	_ui_motion_off_button = _create_toggle_button("Off", not enabled)
+	_ui_motion_off_button.pressed.connect(_on_ui_motion_off)
+	button_container.add_child(_ui_motion_off_button)
+
+	row.add_child(button_container)
+	_content_container.add_child(row)
+
+
+func _on_ui_motion_on() -> void:
+	Settings.set_ui_motion_enabled(true)
+	_apply_toggle_state(_ui_motion_on_button, true)
+	_apply_toggle_state(_ui_motion_off_button, false)
+
+
+func _on_ui_motion_off() -> void:
+	Settings.set_ui_motion_enabled(false)
+	_apply_toggle_state(_ui_motion_on_button, false)
+	_apply_toggle_state(_ui_motion_off_button, true)
 
 
 # Click-to-attack shortcut (click an enemy while a unit is selected = instant
