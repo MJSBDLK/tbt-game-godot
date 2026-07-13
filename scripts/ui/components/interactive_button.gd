@@ -340,13 +340,17 @@ func _on_pointer_gained() -> void:
 	if disabled:
 		return
 	_start_backlight_fade(1.0)
-	_play_sfx(SFX_HOVER)
 
 
 func _on_focus_entered() -> void:
 	# A mouse button being down while focus arrives means the click grabbed it.
 	_focus_from_pointer = Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) \
 			or Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)
+	# The tick plays ONLY for keyboard/controller focus steps — discrete,
+	# one per input, console-menu feel. Mouse hover is continuous and would
+	# cacophony across a menu (RQD 2026-07-15); the backlight is its feedback.
+	if not _focus_from_pointer and not disabled:
+		_play_sfx(SFX_HOVER)
 	_on_pointer_gained()
 
 
