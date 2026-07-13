@@ -1,0 +1,851 @@
+<title>Border Vocabulary — TBT UI Mockup</title>
+<style>
+  /* ============================================================
+     Border Vocabulary specimen board — single-theme dark on purpose:
+     this simulates the game screen. Palette lifted from GameColorPalette.
+     1 game px = 3 screen px throughout (integer scale, like the engine).
+     ============================================================ */
+  :root {
+    --ground: #14120e;
+    --ground-2: #1b1813;
+    --panel: #302d27;
+    --panel-solid: #35322b;
+    --ink: #dbf3ff;          /* Azure 9 */
+    --ink-glow: #4c8cbb;     /* Azure 5 */
+    --ink-dim: #8fa8b8;
+    --amber: #f5cd65;        /* YellowOrange 8 — call to action */
+    --amber-deep: #b98a2e;
+    --magenta: #9e5d9f;      /* RETIRED from selection 2026-07-15 — pops too well to waste, needs a new job */
+    --magenta-hi: #d99ada;
+    --border-flat: #4a463d;  /* static panel border */
+    --border-lit: #7fb2d9;   /* interactive idle */
+    --border-dis: #55514a;   /* disabled */
+    --danger: #c94f3d;
+    --px: 3px;               /* one game pixel */
+    --clock: 2.4s;           /* global animation clock */
+    --bracket-cycle: 0.8s;   /* full out-in bracket cycle: 0.8s = 1.25 Hz (RQD's pick 2026-07-15) */
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background:
+      radial-gradient(1100px 500px at 50% -10%, #201c15 0%, var(--ground) 60%),
+      var(--ground);
+    color: var(--ink);
+    font-family: system-ui, "Segoe UI", sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    padding: 0 20px 80px;
+  }
+  .mono {
+    font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+  }
+
+  .wrap { max-width: 1060px; margin: 0 auto; }
+
+  /* ---------- header ---------- */
+  header { padding: 42px 0 10px; }
+  .eyebrow {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 11px; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--amber);
+  }
+  h1 {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: clamp(24px, 4vw, 34px);
+    letter-spacing: .04em;
+    margin: 8px 0 6px;
+    text-wrap: balance;
+    text-shadow: 0 0 14px color-mix(in srgb, var(--ink-glow) 55%, transparent);
+  }
+  header p { max-width: 62ch; color: var(--ink-dim); margin: 6px 0 0; }
+  header p strong { color: var(--ink); font-weight: 600; }
+
+  h2 {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 13px; letter-spacing: .2em; text-transform: uppercase;
+    color: var(--ink-dim);
+    margin: 54px 0 4px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  h2::after { content: ""; flex: 1; height: 1px; background: #3a362e; }
+  .sub { color: var(--ink-dim); font-size: 14px; max-width: 68ch; margin: 2px 0 22px; }
+  .sub strong { color: var(--ink); font-weight: 600; }
+
+  /* ---------- control strip ---------- */
+  .controls {
+    position: sticky; top: 0; z-index: 40;
+    margin-top: 26px;
+    background: color-mix(in srgb, var(--ground) 88%, transparent);
+    backdrop-filter: blur(6px);
+    border: 1px solid #3a362e;
+    border-radius: 6px;
+    padding: 12px 16px;
+    display: flex; flex-wrap: wrap; gap: 10px 26px; align-items: center;
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 12px; letter-spacing: .06em;
+  }
+  .controls label { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; color: var(--ink-dim); }
+  .controls label:hover { color: var(--ink); }
+  .controls input[type="checkbox"] { accent-color: var(--amber); width: 14px; height: 14px; }
+  .controls input[type="radio"] { accent-color: var(--magenta-hi); }
+  .controls input[type="range"] { accent-color: var(--ink-glow); width: 110px; }
+  .ctl-group { display: inline-flex; align-items: center; gap: 12px; }
+  .ctl-group > span { color: #766f61; text-transform: uppercase; font-size: 10px; letter-spacing: .18em; }
+
+  /* ============================================================
+     THE MOCK WIDGETS — everything below the fold is "in-game"
+     ============================================================ */
+
+  .btn {
+    --b: var(--border-flat);
+    --bg: var(--panel);
+    position: relative;
+    display: block;
+    width: 100%;
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 15px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink);
+    text-shadow: 0 0 8px color-mix(in srgb, var(--ink-glow) 60%, transparent);
+    background: var(--bg);
+    border: var(--px) solid var(--b);
+    padding: calc(var(--px) * 3) calc(var(--px) * 4);
+    text-align: left;
+    cursor: default;
+    user-select: none;
+    image-rendering: pixelated;
+  }
+  .btn small { display: block; font-size: 10px; letter-spacing: .1em; color: var(--ink-dim); text-shadow: none; margin-top: 2px; }
+
+  /* --- 1. static: flat dark border, not clickable --- */
+  .st-static { --b: var(--border-flat); color: var(--ink); }
+
+  /* --- 2. interactive idle: steady lit border. Lit = clickable. --- */
+  .st-idle {
+    --b: var(--border-lit);
+    cursor: pointer;
+    box-shadow:
+      0 0 calc(var(--px) * 2.5) color-mix(in srgb, var(--border-lit) 38%, transparent),
+      inset 0 0 calc(var(--px) * 2) color-mix(in srgb, var(--border-lit) 14%, transparent);
+    /* backlight fade: 4 discrete shades over 2/15s (~8 frames @60), both
+       directions — a stepped palette ramp, not a smooth glide (the shine sweep
+       it replaces read too hifi per Lawrence/RQD; 1/4s felt too slow) */
+    transition: background-color .133s steps(4, end);
+  }
+
+  /* --- 3. focus/hover: backlight — the button glows from behind --- */
+  .st-idle:hover, .st-idle:focus-visible, .st-focus {
+    --b: #b8e0ff;
+    --bg: color-mix(in srgb, var(--panel-solid) 78%, var(--ink-glow) 22%);
+    outline: none;
+    box-shadow:
+      0 0 calc(var(--px) * 4) color-mix(in srgb, var(--border-lit) 65%, transparent),
+      inset 0 0 calc(var(--px) * 3) color-mix(in srgb, var(--border-lit) 22%, transparent);
+  }
+
+  /* --- press response: 1 game px down + flash --- */
+  .st-idle:active, .btn.pressing {
+    transform: translateY(var(--px));
+    filter: brightness(1.5);
+  }
+
+  /* --- 4. disabled: dark, desaturated, keeps its slot --- */
+  .st-disabled {
+    --b: var(--border-dis);
+    color: #7d786e;
+    text-shadow: none;
+    cursor: pointer; /* tappable for the "why" */
+  }
+  .st-disabled small { color: #635e54; }
+
+  .why {
+    position: absolute; left: 50%; bottom: calc(100% + var(--px) * 2);
+    transform: translateX(-50%);
+    white-space: nowrap;
+    background: #0e0c09;
+    border: var(--px) solid var(--border-flat);
+    color: var(--amber);
+    font-size: 11px; letter-spacing: .1em;
+    padding: calc(var(--px) * 1.5) calc(var(--px) * 3);
+    opacity: 0; pointer-events: none;
+    transition: opacity .12s steps(3);
+    z-index: 5;
+  }
+  .why.show { opacity: 1; }
+
+  /* --- 5A. selected: marquee orbit (RQD spec 2026-07-08) ---
+     Two diametrically opposed highlights traveling the border perimeter at a
+     FIXED px/s — near-white core with a stepped shade ramp down to the border
+     color on each side. Built as stacked SVG stroke-dash overlays by
+     buildMarquee() in the script: a CSS conic-gradient can't do constant-speed
+     perimeter travel — angular sweep stretches on a rectangle's long edges,
+     which was the elongating "siren" look in the earlier version. */
+  /* No recolor: purple RETIRED from selection semantics (RQD 2026-07-15,
+     "kill your darlings") — the snapping brackets alone carry "you are here".
+     Border and glow match the idle state so only the shape changes. The
+     magenta ramp stays in :root awaiting a new job. */
+  .st-selected {
+    --b: var(--border-lit);
+    cursor: pointer;
+    box-shadow:
+      0 0 calc(var(--px) * 2.5) color-mix(in srgb, var(--border-lit) 38%, transparent),
+      inset 0 0 calc(var(--px) * 2) color-mix(in srgb, var(--border-lit) 14%, transparent);
+  }
+  svg.marquee { position: absolute; overflow: visible; pointer-events: none; }
+
+  /* --- 5B. selected: corner brackets, 1 game px proud of the border ---
+     Near-white on purpose: drawn in the border's own color they'd vanish
+     into the corners (v1 bug — invisible on most monitors). */
+  .st-selected .bk { display: none; }
+  /* NOTE: widths live ONLY in the per-corner rules below. Declaring `border: 0`
+     here out-specifies them (3 classes vs 2) and zeroes every arm — that was
+     the invisible-brackets bug. */
+  .st-selected.v-bracket .bk, .st-selected.v-both .bk {
+    display: block;
+    position: absolute;
+    width: calc(var(--px) * 5); height: calc(var(--px) * 5);
+    border-style: solid;
+    border-color: #f2faff;
+    filter: drop-shadow(0 0 calc(var(--px)) var(--border-lit));
+    animation: bracket-snap var(--bracket-cycle) linear infinite;
+    pointer-events: none;
+    z-index: 2;
+  }
+  /* each corner steps 1 game px outward along its own diagonal, then back */
+  .bk.tl { top: calc(var(--px) * -2); left: calc(var(--px) * -2); border-width: var(--px) 0 0 var(--px); --dx: -1; --dy: -1; }
+  .bk.tr { top: calc(var(--px) * -2); right: calc(var(--px) * -2); border-width: var(--px) var(--px) 0 0; --dx: 1; --dy: -1; }
+  .bk.bl { bottom: calc(var(--px) * -2); left: calc(var(--px) * -2); border-width: 0 0 var(--px) var(--px); --dx: -1; --dy: 1; }
+  .bk.br { bottom: calc(var(--px) * -2); right: calc(var(--px) * -2); border-width: 0 var(--px) var(--px) 0; --dx: 1; --dy: 1; }
+  /* exactly two positions — out and in — no easing between (RQD/Lawrence call) */
+  @keyframes bracket-snap {
+    0%, 49.99% {
+      transform: translate(0, 0);
+      filter: drop-shadow(0 0 calc(var(--px) * .5) var(--ink-glow));
+    }
+    50%, 100% {
+      transform: translate(calc(var(--dx) * var(--px)), calc(var(--dy) * var(--px)));
+      filter: drop-shadow(0 0 calc(var(--px) * 2) #b8e0ff);
+    }
+  }
+  /* (Retired variants: "quiet" and "orbit once" both depended on the purple
+     recolor to mark the resting selection — with no recolor they show nothing,
+     so they died with it. See git history / older artifact versions.) */
+
+  /* --- 6. call to action: converging rings, dim at the edge, landing on the border --- */
+  .st-cta {
+    --b: var(--amber-deep);
+    cursor: pointer;
+    color: #ffeebc;
+    animation: cta-border calc(var(--clock) * .75) steps(4) infinite;
+  }
+  @keyframes cta-border {
+    0%, 55%  { border-color: var(--amber-deep); }
+    70%, 90% { border-color: var(--amber); box-shadow: 0 0 calc(var(--px) * 3) color-mix(in srgb, var(--amber) 45%, transparent); }
+    100%     { border-color: var(--amber-deep); }
+  }
+  .st-cta .ring {
+    position: absolute;
+    border: var(--px) solid var(--amber);
+    opacity: 0;
+    animation: converge calc(var(--clock) * .75) steps(7) infinite;
+    pointer-events: none;
+  }
+  .st-cta .ring.r2 { animation-delay: calc(var(--clock) * -0.375); }
+  @keyframes converge {
+    0%   { inset: calc(var(--px) * -6); opacity: 0; }
+    12%  { opacity: .22; }
+    60%  { opacity: .55; }
+    100% { inset: calc(var(--px) * -1); opacity: .95; }
+  }
+
+  /* --- comparison: the naive pulse (what we're NOT doing for CTA) --- */
+  .st-pulse {
+    --b: var(--amber-deep);
+    cursor: pointer;
+    color: #ffeebc;
+    animation: naive-pulse calc(var(--clock) * .75) steps(6) infinite alternate;
+  }
+  @keyframes naive-pulse {
+    from { border-color: var(--amber-deep); box-shadow: 0 0 0 transparent; }
+    to   { border-color: var(--amber); box-shadow: 0 0 calc(var(--px) * 4) color-mix(in srgb, var(--amber) 55%, transparent); }
+  }
+
+  /* ---------- reduce motion: every state collapses to a static tier ---------- */
+  body.reduced .st-idle { transition: none; } /* backlight still changes, just instantly */
+  /* marquee overlays get rebuilt static (highlights parked) by refreshMarquees() */
+  body.reduced .st-selected .bk { animation: none; }
+  body.reduced .st-cta, body.reduced .st-pulse { animation: none; border-color: var(--amber);
+    box-shadow: 0 0 calc(var(--px) * 3) color-mix(in srgb, var(--amber) 45%, transparent); }
+  body.reduced .st-cta .ring { display: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .st-idle { transition: none; }
+    .st-selected .bk { animation: none; }
+    .st-cta, .st-pulse { animation: none; border-color: var(--amber); }
+    .st-cta .ring { display: none; }
+  }
+
+  /* ============================================================
+     SPECIMEN CARDS
+     ============================================================ */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    background: var(--ground-2);
+    border: 1px solid #35312a;
+    border-radius: 6px;
+    padding: 20px 20px 18px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .card .stage {
+    background:
+      repeating-linear-gradient(0deg, #221f19 0 3px, #1f1c17 3px 6px);
+    border: 1px solid #2c2822;
+    padding: 30px 34px;
+    display: grid; place-items: center;
+  }
+  .card .stage .btn { width: 210px; }
+  .card .stage .duo { display: flex; flex-direction: column; gap: calc(var(--px) * 2); width: 210px; }
+  .card .stage .duo .btn { width: 100%; }
+  .card h3 {
+    margin: 0;
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 13px; letter-spacing: .14em; text-transform: uppercase;
+    display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  }
+  .card h3 .tier {
+    font-size: 10px; letter-spacing: .16em; color: #766f61; white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .card p { margin: 0; font-size: 13.5px; color: var(--ink-dim); }
+  .card p strong { color: var(--ink); font-weight: 600; }
+  .card .meaning {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 11px; letter-spacing: .08em;
+    color: var(--amber);
+    border-left: 2px solid var(--amber-deep);
+    padding-left: 10px;
+  }
+  .card.contrast { border-color: #4a3030; }
+  .card.contrast .meaning { color: var(--danger); border-left-color: var(--danger); }
+
+  /* ============================================================
+     SNUGNESS RIG — the fake action menu, 140 game px wide
+     ============================================================ */
+  .rig-row { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; }
+  .rig {
+    flex: 0 0 auto;
+    width: calc(140px * 3 + 2px);
+    background:
+      radial-gradient(300px 200px at 30% 20%, #23282e 0%, transparent 60%),
+      #1a1e22;
+    border: 1px solid #33393f;
+    padding: calc(var(--px) * 5) calc(var(--px) * 4);
+  }
+  .rig .rig-title {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 12px; letter-spacing: .2em; text-transform: uppercase;
+    color: var(--ink-dim);
+    margin-bottom: calc(var(--px) * 4);
+    text-shadow: 0 0 8px color-mix(in srgb, var(--ink-glow) 45%, transparent);
+  }
+  .rig .menu { display: flex; flex-direction: column; gap: calc(var(--px) * 2); }
+  .rig-notes { flex: 1 1 320px; min-width: 280px; }
+  .rig-notes ul { margin: 10px 0 0; padding-left: 20px; color: var(--ink-dim); font-size: 14px; }
+  .rig-notes li { margin: 8px 0; }
+  .rig-notes li strong { color: var(--ink); font-weight: 600; }
+  .rig-notes li em { color: var(--amber); font-style: normal; }
+
+  /* ---------- engine notes ---------- */
+  .notes {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;
+  }
+  .note {
+    background: var(--ground-2);
+    border: 1px solid #35312a;
+    border-radius: 6px;
+    padding: 18px 20px;
+    font-size: 13.5px; color: var(--ink-dim);
+  }
+  .note h4 {
+    margin: 0 0 8px;
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 11px; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--ink);
+  }
+  .note code {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 12px;
+    color: var(--amber);
+    background: #241f16;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  footer {
+    margin-top: 60px;
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 11px; letter-spacing: .1em;
+    color: #766f61;
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">TBT · UI Interactivity Mockup · for review w/ Lawrence</div>
+    <h1>Border Vocabulary</h1>
+    <p>One rule: <strong>a lit border means you can press it.</strong> Above that, three kinds of
+    motion carry three meanings — none (idle), converging (come here), orbiting (you are here).
+    Motions are stepped, not smooth, so they tick like pixel animation. Colors are game palette;
+    1 game px = 3 screen px. Font is a stand-in — judge the borders, not the glyphs.</p>
+  </header>
+
+  <div class="controls mono">
+    <div class="ctl-group">
+      <span>Global</span>
+      <label><input type="checkbox" id="ctl-motion"> Reduce motion</label>
+      <label><input type="checkbox" id="ctl-sound" checked> Sound</label>
+    </div>
+    <div class="ctl-group">
+      <span>Clock</span>
+      <label>slow <input type="range" id="ctl-speed" min="40" max="220" value="100"> fast</label>
+    </div>
+    <div class="ctl-group">
+      <span>Bracket snap</span>
+      <label>slow <input type="range" id="ctl-bracket" min="25" max="200" value="125" step="5"> fast</label>
+      <span id="bracket-readout" style="color: var(--ink);">1.25 Hz</span>
+    </div>
+    <div class="ctl-group">
+      <span>Marquee</span>
+      <label>slow <input type="range" id="ctl-marquee" min="20" max="120" value="50" step="5"> fast</label>
+      <span id="marquee-readout" style="color: var(--ink);">50 px/s</span>
+    </div>
+    <div class="ctl-group">
+      <span>Selected style</span>
+      <label><input type="radio" name="selvar" value="v-bracket" checked> brackets</label>
+      <label><input type="radio" name="selvar" value="v-rotate"> orbit</label>
+      <label><input type="radio" name="selvar" value="v-both"> orbit+brackets</label>
+    </div>
+  </div>
+
+  <h2>The six states</h2>
+  <p class="sub">Every card is live. Hover (or tab to) anything lit; <strong>click to feel the press
+  response</strong> — one game pixel down, brightness flash, and the tick. Press the disabled one too.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Static <span class="tier">unlit · never moves</span></h3>
+      <div class="stage"><span class="btn st-static">Terrain Info<small>panels, labels, readouts</small></span></div>
+      <p class="meaning">MEANING — this is furniture. You cannot press it.</p>
+      <p>Flat dark border, no light. Text keeps its GlowLabel halo — that's typography, not affordance.</p>
+    </div>
+
+    <div class="card">
+      <h3>Interactive · idle <span class="tier">lit · steady</span></h3>
+      <div class="stage"><button class="btn st-idle sfx">Items<small>lit border, steady</small></button></div>
+      <p class="meaning">MEANING — you can press this. If it ain't lit, you can't click.</p>
+      <p><strong>Steady, never pulsing.</strong> Ten of these on screen stay calm; the light alone carries the contract.</p>
+    </div>
+
+    <div class="card">
+      <h3>Focus / hover <span class="tier">backlight · 8-frame fade</span></h3>
+      <div class="stage">
+        <div class="duo">
+          <button class="btn st-idle sfx">Wait<small>normal — not hovered</small></button>
+          <button class="btn st-idle st-focus sfx" id="focus-demo">Wait<small>hovered / focused</small></button>
+        </div>
+      </div>
+      <p class="meaning">MEANING — the cursor (or controller focus) is on this one right now.</p>
+      <p>Same button twice: the bottom one cycles into its hovered state — the border brightens and the
+      button's background lifts, like a backlight switching on behind it. The lift fades in over
+      <strong>2/15 s (~8 frames) in 4 discrete shades</strong>, not a smooth glide (the old shine
+      sweep read too hifi; ¼ s felt too slow). On phones this state barely exists; the press-down
+      response does the work instead.</p>
+    </div>
+
+    <div class="card">
+      <h3>Disabled <span class="tier">darkest · steady</span></h3>
+      <div class="stage">
+        <button class="btn st-disabled sfx-deny" id="disabled-demo">Ember<small>0 uses remaining</small>
+          <span class="why" id="disabled-why">NO USES REMAINING</span>
+        </button>
+      </div>
+      <p class="meaning">MEANING — exists, but not now. Press it to learn why.</p>
+      <p>Darker than static so it never reads as lit. Tapping surfaces the reason — matters most on touch,
+      where there's no hover to explain anything.</p>
+    </div>
+
+    <div class="card">
+      <h3>Selected <span class="tier">corner ticks · the pick</span></h3>
+      <div class="stage">
+        <button class="btn st-selected v-bracket pinned sfx">Attack<small>current selection</small>
+          <i class="bk tl"></i><i class="bk tr"></i><i class="bk bl"></i><i class="bk br"></i>
+        </button>
+      </div>
+      <p class="meaning">MEANING — you are here. Only one thing can be selected, so only one exists.</p>
+      <p>Hot-white corner ticks that <strong>snap between exactly two positions</strong> — in (hugging
+      the border) and one game px out — no easing between, at 1.25 Hz (tune with the “Bracket snap”
+      slider). The button itself keeps its idle colors: <strong>purple was retired from selection</strong>
+      (kill your darlings, 2026-07-15) so the shape is the whole signal. 2 px overhang at peak, zero
+      layout cost.</p>
+    </div>
+
+    <div class="card">
+      <h3>Selected · orbit <span class="tier">alternate · marquee</span></h3>
+      <div class="stage">
+        <button class="btn st-selected v-rotate pinned sfx">Attack<small>alternate look</small></button>
+      </div>
+      <p class="meaning">MEANING — same state, kept as the runner-up.</p>
+      <p>Two highlights on opposite sides of the border, traveling around it like a marquee at a
+      <strong>fixed speed</strong> — near-white core, shades stepping down to the (now azure) border
+      color on each side, so the tails still melt into the frame. Constant size and speed no matter
+      the button shape. Tune it with the Marquee slider.</p>
+    </div>
+
+    <div class="card">
+      <h3>Call to action <span class="tier">converging rings</span></h3>
+      <div class="stage"><button class="btn st-cta sfx">End Turn<small>all units have acted</small>
+        <span class="ring r1"></span><span class="ring r2"></span>
+      </button></div>
+      <p class="meaning">MEANING — the game suggests this next. At most ONE on screen, ever.</p>
+      <p>Rings appear dim a few px out and shrink onto the border, which catches the light as they land.
+      Motion <strong>toward</strong> the button points at it — nothing else in the set moves across
+      the screen like this, so it can't be confused with selected or hovered.</p>
+    </div>
+
+    <div class="card contrast">
+      <h3>⚠ The plain pulse <span class="tier">rejected · shown for comparison</span></h3>
+      <div class="stage"><button class="btn st-pulse sfx">End Turn<small>same meaning, worse signal</small></button></div>
+      <p class="meaning">WHY WE'RE NOT USING IT — pulsing in place looks like every other glowing thing.</p>
+      <p>Side by side with the converging rings, this just reads as a brighter normal button — and
+      it's easy to mistake for a selected one. Kept here so the comparison is one glance, not an argument.</p>
+    </div>
+  </div>
+
+  <h2>Snugness rig</h2>
+  <p class="sub">The real worry: the action menu is a <strong>140-game-px column with 2 px gaps</strong>.
+  Here's every state coexisting at exactly that spacing. Converge rings and brackets both overhang by
+  ~2 px at peak — check whether neighbors swallow it. Click around; selection moves with you.</p>
+
+  <div class="rig-row">
+    <div class="rig">
+      <div class="rig-title">— Actions —</div>
+      <div class="menu" id="rig-menu">
+        <button class="btn st-selected v-bracket sfx rig-btn" data-selected="true">Attack
+          <i class="bk tl"></i><i class="bk tr"></i><i class="bk bl"></i><i class="bk br"></i>
+        </button>
+        <button class="btn st-idle sfx rig-btn">Move</button>
+        <button class="btn st-idle sfx rig-btn">Items</button>
+        <button class="btn st-disabled sfx-deny rig-btn-disabled">Ember<small>0 uses</small>
+          <span class="why">NO USES REMAINING</span>
+        </button>
+        <button class="btn st-cta sfx rig-btn">End Turn
+          <span class="ring r1"></span><span class="ring r2"></span>
+        </button>
+      </div>
+    </div>
+    <div class="rig-notes">
+      <p class="sub" style="margin-top:0">What to eyeball here:</p>
+      <ul>
+        <li><strong>Do the converge rings read in a 2 px gap?</strong> They spawn 6 game px out — at
+        this spacing they briefly cross the neighbor. If that's noise, first knob to turn is spawn
+        distance (6 → 3 px), not the effect.</li>
+        <li><strong>Brackets in tight quarters</strong> — the pick overhangs up to 2 game px at peak;
+        check whether it crowds the neighbor at 2 px gaps, and tune the snap rate live. The Selected
+        style control still offers the marquee orbit (runner-up) for comparison.</li>
+        <li><strong>Busyness ceiling:</strong> at most <em>two</em> things animate at once
+        (one selection + one call to action). Everything else is steady by rule, so the panel stays
+        calm even fully populated.</li>
+        <li><strong>Attention order</strong> should read: disabled &lt; static &lt; normal buttons
+        &lt; selected &lt; call to action. Squint test: End Turn should win your eye, Attack second.
+        With no purple recolor, the brackets carry selection alone — squint and confirm Attack still
+        reads second.</li>
+        <li><strong>Reduce motion</strong> (top strip) collapses everything to static tiers — the call
+        to action and selection keep their bright color, lose their motion. With brackets that means
+        parked white ticks. This is the whole accessibility implementation, one flag.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>Engine notes</h2>
+  <div class="notes">
+    <div class="note">
+      <h4>One global clock</h4>
+      <p>Every animation here is a multiple of a single <code>--clock</code>. In-engine: one autoload
+      tween or a shared shader <code>time</code> uniform, so the UI breathes as one instead of
+      shimmering out of phase. Also makes “reduce motion” a single kill switch —
+      <code>Settings.ui_motion_enabled</code>, same pattern as portrait effects. When it's off, the
+      call to action and the selection keep their bright colors but stop moving.</p>
+    </div>
+    <div class="note">
+      <h4>Stepped, not smooth</h4>
+      <p>All motion uses stepped timing (the CSS is <code>steps(n)</code>; in Godot, quantize the
+      tween's interpolated value to frames). Smooth glides read as “modern app” — ticking reads as
+      pixel art and stays crisp on the integer grid.</p>
+    </div>
+    <div class="note">
+      <h4>Integer-pixel press</h4>
+      <p>Press response is <code>translateY(1 game px)</code> + a brightness flash — no scaling, ever,
+      so nothing leaves the pixel grid. Pairs with the tap-feedback ring already shipped at the
+      input layer.</p>
+    </div>
+    <div class="note">
+      <h4>Sound sketch</h4>
+      <p>The ticks here are synthesized square-wave blips — hover ~2.4 kHz / 25 ms, press ~900 Hz with a
+      noise transient, deny = low double-knock. A gesture toward RE1 / Deus Ex crispy; real samples are
+      Lawrence's call, but the <em>shape</em> (sharp attack, dead-fast decay, mid-band) is the spec.</p>
+    </div>
+  </div>
+
+  <footer>PALETTE: GameColorPalette · SCALE: 3× (1080p default) · FONT: stand-in · STATUS: NEEDS REVIEW — Lawrence</footer>
+</div>
+
+<script>
+(function () {
+  var body = document.body;
+
+  /* ---------- controls ---------- */
+  var motion = document.getElementById('ctl-motion');
+  motion.addEventListener('change', function () {
+    body.classList.toggle('reduced', motion.checked);
+    refreshMarquees(); // WAAPI animations don't obey CSS kill rules — rebuild static
+  });
+
+  var speed = document.getElementById('ctl-speed');
+  speed.addEventListener('input', function () {
+    // slider 40..220 maps to clock 4.8s..~0.9s (higher = faster)
+    var seconds = 2.4 * (100 / Number(speed.value));
+    document.documentElement.style.setProperty('--clock', seconds.toFixed(2) + 's');
+  });
+
+  var bracketSlider = document.getElementById('ctl-bracket');
+  var bracketReadout = document.getElementById('bracket-readout');
+  bracketSlider.addEventListener('input', function () {
+    var hertz = Number(bracketSlider.value) / 100;
+    document.documentElement.style.setProperty('--bracket-cycle', (1 / hertz).toFixed(2) + 's');
+    bracketReadout.textContent = hertz.toFixed(2).replace(/\.?0+$/, '') + ' Hz';
+  });
+
+  /* ---------- marquee orbit (RQD spec): SVG dash overlays ----------
+     Stacked strokes, dash lengths in game px, all center-aligned: the top
+     white core with each shade extending 1 game px further on both sides.
+     dasharray "len, halfPerimeter - len" repeats twice per lap = two
+     diametrically opposed highlights for free. Speed is fixed px/s along the
+     border — the whole point vs. the old angular sweep. */
+  // RQD rule (2026-07-15): the core is the same length as each ramp step —
+  // one knob. Ramp runs core-outward from white down to just off the border
+  // color; each shade extends one step per side beyond the layer above.
+  var MARQUEE_STEP_GAME_PX = 3; // LOCKED 2026-07-15 — bands read too obviously above 3
+  // core → tail; azure so the tails melt into the lit border (the magenta ramp
+  // retired with the purple-selection experiment, 2026-07-15)
+  var MARQUEE_RAMP = ['#ffffff', '#b8e0ff', '#9cc4e4', '#88aed0'];
+  var MARQUEE_LAYERS = MARQUEE_RAMP.map(function (color, index) {
+    return { color: color, gamePx: MARQUEE_STEP_GAME_PX * (1 + 2 * index) };
+  }).reverse(); // longest (tail) drawn first, white core on top
+  var marqueeSpeed = 50; // game px per second along the border
+
+  function clearMarquee(el) {
+    var old = el.querySelector('svg.marquee');
+    if (old) old.remove();
+  }
+
+  function buildMarquee(el) {
+    clearMarquee(el);
+    var unit = 3; // screen px per game px
+    var w = el.offsetWidth, h = el.offsetHeight;
+    if (!w || !h) return;
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('class', 'marquee');
+    svg.setAttribute('width', w);
+    svg.setAttribute('height', h);
+    svg.style.top = '-' + unit + 'px';
+    svg.style.left = '-' + unit + 'px';
+    // stroke centerline runs down the middle of the button's own border
+    var inner = { x: unit / 2, y: unit / 2, w: w - unit, h: h - unit };
+    var perimeter = 2 * (inner.w + inner.h);
+    var reduced = document.body.classList.contains('reduced')
+      || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    MARQUEE_LAYERS.forEach(function (layer) {
+      var rect = document.createElementNS(ns, 'rect');
+      var len = layer.gamePx * unit;
+      rect.setAttribute('x', inner.x);
+      rect.setAttribute('y', inner.y);
+      rect.setAttribute('width', inner.w);
+      rect.setAttribute('height', inner.h);
+      rect.setAttribute('fill', 'none');
+      rect.setAttribute('stroke', layer.color);
+      rect.setAttribute('stroke-width', unit);
+      rect.setAttribute('stroke-dasharray', len + ' ' + (perimeter / 2 - len));
+      // offset by half the dash so every layer is CENTERED on the same point
+      rect.setAttribute('stroke-dashoffset', len / 2);
+      svg.appendChild(rect);
+      if (!reduced) {
+        rect.animate(
+          [{ strokeDashoffset: (len / 2) + 'px' },
+           { strokeDashoffset: (len / 2 - perimeter) + 'px' }],
+          { duration: perimeter / (marqueeSpeed * unit) * 1000,
+            iterations: Infinity,
+            easing: 'steps(' + Math.max(1, Math.round(perimeter / unit)) + ', end)' });
+      }
+    });
+    el.appendChild(svg);
+  }
+
+  function refreshMarquees() {
+    document.querySelectorAll('.btn').forEach(function (el) {
+      var selected = el.classList.contains('st-selected');
+      if (selected && (el.classList.contains('v-rotate') || el.classList.contains('v-both'))) {
+        buildMarquee(el);
+      } else {
+        clearMarquee(el);
+      }
+    });
+  }
+
+  var marqueeSlider = document.getElementById('ctl-marquee');
+  var marqueeReadout = document.getElementById('marquee-readout');
+  marqueeSlider.addEventListener('input', function () {
+    marqueeSpeed = Number(marqueeSlider.value);
+    marqueeReadout.textContent = marqueeSpeed + ' px/s';
+    refreshMarquees();
+  });
+
+  var selRadios = document.querySelectorAll('input[name="selvar"]');
+  function applySelVariant(variant) {
+    // specimen cards are pinned to their own variant; the radio drives the rig
+    var targets = document.querySelectorAll('.st-selected:not(.pinned)');
+    targets.forEach(function (el) {
+      el.classList.remove('v-rotate', 'v-bracket', 'v-both');
+      el.classList.add(variant);
+    });
+    refreshMarquees();
+    console.log('[vocab] selected variant →', variant, '· applied to', targets.length, 'element(s)');
+  }
+  selRadios.forEach(function (radio) {
+    radio.addEventListener('change', function () { applySelVariant(radio.value); });
+  });
+
+  /* ---------- crispy synth ---------- */
+  var soundToggle = document.getElementById('ctl-sound');
+  var audio = null;
+  function ctx() {
+    if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+    if (audio.state === 'suspended') audio.resume();
+    return audio;
+  }
+  function blip(freq, dur, gainLevel, type) {
+    if (!soundToggle.checked) return;
+    try {
+      var a = ctx();
+      var t = a.currentTime;
+      var osc = a.createOscillator();
+      var gain = a.createGain();
+      osc.type = type || 'square';
+      osc.frequency.setValueAtTime(freq, t);
+      gain.gain.setValueAtTime(gainLevel, t);
+      gain.gain.exponentialRampToValueAtTime(0.0004, t + dur);
+      osc.connect(gain).connect(a.destination);
+      osc.start(t);
+      osc.stop(t + dur + 0.01);
+    } catch (e) { /* audio unavailable — mock still works silent */ }
+  }
+  function hoverTick() { blip(2400, 0.022, 0.05); }
+  function pressTick() { blip(900, 0.05, 0.11); blip(2200, 0.014, 0.05); }
+  function denyKnock() {
+    blip(300, 0.05, 0.1);
+    setTimeout(function () { blip(240, 0.07, 0.1); }, 70);
+  }
+
+  document.querySelectorAll('.sfx, .sfx-deny').forEach(function (el) {
+    el.addEventListener('mouseenter', hoverTick);
+  });
+  document.querySelectorAll('.sfx').forEach(function (el) {
+    el.addEventListener('pointerdown', pressTick);
+  });
+
+  /* ---------- disabled "why" ---------- */
+  function wireDeny(el) {
+    el.addEventListener('pointerdown', function () {
+      denyKnock();
+      var why = el.querySelector('.why');
+      if (!why) return;
+      why.classList.add('show');
+      clearTimeout(why._t);
+      why._t = setTimeout(function () { why.classList.remove('show'); }, 1300);
+    });
+  }
+  document.querySelectorAll('.sfx-deny').forEach(wireDeny);
+
+  /* ---------- press flash (touch parity with :active) ---------- */
+  document.querySelectorAll('.sfx').forEach(function (el) {
+    el.addEventListener('pointerdown', function () {
+      el.classList.add('pressing');
+      setTimeout(function () { el.classList.remove('pressing'); }, 110);
+    });
+  });
+
+  /* ---------- focus specimen: replay the backlight fade on a loop ----------
+     Drop to idle for a beat, then re-focus, so the 1/4s fade is visible in
+     both directions. */
+  var focusDemo = document.getElementById('focus-demo');
+  if (focusDemo) {
+    setInterval(function () {
+      focusDemo.classList.remove('st-focus');
+      setTimeout(function () { focusDemo.classList.add('st-focus'); }, 900);
+    }, 3400);
+  }
+
+  /* ---------- diagnostics: confirm the brackets actually render ---------- */
+  window.addEventListener('load', function () {
+    refreshMarquees(); // built after layout so button sizes are real
+    var allBrackets = document.querySelectorAll('.bk');
+    console.log('[vocab] bracket elements in DOM:', allBrackets.length);
+    var visible = document.querySelector('.st-selected.v-bracket .bk, .st-selected.v-both .bk');
+    if (!visible) {
+      console.warn('[vocab] no bracket sits in a v-bracket/v-both container — check button classes');
+      return;
+    }
+    var style = getComputedStyle(visible);
+    var rect = visible.getBoundingClientRect();
+    console.log('[vocab] first live bracket:', {
+      display: style.display,
+      size: style.width + ' × ' + style.height,
+      borderTopWidth: style.borderTopWidth,   // must be 3px, not 0px — 0 means the
+      borderLeftWidth: style.borderLeftWidth, // shorthand-specificity bug is back
+      borderColor: style.borderTopColor,
+      onScreen: rect.width > 0 && rect.height > 0
+    });
+  });
+
+  /* ---------- rig: click moves the selection ---------- */
+  var rig = document.getElementById('rig-menu');
+  var brackets = '<i class="bk tl"></i><i class="bk tr"></i><i class="bk bl"></i><i class="bk br"></i>';
+  var currentVariant = function () {
+    var checked = document.querySelector('input[name="selvar"]:checked');
+    return checked ? checked.value : 'v-bracket';
+  };
+  rig.querySelectorAll('.rig-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (btn.classList.contains('st-cta')) return; // End Turn keeps its CTA role
+      rig.querySelectorAll('.rig-btn').forEach(function (other) {
+        if (other.classList.contains('st-cta')) return;
+        var isTarget = other === btn;
+        other.classList.toggle('st-selected', isTarget);
+        other.classList.toggle('st-idle', !isTarget);
+        other.classList.remove('v-rotate', 'v-bracket', 'v-both');
+        if (isTarget) {
+          other.classList.add(currentVariant());
+          if (!other.querySelector('.bk')) other.insertAdjacentHTML('beforeend', brackets);
+        }
+      });
+      refreshMarquees();
+    });
+  });
+})();
+</script>

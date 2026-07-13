@@ -172,10 +172,13 @@ out-of-panel debug/devtools.
   - Out-of-range attacks are **hidden**, not shown disabled.
   - Depleted moves are **grayed out** in place.
 
-### Selected/active button — **LOCK (target)**
-- Pulsing glow on the border.
-- Slow rotational accent shimmer.
-- Locked as the goal; reconsider if it reads as noisy in practice.
+### Selected/active button — superseded by §14
+- Was locked as "pulsing border glow + slow rotational shimmer, reconsider if it
+  reads as noisy" — the reconsider clause fired in the border-vocabulary mockup
+  review (Lawrence, 2026-07-08: too smooth/busy for the pixel style).
+- Current lead treatment: **bracket corner ticks** — see §14 for the full state
+  vocabulary, alternates, and the open final pick.
+- Hover treatment is likewise governed by §14 (backlight), not the Gray 3 line above.
 
 - **NEEDS REVIEW**: overall satisfaction with the default button look — Lawrence to
   weigh in once he uses it.
@@ -247,6 +250,69 @@ candidates as he plays through builds. Empty for now is expected.
 - **Intentional-looking-arbitrary**: HUD chip borders are 1px, rounded 2. Godot's
   default AA makes this fit the design exactly; nudging it even slightly breaks the
   look. Lawrence can override; nobody else.
+
+---
+
+## 14. Interactivity Affordance — Border Vocabulary
+
+Live mockup: `data/design/mockups/border-vocabulary.html` (open in any browser;
+sliders tune every rate). Decisions dated 2026-07-15 unless noted. Mockup hex values
+are placeholders to be mapped onto `GameColorPalette` ramps at build time.
+
+**The contract — LOCK (RQD)**: a lit border means "you can press this"; unlit means
+furniture. Text glow (GlowLabel) is typography and carries NO interactivity meaning —
+the affordance channel is the border/background only. Motion carries meaning by
+*category*: none = normal, converging = "the game suggests this next," traveling =
+"you are here."
+
+**Scarcity rules — LOCK**: at most ONE call to action and ONE selection on screen, so
+at most two things ever animate at once. Attention order (squint test):
+disabled < static < idle < selected < call to action.
+
+### States
+- **Static** (panels, labels): flat dark border, never moves.
+- **Interactive idle**: steady lit border (azure family). Never pulses — the light
+  alone carries the contract.
+- **Focus/hover** — **NEEDS REVIEW (Lawrence)**: backlight — button background lifts
+  toward the azure glow over **2/15 s (~8 frames)** in **4 discrete shades** (stepped
+  palette ramp, both directions); border brightens. Replaces the shine sweep Lawrence
+  flagged as too hifi; ¼ s tried and felt too slow (RQD 2026-07-15). On touch this state barely exists; press response does the
+  work. On controller this is the traveling focus.
+- **Disabled**: darkest tier, steady; pressing it surfaces the reason (tap-for-why).
+  Gameplay-level rules stay per §7 (out-of-range hidden, depleted grayed).
+- **Selected** — **LOCKED direction (RQD 2026-07-15; Lawrence to final-confirm)**:
+  **bracket corner ticks** — hot-white, grown from the border's own corners, snap
+  between exactly 2 positions (in / 1 game px out, no easing) at **1.25 Hz**. The
+  button itself does NOT recolor: purple was retired from selection semantics
+  ("kill your darlings") — the shape is the whole signal, which also means it
+  survives reduce-motion as parked white ticks. Runner-up kept in the mockup:
+  *marquee orbit* — two diametrically opposed highlights traveling the border at a
+  FIXED px/s (default 50), azure ramp so tails melt into the lit border; ramp
+  **LOCKED**: core = step = **3 game px** (footprint 3/9/15/21 — bands read too
+  obviously above 3). Retired: whole-button magenta recolor, quiet (color-only),
+  orbit-once (both depended on the recolor).
+- **Magenta/purple accent — TBD, needs a new job**: it pops extremely well in the
+  menus and is now unassigned. Candidates welcome (rare/special actions? story
+  choices?). Do NOT reuse it for selection or call to action.
+- **Call to action**: converging rings — spawn dim a few game px out, shrink onto the
+  border, which catches the light as they land. Motion *toward* = "come here";
+  in-place pulse is explicitly rejected (reads as selected/idle).
+- **Press response — LOCK**: 1 game px downward shift + brightness flash. No scaling,
+  ever (integer pixel grid). Pairs with the input-layer tap ring.
+
+### Sound
+Crispy, RE1 / OG Deus Ex direction — sharp attack, dead-fast decay, mid-band.
+Mockup synth blips are placeholder shapes (hover ~2.4 kHz / 25 ms tick; press ~900 Hz
++ noise transient; deny = low double-knock). Direction approved; real samples are
+Lawrence's.
+
+### Implementation rules
+- One global clock (autoload tween or shared shader `time` uniform) drives all border
+  animation — the UI breathes as one, and reduce-motion is a single kill switch
+  (`Settings.ui_motion_enabled`; every state keeps its color, loses its motion).
+- All motion is stepped/quantized to game pixels or discrete shades — nothing glides.
+- Marquee = perimeter-distance shader (or dashed Line2D loop); backlight = StyleBox
+  bg-color tween quantized to 4 steps.
 
 ---
 
