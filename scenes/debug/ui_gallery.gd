@@ -20,14 +20,21 @@ const GLOW_MATERIAL: ShaderMaterial = preload("res://resources/hud_glow.tres")
 const GAME_THEME: Theme = preload("res://resources/game_theme.tres")
 
 var _why_popup: PanelContainer = null
+## The states-list CTA specimen — the rig's End Turn borrows the (unique)
+## call-to-action flag from it and returns it on a second press.
+var _specimen_cta: InteractiveButton = null
 
 
 func _ready() -> void:
 	# Debug scenes run standalone (no GameRoot/HUDViewport), so opt this window
-	# into the design canvas + integer stretch directly.
+	# into the design canvas + integer stretch directly. VIEWPORT mode (not
+	# CANVAS_ITEMS): render at 640x360 and upscale the texture, exactly like
+	# the real HUDViewport pipeline — CANVAS_ITEMS scales draw calls at native
+	# resolution, which left 1-design-px shader effects (the orthogonal text
+	# glow) rendering as 1 NATIVE px hairlines at 4x/6x.
 	var window := get_window()
 	window.content_scale_size = DESIGN_RESOLUTION
-	window.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
+	window.content_scale_mode = Window.CONTENT_SCALE_MODE_VIEWPORT
 	window.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_KEEP
 	window.content_scale_stretch = Window.CONTENT_SCALE_STRETCH_INTEGER
 
@@ -82,6 +89,7 @@ func _build_specimen_column() -> VBoxContainer:
 
 	var cta_button := _make_button("End Turn")
 	cta_button.call_to_action = true
+	_specimen_cta = cta_button
 	_add_labeled(column, "Call to action — converging rings", cta_button)
 	return column
 
@@ -103,12 +111,26 @@ func _build_snug_rig() -> VBoxContainer:
 	ember.disabled = true
 	ember.denied.connect(_show_why.bind(ember))
 	menu.add_child(ember)
+	# Only ONE call to action may exist (scarcity rule) — the specimen column
+	# holds it; pressing End Turn here borrows it into the snug rig so the
+	# rings can be judged crossing 2px gaps, and returns it on a second press.
 	var end_turn := _make_button("End Turn")
-	end_turn.call_to_action = true
+	end_turn.pressed.connect(_on_rig_end_turn_pressed.bind(end_turn))
 	menu.add_child(end_turn)
+	wrap.add_child(_make_glow_label("(press End Turn to move the CTA here)",
+			GameColors.TEXT_SECONDARY, GameColors.TEXT_SECONDARY_GLOW))
 
 	(menu.get_child(0) as InteractiveButton).selected = true
 	return wrap
+
+
+func _on_rig_end_turn_pressed(end_turn: InteractiveButton) -> void:
+	if end_turn.call_to_action:
+		end_turn.call_to_action = false
+		_specimen_cta.call_to_action = true
+	else:
+		# Claiming steals from the specimen (the scarcity guard logs the theft).
+		end_turn.call_to_action = true
 
 
 func _build_controls() -> VBoxContainer:
