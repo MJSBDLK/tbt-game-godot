@@ -94,6 +94,20 @@ var call_to_action: bool = false:
 ## darker ground) can override.
 var base_background: Color = GameColors.ACTION_BUTTON_BG_NORMAL
 
+## EXPERIMENT (RQD 2026-07-15): draw the border through orthogonal_glow's
+## border_mode so it halos like the text — one consistent glow identity.
+## Default off until the in-gallery verdict lands; the gallery has an A/B
+## toggle. If this loses, delete this property, _border_glow_rect, and
+## _sync_border_glow_rect.
+var border_glow: bool = false:
+	set(value):
+		if border_glow == value:
+			return
+		border_glow = value
+		if _border_glow_rect != null:
+			_border_glow_rect.visible = value
+		_redraw_chrome()
+
 ## 0.0–1.0 quantized backlight progress (readable for tests/tools).
 var _backlight_level: float = 0.0
 ## Where the current fade started from and toward, in level space [0..1].
@@ -103,6 +117,7 @@ var _backlight_start_ms: int = 0
 var _press_flash_ms: int = -10_000
 var _chrome_behind: Control = null
 var _chrome_front: Control = null
+var _border_glow_rect: ColorRect = null
 ## True when the current focus was grabbed by a pointer click rather than
 ## keyboard/controller navigation. Click-focus must NOT hold the backlight
 ## after the mouse leaves — a selected button would read as focused forever
@@ -146,6 +161,19 @@ func _ready() -> void:
 
 	_chrome_behind = _Chrome.new(self, true)
 	add_child(_chrome_behind)
+	# Border-glow experiment surface: sits above the fill, below the glyphs.
+	# The shader's border_mode insets the border 1px, so the rect is 2px
+	# oversized to land the border exactly on the button edge with 1px of
+	# glow on each side.
+	_border_glow_rect = ColorRect.new()
+	_border_glow_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_border_glow_rect.show_behind_parent = true
+	var border_material := GLOW_MATERIAL.duplicate() as ShaderMaterial
+	border_material.set_shader_parameter("solid_rect", true)
+	border_material.set_shader_parameter("border_mode", true)
+	_border_glow_rect.material = border_material
+	_border_glow_rect.visible = border_glow
+	add_child(_border_glow_rect)
 	_chrome_front = _Chrome.new(self, false)
 	add_child(_chrome_front)
 
@@ -230,8 +258,9 @@ func _draw_chrome(canvas: Control, behind: bool) -> void:
 			background = base_background.lerp(
 					GameColors.INTERACTIVE_BACKLIGHT_TINT, _backlight_level * BACKLIGHT_MIX)
 		canvas.draw_rect(rect, background, true)
-		canvas.draw_rect(Rect2(rect.position + Vector2(0.5, 0.5), rect.size - Vector2.ONE),
-				_border_color(), false, 1.0)
+		if not border_glow:
+			canvas.draw_rect(Rect2(rect.position + Vector2(0.5, 0.5), rect.size - Vector2.ONE),
+					_border_color(), false, 1.0)
 		return
 	if selected and not disabled:
 		_draw_brackets(canvas, rect)
@@ -334,6 +363,26 @@ func _redraw_chrome() -> void:
 		_chrome_behind.queue_redraw()
 	if _chrome_front != null:
 		_chrome_front.queue_redraw()
+	if _border_glow_rect != null and border_glow:
+		_sync_border_glow_rect()
+
+
+## The experiment border tracks state like the drawn one: color per tier
+## (including the CTA catch-flash), 1px press shift, size on resize.
+func _sync_border_glow_rect() -> void:
+	var press_shift: float = PRESS_SHIFT_PIXELS if is_pressed() else 0.0
+	_border_glow_rect.position = Vector2(-1.0, press_shift - 1.0)
+	_border_glow_rect.size = size + Vector2(2.0, 2.0)
+	var border := _border_color()
+	_border_glow_rect.color = border
+	var shader := _border_glow_rect.material as ShaderMaterial
+	shader.set_shader_parameter("glow_color", border)
+	shader.set_shader_parameter("rect_size", size + Vector2(2.0, 2.0))
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED:
+		_redraw_chrome()
 
 
 func _on_pointer_gained() -> void:

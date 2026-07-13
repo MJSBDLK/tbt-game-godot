@@ -23,6 +23,8 @@ var _why_popup: PanelContainer = null
 ## The states-list CTA specimen — the rig's End Turn borrows the (unique)
 ## call-to-action flag from it and returns it on a second press.
 var _specimen_cta: InteractiveButton = null
+## Every button in the gallery, for scene-wide A/B toggles.
+var _all_buttons: Array[InteractiveButton] = []
 
 
 func _ready() -> void:
@@ -145,6 +147,16 @@ func _build_controls() -> VBoxContainer:
 	# the player's settings.cfg.
 	motion.toggled.connect(func(on: bool) -> void: Settings.ui_motion_enabled = on)
 	column.add_child(motion)
+
+	# EXPERIMENT: orthogonal glow on the border, same identity as the text
+	# glow. A/B it live; verdict decides whether InteractiveButton.border_glow
+	# becomes the default or gets deleted.
+	var border_glow := CheckButton.new()
+	border_glow.text = "Border glow (test)"
+	border_glow.toggled.connect(func(on: bool) -> void:
+		for button: InteractiveButton in _all_buttons:
+			button.border_glow = on)
+	column.add_child(border_glow)
 	return column
 
 
@@ -191,6 +203,7 @@ func _make_button(label_text: String) -> InteractiveButton:
 	button.text = label_text
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	button.custom_minimum_size = Vector2(120, 14)  # action-menu dimensions
+	_all_buttons.append(button)
 	return button
 
 
