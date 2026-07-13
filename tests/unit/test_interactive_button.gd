@@ -121,6 +121,39 @@ func test_cta_ownership_clears_when_the_owner_leaves_the_tree() -> void:
 
 
 # =============================================================================
+# Text treatment: optical centering + glyph glow following the tier
+# =============================================================================
+
+func test_text_sits_one_pixel_below_true_center() -> void:
+	var button := InteractiveButton.new()
+	add_child_autofree(button)
+	var normal := button.get_theme_stylebox("normal")
+	assert_eq(normal.content_margin_top - normal.content_margin_bottom, 2.0,
+			"optical centering: menu strings have few descenders, so true center reads high (RQD)")
+
+
+func test_press_shifts_text_down_exactly_one_pixel() -> void:
+	var button := InteractiveButton.new()
+	add_child_autofree(button)
+	var normal := button.get_theme_stylebox("normal")
+	var pressed := button.get_theme_stylebox("pressed")
+	assert_eq(pressed.content_margin_top - normal.content_margin_top, 1.0,
+			"press response moves text with the chrome — one integer pixel")
+
+
+func test_text_glow_dims_when_disabled() -> void:
+	var button := InteractiveButton.new()
+	add_child_autofree(button)
+	var shader := button.material as ShaderMaterial
+	assert_not_null(shader, "the glyph glow is the menus' visual identity")
+	assert_eq(shader.get_shader_parameter("glow_color"), GameColors.TEXT_PRIMARY_GLOW)
+	button.disabled = true
+	button._process(0.0)  # the disabled watcher lives in _process
+	assert_ne(shader.get_shader_parameter("glow_color"), GameColors.TEXT_PRIMARY_GLOW,
+			"disabled text must not carry the healthy azure glow")
+
+
+# =============================================================================
 # Reduce motion: colors stay, motion stops — instantly
 # =============================================================================
 

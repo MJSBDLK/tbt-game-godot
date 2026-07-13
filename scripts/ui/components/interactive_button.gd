@@ -17,6 +17,12 @@
 ##   - selection is unique by definition (caller's responsibility)
 ## so at most two things ever animate at once and the screen stays calm.
 ##
+## Rendering is split across three canvas items so the text glow shader (the
+## menus' visual identity) halos ONLY the glyphs: a behind-chrome child draws
+## backlight + border, the Button itself draws just its text under the
+## orthogonal-glow material, and a front-chrome child draws brackets, rings,
+## and the press flash on top.
+##
 ## All motion derives its phase from shared wall-clock time (Time.get_ticks_msec),
 ## so every button on screen ticks in sync BY CONSTRUCTION — no clock autoload.
 ## Settings.ui_motion_enabled == false keeps every state's color and parks every
@@ -48,6 +54,13 @@ const CTA_SPAWN_INSET_PIXELS: int = 6  # rings spawn this far outside the rect
 const PRESS_SHIFT_PIXELS: int = 1
 const PRESS_FLASH_ALPHA: float = 0.16
 
+## Text sits 1px below true center on purpose: with few descenders (q/y/p) in
+## menu strings, optical center is a pixel lower than geometric center (RQD).
+const TEXT_TOP_MARGIN_PIXELS: int = 2
+const TEXT_BOTTOM_MARGIN_PIXELS: int = 0
+
+const GLOW_MATERIAL: ShaderMaterial = preload("res://resources/hud_glow.tres")
+
 const SFX_HOVER: String = "res://audio/ui/blip_hover.wav"
 const SFX_PRESS: String = "res://audio/ui/blip_press.wav"
 const SFX_DENY: String = "res://audio/ui/blip_deny.wav"
@@ -63,7 +76,7 @@ var selected: bool = false:
 		if selected == value:
 			return
 		selected = value
-		queue_redraw()
+		_redraw_chrome()
 
 ## "The game suggests this next." At most one on screen — see scarcity rules.
 var call_to_action: bool = false:
@@ -75,7 +88,7 @@ var call_to_action: bool = false:
 			_claim_call_to_action()
 		elif _call_to_action_owner == self:
 			_call_to_action_owner = null
-		queue_redraw()
+		_redraw_chrome()
 
 ## Background the backlight lifts from. Panels with a different base (e.g. over
 ## darker ground) can override.
@@ -88,22 +101,33 @@ var _backlight_from: float = 0.0
 var _backlight_target: float = 0.0
 var _backlight_start_ms: int = 0
 var _press_flash_ms: int = -10_000
+var _chrome_behind: Control = null
+var _chrome_front: Control = null
+## True when the current focus was grabbed by a pointer click rather than
+## keyboard/controller navigation. Click-focus must NOT hold the backlight
+## after the mouse leaves — a selected button would read as focused forever
+## and muddy the vocabulary. Controller focus IS the traveling cursor, so it
+## keeps the backlight for as long as it stays.
+var _focus_from_pointer: bool = false
+## Disabled has no change notification, so _process watches it (border tier and
+## text glow both depend on it).
+var _last_disabled: bool = false
 
 
 func _ready() -> void:
 	focus_mode = Control.FOCUS_ALL
-	# Chrome is entirely ours: empty styleboxes, but keep the press-down text
-	# shift by giving the pressed box +1px top content margin (integer pixel).
+	# Chrome is entirely ours: empty styleboxes; the pressed box shifts the text
+	# down 1px with the border/bracket shift (integer pixels only).
 	var flat := StyleBoxEmpty.new()
 	flat.content_margin_left = 4
 	flat.content_margin_right = 4
-	flat.content_margin_top = 1
-	flat.content_margin_bottom = 1
+	flat.content_margin_top = TEXT_TOP_MARGIN_PIXELS
+	flat.content_margin_bottom = TEXT_BOTTOM_MARGIN_PIXELS
 	var pressed_box := StyleBoxEmpty.new()
 	pressed_box.content_margin_left = 4
 	pressed_box.content_margin_right = 4
-	pressed_box.content_margin_top = 1 + PRESS_SHIFT_PIXELS
-	pressed_box.content_margin_bottom = 1 - PRESS_SHIFT_PIXELS
+	pressed_box.content_margin_top = TEXT_TOP_MARGIN_PIXELS + PRESS_SHIFT_PIXELS
+	pressed_box.content_margin_bottom = TEXT_BOTTOM_MARGIN_PIXELS
 	for state_name: String in ["normal", "hover", "focus", "disabled", "hover_pressed"]:
 		add_theme_stylebox_override(state_name, flat)
 	add_theme_stylebox_override("pressed", pressed_box)
@@ -113,11 +137,24 @@ func _ready() -> void:
 	add_theme_color_override("font_pressed_color", Color.WHITE)
 	add_theme_color_override("font_disabled_color", GameColors.INTERACTIVE_TEXT_DISABLED)
 
+	# The glow shader lives on the Button itself, which draws ONLY text (empty
+	# styleboxes; borders live on the chrome children) — so the halo is
+	# glyph-only, matching GlowLabel everywhere else in the HUD.
+	material = GLOW_MATERIAL.duplicate()
+	_last_disabled = disabled
+	_sync_text_glow()
+
+	_chrome_behind = _Chrome.new(self, true)
+	add_child(_chrome_behind)
+	_chrome_front = _Chrome.new(self, false)
+	add_child(_chrome_front)
+
 	mouse_entered.connect(_on_pointer_gained)
 	mouse_exited.connect(_on_pointer_lost)
-	focus_entered.connect(_on_pointer_gained)
+	focus_entered.connect(_on_focus_entered)
 	focus_exited.connect(_on_pointer_lost)
 	button_down.connect(_on_button_down)
+	button_up.connect(_redraw_chrome)
 
 
 func _exit_tree() -> void:
@@ -126,13 +163,17 @@ func _exit_tree() -> void:
 
 
 func _process(_delta: float) -> void:
+	if disabled != _last_disabled:
+		_last_disabled = disabled
+		_sync_text_glow()
+		_redraw_chrome()
 	# Redraw only while something is actually animating; static states cost nothing.
 	var fading: bool = not is_equal_approx(_backlight_level, _backlight_target)
 	if fading:
 		_backlight_level = _current_backlight_level()
 	var flashing: bool = Time.get_ticks_msec() - _press_flash_ms < 120
 	if fading or flashing or _wants_motion():
-		queue_redraw()
+		_redraw_chrome()
 
 
 func _gui_input(event: InputEvent) -> void:
@@ -144,35 +185,6 @@ func _gui_input(event: InputEvent) -> void:
 		_play_sfx(SFX_DENY)
 		denied.emit()
 		accept_event()
-
-
-func _draw() -> void:
-	var shift := Vector2(0, PRESS_SHIFT_PIXELS if is_pressed() else 0)
-	var rect := Rect2(shift, size)
-
-	# --- Backlight fill (behind everything) ---
-	var background := base_background
-	if _backlight_level > 0.0:
-		background = base_background.lerp(
-				GameColors.INTERACTIVE_BACKLIGHT_TINT, _backlight_level * BACKLIGHT_MIX)
-	draw_rect(rect, background, true)
-
-	# --- Border: 1px, color says which tier you're looking at ---
-	var border_color := _border_color()
-	draw_rect(Rect2(rect.position + Vector2(0.5, 0.5), rect.size - Vector2.ONE),
-			border_color, false, 1.0)
-
-	# --- Selected: snapping corner ticks (shape carries selection, not color) ---
-	if selected and not disabled:
-		_draw_brackets(rect)
-
-	# --- Call to action: converging rings ---
-	if call_to_action and not disabled and _motion_enabled():
-		_draw_cta_rings(rect)
-
-	# --- Press flash ---
-	if is_pressed() or Time.get_ticks_msec() - _press_flash_ms < 120:
-		draw_rect(rect, Color(1, 1, 1, PRESS_FLASH_ALPHA), true)
 
 
 # =============================================================================
@@ -204,8 +216,30 @@ static func cta_ring_inset_at(phase: float) -> int:
 
 
 # =============================================================================
-# INTERNALS
+# CHROME DRAWING — called by the two child canvas items (behind: fill + border;
+# front: brackets, rings, press flash). Kept here so all state logic is in one
+# file; the children are dumb surfaces.
 # =============================================================================
+
+func _draw_chrome(canvas: Control, behind: bool) -> void:
+	var shift := Vector2(0, PRESS_SHIFT_PIXELS if is_pressed() else 0)
+	var rect := Rect2(shift, size)
+	if behind:
+		var background := base_background
+		if _backlight_level > 0.0:
+			background = base_background.lerp(
+					GameColors.INTERACTIVE_BACKLIGHT_TINT, _backlight_level * BACKLIGHT_MIX)
+		canvas.draw_rect(rect, background, true)
+		canvas.draw_rect(Rect2(rect.position + Vector2(0.5, 0.5), rect.size - Vector2.ONE),
+				_border_color(), false, 1.0)
+		return
+	if selected and not disabled:
+		_draw_brackets(canvas, rect)
+	if call_to_action and not disabled and _motion_enabled():
+		_draw_cta_rings(canvas, rect)
+	if is_pressed() or Time.get_ticks_msec() - _press_flash_ms < 120:
+		canvas.draw_rect(rect, Color(1, 1, 1, PRESS_FLASH_ALPHA), true)
+
 
 func _border_color() -> Color:
 	if disabled:
@@ -220,7 +254,7 @@ func _border_color() -> Color:
 	return GameColors.INTERACTIVE_BORDER_IDLE
 
 
-func _draw_brackets(rect: Rect2) -> void:
+func _draw_brackets(canvas: Control, rect: Rect2) -> void:
 	var out: bool = _motion_enabled() and brackets_out_at(_now_seconds())
 	var inset: float = BRACKET_INSET_PIXELS + (1 if out else 0)
 	var arm: float = BRACKET_ARM_PIXELS
@@ -243,11 +277,11 @@ func _draw_brackets(rect: Rect2) -> void:
 			horizontal_origin.y -= 1.0
 		if toward_center.x < 0:
 			vertical_origin.x -= 1.0
-		draw_rect(Rect2(horizontal_origin, Vector2(arm, 1)), color, true)
-		draw_rect(Rect2(vertical_origin, Vector2(1, arm)), color, true)
+		canvas.draw_rect(Rect2(horizontal_origin, Vector2(arm, 1)), color, true)
+		canvas.draw_rect(Rect2(vertical_origin, Vector2(1, arm)), color, true)
 
 
-func _draw_cta_rings(rect: Rect2) -> void:
+func _draw_cta_rings(canvas: Control, rect: Rect2) -> void:
 	# Two waves half a cycle apart, so a ring is always inbound.
 	for stagger: float in [0.0, 0.5]:
 		var phase: float = _cta_phase(stagger)
@@ -257,9 +291,13 @@ func _draw_cta_rings(rect: Rect2) -> void:
 		color.a = alpha
 		var ring := Rect2(rect.position - Vector2(inset, inset),
 				rect.size + Vector2(inset * 2, inset * 2))
-		draw_rect(Rect2(ring.position + Vector2(0.5, 0.5), ring.size - Vector2.ONE),
+		canvas.draw_rect(Rect2(ring.position + Vector2(0.5, 0.5), ring.size - Vector2.ONE),
 				color, false, 1.0)
 
+
+# =============================================================================
+# INTERNALS
+# =============================================================================
 
 func _cta_phase(stagger: float) -> float:
 	return fmod(_now_seconds() / CTA_WAVE_SECONDS + stagger, 1.0)
@@ -280,6 +318,24 @@ func _motion_enabled() -> bool:
 	return Settings == null or Settings.ui_motion_enabled
 
 
+## Text glow follows the font color's tier, GlowLabel-style: azure identity
+## glow normally, a dim gray whisper when disabled.
+func _sync_text_glow() -> void:
+	var shader := material as ShaderMaterial
+	if shader == null:
+		return
+	var glow_color: Color = GameColorPalette.get_color("Gray", 3) if disabled \
+			else GameColors.TEXT_PRIMARY_GLOW
+	shader.set_shader_parameter("glow_color", glow_color)
+
+
+func _redraw_chrome() -> void:
+	if _chrome_behind != null:
+		_chrome_behind.queue_redraw()
+	if _chrome_front != null:
+		_chrome_front.queue_redraw()
+
+
 func _on_pointer_gained() -> void:
 	if disabled:
 		return
@@ -287,10 +343,20 @@ func _on_pointer_gained() -> void:
 	_play_sfx(SFX_HOVER)
 
 
+func _on_focus_entered() -> void:
+	# A mouse button being down while focus arrives means the click grabbed it.
+	_focus_from_pointer = Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) \
+			or Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)
+	_on_pointer_gained()
+
+
 func _on_pointer_lost() -> void:
-	# Keep the backlight while the OTHER acquisition channel still holds us
-	# (mouse leaving a focused button shouldn't drop the controller focus glow).
-	if has_focus() or get_global_rect().has_point(get_global_mouse_position()):
+	# Keep the backlight only while another acquisition channel legitimately
+	# holds us: the mouse still inside, or focus that arrived via keyboard/
+	# controller (the traveling cursor). Click-grabbed focus doesn't count.
+	if get_global_rect().has_point(get_global_mouse_position()):
+		return
+	if has_focus() and not _focus_from_pointer:
 		return
 	_start_backlight_fade(0.0)
 
@@ -298,7 +364,7 @@ func _on_pointer_lost() -> void:
 func _on_button_down() -> void:
 	_press_flash_ms = Time.get_ticks_msec()
 	_play_sfx(SFX_PRESS)
-	queue_redraw()
+	_redraw_chrome()
 
 
 func _start_backlight_fade(target: float) -> void:
@@ -307,7 +373,7 @@ func _start_backlight_fade(target: float) -> void:
 	_backlight_from = _backlight_level
 	_backlight_target = target
 	_backlight_start_ms = Time.get_ticks_msec()
-	queue_redraw()
+	_redraw_chrome()
 
 
 func _claim_call_to_action() -> void:
@@ -335,3 +401,23 @@ func _play_sfx(path: String) -> void:
 	player.finished.connect(player.queue_free)
 	add_child(player)
 	player.play()
+
+
+## Dumb drawing surface: fills the button rect and delegates to the button's
+## chrome painter. `behind` draws under the glyphs (show_behind_parent), the
+## other instance draws on top — keeping the glow shader glyph-only.
+class _Chrome extends Control:
+	var _button: InteractiveButton
+	var _behind: bool
+
+	func _init(button: InteractiveButton, behind: bool) -> void:
+		_button = button
+		_behind = behind
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		show_behind_parent = behind
+
+	func _ready() -> void:
+		set_anchors_preset(Control.PRESET_FULL_RECT)
+
+	func _draw() -> void:
+		_button._draw_chrome(self, _behind)

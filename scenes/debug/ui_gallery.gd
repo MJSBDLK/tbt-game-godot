@@ -16,8 +16,10 @@ extends ColorRect
 
 const DESIGN_RESOLUTION := Vector2i(640, 360)
 const FONT_8PX: FontFile = preload("res://fonts/UndeadPixelLight8.ttf")
+const GLOW_MATERIAL: ShaderMaterial = preload("res://resources/hud_glow.tres")
+const GAME_THEME: Theme = preload("res://resources/game_theme.tres")
 
-var _why_label: Label = null
+var _why_popup: PanelContainer = null
 
 
 func _ready() -> void:
@@ -44,13 +46,6 @@ func _ready() -> void:
 	root.add_child(_build_snug_rig())
 	root.add_child(_build_controls())
 
-	# Floating deny readout — positioned next to whichever button was pressed.
-	_why_label = Label.new()
-	_why_label.add_theme_color_override("font_color", GameColors.TEXT_SECONDARY)
-	_why_label.top_level = true
-	_why_label.visible = false
-	add_child(_why_label)
-
 
 func _build_specimen_column() -> VBoxContainer:
 	var column := VBoxContainer.new()
@@ -70,10 +65,8 @@ func _build_specimen_column() -> VBoxContainer:
 	static_style.content_margin_bottom = 2
 	static_panel.add_theme_stylebox_override("panel", static_style)
 	static_panel.custom_minimum_size = Vector2(120, 14)
-	var static_label := Label.new()
-	static_label.text = "Terrain Info"
-	static_label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
-	static_panel.add_child(static_label)
+	static_panel.add_child(_make_glow_label("Terrain Info",
+			GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW))
 	_add_labeled(column, "Static — furniture, not pressable", static_panel)
 
 	_add_labeled(column, "Idle (hover/focus me: backlight)", _make_button("Items"))
@@ -140,14 +133,35 @@ func _on_rig_pressed(pressed_button: InteractiveButton, menu: VBoxContainer) -> 
 			button.selected = (button == pressed_button)
 
 
-## Deny readout appears right beside the button that refused, tooltip-style.
+## Deny readout: the game's styled tooltip (game_theme TooltipPanel + GlowLabel,
+## same recipe as TapTooltip) floated just above the button that refused.
 func _show_why(source: InteractiveButton) -> void:
-	_why_label.text = "NO USES REMAINING"
+	if _why_popup != null and is_instance_valid(_why_popup):
+		_why_popup.queue_free()
+	var popup := PanelContainer.new()
+	popup.theme = GAME_THEME
+	popup.theme_type_variation = "TooltipPanel"
+	popup.top_level = true
+	var label := _make_glow_label("NO USES REMAINING",
+			GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
+	label.theme_type_variation = "TooltipLabel"
+	label.add_theme_font_override("font", FONT_8PX)
+	label.add_theme_font_size_override("font_size", 8)
+	popup.add_child(label)
+	add_child(popup)
+	_why_popup = popup
+	# Size lands a frame later; then center it above the refusing button.
+	await get_tree().process_frame
+	if not is_instance_valid(popup):
+		return
 	var rect := source.get_global_rect()
-	_why_label.global_position = Vector2(rect.position.x + 4, rect.position.y - 11)
-	_why_label.visible = true
+	popup.position = Vector2(
+			rect.position.x + (rect.size.x - popup.size.x) / 2.0,
+			rect.position.y - popup.size.y - 2.0)
 	var timer := get_tree().create_timer(1.3)
-	timer.timeout.connect(func() -> void: _why_label.visible = false)
+	timer.timeout.connect(func() -> void:
+		if is_instance_valid(popup):
+			popup.queue_free())
 
 
 func _make_button(label_text: String) -> InteractiveButton:
@@ -158,16 +172,23 @@ func _make_button(label_text: String) -> InteractiveButton:
 	return button
 
 
+## GlowLabel with the panel-text identity glow — every label in the gallery is
+## a GlowLabel, same as every label in a real panel (style guide §3).
+func _make_glow_label(label_text: String, font_color: Color, glow: Color) -> GlowLabel:
+	var label := GlowLabel.new()
+	label.text = label_text
+	label.add_theme_color_override("font_color", font_color)
+	label.material = GLOW_MATERIAL.duplicate()
+	label.glow_color = glow
+	return label
+
+
 func _add_heading(parent: Container, heading: String) -> void:
-	var label := Label.new()
-	label.text = heading
-	label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
-	parent.add_child(label)
+	parent.add_child(_make_glow_label(heading,
+			GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW))
 
 
 func _add_labeled(parent: Container, caption: String, specimen: Control) -> void:
-	var label := Label.new()
-	label.text = caption
-	label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY_GLOW)
-	parent.add_child(label)
+	parent.add_child(_make_glow_label(caption,
+			GameColors.TEXT_SECONDARY, GameColors.TEXT_SECONDARY_GLOW))
 	parent.add_child(specimen)
