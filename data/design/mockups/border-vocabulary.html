@@ -245,23 +245,35 @@
      so they died with it. See git history / older artifact versions.) */
 
   /* --- MOVE CHIPS: the vocabulary translated over themed bodies ---
-     A chip's BODY belongs to its element (fill/empty pair + usage boundary);
-     the vocabulary only touches the border, the brackets, and a luminance
-     lift. Rules: lit azure border = usable; backlight = one palette-ramp
-     step UP the chip's own colors (mockup approximates with a white lift);
-     cursor = snapping brackets; ASSIGNED = the same brackets PARKED (motion
-     carries the difference — RQD test, no recolor); depleted/locked =
-     disabled tier + press-for-why. The usage fill means RESOURCE and no
-     vocabulary state may repaint it except the disabled grey-out. --- */
+     A chip's BODY and BORDER belong to its skin (element fill/empty pair,
+     skewed usage boundary, gray rounded border — all drawn by the in-engine
+     chip shader). The vocabulary contributes ONLY: backlight = one
+     palette-ramp step UP the chip's own colors (mockup approximates with a
+     white lift); cursor = snapping brackets; ASSIGNED = the same brackets
+     PARKED (motion carries the difference — RQD test, no recolor);
+     depleted/locked = disabled tier (dark border + grey body) +
+     press-for-why. The usage fill means RESOURCE and no vocabulary state
+     may repaint it except the disabled grey-out. --- */
   .chip {
     --chip-hi: #c98d47;  /* element fill (bright) */
     --chip-lo: #3a2410;  /* element empty (dark) */
     --fill: 60%;         /* uses remaining */
-    background: linear-gradient(90deg,
+    /* skewed usage boundary, like the Godot chip shader (skew_angle 45) */
+    background: linear-gradient(102deg,
       var(--chip-hi) 0 var(--fill), var(--chip-lo) var(--fill) 100%);
+    /* The border is part of the chip SKIN, matching the in-engine MoveChip
+       shader: Gray 7, 1px, rounded 2 — NOT the azure vocabulary border
+       (RQD 2026-07-16). Interactivity reads from the vivid body + backlight;
+       depleted drops the whole chip to the dark tier. */
+    border-color: #7a766b;
+    border-radius: calc(var(--px) * 2);
+    box-shadow: none;
     display: flex; align-items: center; gap: calc(var(--px) * 2);
     text-shadow: 0 0 6px rgba(0, 0, 0, .65);
   }
+  /* the themed skin also suppresses the azure hover/selected glow shadows */
+  .chip.st-idle, .chip.st-idle:hover, .chip.st-idle:focus-visible,
+  .chip.st-focus, .chip.st-selected { box-shadow: none; }
   .chip .chip-uses {
     margin-left: auto;
     font-size: 10px;
@@ -276,6 +288,7 @@
     content: "";
     position: absolute; inset: 0;
     background: #fff;
+    border-radius: inherit;
     opacity: 0;
     transition: opacity .133s steps(4, end);
     pointer-events: none;
@@ -297,6 +310,7 @@
     position: absolute; inset: 0;
     background: repeating-linear-gradient(135deg,
       rgba(26, 10, 34, .55) 0 6px, rgba(26, 10, 34, .2) 6px 12px);
+    border-radius: inherit;
     pointer-events: none;
   }
 
@@ -594,10 +608,10 @@
   </div>
 
   <h2>Move chips</h2>
-  <p class="sub">The vocabulary over <strong>themed bodies</strong>: a chip's element colors and its
-  usage fill mean <strong>resource</strong>, and no interactivity state may repaint them (except the
-  disabled grey-out). The vocabulary only touches the border, the brackets, and a one-step luminance
-  lift. Everything here is live.</p>
+  <p class="sub">The vocabulary over <strong>themed bodies</strong>: a chip's element colors, usage
+  fill, and its own gray rounded border are all <strong>skin</strong> (exactly the in-engine chip
+  shader), and no interactivity state may repaint them except the disabled grey-down. The vocabulary
+  contributes only the brackets, a one-step luminance lift, press, and deny. Everything here is live.</p>
 
   <div class="grid">
     <div class="card">
@@ -607,9 +621,10 @@
         <span>Ember</span><span class="chip-uses">3/5</span>
         <span class="chip-icon" style="color:#f0b060;">♦</span>
       </button></div>
-      <p class="meaning">MEANING — same contract: lit azure border = you can press this.</p>
-      <p>The border carries interactivity; the body stays the element's. The bright/dark boundary is
-      uses remaining — 3 of 5 here — and nothing the vocabulary does may move or repaint it.</p>
+      <p class="meaning">MEANING — pressable, but the border belongs to the SKIN, not the vocabulary.</p>
+      <p>The chip keeps its own themed border (gray, rounded, exactly the in-engine chip shader) and a
+      skewed usage boundary — 3 of 5 here. On chips the lit/unlit contract reads from the <strong>vivid
+      body vs the grey-down</strong>; the vocabulary contributes backlight, brackets, press, and deny.</p>
     </div>
 
     <div class="card">

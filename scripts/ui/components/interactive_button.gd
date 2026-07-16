@@ -133,18 +133,18 @@ func _ready() -> void:
 	focus_mode = Control.FOCUS_ALL
 	# Chrome is entirely ours: empty styleboxes; the pressed box shifts the text
 	# down 1px with the border/bracket shift (integer pixels only).
-	var flat := StyleBoxEmpty.new()
-	flat.content_margin_left = 4
-	flat.content_margin_right = 4
-	flat.content_margin_top = TEXT_TOP_MARGIN_PIXELS
-	flat.content_margin_bottom = TEXT_BOTTOM_MARGIN_PIXELS
+	var flat_box := StyleBoxEmpty.new()
+	flat_box.content_margin_left = 4
+	flat_box.content_margin_right = 4
+	flat_box.content_margin_top = TEXT_TOP_MARGIN_PIXELS
+	flat_box.content_margin_bottom = TEXT_BOTTOM_MARGIN_PIXELS
 	var pressed_box := StyleBoxEmpty.new()
 	pressed_box.content_margin_left = 4
 	pressed_box.content_margin_right = 4
 	pressed_box.content_margin_top = TEXT_TOP_MARGIN_PIXELS + PRESS_SHIFT_PIXELS
 	pressed_box.content_margin_bottom = TEXT_BOTTOM_MARGIN_PIXELS
 	for state_name: String in ["normal", "hover", "focus", "disabled", "hover_pressed"]:
-		add_theme_stylebox_override(state_name, flat)
+		add_theme_stylebox_override(state_name, flat_box)
 	add_theme_stylebox_override("pressed", pressed_box)
 	add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
 	add_theme_color_override("font_hover_color", GameColors.TEXT_PRIMARY)
@@ -262,7 +262,7 @@ func _draw_chrome(canvas: Control, behind: bool) -> void:
 			canvas.draw_rect(Rect2(rect.position + Vector2(0.5, 0.5), rect.size - Vector2.ONE),
 					_border_color(), false, 1.0)
 		return
-	if selected and not disabled:
+	if _brackets_visible() and not disabled:
 		_draw_brackets(canvas, rect)
 	if call_to_action and not disabled and _motion_enabled():
 		_draw_cta_rings(canvas, rect)
@@ -283,8 +283,19 @@ func _border_color() -> Color:
 	return GameColors.INTERACTIVE_BORDER_IDLE
 
 
+## Bracket hooks for subclasses with additional bracket-marked states.
+## MoveChipButton shows PARKED brackets for its assigned move: same shape,
+## no snap — motion category distinguishes "assigned" from "cursor is here".
+func _brackets_visible() -> bool:
+	return selected
+
+
+func _brackets_snapping() -> bool:
+	return true
+
+
 func _draw_brackets(canvas: Control, rect: Rect2) -> void:
-	var out: bool = _motion_enabled() and brackets_out_at(_now_seconds())
+	var out: bool = _motion_enabled() and _brackets_snapping() and brackets_out_at(_now_seconds())
 	var inset: float = BRACKET_INSET_PIXELS + (1 if out else 0)
 	var arm: float = BRACKET_ARM_PIXELS
 	var color := GameColors.INTERACTIVE_BRACKET
@@ -370,7 +381,7 @@ func _redraw_chrome() -> void:
 ## The experiment border tracks state like the drawn one: color per tier
 ## (including the CTA catch-flash), 1px press shift, size on resize.
 func _sync_border_glow_rect() -> void:
-	var press_shift: float = PRESS_SHIFT_PIXELS if is_pressed() else 0.0
+	var press_shift: float = float(PRESS_SHIFT_PIXELS) if is_pressed() else 0.0
 	_border_glow_rect.position = Vector2(-1.0, press_shift - 1.0)
 	_border_glow_rect.size = size + Vector2(2.0, 2.0)
 	var border := _border_color()

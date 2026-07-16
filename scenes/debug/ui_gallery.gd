@@ -105,14 +105,28 @@ func _build_snug_rig() -> VBoxContainer:
 	menu.add_theme_constant_override("separation", 2)  # action-menu spacing
 	wrap.add_child(menu)
 
-	for label_text: String in ["Attack", "Move", "Items"]:
+	# Real action-menu shape: move chips on top, text buttons below.
+	# Ember holds the cursor at start; Frost Lance is the ASSIGNED move
+	# (parked brackets); Spark is depleted; Gloom is Void-locked.
+	var chip_specs: Array[Array] = [
+		# [name, element, uses, max, assigned, locked]
+		["Ember", Enums.ElementalType.FIRE, 3, 5, false, false],
+		["Frost Lance", Enums.ElementalType.COLD, 2, 3, true, false],
+		["Spark", Enums.ElementalType.ELECTRIC, 0, 4, false, false],
+		["Gloom", Enums.ElementalType.VOID, 2, 2, false, true],
+	]
+	for spec: Array in chip_specs:
+		var chip_button := _make_chip(spec[0], spec[1], spec[2], spec[3], spec[4], spec[5])
+		# setup() runs deferred (on ready), so disabled isn't known yet — connect
+		# both: pressed only ever fires enabled, denied only ever fires disabled.
+		chip_button.denied.connect(_show_why.bind(chip_button))
+		chip_button.pressed.connect(_on_rig_pressed.bind(chip_button, menu))
+		menu.add_child(chip_button)
+
+	for label_text: String in ["Unit Info", "Wait"]:
 		var button := _make_button(label_text)
 		button.pressed.connect(_on_rig_pressed.bind(button, menu))
 		menu.add_child(button)
-	var ember := _make_button("Ember  (0 uses)")
-	ember.disabled = true
-	ember.denied.connect(_show_why.bind(ember))
-	menu.add_child(ember)
 	# Only ONE call to action may exist (scarcity rule) — the specimen column
 	# holds it; pressing End Turn here borrows it into the snug rig so the
 	# rings can be judged crossing 2px gaps, and returns it on a second press.
@@ -172,11 +186,15 @@ func _on_rig_pressed(pressed_button: InteractiveButton, menu: VBoxContainer) -> 
 func _show_why(source: InteractiveButton) -> void:
 	if _why_popup != null and is_instance_valid(_why_popup):
 		_why_popup.queue_free()
+	var reason := "NO USES REMAINING"
+	var chip := source as MoveChipButton
+	if chip != null and chip.disabled_reason != "":
+		reason = chip.disabled_reason
 	var popup := PanelContainer.new()
 	popup.theme = GAME_THEME
 	popup.theme_type_variation = "TooltipPanel"
 	popup.top_level = true
-	var label := _make_glow_label("NO USES REMAINING",
+	var label := _make_glow_label(reason,
 			GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
 	label.theme_type_variation = "TooltipLabel"
 	label.add_theme_font_override("font", FONT_8PX)
@@ -196,6 +214,23 @@ func _show_why(source: InteractiveButton) -> void:
 	timer.timeout.connect(func() -> void:
 		if is_instance_valid(popup):
 			popup.queue_free())
+
+
+## Real MoveChipButton from a throwaway Move resource — the gallery exercises
+## the same component the action menu will adopt.
+func _make_chip(move_name: String, element: Enums.ElementalType, uses: int,
+		max_uses: int, is_assigned: bool, locked: bool) -> MoveChipButton:
+	var move := Move.new()
+	move.move_name = move_name
+	move.element_type = element
+	move.current_uses = uses
+	move.max_uses = max_uses
+	var chip_button := MoveChipButton.new()
+	chip_button.custom_minimum_size = Vector2(120, 14)
+	_all_buttons.append(chip_button)
+	# setup() needs the chip child from _ready — defer until it's in the tree.
+	chip_button.ready.connect(chip_button.setup.bind(move, is_assigned, locked))
+	return chip_button
 
 
 func _make_button(label_text: String) -> InteractiveButton:
