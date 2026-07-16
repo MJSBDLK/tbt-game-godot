@@ -203,7 +203,7 @@
   /* NOTE: widths live ONLY in the per-corner rules below. Declaring `border: 0`
      here out-specifies them (3 classes vs 2) and zeroes every arm — that was
      the invisible-brackets bug. */
-  .st-selected.v-bracket .bk, .st-selected.v-both .bk {
+  .st-selected.v-bracket .bk, .st-selected.v-both .bk, .assigned .bk {
     display: block;
     position: absolute;
     width: calc(var(--px) * 5); height: calc(var(--px) * 5);
@@ -230,9 +230,75 @@
       filter: drop-shadow(0 0 calc(var(--px) * 2) #b8e0ff);
     }
   }
+  /* ASSIGNED (move chips): the same white brackets, PARKED — no snap. Motion
+     category distinguishes it from the cursor (snapping) on the same shape,
+     per the vocabulary's core rule. RQD test 2026-07-16: no recolor unless
+     it muddles in practice. When the cursor lands ON the assigned chip,
+     .st-selected wins and the brackets snap — correct: "you are here". */
+  .assigned:not(.st-selected) .bk {
+    animation: none;
+    filter: drop-shadow(0 0 calc(var(--px) * .5) var(--ink-glow));
+  }
+
   /* (Retired variants: "quiet" and "orbit once" both depended on the purple
      recolor to mark the resting selection — with no recolor they show nothing,
      so they died with it. See git history / older artifact versions.) */
+
+  /* --- MOVE CHIPS: the vocabulary translated over themed bodies ---
+     A chip's BODY belongs to its element (fill/empty pair + usage boundary);
+     the vocabulary only touches the border, the brackets, and a luminance
+     lift. Rules: lit azure border = usable; backlight = one palette-ramp
+     step UP the chip's own colors (mockup approximates with a white lift);
+     cursor = snapping brackets; ASSIGNED = the same brackets PARKED (motion
+     carries the difference — RQD test, no recolor); depleted/locked =
+     disabled tier + press-for-why. The usage fill means RESOURCE and no
+     vocabulary state may repaint it except the disabled grey-out. --- */
+  .chip {
+    --chip-hi: #c98d47;  /* element fill (bright) */
+    --chip-lo: #3a2410;  /* element empty (dark) */
+    --fill: 60%;         /* uses remaining */
+    background: linear-gradient(90deg,
+      var(--chip-hi) 0 var(--fill), var(--chip-lo) var(--fill) 100%);
+    display: flex; align-items: center; gap: calc(var(--px) * 2);
+    text-shadow: 0 0 6px rgba(0, 0, 0, .65);
+  }
+  .chip .chip-uses {
+    margin-left: auto;
+    font-size: 10px;
+    color: rgba(255, 255, 255, .75);
+    text-shadow: none;
+  }
+  .chip .chip-icon { font-size: 12px; text-shadow: 0 0 4px rgba(0,0,0,.8); }
+  /* Backlight, element-preserving: whole body lifts one step, fill boundary
+     keeps its contrast (both colors move together). In-engine this is a real
+     palette-ramp step (Orange 6 → Orange 7), not a white overlay. */
+  .chip::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: #fff;
+    opacity: 0;
+    transition: opacity .133s steps(4, end);
+    pointer-events: none;
+  }
+  .chip:not(.depleted):hover::after, .chip.st-focus::after { opacity: .14; }
+  body.reduced .chip::after { transition: none; }
+  /* Depleted/locked = the disabled tier: dark border, greyed body, deny. */
+  .chip.depleted {
+    --b: var(--border-dis);
+    --chip-hi: #4a4a45; --chip-lo: #262622;
+    color: #7d786e;
+    text-shadow: none;
+    box-shadow: none;
+    cursor: pointer; /* pressable for the "why" */
+  }
+  .chip.depleted .chip-uses { color: #635e54; }
+  .chip.locked::before {
+    content: "";
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(135deg,
+      rgba(26, 10, 34, .55) 0 6px, rgba(26, 10, 34, .2) 6px 12px);
+    pointer-events: none;
+  }
 
   /* --- 6. call to action: converging rings, dim at the edge, landing on the border --- */
   .st-cta {
@@ -527,23 +593,133 @@
     </div>
   </div>
 
+  <h2>Move chips</h2>
+  <p class="sub">The vocabulary over <strong>themed bodies</strong>: a chip's element colors and its
+  usage fill mean <strong>resource</strong>, and no interactivity state may repaint them (except the
+  disabled grey-out). The vocabulary only touches the border, the brackets, and a one-step luminance
+  lift. Everything here is live.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Usable <span class="tier">lit · steady</span></h3>
+      <div class="stage"><button class="btn chip st-idle sfx"
+          style="--chip-hi:#c98d47; --chip-lo:#3a2410; --fill:60%;">
+        <span>Ember</span><span class="chip-uses">3/5</span>
+        <span class="chip-icon" style="color:#f0b060;">♦</span>
+      </button></div>
+      <p class="meaning">MEANING — same contract: lit azure border = you can press this.</p>
+      <p>The border carries interactivity; the body stays the element's. The bright/dark boundary is
+      uses remaining — 3 of 5 here — and nothing the vocabulary does may move or repaint it.</p>
+    </div>
+
+    <div class="card">
+      <h3>Backlight <span class="tier">1 ramp step · 8-frame fade</span></h3>
+      <div class="stage"><button class="btn chip st-idle sfx"
+          style="--chip-hi:#6cc4d9; --chip-lo:#0f2f38; --fill:66%;">
+        <span>Frost Lance</span><span class="chip-uses">2/3</span>
+        <span class="chip-icon" style="color:#bfeaf5;">❆</span>
+      </button></div>
+      <p class="meaning">MEANING — cursor is here, element identity preserved.</p>
+      <p>Hover it: the whole body lifts <strong>one step up its own palette ramp</strong> (both fill
+      and empty together, so the usage boundary keeps its contrast and can't misread as a uses
+      change). The mockup fakes the ramp step with a white lift; in-engine it's Orange 6 → Orange 7.</p>
+    </div>
+
+    <div class="card">
+      <h3>Cursor vs assigned <span class="tier">snapping vs parked</span></h3>
+      <div class="stage">
+        <div class="duo">
+          <button class="btn chip st-selected v-bracket pinned sfx"
+              style="--chip-hi:#c98d47; --chip-lo:#3a2410; --fill:60%;">
+            <span>Ember</span><span class="chip-uses">3/5</span>
+            <span class="chip-icon" style="color:#f0b060;">♦</span>
+            <i class="bk tl"></i><i class="bk tr"></i><i class="bk bl"></i><i class="bk br"></i>
+          </button>
+          <button class="btn chip st-idle assigned sfx"
+              style="--chip-hi:#c98d47; --chip-lo:#3a2410; --fill:60%;">
+            <span>Ember</span><span class="chip-uses">3/5</span>
+            <span class="chip-icon" style="color:#f0b060;">♦</span>
+            <i class="bk tl"></i><i class="bk tr"></i><i class="bk bl"></i><i class="bk br"></i>
+          </button>
+        </div>
+      </div>
+      <p class="meaning">MEANING — top: the cursor is here (snapping). Bottom: this move is
+      ASSIGNED (same brackets, parked).</p>
+      <p>Same shape, same white — <strong>motion category carries the difference</strong>, the
+      vocabulary's core rule (RQD test: no recolor; that's the fallback if this muddles). It replaces
+      the old “&gt;&nbsp;” text prefix. Cursor landing on the assigned chip snaps its brackets —
+      correct, that IS “you are here”.</p>
+    </div>
+
+    <div class="card">
+      <h3>Depleted <span class="tier">darkest · press for why</span></h3>
+      <div class="stage"><button class="btn chip depleted sfx-deny"
+          style="--fill:0%;">
+        <span>Spark</span><span class="chip-uses">0/4</span>
+        <span class="chip-icon" style="color:#8a857a;">↯</span>
+        <span class="why">NO USES REMAINING</span>
+      </button></div>
+      <p class="meaning">MEANING — exists, but not now. The disabled tier owns ALL of the grey-out.</p>
+      <p>Dark border + greyed body + press-for-why, one unified disabled look — today's separate
+      “grey the fill colors” path folds into it.</p>
+    </div>
+
+    <div class="card">
+      <h3>Void-locked <span class="tier">darkest · sealed</span></h3>
+      <div class="stage"><button class="btn chip depleted locked sfx-deny"
+          style="--fill:55%;">
+        <span>Ember</span><span class="chip-uses">3/5</span>
+        <span class="chip-icon" style="color:#8a857a;">♦</span>
+        <span class="why">SEALED BY VOID LOCK</span>
+      </button></div>
+      <p class="meaning">MEANING — same tier as depleted, different reason on press.</p>
+      <p>The Void scrim rides on top of the disabled look (in-engine: the existing VoidLockOverlay,
+      bubbles-only in the tight menu). Uses remain visible — the lock took the move, not the PP.</p>
+    </div>
+
+    <div class="card">
+      <h3>Call to action <span class="tier">converging rings</span></h3>
+      <div class="stage"><button class="btn chip st-cta sfx"
+          style="--chip-hi:#6cc4d9; --chip-lo:#0f2f38; --fill:100%;">
+        <span>Frost Lance</span><span class="chip-uses">3/3</span>
+        <span class="chip-icon" style="color:#bfeaf5;">❆</span>
+        <span class="ring r1"></span><span class="ring r2"></span>
+      </button></div>
+      <p class="meaning">MEANING — the game suggests this move (tutorials, hint mode). Still max ONE.</p>
+      <p>Amber rings + border catch-flash are color-agnostic, so they read over any element body —
+      the amber monopoly is why nothing else in the UI gets to be bright warm.</p>
+    </div>
+  </div>
+
   <h2>Snugness rig</h2>
-  <p class="sub">The real worry: the action menu is a <strong>140-game-px column with 2 px gaps</strong>.
-  Here's every state coexisting at exactly that spacing. Converge rings and brackets both overhang by
-  ~2 px at peak — check whether neighbors swallow it. Click around; selection moves with you.</p>
+  <p class="sub">The real worry: the action menu is a <strong>140-game-px column with 2 px gaps</strong> —
+  and the real menu is chips on top, text buttons below. Here's every state coexisting at exactly that
+  spacing: Ember holds the cursor, Frost Lance is the assigned move (parked brackets), Spark is
+  depleted. Click around; selection moves with you.</p>
 
   <div class="rig-row">
     <div class="rig">
       <div class="rig-title">— Actions —</div>
       <div class="menu" id="rig-menu">
-        <button class="btn st-selected v-bracket sfx rig-btn" data-selected="true">Attack
+        <button class="btn chip st-selected v-bracket sfx rig-btn" data-selected="true"
+            style="--chip-hi:#c98d47; --chip-lo:#3a2410; --fill:60%;">
+          <span>Ember</span><span class="chip-uses">3/5</span>
+          <span class="chip-icon" style="color:#f0b060;">♦</span>
           <i class="bk tl"></i><i class="bk tr"></i><i class="bk bl"></i><i class="bk br"></i>
         </button>
-        <button class="btn st-idle sfx rig-btn">Move</button>
-        <button class="btn st-idle sfx rig-btn">Items</button>
-        <button class="btn st-disabled sfx-deny rig-btn-disabled">Ember<small>0 uses</small>
+        <button class="btn chip st-idle assigned sfx rig-btn"
+            style="--chip-hi:#6cc4d9; --chip-lo:#0f2f38; --fill:66%;">
+          <span>Frost Lance</span><span class="chip-uses">2/3</span>
+          <span class="chip-icon" style="color:#bfeaf5;">❆</span>
+          <i class="bk tl"></i><i class="bk tr"></i><i class="bk bl"></i><i class="bk br"></i>
+        </button>
+        <button class="btn chip depleted sfx-deny" style="--fill:0%;">
+          <span>Spark</span><span class="chip-uses">0/4</span>
+          <span class="chip-icon" style="color:#8a857a;">↯</span>
           <span class="why">NO USES REMAINING</span>
         </button>
+        <button class="btn st-idle sfx rig-btn">Unit Info</button>
+        <button class="btn st-idle sfx rig-btn">Wait</button>
         <button class="btn st-cta sfx rig-btn">End Turn
           <span class="ring r1"></span><span class="ring r2"></span>
         </button>
@@ -565,6 +741,14 @@
         &lt; selected &lt; call to action. Squint test: End Turn should win your eye, Attack second.
         With no purple recolor, the brackets carry selection alone — squint and confirm Attack still
         reads second.</li>
+        <li><strong>Cursor vs assigned on chips</strong> — Frost Lance keeps parked brackets while
+        the cursor snaps elsewhere; move the cursor ONTO it and the brackets snap (that IS “you are
+        here”). If parked-vs-snapping muddles at a glance, the fallback is recoloring the assigned
+        set — but test the pure version first.</li>
+        <li><strong>Reduce motion caveat:</strong> with motion off, parked (assigned) and selected
+        brackets become identical — the one known degradation of the no-recolor test. If Lawrence
+        flags it, assigned gets a static distinguisher (recolor or half-arms) under reduce-motion
+        only.</li>
         <li><strong>Reduce motion</strong> (top strip) collapses everything to static tiers — the call
         to action and selection keep their bright color, lose their motion. With brackets that means
         parked white ticks. This is the whole accessibility implementation, one flag.</li>
