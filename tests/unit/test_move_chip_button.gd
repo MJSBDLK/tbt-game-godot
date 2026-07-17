@@ -80,6 +80,25 @@ func test_backlight_lifts_both_body_colors_together() -> void:
 			"the vocabulary never touches the resource axis")
 
 
+func test_backlight_lift_stays_on_the_element_ramp() -> void:
+	var chip_button := _make_chip_button(_make_move())
+	chip_button._backlight_level = 1.0
+	chip_button._redraw_chrome()
+	assert_eq(chip_button._chip.fill_color, GameColorPalette.get_color("PoppyRed", 6),
+			"full lift = exactly one step up the artist's ramp — lerp-toward-white read as 'off'")
+	assert_eq(chip_button._chip.empty_color, GameColorPalette.get_color("PoppyRed", 3),
+			"empty climbs its own step of the same ramp")
+
+
+func test_ramp_table_refactor_preserved_the_shipped_colors() -> void:
+	assert_eq(GameColors.get_move_chip_foreground(Enums.ElementalType.FIRE),
+			GameColorPalette.get_color("PoppyRed", 5))
+	assert_eq(GameColors.get_move_chip_background(Enums.ElementalType.COLD),
+			GameColorPalette.get_color("Azure", 1))
+	assert_eq(GameColors.get_move_chip_foreground(Enums.ElementalType.NONE),
+			GameColorPalette.get_color("Gray", 5), "fallback row survived too")
+
+
 func test_element_colors_come_from_the_palette_not_the_vocabulary() -> void:
 	var chip_button := _make_chip_button(_make_move())
 	assert_eq(chip_button._base_fill,

@@ -386,15 +386,11 @@ func _sync_border_glow_rect() -> void:
 	_border_glow_rect.size = size + Vector2(2.0, 2.0)
 	var border := _border_color()
 	_border_glow_rect.color = border
-	# The border color matches text PRIMARY, so it takes the same halo the
-	# text does — TEXT_PRIMARY_GLOW (Azure 5), one glow identity everywhere
-	# (RQD). CTA and disabled keep self-colored halos (amber stays
-	# unmistakably amber).
-	var glow_color: Color = border
-	if not disabled and not call_to_action:
-		glow_color = GameColors.TEXT_PRIMARY_GLOW
+	# Self-colored halo: the glow matches whatever the border is — azure
+	# tiers, amber CTA, chip-skin gray — like the real move chips (RQD
+	# 2026-07-16; supersedes the TEXT_PRIMARY_GLOW round).
 	var shader := _border_glow_rect.material as ShaderMaterial
-	shader.set_shader_parameter("glow_color", glow_color)
+	shader.set_shader_parameter("glow_color", border)
 	shader.set_shader_parameter("rect_size", size + Vector2(2.0, 2.0))
 
 

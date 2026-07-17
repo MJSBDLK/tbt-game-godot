@@ -316,42 +316,52 @@ static var MULTIPLIER_X0_DARK: Color:
 # Ramps: each type uses a single palette ramp (e.g. AIR = TealGray, FIRE = PoppyRed)
 # =============================================================================
 
+## Single source of truth for each element's chip ramp identity:
+## element -> [ramp_name, background_index, foreground_index]. Everything a
+## chip does with color — including the backlight lifting the pair ONE step up
+## the ramp — derives from this table, so lifted colors are always colors the
+## artist actually put on the ramp.
+const _MOVE_CHIP_RAMPS: Dictionary = {
+	Enums.ElementalType.AIR:       ["TealGray", 2, 7],
+	Enums.ElementalType.CHIVALRIC: ["Orange", 2, 6],
+	Enums.ElementalType.COLD:      ["Azure", 1, 4],
+	Enums.ElementalType.ELECTRIC:  ["YellowOrange", 2, 6],
+	Enums.ElementalType.FIRE:      ["PoppyRed", 2, 5],
+	Enums.ElementalType.GENTRY:    ["Tan2", 2, 7],
+	Enums.ElementalType.GRAVITY:   ["Violet", 1, 3],
+	Enums.ElementalType.HERALDIC:  ["Chartreuse", 2, 4],
+	Enums.ElementalType.OCCULT:    ["Red", 1, 4],
+	Enums.ElementalType.PLANT:     ["Green", 2, 4],
+	Enums.ElementalType.ROBO:      ["Gray", 3, 8],
+	Enums.ElementalType.SIMPLE:    ["S1", 2, 6],
+	Enums.ElementalType.VOID:      ["Yellow", 1, 5],
+	Enums.ElementalType.OBSIDIAN:  ["Blue", 0, 3],
+}
+const _MOVE_CHIP_RAMP_FALLBACK: Array = ["Gray", 2, 5]
+
+
 static func get_move_chip_background(element_type: Enums.ElementalType) -> Color:
-	match element_type:
-		Enums.ElementalType.AIR:       return GameColorPalette.get_color("TealGray", 2)
-		Enums.ElementalType.CHIVALRIC: return GameColorPalette.get_color("Orange", 2)
-		Enums.ElementalType.COLD:      return GameColorPalette.get_color("Azure", 1)
-		Enums.ElementalType.ELECTRIC:  return GameColorPalette.get_color("YellowOrange", 2)
-		Enums.ElementalType.FIRE:      return GameColorPalette.get_color("PoppyRed", 2)
-		Enums.ElementalType.GENTRY:    return GameColorPalette.get_color("Tan2", 2)
-		Enums.ElementalType.GRAVITY:   return GameColorPalette.get_color("Violet", 1)
-		Enums.ElementalType.HERALDIC:  return GameColorPalette.get_color("Chartreuse", 2)
-		Enums.ElementalType.OCCULT:    return GameColorPalette.get_color("Red", 1)
-		Enums.ElementalType.PLANT:     return GameColorPalette.get_color("Green", 2)
-		Enums.ElementalType.ROBO:      return GameColorPalette.get_color("Gray", 3)
-		Enums.ElementalType.SIMPLE:    return GameColorPalette.get_color("S1", 2)
-		Enums.ElementalType.VOID:      return GameColorPalette.get_color("Yellow", 1)
-		Enums.ElementalType.OBSIDIAN:  return GameColorPalette.get_color("Blue", 0)
-		_:                             return GameColorPalette.get_color("Gray", 2)
+	return get_move_chip_background_lifted(element_type, 0.0)
 
 
 static func get_move_chip_foreground(element_type: Enums.ElementalType) -> Color:
-	match element_type:
-		Enums.ElementalType.AIR:       return GameColorPalette.get_color("TealGray", 7)
-		Enums.ElementalType.CHIVALRIC: return GameColorPalette.get_color("Orange", 6)
-		Enums.ElementalType.COLD:      return GameColorPalette.get_color("Azure", 4)
-		Enums.ElementalType.ELECTRIC:  return GameColorPalette.get_color("YellowOrange", 6)
-		Enums.ElementalType.FIRE:      return GameColorPalette.get_color("PoppyRed", 5)
-		Enums.ElementalType.GENTRY:    return GameColorPalette.get_color("Tan2", 7)
-		Enums.ElementalType.GRAVITY:   return GameColorPalette.get_color("Violet", 3)
-		Enums.ElementalType.HERALDIC:  return GameColorPalette.get_color("Chartreuse", 4)
-		Enums.ElementalType.OCCULT:    return GameColorPalette.get_color("Red", 4)
-		Enums.ElementalType.PLANT:     return GameColorPalette.get_color("Green", 4)
-		Enums.ElementalType.ROBO:      return GameColorPalette.get_color("Gray", 8)
-		Enums.ElementalType.SIMPLE:    return GameColorPalette.get_color("S1", 6)
-		Enums.ElementalType.VOID:      return GameColorPalette.get_color("Yellow", 5)
-		Enums.ElementalType.OBSIDIAN:  return GameColorPalette.get_color("Blue", 3)
-		_:                             return GameColorPalette.get_color("Gray", 5)
+	return get_move_chip_foreground_lifted(element_type, 0.0)
+
+
+## The chip pair raised `lift` (0..1) of one step UP its own palette ramp —
+## the backlight state. On-ramp at rest and at full lift; mid-fade sits
+## between two adjacent artist-picked colors of the SAME ramp, so the element
+## identity never drifts the way a lerp-toward-white does.
+static func get_move_chip_background_lifted(
+		element_type: Enums.ElementalType, lift: float) -> Color:
+	var ramp: Array = _MOVE_CHIP_RAMPS.get(element_type, _MOVE_CHIP_RAMP_FALLBACK)
+	return GameColorPalette.get_color_interpolated(ramp[0], ramp[1] + clampf(lift, 0.0, 1.0))
+
+
+static func get_move_chip_foreground_lifted(
+		element_type: Enums.ElementalType, lift: float) -> Color:
+	var ramp: Array = _MOVE_CHIP_RAMPS.get(element_type, _MOVE_CHIP_RAMP_FALLBACK)
+	return GameColorPalette.get_color_interpolated(ramp[0], ramp[2] + clampf(lift, 0.0, 1.0))
 
 
 static func get_move_chip_border(element_type: Enums.ElementalType) -> Color:

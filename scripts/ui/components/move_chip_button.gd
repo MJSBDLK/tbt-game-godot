@@ -17,11 +17,6 @@ extends InteractiveButton
 
 const CHIP_MATERIAL: ShaderMaterial = preload("res://resources/move_chip_fill.tres")
 
-## How far the backlight lifts the body toward white at full level. The real
-## target is one palette-ramp step (Orange 6 → Orange 7); this approximates it
-## until chips carry their ramp identity. Matches the mockup's white lift.
-const BACKLIGHT_BODY_LIFT: float = 0.12
-
 ## Why pressing is currently refused — surfaced by deny UI (styled tooltip).
 var disabled_reason: String = ""
 
@@ -36,6 +31,7 @@ var assigned: bool = false:
 var _chip: MoveChip = null
 var _name_label: Label = null
 var _uses_label: Label = null
+var _element: Enums.ElementalType = Enums.ElementalType.NONE
 var _base_fill: Color = Color.WHITE
 var _base_empty: Color = Color.BLACK
 
@@ -86,6 +82,7 @@ func _ready() -> void:
 ## Configure from a Move. `locked` = sealed by Void Lock (uses stay visible —
 ## the lock took the move, not the PP); depletion is read off the Move itself.
 func setup(move: Move, is_assigned: bool = false, locked: bool = false) -> void:
+	_element = move.element_type
 	_base_fill = GameColors.get_move_chip_foreground(move.element_type)
 	_base_empty = GameColors.get_move_chip_background(move.element_type)
 	_chip.border_color = GameColorPalette.get_color("Gray", 7)
@@ -137,15 +134,29 @@ func _brackets_snapping() -> bool:
 	return selected
 
 
+## The border-glow experiment (and anything else border-colored) follows the
+## chip SKIN's border, not the azure vocabulary tiers.
+func _border_color() -> Color:
+	if _chip != null:
+		return _chip.border_color
+	return super._border_color()
+
+
 func _redraw_chrome() -> void:
 	super()
 	if _chip == null:
 		return
-	# Backlight, element-preserving: both body colors lift together so the
-	# usage boundary keeps its contrast and can't misread as a uses change.
-	var lift: float = _backlight_level * BACKLIGHT_BODY_LIFT
-	_chip.fill_color = _base_fill.lerp(Color.WHITE, lift)
-	_chip.empty_color = _base_empty.lerp(Color.WHITE, lift)
+	# Backlight, element-preserving: the pair climbs ONE step up its OWN
+	# palette ramp (PoppyRed 5 → 6), both colors together so the usage
+	# boundary keeps its contrast. On-ramp at rest and at full lift — the
+	# lerp-toward-white version read as "slightly off" because it left the
+	# ramp (RQD 2026-07-16). Disabled chips stay parked on their grey pair.
+	if disabled:
+		_chip.fill_color = _base_fill
+		_chip.empty_color = _base_empty
+	else:
+		_chip.fill_color = GameColors.get_move_chip_foreground_lifted(_element, _backlight_level)
+		_chip.empty_color = GameColors.get_move_chip_background_lifted(_element, _backlight_level)
 	# The body rides the press shift with the rest of the chrome.
 	var press_offset: float = float(PRESS_SHIFT_PIXELS) if is_pressed() else 0.0
 	_chip.position.y = press_offset
