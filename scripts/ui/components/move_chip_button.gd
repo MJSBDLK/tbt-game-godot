@@ -134,14 +134,6 @@ func _brackets_snapping() -> bool:
 	return selected
 
 
-## The border-glow experiment (and anything else border-colored) follows the
-## chip SKIN's border, not the azure vocabulary tiers.
-func _border_color() -> Color:
-	if _chip != null:
-		return _chip.border_color
-	return super._border_color()
-
-
 func _redraw_chrome() -> void:
 	super()
 	if _chip == null:

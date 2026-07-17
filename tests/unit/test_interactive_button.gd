@@ -141,18 +141,6 @@ func test_press_shifts_text_down_exactly_one_pixel() -> void:
 			"press response moves text with the chrome — one integer pixel")
 
 
-func test_border_glow_experiment_defaults_off_and_toggles() -> void:
-	var button := InteractiveButton.new()
-	add_child_autofree(button)
-	assert_false(button._border_glow_rect.visible,
-			"experiment stays off until the gallery verdict lands")
-	button.border_glow = true
-	assert_true(button._border_glow_rect.visible)
-	var shader := button._border_glow_rect.material as ShaderMaterial
-	assert_true(bool(shader.get_shader_parameter("border_mode")),
-			"drives orthogonal_glow's purpose-built border_mode")
-
-
 func test_text_glow_dims_when_disabled() -> void:
 	var button := InteractiveButton.new()
 	add_child_autofree(button)

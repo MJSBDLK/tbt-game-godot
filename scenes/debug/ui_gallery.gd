@@ -161,16 +161,6 @@ func _build_controls() -> VBoxContainer:
 	# the player's settings.cfg.
 	motion.toggled.connect(func(on: bool) -> void: Settings.ui_motion_enabled = on)
 	column.add_child(motion)
-
-	# EXPERIMENT: orthogonal glow on the border, same identity as the text
-	# glow. A/B it live; verdict decides whether InteractiveButton.border_glow
-	# becomes the default or gets deleted.
-	var border_glow := CheckButton.new()
-	border_glow.text = "Border glow (test)"
-	border_glow.toggled.connect(func(on: bool) -> void:
-		for button: InteractiveButton in _all_buttons:
-			button.border_glow = on)
-	column.add_child(border_glow)
 	return column
 
 
