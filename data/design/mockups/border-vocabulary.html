@@ -274,11 +274,12 @@
   /* the themed skin also suppresses the azure hover/selected glow shadows */
   .chip.st-idle, .chip.st-idle:hover, .chip.st-idle:focus-visible,
   .chip.st-focus, .chip.st-selected { box-shadow: none; }
+  /* Numbers match the name's font scheme — same color, same glow, inherited
+     straight from the chip text (leaning locked, mocked 2026-07-19). Size is
+     the only remaining hierarchy cue (moot in-engine: one font size). */
   .chip .chip-uses {
     margin-left: auto;
     font-size: 10px;
-    color: rgba(255, 255, 255, .75);
-    text-shadow: none;
   }
   .chip .chip-icon { font-size: 12px; text-shadow: 0 0 4px rgba(0,0,0,.8); }
   /* Backlight, element-preserving: whole body lifts one step, fill boundary
@@ -304,7 +305,7 @@
     box-shadow: none;
     cursor: pointer; /* pressable for the "why" */
   }
-  .chip.depleted .chip-uses { color: #635e54; }
+  /* (depleted numbers now inherit the tier's grey like every other glyph) */
   .chip.locked::before {
     content: "";
     position: absolute; inset: 0;
@@ -460,8 +461,6 @@
   .chip .nm { flex: 0 0 auto; width: 11ch; white-space: nowrap; }
   .chip .chip-range {
     font-size: 10px;
-    color: rgba(255, 255, 255, .9);
-    text-shadow: none;
     letter-spacing: .02em;
   }
 
@@ -901,6 +900,11 @@
         X-marked diameter 3 ≈ 11 px and diameter 5 ≈ 19 px: when fidelity needs it, the glyph
         outgrows 10×10 and the <em>chip expands to fit</em> — wider first, then the two-line
         layout. The grid preview stays the truth for anything the glyph abbreviates.</li>
+        <li><strong>Numbers match the name's font scheme.</strong> Uses and range now inherit
+        the chip text's color + glow instead of their old flat semi-white (RQD leaning, mocked
+        2026-07-19 — eyeball here, then the engine gives both labels the same GlowLabel
+        treatment as the name). Depleted numbers inherit the tier's grey with everything
+        else.</li>
         <li><strong>Column caveat:</strong> First Aid has no element icon, so its row starts a
         slot early — the engine chip does the same today. If the ragged left edge grates,
         reserve the element slot even when empty.</li>
