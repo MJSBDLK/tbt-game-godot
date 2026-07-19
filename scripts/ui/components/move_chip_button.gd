@@ -31,6 +31,7 @@ var assigned: bool = false:
 var _chip: MoveChip = null
 var _name_label: Label = null
 var _uses_label: Label = null
+var _icon: TextureRect = null
 var _element: Enums.ElementalType = Enums.ElementalType.NONE
 var _base_fill: Color = Color.WHITE
 var _base_empty: Color = Color.BLACK
@@ -75,6 +76,12 @@ func _ready() -> void:
 	_uses_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(_uses_label)
 
+	# Elemental type icon, rightmost — same 10x10 set the action menu uses.
+	_icon = TextureRect.new()
+	_icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(_icon)
+
 	# Brackets/rings/press-flash draw above the chip body and its labels.
 	move_child(_chrome_front, get_child_count() - 1)
 
@@ -90,6 +97,8 @@ func setup(move: Move, is_assigned: bool = false, locked: bool = false) -> void:
 			if move.max_uses > 0 else 0.0
 	_name_label.text = move.abbrev_name if move.abbrev_name != "" else move.move_name
 	_uses_label.text = "%d/%d" % [move.current_uses, move.max_uses]
+	_icon.texture = elemental_icon(move.element_type)
+	_icon.material = null
 	assigned = is_assigned
 
 	var depleted: bool = not move.has_uses_remaining()
@@ -102,6 +111,8 @@ func setup(move: Move, is_assigned: bool = false, locked: bool = false) -> void:
 		_name_label.material = null
 		_name_label.add_theme_color_override(
 				"font_color", GameColors.INTERACTIVE_TEXT_DISABLED)
+		# Icon follows the tier: greyed whenever the chip is dark.
+		_icon.material = VoidLockOverlay.icon_gray_material()
 	if locked:
 		# Subdued (bubbles only) — the tight menu can't spill the smoke/crackle.
 		VoidLockOverlay.set_locked(_chip, true, true)
@@ -110,6 +121,18 @@ func setup(move: Move, is_assigned: bool = false, locked: bool = false) -> void:
 	_chip.empty_color = _base_empty
 	_uses_label.add_theme_color_override("font_color",
 			GameColors.INTERACTIVE_TEXT_DISABLED if disabled else GameColors.TEXT_PRIMARY_GLOW)
+
+
+## The shared 10x10 elemental icon set (also used by the action menu).
+## Null for NONE or a missing sprite — the row just shows no icon.
+static func elemental_icon(element_type: Enums.ElementalType) -> Texture2D:
+	if element_type == Enums.ElementalType.NONE:
+		return null
+	var type_name: String = Enums.elemental_type_to_string(element_type).to_lower()
+	var path: String = "res://art/sprites/ui/elemental_type_icons_10x10/%s.png" % type_name
+	if ResourceLoader.exists(path):
+		return load(path) as Texture2D
+	return null
 
 
 # =============================================================================

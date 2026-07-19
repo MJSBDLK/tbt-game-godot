@@ -80,6 +80,19 @@ func test_backlight_lifts_both_body_colors_together() -> void:
 			"the vocabulary never touches the resource axis")
 
 
+func test_type_icon_rides_the_right_side_and_follows_the_tier() -> void:
+	var chip_button := _make_chip_button(_make_move())
+	assert_not_null(chip_button._icon.texture, "FIRE loads its 10x10 icon")
+	assert_null(chip_button._icon.material, "healthy chip: icon in full color")
+	var depleted := _make_chip_button(_make_move(0, 4))
+	assert_not_null(depleted._icon.material, "dark tier greys the icon too")
+	var no_element := _make_chip_button(_make_move())
+	var typeless := _make_move()
+	typeless.element_type = Enums.ElementalType.NONE
+	no_element.setup(typeless)
+	assert_null(no_element._icon.texture, "NONE simply shows no icon")
+
+
 func test_backlight_lift_stays_on_the_element_ramp() -> void:
 	var chip_button := _make_chip_button(_make_move())
 	chip_button._backlight_level = 1.0
