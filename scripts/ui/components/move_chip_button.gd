@@ -22,6 +22,11 @@ const CHIP_MATERIAL: ShaderMaterial = preload("res://resources/move_chip_fill.tr
 ## Real data uses abbrev_name; clipping is the fallback, not the plan.
 const NAME_COLUMN_WIDTH: float = 38.0
 
+## The GlowLabel prefab's optical seat (ui_text.tscn: MarginContainer with
+## margin_top = 2): pixel caps carry their mass high, so true center reads
+## high. Chip text rides the same 2px so it sits like every panel label.
+const TEXT_TOP_MARGIN: int = 2
+
 ## Why pressing is currently refused — surfaced by deny UI (styled tooltip).
 var disabled_reason: String = ""
 
@@ -96,7 +101,7 @@ func _ready() -> void:
 	# width, so every chip's scheme/range columns line up.
 	_name_label.clip_text = true
 	_name_label.custom_minimum_size.x = NAME_COLUMN_WIDTH
-	row.add_child(_name_label)
+	row.add_child(_seat_label(_name_label))
 
 	# Scheme + digits — target scheme glyph, then the range band. The spacer
 	# after them is a DECISION, not layout convenience: range never sits
@@ -113,7 +118,7 @@ func _ready() -> void:
 	_range_label = Label.new()
 	_range_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_range_label.material = _number_glow
-	row.add_child(_range_label)
+	row.add_child(_seat_label(_range_label))
 
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -123,7 +128,7 @@ func _ready() -> void:
 	_uses_label = Label.new()
 	_uses_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_uses_label.material = _number_glow
-	row.add_child(_uses_label)
+	row.add_child(_seat_label(_uses_label))
 
 	# Brackets/rings/press-flash draw above the chip body and its labels.
 	move_child(_chrome_front, get_child_count() - 1)
@@ -198,6 +203,16 @@ static func elemental_icon(element_type: Enums.ElementalType) -> Texture2D:
 	if ResourceLoader.exists(path):
 		return load(path) as Texture2D
 	return null
+
+
+## Wraps a text label in the GlowLabel prefab's margin seat (2px top) so chip
+## text sits at the same optical height as every panel label.
+static func _seat_label(label: Label) -> MarginContainer:
+	var seat := MarginContainer.new()
+	seat.add_theme_constant_override("margin_top", TEXT_TOP_MARGIN)
+	seat.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	seat.add_child(label)
+	return seat
 
 
 ## The digits half of "scheme + digits": targeting is dist <= attack_range

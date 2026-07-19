@@ -137,10 +137,22 @@ func test_blast_and_friendly_schemes_are_the_loud_exceptions() -> void:
 
 func test_range_never_sits_beside_uses() -> void:
 	var chip_button := _make_chip_button(_make_move())
-	assert_true(chip_button._uses_label.get_index()
-			- chip_button._range_label.get_index() >= 2,
+	# Labels ride margin seats, so row order is the seats' order.
+	assert_true(chip_button._uses_label.get_parent().get_index()
+			- chip_button._range_label.get_parent().get_index() >= 2,
 			"the spacer between range and uses is a DECISION (Lawrence 2026-07-19):"
 			+ " two number pairs side by side misread")
+
+
+func test_labels_sit_on_the_prefab_optical_margin() -> void:
+	var chip_button := _make_chip_button(_make_move())
+	for label: Label in [chip_button._name_label, chip_button._range_label,
+			chip_button._uses_label]:
+		var seat := label.get_parent() as MarginContainer
+		assert_not_null(seat, "every chip text label rides a margin seat")
+		assert_eq(seat.get_theme_constant("margin_top"),
+				MoveChipButton.TEXT_TOP_MARGIN,
+				"same 2px optical top margin as the GlowLabel prefab (ui_text.tscn)")
 
 
 func test_name_column_is_fixed_so_data_columns_align() -> void:
