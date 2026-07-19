@@ -275,10 +275,11 @@ func _update_moves(unit: Unit) -> void:
 		var chip_button := chip_buttons[i]
 		if i < moves.size() and moves[i] != null:
 			chip_button.visible = true
-			# The assigned move carries its parked brackets here too — the
-			# vocabulary means the same thing in every venue.
-			chip_button.setup(moves[i], unit.assigned_move == moves[i],
-					unit.is_move_index_locked(i))
+			# NO assigned brackets here: parked brackets are an action-menu
+			# signal, and in a static readout they read as "selected" (RQD
+			# 2026-07-19, the Bonk confusion). A display-safe assigned marker
+			# is a mockup question.
+			chip_button.setup(moves[i], false, unit.is_move_index_locked(i))
 		else:
 			chip_button.visible = false
 

@@ -68,6 +68,11 @@ func _ready() -> void:
 	# The chip body replaces both the flat background and the azure border.
 	base_background = Color.TRANSPARENT
 	text = ""
+	# Overflow must never spill into neighboring panels (RQD bug 2026-07-19:
+	# detail-panel chips appended their data over the description pane). What
+	# to SHOW at narrow widths is the pending density decision; until then,
+	# clip is the contract.
+	clip_contents = true
 
 	_chip = MoveChip.new()
 	_chip.material = CHIP_MATERIAL.duplicate()
@@ -106,9 +111,12 @@ func _ready() -> void:
 	_name_glow = GLOW_MATERIAL.duplicate() as ShaderMaterial
 	_name_glow.set_shader_parameter("glow_color", GameColors.TEXT_PRIMARY_GLOW)
 	_name_label.material = _name_glow
-	# Fixed column: with clip_text on, the text no longer drives the minimum
-	# width, so every chip's scheme/range columns line up.
-	_name_label.clip_text = true
+	# Fixed column: with overrun trimming, the text no longer drives the
+	# minimum width, so every chip's scheme/range columns line up. Trim, NOT
+	# clip_text: scissor clipping also cut the glow halo at the label's
+	# left/top edge (RQD bug 2026-07-19) — trimming reshapes the text and
+	# leaves the halo intact.
+	_name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_CHAR
 	_name_label.custom_minimum_size.x = name_column_width
 	row.add_child(_seat_label(_name_label))
 
@@ -171,6 +179,14 @@ func setup(move: Move, is_assigned: bool = false, locked: bool = false) -> void:
 		_name_label.text = move.move_name
 	else:
 		_name_label.text = move.abbrev_name if move.abbrev_name != "" else move.move_name
+	# Text wears the ELEMENT's designed pairing (GameColors §3 chip colors) —
+	# default white on some bodies was unreadable (RQD 2026-07-19). Numbers
+	# follow the name's scheme, so they take the same pair.
+	var chip_text_color: Color = GameColors.get_move_chip_font_color(move.element_type)
+	var chip_glow_color: Color = GameColors.get_move_chip_glow_color(move.element_type)
+	_name_label.add_theme_color_override("font_color", chip_text_color)
+	_name_glow.set_shader_parameter("glow_color", chip_glow_color)
+	_number_glow.set_shader_parameter("glow_color", chip_glow_color)
 	_uses_label.text = "%d/%d" % [move.current_uses, move.max_uses]
 	_icon.texture = elemental_icon(move.element_type)
 	_icon.material = null
@@ -216,8 +232,10 @@ func setup(move: Move, is_assigned: bool = false, locked: bool = false) -> void:
 	else:
 		_uses_label.material = _number_glow
 		_range_label.material = _number_glow
-		_uses_label.remove_theme_color_override("font_color")
-		_range_label.remove_theme_color_override("font_color")
+		_uses_label.add_theme_color_override("font_color",
+				GameColors.get_move_chip_font_color(_element))
+		_range_label.add_theme_color_override("font_color",
+				GameColors.get_move_chip_font_color(_element))
 
 
 ## The shared 10x10 elemental icon set (also used by the action menu).

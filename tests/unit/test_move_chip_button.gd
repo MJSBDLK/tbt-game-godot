@@ -156,11 +156,18 @@ func test_labels_sit_on_the_prefab_optical_margin() -> void:
 
 
 func test_name_column_is_fixed_so_data_columns_align() -> void:
-	var chip_button := _make_chip_button(_make_move())
-	assert_true(chip_button._name_label.clip_text,
-			"clip keeps long names from pushing the scheme column")
+	var move := _make_move()
+	move.move_name = "An Extremely Long Move Name"
+	var chip_button := _make_chip_button(move)
+	chip_button.custom_minimum_size = Vector2(120, 14)
+	assert_eq(chip_button._name_label.text_overrun_behavior,
+			TextServer.OVERRUN_TRIM_CHAR,
+			"trim, not clip_text — scissor clipping also cut the glow halo")
 	assert_eq(chip_button._name_label.custom_minimum_size.x,
 			MoveChipButton.NAME_COLUMN_WIDTH)
+	await wait_process_frames(2)
+	assert_eq(chip_button._name_label.size.x, MoveChipButton.NAME_COLUMN_WIDTH,
+			"long names must not push the scheme/range columns")
 
 
 func test_numbers_wear_the_names_font_scheme() -> void:
@@ -169,10 +176,15 @@ func test_numbers_wear_the_names_font_scheme() -> void:
 	assert_not_null(uses_glow, "uses carries the glyph halo, same as the name")
 	assert_not_null(chip_button._range_label.material as ShaderMaterial,
 			"range carries it too — one font family across the chip")
+	# Text wears the ELEMENT's designed pairing — default white was unreadable
+	# on some bodies (RQD 2026-07-19); numbers take the same pair as the name.
 	assert_eq(uses_glow.get_shader_parameter("glow_color"),
-			GameColors.TEXT_PRIMARY_GLOW)
-	assert_false(chip_button._uses_label.has_theme_color_override("font_color"),
-			"healthy numbers use the default white, exactly like the name")
+			GameColors.get_move_chip_glow_color(Enums.ElementalType.FIRE))
+	assert_eq(chip_button._uses_label.get_theme_color("font_color"),
+			GameColors.get_move_chip_font_color(Enums.ElementalType.FIRE))
+	assert_eq(chip_button._name_label.get_theme_color("font_color"),
+			GameColors.get_move_chip_font_color(Enums.ElementalType.FIRE),
+			"name and numbers share one per-element scheme")
 	var depleted := _make_chip_button(_make_move(0, 4))
 	assert_null(depleted._uses_label.material, "the dark tier kills the halo")
 	assert_eq(depleted._uses_label.get_theme_color("font_color"),
