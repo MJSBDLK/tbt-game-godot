@@ -93,6 +93,19 @@ func test_type_icon_leads_the_row_and_follows_the_tier() -> void:
 	assert_null(no_element._icon.texture, "NONE simply shows no icon")
 
 
+func test_damage_type_icon_sits_beside_the_element_icon() -> void:
+	var chip_button := _make_chip_button(_make_move())
+	assert_not_null(chip_button._damage_icon.texture,
+			"PHYSICAL loads the shared 10x10 move-type icon")
+	assert_eq(chip_button._damage_icon.get_index(), chip_button._icon.get_index() + 1,
+			"damage type sits immediately after the element — Lawrence trial 2026-07-19"
+			+ " ('if it's ugly we'll move it back')")
+	assert_null(chip_button._damage_icon.material, "healthy chip: full color")
+	var depleted := _make_chip_button(_make_move(0, 4))
+	assert_not_null(depleted._damage_icon.material,
+			"dark tier greys the damage icon with the rest")
+
+
 func test_backlight_lift_stays_on_the_element_ramp() -> void:
 	var chip_button := _make_chip_button(_make_move())
 	chip_button._backlight_level = 1.0

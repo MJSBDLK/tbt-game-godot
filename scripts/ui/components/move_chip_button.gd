@@ -32,6 +32,7 @@ var _chip: MoveChip = null
 var _name_label: Label = null
 var _uses_label: Label = null
 var _icon: TextureRect = null
+var _damage_icon: TextureRect = null
 var _element: Enums.ElementalType = Enums.ElementalType.NONE
 var _base_fill: Color = Color.WHITE
 var _base_empty: Color = Color.BLACK
@@ -66,6 +67,13 @@ func _ready() -> void:
 	_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(_icon)
 
+	# Damage type (phys/spec/support) beside the element — Lawrence trial
+	# 2026-07-19, revert clause: "if it's ugly we'll move it back".
+	_damage_icon = TextureRect.new()
+	_damage_icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	_damage_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(_damage_icon)
+
 	_name_label = Label.new()
 	_name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_name_label.material = GLOW_MATERIAL.duplicate()
@@ -99,6 +107,8 @@ func setup(move: Move, is_assigned: bool = false, locked: bool = false) -> void:
 	_uses_label.text = "%d/%d" % [move.current_uses, move.max_uses]
 	_icon.texture = elemental_icon(move.element_type)
 	_icon.material = null
+	_damage_icon.texture = damage_type_icon(move.damage_type)
+	_damage_icon.material = null
 	assigned = is_assigned
 
 	var depleted: bool = not move.has_uses_remaining()
@@ -111,8 +121,9 @@ func setup(move: Move, is_assigned: bool = false, locked: bool = false) -> void:
 		_name_label.material = null
 		_name_label.add_theme_color_override(
 				"font_color", GameColors.INTERACTIVE_TEXT_DISABLED)
-		# Icon follows the tier: greyed whenever the chip is dark.
+		# Icons follow the tier: greyed whenever the chip is dark.
 		_icon.material = VoidLockOverlay.icon_gray_material()
+		_damage_icon.material = VoidLockOverlay.icon_gray_material()
 	if locked:
 		# Subdued (bubbles only) — the tight menu can't spill the smoke/crackle.
 		VoidLockOverlay.set_locked(_chip, true, true)
@@ -131,6 +142,15 @@ static func elemental_icon(element_type: Enums.ElementalType) -> Texture2D:
 	var type_name: String = Enums.elemental_type_to_string(element_type).to_lower()
 	var path: String = "res://art/sprites/ui/elemental_type_icons_10x10/%s.png" % type_name
 	if ResourceLoader.exists(path):
+		return load(path) as Texture2D
+	return null
+
+
+## The shared 10x10 damage-type icon set (physical / special_d / support) —
+## the same sprites the detail panel, equipment picker, and combat preview use.
+static func damage_type_icon(damage_type: Enums.DamageType) -> Texture2D:
+	var path: String = Enums.get_damage_type_icon(damage_type)
+	if path != "" and ResourceLoader.exists(path):
 		return load(path) as Texture2D
 	return null
 

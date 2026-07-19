@@ -109,14 +109,21 @@ func _build_snug_rig() -> VBoxContainer:
 	# Ember holds the cursor at start; Frost Lance is the ASSIGNED move
 	# (parked brackets); Spark is depleted; Gloom is Void-locked.
 	var chip_specs: Array[Array] = [
-		# [name, element, uses, max, assigned, locked]
-		["Ember", Enums.ElementalType.FIRE, 3, 5, false, false],
-		["Frost Lance", Enums.ElementalType.COLD, 2, 3, true, false],
-		["Spark", Enums.ElementalType.ELECTRIC, 0, 4, false, false],
-		["Gloom", Enums.ElementalType.VOID, 2, 2, false, true],
+		# [name, element, uses, max, assigned, locked, damage_type] — one of each
+		# damage type so the left-slot icon trial (Lawrence 2026-07-19) shows all
+		# three sprites, including special_d's magenta sparkle.
+		["Ember", Enums.ElementalType.FIRE, 3, 5, false, false,
+				Enums.DamageType.SPECIAL],
+		["Frost Lance", Enums.ElementalType.COLD, 2, 3, true, false,
+				Enums.DamageType.PHYSICAL],
+		["Spark", Enums.ElementalType.ELECTRIC, 0, 4, false, false,
+				Enums.DamageType.PHYSICAL],
+		["Gloom", Enums.ElementalType.VOID, 2, 2, false, true,
+				Enums.DamageType.SUPPORT],
 	]
 	for spec: Array in chip_specs:
-		var chip_button := _make_chip(spec[0], spec[1], spec[2], spec[3], spec[4], spec[5])
+		var chip_button := _make_chip(spec[0], spec[1], spec[2], spec[3], spec[4],
+				spec[5], spec[6])
 		# setup() runs deferred (on ready), so disabled isn't known yet — connect
 		# both: pressed only ever fires enabled, denied only ever fires disabled.
 		chip_button.denied.connect(_show_why.bind(chip_button))
@@ -209,12 +216,14 @@ func _show_why(source: InteractiveButton) -> void:
 ## Real MoveChipButton from a throwaway Move resource — the gallery exercises
 ## the same component the action menu will adopt.
 func _make_chip(move_name: String, element: Enums.ElementalType, uses: int,
-		max_uses: int, is_assigned: bool, locked: bool) -> MoveChipButton:
+		max_uses: int, is_assigned: bool, locked: bool,
+		damage_type: Enums.DamageType = Enums.DamageType.PHYSICAL) -> MoveChipButton:
 	var move := Move.new()
 	move.move_name = move_name
 	move.element_type = element
 	move.current_uses = uses
 	move.max_uses = max_uses
+	move.damage_type = damage_type
 	var chip_button := MoveChipButton.new()
 	chip_button.custom_minimum_size = Vector2(120, 14)
 	_all_buttons.append(chip_button)

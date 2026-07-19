@@ -102,9 +102,17 @@ out-of-panel debug/devtools.
 ### Move chips
 - `ColorRect` with fill shader (`fill_percent`, `fill_color`, `empty_color`).
 - Element-typed colors (Fire = Orange, Electric = Yellow, etc.).
-- Depleted moves grey out.
-- **TBD**: hover/click feedback. Goal — quick shimmer + animated shift on hover, plus a
-  click feedback effect. Not yet built.
+- Row contents (Lawrence review 2026-07-19): element icon, then **damage-type icon**
+  (`move_type_icons_10x10` — trial slot beside the element on the LEFT, revert clause
+  "if it's ugly we'll move it back"), move name, uses pinned to the right edge.
+- **Range + target scheme go on-chip** (kept for new-player value) but range must sit
+  SEPARATED from uses — two number pairs side by side misread. Representation still
+  TBD in the mockup: reach strip vs scheme + digits.
+- Full move details live in the **long-press tooltip** (§14 "Detail tooltips") — the
+  chip is a mnemonic, not the spec sheet.
+- Depleted moves grey out (folds into the §14 disabled tier at action-menu adoption).
+- Hover/click feedback: **built** — the §14 vocabulary via `MoveChipButton`
+  (ramp-step backlight, parked/snapping brackets, press response, deny).
 
 ### Status chips (unit preview panel)
 - `ColorRect` + 6×6 icon + abbreviated name + turns-remaining label.
@@ -291,14 +299,30 @@ disabled < static < idle < selected < call to action.
   **LOCKED**: core = step = **3 game px** (footprint 3/9/15/21 — bands read too
   obviously above 3). Retired: whole-button magenta recolor, quiet (color-only),
   orbit-once (both depended on the recolor).
-- **Magenta/purple accent — TBD, needs a new job**: it pops extremely well in the
-  menus and is now unassigned. Candidates welcome (rare/special actions? story
-  choices?). Do NOT reuse it for selection or call to action.
+- **Magenta/purple accent — job found, de facto (2026-07-19): SPECIAL damage.**
+  The shipped `special_d` move-type icon is a magenta sparkle, and the
+  phys/spec/support trio now rides on move chips as well as the detail panel,
+  equipment picker, and combat preview — making magenta the color of special
+  damage. Semantic, never a state, so it can't collide with selection or the
+  amber CTA monopoly. Still do NOT reuse it for selection or call to action.
 - **Call to action**: converging rings — spawn dim a few game px out, shrink onto the
   border, which catches the light as they land. Motion *toward* = "come here";
   in-place pulse is explicitly rejected (reads as selected/idle).
 - **Press response — LOCK**: 1 game px downward shift + brightness flash. No scaling,
   ever (integer pixel grid). Pairs with the input-layer tap ring.
+
+### Detail tooltips — CORE, LOCK (RQD + Lawrence 2026-07-19)
+One gesture across every input opens "tell me more" on a move chip (and later,
+anything with a detail body): **long press (touch) = right click (mouse) =
+Back or R3 (controller — playtest which)**. Content = the move detail panel's
+data, with explanations. This is what lets the chip stay a mnemonic — the
+tooltip is the spec sheet, so nobody is *required* to navigate menus to play.
+- Long-press duration: Settings slider, **200–1000 ms in 50 ms steps, default
+  200 ms**. The 200 ms floor is a softlock guard: below a hold the player can
+  reliably execute, ordinary taps start reading as long-presses and pressing
+  becomes impossible.
+- Distinct from press-for-why (deny): deny answers "why not," this answers
+  "what is it." Same styled-tooltip visual family. Not yet built.
 
 ### Sound
 Crispy, RE1 / OG Deus Ex direction — sharp attack, dead-fast decay, mid-band.

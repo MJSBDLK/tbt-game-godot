@@ -442,10 +442,11 @@
   .rig-notes li em { color: var(--amber); font-style: normal; }
 
   /* ============================================================
-     CHIP DATA CANDIDATES — how much move data fits at a glance?
-     (element + phys/spec/support + range + target + shape — todo
-     2026-07-19). Same honest 140-game-px column as the rig. The
-     glyphs are placeholder pixel art; LAYOUT is the question.
+     CHIP DATA — decided direction (Lawrence review 2026-07-19):
+     damage type joins the element icon on the LEFT; range is
+     on-chip but SEPARATED from uses; the full spec sheet moves to
+     the long-press tooltip. Open: reach strip vs scheme+digits.
+     Glyphs approximate the real move_type_icons_10x10 sprites.
      ============================================================ */
   .chip svg.mini {
     width: calc(var(--px) * 10);
@@ -455,23 +456,14 @@
     filter: drop-shadow(0 0 3px rgba(0, 0, 0, .8));
   }
   .chip svg.mini.wide { width: calc(var(--px) * 11); }
-  .chip .data-right {
-    margin-left: auto;
-    display: inline-flex; align-items: center;
-    gap: calc(var(--px) * 2);
-  }
-  .chip .data-right .chip-uses { margin-left: 0; }
+  /* fixed name column so the range column aligns down the menu */
+  .chip .nm { flex: 0 0 auto; width: 11ch; white-space: nowrap; }
   .chip .chip-range {
     font-size: 10px;
     color: rgba(255, 255, 255, .9);
     text-shadow: none;
     letter-spacing: .02em;
   }
-  /* two-line candidate: same 120-px footprint, double height */
-  .chip.tall { display: block; padding-top: calc(var(--px) * 2); padding-bottom: calc(var(--px) * 2); }
-  .chip.tall .line { display: flex; align-items: center; gap: calc(var(--px) * 2); }
-  .chip.tall .line + .line { margin-top: var(--px); }
-  .chip.tall .chip-range { margin-left: auto; }
 
   /* ---------- engine notes ---------- */
   .notes {
@@ -803,158 +795,107 @@
     </div>
   </div>
 
-  <h2>Chip data — the at-a-glance problem</h2>
-  <p class="sub">The next ask: <strong>damage type</strong> (phys/spec/support), <strong>range</strong>,
-  <strong>target</strong>, and <strong>shape</strong> on the same 120×14 chip — element is already
-  double-encoded (icon + body). Specimens below: <strong>Spark</strong> (phys, melee),
-  <strong>F.&nbsp;Lance</strong> (phys, 1–2), <strong>Fireball</strong> (spec, 2–3 with a min-range
-  hole, blast), <strong>First&nbsp;Aid</strong> (support, ally, no element). Same honest column width
-  as the rig; hover and press still work — the vocabulary rides along.</p>
+  <h2>Chip data — decided direction</h2>
+  <p class="sub">Locked at the Lawrence review (2026-07-19): target schemes <strong>stay on the
+  chip</strong> (worth the ink for new players), <strong>range is on-chip but never beside
+  uses</strong> (two number pairs side by side confuse), the damage type icon <strong>tries the
+  left slot</strong> beside the element (“if it's ugly we'll move it back”), and the full spec
+  sheet moves to the <strong>long-press tooltip</strong>. One question left for the eyeball:
+  reach strip vs scheme + digits. Specimens as before — Spark (phys, melee), F. Lance (phys,
+  1–2), Fireball (spec, 2–3 + blast), First Aid (support, ally, no element).</p>
 
   <div class="rig-row">
     <div class="rig">
-      <div class="rig-title">A — reach strip (no digits)</div>
+      <div class="rig-title">Reach strip — no digits</div>
       <div class="menu">
         <button class="btn chip st-idle sfx" style="--chip-hi:#e3b341; --chip-lo:#4a3a10; --fill:100%;">
           <span class="chip-icon" style="color:#f5d76e;">↯</span>
-          <span>Spark</span>
-          <span class="data-right">
-            <svg class="mini" viewBox="0 0 10 10"><g fill="#f2ead8"><rect x="1" y="4" width="1" height="1"/><rect x="2" y="5" width="1" height="1"/><rect x="3" y="6" width="1" height="1"/><rect x="4" y="7" width="1" height="1"/><rect x="3" y="3" width="1" height="1"/><rect x="4" y="4" width="1" height="1"/><rect x="5" y="5" width="1" height="1"/><rect x="6" y="6" width="1" height="1"/><rect x="5" y="2" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="8" y="5" width="1" height="1"/></g></svg>
-            <svg class="mini wide" viewBox="0 0 11 10"><rect x="0" y="4" width="2" height="2" fill="#8fa8b8"/><rect x="3" y="4" width="2" height="2" fill="#f2ead8"/></svg>
-            <span class="chip-uses">4/4</span>
-          </span>
+          <svg class="mini" viewBox="0 0 10 10"><g fill="#f2cfc2"><rect x="1" y="4" width="1" height="1"/><rect x="2" y="5" width="1" height="1"/><rect x="3" y="6" width="1" height="1"/><rect x="4" y="7" width="1" height="1"/><rect x="3" y="3" width="1" height="1"/><rect x="4" y="4" width="1" height="1"/><rect x="5" y="5" width="1" height="1"/><rect x="6" y="6" width="1" height="1"/><rect x="5" y="2" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="8" y="5" width="1" height="1"/></g></svg>
+          <span class="nm">Spark</span>
+          <svg class="mini wide" viewBox="0 0 11 10"><rect x="0" y="4" width="2" height="2" fill="#8fa8b8"/><rect x="3" y="4" width="2" height="2" fill="#f2ead8"/></svg>
+          <span class="chip-uses">4/4</span>
         </button>
         <button class="btn chip st-idle sfx" style="--chip-hi:#6cc4d9; --chip-lo:#0f2f38; --fill:66%;">
           <span class="chip-icon" style="color:#bfeaf5;">❆</span>
-          <span>F. Lance</span>
-          <span class="data-right">
-            <svg class="mini" viewBox="0 0 10 10"><g fill="#f2ead8"><rect x="1" y="4" width="1" height="1"/><rect x="2" y="5" width="1" height="1"/><rect x="3" y="6" width="1" height="1"/><rect x="4" y="7" width="1" height="1"/><rect x="3" y="3" width="1" height="1"/><rect x="4" y="4" width="1" height="1"/><rect x="5" y="5" width="1" height="1"/><rect x="6" y="6" width="1" height="1"/><rect x="5" y="2" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="8" y="5" width="1" height="1"/></g></svg>
-            <svg class="mini wide" viewBox="0 0 11 10"><rect x="0" y="4" width="2" height="2" fill="#8fa8b8"/><rect x="3" y="4" width="2" height="2" fill="#f2ead8"/><rect x="6" y="4" width="2" height="2" fill="#f2ead8"/></svg>
-            <span class="chip-uses">2/3</span>
-          </span>
+          <svg class="mini" viewBox="0 0 10 10"><g fill="#f2cfc2"><rect x="1" y="4" width="1" height="1"/><rect x="2" y="5" width="1" height="1"/><rect x="3" y="6" width="1" height="1"/><rect x="4" y="7" width="1" height="1"/><rect x="3" y="3" width="1" height="1"/><rect x="4" y="4" width="1" height="1"/><rect x="5" y="5" width="1" height="1"/><rect x="6" y="6" width="1" height="1"/><rect x="5" y="2" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="8" y="5" width="1" height="1"/></g></svg>
+          <span class="nm">F. Lance</span>
+          <svg class="mini wide" viewBox="0 0 11 10"><rect x="0" y="4" width="2" height="2" fill="#8fa8b8"/><rect x="3" y="4" width="2" height="2" fill="#f2ead8"/><rect x="6" y="4" width="2" height="2" fill="#f2ead8"/></svg>
+          <span class="chip-uses">2/3</span>
         </button>
         <button class="btn chip st-idle sfx" style="--chip-hi:#c98d47; --chip-lo:#3a2410; --fill:50%;">
           <span class="chip-icon" style="color:#f0b060;">♦</span>
-          <span>Fireball</span>
-          <span class="data-right">
-            <svg class="mini" viewBox="0 0 10 10"><g fill="#d99ada"><rect x="4" y="1" width="2" height="1"/><rect x="3" y="2" width="1" height="1"/><rect x="6" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="1" y="4" width="1" height="2"/><rect x="8" y="4" width="1" height="2"/><rect x="2" y="6" width="1" height="1"/><rect x="7" y="6" width="1" height="1"/><rect x="3" y="7" width="1" height="1"/><rect x="6" y="7" width="1" height="1"/><rect x="4" y="8" width="2" height="1"/><rect x="4" y="4" width="2" height="2"/></g></svg>
-            <svg class="mini wide" viewBox="0 0 11 10"><rect x="0" y="4" width="2" height="2" fill="#8fa8b8"/><rect x="3" y="4" width="2" height="2" fill="#000" opacity=".35"/><rect x="6" y="4" width="2" height="2" fill="#f2ead8"/><rect x="9" y="4" width="2" height="2" fill="#f2ead8"/><rect x="9" y="1" width="2" height="2" fill="#f2ead8"/><rect x="9" y="7" width="2" height="2" fill="#f2ead8"/></svg>
-            <span class="chip-uses">1/2</span>
-          </span>
+          <svg class="mini" viewBox="0 0 10 10"><g fill="#d99ada"><rect x="4" y="1" width="2" height="1"/><rect x="3" y="2" width="1" height="1"/><rect x="6" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="1" y="4" width="1" height="2"/><rect x="8" y="4" width="1" height="2"/><rect x="2" y="6" width="1" height="1"/><rect x="7" y="6" width="1" height="1"/><rect x="3" y="7" width="1" height="1"/><rect x="6" y="7" width="1" height="1"/><rect x="4" y="8" width="2" height="1"/><rect x="4" y="4" width="2" height="2"/></g></svg>
+          <span class="nm">Fireball</span>
+          <svg class="mini wide" viewBox="0 0 11 10"><rect x="0" y="4" width="2" height="2" fill="#8fa8b8"/><rect x="3" y="4" width="2" height="2" fill="#000" opacity=".35"/><rect x="6" y="4" width="2" height="2" fill="#f2ead8"/><rect x="9" y="4" width="2" height="2" fill="#f2ead8"/><rect x="9" y="1" width="2" height="2" fill="#f2ead8"/><rect x="9" y="7" width="2" height="2" fill="#f2ead8"/></svg>
+          <span class="chip-uses">1/2</span>
         </button>
         <button class="btn chip st-idle sfx" style="--chip-hi:#8d887c; --chip-lo:#2e2c27; --fill:60%;">
-          <span>First Aid</span>
-          <span class="data-right">
-            <svg class="mini" viewBox="0 0 10 10"><g fill="#86d986"><rect x="4" y="1" width="2" height="8"/><rect x="1" y="4" width="8" height="2"/></g></svg>
-            <svg class="mini wide" viewBox="0 0 11 10"><rect x="0" y="4" width="2" height="2" fill="#8fa8b8"/><rect x="3" y="4" width="2" height="2" fill="#86d986"/></svg>
-            <span class="chip-uses">3/5</span>
-          </span>
+          <svg class="mini" viewBox="0 0 10 10"><g fill="#7fd8c8"><rect x="4" y="1" width="2" height="8"/><rect x="1" y="4" width="8" height="2"/></g></svg>
+          <span class="nm">First Aid</span>
+          <svg class="mini wide" viewBox="0 0 11 10"><rect x="0" y="4" width="2" height="2" fill="#8fa8b8"/><rect x="3" y="4" width="2" height="2" fill="#7fd8c8"/></svg>
+          <span class="chip-uses">3/5</span>
         </button>
       </div>
     </div>
 
     <div class="rig">
-      <div class="rig-title">B — shape glyph + digits</div>
+      <div class="rig-title">Scheme + digits</div>
       <div class="menu">
         <button class="btn chip st-idle sfx" style="--chip-hi:#e3b341; --chip-lo:#4a3a10; --fill:100%;">
           <span class="chip-icon" style="color:#f5d76e;">↯</span>
-          <span>Spark</span>
-          <span class="data-right">
-            <svg class="mini" viewBox="0 0 10 10"><g fill="#f2ead8"><rect x="1" y="4" width="1" height="1"/><rect x="2" y="5" width="1" height="1"/><rect x="3" y="6" width="1" height="1"/><rect x="4" y="7" width="1" height="1"/><rect x="3" y="3" width="1" height="1"/><rect x="4" y="4" width="1" height="1"/><rect x="5" y="5" width="1" height="1"/><rect x="6" y="6" width="1" height="1"/><rect x="5" y="2" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="8" y="5" width="1" height="1"/></g></svg>
-            <svg class="mini" viewBox="0 0 10 10"><g fill="#f2ead8"><rect x="4" y="4" width="2" height="2"/><rect x="4" y="1" width="2" height="1"/><rect x="4" y="8" width="2" height="1"/><rect x="1" y="4" width="1" height="2"/><rect x="8" y="4" width="1" height="2"/></g></svg>
-            <span class="chip-range">1</span>
-            <span class="chip-uses">4/4</span>
-          </span>
+          <svg class="mini" viewBox="0 0 10 10"><g fill="#f2cfc2"><rect x="1" y="4" width="1" height="1"/><rect x="2" y="5" width="1" height="1"/><rect x="3" y="6" width="1" height="1"/><rect x="4" y="7" width="1" height="1"/><rect x="3" y="3" width="1" height="1"/><rect x="4" y="4" width="1" height="1"/><rect x="5" y="5" width="1" height="1"/><rect x="6" y="6" width="1" height="1"/><rect x="5" y="2" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="8" y="5" width="1" height="1"/></g></svg>
+          <span class="nm">Spark</span>
+          <svg class="mini" viewBox="0 0 10 10"><g fill="#f2ead8"><rect x="4" y="4" width="2" height="2"/><rect x="4" y="1" width="2" height="1"/><rect x="4" y="8" width="2" height="1"/><rect x="1" y="4" width="1" height="2"/><rect x="8" y="4" width="1" height="2"/></g></svg><span class="chip-range">1</span>
+          <span class="chip-uses">4/4</span>
         </button>
         <button class="btn chip st-idle sfx" style="--chip-hi:#6cc4d9; --chip-lo:#0f2f38; --fill:66%;">
           <span class="chip-icon" style="color:#bfeaf5;">❆</span>
-          <span>F. Lance</span>
-          <span class="data-right">
-            <svg class="mini" viewBox="0 0 10 10"><g fill="#f2ead8"><rect x="1" y="4" width="1" height="1"/><rect x="2" y="5" width="1" height="1"/><rect x="3" y="6" width="1" height="1"/><rect x="4" y="7" width="1" height="1"/><rect x="3" y="3" width="1" height="1"/><rect x="4" y="4" width="1" height="1"/><rect x="5" y="5" width="1" height="1"/><rect x="6" y="6" width="1" height="1"/><rect x="5" y="2" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="8" y="5" width="1" height="1"/></g></svg>
-            <svg class="mini" viewBox="0 0 10 10"><g fill="#f2ead8"><rect x="4" y="4" width="2" height="2"/><rect x="4" y="1" width="2" height="1"/><rect x="4" y="8" width="2" height="1"/><rect x="1" y="4" width="1" height="2"/><rect x="8" y="4" width="1" height="2"/></g></svg>
-            <span class="chip-range">1-2</span>
-            <span class="chip-uses">2/3</span>
-          </span>
+          <svg class="mini" viewBox="0 0 10 10"><g fill="#f2cfc2"><rect x="1" y="4" width="1" height="1"/><rect x="2" y="5" width="1" height="1"/><rect x="3" y="6" width="1" height="1"/><rect x="4" y="7" width="1" height="1"/><rect x="3" y="3" width="1" height="1"/><rect x="4" y="4" width="1" height="1"/><rect x="5" y="5" width="1" height="1"/><rect x="6" y="6" width="1" height="1"/><rect x="5" y="2" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="8" y="5" width="1" height="1"/></g></svg>
+          <span class="nm">F. Lance</span>
+          <svg class="mini" viewBox="0 0 10 10"><g fill="#f2ead8"><rect x="4" y="4" width="2" height="2"/><rect x="4" y="1" width="2" height="1"/><rect x="4" y="8" width="2" height="1"/><rect x="1" y="4" width="1" height="2"/><rect x="8" y="4" width="1" height="2"/></g></svg><span class="chip-range">1-2</span>
+          <span class="chip-uses">2/3</span>
         </button>
         <button class="btn chip st-idle sfx" style="--chip-hi:#c98d47; --chip-lo:#3a2410; --fill:50%;">
           <span class="chip-icon" style="color:#f0b060;">♦</span>
-          <span>Fireball</span>
-          <span class="data-right">
-            <svg class="mini" viewBox="0 0 10 10"><g fill="#d99ada"><rect x="4" y="1" width="2" height="1"/><rect x="3" y="2" width="1" height="1"/><rect x="6" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="1" y="4" width="1" height="2"/><rect x="8" y="4" width="1" height="2"/><rect x="2" y="6" width="1" height="1"/><rect x="7" y="6" width="1" height="1"/><rect x="3" y="7" width="1" height="1"/><rect x="6" y="7" width="1" height="1"/><rect x="4" y="8" width="2" height="1"/><rect x="4" y="4" width="2" height="2"/></g></svg>
-            <svg class="mini" viewBox="0 0 10 10"><g fill="#f2ead8"><rect x="4" y="4" width="2" height="2"/><rect x="4" y="1" width="2" height="2"/><rect x="4" y="7" width="2" height="2"/><rect x="1" y="4" width="2" height="2"/><rect x="7" y="4" width="2" height="2"/></g></svg>
-            <span class="chip-range">2-3</span>
-            <span class="chip-uses">1/2</span>
-          </span>
+          <svg class="mini" viewBox="0 0 10 10"><g fill="#d99ada"><rect x="4" y="1" width="2" height="1"/><rect x="3" y="2" width="1" height="1"/><rect x="6" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="1" y="4" width="1" height="2"/><rect x="8" y="4" width="1" height="2"/><rect x="2" y="6" width="1" height="1"/><rect x="7" y="6" width="1" height="1"/><rect x="3" y="7" width="1" height="1"/><rect x="6" y="7" width="1" height="1"/><rect x="4" y="8" width="2" height="1"/><rect x="4" y="4" width="2" height="2"/></g></svg>
+          <span class="nm">Fireball</span>
+          <svg class="mini" viewBox="0 0 10 10"><g fill="#f2ead8"><rect x="4" y="4" width="2" height="2"/><rect x="4" y="1" width="2" height="2"/><rect x="4" y="7" width="2" height="2"/><rect x="1" y="4" width="2" height="2"/><rect x="7" y="4" width="2" height="2"/></g></svg><span class="chip-range">2-3</span>
+          <span class="chip-uses">1/2</span>
         </button>
         <button class="btn chip st-idle sfx" style="--chip-hi:#8d887c; --chip-lo:#2e2c27; --fill:60%;">
-          <span>First Aid</span>
-          <span class="data-right">
-            <svg class="mini" viewBox="0 0 10 10"><g fill="#86d986"><rect x="4" y="1" width="2" height="8"/><rect x="1" y="4" width="8" height="2"/></g></svg>
-            <svg class="mini" viewBox="0 0 10 10"><g fill="#86d986"><rect x="4" y="4" width="2" height="2"/><rect x="4" y="1" width="2" height="1"/><rect x="4" y="8" width="2" height="1"/><rect x="1" y="4" width="1" height="2"/><rect x="8" y="4" width="1" height="2"/></g></svg>
-            <span class="chip-range">1</span>
-            <span class="chip-uses">3/5</span>
-          </span>
-        </button>
-      </div>
-    </div>
-
-    <div class="rig">
-      <div class="rig-title">C — two lines</div>
-      <div class="menu">
-        <button class="btn chip tall st-idle sfx" style="--chip-hi:#e3b341; --chip-lo:#4a3a10; --fill:100%;">
-          <span class="line"><span class="chip-icon" style="color:#f5d76e;">↯</span><span>Spark</span><span class="chip-uses">4/4</span></span>
-          <span class="line">
-            <svg class="mini" viewBox="0 0 10 10"><g fill="#f2ead8"><rect x="1" y="4" width="1" height="1"/><rect x="2" y="5" width="1" height="1"/><rect x="3" y="6" width="1" height="1"/><rect x="4" y="7" width="1" height="1"/><rect x="3" y="3" width="1" height="1"/><rect x="4" y="4" width="1" height="1"/><rect x="5" y="5" width="1" height="1"/><rect x="6" y="6" width="1" height="1"/><rect x="5" y="2" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="8" y="5" width="1" height="1"/></g></svg>
-            <svg class="mini wide" viewBox="0 0 11 10"><rect x="0" y="4" width="2" height="2" fill="#8fa8b8"/><rect x="3" y="4" width="2" height="2" fill="#f2ead8"/></svg>
-            <span class="chip-range">RNG 1</span>
-          </span>
-        </button>
-        <button class="btn chip tall st-idle sfx" style="--chip-hi:#c98d47; --chip-lo:#3a2410; --fill:50%;">
-          <span class="line"><span class="chip-icon" style="color:#f0b060;">♦</span><span>Fireball</span><span class="chip-uses">1/2</span></span>
-          <span class="line">
-            <svg class="mini" viewBox="0 0 10 10"><g fill="#d99ada"><rect x="4" y="1" width="2" height="1"/><rect x="3" y="2" width="1" height="1"/><rect x="6" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="1" y="4" width="1" height="2"/><rect x="8" y="4" width="1" height="2"/><rect x="2" y="6" width="1" height="1"/><rect x="7" y="6" width="1" height="1"/><rect x="3" y="7" width="1" height="1"/><rect x="6" y="7" width="1" height="1"/><rect x="4" y="8" width="2" height="1"/><rect x="4" y="4" width="2" height="2"/></g></svg>
-            <svg class="mini wide" viewBox="0 0 11 10"><rect x="0" y="4" width="2" height="2" fill="#8fa8b8"/><rect x="3" y="4" width="2" height="2" fill="#000" opacity=".35"/><rect x="6" y="4" width="2" height="2" fill="#f2ead8"/><rect x="9" y="4" width="2" height="2" fill="#f2ead8"/><rect x="9" y="1" width="2" height="2" fill="#f2ead8"/><rect x="9" y="7" width="2" height="2" fill="#f2ead8"/></svg>
-            <span class="chip-range">RNG 2-3</span>
-          </span>
-        </button>
-        <button class="btn chip tall st-idle sfx" style="--chip-hi:#8d887c; --chip-lo:#2e2c27; --fill:60%;">
-          <span class="line"><span>First Aid</span><span class="chip-uses">3/5</span></span>
-          <span class="line">
-            <svg class="mini" viewBox="0 0 10 10"><g fill="#86d986"><rect x="4" y="1" width="2" height="8"/><rect x="1" y="4" width="8" height="2"/></g></svg>
-            <svg class="mini wide" viewBox="0 0 11 10"><rect x="0" y="4" width="2" height="2" fill="#8fa8b8"/><rect x="3" y="4" width="2" height="2" fill="#86d986"/></svg>
-            <span class="chip-range">RNG 1</span>
-          </span>
+          <svg class="mini" viewBox="0 0 10 10"><g fill="#7fd8c8"><rect x="4" y="1" width="2" height="8"/><rect x="1" y="4" width="8" height="2"/></g></svg>
+          <span class="nm">First Aid</span>
+          <svg class="mini" viewBox="0 0 10 10"><g fill="#7fd8c8"><rect x="4" y="4" width="2" height="2"/><rect x="4" y="1" width="2" height="1"/><rect x="4" y="8" width="2" height="1"/><rect x="1" y="4" width="1" height="2"/><rect x="8" y="4" width="1" height="2"/></g></svg><span class="chip-range">1</span>
+          <span class="chip-uses">3/5</span>
         </button>
       </div>
     </div>
 
     <div class="rig-notes">
-      <p class="sub" style="margin-top:0">The argument, compressed:</p>
+      <p class="sub" style="margin-top:0">The decisions, recorded:</p>
       <ul>
-        <li><strong>Digits don't fit in a 10×10 icon.</strong> UndeadPixelLight8 digits run ~4–5 game px
-        wide — “1-2” is ~12 px before it touches a shape. Any one-icon answer has to encode range
-        <em>spatially</em>. That's A's bet: the <strong>reach strip</strong> is a mini side-view of the
-        board. Dim pip = you; lit cells = distances the move lands; a dark hole = min-range gap
-        (Fireball can't hit adjacent); stacked cells at the far end = blast footprint. Green = helps,
-        bone = hurts. Caps at range 3 in 11 px — nothing in the bank exceeds it.</li>
-        <li><strong>Mark the unusual, not the usual.</strong> 38 of 43 bank moves are plain
-        single-target-enemy. Those stay quiet bone; only the exceptions (ally, self, blast, min-range)
-        spend extra ink. The menu stays calm because the common case is the quiet one.</li>
-        <li><strong>Magenta's new job?</strong> Damage type as glyph + color: physical = bone claw,
-        <em>special = magenta burst</em> (Pokémon's own phys/spec color language), support = green
-        cross. It's semantic, never state — can't collide with selection or the amber CTA monopoly.</li>
-        <li><strong>The chip is a mnemonic; the board is the truth.</strong> Focusing a chip already
-        fires the backlight — the same signal should live-paint the real range + footprint on the grid
-        (Into the Breach). Then the chip only has to disambiguate a unit's four moves, not be the full
-        spec sheet. That's what makes 10×10 viable at all.</li>
-        <li><strong>Data model note:</strong> Move today has one <code>attack_range</code> int, an
-        <code>area_of_effect</code> radius, target type, damage type — no min range, no line/cone
-        shapes yet. The strip leaves room for them (leading holes, footprint variants) so they can
-        arrive without re-teaching the icon.</li>
-        <li><strong>B</strong> is the zero-learning fallback — literal digits + a target-shape glyph.
-        It's also the widest: squint at F. Lance and judge whether the name still breathes.
-        <strong>C</strong> buys air with a second line but doubles the menu's height (4 moves =
-        8 lines) — and the action menu already stacks text buttons below the chips.</li>
+        <li><strong>Damage type sits beside the element</strong> — a trial with a revert clause.
+        The real sprites already exist (<code>move_type_icons_10x10</code>, shipped in the detail
+        panel, equipment picker, and combat preview), and <em>special_d is already a magenta
+        sparkle</em> — the retired darling's new job turns out to be SPECIAL damage. The F6
+        gallery shows the real art; these glyphs approximate it.</li>
+        <li><strong>Range never touches uses.</strong> “1-2” next to “2/3” is two number pairs
+        asking to be misread. The range column sits mid-chip — a fixed-width name column keeps
+        it aligned down the menu — and uses keeps the right edge to itself.</li>
+        <li><strong>The tooltip is the new home of the full spec sheet.</strong> CORE input
+        decision: <em>long press (touch) = right click (mouse) = Back/R3 (controller)</em> opens
+        the move tooltip — the detail panel's content, with explanations. Long-press duration is
+        a Settings slider, <strong>200–1000 ms in 50 ms steps, default 200 ms</strong>. The floor
+        is a softlock guard: below a hold the player can reliably execute, ordinary taps start
+        reading as long-presses and pressing becomes impossible.</li>
+        <li><strong>Strip vs digits — the open call.</strong> The strip encodes range, min-range
+        gap, blast footprint, and target faction in one 11-px glyph with zero digits — but it
+        needs learning. Digits read instantly and stay honest at any range — but cost width and
+        put numbers back on the chip. The board remains the truth either way: focusing a chip
+        should live-paint real range + footprint on the grid.</li>
+        <li><strong>Column caveat:</strong> First Aid has no element icon, so its row starts a
+        slot early — the engine chip does the same today. If the ragged left edge grates,
+        reserve the element slot even when empty.</li>
       </ul>
     </div>
   </div>
