@@ -110,7 +110,9 @@ out-of-panel debug/devtools.
   **LOCK (RQD 2026-07-19): scheme + digits.** A 10×10 faction-colored glyph
   (`TargetSchemeGlyph`, runtime-drawn until Lawrence authors sprites: crosshair =
   single, plus-cluster = blast; bone = hostile, teal = friendly — mark the unusual,
-  not the usual) plus a "1-N" range band; a fixed-width name column keeps the
+  not the usual) plus a "1-N" range band in the **mini 5px font** (NotJamPixel5,
+  bottom-aligned — LOCK, RQD 2026-07-19: annotation, not stat; the size split keeps
+  range from pairing with uses' digits). A fixed-width name column keeps the
   scheme/range columns aligned down the menu. Reach strip = runner-up, kept in the
   mockup for reference.
 - **Glyph growth is an explicit option (RQD 2026-07-19)**: little X marks inside the
