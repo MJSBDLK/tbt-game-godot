@@ -52,6 +52,9 @@ var _base_empty: Color = Color.BLACK
 # material serves both (unlike the name's per-instance duplicate, nothing
 # here ever varies per chip).
 var _number_glow: ShaderMaterial = null
+# The name's glow, held so a healthy re-setup can restore it after the
+# disabled tier nulled it.
+var _name_glow: ShaderMaterial = null
 
 
 func _ready() -> void:
@@ -94,9 +97,9 @@ func _ready() -> void:
 
 	_name_label = Label.new()
 	_name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_name_label.material = GLOW_MATERIAL.duplicate()
-	(_name_label.material as ShaderMaterial).set_shader_parameter(
-			"glow_color", GameColors.TEXT_PRIMARY_GLOW)
+	_name_glow = GLOW_MATERIAL.duplicate() as ShaderMaterial
+	_name_glow.set_shader_parameter("glow_color", GameColors.TEXT_PRIMARY_GLOW)
+	_name_label.material = _name_glow
 	# Fixed column: with clip_text on, the text no longer drives the minimum
 	# width, so every chip's scheme/range columns line up.
 	_name_label.clip_text = true
@@ -143,7 +146,15 @@ func _ready() -> void:
 
 ## Configure from a Move. `locked` = sealed by Void Lock (uses stay visible —
 ## the lock took the move, not the PP); depletion is read off the Move itself.
+## Re-runnable: panels reuse chips across units/refreshes, so the disabled
+## tier fully resets before being re-derived from the new move.
 func setup(move: Move, is_assigned: bool = false, locked: bool = false) -> void:
+	disabled = false
+	disabled_reason = ""
+	_name_label.material = _name_glow
+	_name_label.remove_theme_color_override("font_color")
+	VoidLockOverlay.set_locked(_chip, false)
+
 	_element = move.element_type
 	_base_fill = GameColors.get_move_chip_foreground(move.element_type)
 	_base_empty = GameColors.get_move_chip_background(move.element_type)
@@ -220,6 +231,15 @@ static func _seat_label(label: Label) -> MarginContainer:
 	seat.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	seat.add_child(label)
 	return seat
+
+
+## Non-interactive display contexts (unit preview): the chip skin and data
+## still communicate, but nothing hovers, focuses, or presses — so the lit
+## contract isn't violated by an unpressable chip. The long-press tooltip
+## will later re-open interactivity in these venues.
+func make_display_only() -> void:
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	focus_mode = Control.FOCUS_NONE
 
 
 ## The digits half of "scheme + digits": targeting is dist <= attack_range

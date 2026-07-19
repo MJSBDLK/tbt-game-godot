@@ -215,6 +215,27 @@ func test_ramp_table_refactor_preserved_the_shipped_colors() -> void:
 			GameColorPalette.get_color("Gray", 5), "fallback row survived too")
 
 
+func test_setup_is_rerunnable_the_disabled_tier_resets() -> void:
+	# Panels (unit preview) reuse chips across units/refreshes.
+	var chip_button := _make_chip_button(_make_move(0, 4))
+	assert_true(chip_button.disabled, "starts depleted")
+	chip_button.setup(_make_move(3, 5))
+	assert_false(chip_button.disabled, "healthy re-setup lifts the tier")
+	assert_eq(chip_button.disabled_reason, "")
+	assert_not_null(chip_button._name_label.material, "the name glow returns")
+	assert_eq(chip_button._chip.fill_color,
+			GameColors.get_move_chip_foreground(Enums.ElementalType.FIRE),
+			"element skin restored from the grey pair")
+
+
+func test_display_only_mode_removes_all_interactivity() -> void:
+	var chip_button := _make_chip_button(_make_move())
+	chip_button.make_display_only()
+	assert_eq(chip_button.mouse_filter, Control.MOUSE_FILTER_IGNORE,
+			"an unpressable chip must not hover — the lit contract stays honest")
+	assert_eq(chip_button.focus_mode, Control.FOCUS_NONE)
+
+
 func test_element_colors_come_from_the_palette_not_the_vocabulary() -> void:
 	var chip_button := _make_chip_button(_make_move())
 	assert_eq(chip_button._base_fill,

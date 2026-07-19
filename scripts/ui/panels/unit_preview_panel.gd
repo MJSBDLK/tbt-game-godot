@@ -253,52 +253,34 @@ func _update_moves(unit: Unit) -> void:
 	var data: CharacterData = unit.character_data
 	var moves: Array[Move] = data.equipped_moves if data != null else []
 
-	# Collect MoveContainer children (they have the move_chip.gd script)
-	var move_chips: Array[Node] = []
+	# Since the 2026-07-19 adoption these are real MoveChipButtons in display
+	# mode (no hover/focus/press — the lit contract stays honest). The scene's
+	# authored placeholder chips are cleared on first update; they stay in the
+	# .tscn so the editor preview still reads.
+	var chip_buttons: Array[MoveChipButton] = []
 	for child: Node in _moves_container.get_children():
-		if child is ColorRect and child.has_method("_apply_shader_params"):
-			move_chips.append(child)
-
-	for i: int in range(move_chips.size()):
-		var chip: ColorRect = move_chips[i] as ColorRect
-		if i < moves.size() and moves[i] != null:
-			var move: Move = moves[i]
-			chip.visible = true
-			_update_move_chip(chip, move)
-			# VOID lock: greys the chip + adds the shadow/sparkle overlay.
-			VoidLockOverlay.set_locked(chip, unit.is_move_index_locked(i))
+		if child is MoveChipButton:
+			chip_buttons.append(child)
 		else:
-			chip.visible = false
-			VoidLockOverlay.set_locked(chip, false)
+			_moves_container.remove_child(child)
+			child.queue_free()
+	while chip_buttons.size() < moves.size():
+		var chip_button := MoveChipButton.new()
+		chip_button.custom_minimum_size = Vector2(0, 14)
+		chip_button.make_display_only()
+		_moves_container.add_child(chip_button)
+		chip_buttons.append(chip_button)
 
-
-func _update_move_chip(chip: ColorRect, move: Move) -> void:
-	# Set the move name label
-	var label: Label = _find_label_in_chip(chip)
-	if label != null:
-		label.text = move.abbrev_name if move.abbrev_name != "" else move.move_name
-
-	# Set the type icon
-	var icon: TextureRect = _find_icon_in_chip(chip)
-	if icon != null:
-		icon.texture = _get_elemental_icon(move.element_type)
-		icon.visible = move.element_type != Enums.ElementalType.NONE
-
-	# Set fill percent and colors via MoveChip script exports
-	var fill: float = float(move.current_uses) / float(move.max_uses) if move.max_uses > 0 else 0.0
-	# DEBUG: uncomment to randomize fill for visual testing
-	#fill = randf_range(0.1, 0.9)
-	var bright_color: Color = GameColors.get_move_chip_foreground(move.element_type)
-	var dark_color: Color = GameColors.get_move_chip_background(move.element_type)
-
-	chip.set("fill_color", bright_color)
-	chip.set("empty_color", dark_color)
-	chip.set("fill_percent", fill)
-
-	# Grey out depleted moves
-	if move.current_uses <= 0:
-		chip.set("fill_color", Color(0.15, 0.15, 0.15, 1.0))
-		chip.set("empty_color", Color(0.08, 0.08, 0.08, 1.0))
+	for i: int in range(chip_buttons.size()):
+		var chip_button := chip_buttons[i]
+		if i < moves.size() and moves[i] != null:
+			chip_button.visible = true
+			# The assigned move carries its parked brackets here too — the
+			# vocabulary means the same thing in every venue.
+			chip_button.setup(moves[i], unit.assigned_move == moves[i],
+					unit.is_move_index_locked(i))
+		else:
+			chip_button.visible = false
 
 
 func _update_passives(unit: Unit) -> void:
@@ -401,18 +383,6 @@ func _find_label_in_chip(chip: ColorRect) -> Label:
 				for great_grandchild: Node in grandchild.get_children():
 					if great_grandchild is Label:
 						return great_grandchild as Label
-	return null
-
-
-func _find_icon_in_chip(chip: ColorRect) -> TextureRect:
-	for child: Node in chip.get_children():
-		if child is HBoxContainer:
-			var children: Array[Node] = child.get_children()
-			for i: int in range(children.size() - 1, -1, -1):
-				if children[i] is MarginContainer:
-					for grandchild: Node in children[i].get_children():
-						if grandchild is TextureRect:
-							return grandchild as TextureRect
 	return null
 
 
