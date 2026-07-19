@@ -108,22 +108,23 @@ func _build_snug_rig() -> VBoxContainer:
 	# Real action-menu shape: move chips on top, text buttons below.
 	# Ember holds the cursor at start; Frost Lance is the ASSIGNED move
 	# (parked brackets); Spark is depleted; Gloom is Void-locked.
-	var chip_specs: Array[Array] = [
-		# [name, element, uses, max, assigned, locked, damage_type] — one of each
-		# damage type so the left-slot icon trial (Lawrence 2026-07-19) shows all
-		# three sprites, including special_d's magenta sparkle.
-		["Ember", Enums.ElementalType.FIRE, 3, 5, false, false,
-				Enums.DamageType.SPECIAL],
-		["Frost Lance", Enums.ElementalType.COLD, 2, 3, true, false,
-				Enums.DamageType.PHYSICAL],
-		["Spark", Enums.ElementalType.ELECTRIC, 0, 4, false, false,
-				Enums.DamageType.PHYSICAL],
-		["Gloom", Enums.ElementalType.VOID, 2, 2, false, true,
-				Enums.DamageType.SUPPORT],
+	# The four chips also cover the data axes (Lawrence review 2026-07-19):
+	# all three damage types (Ember shows special_d's magenta sparkle) and the
+	# scheme+digits variants — melee, band, blast, friendly.
+	var chip_specs: Array[Dictionary] = [
+		{"name": "Ember", "element": Enums.ElementalType.FIRE, "uses": 3,
+				"max": 5, "damage": Enums.DamageType.SPECIAL, "range": 2,
+				"aoe": 1},
+		{"name": "F. Lance", "element": Enums.ElementalType.COLD, "uses": 2,
+				"max": 3, "assigned": true, "range": 2},
+		{"name": "Spark", "element": Enums.ElementalType.ELECTRIC, "uses": 0,
+				"max": 4},
+		{"name": "Gloom", "element": Enums.ElementalType.VOID, "uses": 2,
+				"max": 2, "locked": true, "damage": Enums.DamageType.SUPPORT,
+				"target": Enums.TargetType.ALLY},
 	]
-	for spec: Array in chip_specs:
-		var chip_button := _make_chip(spec[0], spec[1], spec[2], spec[3], spec[4],
-				spec[5], spec[6])
+	for spec: Dictionary in chip_specs:
+		var chip_button := _make_chip(spec)
 		# setup() runs deferred (on ready), so disabled isn't known yet — connect
 		# both: pressed only ever fires enabled, denied only ever fires disabled.
 		chip_button.denied.connect(_show_why.bind(chip_button))
@@ -214,21 +215,24 @@ func _show_why(source: InteractiveButton) -> void:
 
 
 ## Real MoveChipButton from a throwaway Move resource — the gallery exercises
-## the same component the action menu will adopt.
-func _make_chip(move_name: String, element: Enums.ElementalType, uses: int,
-		max_uses: int, is_assigned: bool, locked: bool,
-		damage_type: Enums.DamageType = Enums.DamageType.PHYSICAL) -> MoveChipButton:
+## the same component the action menu will adopt. Required spec keys: name,
+## element, uses, max. Optional: assigned, locked, damage, range, aoe, target.
+func _make_chip(spec: Dictionary) -> MoveChipButton:
 	var move := Move.new()
-	move.move_name = move_name
-	move.element_type = element
-	move.current_uses = uses
-	move.max_uses = max_uses
-	move.damage_type = damage_type
+	move.move_name = spec["name"]
+	move.element_type = spec["element"]
+	move.current_uses = spec["uses"]
+	move.max_uses = spec["max"]
+	move.damage_type = spec.get("damage", Enums.DamageType.PHYSICAL)
+	move.attack_range = spec.get("range", 1)
+	move.area_of_effect = spec.get("aoe", 0)
+	move.target_type = spec.get("target", Enums.TargetType.SINGLE)
 	var chip_button := MoveChipButton.new()
 	chip_button.custom_minimum_size = Vector2(120, 14)
 	_all_buttons.append(chip_button)
 	# setup() needs the chip child from _ready — defer until it's in the tree.
-	chip_button.ready.connect(chip_button.setup.bind(move, is_assigned, locked))
+	chip_button.ready.connect(chip_button.setup.bind(move,
+			spec.get("assigned", false), spec.get("locked", false)))
 	return chip_button
 
 

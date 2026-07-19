@@ -17,6 +17,11 @@ extends InteractiveButton
 
 const CHIP_MATERIAL: ShaderMaterial = preload("res://resources/move_chip_fill.tres")
 
+## Fixed name column ("scheme + digits" layout, RQD 2026-07-19): the name
+## clips at this width so the scheme/range columns align down the menu.
+## Real data uses abbrev_name; clipping is the fallback, not the plan.
+const NAME_COLUMN_WIDTH: float = 38.0
+
 ## Why pressing is currently refused — surfaced by deny UI (styled tooltip).
 var disabled_reason: String = ""
 
@@ -33,6 +38,8 @@ var _name_label: Label = null
 var _uses_label: Label = null
 var _icon: TextureRect = null
 var _damage_icon: TextureRect = null
+var _scheme_glyph: TargetSchemeGlyph = null
+var _range_label: Label = null
 var _element: Enums.ElementalType = Enums.ElementalType.NONE
 var _base_fill: Color = Color.WHITE
 var _base_empty: Color = Color.BLACK
@@ -59,6 +66,8 @@ func _ready() -> void:
 	row.offset_right = -3
 	row.offset_bottom = -2
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Seven children now — the default 4px separation no longer fits 120px.
+	row.add_theme_constant_override("separation", 2)
 	add_child(row)
 
 	# Elemental type icon leads the row — same 10x10 set the action menu uses.
@@ -79,7 +88,21 @@ func _ready() -> void:
 	_name_label.material = GLOW_MATERIAL.duplicate()
 	(_name_label.material as ShaderMaterial).set_shader_parameter(
 			"glow_color", GameColors.TEXT_PRIMARY_GLOW)
+	# Fixed column: with clip_text on, the text no longer drives the minimum
+	# width, so every chip's scheme/range columns line up.
+	_name_label.clip_text = true
+	_name_label.custom_minimum_size.x = NAME_COLUMN_WIDTH
 	row.add_child(_name_label)
+
+	# Scheme + digits — target scheme glyph, then the range band. The spacer
+	# after them is a DECISION, not layout convenience: range never sits
+	# beside uses (two number pairs side by side misread — Lawrence review).
+	_scheme_glyph = TargetSchemeGlyph.new()
+	row.add_child(_scheme_glyph)
+
+	_range_label = Label.new()
+	_range_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(_range_label)
 
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -109,6 +132,12 @@ func setup(move: Move, is_assigned: bool = false, locked: bool = false) -> void:
 	_icon.material = null
 	_damage_icon.texture = damage_type_icon(move.damage_type)
 	_damage_icon.material = null
+	_scheme_glyph.blast = move.target_type == Enums.TargetType.AOE \
+			or move.area_of_effect > 0
+	_scheme_glyph.glyph_color = GameColors.SCHEME_FRIENDLY \
+			if move.targets_allies() or move.target_type == Enums.TargetType.SELF \
+			else GameColors.SCHEME_HOSTILE
+	_range_label.text = range_text(move)
 	assigned = is_assigned
 
 	var depleted: bool = not move.has_uses_remaining()
@@ -124,14 +153,17 @@ func setup(move: Move, is_assigned: bool = false, locked: bool = false) -> void:
 		# Icons follow the tier: greyed whenever the chip is dark.
 		_icon.material = VoidLockOverlay.icon_gray_material()
 		_damage_icon.material = VoidLockOverlay.icon_gray_material()
+		_scheme_glyph.glyph_color = GameColors.INTERACTIVE_TEXT_DISABLED
 	if locked:
 		# Subdued (bubbles only) — the tight menu can't spill the smoke/crackle.
 		VoidLockOverlay.set_locked(_chip, true, true)
 
 	_chip.fill_color = _base_fill
 	_chip.empty_color = _base_empty
-	_uses_label.add_theme_color_override("font_color",
-			GameColors.INTERACTIVE_TEXT_DISABLED if disabled else GameColors.TEXT_PRIMARY_GLOW)
+	var number_color: Color = GameColors.INTERACTIVE_TEXT_DISABLED if disabled \
+			else GameColors.TEXT_PRIMARY_GLOW
+	_uses_label.add_theme_color_override("font_color", number_color)
+	_range_label.add_theme_color_override("font_color", number_color)
 
 
 ## The shared 10x10 elemental icon set (also used by the action menu).
@@ -144,6 +176,17 @@ static func elemental_icon(element_type: Enums.ElementalType) -> Texture2D:
 	if ResourceLoader.exists(path):
 		return load(path) as Texture2D
 	return null
+
+
+## The digits half of "scheme + digits": targeting is dist <= attack_range
+## with an implied minimum of 1, so the band reads "1-N" ("1" at melee).
+## The data model has no min range yet — when it grows one, teach it here.
+static func range_text(move: Move) -> String:
+	if move.attack_range <= 0:
+		return ""
+	if move.attack_range == 1:
+		return "1"
+	return "1-%d" % move.attack_range
 
 
 ## The shared 10x10 damage-type icon set (physical / special_d / support) —

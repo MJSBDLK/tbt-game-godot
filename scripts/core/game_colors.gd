@@ -383,6 +383,16 @@ static func get_move_chip_border(element_type: Enums.ElementalType) -> Color:
 		_:                             return GameColorPalette.get_color("Gray", 4)
 
 
+# Target-scheme glyph colors ("scheme + digits", RQD 2026-07-19): the glyph's
+# color axis is FACTION, not element. Hostile stays quiet bone — it's the
+# overwhelming default — so friendly (ally/self) is the loud exception. Teal
+# deliberately matches support.png's hue.
+static var SCHEME_HOSTILE: Color:
+	get: return GameColorPalette.get_color("Eggshell", 8)
+static var SCHEME_FRIENDLY: Color:
+	get: return GameColorPalette.get_color("Teal", 6)
+
+
 static func get_move_chip_font_color(element_type: Enums.ElementalType) -> Color:
 	match element_type:
 		Enums.ElementalType.AIR:       return GameColorPalette.get_color("TealGray", 10)

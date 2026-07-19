@@ -106,8 +106,13 @@ out-of-panel debug/devtools.
   (`move_type_icons_10x10` — trial slot beside the element on the LEFT, revert clause
   "if it's ugly we'll move it back"), move name, uses pinned to the right edge.
 - **Range + target scheme go on-chip** (kept for new-player value) but range must sit
-  SEPARATED from uses — two number pairs side by side misread. Representation still
-  TBD in the mockup: reach strip vs scheme + digits.
+  SEPARATED from uses — two number pairs side by side misread. Representation —
+  **LOCK (RQD 2026-07-19): scheme + digits.** A 10×10 faction-colored glyph
+  (`TargetSchemeGlyph`, runtime-drawn until Lawrence authors sprites: crosshair =
+  single, plus-cluster = blast; bone = hostile, teal = friendly — mark the unusual,
+  not the usual) plus a "1-N" range band; a fixed-width name column keeps the
+  scheme/range columns aligned down the menu. Reach strip = runner-up, kept in the
+  mockup for reference.
 - Full move details live in the **long-press tooltip** (§14 "Detail tooltips") — the
   chip is a mnemonic, not the spec sheet.
 - Depleted moves grey out (folds into the §14 disabled tier at action-menu adoption).

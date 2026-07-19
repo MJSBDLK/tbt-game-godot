@@ -106,6 +106,58 @@ func test_damage_type_icon_sits_beside_the_element_icon() -> void:
 			"dark tier greys the damage icon with the rest")
 
 
+func test_scheme_and_digits_read_from_the_move() -> void:
+	var move := _make_move()
+	move.attack_range = 2
+	var chip_button := _make_chip_button(move)
+	assert_eq(chip_button._range_label.text, "1-2",
+			"targeting is dist <= attack_range with implied min 1 — the band is honest")
+	assert_false(chip_button._scheme_glyph.blast)
+	assert_eq(chip_button._scheme_glyph.glyph_color, GameColors.SCHEME_HOSTILE,
+			"single-enemy is the quiet bone default — mark the unusual, not the usual")
+	var melee := _make_move()
+	assert_eq(MoveChipButton.range_text(melee), "1")
+	melee.attack_range = 0
+	assert_eq(MoveChipButton.range_text(melee), "", "no reach, no digits")
+
+
+func test_blast_and_friendly_schemes_are_the_loud_exceptions() -> void:
+	var fireball := _make_move()
+	fireball.attack_range = 3
+	fireball.area_of_effect = 1
+	var blast_chip := _make_chip_button(fireball)
+	assert_true(blast_chip._scheme_glyph.blast, "AoE radius flips the footprint")
+	assert_eq(blast_chip._range_label.text, "1-3")
+	var heal := _make_move()
+	heal.target_type = Enums.TargetType.ALLY
+	var heal_chip := _make_chip_button(heal)
+	assert_eq(heal_chip._scheme_glyph.glyph_color, GameColors.SCHEME_FRIENDLY,
+			"ally/self targets recolor the glyph — faction is the color axis")
+
+
+func test_range_never_sits_beside_uses() -> void:
+	var chip_button := _make_chip_button(_make_move())
+	assert_true(chip_button._uses_label.get_index()
+			- chip_button._range_label.get_index() >= 2,
+			"the spacer between range and uses is a DECISION (Lawrence 2026-07-19):"
+			+ " two number pairs side by side misread")
+
+
+func test_name_column_is_fixed_so_data_columns_align() -> void:
+	var chip_button := _make_chip_button(_make_move())
+	assert_true(chip_button._name_label.clip_text,
+			"clip keeps long names from pushing the scheme column")
+	assert_eq(chip_button._name_label.custom_minimum_size.x,
+			MoveChipButton.NAME_COLUMN_WIDTH)
+
+
+func test_disabled_tier_greys_the_scheme_glyph() -> void:
+	var chip_button := _make_chip_button(_make_move(0, 4))
+	assert_eq(chip_button._scheme_glyph.glyph_color,
+			GameColors.INTERACTIVE_TEXT_DISABLED,
+			"the disabled tier owns ALL of the grey-out, scheme glyph included")
+
+
 func test_backlight_lift_stays_on_the_element_ramp() -> void:
 	var chip_button := _make_chip_button(_make_move())
 	chip_button._backlight_level = 1.0

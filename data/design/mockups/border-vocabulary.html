@@ -800,13 +800,14 @@
   chip</strong> (worth the ink for new players), <strong>range is on-chip but never beside
   uses</strong> (two number pairs side by side confuse), the damage type icon <strong>tries the
   left slot</strong> beside the element (“if it's ugly we'll move it back”), and the full spec
-  sheet moves to the <strong>long-press tooltip</strong>. One question left for the eyeball:
-  reach strip vs scheme + digits. Specimens as before — Spark (phys, melee), F. Lance (phys,
+  sheet moves to the <strong>long-press tooltip</strong>. The eyeball call landed:
+  <strong>scheme + digits</strong> (RQD 2026-07-19); the strip stays as the runner-up record.
+  Specimens as before — Spark (phys, melee), F. Lance (phys,
   1–2), Fireball (spec, 2–3 + blast), First Aid (support, ally, no element).</p>
 
   <div class="rig-row">
     <div class="rig">
-      <div class="rig-title">Reach strip — no digits</div>
+      <div class="rig-title">Reach strip — runner-up, kept for reference</div>
       <div class="menu">
         <button class="btn chip st-idle sfx" style="--chip-hi:#e3b341; --chip-lo:#4a3a10; --fill:100%;">
           <span class="chip-icon" style="color:#f5d76e;">↯</span>
@@ -839,7 +840,7 @@
     </div>
 
     <div class="rig">
-      <div class="rig-title">Scheme + digits</div>
+      <div class="rig-title">Scheme + digits — CHOSEN (RQD 2026-07-19)</div>
       <div class="menu">
         <button class="btn chip st-idle sfx" style="--chip-hi:#e3b341; --chip-lo:#4a3a10; --fill:100%;">
           <span class="chip-icon" style="color:#f5d76e;">↯</span>
@@ -888,11 +889,12 @@
         a Settings slider, <strong>200–1000 ms in 50 ms steps, default 200 ms</strong>. The floor
         is a softlock guard: below a hold the player can reliably execute, ordinary taps start
         reading as long-presses and pressing becomes impossible.</li>
-        <li><strong>Strip vs digits — the open call.</strong> The strip encodes range, min-range
-        gap, blast footprint, and target faction in one 11-px glyph with zero digits — but it
-        needs learning. Digits read instantly and stay honest at any range — but cost width and
-        put numbers back on the chip. The board remains the truth either way: focusing a chip
-        should live-paint real range + footprint on the grid.</li>
+        <li><strong>Strip vs digits — RESOLVED: scheme + digits (RQD 2026-07-19).</strong>
+        Digits read instantly; the strip's learning cost lost. In-engine now: a runtime-drawn
+        10×10 glyph (<code>TargetSchemeGlyph</code> — crosshair = single, plus-cluster = blast,
+        bone = hostile / teal = friendly) plus a “1-N” band in its own column, fixed name width
+        keeping the columns aligned. The board remains the truth: focusing a chip should
+        live-paint real range + footprint on the grid.</li>
         <li><strong>Column caveat:</strong> First Aid has no element icon, so its row starts a
         slot early — the engine chip does the same today. If the ragged left edge grates,
         reserve the element slot even when empty.</li>
