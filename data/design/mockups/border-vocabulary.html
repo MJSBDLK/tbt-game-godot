@@ -491,6 +491,32 @@
   .chip.disp-borderless:hover::after, .chip.disp-dim:hover::after,
   .chip.disp-compact:hover::after { opacity: 0; }  /* no backlight: not pressable */
 
+  /* ============================================================
+     ASSIGNED != SELECTED (RQD 2026-07-19): parked-vs-snapping
+     brackets conflate two concepts. Marker candidates below;
+     brackets would then mean ONLY "you are here".
+     ============================================================ */
+  .chip.asn-bar::before {
+    content: "";
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: calc(var(--px) * 2);
+    background: #f2ead8;
+    border-radius: calc(var(--px) * 2) 0 0 calc(var(--px) * 2);
+  }
+  .chip.asn-under::before {
+    content: "";
+    position: absolute;
+    left: calc(var(--px) * 2); right: calc(var(--px) * 2); bottom: 0;
+    height: var(--px);
+    background: #f2ead8;
+  }
+  .chip .asn-pip {
+    color: #f2ead8;
+    font-size: 10px;
+    text-shadow: 0 0 4px rgba(0, 0, 0, .8);
+  }
+
+
 
   /* ---------- engine notes ---------- */
   .notes {
@@ -1028,6 +1054,57 @@
         <li><strong>Venue width rule of thumb:</strong> never grow a chip horizontally past
         its venue's column; grow vertically only to become data-complete. Everything else
         is a field-set decision, not a layout decision.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>Assigned ≠ selected — the marker hunt</h2>
+  <p class="sub">RQD 2026-07-19: parked-vs-snapping brackets <strong>conflate two concepts</strong> —
+  assignment is a persistent fact about the unit, selection is where the cursor is. If assignment
+  gets its own STATIC marker, brackets go back to meaning exactly one thing ("you are here"), it
+  works in display venues, and the reduce-motion degradation (parked ≈ snapping) dissolves for
+  free. Three candidates on Frost Lance; Ember holds the cursor for contrast. Bone-white on
+  purpose — azure is interactivity, amber is the CTA monopoly.</p>
+
+  <div class="rig-row">
+    <div class="rig">
+      <div class="rig-title">Cursor (for contrast) + 3 assigned markers</div>
+      <div class="menu">
+        <button class="btn chip st-selected v-bracket pinned sfx" style="--chip-hi:#c98d47; --chip-lo:#3a2410; --fill:60%;">
+          <span class="chip-icon" style="color:#f0b060;">♦</span><span>Ember</span><span class="chip-uses">3/5</span>
+          <i class="bk tl"></i><i class="bk tr"></i><i class="bk bl"></i><i class="bk br"></i>
+        </button>
+        <button class="btn chip st-idle sfx asn-bar" style="--chip-hi:#6cc4d9; --chip-lo:#0f2f38; --fill:66%;">
+          <span class="chip-icon" style="color:#bfeaf5;">❆</span><span>Frost Lance</span><span class="chip-uses">2/3</span>
+        </button>
+        <button class="btn chip st-idle sfx asn-under" style="--chip-hi:#6cc4d9; --chip-lo:#0f2f38; --fill:66%;">
+          <span class="chip-icon" style="color:#bfeaf5;">❆</span><span>Frost Lance</span><span class="chip-uses">2/3</span>
+        </button>
+        <button class="btn chip st-idle sfx" style="--chip-hi:#6cc4d9; --chip-lo:#0f2f38; --fill:66%;">
+          <span class="asn-pip">▸</span><span class="chip-icon" style="color:#bfeaf5;">❆</span><span>Frost Lance</span><span class="chip-uses">2/3</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="rig-notes">
+      <p class="sub" style="margin-top:0">The candidates:</p>
+      <ul>
+        <li><strong>Edge bar</strong> — a 2px bone tab flush against the left edge, inside the
+        border radius. Reads as a bookmark; survives every venue including display mode; can't
+        be mistaken for the cursor because it never moves and has no corners.</li>
+        <li><strong>Underline</strong> — a 1px bone bar along the chip's bottom inset. Quietest
+        of the three; risk: sits near the usage fill's bottom edge and may tangle with it on
+        low-fill chips.</li>
+        <li><strong>Pip</strong> — a static ▸ before the element icon. Yes, this is the old
+        "&gt;&nbsp;" reborn as a glyph instead of text — the objection was the TEXT prefix
+        mangling the name column; a fixed-width pip column may read fine. Cheapest to build.</li>
+        <li><strong>The payoff if any of these wins:</strong> parked brackets RETIRE. Brackets
+        mean only "you are here," the assigned marker works identically in the action menu,
+        preview, and detail panel, and the known reduce-motion caveat (parked and snapping
+        collapse into the same look) simply stops existing.</li>
+        <li><strong>Depleted + assigned</strong> composes: the marker rides the dark tier
+        unchanged (it's a fact, not an affordance) — whichever candidate wins should be
+        checked against the grey body before locking.</li>
       </ul>
     </div>
   </div>
