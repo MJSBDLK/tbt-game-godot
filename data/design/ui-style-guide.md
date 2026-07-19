@@ -113,6 +113,13 @@ out-of-panel debug/devtools.
   not the usual) plus a "1-N" range band; a fixed-width name column keeps the
   scheme/range columns aligned down the menu. Reach strip = runner-up, kept in the
   mockup for reference.
+- **Glyph growth is an explicit option (RQD 2026-07-19)**: little X marks inside the
+  footprint may designate the damaged cells (which also notates donuts: footprint
+  minus epicenter). An X needs a ≥3×3 px cell — at 2×2 cells degrade to center
+  dots — so an X-marked diameter-3 blast is ~11 px and diameter-5 is ~19 px. When
+  fidelity needs it, the glyph outgrows 10×10 and the CHIP EXPANDS to fit: wider
+  first, then the two-line layout. The grid preview stays the truth for anything
+  the glyph abbreviates.
 - Full move details live in the **long-press tooltip** (§14 "Detail tooltips") — the
   chip is a mnemonic, not the spec sheet.
 - Depleted moves grey out (folds into the §14 disabled tier at action-menu adoption).

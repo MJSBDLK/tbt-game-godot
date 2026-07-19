@@ -895,6 +895,12 @@
         bone = hostile / teal = friendly) plus a “1-N” band in its own column, fixed name width
         keeping the columns aligned. The board remains the truth: focusing a chip should
         live-paint real range + footprint on the grid.</li>
+        <li><strong>Glyph growth is sanctioned (RQD 2026-07-19).</strong> Little X marks inside
+        the footprint may designate the damaged cells — which also notates donuts (footprint
+        minus epicenter). An X wants a ≥3×3-px cell (at 2×2, degrade to center dots), so
+        X-marked diameter 3 ≈ 11 px and diameter 5 ≈ 19 px: when fidelity needs it, the glyph
+        outgrows 10×10 and the <em>chip expands to fit</em> — wider first, then the two-line
+        layout. The grid preview stays the truth for anything the glyph abbreviates.</li>
         <li><strong>Column caveat:</strong> First Aid has no element icon, so its row starts a
         slot early — the engine chip does the same today. If the ragged left edge grates,
         reserve the element slot even when empty.</li>
