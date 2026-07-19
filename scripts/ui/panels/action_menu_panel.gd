@@ -1,6 +1,9 @@
 ## Scene-based action menu panel for the right side.
-## Dynamically creates move chips for attack moves, plus text buttons for
-## Unit Info, Assign Move, Wait, Cancel.
+## The first real menu wearing the border vocabulary (ui-style-guide.md §14):
+## move chips are MoveChipButtons, text actions are InteractiveButtons — the
+## exact components the F6 gallery rehearsed (Lawrence: "cramped but
+## organized", accepted 2026-07-19). Focus is the menu cursor: brackets
+## follow it; the assigned move keeps parked brackets.
 ## Signals back to ActionMenuManager for business logic.
 class_name ActionMenuPanel
 extends PanelContainer
@@ -13,9 +16,6 @@ signal assign_submenu_requested()
 signal assign_move_selected(move: Move)
 signal unit_info_requested()
 
-const GLOW_MATERIAL: ShaderMaterial = preload("res://resources/hud_glow.tres")
-const MOVE_CHIP_MATERIAL: ShaderMaterial = preload("res://resources/move_chip_fill.tres")
-
 const BUTTON_HEIGHT: int = 14
 const BUTTON_WIDTH: int = 120
 const CHIP_HEIGHT: int = 14
@@ -24,10 +24,6 @@ var _content_container: VBoxContainer = null
 var _is_assign_submenu: bool = false
 var _active_unit: Unit = null
 var _border_overlay: PanelBorderOverlay = null
-var _button_style_normal: StyleBoxFlat = null
-var _button_style_hovered: StyleBoxFlat = null
-var _button_style_pressed: StyleBoxFlat = null
-var _button_style_focus: StyleBoxFlat = null
 
 
 func _ready() -> void:
@@ -39,12 +35,6 @@ func _ready() -> void:
 	var panel_style := StyleBoxFlat.new()
 	panel_style.bg_color = GameColors.HUD_PANEL_BACKGROUND
 	add_theme_stylebox_override("panel", panel_style)
-
-	# Pre-build button styles — 1px gray border, corner_radius 2.
-	_button_style_normal = _create_button_style(GameColors.ACTION_BUTTON_BG_NORMAL)
-	_button_style_hovered = _create_button_style(GameColors.ACTION_BUTTON_BG_HOVERED)
-	_button_style_pressed = _create_button_style(GameColors.ACTION_BUTTON_BG_PRESSED)
-	_button_style_focus = _create_button_style(GameColors.ACTION_BUTTON_BG_HOVERED)
 
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 12)
@@ -107,8 +97,9 @@ func show_main_menu() -> void:
 func _populate_main_menu(unit: Unit) -> void:
 	_clear_items()
 
-	# Moves: usable + targetable ones are selectable chips; VOID-locked ones are
-	# shown greyed and non-selectable so the player sees what the lock took away.
+	# Moves, per the §7/§14 gameplay rules: out-of-range HIDDEN, depleted
+	# GRAYED (disabled tier, press explains why), VOID-locked grayed with the
+	# lock scrim so the player sees what the lock took away.
 	var data: CharacterData = unit.character_data
 	var equipped: Array[Move] = data.equipped_moves if data != null else []
 	for i: int in range(equipped.size()):
@@ -118,9 +109,15 @@ func _populate_main_menu(unit: Unit) -> void:
 		var captured_move := move
 		if unit.is_move_index_locked(i):
 			_create_move_chip(captured_move, false, Callable(), true)
-		elif move.has_uses_remaining() and MoveTargeting.get_valid_target_tiles(unit, move).size() > 0:
-			var is_assigned := (unit.assigned_move == move)
-			_create_move_chip(captured_move, is_assigned, func() -> void: move_selected.emit(captured_move))
+			continue
+		if MoveTargeting.get_valid_target_tiles(unit, move).size() == 0:
+			continue  # out of range: hidden
+		if not move.has_uses_remaining():
+			_create_move_chip(captured_move, false, Callable())  # depleted: grayed
+			continue
+		var is_assigned := (unit.assigned_move == move)
+		_create_move_chip(captured_move, is_assigned,
+				func() -> void: move_selected.emit(captured_move))
 
 	# Text buttons for non-move actions.
 	_create_button("Unit Info", func() -> void: unit_info_requested.emit())
@@ -129,6 +126,7 @@ func _populate_main_menu(unit: Unit) -> void:
 	_create_button("Cancel", func() -> void: cancel_selected.emit())
 
 	_resize_panel()
+	_focus_first_item()
 
 
 func _populate_assign_submenu(unit: Unit) -> void:
@@ -144,155 +142,86 @@ func _populate_assign_submenu(unit: Unit) -> void:
 		var captured_move := move
 		if unit.is_move_index_locked(i):
 			_create_move_chip(captured_move, false, Callable(), true)
-		elif move.has_uses_remaining():
+		elif not move.has_uses_remaining():
+			# Depleted: grayed, not hidden — assigning it would be pointless
+			# and the deny says why.
+			_create_move_chip(captured_move, false, Callable())
+		else:
 			var is_assigned := (unit.assigned_move == move)
-			_create_move_chip(captured_move, is_assigned, func() -> void: assign_move_selected.emit(captured_move))
+			_create_move_chip(captured_move, is_assigned,
+					func() -> void: assign_move_selected.emit(captured_move))
 
 	_create_button("Back", func() -> void:
 		_is_assign_submenu = false
 		_populate_main_menu(unit))
 
 	_resize_panel()
+	_focus_first_item()
 
 
 # =============================================================================
 # MOVE CHIP BUILDING
 # =============================================================================
 
-func _create_move_chip(move: Move, is_assigned: bool, callback: Callable, locked: bool = false) -> Control:
-	# Clickable wrapper — Button with transparent style, containing the chip visuals.
-	var button := Button.new()
-	button.custom_minimum_size = Vector2(BUTTON_WIDTH, CHIP_HEIGHT)
-	button.clip_contents = true
-	# Fully transparent button chrome — the MoveChip ColorRect is the visual.
-	var transparent_style := StyleBoxEmpty.new()
-	button.add_theme_stylebox_override("normal", transparent_style)
-	button.add_theme_stylebox_override("hover", transparent_style)
-	button.add_theme_stylebox_override("pressed", transparent_style)
-	button.add_theme_stylebox_override("focus", transparent_style)
-	# Void-locked moves are shown for telegraphing but can't be picked.
-	if locked:
-		button.disabled = true
-		button.focus_mode = Control.FOCUS_NONE
-	else:
-		button.pressed.connect(callback)
-
-	# MoveChip background (the colored fill bar).
-	var chip := MoveChip.new()
-	chip.material = MOVE_CHIP_MATERIAL.duplicate()
-	chip.set_anchors_preset(Control.PRESET_FULL_RECT)
-	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	var fill: float = float(move.current_uses) / float(move.max_uses) if move.max_uses > 0 else 0.0
-	var bright_color: Color = GameColors.get_move_chip_foreground(move.element_type)
-	var dark_color: Color = GameColors.get_move_chip_background(move.element_type)
-
-	chip.fill_color = bright_color
-	chip.empty_color = dark_color
-	chip.border_color = GameColorPalette.get_color("Gray", 7)
-	chip.fill_percent = fill
-	chip.radius_px = 2.0
-
-	# Grey out depleted moves.
-	if move.current_uses <= 0:
-		chip.fill_color = Color(0.15, 0.15, 0.15, 1.0)
-		chip.empty_color = Color(0.08, 0.08, 0.08, 1.0)
-
-	if locked:
-		# Subdued (bubbles only) — the tight menu can't spill the smoke/crackle.
-		VoidLockOverlay.set_locked(chip, true, true)
-
-	button.add_child(chip)
-
-	# Content row — move name + type icon, laid over the chip.
-	var hbox := HBoxContainer.new()
-	hbox.set_anchors_preset(Control.PRESET_FULL_RECT)
-	hbox.offset_left = 4
-	hbox.offset_top = 2
-	hbox.offset_right = -3
-	hbox.offset_bottom = -2
-	hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	# Move name label with glow.
-	var label := Label.new()
-	var display_name: String = move.abbrev_name if move.abbrev_name != "" else move.move_name
-	if is_assigned:
-		display_name = "> " + display_name
-	label.text = display_name
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
-	if locked:
-		# The label/icon sit over the chip (outside its overlay scrim), so grey them
-		# directly instead of relying on the desaturate/shadow that covers the body.
-		label.material = VoidLockOverlay.icon_gray_material()
-	else:
-		var glow: ShaderMaterial = GLOW_MATERIAL.duplicate()
-		glow.set_shader_parameter("glow_color", GameColors.TEXT_PRIMARY_GLOW)
-		label.material = glow
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hbox.add_child(label)
-
-	# Spacer.
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hbox.add_child(spacer)
-
-	# Type icon.
-	var icon_texture: Texture2D = _get_elemental_icon(move.element_type)
-	if icon_texture != null:
-		var icon := TextureRect.new()
-		icon.texture = icon_texture
-		icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
-		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		if locked:
-			icon.material = VoidLockOverlay.icon_gray_material()
-		hbox.add_child(icon)
-
-	button.add_child(hbox)
-	_content_container.add_child(button)
-	return button
+func _create_move_chip(move: Move, is_assigned: bool, callback: Callable, locked: bool = false) -> MoveChipButton:
+	var chip_button := MoveChipButton.new()
+	chip_button.custom_minimum_size = Vector2(BUTTON_WIDTH, CHIP_HEIGHT)
+	if callback.is_valid():
+		chip_button.pressed.connect(callback)
+	# Disabled chips (depleted/locked) refuse with a reason instead of dying
+	# silently — §14 press-for-why. setup() decides disabled from the move.
+	chip_button.denied.connect(_on_chip_denied.bind(chip_button))
+	chip_button.focus_entered.connect(_on_item_focused.bind(chip_button))
+	_content_container.add_child(chip_button)
+	chip_button.setup(move, is_assigned, locked)
+	return chip_button
 
 
 # =============================================================================
 # BUTTON BUILDING
 # =============================================================================
 
-func _create_button(text: String, callback: Callable) -> Button:
-	var button := Button.new()
+func _create_button(text: String, callback: Callable) -> InteractiveButton:
+	var button := InteractiveButton.new()
 	button.text = text
-	button.custom_minimum_size = Vector2(BUTTON_WIDTH, BUTTON_HEIGHT)
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	button.add_theme_stylebox_override("normal", _button_style_normal)
-	button.add_theme_stylebox_override("hover", _button_style_hovered)
-	button.add_theme_stylebox_override("pressed", _button_style_pressed)
-	button.add_theme_stylebox_override("focus", _button_style_focus)
-	button.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
-	button.add_theme_color_override("font_hover_color", Color.WHITE)
-	button.add_theme_color_override("font_pressed_color", GameColors.TEXT_SECONDARY)
-	# Apply glow shader to button text.
-	var glow: ShaderMaterial = GLOW_MATERIAL.duplicate()
-	glow.set_shader_parameter("glow_color", GameColors.TEXT_PRIMARY_GLOW)
-	button.material = glow
+	button.custom_minimum_size = Vector2(BUTTON_WIDTH, BUTTON_HEIGHT)
 	button.pressed.connect(callback)
+	button.focus_entered.connect(_on_item_focused.bind(button))
 	_content_container.add_child(button)
 	return button
 
 
-func _create_button_style(background_color: Color) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = background_color
-	style.border_color = GameColors.ACTION_BUTTON_BORDER
-	style.set_border_width_all(1)
-	style.corner_radius_top_left = 2
-	style.corner_radius_top_right = 2
-	style.corner_radius_bottom_left = 2
-	style.corner_radius_bottom_right = 2
-	style.content_margin_left = 4
-	style.content_margin_right = 4
-	style.content_margin_top = 1
-	style.content_margin_bottom = 1
-	return style
+# =============================================================================
+# CURSOR — focus is "you are here"; the brackets follow it (§14 selected)
+# =============================================================================
+
+func _on_item_focused(item: InteractiveButton) -> void:
+	for child: Node in _content_container.get_children():
+		var button := child as InteractiveButton
+		if button != null:
+			button.selected = (button == item)
+
+
+## The cursor opens on the first item — matters most on controller, where
+## the traveling focus IS the pointer (Steam Deck primary target).
+## Deferred AND re-resolved at fire time: a repopulate (main -> submenu) can
+## free the item the grab was queued for, so the deferred call must look up
+## whatever is first NOW, not hold a reference from populate time.
+func _focus_first_item() -> void:
+	_grab_first_focus.call_deferred()
+
+
+func _grab_first_focus() -> void:
+	if _content_container == null or _content_container.get_child_count() == 0:
+		return
+	var first := _content_container.get_child(0) as Control
+	if first != null and first.is_inside_tree():
+		first.grab_focus()
+
+
+func _on_chip_denied(chip: MoveChipButton) -> void:
+	DenyTooltip.show_above(chip, chip.disabled_reason)
 
 
 func _clear_items() -> void:
@@ -321,17 +250,3 @@ func _ensure_border_overlay() -> void:
 	_border_overlay = ui_manager.create_fullscreen_border_overlay()
 	if _border_overlay != null:
 		add_child(_border_overlay)
-
-
-# =============================================================================
-# HELPERS
-# =============================================================================
-
-func _get_elemental_icon(element_type: Enums.ElementalType) -> Texture2D:
-	if element_type == Enums.ElementalType.NONE:
-		return null
-	var type_name: String = Enums.elemental_type_to_string(element_type).to_lower()
-	var path: String = "res://art/sprites/ui/elemental_type_icons_10x10/%s.png" % type_name
-	if ResourceLoader.exists(path):
-		return load(path) as Texture2D
-	return null

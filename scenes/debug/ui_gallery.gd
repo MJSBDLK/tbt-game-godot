@@ -19,7 +19,6 @@ const FONT_8PX: FontFile = preload("res://fonts/UndeadPixelLight8.ttf")
 const GLOW_MATERIAL: ShaderMaterial = preload("res://resources/hud_glow.tres")
 const GAME_THEME: Theme = preload("res://resources/game_theme.tres")
 
-var _why_popup: PanelContainer = null
 ## The states-list CTA specimen — the rig's End Turn borrows the (unique)
 ## call-to-action flag from it and returns it on a second press.
 var _specimen_cta: InteractiveButton = null
@@ -179,39 +178,14 @@ func _on_rig_pressed(pressed_button: InteractiveButton, menu: VBoxContainer) -> 
 			button.selected = (button == pressed_button)
 
 
-## Deny readout: the game's styled tooltip (game_theme TooltipPanel + GlowLabel,
-## same recipe as TapTooltip) floated just above the button that refused.
+## Deny readout — the shared DenyTooltip (extracted from this gallery when the
+## real action menu adopted the vocabulary; one recipe, two venues).
 func _show_why(source: InteractiveButton) -> void:
-	if _why_popup != null and is_instance_valid(_why_popup):
-		_why_popup.queue_free()
 	var reason := "NO USES REMAINING"
 	var chip := source as MoveChipButton
 	if chip != null and chip.disabled_reason != "":
 		reason = chip.disabled_reason
-	var popup := PanelContainer.new()
-	popup.theme = GAME_THEME
-	popup.theme_type_variation = "TooltipPanel"
-	popup.top_level = true
-	var label := _make_glow_label(reason,
-			GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
-	label.theme_type_variation = "TooltipLabel"
-	label.add_theme_font_override("font", FONT_8PX)
-	label.add_theme_font_size_override("font_size", 8)
-	popup.add_child(label)
-	add_child(popup)
-	_why_popup = popup
-	# Size lands a frame later; then center it above the refusing button.
-	await get_tree().process_frame
-	if not is_instance_valid(popup):
-		return
-	var rect := source.get_global_rect()
-	popup.position = Vector2(
-			rect.position.x + (rect.size.x - popup.size.x) / 2.0,
-			rect.position.y - popup.size.y - 2.0)
-	var timer := get_tree().create_timer(1.3)
-	timer.timeout.connect(func() -> void:
-		if is_instance_valid(popup):
-			popup.queue_free())
+	DenyTooltip.show_above(source, reason)
 
 
 ## Real MoveChipButton from a throwaway Move resource — the gallery exercises
