@@ -1,6 +1,8 @@
 ## Right-side system menu panel (like the action menu but for game-level actions).
 ## Appears when pressing Escape in DEFAULT state or tapping the menu button.
 ## Contains: Options, End Turn, Save, Load, Quit.
+## Wears the border vocabulary (§14) since the 2026-07-19 adoption — all
+## buttons are InteractiveButtons, focus is the cursor.
 class_name SystemMenuPanel
 extends PanelContainer
 
@@ -12,17 +14,11 @@ signal load_selected()
 signal quit_selected()
 signal closed()
 
-const GLOW_MATERIAL: ShaderMaterial = preload("res://resources/hud_glow.tres")
-
 const BUTTON_HEIGHT: int = 14
 const BUTTON_WIDTH: int = 116
 
 var _content_container: VBoxContainer = null
 var _border_overlay: PanelBorderOverlay = null
-var _button_style_normal: StyleBoxFlat = null
-var _button_style_hovered: StyleBoxFlat = null
-var _button_style_pressed: StyleBoxFlat = null
-var _button_style_focus: StyleBoxFlat = null
 
 
 func _ready() -> void:
@@ -48,11 +44,6 @@ func _ready() -> void:
 	background.offset_bottom = -5
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(background)
-
-	_button_style_normal = _create_button_style(GameColors.ACTION_BUTTON_BG_NORMAL)
-	_button_style_hovered = _create_button_style(GameColors.ACTION_BUTTON_BG_HOVERED)
-	_button_style_pressed = _create_button_style(GameColors.ACTION_BUTTON_BG_PRESSED)
-	_button_style_focus = _create_button_style(GameColors.ACTION_BUTTON_BG_HOVERED)
 
 	# Margins: 12px left/right with 116px buttons = 140px panel
 	var margin := MarginContainer.new()
@@ -110,6 +101,7 @@ func _populate_menu() -> void:
 	_create_button("Close", func() -> void: hide_menu())
 
 	_resize_panel()
+	_focus_first_item()
 
 
 const END_TURN_BUTTON_HEIGHT: int = 22
@@ -119,46 +111,20 @@ const END_TURN_BUTTON_HEIGHT: int = 22
 # BUTTON BUILDING
 # =============================================================================
 
-func _create_end_turn_button() -> Button:
-	var button := Button.new()
+func _create_end_turn_button() -> InteractiveButton:
+	# Vocabulary End Turn: a plain lit button, taller for prominence. The old
+	# magenta accent died with adoption — magenta belongs to SPECIAL damage
+	# now (§14), and the mockup's End Turn is a standard vocabulary button.
+	# call_to_action stays UNWIRED on purpose: TurnManager auto-ends the
+	# phase when every unit has acted, so "all acted" can never light this.
+	# When a real trigger exists (tutorial hint, auto-end setting), it's one
+	# line: button.call_to_action = true.
+	var button := InteractiveButton.new()
 	button.text = "END TURN"
 	button.custom_minimum_size = Vector2(BUTTON_WIDTH, END_TURN_BUTTON_HEIGHT)
 	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
-
-	# Pink/red accent — cautionary but not alarming
-	var accent_color: Color = GameColorPalette.get_color("Magenta", 4)
-	var accent_glow: Color = GameColorPalette.get_color("Magenta", 2)
-	var accent_text: Color = GameColorPalette.get_color("Magenta", 9)
-
-	var style_normal := StyleBoxFlat.new()
-	style_normal.bg_color = accent_color
-	style_normal.border_color = accent_text
-	style_normal.set_border_width_all(1)
-	style_normal.set_corner_radius_all(2)
-	style_normal.content_margin_left = 4
-	style_normal.content_margin_right = 4
-	style_normal.content_margin_top = 2
-	style_normal.content_margin_bottom = 2
-
-	var style_hovered := style_normal.duplicate()
-	style_hovered.bg_color = accent_color.lightened(0.2)
-
-	var style_pressed := style_normal.duplicate()
-	style_pressed.bg_color = accent_color.darkened(0.2)
-
-	button.add_theme_stylebox_override("normal", style_normal)
-	button.add_theme_stylebox_override("hover", style_hovered)
-	button.add_theme_stylebox_override("pressed", style_pressed)
-	button.add_theme_stylebox_override("focus", style_hovered)
-	button.add_theme_color_override("font_color", accent_text)
-	button.add_theme_color_override("font_hover_color", Color.WHITE)
-	button.add_theme_color_override("font_pressed_color", accent_text.darkened(0.2))
-
-	var glow: ShaderMaterial = GLOW_MATERIAL.duplicate()
-	glow.set_shader_parameter("glow_color", accent_glow)
-	button.material = glow
-
 	button.pressed.connect(func() -> void: end_turn_selected.emit())
+	button.focus_entered.connect(_on_item_focused.bind(button))
 	_content_container.add_child(button)
 	return button
 
@@ -170,40 +136,40 @@ func _create_spacer() -> void:
 	_content_container.add_child(spacer)
 
 
-func _create_button(text: String, callback: Callable) -> Button:
-	var button := Button.new()
+func _create_button(text: String, callback: Callable) -> InteractiveButton:
+	var button := InteractiveButton.new()
 	button.text = text
-	button.custom_minimum_size = Vector2(BUTTON_WIDTH, BUTTON_HEIGHT)
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	button.add_theme_stylebox_override("normal", _button_style_normal)
-	button.add_theme_stylebox_override("hover", _button_style_hovered)
-	button.add_theme_stylebox_override("pressed", _button_style_pressed)
-	button.add_theme_stylebox_override("focus", _button_style_focus)
-	button.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
-	button.add_theme_color_override("font_hover_color", Color.WHITE)
-	button.add_theme_color_override("font_pressed_color", GameColors.TEXT_SECONDARY)
-	var glow: ShaderMaterial = GLOW_MATERIAL.duplicate()
-	glow.set_shader_parameter("glow_color", GameColors.TEXT_PRIMARY_GLOW)
-	button.material = glow
+	button.custom_minimum_size = Vector2(BUTTON_WIDTH, BUTTON_HEIGHT)
 	button.pressed.connect(callback)
+	button.focus_entered.connect(_on_item_focused.bind(button))
 	_content_container.add_child(button)
 	return button
 
 
-func _create_button_style(background_color: Color) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = background_color
-	style.border_color = GameColors.ACTION_BUTTON_BORDER
-	style.set_border_width_all(1)
-	style.corner_radius_top_left = 2
-	style.corner_radius_top_right = 2
-	style.corner_radius_bottom_left = 2
-	style.corner_radius_bottom_right = 2
-	style.content_margin_left = 4
-	style.content_margin_right = 4
-	style.content_margin_top = 1
-	style.content_margin_bottom = 1
-	return style
+# =============================================================================
+# CURSOR — focus is "you are here"; the brackets follow it (§14 selected)
+# =============================================================================
+
+func _on_item_focused(item: InteractiveButton) -> void:
+	for child: Node in _content_container.get_children():
+		var button := child as InteractiveButton
+		if button != null:
+			button.selected = (button == item)
+
+
+## Deferred and re-resolved at fire time (same guard as ActionMenuPanel):
+## the item the grab was queued for can be freed by a repopulate.
+func _focus_first_item() -> void:
+	_grab_first_focus.call_deferred()
+
+
+func _grab_first_focus() -> void:
+	if _content_container == null or _content_container.get_child_count() == 0:
+		return
+	var first := _content_container.get_child(0) as Control
+	if first != null and first.is_inside_tree():
+		first.grab_focus()
 
 
 func _clear_items() -> void:

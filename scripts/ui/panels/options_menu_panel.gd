@@ -196,20 +196,14 @@ func _create_zoom_mode_option() -> void:
 
 
 func _create_close_button() -> void:
-	var button := Button.new()
+	# The one plain action in this panel — a vocabulary InteractiveButton.
+	# The toggle pills stay hand-rolled ON PURPOSE: the border vocabulary has
+	# no toggle/segmented design yet (the mockup never covered settings
+	# widgets) — that's a future §14 extension, not a mechanical swap.
+	var button := InteractiveButton.new()
 	button.text = "Close"
 	button.custom_minimum_size = Vector2(0, OPTION_HEIGHT)
 	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
-	button.add_theme_stylebox_override("normal", _toggle_style_inactive)
-	button.add_theme_stylebox_override("hover", _toggle_style_hovered)
-	button.add_theme_stylebox_override("pressed", _toggle_style_active)
-	button.add_theme_stylebox_override("focus", _toggle_style_hovered)
-	button.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
-	button.add_theme_color_override("font_hover_color", Color.WHITE)
-	button.add_theme_color_override("font_pressed_color", GameColors.TEXT_SECONDARY)
-	var glow: ShaderMaterial = GLOW_MATERIAL.duplicate()
-	glow.set_shader_parameter("glow_color", GameColors.TEXT_PRIMARY_GLOW)
-	button.material = glow
 	button.pressed.connect(func() -> void: hide_panel())
 	_content_container.add_child(button)
 

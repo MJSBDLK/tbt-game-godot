@@ -189,10 +189,19 @@ out-of-panel debug/devtools.
 ## 7. Action Menu
 
 - Right panel (140px).
-- Default button: Gray 2 bg @ 30%, Gray 7 border. Hover: Gray 3 @ 50%.
+- **ADOPTED into §14 (2026-07-19, Lawrence: "cramped but organized")**: the action
+  menu, system menu, and options Close button are real `InteractiveButton` /
+  `MoveChipButton` components — the hand-rolled styles (and the Gray 2/3 line
+  below) are gone. Focus is the menu cursor (opens on the first item); the "> "
+  assigned prefix became parked brackets; deny surfaces via `DenyTooltip`. The
+  system menu's End Turn dropped its magenta accent (magenta = special damage);
+  its CTA stays unwired because TurnManager auto-ends the phase when all units
+  have acted. Options toggle pills stay hand-rolled — the vocabulary has no
+  toggle/segmented design yet (future §14 extension).
+- ~~Default button: Gray 2 bg @ 30%, Gray 7 border. Hover: Gray 3 @ 50%.~~
 - **Disabled / out-of-range handling**:
   - Out-of-range attacks are **hidden**, not shown disabled.
-  - Depleted moves are **grayed out** in place.
+  - Depleted moves are **grayed out** in place (press-for-why since adoption).
 
 ### Selected/active button — superseded by §14
 - Was locked as "pulsing border glow + slow rotational shimmer, reconsider if it
