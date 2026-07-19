@@ -464,6 +464,34 @@
     letter-spacing: .02em;
   }
 
+  /* ============================================================
+     DENSITY CRISIS (RQD 2026-07-19): power wants on-chip and
+     "THERE'S NO ROOM"; detail chips overflowed; display venues
+     need a non-interactive look. Exploration below.
+     ============================================================ */
+  /* two-line chip: identity line over data line, same 120px footprint */
+  .chip.tall { display: block; padding-top: calc(var(--px) * 2); padding-bottom: calc(var(--px) * 2); }
+  .chip.tall .line { display: flex; align-items: center; gap: calc(var(--px) * 2); }
+  .chip.tall .line + .line { margin-top: var(--px); }
+  .chip .chip-power {
+    margin-left: auto;
+    font-size: 10px;
+    letter-spacing: .02em;
+  }
+  .chip.tall .chip-uses, .chip.tall .chip-range { font-size: 10px; }
+  .chip.tall .chip-range { margin-left: 0; }
+  /* display-mode candidates: non-interactive chips must not invite a press */
+  .chip.disp-borderless { border: none; border-radius: 0; cursor: default; }
+  .chip.disp-dim { filter: brightness(.82) saturate(.92); cursor: default; }
+  .chip.disp-compact {
+    border: none; border-radius: 0; cursor: default;
+    padding-top: var(--px); padding-bottom: var(--px);
+    font-size: 12px;
+  }
+  .chip.disp-borderless:hover::after, .chip.disp-dim:hover::after,
+  .chip.disp-compact:hover::after { opacity: 0; }  /* no backlight: not pressable */
+
+
   /* ---------- engine notes ---------- */
   .notes {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;
@@ -908,6 +936,98 @@
         <li><strong>Column caveat:</strong> First Aid has no element icon, so its row starts a
         slot early — the engine chip does the same today. If the ragged left edge grates,
         reserve the element slot even when empty.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>Density crisis — power joins, venues diverge</h2>
+  <p class="sub">First F5 pass (RQD 2026-07-19): the one-line chip is cramped at 120 px, overflows
+  the detail panel's ~90 px column, and now <strong>power wants on-chip too</strong> — "THERE'S NO
+  ROOM." The proposal: stop making one chip carry everything. <strong>Field sets per venue</strong> —
+  full data where the battle decision happens, identity where a pane already shows the numbers,
+  and a distinct non-interactive look where nothing is pressable.</p>
+
+  <div class="rig-row">
+    <div class="rig">
+      <div class="rig-title">Two-line, full data (action menu)</div>
+      <div class="menu">
+        <button class="btn chip tall st-idle sfx" style="--chip-hi:#e3b341; --chip-lo:#4a3a10; --fill:100%;">
+          <span class="line"><span class="chip-icon" style="color:#f5d76e;">↯</span><svg class="mini" viewBox="0 0 10 10"><g fill="#f2cfc2"><rect x="1" y="4" width="1" height="1"/><rect x="2" y="5" width="1" height="1"/><rect x="3" y="6" width="1" height="1"/><rect x="4" y="7" width="1" height="1"/><rect x="3" y="3" width="1" height="1"/><rect x="4" y="4" width="1" height="1"/><rect x="5" y="5" width="1" height="1"/><rect x="6" y="6" width="1" height="1"/><rect x="5" y="2" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="8" y="5" width="1" height="1"/></g></svg><span>Spark</span><span class="chip-power" style="color:#f2cfc2;">7</span></span>
+          <span class="line"><svg class="mini" viewBox="0 0 10 10"><g fill="#f2ead8"><rect x="4" y="4" width="2" height="2"/><rect x="4" y="1" width="2" height="1"/><rect x="4" y="8" width="2" height="1"/><rect x="1" y="4" width="1" height="2"/><rect x="8" y="4" width="1" height="2"/></g></svg><span class="chip-range">1</span><span class="chip-uses">4/4</span></span>
+        </button>
+        <button class="btn chip tall st-idle sfx" style="--chip-hi:#6cc4d9; --chip-lo:#0f2f38; --fill:66%;">
+          <span class="line"><span class="chip-icon" style="color:#bfeaf5;">❆</span><svg class="mini" viewBox="0 0 10 10"><g fill="#f2cfc2"><rect x="1" y="4" width="1" height="1"/><rect x="2" y="5" width="1" height="1"/><rect x="3" y="6" width="1" height="1"/><rect x="4" y="7" width="1" height="1"/><rect x="3" y="3" width="1" height="1"/><rect x="4" y="4" width="1" height="1"/><rect x="5" y="5" width="1" height="1"/><rect x="6" y="6" width="1" height="1"/><rect x="5" y="2" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="8" y="5" width="1" height="1"/></g></svg><span>Frost Lance</span><span class="chip-power" style="color:#f2cfc2;">6</span></span>
+          <span class="line"><svg class="mini" viewBox="0 0 10 10"><g fill="#f2ead8"><rect x="4" y="4" width="2" height="2"/><rect x="4" y="1" width="2" height="1"/><rect x="4" y="8" width="2" height="1"/><rect x="1" y="4" width="1" height="2"/><rect x="8" y="4" width="1" height="2"/></g></svg><span class="chip-range">1-2</span><span class="chip-uses">2/3</span></span>
+        </button>
+        <button class="btn chip tall st-idle sfx" style="--chip-hi:#c98d47; --chip-lo:#3a2410; --fill:50%;">
+          <span class="line"><span class="chip-icon" style="color:#f0b060;">♦</span><svg class="mini" viewBox="0 0 10 10"><g fill="#d99ada"><rect x="4" y="1" width="2" height="1"/><rect x="3" y="2" width="1" height="1"/><rect x="6" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="1" y="4" width="1" height="2"/><rect x="8" y="4" width="1" height="2"/><rect x="2" y="6" width="1" height="1"/><rect x="7" y="6" width="1" height="1"/><rect x="3" y="7" width="1" height="1"/><rect x="6" y="7" width="1" height="1"/><rect x="4" y="8" width="2" height="1"/><rect x="4" y="4" width="2" height="2"/></g></svg><span>Fireball</span><span class="chip-power" style="color:#d99ada;">8</span></span>
+          <span class="line"><svg class="mini" viewBox="0 0 10 10"><g fill="#f2ead8"><rect x="4" y="4" width="2" height="2"/><rect x="4" y="1" width="2" height="2"/><rect x="4" y="7" width="2" height="2"/><rect x="1" y="4" width="2" height="2"/><rect x="7" y="4" width="2" height="2"/></g></svg><span class="chip-range">2-3</span><span class="chip-uses">1/2</span></span>
+        </button>
+        <button class="btn chip tall st-idle sfx" style="--chip-hi:#8d887c; --chip-lo:#2e2c27; --fill:60%;">
+          <span class="line"><svg class="mini" viewBox="0 0 10 10"><g fill="#7fd8c8"><rect x="4" y="1" width="2" height="8"/><rect x="1" y="4" width="8" height="2"/></g></svg><span>First Aid</span></span>
+          <span class="line"><svg class="mini" viewBox="0 0 10 10"><g fill="#7fd8c8"><rect x="4" y="4" width="2" height="2"/><rect x="4" y="1" width="2" height="1"/><rect x="4" y="8" width="2" height="1"/><rect x="1" y="4" width="1" height="2"/><rect x="8" y="4" width="1" height="2"/></g></svg><span class="chip-range">1</span><span class="chip-uses">3/5</span></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="rig">
+      <div class="rig-title">Identity only (detail selectors)</div>
+      <div class="menu">
+        <button class="btn chip st-idle sfx" style="--chip-hi:#e3b341; --chip-lo:#4a3a10; --fill:100%;">
+          <span class="chip-icon" style="color:#f5d76e;">↯</span><svg class="mini" viewBox="0 0 10 10"><g fill="#f2cfc2"><rect x="1" y="4" width="1" height="1"/><rect x="2" y="5" width="1" height="1"/><rect x="3" y="6" width="1" height="1"/><rect x="4" y="7" width="1" height="1"/><rect x="3" y="3" width="1" height="1"/><rect x="4" y="4" width="1" height="1"/><rect x="5" y="5" width="1" height="1"/><rect x="6" y="6" width="1" height="1"/><rect x="5" y="2" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="8" y="5" width="1" height="1"/></g></svg><span>Spark</span>
+        </button>
+        <button class="btn chip st-idle sfx" style="--chip-hi:#6cc4d9; --chip-lo:#0f2f38; --fill:66%;">
+          <span class="chip-icon" style="color:#bfeaf5;">❆</span><svg class="mini" viewBox="0 0 10 10"><g fill="#f2cfc2"><rect x="1" y="4" width="1" height="1"/><rect x="2" y="5" width="1" height="1"/><rect x="3" y="6" width="1" height="1"/><rect x="4" y="7" width="1" height="1"/><rect x="3" y="3" width="1" height="1"/><rect x="4" y="4" width="1" height="1"/><rect x="5" y="5" width="1" height="1"/><rect x="6" y="6" width="1" height="1"/><rect x="5" y="2" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="8" y="5" width="1" height="1"/></g></svg><span>Frost Lance</span>
+        </button>
+        <button class="btn chip st-idle sfx" style="--chip-hi:#c98d47; --chip-lo:#3a2410; --fill:50%;">
+          <span class="chip-icon" style="color:#f0b060;">♦</span><svg class="mini" viewBox="0 0 10 10"><g fill="#d99ada"><rect x="4" y="1" width="2" height="1"/><rect x="3" y="2" width="1" height="1"/><rect x="6" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="1" y="4" width="1" height="2"/><rect x="8" y="4" width="1" height="2"/><rect x="2" y="6" width="1" height="1"/><rect x="7" y="6" width="1" height="1"/><rect x="3" y="7" width="1" height="1"/><rect x="6" y="7" width="1" height="1"/><rect x="4" y="8" width="2" height="1"/><rect x="4" y="4" width="2" height="2"/></g></svg><span>Fireball</span>
+        </button>
+        <button class="btn chip st-idle sfx" style="--chip-hi:#8d887c; --chip-lo:#2e2c27; --fill:60%;">
+          <svg class="mini" viewBox="0 0 10 10"><g fill="#7fd8c8"><rect x="4" y="1" width="2" height="8"/><rect x="1" y="4" width="8" height="2"/></g></svg><span>First Aid</span>
+        </button>
+      </div>
+      <div class="rig-title" style="margin-top:14px">Display mode (preview) — 3 looks</div>
+      <div class="menu">
+        <button class="btn chip disp-borderless" style="--chip-hi:#c98d47; --chip-lo:#3a2410; --fill:50%;" tabindex="-1">
+          <span class="chip-icon" style="color:#f0b060;">♦</span><svg class="mini" viewBox="0 0 10 10"><g fill="#d99ada"><rect x="4" y="1" width="2" height="1"/><rect x="3" y="2" width="1" height="1"/><rect x="6" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="1" y="4" width="1" height="2"/><rect x="8" y="4" width="1" height="2"/><rect x="2" y="6" width="1" height="1"/><rect x="7" y="6" width="1" height="1"/><rect x="3" y="7" width="1" height="1"/><rect x="6" y="7" width="1" height="1"/><rect x="4" y="8" width="2" height="1"/><rect x="4" y="4" width="2" height="2"/></g></svg><span>Fireball</span><span class="chip-uses">1/2</span>
+        </button>
+        <button class="btn chip disp-dim" style="--chip-hi:#c98d47; --chip-lo:#3a2410; --fill:50%;" tabindex="-1">
+          <span class="chip-icon" style="color:#f0b060;">♦</span><svg class="mini" viewBox="0 0 10 10"><g fill="#d99ada"><rect x="4" y="1" width="2" height="1"/><rect x="3" y="2" width="1" height="1"/><rect x="6" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="1" y="4" width="1" height="2"/><rect x="8" y="4" width="1" height="2"/><rect x="2" y="6" width="1" height="1"/><rect x="7" y="6" width="1" height="1"/><rect x="3" y="7" width="1" height="1"/><rect x="6" y="7" width="1" height="1"/><rect x="4" y="8" width="2" height="1"/><rect x="4" y="4" width="2" height="2"/></g></svg><span>Fireball</span><span class="chip-uses">1/2</span>
+        </button>
+        <button class="btn chip disp-compact" style="--chip-hi:#c98d47; --chip-lo:#3a2410; --fill:50%;" tabindex="-1">
+          <span class="chip-icon" style="color:#f0b060;">♦</span><svg class="mini" viewBox="0 0 10 10"><g fill="#d99ada"><rect x="4" y="1" width="2" height="1"/><rect x="3" y="2" width="1" height="1"/><rect x="6" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="1" y="4" width="1" height="2"/><rect x="8" y="4" width="1" height="2"/><rect x="2" y="6" width="1" height="1"/><rect x="7" y="6" width="1" height="1"/><rect x="3" y="7" width="1" height="1"/><rect x="6" y="7" width="1" height="1"/><rect x="4" y="8" width="2" height="1"/><rect x="4" y="4" width="2" height="2"/></g></svg><span>Fireball</span><span class="chip-uses">1/2</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="rig-notes">
+      <p class="sub" style="margin-top:0">The questions on the table:</p>
+      <ul>
+        <li><strong>Two-line is the structural answer to "no room".</strong> Line 1 = identity
+        (element, damage type, the FULL name — no more 38 px clip column), line 2 = data
+        (scheme, range … uses). Power rides line 1's right edge in the <em>damage type's
+        color</em> (bone claw / magenta burst / teal cross), which keeps it from misreading
+        as range or uses — the two-number-pair trap, again. Support moves show no power at
+        all: mark the unusual. Cost: the action menu's four chips go from 4 to ~8 lines
+        tall. Vertical expansion, only where data-complete matters.</li>
+        <li><strong>Identity-only chips for the detail panel.</strong> The detail pane
+        ALREADY shows Power/Rng/Acc/Usg in its readout — chips there are selectors, not
+        spec sheets. Element + damage type + full name, nothing else. This dissolves the
+        overflow bug's cause instead of clipping it.</li>
+        <li><strong>Display mode needs its own look</strong> (the Bonk lesson: a vivid chip
+        with brackets reads as pressable/selected). Three candidates on the same chip:
+        <em>borderless</em> (the border is furniture's pressable cue — a data row doesn't
+        get one), <em>one ramp step down</em> (element-true but unpowered; engine does a
+        real ramp step, this mocks it with a filter), <em>compact borderless</em> (shorter,
+        reads as a table row). Whatever wins must NOT read as depleted — all three stay on
+        the element's colors, and none backlights on hover.</li>
+        <li><strong>Assigned marker outside the action menu — open.</strong> Parked brackets
+        are now an action-menu-only signal (they read as "selected" in static venues). If
+        display venues need an assigned marker at all, it needs a non-bracket shape —
+        candidates welcome, default is to not show it.</li>
+        <li><strong>Venue width rule of thumb:</strong> never grow a chip horizontally past
+        its venue's column; grow vertically only to become data-complete. Everything else
+        is a field-set decision, not a layout decision.</li>
       </ul>
     </div>
   </div>
