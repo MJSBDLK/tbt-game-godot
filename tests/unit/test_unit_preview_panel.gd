@@ -36,3 +36,6 @@ func test_moves_become_display_mode_chips() -> void:
 	assert_eq(chips[0].mouse_filter, Control.MOUSE_FILTER_IGNORE,
 			"display mode: the preview is a readout, not a menu")
 	assert_eq(chips[0]._name_label.text, "Ember")
+	assert_false(chips[0]._scheme_glyph.visible,
+			"preview field set: identity + uses — scheme/range stay in the menu")
+	assert_true(chips[0]._uses_label.visible)

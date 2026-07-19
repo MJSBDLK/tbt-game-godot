@@ -257,6 +257,12 @@ func _cache_node_references() -> void:
 			chip_button.custom_minimum_size = Vector2(0, 14)
 			chip_button.name_column_width = 60.0
 			chip_button.prefer_full_name = true
+			# Identity-only selectors: the pane beside these already shows
+			# Power/Rng/Acc/Usg — on-chip data was duplication that couldn't
+			# fit the column anyway ("not populating" = clipped away,
+			# RQD 2026-07-19).
+			chip_button.show_scheme_and_range = false
+			chip_button.show_uses = false
 			child.add_sibling(chip_button)
 			moves_section.remove_child(child)
 			child.queue_free()

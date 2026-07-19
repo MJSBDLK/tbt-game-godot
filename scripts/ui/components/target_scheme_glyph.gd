@@ -35,16 +35,27 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
+const SHADOW_COLOR: Color = Color(0.0, 0.0, 0.0, 0.55)
+const SHADOW_OFFSET: Vector2 = Vector2(1, 1)
+
+
 func _draw() -> void:
+	var cells: Array[Rect2] = []
 	if blast:
 		# Center cell + four orthogonal cells: the classic AoE footprint.
 		for cell: Vector2 in [Vector2(4, 4), Vector2(4, 1), Vector2(4, 7),
 				Vector2(1, 4), Vector2(7, 4)]:
-			draw_rect(Rect2(cell, Vector2(2, 2)), glyph_color)
+			cells.append(Rect2(cell, Vector2(2, 2)))
 	else:
 		# Crosshair: center pip + four edge ticks.
-		draw_rect(Rect2(4, 4, 2, 2), glyph_color)
-		draw_rect(Rect2(4, 1, 2, 1), glyph_color)
-		draw_rect(Rect2(4, 8, 2, 1), glyph_color)
-		draw_rect(Rect2(1, 4, 1, 2), glyph_color)
-		draw_rect(Rect2(8, 4, 1, 2), glyph_color)
+		cells.append(Rect2(4, 4, 2, 2))
+		cells.append(Rect2(4, 1, 2, 1))
+		cells.append(Rect2(4, 8, 2, 1))
+		cells.append(Rect2(1, 4, 1, 2))
+		cells.append(Rect2(8, 4, 1, 2))
+	# 1px drop shadow first: bone cells vanish on light bodies (Robo grey —
+	# RQD 2026-07-19). Mockup parity — the SVG glyphs carry a drop-shadow.
+	for cell: Rect2 in cells:
+		draw_rect(Rect2(cell.position + SHADOW_OFFSET, cell.size), SHADOW_COLOR)
+	for cell: Rect2 in cells:
+		draw_rect(cell, glyph_color)

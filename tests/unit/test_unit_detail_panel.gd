@@ -70,6 +70,9 @@ func test_tablets_became_vocabulary_chips_with_full_names() -> void:
 	assert_eq(panel._move_chips[0]._name_label.text, "Frost Lance",
 			"full name, not the menu abbreviation")
 	assert_false(panel._move_chips[1].visible, "empty slots hide")
+	assert_false(panel._move_chips[0]._uses_label.visible,
+			"identity-only selectors: the pane beside them shows the numbers")
+	assert_false(panel._move_chips[0]._scheme_glyph.visible)
 
 
 func test_selection_brackets_mark_the_inspected_move() -> void:

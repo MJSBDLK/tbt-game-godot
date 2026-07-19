@@ -240,6 +240,20 @@ func test_setup_is_rerunnable_the_disabled_tier_resets() -> void:
 			"element skin restored from the grey pair")
 
 
+func test_field_set_knobs_hide_data_columns() -> void:
+	# "Field sets per venue" (RQD 2026-07-19): identity-only selectors for
+	# the detail panel, identity + uses for the preview readout.
+	var chip_button := MoveChipButton.new()
+	chip_button.show_scheme_and_range = false
+	chip_button.show_uses = false
+	add_child_autofree(chip_button)
+	chip_button.setup(_make_move())
+	assert_false(chip_button._scheme_glyph.visible)
+	assert_false(chip_button._range_label.visible)
+	assert_false(chip_button._uses_label.visible)
+	assert_true(chip_button._name_label.visible, "identity always shows")
+
+
 func test_display_only_mode_removes_all_interactivity() -> void:
 	var chip_button := _make_chip_button(_make_move())
 	chip_button.make_display_only()

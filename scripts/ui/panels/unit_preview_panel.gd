@@ -268,6 +268,10 @@ func _update_moves(unit: Unit) -> void:
 		var chip_button := MoveChipButton.new()
 		chip_button.custom_minimum_size = Vector2(0, 14)
 		chip_button.make_display_only()
+		# Preview field set: identity + uses. Scheme/range belong to the
+		# battle decision point — and dropping them ends the lingering
+		# right-edge overflow (RQD 2026-07-19).
+		chip_button.show_scheme_and_range = false
 		_moves_container.add_child(chip_button)
 		chip_buttons.append(chip_button)
 

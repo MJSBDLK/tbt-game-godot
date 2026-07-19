@@ -36,6 +36,13 @@ var disabled_reason: String = ""
 @export var name_column_width: float = NAME_COLUMN_WIDTH
 @export var prefer_full_name: bool = false
 
+## Field sets per venue ("that's smart" — RQD 2026-07-19): the action menu
+## shows everything (the battle decision point); the detail panel's pane
+## already shows the numbers, so its chips are identity-only selectors; the
+## preview readout keeps uses. Set BEFORE the chip enters the tree.
+@export var show_scheme_and_range: bool = true
+@export var show_uses: bool = true
+
 ## This move is the unit's assigned move: parked brackets, persistent.
 var assigned: bool = false:
 	set(value):
@@ -153,6 +160,11 @@ func _ready() -> void:
 	_uses_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_uses_label.material = _number_glow
 	row.add_child(_seat_label(_uses_label))
+
+	# Venue field set — hidden nodes drop out of the HBox entirely.
+	_scheme_glyph.visible = show_scheme_and_range
+	_range_label.visible = show_scheme_and_range
+	_uses_label.visible = show_uses
 
 	# Brackets/rings/press-flash draw above the chip body and its labels.
 	move_child(_chrome_front, get_child_count() - 1)
