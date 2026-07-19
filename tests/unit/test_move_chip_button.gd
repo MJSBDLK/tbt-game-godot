@@ -151,6 +151,22 @@ func test_name_column_is_fixed_so_data_columns_align() -> void:
 			MoveChipButton.NAME_COLUMN_WIDTH)
 
 
+func test_numbers_wear_the_names_font_scheme() -> void:
+	var chip_button := _make_chip_button(_make_move())
+	var uses_glow := chip_button._uses_label.material as ShaderMaterial
+	assert_not_null(uses_glow, "uses carries the glyph halo, same as the name")
+	assert_not_null(chip_button._range_label.material as ShaderMaterial,
+			"range carries it too — one font family across the chip")
+	assert_eq(uses_glow.get_shader_parameter("glow_color"),
+			GameColors.TEXT_PRIMARY_GLOW)
+	assert_false(chip_button._uses_label.has_theme_color_override("font_color"),
+			"healthy numbers use the default white, exactly like the name")
+	var depleted := _make_chip_button(_make_move(0, 4))
+	assert_null(depleted._uses_label.material, "the dark tier kills the halo")
+	assert_eq(depleted._uses_label.get_theme_color("font_color"),
+			GameColors.INTERACTIVE_TEXT_DISABLED)
+
+
 func test_disabled_tier_greys_the_scheme_glyph() -> void:
 	var chip_button := _make_chip_button(_make_move(0, 4))
 	assert_eq(chip_button._scheme_glyph.glyph_color,

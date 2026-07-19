@@ -43,6 +43,10 @@ var _range_label: Label = null
 var _element: Enums.ElementalType = Enums.ElementalType.NONE
 var _base_fill: Color = Color.WHITE
 var _base_empty: Color = Color.BLACK
+# One shared halo for both number labels — same scheme, same color, so one
+# material serves both (unlike the name's per-instance duplicate, nothing
+# here ever varies per chip).
+var _number_glow: ShaderMaterial = null
 
 
 func _ready() -> void:
@@ -100,8 +104,15 @@ func _ready() -> void:
 	_scheme_glyph = TargetSchemeGlyph.new()
 	row.add_child(_scheme_glyph)
 
+	# Numbers wear the name's font scheme — same color, same glyph glow — so
+	# name, range, and uses read as one family (RQD 2026-07-19, mocked in the
+	# HTML first; judged at real scale here).
+	_number_glow = GLOW_MATERIAL.duplicate() as ShaderMaterial
+	_number_glow.set_shader_parameter("glow_color", GameColors.TEXT_PRIMARY_GLOW)
+
 	_range_label = Label.new()
 	_range_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_range_label.material = _number_glow
 	row.add_child(_range_label)
 
 	var spacer := Control.new()
@@ -111,6 +122,7 @@ func _ready() -> void:
 
 	_uses_label = Label.new()
 	_uses_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_uses_label.material = _number_glow
 	row.add_child(_uses_label)
 
 	# Brackets/rings/press-flash draw above the chip body and its labels.
@@ -160,10 +172,20 @@ func setup(move: Move, is_assigned: bool = false, locked: bool = false) -> void:
 
 	_chip.fill_color = _base_fill
 	_chip.empty_color = _base_empty
-	var number_color: Color = GameColors.INTERACTIVE_TEXT_DISABLED if disabled \
-			else GameColors.TEXT_PRIMARY_GLOW
-	_uses_label.add_theme_color_override("font_color", number_color)
-	_range_label.add_theme_color_override("font_color", number_color)
+	# Numbers follow the name exactly: default white + halo when healthy,
+	# halo killed + tier grey when dark. Both directions, so re-setup works.
+	if disabled:
+		_uses_label.material = null
+		_range_label.material = null
+		_uses_label.add_theme_color_override(
+				"font_color", GameColors.INTERACTIVE_TEXT_DISABLED)
+		_range_label.add_theme_color_override(
+				"font_color", GameColors.INTERACTIVE_TEXT_DISABLED)
+	else:
+		_uses_label.material = _number_glow
+		_range_label.material = _number_glow
+		_uses_label.remove_theme_color_override("font_color")
+		_range_label.remove_theme_color_override("font_color")
 
 
 ## The shared 10x10 elemental icon set (also used by the action menu).
