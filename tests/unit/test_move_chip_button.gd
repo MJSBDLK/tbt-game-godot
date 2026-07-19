@@ -247,11 +247,32 @@ func test_field_set_knobs_hide_data_columns() -> void:
 	chip_button.show_scheme_and_range = false
 	chip_button.show_uses = false
 	add_child_autofree(chip_button)
-	chip_button.setup(_make_move())
+	# Outside a container, min size alone never sizes the chip — set it.
+	chip_button.size = Vector2(120, 14)
+	var long_named := _make_move()
+	long_named.move_name = "Uppercut"
+	chip_button.prefer_full_name = true
+	chip_button.setup(long_named)
 	assert_false(chip_button._scheme_glyph.visible)
 	assert_false(chip_button._range_label.visible)
 	assert_false(chip_button._uses_label.visible)
 	assert_true(chip_button._name_label.visible, "identity always shows")
+	await wait_process_frames(2)
+	assert_gt(chip_button._name_label.size.x, MoveChipButton.NAME_COLUMN_WIDTH,
+			"identity-only: the name takes the row instead of truncating"
+			+ " (RQD 2026-07-19, 'Uppercut')")
+
+
+func test_scheme_glyph_wears_the_orthogonal_glow() -> void:
+	var chip_button := _make_chip_button(_make_move())
+	var glyph_material := chip_button._scheme_glyph.material as ShaderMaterial
+	assert_not_null(glyph_material,
+			"same glow shader as every HUD glyph — 'why not just use the"
+			+ " orthogonal glow?' (RQD 2026-07-19)")
+	assert_eq(glyph_material.get_shader_parameter("glow_color"),
+			TargetSchemeGlyph.OUTLINE_COLOR, "dark glow = the pixel-art outline")
+	assert_eq(TargetSchemeGlyph._shape_texture(false).get_size(), Vector2(12, 12),
+			"1px transparent pad gives the shader texels to paint into")
 
 
 func test_display_only_mode_removes_all_interactivity() -> void:

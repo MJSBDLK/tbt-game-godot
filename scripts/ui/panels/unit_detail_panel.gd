@@ -255,7 +255,6 @@ func _cache_node_references() -> void:
 		if child.name.begins_with("MovePanel") and child is PanelContainer:
 			var chip_button := MoveChipButton.new()
 			chip_button.custom_minimum_size = Vector2(0, 14)
-			chip_button.name_column_width = 60.0
 			chip_button.prefer_full_name = true
 			# Identity-only selectors: the pane beside these already shows
 			# Power/Rng/Acc/Usg — on-chip data was duplication that couldn't

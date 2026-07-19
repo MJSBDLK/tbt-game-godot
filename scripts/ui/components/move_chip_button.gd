@@ -118,14 +118,21 @@ func _ready() -> void:
 	_name_glow = GLOW_MATERIAL.duplicate() as ShaderMaterial
 	_name_glow.set_shader_parameter("glow_color", GameColors.TEXT_PRIMARY_GLOW)
 	_name_label.material = _name_glow
-	# Fixed column: with overrun trimming, the text no longer drives the
-	# minimum width, so every chip's scheme/range columns line up. Trim, NOT
-	# clip_text: scissor clipping also cut the glow halo at the label's
-	# left/top edge (RQD bug 2026-07-19) — trimming reshapes the text and
-	# leaves the halo intact.
+	# Trim, NOT clip_text: scissor clipping also cut the glow halo at the
+	# label's left/top edge (RQD bug 2026-07-19) — trimming reshapes the
+	# text and leaves the halo intact.
 	_name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_CHAR
-	_name_label.custom_minimum_size.x = name_column_width
-	row.add_child(_seat_label(_name_label))
+	var name_seat := _seat_label(_name_label)
+	if show_scheme_and_range or show_uses:
+		# Fixed column so the data columns to the right line up down the menu.
+		_name_label.custom_minimum_size.x = name_column_width
+	else:
+		# Identity-only chips have nothing to align right of the name — a
+		# fixed column would only truncate it (RQD 2026-07-19, "Uppercut").
+		# The name takes the row; trim fires only on genuine overrun. The
+		# EXPAND goes on the SEAT — it, not the label, is the row's child.
+		name_seat.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(name_seat)
 
 	# Scheme + digits — target scheme glyph, then the range band. The spacer
 	# after them is a DECISION, not layout convenience: range never sits
@@ -154,6 +161,9 @@ func _ready() -> void:
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Its only job is pushing uses to the right edge — without uses it would
+	# just steal the slack an expanding name needs.
+	spacer.visible = show_uses
 	row.add_child(spacer)
 
 	_uses_label = Label.new()
