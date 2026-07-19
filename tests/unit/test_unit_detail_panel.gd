@@ -38,3 +38,54 @@ func test_move_detail_populates_range_value() -> void:
 	panel._show_move_detail(0)
 	assert_eq(panel._move_detail_range_label.text, "3",
 			"Move detail shows the move's base range")
+
+
+# =============================================================================
+# Chip adoption (2026-07-19): MovePanel tablets -> real MoveChipButtons
+# =============================================================================
+
+func _make_move(move_name: String, uses: int = 3, max_uses: int = 5) -> Move:
+	var move := Move.new()
+	move.move_name = move_name
+	move.element_type = Enums.ElementalType.FIRE
+	move.current_uses = uses
+	move.max_uses = max_uses
+	return move
+
+
+func _make_panel_with_moves(moves: Array[Move]) -> UnitDetailPanel:
+	var panel := _make_panel() as UnitDetailPanel
+	var data := CharacterData.new()
+	data.equipped_moves = moves
+	panel.show_character(data)
+	return panel
+
+
+func test_tablets_became_vocabulary_chips_with_full_names() -> void:
+	var panel := _make_panel_with_moves([_make_move("Frost Lance")])
+	assert_gt(panel._move_chips.size(), 1, "scene tablets replaced in place")
+	for chip_button: MoveChipButton in panel._move_chips:
+		assert_true(chip_button.prefer_full_name, "detail venue shows full names")
+	assert_true(panel._move_chips[0].visible)
+	assert_eq(panel._move_chips[0]._name_label.text, "Frost Lance",
+			"full name, not the menu abbreviation")
+	assert_false(panel._move_chips[1].visible, "empty slots hide")
+
+
+func test_selection_brackets_mark_the_inspected_move() -> void:
+	var panel := _make_panel_with_moves([_make_move("Ember"), _make_move("Spark")])
+	panel._select(UnitDetailPanel.SelectionType.MOVE, 1)
+	assert_true(panel._move_chips[1].selected, "brackets = 'you are inspecting this'")
+	assert_false(panel._move_chips[0].selected)
+	panel._select(UnitDetailPanel.SelectionType.MOVE, 1)
+	assert_false(panel._move_chips[1].selected,
+			"re-click toggles the inspection off")
+
+
+func test_depleted_chip_stays_inspectable_via_denied() -> void:
+	var panel := _make_panel_with_moves([_make_move("Spark", 0, 4)])
+	var spark := panel._move_chips[0]
+	assert_true(spark.disabled, "depleted wears the dark tier here too")
+	spark.denied.emit()
+	assert_true(spark.selected,
+			"denied routes to select — in this venue the detail pane IS the why")

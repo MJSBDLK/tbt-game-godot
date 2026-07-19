@@ -54,7 +54,7 @@ var _hp_censor: StaticCensorOverlay = null
 var _stat_rows: Dictionary = {}  # display_key -> { bar_base, bar_bonus, bar_bg, value_label, modifier_label, name_label }
 
 # Center column tablets
-var _move_panels: Array[PanelContainer] = []
+var _move_chips: Array[MoveChipButton] = []
 var _passive_panels: Array[PanelContainer] = []
 var _status_panels: Array[PanelContainer] = []
 var _passives_section: VBoxContainer = null
@@ -247,11 +247,20 @@ func _cache_node_references() -> void:
 			"bar_bonus": bar_container.get_node("StatBonusBar"),
 		}
 
-	# Center column — move panels
+	# Center column — move chips. The scene's MovePanel tablets are replaced
+	# in place with real MoveChipButtons (2026-07-19 adoption): same component
+	# as the action menu, wider name column, full names.
 	var moves_section: VBoxContainer = center_column.get_node("MovesSection")
 	for child: Node in moves_section.get_children():
 		if child.name.begins_with("MovePanel") and child is PanelContainer:
-			_move_panels.append(child as PanelContainer)
+			var chip_button := MoveChipButton.new()
+			chip_button.custom_minimum_size = Vector2(0, 14)
+			chip_button.name_column_width = 60.0
+			chip_button.prefer_full_name = true
+			child.add_sibling(chip_button)
+			moves_section.remove_child(child)
+			child.queue_free()
+			_move_chips.append(chip_button)
 
 	# Center column — passive panels
 	_passives_section = center_column.get_node("PassivesSection")
@@ -381,15 +390,15 @@ func _cache_node_references() -> void:
 # =============================================================================
 
 func _setup_tablet_input() -> void:
-	for i: int in range(_move_panels.size()):
+	for i: int in range(_move_chips.size()):
 		var index := i
-		_ensure_unique_style(_move_panels[i])
-		_set_children_mouse_pass(_move_panels[i])
-		_move_panels[i].gui_input.connect(func(event: InputEvent):
-			if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-				_select(SelectionType.MOVE, index)
-		)
-		_move_panels[i].mouse_filter = Control.MOUSE_FILTER_STOP
+		# Chips are real buttons — pressed inspects. A depleted chip is
+		# disabled-tier but must STAY inspectable: in this venue the "why"
+		# IS the detail pane, so denied routes to the same select.
+		_move_chips[i].pressed.connect(func() -> void:
+			_select(SelectionType.MOVE, index))
+		_move_chips[i].denied.connect(func() -> void:
+			_select(SelectionType.MOVE, index))
 
 	for i: int in range(_passive_panels.size()):
 		var index := i
@@ -458,9 +467,13 @@ func _deselect_all() -> void:
 
 
 func _update_tablet_selection() -> void:
-	# Reset all tablets to default appearance
-	for panel: PanelContainer in _move_panels:
-		_set_tablet_selected(panel, false)
+	# Move chips speak the vocabulary: snapping brackets = "you are
+	# inspecting this" (§14 selected). The other tablet families keep the
+	# border trick until they get their own adoption.
+	for i: int in range(_move_chips.size()):
+		_move_chips[i].selected = \
+				_selection_type == SelectionType.MOVE and i == _selection_index
+
 	for panel: PanelContainer in _passive_panels:
 		_set_tablet_selected(panel, false)
 	for panel: PanelContainer in _status_panels:
@@ -468,11 +481,8 @@ func _update_tablet_selection() -> void:
 	for panel: PanelContainer in _injury_panels:
 		_set_tablet_selected(panel, false)
 
-	# Highlight the selected tablet
 	var panels: Array[PanelContainer] = []
 	match _selection_type:
-		SelectionType.MOVE:
-			panels = _move_panels
 		SelectionType.PASSIVE:
 			panels = _passive_panels
 		SelectionType.STATUS:
@@ -689,29 +699,19 @@ func _update_stats() -> void:
 
 
 func _update_move_tablets() -> void:
-	for i: int in range(_move_panels.size()):
-		var panel: PanelContainer = _move_panels[i]
-		var hbox: HBoxContainer = panel.get_node("HBoxContainer")
-		var name_label: Label = _find_label_in_node(hbox.get_node("MarginContainer"))
-		var usage_label: Label = _find_label_in_node(hbox.get_node("UsagesContainer"))
-		var icon_container: MarginContainer = hbox.get_node("ElemetalTypeIconContainer") if hbox.has_node("ElemetalTypeIconContainer") else null
-		var type_icon: TextureRect = icon_container.get_node("TextureRect") if icon_container else null
-
-		if i < _character_data.equipped_moves.size():
+	for i: int in range(_move_chips.size()):
+		var chip_button := _move_chips[i]
+		if i < _character_data.equipped_moves.size() \
+				and _character_data.equipped_moves[i] != null:
 			var move: Move = _character_data.equipped_moves[i]
-			panel.visible = true
-			if name_label:
-				name_label.text = move.move_name.to_upper()
-			if usage_label:
-				usage_label.text = "%d/%d" % [move.current_uses, move.max_uses]
-			if type_icon:
-				type_icon.texture = _get_elemental_icon(move.element_type)
-				type_icon.visible = move.element_type != Enums.ElementalType.NONE
-			# VOID lock FX — only meaningful with a live unit (lock state is per-battle).
-			VoidLockOverlay.set_locked(panel, _unit != null and _unit.is_move_index_locked(i))
+			chip_button.visible = true
+			# VOID lock is per-battle — only meaningful with a live unit.
+			# Assigned shows its parked brackets in this venue too.
+			chip_button.setup(move,
+					_unit != null and _unit.assigned_move == move,
+					_unit != null and _unit.is_move_index_locked(i))
 		else:
-			panel.visible = false
-			VoidLockOverlay.set_locked(panel, false)
+			chip_button.visible = false
 
 
 func _update_passive_tablets() -> void:

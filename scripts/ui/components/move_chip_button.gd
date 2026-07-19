@@ -30,6 +30,12 @@ const TEXT_TOP_MARGIN: int = 2
 ## Why pressing is currently refused — surfaced by deny UI (styled tooltip).
 var disabled_reason: String = ""
 
+## Venue knobs: wider contexts (unit detail panel) widen the name column and
+## show the full move name instead of the menu abbreviation. Set BEFORE the
+## chip enters the tree — the column width is applied in _ready.
+@export var name_column_width: float = NAME_COLUMN_WIDTH
+@export var prefer_full_name: bool = false
+
 ## This move is the unit's assigned move: parked brackets, persistent.
 var assigned: bool = false:
 	set(value):
@@ -103,7 +109,7 @@ func _ready() -> void:
 	# Fixed column: with clip_text on, the text no longer drives the minimum
 	# width, so every chip's scheme/range columns line up.
 	_name_label.clip_text = true
-	_name_label.custom_minimum_size.x = NAME_COLUMN_WIDTH
+	_name_label.custom_minimum_size.x = name_column_width
 	row.add_child(_seat_label(_name_label))
 
 	# Scheme + digits — target scheme glyph, then the range band. The spacer
@@ -161,7 +167,10 @@ func setup(move: Move, is_assigned: bool = false, locked: bool = false) -> void:
 	_chip.border_color = GameColorPalette.get_color("Gray", 7)
 	_chip.fill_percent = float(move.current_uses) / float(move.max_uses) \
 			if move.max_uses > 0 else 0.0
-	_name_label.text = move.abbrev_name if move.abbrev_name != "" else move.move_name
+	if prefer_full_name and move.move_name != "":
+		_name_label.text = move.move_name
+	else:
+		_name_label.text = move.abbrev_name if move.abbrev_name != "" else move.move_name
 	_uses_label.text = "%d/%d" % [move.current_uses, move.max_uses]
 	_icon.texture = elemental_icon(move.element_type)
 	_icon.material = null
