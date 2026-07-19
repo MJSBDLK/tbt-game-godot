@@ -179,6 +179,16 @@ func test_numbers_wear_the_names_font_scheme() -> void:
 			GameColors.INTERACTIVE_TEXT_DISABLED)
 
 
+func test_range_wears_the_mini_font() -> void:
+	var chip_button := _make_chip_button(_make_move())
+	assert_true(chip_button._range_label.has_theme_font_override("font"),
+			"range digits in the 5px annotation font (trial 2026-07-19)")
+	assert_eq(chip_button._range_label.get_theme_font_size("font_size"), 5)
+	assert_eq(chip_button._range_label.vertical_alignment,
+			VERTICAL_ALIGNMENT_BOTTOM,
+			"5-in-8 centering lands on half-pixels — bottom edge is the integer seat")
+
+
 func test_disabled_tier_greys_the_scheme_glyph() -> void:
 	var chip_button := _make_chip_button(_make_move(0, 4))
 	assert_eq(chip_button._scheme_glyph.glyph_color,

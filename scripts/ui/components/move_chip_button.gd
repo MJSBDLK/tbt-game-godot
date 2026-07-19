@@ -116,7 +116,14 @@ func _ready() -> void:
 	_number_glow.set_shader_parameter("glow_color", GameColors.TEXT_PRIMARY_GLOW)
 
 	_range_label = Label.new()
-	_range_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	# Mini-font trial (RQD 2026-07-19): range as a 5px annotation, not an 8px
+	# stat — the size split keeps it from pairing with uses' digits. Bottom-
+	# aligned so the small line shares the big labels' bottom edge at integer
+	# positions (centering 5 in 8 lands on half-pixels).
+	_range_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	if UIManager.font_5px != null:
+		_range_label.add_theme_font_override("font", UIManager.font_5px)
+		_range_label.add_theme_font_size_override("font_size", 5)
 	_range_label.material = _number_glow
 	row.add_child(_seat_label(_range_label))
 
