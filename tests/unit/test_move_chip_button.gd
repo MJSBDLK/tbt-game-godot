@@ -80,7 +80,7 @@ func test_backlight_lifts_both_body_colors_together() -> void:
 			"the vocabulary never touches the resource axis")
 
 
-func test_type_icon_rides_the_right_side_and_follows_the_tier() -> void:
+func test_type_icon_leads_the_row_and_follows_the_tier() -> void:
 	var chip_button := _make_chip_button(_make_move())
 	assert_not_null(chip_button._icon.texture, "FIRE loads its 10x10 icon")
 	assert_null(chip_button._icon.material, "healthy chip: icon in full color")

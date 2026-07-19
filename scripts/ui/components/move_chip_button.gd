@@ -60,6 +60,12 @@ func _ready() -> void:
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(row)
 
+	# Elemental type icon leads the row — same 10x10 set the action menu uses.
+	_icon = TextureRect.new()
+	_icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(_icon)
+
 	_name_label = Label.new()
 	_name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_name_label.material = GLOW_MATERIAL.duplicate()
@@ -75,12 +81,6 @@ func _ready() -> void:
 	_uses_label = Label.new()
 	_uses_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(_uses_label)
-
-	# Elemental type icon, rightmost — same 10x10 set the action menu uses.
-	_icon = TextureRect.new()
-	_icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
-	_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(_icon)
 
 	# Brackets/rings/press-flash draw above the chip body and its labels.
 	move_child(_chrome_front, get_child_count() - 1)
