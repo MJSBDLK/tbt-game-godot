@@ -138,6 +138,10 @@ func _ready() -> void:
 	# after them is a DECISION, not layout convenience: range never sits
 	# beside uses (two number pairs side by side misread — Lawrence review).
 	_scheme_glyph = TargetSchemeGlyph.new()
+	# The glyph's ramp shadow renders in the chip shader (it owns the
+	# fill/empty boundary) — keep the mask rect synced to wherever layout
+	# puts the glyph.
+	_scheme_glyph.item_rect_changed.connect(_update_scheme_shadow)
 	row.add_child(_scheme_glyph)
 
 	# Numbers wear the name's font scheme — same color, same glyph glow — so
@@ -197,6 +201,7 @@ func setup(move: Move, is_assigned: bool = false, locked: bool = false) -> void:
 	_chip.border_color = GameColorPalette.get_color("Gray", 7)
 	_chip.fill_percent = float(move.current_uses) / float(move.max_uses) \
 			if move.max_uses > 0 else 0.0
+	_update_scheme_shadow()
 	if prefer_full_name and move.move_name != "":
 		_name_label.text = move.move_name
 	else:
@@ -242,6 +247,9 @@ func setup(move: Move, is_assigned: bool = false, locked: bool = false) -> void:
 
 	_chip.fill_color = _base_fill
 	_chip.empty_color = _base_empty
+	# Chrome state (incl. the shader's shadow pair) must land NOW, not on the
+	# first hover — the assigned setter only redraws on change.
+	_redraw_chrome()
 	# Numbers follow the name exactly: default white + halo when healthy,
 	# halo killed + tier grey when dark. Both directions, so re-setup works.
 	if disabled:
@@ -351,3 +359,41 @@ func _redraw_chrome() -> void:
 	# The body rides the press shift with the rest of the chrome.
 	var press_offset: float = float(PRESS_SHIFT_PIXELS) if is_pressed() else 0.0
 	_chip.position.y = press_offset
+	# Shadow pair follows the CURRENT body: one ramp step down, lift-aware,
+	# darkened grey on the disabled tier (Lawrence 2026-07-20).
+	var chip_material := _chip.material as ShaderMaterial
+	if chip_material != null:
+		if disabled:
+			chip_material.set_shader_parameter(
+					"fill_shadow_color", _base_fill.darkened(0.4))
+			chip_material.set_shader_parameter(
+					"empty_shadow_color", _base_empty.darkened(0.4))
+		else:
+			chip_material.set_shader_parameter("fill_shadow_color",
+					GameColors.get_move_chip_foreground_shadow(_element, _backlight_level))
+			chip_material.set_shader_parameter("empty_shadow_color",
+					GameColors.get_move_chip_background_shadow(_element, _backlight_level))
+		_update_scheme_shadow()
+
+
+## Syncs the chip shader's shadow mask to the glyph: same shape texture, so
+## shape and shadow can never disagree; rect from live layout positions, so
+## it tracks the press shift and any reflow.
+func _update_scheme_shadow() -> void:
+	if _chip == null or _scheme_glyph == null or not is_inside_tree():
+		return
+	var chip_material := _chip.material as ShaderMaterial
+	if chip_material == null:
+		return
+	var enabled: bool = _scheme_glyph.visible
+	chip_material.set_shader_parameter("scheme_shadow_enabled", enabled)
+	if not enabled:
+		return
+	var mask: ImageTexture = TargetSchemeGlyph.shape_texture(_scheme_glyph.blast)
+	chip_material.set_shader_parameter("scheme_shadow_mask", mask)
+	var pad := Vector2(TargetSchemeGlyph.PAD, TargetSchemeGlyph.PAD)
+	var rect_position: Vector2 = _scheme_glyph.global_position \
+			- _chip.global_position - pad + TargetSchemeGlyph.SHADOW_OFFSET
+	chip_material.set_shader_parameter("scheme_shadow_rect",
+			Vector4(rect_position.x, rect_position.y,
+					mask.get_width(), mask.get_height()))

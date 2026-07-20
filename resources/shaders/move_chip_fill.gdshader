@@ -13,6 +13,17 @@ uniform vec2 rect_size = vec2(100.0, 14.0);
 // void_lock_overlay (shadow + sparkles) drawn on top. See VoidLockOverlay.
 uniform float lock_desaturate : hint_range(0.0, 1.0) = 0.0;
 
+// Scheme-glyph drop shadow (Lawrence 2026-07-20): never a black overlay —
+// the shadow is the occluded surface pushed one step DOWN its own ramp, so
+// it splits across the usage boundary per pixel. Rendering it HERE reuses
+// this shader's own fill/empty test: the split can't drift from the real
+// boundary. Mask = the glyph's shape texture; rect in chip pixels.
+uniform bool scheme_shadow_enabled = false;
+uniform sampler2D scheme_shadow_mask : filter_nearest;
+uniform vec4 scheme_shadow_rect = vec4(0.0, 0.0, 12.0, 12.0);
+uniform vec4 fill_shadow_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
+uniform vec4 empty_shadow_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
+
 float rounded_box_sdf(vec2 center_dist, vec2 half_size, float radius) {
 	vec2 q = abs(center_dist) - half_size + vec2(radius);
 	return length(max(q, vec2(0.0))) + min(max(q.x, q.y), 0.0) - radius;
@@ -28,6 +39,15 @@ void fragment() {
 	float skew = tan(radians(skew_angle)) * rect_size.y / (2.0 * rect_size.x);
 	float threshold = fill_percent + skew - (skew * 2.0 * UV.y);
 	vec4 inner = UV.x < threshold ? fill_color : empty_color;
+
+	if (scheme_shadow_enabled) {
+		vec2 mask_uv = (pos_px - scheme_shadow_rect.xy) / scheme_shadow_rect.zw;
+		if (mask_uv.x >= 0.0 && mask_uv.x < 1.0 && mask_uv.y >= 0.0 && mask_uv.y < 1.0) {
+			float mask_alpha = texture(scheme_shadow_mask, mask_uv).a;
+			vec4 shadow = UV.x < threshold ? fill_shadow_color : empty_shadow_color;
+			inner = mix(inner, shadow, mask_alpha);
+		}
+	}
 
 	// Blend border -> inner using SDF distance
 	float border_blend = smoothstep(0.0, -border_px, dist);

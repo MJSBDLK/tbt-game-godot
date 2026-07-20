@@ -5,25 +5,27 @@
 ## friendly (ally/self — the loud exception). The chip owns the color choice,
 ## including the disabled grey-down; this node only draws.
 ##
-## The outline is the game's own orthogonal_glow shader with a dark glow
-## ("why not just use the orthogonal glow?" — RQD 2026-07-19): the shader
-## paints around transparent texture edges, so the glyph renders from a
-## generated texture with 1px of transparent padding rather than raw
-## draw_rect primitives (quads with no transparent texels can't halo).
+## The glyph's shadow is NOT drawn here: it lives in the chip's fill shader
+## (Lawrence 2026-07-20 — the shadow is the occluded body color pushed one
+## ramp step down, split per pixel across the usage boundary, and only the
+## chip shader knows where that boundary is). This node draws the tinted
+## shape; MoveChipButton feeds the same shape texture to the chip shader as
+## the shadow mask. The dark orthogonal-glow outline was tried 2026-07-19
+## and replaced by this ("restore the box shadow").
 ##
 ## When Lawrence authors real scheme art, swap the generated texture for
-## sprites and keep the same slot + material.
+## sprites — the mask plumbing keeps working as long as the sprite has
+## transparent padding.
 class_name TargetSchemeGlyph
 extends Control
 
 
 const GLYPH_SIZE: int = 10
-## Transparent padding around the cells — where the outline lives.
+## Transparent padding around the cells in the shape texture — gives the
+## shadow mask room for its 1px offset.
 const PAD: int = 1
-## Dark "glow" = the pixel-art outline. Alpha is shaped by the shader's
-## global glow_alpha, same as every text halo.
-const OUTLINE_COLOR: Color = Color(0.0, 0.0, 0.0, 1.0)
-const GLOW_MATERIAL: ShaderMaterial = preload("res://resources/hud_glow.tres")
+## Where the shadow falls relative to the shape (classic down-right).
+const SHADOW_OFFSET: Vector2 = Vector2(1, 1)
 
 ## Shape textures are shared across every chip — white cells, tinted at
 ## draw time by glyph_color.
@@ -48,19 +50,19 @@ var blast: bool = false:
 func _ready() -> void:
 	custom_minimum_size = Vector2(GLYPH_SIZE, GLYPH_SIZE)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	material = GLOW_MATERIAL.duplicate()
-	(material as ShaderMaterial).set_shader_parameter("glow_color", OUTLINE_COLOR)
 
 
 func _draw() -> void:
-	var texture := _shape_texture(blast)
+	var texture := shape_texture(blast)
 	# The quad extends PAD px past the control on every side — that's where
 	# the outline paints. Siblings don't clip against this control.
 	draw_texture_rect(texture, Rect2(Vector2(-PAD, -PAD), texture.get_size()),
 			false, glyph_color)
 
 
-static func _shape_texture(blast_shape: bool) -> ImageTexture:
+## Public: MoveChipButton feeds this same texture to the chip shader as the
+## shadow mask, so shape and shadow can never disagree.
+static func shape_texture(blast_shape: bool) -> ImageTexture:
 	if _shape_textures.has(blast_shape):
 		return _shape_textures[blast_shape]
 	var side: int = GLYPH_SIZE + PAD * 2

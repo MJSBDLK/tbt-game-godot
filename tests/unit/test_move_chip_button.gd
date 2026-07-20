@@ -261,18 +261,33 @@ func test_field_set_knobs_hide_data_columns() -> void:
 	assert_gt(chip_button._name_label.size.x, MoveChipButton.NAME_COLUMN_WIDTH,
 			"identity-only: the name takes the row instead of truncating"
 			+ " (RQD 2026-07-19, 'Uppercut')")
+	assert_false((chip_button._chip.material as ShaderMaterial)
+			.get_shader_parameter("scheme_shadow_enabled"),
+			"no glyph, no shadow")
 
 
-func test_scheme_glyph_wears_the_orthogonal_glow() -> void:
+func test_scheme_shadow_is_the_body_pushed_down_its_ramp() -> void:
+	# Lawrence 2026-07-20: the glyph's shadow is never a black overlay — it's
+	# whatever body color it occludes, one ramp step down, split per pixel
+	# across the usage boundary by the chip shader itself.
 	var chip_button := _make_chip_button(_make_move())
-	var glyph_material := chip_button._scheme_glyph.material as ShaderMaterial
-	assert_not_null(glyph_material,
-			"same glow shader as every HUD glyph — 'why not just use the"
-			+ " orthogonal glow?' (RQD 2026-07-19)")
-	assert_eq(glyph_material.get_shader_parameter("glow_color"),
-			TargetSchemeGlyph.OUTLINE_COLOR, "dark glow = the pixel-art outline")
-	assert_eq(TargetSchemeGlyph._shape_texture(false).get_size(), Vector2(12, 12),
-			"1px transparent pad gives the shader texels to paint into")
+	assert_null(chip_button._scheme_glyph.material,
+			"the outline experiment retired — the shader shadow replaces it")
+	var chip_material := chip_button._chip.material as ShaderMaterial
+	assert_true(chip_material.get_shader_parameter("scheme_shadow_enabled"))
+	assert_eq(chip_material.get_shader_parameter("fill_shadow_color"),
+			GameColorPalette.get_color("PoppyRed", 4),
+			"fill shadow = one step below the fill (PoppyRed 5 -> 4)")
+	assert_eq(chip_material.get_shader_parameter("empty_shadow_color"),
+			GameColorPalette.get_color("PoppyRed", 1),
+			"empty shadow = one step below the empty (PoppyRed 2 -> 1)")
+	chip_button._backlight_level = 1.0
+	chip_button._redraw_chrome()
+	assert_eq(chip_material.get_shader_parameter("fill_shadow_color"),
+			GameColorPalette.get_color("PoppyRed", 5),
+			"the shadow rides the backlight lift with the body")
+	assert_eq(TargetSchemeGlyph.shape_texture(false).get_size(), Vector2(12, 12),
+			"shadow mask = the glyph's own shape texture (1px pad)")
 
 
 func test_display_only_mode_removes_all_interactivity() -> void:

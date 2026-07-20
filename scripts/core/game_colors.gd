@@ -383,6 +383,23 @@ static func get_move_chip_border(element_type: Enums.ElementalType) -> Color:
 		_:                             return GameColorPalette.get_color("Gray", 4)
 
 
+# Scheme-glyph shadow pair (Lawrence 2026-07-20): the shadow is the occluded
+# body color pushed one step DOWN its own ramp — never a black overlay. Takes
+# the same lift as the body so the shadow rises with the backlight.
+static func get_move_chip_foreground_shadow(
+		element_type: Enums.ElementalType, lift: float) -> Color:
+	var ramp: Array = _MOVE_CHIP_RAMPS.get(element_type, _MOVE_CHIP_RAMP_FALLBACK)
+	return GameColorPalette.get_color_interpolated(
+			ramp[0], ramp[2] + clampf(lift, 0.0, 1.0) - 1.0)
+
+
+static func get_move_chip_background_shadow(
+		element_type: Enums.ElementalType, lift: float) -> Color:
+	var ramp: Array = _MOVE_CHIP_RAMPS.get(element_type, _MOVE_CHIP_RAMP_FALLBACK)
+	return GameColorPalette.get_color_interpolated(
+			ramp[0], ramp[1] + clampf(lift, 0.0, 1.0) - 1.0)
+
+
 # Target-scheme glyph colors ("scheme + digits", RQD 2026-07-19): the glyph's
 # color axis is FACTION, not element. Hostile stays quiet bone — it's the
 # overwhelming default — so friendly (ally/self) is the loud exception. Teal
