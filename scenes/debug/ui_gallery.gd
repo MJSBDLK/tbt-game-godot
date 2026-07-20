@@ -110,9 +110,13 @@ func _build_snug_rig() -> VBoxContainer:
 	# The four chips also cover the data axes (Lawrence review 2026-07-19):
 	# all three damage types (Ember shows special_d's magenta sparkle) and the
 	# scheme+digits variants — melee, band, blast, friendly.
+	# Ember's 13/20 is EXACT on purpose (RQD 2026-07-20): 13/20 x MAX_FILL
+	# (0.929) x 120px puts the skewed fill/empty divider at x=72.5 at chip
+	# mid-height — straight through the scheme glyph (x 68-78), so the ramp
+	# shadow's two-tone split is eyeballable on this one chip.
 	var chip_specs: Array[Dictionary] = [
-		{"name": "Ember", "element": Enums.ElementalType.FIRE, "uses": 3,
-				"max": 5, "damage": Enums.DamageType.SPECIAL, "range": 2,
+		{"name": "Ember", "element": Enums.ElementalType.FIRE, "uses": 13,
+				"max": 20, "damage": Enums.DamageType.SPECIAL, "range": 2,
 				"aoe": 1},
 		{"name": "F. Lance", "element": Enums.ElementalType.COLD, "uses": 2,
 				"max": 3, "assigned": true, "range": 2},
