@@ -102,6 +102,11 @@ func _build_snug_rig() -> VBoxContainer:
 
 	var menu := VBoxContainer.new()
 	menu.add_theme_constant_override("separation", 2)  # action-menu spacing
+	# Width-faithful: the gallery column is wider than the real 140px menu,
+	# and stretched chips lie about geometry — the usage divider scales with
+	# width while the glyph stays pinned left, so the 13/20 crossing specimen
+	# only lands at the true 120px (RQD 2026-07-20).
+	menu.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	wrap.add_child(menu)
 
 	# Real action-menu shape: move chips on top, text buttons below.
