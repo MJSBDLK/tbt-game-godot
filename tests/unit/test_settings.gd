@@ -166,6 +166,27 @@ func test_load_mints_audio_buses_and_applies_engine_prefs() -> void:
 	assert_eq(Engine.max_fps, 0, "0 restores uncapped")
 
 
+func test_tooltip_hold_defaults_snaps_and_clamps() -> void:
+	var settings := _make_settings()
+	assert_eq(settings.tooltip_hold_ms, 200, "default 200ms — the fastest allowed peek")
+	settings.set_tooltip_hold_ms(437)
+	assert_eq(settings.tooltip_hold_ms, 450, "values snap to the 50ms slider grid")
+	settings.set_tooltip_hold_ms(100)
+	assert_eq(settings.tooltip_hold_ms, 200,
+			"the 200ms floor is a softlock guard — below it, ordinary taps"
+			+ " start reading as long-presses and pressing becomes impossible")
+	settings.set_tooltip_hold_ms(4000)
+	assert_eq(settings.tooltip_hold_ms, 1000, "1s ceiling")
+
+
+func test_tooltip_hold_persists_across_instances() -> void:
+	var writer := _make_settings()
+	writer.set_tooltip_hold_ms(550)
+	var reader := _make_settings()
+	reader.load_settings()
+	assert_eq(reader.tooltip_hold_ms, 550, "hold delay persisted")
+
+
 func test_zero_volume_mutes_the_bus() -> void:
 	var settings := _make_settings()
 	settings.set_music_volume(0.0)

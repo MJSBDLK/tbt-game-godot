@@ -7,8 +7,21 @@
 extends GutTest
 
 
+var _saved_hold_ms: int = 200
+
+
+func before_each() -> void:
+	# Deterministic peek threshold regardless of the runner's settings.cfg —
+	# direct var write, never the setter (tests must not persist).
+	_saved_hold_ms = Settings.tooltip_hold_ms
+	Settings.tooltip_hold_ms = 200
+
+
 func after_each() -> void:
 	Settings.ui_motion_enabled = true
+	Settings.tooltip_hold_ms = _saved_hold_ms
+	MoveTooltip.dismiss()
+	DenyTooltip.dismiss()
 
 
 func _make_move(uses: int = 3, max_uses: int = 5) -> Move:
@@ -305,3 +318,112 @@ func test_element_colors_come_from_the_palette_not_the_vocabulary() -> void:
 			"body = element skin")
 	assert_eq(chip_button.base_background, Color.TRANSPARENT,
 			"no flat vocabulary background behind the chip")
+
+
+# =============================================================================
+# Hold-to-peek (ui-style-guide.md §14 "Detail tooltips", built 2026-07-21):
+# one gesture verb on every input — HOLD to inspect, release to dismiss.
+# =============================================================================
+
+func _mouse_button(button: int, pressed: bool, emulated: bool = false) -> InputEventMouseButton:
+	var event := InputEventMouseButton.new()
+	event.button_index = button
+	event.pressed = pressed
+	if emulated:
+		event.device = InputEvent.DEVICE_ID_EMULATION
+	return event
+
+
+func test_right_click_is_hold_to_peek() -> void:
+	var chip_button := _make_chip_button(_make_move())
+	assert_true(chip_button._handle_peek_input(_mouse_button(MOUSE_BUTTON_RIGHT, true)),
+			"the peek consumes the right press")
+	assert_true(MoveTooltip.is_open_for(chip_button), "hold right click = inspect")
+	assert_true(chip_button._handle_peek_input(_mouse_button(MOUSE_BUTTON_RIGHT, false)))
+	assert_false(MoveTooltip.is_open_for(chip_button),
+			"release dismisses — hold is the verb, on every input")
+
+
+func test_touch_hold_matures_into_a_peek_and_swallows_the_release() -> void:
+	var chip_button := _make_chip_button(_make_move())
+	assert_false(chip_button._handle_peek_input(_mouse_button(MOUSE_BUTTON_LEFT, true, true)),
+			"the touch press still presses — the chip gives feedback DURING the hold")
+	assert_gte(chip_button._peek_hold_start_ms, 0, "the hold armed")
+	await wait_seconds(0.3)
+	assert_true(MoveTooltip.is_open_for(chip_button),
+			"the hold matured past Settings.tooltip_hold_ms")
+	assert_true(chip_button._handle_peek_input(_mouse_button(MOUSE_BUTTON_LEFT, false, true)),
+			"the release is swallowed — peeking must never cast (the"
+			+ " not-confuse-the-player rule)")
+	assert_false(MoveTooltip.is_open_for(chip_button))
+
+
+func test_real_mouse_left_hold_never_peeks() -> void:
+	var chip_button := _make_chip_button(_make_move())
+	chip_button._handle_peek_input(_mouse_button(MOUSE_BUTTON_LEFT, true))
+	assert_eq(chip_button._peek_hold_start_ms, -1,
+			"a desktop click has no tap/hold ambiguity — slow clicks stay clicks;"
+			+ " right click is the mouse's peek verb")
+	await wait_seconds(0.3)
+	assert_false(MoveTooltip.is_open_for(chip_button))
+
+
+func test_quick_tap_disarms_without_a_card() -> void:
+	var chip_button := _make_chip_button(_make_move())
+	chip_button._handle_peek_input(_mouse_button(MOUSE_BUTTON_LEFT, true, true))
+	assert_false(chip_button._handle_peek_input(_mouse_button(MOUSE_BUTTON_LEFT, false, true)),
+			"a release before the threshold isn't the peek's business — the tap taps")
+	assert_eq(chip_button._peek_hold_start_ms, -1)
+	await wait_seconds(0.3)
+	assert_false(MoveTooltip.is_open_for(chip_button), "no card from a tap")
+
+
+func test_controller_peek_action_holds_the_card() -> void:
+	var chip_button := _make_chip_button(_make_move())
+	var press := InputEventJoypadButton.new()
+	press.button_index = JOY_BUTTON_BACK
+	press.pressed = true
+	assert_true(chip_button._handle_peek_input(press),
+			"tooltip_peek (Back/R3) reaches the focused chip through gui_input")
+	assert_true(MoveTooltip.is_open_for(chip_button))
+	var release := InputEventJoypadButton.new()
+	release.button_index = JOY_BUTTON_BACK
+	release.pressed = false
+	assert_true(chip_button._handle_peek_input(release))
+	assert_false(MoveTooltip.is_open_for(chip_button))
+
+
+func test_peek_disabled_venue_is_inert() -> void:
+	var chip_button := MoveChipButton.new()
+	chip_button.peek_enabled = false
+	add_child_autofree(chip_button)
+	chip_button.setup(_make_move())
+	assert_false(chip_button._handle_peek_input(_mouse_button(MOUSE_BUTTON_RIGHT, true)),
+			"no-op venue (unit detail): the pane beside the chip IS the card")
+	assert_false(MoveTooltip.is_open_for(chip_button))
+
+
+func test_depleted_chip_still_peeks() -> void:
+	var chip_button := _make_chip_button(_make_move(0, 4))
+	assert_true(chip_button.disabled)
+	chip_button._handle_peek_input(_mouse_button(MOUSE_BUTTON_RIGHT, true))
+	assert_true(MoveTooltip.is_open_for(chip_button),
+			"a depleted move's spec sheet is exactly what a player wants to read;"
+			+ " the quick tap still denies")
+
+
+func test_hiding_the_chip_takes_the_card_down() -> void:
+	var chip_button := _make_chip_button(_make_move())
+	chip_button._handle_peek_input(_mouse_button(MOUSE_BUTTON_RIGHT, true))
+	assert_true(MoveTooltip.is_open_for(chip_button))
+	chip_button.hide()
+	assert_false(MoveTooltip.is_open_for(chip_button),
+			"a menu closing via visible=false must not leave a floating card")
+
+
+func test_resetup_closes_a_stale_card() -> void:
+	var chip_button := _make_chip_button(_make_move())
+	chip_button._handle_peek_input(_mouse_button(MOUSE_BUTTON_RIGHT, true))
+	chip_button.setup(_make_move(1, 5))
+	assert_false(MoveTooltip.is_open_for(chip_button),
+			"re-setup means new data — an open card would show stale numbers")

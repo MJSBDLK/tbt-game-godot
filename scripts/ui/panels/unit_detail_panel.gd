@@ -262,6 +262,9 @@ func _cache_node_references() -> void:
 			# RQD 2026-07-19).
 			chip_button.show_scheme_and_range = false
 			chip_button.show_uses = false
+			# No-op venue for hold-to-peek (RQD 2026-07-21): the detail pane
+			# beside these chips IS the tooltip's content, live and larger.
+			chip_button.peek_enabled = false
 			child.add_sibling(chip_button)
 			moves_section.remove_child(child)
 			child.queue_free()

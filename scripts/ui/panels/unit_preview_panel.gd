@@ -34,6 +34,11 @@ var _status_container: GridContainer = null
 # Threat-zone pin chip (enemies only) — see _build_range_toggle
 var _range_toggle_button: Button = null
 
+# Touch-only hold-to-peek (ui-style-guide.md §14) — see _input below.
+var _peek_chip: MoveChipButton = null
+var _peek_hold_start_ms: int = -1
+var _peek_open: bool = false
+
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -109,8 +114,72 @@ func show_unit(unit: Unit) -> void:
 
 
 func hide_panel() -> void:
+	_end_peek()
 	_tracked_unit = null
 	visible = false
+
+
+# =============================================================================
+# TOUCH HOLD-TO-PEEK (ui-style-guide.md §14 "Detail tooltips")
+# =============================================================================
+# This venue's chips are display-only and MOUSE-transparent — a mouse over the
+# panel hovers the map tiles underneath, which flips the panel to the other
+# side (the M&K/controller answer: the panel dodges the cursor; no tooltip).
+# Touch has no wandering cursor to dodge, so a genuine touch HOLD on a chip
+# opens the MoveTooltip instead. Watched here at the panel level in _input
+# precisely because the chips' MOUSE_FILTER_IGNORE (the pass-through the dodge
+# depends on) must stay. Touch presses that land on a chip are consumed — a
+# tap falling through to the map would dismiss the panel before the hold could
+# mature.
+
+func _input(event: InputEvent) -> void:
+	if not visible:
+		return
+	var mouse := event as InputEventMouseButton
+	if mouse == null or mouse.button_index != MOUSE_BUTTON_LEFT \
+			or not MoveTooltip.is_touch_pointer(mouse):
+		return
+	if mouse.pressed:
+		var chip := _chip_at(mouse.position)
+		if chip == null:
+			return
+		_peek_chip = chip
+		_peek_hold_start_ms = Time.get_ticks_msec()
+		get_viewport().set_input_as_handled()
+	else:
+		var had_peek: bool = _peek_open or _peek_hold_start_ms >= 0
+		_end_peek()
+		if had_peek:
+			get_viewport().set_input_as_handled()
+
+
+func _process(_delta: float) -> void:
+	if _peek_hold_start_ms < 0 \
+			or Time.get_ticks_msec() - _peek_hold_start_ms < Settings.tooltip_hold_ms:
+		return
+	_peek_hold_start_ms = -1
+	if _peek_chip != null and is_instance_valid(_peek_chip) \
+			and _peek_chip.get_move() != null:
+		_peek_open = true
+		MoveTooltip.show_for(_peek_chip, _peek_chip.get_move())
+
+
+func _chip_at(point: Vector2) -> MoveChipButton:
+	if _moves_container == null:
+		return null
+	for child: Node in _moves_container.get_children():
+		var chip := child as MoveChipButton
+		if chip != null and chip.visible and chip.get_global_rect().has_point(point):
+			return chip
+	return null
+
+
+func _end_peek() -> void:
+	_peek_hold_start_ms = -1
+	if _peek_open and _peek_chip != null and is_instance_valid(_peek_chip):
+		MoveTooltip.dismiss_for(_peek_chip)
+	_peek_open = false
+	_peek_chip = null
 
 
 func refresh() -> void:

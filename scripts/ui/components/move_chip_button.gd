@@ -43,6 +43,15 @@ var disabled_reason: String = ""
 @export var show_scheme_and_range: bool = true
 @export var show_uses: bool = true
 
+## Venue knob: hold-to-peek detail card (MoveTooltip; ui-style-guide.md §14).
+## On wherever a chip appears without its numbers spelled out nearby; the
+## detail panel turns it off — its detail pane IS the card's content, so a
+## tooltip there would only stack noise (RQD 2026-07-21, "no-op in the detail
+## panel"). The preview panel does NOT use this path either: its chips are
+## mouse-transparent (the map hover underneath flips the panel away — the
+## M&K/controller answer), so the panel itself watches for touch holds.
+@export var peek_enabled: bool = true
+
 ## This move is the unit's assigned move: parked brackets, persistent.
 var assigned: bool = false:
 	set(value):
@@ -52,6 +61,12 @@ var assigned: bool = false:
 		_redraw_chrome()
 
 var _chip: MoveChip = null
+## The configured move — kept for the peek card (and venue hit-testing).
+var _move: Move = null
+## Wall-clock ms when a genuine touch press started arming the hold-to-peek;
+## -1 = not armed. Matured in _process against Settings.tooltip_hold_ms.
+var _peek_hold_start_ms: int = -1
+var _peek_open: bool = false
 var _name_label: Label = null
 var _uses_label: Label = null
 var _icon: TextureRect = null
@@ -183,12 +198,20 @@ func _ready() -> void:
 	# Brackets/rings/press-flash draw above the chip body and its labels.
 	move_child(_chrome_front, get_child_count() - 1)
 
+	# A finger dragging off the chip abandons both the arming hold and an open
+	# peek — release-elsewhere must not leave a card orphaned.
+	mouse_exited.connect(_on_peek_pointer_exited)
+
 
 ## Configure from a Move. `locked` = sealed by Void Lock (uses stay visible —
 ## the lock took the move, not the PP); depletion is read off the Move itself.
 ## Re-runnable: panels reuse chips across units/refreshes, so the disabled
 ## tier fully resets before being re-derived from the new move.
 func setup(move: Move, is_assigned: bool = false, locked: bool = false) -> void:
+	# A re-setup means the data changed — an open card would be showing stale
+	# numbers, so it closes rather than lie.
+	_close_peek()
+	_move = move
 	disabled = false
 	disabled_reason = ""
 	_name_label.material = _name_glow
@@ -292,11 +315,20 @@ static func _seat_label(label: Label) -> MarginContainer:
 
 ## Non-interactive display contexts (unit preview): the chip skin and data
 ## still communicate, but nothing hovers, focuses, or presses — so the lit
-## contract isn't violated by an unpressable chip. The long-press tooltip
-## will later re-open interactivity in these venues.
+## contract isn't violated by an unpressable chip. MOUSE_FILTER_IGNORE is
+## LOAD-BEARING beyond that: mouse events fall through to the map tiles
+## underneath, whose hover flips the info panel to the other side — the
+## M&K/controller displacement behavior. Touch hold-to-peek in these venues
+## is watched by the PANEL (UnitPreviewPanel._input), not by the chip.
 func make_display_only() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	focus_mode = Control.FOCUS_NONE
+
+
+## The move this chip was last setup() with — display venues use it to feed
+## the panel-level touch peek. Null before the first setup.
+func get_move() -> Move:
+	return _move
 
 
 ## The digits half of "scheme + digits": targeting is dist <= attack_range
@@ -317,6 +349,119 @@ static func damage_type_icon(damage_type: Enums.DamageType) -> Texture2D:
 	if path != "" and ResourceLoader.exists(path):
 		return load(path) as Texture2D
 	return null
+
+
+# =============================================================================
+# Hold-to-peek (MoveTooltip) — one gesture verb on every input: HOLD to
+# inspect, release to dismiss (ui-style-guide.md §14 "Detail tooltips").
+#   touch      — long press (Settings.tooltip_hold_ms); maturing the hold
+#                CANCELS the in-flight button press, so releasing after a peek
+#                never casts the move (the not-confuse-the-player rule).
+#   M&K        — hold right click. A real mouse left-hold never peeks: desktop
+#                clicks have no tap/hold ambiguity, and a slow click must stay
+#                a click.
+#   controller — hold Back/R3 ("tooltip_peek") while focus is on the chip
+#                (focused Controls receive joypad events through gui_input).
+# Works on DISABLED chips too — a depleted move's details are exactly what a
+# player wants to read. Quick tap on one still denies; the hold peeks.
+# =============================================================================
+
+func _gui_input(event: InputEvent) -> void:
+	if _handle_peek_input(event):
+		accept_event()
+		return
+	super(event)
+
+
+## The peek gesture logic, accept_event-free so tests can drive it directly.
+## Returns true when the event belonged to the peek (and must be consumed).
+func _handle_peek_input(event: InputEvent) -> bool:
+	if not peek_enabled or _move == null:
+		return false
+	if event.is_action_pressed("tooltip_peek"):
+		_open_peek()
+		return true
+	if event.is_action_released("tooltip_peek"):
+		_close_peek()
+		return true
+	var mouse := event as InputEventMouseButton
+	if mouse == null:
+		return false
+	if mouse.button_index == MOUSE_BUTTON_RIGHT:
+		if mouse.pressed:
+			_open_peek()
+		else:
+			_close_peek()
+		return true
+	if mouse.button_index != MOUSE_BUTTON_LEFT:
+		return false
+	if mouse.pressed:
+		# Genuine touch only (see MoveTooltip.is_touch_pointer). The press
+		# itself still presses — the chip giving press feedback DURING the
+		# hold is correct; the cancel happens only if the hold matures.
+		if MoveTooltip.is_touch_pointer(mouse):
+			_peek_hold_start_ms = Time.get_ticks_msec()
+		return false
+	# Left release: a matured peek swallows it — peeking must never cast.
+	_peek_hold_start_ms = -1
+	if _peek_open:
+		_close_peek()
+		return true
+	return false
+
+
+func _process(delta: float) -> void:
+	super(delta)
+	if _peek_hold_start_ms >= 0 and \
+			Time.get_ticks_msec() - _peek_hold_start_ms >= Settings.tooltip_hold_ms:
+		_peek_hold_start_ms = -1
+		_cancel_press_attempt()
+		_open_peek()
+
+
+func _exit_tree() -> void:
+	super()
+	_close_peek()
+
+
+func _notification(what: int) -> void:
+	# A chip hidden mid-peek (menu closing via visible = false) takes its card
+	# down — otherwise the card floats over whatever replaced the menu.
+	if what == NOTIFICATION_VISIBILITY_CHANGED and not is_visible_in_tree():
+		_close_peek()
+
+
+func _open_peek() -> void:
+	if _peek_open or _move == null:
+		return
+	_peek_open = true
+	MoveTooltip.show_for(self, _move)
+
+
+func _close_peek() -> void:
+	_peek_hold_start_ms = -1
+	if not _peek_open:
+		return
+	_peek_open = false
+	MoveTooltip.dismiss_for(self)
+
+
+func _on_peek_pointer_exited() -> void:
+	_close_peek()
+
+
+## Forget the in-flight press so releasing after a peek doesn't cast the move.
+## Flipping `disabled` is the one public lever that clears BaseButton's
+## internal press_attempt (non-toggle buttons expose no direct reset); the
+## flip happens within one call, so InteractiveButton's disabled watcher in
+## _process never sees an edge.
+func _cancel_press_attempt() -> void:
+	if disabled:
+		return
+	disabled = true
+	disabled = false
+	# is_pressed() just went false — unshift the body and chrome now.
+	_redraw_chrome()
 
 
 # =============================================================================

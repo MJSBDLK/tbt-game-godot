@@ -151,6 +151,8 @@ func _build_snug_rig() -> VBoxContainer:
 	menu.add_child(end_turn)
 	wrap.add_child(_make_glow_label("(press End Turn to move the CTA here)",
 			GameColors.TEXT_SECONDARY, GameColors.TEXT_SECONDARY_GLOW))
+	wrap.add_child(_make_glow_label("(hold right-click on a chip: detail card)",
+			GameColors.TEXT_SECONDARY, GameColors.TEXT_SECONDARY_GLOW))
 
 	(menu.get_child(0) as InteractiveButton).selected = true
 	return wrap

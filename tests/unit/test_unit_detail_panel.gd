@@ -92,3 +92,11 @@ func test_depleted_chip_stays_inspectable_via_denied() -> void:
 	spark.denied.emit()
 	assert_true(spark.selected,
 			"denied routes to select — in this venue the detail pane IS the why")
+
+
+func test_detail_chips_opt_out_of_hold_to_peek() -> void:
+	var panel := _make_panel_with_moves([_make_move("Ember")])
+	for chip_button: MoveChipButton in panel._move_chips:
+		assert_false(chip_button.peek_enabled,
+				"no-op venue (RQD 2026-07-21): the detail pane beside these"
+				+ " chips IS the tooltip's content, live and larger")

@@ -59,6 +59,17 @@ var music_volume: float = 0.8
 ## on top). The Options slider offers Off / 30–1000.
 var max_fps: int = 0
 
+## How long a touch must hold a move chip before its detail card (MoveTooltip)
+## opens. CORE input decision (ui-style-guide.md §14): long press = right click
+## = Back/R3, all hold-to-peek. The 200ms FLOOR is a softlock guard — a
+## threshold shorter than a player can reliably release would turn every tap
+## into a tooltip (RQD 2026-07-19). Options slider: 200–1000ms in 50ms steps.
+var tooltip_hold_ms: int = 200
+
+const TOOLTIP_HOLD_MIN_MS: int = 200
+const TOOLTIP_HOLD_MAX_MS: int = 1000
+const TOOLTIP_HOLD_STEP_MS: int = 50
+
 ## The file settings load from / save to. Overridable so tests can point at a
 ## throwaway path instead of clobbering the player's real settings file.
 var settings_path: String = DEFAULT_SETTINGS_PATH
@@ -92,6 +103,8 @@ func load_settings() -> void:
 				"audio", "music_volume", music_volume)), 0.0, 1.0)
 		max_fps = clampi(int(config.get_value(
 				"display", "max_fps", max_fps)), 0, 1000)
+		tooltip_hold_ms = _snap_tooltip_hold(int(config.get_value(
+				"controls", "tooltip_hold_ms", tooltip_hold_ms)))
 	# Engine-level prefs (fps cap, bus volumes) must apply even with no file —
 	# a fresh install still needs the buses minted and defaults pushed.
 	_apply_engine_settings()
@@ -187,6 +200,23 @@ func set_max_fps(value: int) -> void:
 	changed.emit()
 
 
+## Persists + notifies. Snapped to the 50ms slider grid and clamped 200–1000
+## (the 200 floor is the softlock guard — see the var doc).
+func set_tooltip_hold_ms(value: int) -> void:
+	value = _snap_tooltip_hold(value)
+	if value == tooltip_hold_ms:
+		return
+	tooltip_hold_ms = value
+	_save()
+	changed.emit()
+
+
+func _snap_tooltip_hold(value: int) -> int:
+	var snapped_value: int = roundi(float(value) / float(TOOLTIP_HOLD_STEP_MS)) \
+			* TOOLTIP_HOLD_STEP_MS
+	return clampi(snapped_value, TOOLTIP_HOLD_MIN_MS, TOOLTIP_HOLD_MAX_MS)
+
+
 ## Push engine-level prefs into the engine singletons. Engine and AudioServer
 ## are core singletons, not autoloads, so the "no autoload dependencies" rule
 ## in the header still holds.
@@ -234,6 +264,7 @@ func _save() -> void:
 	config.set_value("audio", "sfx_volume", sfx_volume)
 	config.set_value("audio", "music_volume", music_volume)
 	config.set_value("display", "max_fps", max_fps)
+	config.set_value("controls", "tooltip_hold_ms", tooltip_hold_ms)
 	var err: int = config.save(settings_path)
 	if err != OK:
 		push_warning("Settings: failed to save %s (error %d)" % [settings_path, err])

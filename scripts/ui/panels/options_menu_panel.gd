@@ -129,6 +129,9 @@ func _populate_options() -> void:
 	# On-map elemental type icons beside unit health bars
 	_create_type_icons_option()
 
+	# Move-tooltip hold delay slider (200–1000ms)
+	_create_tooltip_hold_option()
+
 	# Framerate cap slider (Off / 30–1000)
 	_create_max_fps_option()
 
@@ -515,6 +518,19 @@ func _create_slider_option(label_text: String, tooltip: String, min_value: float
 		on_changed.call(value))
 
 	_content_container.add_child(row)
+
+
+## Hold-to-peek delay for move detail tooltips (long press / hold right click /
+## hold Back/R3 — ui-style-guide.md §14). The 200ms floor is a softlock guard:
+## a threshold shorter than a player can reliably release would open a tooltip
+## on every tap, so the slider simply doesn't go there (RQD 2026-07-19).
+func _create_tooltip_hold_option() -> void:
+	_create_slider_option("Tooltip Hold",
+			"How long to hold a move chip before its detail card opens.",
+			float(Settings.TOOLTIP_HOLD_MIN_MS), float(Settings.TOOLTIP_HOLD_MAX_MS),
+			float(Settings.TOOLTIP_HOLD_STEP_MS), float(Settings.tooltip_hold_ms),
+			func(value: float) -> String: return "%dms" % roundi(value),
+			func(value: float) -> void: Settings.set_tooltip_hold_ms(roundi(value)))
 
 
 ## FPS cap: leftmost slider notch (below 30) reads as "Off" → Engine.max_fps 0.

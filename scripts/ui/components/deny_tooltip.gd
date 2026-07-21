@@ -4,8 +4,14 @@
 ## deny popup so the real action menu and the gallery share one recipe
 ## (game_theme TooltipPanel + GlowLabel, same family as TapTooltip).
 ##
-## One deny on screen at a time: a new deny replaces the old. The popup
-## parents to the refusing control, so a menu closing takes its deny with it.
+## One deny on screen at a time: a new deny replaces the old, and an opening
+## MoveTooltip clears it (and vice versa) so the two never stack over a chip.
+##
+## The popup is added to the source's VIEWPORT, not the source: move chips
+## clip their contents, and canvas clipping applies to child canvas items even
+## when top_level — a chip-parented deny rendered clipped to the 14px chip.
+## Lifetime is tied back to the source explicitly (tree_exiting + the linger
+## timer), so a menu closing still takes its deny with it.
 class_name DenyTooltip
 extends RefCounted
 
@@ -24,15 +30,15 @@ static var _active: PanelContainer = null
 static func show_above(source: Control, reason: String) -> void:
 	if source == null or not source.is_inside_tree():
 		return
-	if _active != null and is_instance_valid(_active):
-		_active.queue_free()
+	dismiss()
+	MoveTooltip.dismiss()
 	if reason == "":
 		reason = "NOT AVAILABLE"
 
 	var popup := PanelContainer.new()
 	popup.theme = GAME_THEME
 	popup.theme_type_variation = "TooltipPanel"
-	popup.top_level = true
+	popup.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var label := GlowLabel.new()
 	label.text = reason
@@ -42,10 +48,16 @@ static func show_above(source: Control, reason: String) -> void:
 	label.glow_color = GameColors.TEXT_PRIMARY_GLOW
 	label.add_theme_font_override("font", FONT_8PX)
 	label.add_theme_font_size_override("font_size", 8)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	popup.add_child(label)
 
-	source.add_child(popup)
+	source.get_viewport().add_child(popup)
 	_active = popup
+	# The refusing control leaving the tree (menu closing) takes its deny
+	# along. Direct method callable, NOT a capturing lambda: connections to a
+	# freed object's method auto-disconnect, while a lambda capture of a freed
+	# popup errors when the signal finally fires.
+	source.tree_exiting.connect(popup.queue_free)
 
 	# Size lands a frame later; then center it above the refusing control.
 	await source.get_tree().process_frame
@@ -54,8 +66,14 @@ static func show_above(source: Control, reason: String) -> void:
 	var rect := source.get_global_rect()
 	popup.position = Vector2(
 			rect.position.x + (rect.size.x - popup.size.x) / 2.0,
-			rect.position.y - popup.size.y - 2.0)
+			rect.position.y - popup.size.y - 2.0).floor()
 	var timer := source.get_tree().create_timer(LINGER_SECONDS)
-	timer.timeout.connect(func() -> void:
-		if is_instance_valid(popup):
-			popup.queue_free())
+	# Same auto-disconnect rationale as the tree_exiting hookup above.
+	timer.timeout.connect(popup.queue_free)
+
+
+## Programmatic dismiss — a MoveTooltip opening clears any lingering deny.
+static func dismiss() -> void:
+	if _active != null and is_instance_valid(_active):
+		_active.queue_free()
+	_active = null

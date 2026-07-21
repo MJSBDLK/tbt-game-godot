@@ -345,7 +345,25 @@ tooltip is the spec sheet, so nobody is *required* to navigate menus to play.
   reliably execute, ordinary taps start reading as long-presses and pressing
   becomes impossible.
 - Distinct from press-for-why (deny): deny answers "why not," this answers
-  "what is it." Same styled-tooltip visual family. Not yet built.
+  "what is it." Same styled-tooltip visual family.
+- **BUILT 2026-07-21** as `MoveTooltip` + chip/panel wiring. Every trigger is a
+  HOLD — the card lives while the hold lives, release dismisses. One card on
+  screen; opening it clears any deny (and vice versa). Card = full name in the
+  element's chip text scheme + PWR/ACC/RNG/USES (detail-pane formats) +
+  targeting in words + secondary effect + description.
+- Per venue ("don't confuse the player", RQD 2026-07-21):
+  - **Action menu**: all three inputs. A matured touch hold CANCELS the
+    in-flight press, so releasing after a peek never casts. Works on disabled
+    chips (a depleted move's spec is exactly what you want to read); a quick
+    tap on one still denies.
+  - **Unit preview**: touch long-press ONLY. Chips are display-only and
+    mouse-transparent — mouse/grid-cursor over the panel hovers the tiles
+    beneath, which flips the panel to the far side (the existing info-panel
+    dodge IS the M&K/controller answer). Touch presses on chips are consumed
+    so the tap-through doesn't dismiss the panel mid-hold.
+  - **Unit detail**: no-op (`peek_enabled = false`) — the detail pane beside
+    the chips is the card's content, live and larger.
+- Controller mapping: `tooltip_peek` = Back AND R3 for now; playtest culls.
 
 ### Sound
 Crispy, RE1 / OG Deus Ex direction — sharp attack, dead-fast decay, mid-band.
