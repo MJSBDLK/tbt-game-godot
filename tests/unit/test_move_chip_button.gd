@@ -134,6 +134,39 @@ func test_scheme_and_digits_read_from_the_move() -> void:
 	assert_eq(MoveChipButton.range_text(melee), "", "no reach, no digits")
 
 
+func test_glyph_ink_picks_its_contrast_cut_per_side() -> void:
+	# RQD 2026-07-26 ("borderline invisible over Robo"): the glyph ink renders
+	# in the chip shader, choosing the light or dark cut of its faction family
+	# PER SIDE of the usage divider — whichever contrasts harder with that
+	# side's body. Bone stays bone; only its value flips.
+	var fire_chip := _make_chip_button(_make_move())
+	assert_true(fire_chip._scheme_glyph.ink_in_chip_shader,
+			"in a chip the node is layout + mask only — the shader draws the ink")
+	var fire_material := fire_chip._chip.material as ShaderMaterial
+	assert_true(fire_material.get_shader_parameter("scheme_ink_enabled"))
+	assert_eq(fire_material.get_shader_parameter("fill_ink_color"),
+			GameColors.SCHEME_HOSTILE,
+			"light bone over PoppyRed 5 — most elements look exactly as before")
+	assert_eq(fire_material.get_shader_parameter("empty_ink_color"),
+			GameColors.SCHEME_HOSTILE, "and over every dark empty")
+
+	var robo_move := _make_move()
+	robo_move.element_type = Enums.ElementalType.ROBO
+	var robo_chip := _make_chip_button(robo_move)
+	var robo_material := robo_chip._chip.material as ShaderMaterial
+	assert_eq(robo_material.get_shader_parameter("fill_ink_color"),
+			GameColors.SCHEME_HOSTILE_DARK,
+			"light bone on Gray 8 was 1.02:1 — the fill side flips to dark bone")
+	assert_eq(robo_material.get_shader_parameter("empty_ink_color"),
+			GameColors.SCHEME_HOSTILE,
+			"the dark empty keeps light bone: each side gets ITS best cut")
+	# The helper itself, for the record: argmax of WCAG contrast.
+	assert_eq(GameColors.get_scheme_glyph_ink(GameColorPalette.get_color("Gray", 8), false),
+			GameColors.SCHEME_HOSTILE_DARK)
+	assert_eq(GameColors.get_scheme_glyph_ink(GameColorPalette.get_color("PoppyRed", 2), false),
+			GameColors.SCHEME_HOSTILE)
+
+
 func test_blast_and_friendly_schemes_are_the_loud_exceptions() -> void:
 	var fireball := _make_move()
 	fireball.attack_range = 3
@@ -146,6 +179,9 @@ func test_blast_and_friendly_schemes_are_the_loud_exceptions() -> void:
 	var heal_chip := _make_chip_button(heal)
 	assert_eq(heal_chip._scheme_glyph.glyph_color, GameColors.SCHEME_FRIENDLY,
 			"ally/self targets recolor the glyph — faction is the color axis")
+	assert_eq((heal_chip._chip.material as ShaderMaterial)
+			.get_shader_parameter("empty_ink_color"), GameColors.SCHEME_FRIENDLY,
+			"the shader ink keeps the teal family — faction survives the contrast cut")
 
 
 func test_range_never_sits_beside_uses() -> void:
@@ -219,6 +255,12 @@ func test_disabled_tier_greys_the_scheme_glyph() -> void:
 	assert_eq(chip_button._scheme_glyph.glyph_color,
 			GameColors.INTERACTIVE_TEXT_DISABLED,
 			"the disabled tier owns ALL of the grey-out, scheme glyph included")
+	var chip_material := chip_button._chip.material as ShaderMaterial
+	assert_eq(chip_material.get_shader_parameter("fill_ink_color"),
+			GameColors.INTERACTIVE_TEXT_DISABLED,
+			"the shader ink follows the tier — no contrast cut for dead moves")
+	assert_eq(chip_material.get_shader_parameter("empty_ink_color"),
+			GameColors.INTERACTIVE_TEXT_DISABLED)
 
 
 func test_backlight_lift_stays_on_the_element_ramp() -> void:

@@ -24,6 +24,17 @@ uniform vec4 scheme_shadow_rect = vec4(0.0, 0.0, 12.0, 12.0);
 uniform vec4 fill_shadow_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
 uniform vec4 empty_shadow_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
 
+// Scheme-glyph ink (RQD 2026-07-26, "borderline invisible over Robo"): the
+// glyph body renders here too, same mask, un-offset rect — so each side of
+// the usage boundary gets the ink cut that contrasts with ITS body (light
+// bone over dark empties, dark bone over light fills like Gray 8). Most
+// elements pick light/light and look exactly as before. Drawn after the
+// shadow: ink covers shadow where they overlap.
+uniform bool scheme_ink_enabled = false;
+uniform vec4 scheme_ink_rect = vec4(0.0, 0.0, 12.0, 12.0);
+uniform vec4 fill_ink_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
+uniform vec4 empty_ink_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
+
 float rounded_box_sdf(vec2 center_dist, vec2 half_size, float radius) {
 	vec2 q = abs(center_dist) - half_size + vec2(radius);
 	return length(max(q, vec2(0.0))) + min(max(q.x, q.y), 0.0) - radius;
@@ -46,6 +57,15 @@ void fragment() {
 			float mask_alpha = texture(scheme_shadow_mask, mask_uv).a;
 			vec4 shadow = UV.x < threshold ? fill_shadow_color : empty_shadow_color;
 			inner = mix(inner, shadow, mask_alpha);
+		}
+	}
+
+	if (scheme_ink_enabled) {
+		vec2 ink_uv = (pos_px - scheme_ink_rect.xy) / scheme_ink_rect.zw;
+		if (ink_uv.x >= 0.0 && ink_uv.x < 1.0 && ink_uv.y >= 0.0 && ink_uv.y < 1.0) {
+			float ink_alpha = texture(scheme_shadow_mask, ink_uv).a;
+			vec4 ink = UV.x < threshold ? fill_ink_color : empty_ink_color;
+			inner = mix(inner, ink, ink_alpha);
 		}
 	}
 

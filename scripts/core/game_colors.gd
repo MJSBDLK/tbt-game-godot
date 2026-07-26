@@ -418,10 +418,42 @@ static func get_move_chip_background_shadow(
 # color axis is FACTION, not element. Hostile stays quiet bone — it's the
 # overwhelming default — so friendly (ally/self) is the loud exception. Teal
 # deliberately matches support.png's hue.
+#
+# Each faction has a LIGHT and a DARK cut of the same family (RQD 2026-07-26,
+# "borderline invisible over Robo"): light bone reads on every dark empty but
+# dies on light fills (Gray 8 = 1.02:1, YellowOrange 6 backlit = 1.03:1), so
+# get_scheme_glyph_ink picks whichever cut contrasts harder with the body it
+# actually sits on — decided PER SIDE of the usage divider by the chip shader
+# plumbing. Faction identity survives because both cuts are the same ramp.
 static var SCHEME_HOSTILE: Color:
 	get: return GameColorPalette.get_color("Eggshell", 8)
+static var SCHEME_HOSTILE_DARK: Color:
+	get: return GameColorPalette.get_color("Eggshell", 2)
 static var SCHEME_FRIENDLY: Color:
 	get: return GameColorPalette.get_color("Teal", 6)
+static var SCHEME_FRIENDLY_DARK: Color:
+	get: return GameColorPalette.get_color("Teal", 2)
+
+
+## The glyph ink for one side of the usage divider: the light or dark cut of
+## the faction family, whichever holds more WCAG contrast against `body`.
+## Most bodies are dark and pick the light cut — chips look exactly as they
+## did before this rule existed; light bodies (Robo's Gray 8) flip to dark.
+static func get_scheme_glyph_ink(body: Color, friendly: bool) -> Color:
+	var light_cut: Color = SCHEME_FRIENDLY if friendly else SCHEME_HOSTILE
+	var dark_cut: Color = SCHEME_FRIENDLY_DARK if friendly else SCHEME_HOSTILE_DARK
+	if _contrast_ratio(light_cut, body) >= _contrast_ratio(dark_cut, body):
+		return light_cut
+	return dark_cut
+
+
+## WCAG contrast ratio (1..21) on linearized luminance.
+static func _contrast_ratio(a: Color, b: Color) -> float:
+	var luminance_a: float = a.srgb_to_linear().get_luminance()
+	var luminance_b: float = b.srgb_to_linear().get_luminance()
+	var brighter: float = maxf(luminance_a, luminance_b)
+	var darker: float = minf(luminance_a, luminance_b)
+	return (brighter + 0.05) / (darker + 0.05)
 
 
 static func get_move_chip_font_color(element_type: Enums.ElementalType) -> Color:

@@ -122,6 +122,13 @@ out-of-panel debug/devtools.
   fidelity needs it, the glyph outgrows 10×10 and the CHIP EXPANDS to fit: wider
   first, then the two-line layout. The grid preview stays the truth for anything
   the glyph abbreviates.
+- **Glyph ink contrast (RQD 2026-07-26, "borderline invisible over Robo")**: each
+  faction color has a light and a dark cut of the same family (bone: Eggshell 8/2,
+  teal: Teal 6/2). The chip shader draws the glyph ink per SIDE of the usage
+  divider in whichever cut holds more WCAG contrast against that side's current
+  (lift-aware) body. Dark empties keep light ink everywhere; light fills (Robo's
+  Gray 8, backlit YellowOrange/Tan2) flip their side to the dark cut. Faction
+  identity survives — bone stays bone, only its value flips.
 - **Glyph shadow — LOCK (Lawrence 2026-07-20, depth 2026-07-26)**: the shadow is
   the occluded body color pushed down its own ramp, never a black overlay, split
   per pixel across the usage divider (rendered in the chip's fill shader). Depth

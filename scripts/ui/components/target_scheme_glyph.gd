@@ -5,13 +5,16 @@
 ## friendly (ally/self — the loud exception). The chip owns the color choice,
 ## including the disabled grey-down; this node only draws.
 ##
-## The glyph's shadow is NOT drawn here: it lives in the chip's fill shader
-## (Lawrence 2026-07-20 — the shadow is the occluded body color pushed down
-## its ramp to ~30% luminance, split per pixel across the usage boundary, and
-## only the chip shader knows where that boundary is). This node draws the tinted
-## shape; MoveChipButton feeds the same shape texture to the chip shader as
-## the shadow mask. The dark orthogonal-glow outline was tried 2026-07-19
-## and replaced by this ("restore the box shadow").
+## Inside a chip, NEITHER the shadow NOR the ink is drawn here — both live in
+## the chip's fill shader (shadow: Lawrence 2026-07-20, the occluded body
+## pushed down its ramp to ~30% luminance; ink: RQD 2026-07-26, the light or
+## dark cut of the faction family per SIDE of the usage boundary, because
+## light bone died on light fills like Robo's Gray 8). Both split per pixel
+## across the boundary, and only the chip shader knows where that boundary
+## is. This node then only provides layout and the shared shape texture
+## (`ink_in_chip_shader = true`); standalone it draws the tinted shape
+## itself. The dark orthogonal-glow outline was tried 2026-07-19 and
+## replaced by this ("restore the box shadow").
 ##
 ## When Lawrence authors real scheme art, swap the generated texture for
 ## sprites — the mask plumbing keeps working as long as the sprite has
@@ -46,6 +49,15 @@ var blast: bool = false:
 		blast = value
 		queue_redraw()
 
+## When the chip shader renders the ink (per-side contrast cuts), this node
+## must not paint its single-color shape on top. Layout + mask only.
+var ink_in_chip_shader: bool = false:
+	set(value):
+		if ink_in_chip_shader == value:
+			return
+		ink_in_chip_shader = value
+		queue_redraw()
+
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(GLYPH_SIZE, GLYPH_SIZE)
@@ -53,6 +65,8 @@ func _ready() -> void:
 
 
 func _draw() -> void:
+	if ink_in_chip_shader:
+		return
 	var texture := shape_texture(blast)
 	# The quad extends PAD px past the control on every side — that's where
 	# the outline paints. Siblings don't clip against this control.

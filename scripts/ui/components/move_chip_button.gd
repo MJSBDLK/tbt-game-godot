@@ -72,6 +72,9 @@ var _uses_label: Label = null
 var _icon: TextureRect = null
 var _damage_icon: TextureRect = null
 var _scheme_glyph: TargetSchemeGlyph = null
+## Faction axis of the glyph (teal friendly / bone hostile) — kept so the
+## per-side ink pick in _redraw_chrome knows which family to cut from.
+var _scheme_friendly: bool = false
 var _range_label: Label = null
 var _element: Enums.ElementalType = Enums.ElementalType.NONE
 var _base_fill: Color = Color.WHITE
@@ -153,9 +156,10 @@ func _ready() -> void:
 	# after them is a DECISION, not layout convenience: range never sits
 	# beside uses (two number pairs side by side misread — Lawrence review).
 	_scheme_glyph = TargetSchemeGlyph.new()
-	# The glyph's ramp shadow renders in the chip shader (it owns the
-	# fill/empty boundary) — keep the mask rect synced to wherever layout
-	# puts the glyph.
+	# The glyph's ramp shadow AND its ink render in the chip shader (it owns
+	# the fill/empty boundary; the ink picks its light/dark faction cut per
+	# side) — keep the mask rects synced to wherever layout puts the glyph.
+	_scheme_glyph.ink_in_chip_shader = true
 	_scheme_glyph.item_rect_changed.connect(_update_scheme_shadow)
 	row.add_child(_scheme_glyph)
 
@@ -244,8 +248,13 @@ func setup(move: Move, is_assigned: bool = false, locked: bool = false) -> void:
 	_damage_icon.material = null
 	_scheme_glyph.blast = move.target_type == Enums.TargetType.AOE \
 			or move.area_of_effect > 0
-	_scheme_glyph.glyph_color = GameColors.SCHEME_FRIENDLY \
-			if move.targets_allies() or move.target_type == Enums.TargetType.SELF \
+	_scheme_friendly = move.targets_allies() \
+			or move.target_type == Enums.TargetType.SELF
+	# Identity color on the node is the light cut — the FALLBACK if this glyph
+	# ever draws standalone. In a chip the shader draws the ink per side of
+	# the usage divider (light or dark faction cut, whichever contrasts) —
+	# see _redraw_chrome.
+	_scheme_glyph.glyph_color = GameColors.SCHEME_FRIENDLY if _scheme_friendly \
 			else GameColors.SCHEME_HOSTILE
 	_range_label.text = range_text(move)
 	assigned = is_assigned
@@ -520,12 +529,27 @@ func _redraw_chrome() -> void:
 					GameColors.get_move_chip_foreground_shadow(_element, _backlight_level))
 			chip_material.set_shader_parameter("empty_shadow_color",
 					GameColors.get_move_chip_background_shadow(_element, _backlight_level))
+		# Glyph ink, per side of the divider: the light or dark cut of the
+		# faction family, whichever contrasts harder with THAT side's current
+		# body (RQD 2026-07-26 — light bone was invisible on Robo's Gray 8).
+		# Recomputed against the lifted body so the pick tracks the backlight.
+		if disabled:
+			chip_material.set_shader_parameter(
+					"fill_ink_color", GameColors.INTERACTIVE_TEXT_DISABLED)
+			chip_material.set_shader_parameter(
+					"empty_ink_color", GameColors.INTERACTIVE_TEXT_DISABLED)
+		else:
+			chip_material.set_shader_parameter("fill_ink_color",
+					GameColors.get_scheme_glyph_ink(_chip.fill_color, _scheme_friendly))
+			chip_material.set_shader_parameter("empty_ink_color",
+					GameColors.get_scheme_glyph_ink(_chip.empty_color, _scheme_friendly))
 		_update_scheme_shadow()
 
 
-## Syncs the chip shader's shadow mask to the glyph: same shape texture, so
-## shape and shadow can never disagree; rect from live layout positions, so
-## it tracks the press shift and any reflow.
+## Syncs the chip shader's shadow + ink masks to the glyph: same shape
+## texture, so shape, shadow, and ink can never disagree; rects from live
+## layout positions, so they track the press shift and any reflow. The ink
+## rect is the glyph's true seat; the shadow rect is that plus the offset.
 func _update_scheme_shadow() -> void:
 	if _chip == null or _scheme_glyph == null or not is_inside_tree():
 		return
@@ -534,13 +558,18 @@ func _update_scheme_shadow() -> void:
 		return
 	var enabled: bool = _scheme_glyph.visible
 	chip_material.set_shader_parameter("scheme_shadow_enabled", enabled)
+	chip_material.set_shader_parameter("scheme_ink_enabled", enabled)
 	if not enabled:
 		return
 	var mask: ImageTexture = TargetSchemeGlyph.shape_texture(_scheme_glyph.blast)
 	chip_material.set_shader_parameter("scheme_shadow_mask", mask)
 	var pad := Vector2(TargetSchemeGlyph.PAD, TargetSchemeGlyph.PAD)
-	var rect_position: Vector2 = _scheme_glyph.global_position \
-			- _chip.global_position - pad + TargetSchemeGlyph.SHADOW_OFFSET
+	var ink_position: Vector2 = _scheme_glyph.global_position \
+			- _chip.global_position - pad
+	chip_material.set_shader_parameter("scheme_ink_rect",
+			Vector4(ink_position.x, ink_position.y,
+					mask.get_width(), mask.get_height()))
+	var shadow_position: Vector2 = ink_position + TargetSchemeGlyph.SHADOW_OFFSET
 	chip_material.set_shader_parameter("scheme_shadow_rect",
-			Vector4(rect_position.x, rect_position.y,
+			Vector4(shadow_position.x, shadow_position.y,
 					mask.get_width(), mask.get_height()))
