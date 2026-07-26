@@ -157,24 +157,28 @@ func test_glyph_ink_picks_its_contrast_cut_per_side() -> void:
 	var robo_chip := _make_chip_button(robo_move)
 	var robo_material := robo_chip._chip.material as ShaderMaterial
 	assert_eq(robo_material.get_shader_parameter("fill_ink_color"),
-			GameColors.SCHEME_HOSTILE_BRIGHT,
-			"bone on Gray 8 was 1.02:1 — the fill side bleaches to Eggshell 10")
+			GameColorPalette.get_color("Gray", 10),
+			"bone on Gray 8 was 1.02:1 — the fill side bleaches to the top of"
+			+ " the ELEMENT's own ramp ('all the way to white', Lawrence)")
 	assert_eq(robo_material.get_shader_parameter("empty_ink_color"),
 			GameColors.SCHEME_HOSTILE,
-			"the dark empty keeps standard bone — the divider seam is 8-vs-10,"
-			+ " a whisper, not the light/dark flip Lawrence vetoed")
+			"the dark empty keeps standard bone — the divider seam is a"
+			+ " whisper, not the light/dark flip Lawrence vetoed")
 	# The helper itself: threshold rule, judged at the resting body.
-	assert_eq(GameColors.get_scheme_glyph_ink(GameColorPalette.get_color("Gray", 8), false),
-			GameColors.SCHEME_HOSTILE_BRIGHT)
-	assert_eq(GameColors.get_scheme_glyph_ink(GameColorPalette.get_color("PoppyRed", 2), false),
+	assert_eq(GameColors.get_scheme_glyph_ink(Enums.ElementalType.ROBO,
+			GameColorPalette.get_color("Gray", 8), false),
+			GameColorPalette.get_color("Gray", 10))
+	assert_eq(GameColors.get_scheme_glyph_ink(Enums.ElementalType.FIRE,
+			GameColorPalette.get_color("PoppyRed", 2), false),
 			GameColors.SCHEME_HOSTILE)
-	assert_eq(GameColors.get_scheme_glyph_ink(GameColorPalette.get_color("Gray", 8), true),
+	assert_eq(GameColors.get_scheme_glyph_ink(Enums.ElementalType.ROBO,
+			GameColorPalette.get_color("Gray", 8), true),
 			GameColors.SCHEME_FRIENDLY,
 			"teal on Gray 8 is 1.8:1 — above the floor, so friendly keeps standard")
-	assert_eq(GameColors.get_scheme_glyph_ink(GameColorPalette.get_color("Orange", 6), true),
-			GameColors.SCHEME_FRIENDLY_BRIGHT,
-			"teal dies on Chivalric's Orange 6 (1.02:1) — brightens to Teal 9,"
-			+ " keeping a mint whisper of the axis")
+	assert_eq(GameColors.get_scheme_glyph_ink(Enums.ElementalType.CHIVALRIC,
+			GameColorPalette.get_color("Orange", 6), true),
+			GameColorPalette.get_color("Orange", 10),
+			"teal dies on Chivalric's Orange 6 (1.02:1) — bleaches to Orange 10")
 
 
 func test_blast_and_friendly_schemes_are_the_loud_exceptions() -> void:

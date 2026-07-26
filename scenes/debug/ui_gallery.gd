@@ -121,11 +121,12 @@ func _build_snug_rig() -> VBoxContainer:
 	# shadow's two-tone split is eyeballable on this one chip.
 	# Piston (ROBO) and Dynamo (ELECTRIC) are the bright-ink specimens
 	# (2026-07-26): the two light fills Lawrence named where standard bone
-	# died — the fill-side ink bleaches to Eggshell 10 and the dark ramp
-	# shadow carries the shape. Both at 2/3 (divider x~74, through the glyph)
-	# so the 8-vs-10 divider seam — the gentle replacement for the vetoed
-	# light/dark flip — is judged where it was ugliest. Gray also carries the
-	# only shadow-depth exception (3 fill steps).
+	# died — the fill-side ink bleaches to the ELEMENT ramp's own top (Gray
+	# 10 / YellowOrange 10, "all the way to white") and the dark ramp shadow
+	# carries the shape. Both at 2/3 (divider x~74, through the glyph) so the
+	# divider seam — the gentle replacement for the vetoed light/dark flip —
+	# is judged where it was ugliest. Gray also carries the only shadow-depth
+	# exception (3 fill steps).
 	var chip_specs: Array[Dictionary] = [
 		{"name": "Ember", "element": Enums.ElementalType.FIRE, "uses": 13,
 				"max": 20, "damage": Enums.DamageType.SPECIAL, "range": 2,

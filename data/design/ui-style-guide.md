@@ -125,12 +125,15 @@ out-of-panel debug/devtools.
 - **Glyph ink contrast (revised 2026-07-26 after Lawrence's same-day pass)**:
   the chip shader draws the glyph ink per SIDE of the usage divider — the
   faction's standard cut (bone Eggshell 8 / teal Teal 6) unless that side's
-  RESTING body is too close to read (< 1.5:1), in which case the ink
-  BRIGHTENS to the family's top (Eggshell 10 ≈ white / Teal 9 mint). The
-  first fix flipped DARK instead (Eggshell 2/Teal 2) — Lawrence: "looks a
-  bit weird when the dividing line runs through it" (a 9.2:1 seam mid-glyph);
-  the bright rule's seam is 8-vs-10 (1.55:1), and legibility over light
-  fills rides the glyph's dark ramp shadow (white vs its Gray 5 shadow =
+  RESTING body is too close to read (< 1.5:1), in which case the ink goes
+  **"all the way to white" = index 10 of the ELEMENT's own ramp** (Lawrence's
+  spec) — the same ramp the backlight climbs and the shadow descends, so
+  every color on a chip derives from one ramp. Index 10 is near-white on
+  every ramp, so the faction axis concedes nothing there it hadn't already.
+  The first fix flipped DARK instead (Eggshell 2/Teal 2) — Lawrence: "looks
+  a bit weird when the dividing line runs through it" (a 9.2:1 seam
+  mid-glyph); the bleach rule's seam is a whisper, and legibility over light
+  fills rides the glyph's dark ramp shadow (Gray 10 vs its Gray 5 shadow ≈
   3.9:1). Dark cut recoverable from 9dd28fc. Awaiting Lawrence's eyes on
   Piston/Dynamo in the F6 gallery; revisit regardless when real scheme
   sprites land.
