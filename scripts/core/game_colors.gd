@@ -419,32 +419,43 @@ static func get_move_chip_background_shadow(
 # overwhelming default — so friendly (ally/self) is the loud exception. Teal
 # deliberately matches support.png's hue.
 #
-# Each faction has a LIGHT and a DARK cut of the same family (RQD 2026-07-26,
-# "borderline invisible over Robo"): light bone reads on every dark empty but
-# dies on light fills (Gray 8 = 1.02:1, YellowOrange 6 backlit = 1.03:1), so
-# get_scheme_glyph_ink picks whichever cut contrasts harder with the body it
-# actually sits on — decided PER SIDE of the usage divider by the chip shader
-# plumbing. Faction identity survives because both cuts are the same ramp.
+# Standard bone reads on every dark empty but dies on light fills (Gray 8 =
+# 1.02:1, YellowOrange 6 backlit = 1.03:1). Fix history (all 2026-07-26):
+# a DARK cut over light fills was tried first (recover from 9dd28fc) —
+# Lawrence: "looks a bit weird when the dividing line runs through it" (the
+# light/dark seam mid-glyph was 9.2:1). Current rule per RQD ("maybe going
+# all the way to white"): when the standard cut is too close to the body, go
+# BRIGHTER instead — up the family to its near-white top. The divider seam
+# becomes Eggshell 8 vs 10 (1.55:1, a whisper), and legibility rides the
+# glyph's dark ramp shadow (white ink vs its Gray 5 shadow on Robo = 3.9:1,
+# the white-sprite-dark-rim pixel idiom) rather than raw ink-vs-body.
 static var SCHEME_HOSTILE: Color:
 	get: return GameColorPalette.get_color("Eggshell", 8)
-static var SCHEME_HOSTILE_DARK: Color:
-	get: return GameColorPalette.get_color("Eggshell", 2)
+static var SCHEME_HOSTILE_BRIGHT: Color:
+	get: return GameColorPalette.get_color("Eggshell", 10)
 static var SCHEME_FRIENDLY: Color:
 	get: return GameColorPalette.get_color("Teal", 6)
-static var SCHEME_FRIENDLY_DARK: Color:
-	get: return GameColorPalette.get_color("Teal", 2)
+## Teal 9, not 10: hostile may bleach to white, but friendly keeps a mint
+## whisper so the faction axis survives at its brightest. Swap to 10 if
+## Lawrence wants the two factions symmetric.
+static var SCHEME_FRIENDLY_BRIGHT: Color:
+	get: return GameColorPalette.get_color("Teal", 9)
+
+## Below this ink-vs-body ratio the standard cut is "too close" and the ink
+## brightens. 1.5 catches the four light-fill offenders for bone (Gray 8,
+## YellowOrange 6, TealGray 7, Tan2 7) and leaves FIRE/COLD/etc untouched.
+const SCHEME_INK_MIN_CONTRAST: float = 1.5
 
 
-## The glyph ink for one side of the usage divider: the light or dark cut of
-## the faction family, whichever holds more WCAG contrast against `body`.
-## Most bodies are dark and pick the light cut — chips look exactly as they
-## did before this rule existed; light bodies (Robo's Gray 8) flip to dark.
+## The glyph ink for one side of the usage divider: the faction family's
+## standard cut, or its near-white bright cut when the standard is too close
+## to `body` to read. Most bodies are dark and keep the standard — chips look
+## exactly as they always did; light fills (Robo's Gray 8) brighten.
 static func get_scheme_glyph_ink(body: Color, friendly: bool) -> Color:
-	var light_cut: Color = SCHEME_FRIENDLY if friendly else SCHEME_HOSTILE
-	var dark_cut: Color = SCHEME_FRIENDLY_DARK if friendly else SCHEME_HOSTILE_DARK
-	if _contrast_ratio(light_cut, body) >= _contrast_ratio(dark_cut, body):
-		return light_cut
-	return dark_cut
+	var standard_cut: Color = SCHEME_FRIENDLY if friendly else SCHEME_HOSTILE
+	if _contrast_ratio(standard_cut, body) >= SCHEME_INK_MIN_CONTRAST:
+		return standard_cut
+	return SCHEME_FRIENDLY_BRIGHT if friendly else SCHEME_HOSTILE_BRIGHT
 
 
 ## WCAG contrast ratio (1..21) on linearized luminance.

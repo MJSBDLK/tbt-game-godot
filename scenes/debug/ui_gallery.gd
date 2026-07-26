@@ -119,10 +119,13 @@ func _build_snug_rig() -> VBoxContainer:
 	# (0.929) x 120px puts the skewed fill/empty divider at x=72.5 at chip
 	# mid-height — straight through the scheme glyph (x 68-78), so the ramp
 	# shadow's two-tone split is eyeballable on this one chip.
-	# Piston is ROBO on purpose (2026-07-26): the Gray ramp carries the only
-	# shadow-depth exception (3 fill steps, not 2) AND was the original
-	# glyph-contrast complaint — its 2/3 fill (divider x~74) puts the split
-	# through its glyph too, so the exception is judged where it matters.
+	# Piston (ROBO) and Dynamo (ELECTRIC) are the bright-ink specimens
+	# (2026-07-26): the two light fills Lawrence named where standard bone
+	# died — the fill-side ink bleaches to Eggshell 10 and the dark ramp
+	# shadow carries the shape. Both at 2/3 (divider x~74, through the glyph)
+	# so the 8-vs-10 divider seam — the gentle replacement for the vetoed
+	# light/dark flip — is judged where it was ugliest. Gray also carries the
+	# only shadow-depth exception (3 fill steps).
 	var chip_specs: Array[Dictionary] = [
 		{"name": "Ember", "element": Enums.ElementalType.FIRE, "uses": 13,
 				"max": 20, "damage": Enums.DamageType.SPECIAL, "range": 2,
@@ -131,6 +134,8 @@ func _build_snug_rig() -> VBoxContainer:
 				"max": 3, "assigned": true, "range": 2},
 		{"name": "Piston", "element": Enums.ElementalType.ROBO, "uses": 2,
 				"max": 3},
+		{"name": "Dynamo", "element": Enums.ElementalType.ELECTRIC, "uses": 2,
+				"max": 3, "range": 2},
 		{"name": "Spark", "element": Enums.ElementalType.ELECTRIC, "uses": 0,
 				"max": 4},
 		{"name": "Gloom", "element": Enums.ElementalType.VOID, "uses": 2,

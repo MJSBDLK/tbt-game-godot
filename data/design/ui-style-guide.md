@@ -122,14 +122,18 @@ out-of-panel debug/devtools.
   fidelity needs it, the glyph outgrows 10×10 and the CHIP EXPANDS to fit: wider
   first, then the two-line layout. The grid preview stays the truth for anything
   the glyph abbreviates.
-- **Glyph ink contrast — LOCK (RQD 2026-07-26, "looks pretty good"; flagged
-  may-revisit, likely when Lawrence authors real scheme sprites)**: each
-  faction color has a light and a dark cut of the same family (bone: Eggshell 8/2,
-  teal: Teal 6/2). The chip shader draws the glyph ink per SIDE of the usage
-  divider in whichever cut holds more WCAG contrast against that side's current
-  (lift-aware) body. Dark empties keep light ink everywhere; light fills (Robo's
-  Gray 8, backlit YellowOrange/Tan2) flip their side to the dark cut. Faction
-  identity survives — bone stays bone, only its value flips.
+- **Glyph ink contrast (revised 2026-07-26 after Lawrence's same-day pass)**:
+  the chip shader draws the glyph ink per SIDE of the usage divider — the
+  faction's standard cut (bone Eggshell 8 / teal Teal 6) unless that side's
+  RESTING body is too close to read (< 1.5:1), in which case the ink
+  BRIGHTENS to the family's top (Eggshell 10 ≈ white / Teal 9 mint). The
+  first fix flipped DARK instead (Eggshell 2/Teal 2) — Lawrence: "looks a
+  bit weird when the dividing line runs through it" (a 9.2:1 seam mid-glyph);
+  the bright rule's seam is 8-vs-10 (1.55:1), and legibility over light
+  fills rides the glyph's dark ramp shadow (white vs its Gray 5 shadow =
+  3.9:1). Dark cut recoverable from 9dd28fc. Awaiting Lawrence's eyes on
+  Piston/Dynamo in the F6 gallery; revisit regardless when real scheme
+  sprites land.
 - **Glyph shadow — LOCK (Lawrence 2026-07-20, depth 2026-07-26)**: the shadow is
   the occluded body color pushed down its own ramp, never a black overlay, split
   per pixel across the usage divider (rendered in the chip's fill shader). Depth

@@ -135,10 +135,12 @@ func test_scheme_and_digits_read_from_the_move() -> void:
 
 
 func test_glyph_ink_picks_its_contrast_cut_per_side() -> void:
-	# RQD 2026-07-26 ("borderline invisible over Robo"): the glyph ink renders
-	# in the chip shader, choosing the light or dark cut of its faction family
-	# PER SIDE of the usage divider — whichever contrasts harder with that
-	# side's body. Bone stays bone; only its value flips.
+	# RQD 2026-07-26 ("borderline invisible over Robo" → "maybe going all the
+	# way to white"): the glyph ink renders in the chip shader, per SIDE of
+	# the usage divider. Standard faction cut by default; over bodies too
+	# close to read it BRIGHTENS to the family's near-white top (the dark-cut
+	# flip was tried and retired — Lawrence: the mid-glyph seam looked weird).
+	# Legibility over light fills rides the dark ramp shadow behind the ink.
 	var fire_chip := _make_chip_button(_make_move())
 	assert_true(fire_chip._scheme_glyph.ink_in_chip_shader,
 			"in a chip the node is layout + mask only — the shader draws the ink")
@@ -146,7 +148,7 @@ func test_glyph_ink_picks_its_contrast_cut_per_side() -> void:
 	assert_true(fire_material.get_shader_parameter("scheme_ink_enabled"))
 	assert_eq(fire_material.get_shader_parameter("fill_ink_color"),
 			GameColors.SCHEME_HOSTILE,
-			"light bone over PoppyRed 5 — most elements look exactly as before")
+			"standard bone over PoppyRed 5 — most elements look exactly as before")
 	assert_eq(fire_material.get_shader_parameter("empty_ink_color"),
 			GameColors.SCHEME_HOSTILE, "and over every dark empty")
 
@@ -155,16 +157,24 @@ func test_glyph_ink_picks_its_contrast_cut_per_side() -> void:
 	var robo_chip := _make_chip_button(robo_move)
 	var robo_material := robo_chip._chip.material as ShaderMaterial
 	assert_eq(robo_material.get_shader_parameter("fill_ink_color"),
-			GameColors.SCHEME_HOSTILE_DARK,
-			"light bone on Gray 8 was 1.02:1 — the fill side flips to dark bone")
+			GameColors.SCHEME_HOSTILE_BRIGHT,
+			"bone on Gray 8 was 1.02:1 — the fill side bleaches to Eggshell 10")
 	assert_eq(robo_material.get_shader_parameter("empty_ink_color"),
 			GameColors.SCHEME_HOSTILE,
-			"the dark empty keeps light bone: each side gets ITS best cut")
-	# The helper itself, for the record: argmax of WCAG contrast.
+			"the dark empty keeps standard bone — the divider seam is 8-vs-10,"
+			+ " a whisper, not the light/dark flip Lawrence vetoed")
+	# The helper itself: threshold rule, judged at the resting body.
 	assert_eq(GameColors.get_scheme_glyph_ink(GameColorPalette.get_color("Gray", 8), false),
-			GameColors.SCHEME_HOSTILE_DARK)
+			GameColors.SCHEME_HOSTILE_BRIGHT)
 	assert_eq(GameColors.get_scheme_glyph_ink(GameColorPalette.get_color("PoppyRed", 2), false),
 			GameColors.SCHEME_HOSTILE)
+	assert_eq(GameColors.get_scheme_glyph_ink(GameColorPalette.get_color("Gray", 8), true),
+			GameColors.SCHEME_FRIENDLY,
+			"teal on Gray 8 is 1.8:1 — above the floor, so friendly keeps standard")
+	assert_eq(GameColors.get_scheme_glyph_ink(GameColorPalette.get_color("Orange", 6), true),
+			GameColors.SCHEME_FRIENDLY_BRIGHT,
+			"teal dies on Chivalric's Orange 6 (1.02:1) — brightens to Teal 9,"
+			+ " keeping a mint whisper of the axis")
 
 
 func test_blast_and_friendly_schemes_are_the_loud_exceptions() -> void:
