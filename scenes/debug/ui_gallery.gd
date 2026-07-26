@@ -112,19 +112,25 @@ func _build_snug_rig() -> VBoxContainer:
 	# Real action-menu shape: move chips on top, text buttons below.
 	# Ember holds the cursor at start; Frost Lance is the ASSIGNED move
 	# (parked brackets); Spark is depleted; Gloom is Void-locked.
-	# The four chips also cover the data axes (Lawrence review 2026-07-19):
+	# The chips also cover the data axes (Lawrence review 2026-07-19):
 	# all three damage types (Ember shows special_d's magenta sparkle) and the
 	# scheme+digits variants — melee, band, blast, friendly.
 	# Ember's 13/20 is EXACT on purpose (RQD 2026-07-20): 13/20 x MAX_FILL
 	# (0.929) x 120px puts the skewed fill/empty divider at x=72.5 at chip
 	# mid-height — straight through the scheme glyph (x 68-78), so the ramp
 	# shadow's two-tone split is eyeballable on this one chip.
+	# Piston is ROBO on purpose (2026-07-26): the Gray ramp carries the only
+	# shadow-depth exception (3 fill steps, not 2) AND was the original
+	# glyph-contrast complaint — its 2/3 fill (divider x~74) puts the split
+	# through its glyph too, so the exception is judged where it matters.
 	var chip_specs: Array[Dictionary] = [
 		{"name": "Ember", "element": Enums.ElementalType.FIRE, "uses": 13,
 				"max": 20, "damage": Enums.DamageType.SPECIAL, "range": 2,
 				"aoe": 1},
 		{"name": "F. Lance", "element": Enums.ElementalType.COLD, "uses": 2,
 				"max": 3, "assigned": true, "range": 2},
+		{"name": "Piston", "element": Enums.ElementalType.ROBO, "uses": 2,
+				"max": 3},
 		{"name": "Spark", "element": Enums.ElementalType.ELECTRIC, "uses": 0,
 				"max": 4},
 		{"name": "Gloom", "element": Enums.ElementalType.VOID, "uses": 2,
