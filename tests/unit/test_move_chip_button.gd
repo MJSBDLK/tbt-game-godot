@@ -134,13 +134,14 @@ func test_scheme_and_digits_read_from_the_move() -> void:
 	assert_eq(MoveChipButton.range_text(melee), "", "no reach, no digits")
 
 
-func test_glyph_ink_picks_its_contrast_cut_per_side() -> void:
-	# RQD 2026-07-26 ("borderline invisible over Robo" → "maybe going all the
-	# way to white"): the glyph ink renders in the chip shader, per SIDE of
-	# the usage divider. Standard faction cut by default; over bodies too
-	# close to read it BRIGHTENS to the family's near-white top (the dark-cut
-	# flip was tried and retired — Lawrence: the mid-glyph seam looked weird).
-	# Legibility over light fills rides the dark ramp shadow behind the ink.
+func test_glyph_ink_bleaches_uniformly_over_light_fills() -> void:
+	# RQD 2026-07-26 ("borderline invisible over Robo" → "all the way to
+	# white" = element ramp index 10): the glyph ink renders in the chip
+	# shader as ONE color. Per-side split was tried twice and retired —
+	# dark cut (Lawrence: mid-glyph seam weird), then per-side bleach (RQD:
+	# "center of the target brighter than the edges" — banding across the
+	# crosshair's disjoint cells). Legibility over light fills rides the
+	# dark ramp shadow behind the ink.
 	var fire_chip := _make_chip_button(_make_move())
 	assert_true(fire_chip._scheme_glyph.ink_in_chip_shader,
 			"in a chip the node is layout + mask only — the shader draws the ink")
@@ -148,9 +149,9 @@ func test_glyph_ink_picks_its_contrast_cut_per_side() -> void:
 	assert_true(fire_material.get_shader_parameter("scheme_ink_enabled"))
 	assert_eq(fire_material.get_shader_parameter("fill_ink_color"),
 			GameColors.SCHEME_HOSTILE,
-			"standard bone over PoppyRed 5 — most elements look exactly as before")
+			"standard bone on FIRE — most elements look exactly as before")
 	assert_eq(fire_material.get_shader_parameter("empty_ink_color"),
-			GameColors.SCHEME_HOSTILE, "and over every dark empty")
+			GameColors.SCHEME_HOSTILE, "one ink, both uniforms agree")
 
 	var robo_move := _make_move()
 	robo_move.element_type = Enums.ElementalType.ROBO
@@ -158,25 +159,25 @@ func test_glyph_ink_picks_its_contrast_cut_per_side() -> void:
 	var robo_material := robo_chip._chip.material as ShaderMaterial
 	assert_eq(robo_material.get_shader_parameter("fill_ink_color"),
 			GameColorPalette.get_color("Gray", 10),
-			"bone on Gray 8 was 1.02:1 — the fill side bleaches to the top of"
-			+ " the ELEMENT's own ramp ('all the way to white', Lawrence)")
+			"bone on Gray 8 was 1.02:1 — the WHOLE glyph bleaches to the"
+			+ " element ramp's top")
 	assert_eq(robo_material.get_shader_parameter("empty_ink_color"),
-			GameColors.SCHEME_HOSTILE,
-			"the dark empty keeps standard bone — the divider seam is a"
-			+ " whisper, not the light/dark flip Lawrence vetoed")
-	# The helper itself: threshold rule, judged at the resting body.
-	assert_eq(GameColors.get_scheme_glyph_ink(Enums.ElementalType.ROBO,
-			GameColorPalette.get_color("Gray", 8), false),
-			GameColorPalette.get_color("Gray", 10))
+			GameColorPalette.get_color("Gray", 10),
+			"empty side too — uniform ink, no center-vs-edge banding; ramp-10"
+			+ " clears every dark empty by >=2.9:1 so nothing is lost")
+	# The helper itself: bleach when EITHER resting body is too close.
 	assert_eq(GameColors.get_scheme_glyph_ink(Enums.ElementalType.FIRE,
+			GameColorPalette.get_color("PoppyRed", 5),
 			GameColorPalette.get_color("PoppyRed", 2), false),
 			GameColors.SCHEME_HOSTILE)
 	assert_eq(GameColors.get_scheme_glyph_ink(Enums.ElementalType.ROBO,
-			GameColorPalette.get_color("Gray", 8), true),
+			GameColorPalette.get_color("Gray", 8),
+			GameColorPalette.get_color("Gray", 3), true),
 			GameColors.SCHEME_FRIENDLY,
 			"teal on Gray 8 is 1.8:1 — above the floor, so friendly keeps standard")
 	assert_eq(GameColors.get_scheme_glyph_ink(Enums.ElementalType.CHIVALRIC,
-			GameColorPalette.get_color("Orange", 6), true),
+			GameColorPalette.get_color("Orange", 6),
+			GameColorPalette.get_color("Orange", 2), true),
 			GameColorPalette.get_color("Orange", 10),
 			"teal dies on Chivalric's Orange 6 (1.02:1) — bleaches to Orange 10")
 

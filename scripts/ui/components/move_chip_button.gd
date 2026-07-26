@@ -529,22 +529,19 @@ func _redraw_chrome() -> void:
 					GameColors.get_move_chip_foreground_shadow(_element, _backlight_level))
 			chip_material.set_shader_parameter("empty_shadow_color",
 					GameColors.get_move_chip_background_shadow(_element, _backlight_level))
-		# Glyph ink, per side of the divider: the faction's standard cut,
-		# bleached to the top of the ELEMENT's own ramp over bodies too close
-		# to read ("all the way to white", Lawrence 2026-07-26 — bone was
-		# invisible on Robo's Gray 8; the dark-cut flip came and went, see
-		# GameColors). Judged against the RESTING body pair, not the lifted
-		# one, so the ink never flips mid-hover.
-		if disabled:
-			chip_material.set_shader_parameter(
-					"fill_ink_color", GameColors.INTERACTIVE_TEXT_DISABLED)
-			chip_material.set_shader_parameter(
-					"empty_ink_color", GameColors.INTERACTIVE_TEXT_DISABLED)
-		else:
-			chip_material.set_shader_parameter("fill_ink_color",
-					GameColors.get_scheme_glyph_ink(_element, _base_fill, _scheme_friendly))
-			chip_material.set_shader_parameter("empty_ink_color",
-					GameColors.get_scheme_glyph_ink(_element, _base_empty, _scheme_friendly))
+		# Glyph ink — ONE color for the whole glyph (per-side split read as
+		# brightness banding on the crosshair's disjoint cells, RQD
+		# 2026-07-26): the faction's standard cut, bleached to the top of
+		# the ELEMENT's own ramp when either resting body is too close to
+		# read ("all the way to white", Lawrence — bone was invisible on
+		# Robo's Gray 8; the dark-cut flip came and went, see GameColors).
+		# Judged at rest, not lifted, so the ink never flips mid-hover. The
+		# shader keeps two per-side uniforms; they just agree.
+		var ink: Color = GameColors.INTERACTIVE_TEXT_DISABLED if disabled \
+				else GameColors.get_scheme_glyph_ink(
+						_element, _base_fill, _base_empty, _scheme_friendly)
+		chip_material.set_shader_parameter("fill_ink_color", ink)
+		chip_material.set_shader_parameter("empty_ink_color", ink)
 		_update_scheme_shadow()
 
 

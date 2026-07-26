@@ -122,21 +122,21 @@ out-of-panel debug/devtools.
   fidelity needs it, the glyph outgrows 10×10 and the CHIP EXPANDS to fit: wider
   first, then the two-line layout. The grid preview stays the truth for anything
   the glyph abbreviates.
-- **Glyph ink contrast (revised 2026-07-26 after Lawrence's same-day pass)**:
-  the chip shader draws the glyph ink per SIDE of the usage divider — the
-  faction's standard cut (bone Eggshell 8 / teal Teal 6) unless that side's
-  RESTING body is too close to read (< 1.5:1), in which case the ink goes
-  **"all the way to white" = index 10 of the ELEMENT's own ramp** (Lawrence's
-  spec) — the same ramp the backlight climbs and the shadow descends, so
-  every color on a chip derives from one ramp. Index 10 is near-white on
-  every ramp, so the faction axis concedes nothing there it hadn't already.
-  The first fix flipped DARK instead (Eggshell 2/Teal 2) — Lawrence: "looks
-  a bit weird when the dividing line runs through it" (a 9.2:1 seam
-  mid-glyph); the bleach rule's seam is a whisper, and legibility over light
-  fills rides the glyph's dark ramp shadow (Gray 10 vs its Gray 5 shadow ≈
-  3.9:1). Dark cut recoverable from 9dd28fc. Awaiting Lawrence's eyes on
-  Piston/Dynamo in the F6 gallery; revisit regardless when real scheme
-  sprites land.
+- **Glyph ink contrast (revised twice 2026-07-26, same-day passes)**: the chip
+  shader draws the glyph ink as **ONE color** — the faction's standard cut
+  (bone Eggshell 8 / teal Teal 6) unless EITHER side's RESTING body is too
+  close to read (< 1.5:1), in which case the whole glyph goes **"all the way
+  to white" = index 10 of the ELEMENT's own ramp** (Lawrence's spec) — the
+  same ramp the backlight climbs and the shadow descends, so every color on
+  a chip derives from one ramp. Only a light FILL can trigger it (standard
+  and ramp-10 both clear every empty by ≥2.9:1). Two rejected shapes on the
+  record: dark cut per side (Lawrence: "weird when the dividing line runs
+  through it", a 9.2:1 mid-glyph seam; recover 9dd28fc) and bleach per side
+  (RQD: "center of the target brighter than the edges" — banding across the
+  crosshair's disjoint cells; recover 65f9118). Legibility over light fills
+  rides the glyph's dark ramp shadow (Gray 10 vs its Gray 5 shadow ≈ 3.9:1).
+  Awaiting Lawrence's eyes on Piston/Dynamo in the F6 gallery; revisit when
+  real scheme sprites land.
 - **Glyph shadow — LOCK (Lawrence 2026-07-20, depth 2026-07-26)**: the shadow is
   the occluded body color pushed down its own ramp, never a black overlay, split
   per pixel across the usage divider (rendered in the chip's fill shader). Depth

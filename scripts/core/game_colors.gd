@@ -443,15 +443,21 @@ static var SCHEME_FRIENDLY: Color:
 const SCHEME_INK_MIN_CONTRAST: float = 1.5
 
 
-## The glyph ink for one side of the usage divider: the faction's standard
-## cut, or — when that's too close to `body` to read — index 10 of the
-## element's own ramp ("all the way to white", Lawrence 2026-07-26). Most
-## bodies are dark and keep the standard — chips look exactly as they always
-## did; light fills (Robo's Gray 8) bleach to their ramp top.
-static func get_scheme_glyph_ink(
-		element_type: Enums.ElementalType, body: Color, friendly: bool) -> Color:
+## ONE ink for the whole glyph: the faction's standard cut, or — when it's
+## too close to EITHER side's body to read — index 10 of the element's own
+## ramp ("all the way to white", Lawrence 2026-07-26). Uniform on purpose
+## (RQD 2026-07-26, "center of the target brighter than the edges"): a
+## per-side split colored the crosshair's disjoint cells differently and
+## read as brightness banding, not a seam. Bleaching both sides together is
+## safe by construction — ramp-10 clears every empty body by ≥2.9:1 (and
+## the standard cuts clear them by ≥2.9:1 too, so only a light FILL ever
+## triggers the bleach). Most chips keep the standard and look exactly as
+## they always did.
+static func get_scheme_glyph_ink(element_type: Enums.ElementalType,
+		fill_body: Color, empty_body: Color, friendly: bool) -> Color:
 	var standard_cut: Color = SCHEME_FRIENDLY if friendly else SCHEME_HOSTILE
-	if _contrast_ratio(standard_cut, body) >= SCHEME_INK_MIN_CONTRAST:
+	if _contrast_ratio(standard_cut, fill_body) >= SCHEME_INK_MIN_CONTRAST \
+			and _contrast_ratio(standard_cut, empty_body) >= SCHEME_INK_MIN_CONTRAST:
 		return standard_cut
 	var ramp: Array = _MOVE_CHIP_RAMPS.get(element_type, _MOVE_CHIP_RAMP_FALLBACK)
 	return GameColorPalette.get_color(ramp[0], 10)
