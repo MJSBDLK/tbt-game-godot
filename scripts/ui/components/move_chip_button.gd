@@ -504,8 +504,10 @@ func _redraw_chrome() -> void:
 	# The body rides the press shift with the rest of the chrome.
 	var press_offset: float = float(PRESS_SHIFT_PIXELS) if is_pressed() else 0.0
 	_chip.position.y = press_offset
-	# Shadow pair follows the CURRENT body: one ramp step down, lift-aware,
-	# darkened grey on the disabled tier (Lawrence 2026-07-20).
+	# Shadow pair follows the CURRENT body: down its ramp to ~30% luminance
+	# (2 fill steps / 1 empty step — per-element depth in the GameColors ramp
+	# table), lift-aware, darkened grey on the disabled tier (Lawrence
+	# 2026-07-20; depth matched to the mockup's pop 2026-07-26).
 	var chip_material := _chip.material as ShaderMaterial
 	if chip_material != null:
 		if disabled:

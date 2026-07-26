@@ -122,6 +122,16 @@ out-of-panel debug/devtools.
   fidelity needs it, the glyph outgrows 10×10 and the CHIP EXPANDS to fit: wider
   first, then the two-line layout. The grid preview stays the truth for anything
   the glyph abbreviates.
+- **Glyph shadow — LOCK (Lawrence 2026-07-20, depth 2026-07-26)**: the shadow is
+  the occluded body color pushed down its own ramp, never a black overlay, split
+  per pixel across the usage divider (rendered in the chip's fill shader). Depth
+  matches the HTML mockup's pop: **~30% of the body's luminance**. Ramp steps
+  aren't perceptually uniform, so that's **2 steps on the fill / 1 on the empty**
+  (per-element depth column in `GameColors._MOVE_CHIP_RAMPS`; Gray's dense top
+  gives ROBO a 3). Off-the-bottom clamps to the ramp floor — Obsidian's empty IS
+  Blue 0, so its shadow vanishes there: you can't darken black. Rest and full
+  backlight are exact GPL entries (eyedropper-safe); mid-fade interpolates, same
+  as the body.
 - Full move details live in the **long-press tooltip** (§14 "Detail tooltips") — the
   chip is a mnemonic, not the spec sheet.
 - Depleted moves grey out (folds into the §14 disabled tier at action-menu adoption).

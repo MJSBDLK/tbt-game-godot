@@ -281,26 +281,47 @@ func test_field_set_knobs_hide_data_columns() -> void:
 
 func test_scheme_shadow_is_the_body_pushed_down_its_ramp() -> void:
 	# Lawrence 2026-07-20: the glyph's shadow is never a black overlay — it's
-	# whatever body color it occludes, one ramp step down, split per pixel
-	# across the usage boundary by the chip shader itself.
+	# whatever body color it occludes, pushed down its own ramp, split per
+	# pixel across the usage boundary by the chip shader itself. Depth matched
+	# to the HTML mockup's pop (~x0.3 luminance) 2026-07-26: ramp steps aren't
+	# perceptually uniform, so the bright fill drops TWO steps while the dark
+	# empty drops ONE — both land at ~30% of their body.
 	var chip_button := _make_chip_button(_make_move())
 	assert_null(chip_button._scheme_glyph.material,
 			"the outline experiment retired — the shader shadow replaces it")
 	var chip_material := chip_button._chip.material as ShaderMaterial
 	assert_true(chip_material.get_shader_parameter("scheme_shadow_enabled"))
 	assert_eq(chip_material.get_shader_parameter("fill_shadow_color"),
-			GameColorPalette.get_color("PoppyRed", 4),
-			"fill shadow = one step below the fill (PoppyRed 5 -> 4)")
+			GameColorPalette.get_color("PoppyRed", 3),
+			"fill shadow = two steps below the fill (PoppyRed 5 -> 3, ~x0.24)")
 	assert_eq(chip_material.get_shader_parameter("empty_shadow_color"),
 			GameColorPalette.get_color("PoppyRed", 1),
-			"empty shadow = one step below the empty (PoppyRed 2 -> 1)")
+			"empty shadow = one step below the empty (PoppyRed 2 -> 1, ~x0.30)")
 	chip_button._backlight_level = 1.0
 	chip_button._redraw_chrome()
 	assert_eq(chip_material.get_shader_parameter("fill_shadow_color"),
-			GameColorPalette.get_color("PoppyRed", 5),
+			GameColorPalette.get_color("PoppyRed", 4),
 			"the shadow rides the backlight lift with the body")
 	assert_eq(TargetSchemeGlyph.shape_texture(false).get_size(), Vector2(12, 12),
 			"shadow mask = the glyph's own shape texture (1px pad)")
+
+
+func test_shadow_depth_column_and_the_ramp_bottom_clamp() -> void:
+	# The per-ramp depth column: Gray's top end is denser than every other
+	# ramp (one step from index 8 is only x0.75), so ROBO carries depth 3 to
+	# reach the same ~30% luminance everyone else gets from 2.
+	assert_eq(GameColors.get_move_chip_foreground_shadow(Enums.ElementalType.ROBO, 0.0),
+			GameColorPalette.get_color("Gray", 5),
+			"Robo fill shadow drops THREE (Gray 8 -> 5)")
+	# OBSIDIAN's empty is already the ramp bottom (Blue 0, near-black): the
+	# clamp makes its shadow equal its body — an invisible shadow on black is
+	# correct, not a bug. You can't darken the void.
+	assert_eq(GameColors.get_move_chip_background_shadow(Enums.ElementalType.OBSIDIAN, 0.0),
+			GameColorPalette.get_color("Blue", 0),
+			"off-the-bottom clamps to the ramp floor")
+	assert_eq(GameColors.get_move_chip_background_shadow(Enums.ElementalType.OBSIDIAN, 0.0),
+			GameColors.get_move_chip_background(Enums.ElementalType.OBSIDIAN),
+			"...which IS Obsidian's empty body: the shadow vanishes into it")
 
 
 func test_display_only_mode_removes_all_interactivity() -> void:

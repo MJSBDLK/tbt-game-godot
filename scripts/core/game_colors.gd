@@ -317,27 +317,36 @@ static var MULTIPLIER_X0_DARK: Color:
 # =============================================================================
 
 ## Single source of truth for each element's chip ramp identity:
-## element -> [ramp_name, background_index, foreground_index]. Everything a
-## chip does with color — including the backlight lifting the pair ONE step up
-## the ramp — derives from this table, so lifted colors are always colors the
-## artist actually put on the ramp.
+## element -> [ramp_name, background_index, foreground_index,
+## foreground_shadow_depth]. Everything a chip does with color — including the
+## backlight lifting the pair ONE step up the ramp — derives from this table,
+## so lifted colors are always colors the artist actually put on the ramp.
+##
+## The shadow-depth column (Lawrence 2026-07-26, "the original mockup
+## popped"): the HTML mockup's glyph shadow was a black overlay at ~x0.3
+## luminance, and ramp steps are NOT perceptually uniform — near the bright
+## end one step only drops to ~x0.55, near the dark end one step is ~x0.3
+## already. So the invariant is "the shadow drops the body to ~30% luminance,"
+## expressed in each side's local step size: foreground = 2 steps (this
+## column), background = always 1 (its indices sit where a single step IS
+## ~x0.3). Gray's top end is denser than every other ramp, so ROBO carries 3.
 const _MOVE_CHIP_RAMPS: Dictionary = {
-	Enums.ElementalType.AIR:       ["TealGray", 2, 7],
-	Enums.ElementalType.CHIVALRIC: ["Orange", 2, 6],
-	Enums.ElementalType.COLD:      ["Azure", 1, 4],
-	Enums.ElementalType.ELECTRIC:  ["YellowOrange", 2, 6],
-	Enums.ElementalType.FIRE:      ["PoppyRed", 2, 5],
-	Enums.ElementalType.GENTRY:    ["Tan2", 2, 7],
-	Enums.ElementalType.GRAVITY:   ["Violet", 1, 3],
-	Enums.ElementalType.HERALDIC:  ["Chartreuse", 2, 4],
-	Enums.ElementalType.OCCULT:    ["Red", 1, 4],
-	Enums.ElementalType.PLANT:     ["Green", 2, 4],
-	Enums.ElementalType.ROBO:      ["Gray", 3, 8],
-	Enums.ElementalType.SIMPLE:    ["S1", 2, 6],
-	Enums.ElementalType.VOID:      ["Yellow", 1, 5],
-	Enums.ElementalType.OBSIDIAN:  ["Blue", 0, 3],
+	Enums.ElementalType.AIR:       ["TealGray", 2, 7, 2],
+	Enums.ElementalType.CHIVALRIC: ["Orange", 2, 6, 2],
+	Enums.ElementalType.COLD:      ["Azure", 1, 4, 2],
+	Enums.ElementalType.ELECTRIC:  ["YellowOrange", 2, 6, 2],
+	Enums.ElementalType.FIRE:      ["PoppyRed", 2, 5, 2],
+	Enums.ElementalType.GENTRY:    ["Tan2", 2, 7, 2],
+	Enums.ElementalType.GRAVITY:   ["Violet", 1, 3, 2],
+	Enums.ElementalType.HERALDIC:  ["Chartreuse", 2, 4, 2],
+	Enums.ElementalType.OCCULT:    ["Red", 1, 4, 2],
+	Enums.ElementalType.PLANT:     ["Green", 2, 4, 2],
+	Enums.ElementalType.ROBO:      ["Gray", 3, 8, 3],
+	Enums.ElementalType.SIMPLE:    ["S1", 2, 6, 2],
+	Enums.ElementalType.VOID:      ["Yellow", 1, 5, 2],
+	Enums.ElementalType.OBSIDIAN:  ["Blue", 0, 3, 2],
 }
-const _MOVE_CHIP_RAMP_FALLBACK: Array = ["Gray", 2, 5]
+const _MOVE_CHIP_RAMP_FALLBACK: Array = ["Gray", 2, 5, 2]
 
 
 static func get_move_chip_background(element_type: Enums.ElementalType) -> Color:
@@ -383,14 +392,19 @@ static func get_move_chip_border(element_type: Enums.ElementalType) -> Color:
 		_:                             return GameColorPalette.get_color("Gray", 4)
 
 
-# Scheme-glyph shadow pair (Lawrence 2026-07-20): the shadow is the occluded
-# body color pushed one step DOWN its own ramp — never a black overlay. Takes
-# the same lift as the body so the shadow rises with the backlight.
+# Scheme-glyph shadow pair (Lawrence 2026-07-20; depth matched to the HTML
+# mockup's pop 2026-07-26): the shadow is the occluded body color pushed DOWN
+# its own ramp to ~30% luminance — never a black overlay. Foreground drops the
+# table's shadow-depth column (2, Gray 3); background drops 1 (see the table
+# doc for why the sides differ). Takes the same lift as the body so the shadow
+# rises with the backlight. get_color_interpolated clamps at ramp bottom —
+# deliberate for OBSIDIAN, whose background IS Blue 0 (#000005): its shadow
+# equals its body and vanishes. You can't darken black.
 static func get_move_chip_foreground_shadow(
 		element_type: Enums.ElementalType, lift: float) -> Color:
 	var ramp: Array = _MOVE_CHIP_RAMPS.get(element_type, _MOVE_CHIP_RAMP_FALLBACK)
 	return GameColorPalette.get_color_interpolated(
-			ramp[0], ramp[2] + clampf(lift, 0.0, 1.0) - 1.0)
+			ramp[0], ramp[2] + clampf(lift, 0.0, 1.0) - float(ramp[3]))
 
 
 static func get_move_chip_background_shadow(

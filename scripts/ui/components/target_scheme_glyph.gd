@@ -6,9 +6,9 @@
 ## including the disabled grey-down; this node only draws.
 ##
 ## The glyph's shadow is NOT drawn here: it lives in the chip's fill shader
-## (Lawrence 2026-07-20 — the shadow is the occluded body color pushed one
-## ramp step down, split per pixel across the usage boundary, and only the
-## chip shader knows where that boundary is). This node draws the tinted
+## (Lawrence 2026-07-20 — the shadow is the occluded body color pushed down
+## its ramp to ~30% luminance, split per pixel across the usage boundary, and
+## only the chip shader knows where that boundary is). This node draws the tinted
 ## shape; MoveChipButton feeds the same shape texture to the chip shader as
 ## the shadow mask. The dark orthogonal-glow outline was tried 2026-07-19
 ## and replaced by this ("restore the box shadow").
