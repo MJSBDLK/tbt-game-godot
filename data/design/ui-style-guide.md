@@ -346,7 +346,10 @@ disabled < static < idle < selected < call to action.
   FIXED px/s (default 50), azure ramp so tails melt into the lit border; ramp
   **LOCKED**: core = step = **3 game px** (footprint 3/9/15/21 — bands read too
   obviously above 3). Retired: whole-button magenta recolor, quiet (color-only),
-  orbit-once (both depended on the recolor).
+  orbit-once (both depended on the recolor). **Revival (RQD 2026-07-26)**: the
+  orbit is no longer a selection candidate — it returned as the **assigned-marker
+  front-runner** on move chips (bone ramp, chip perimeter, locked geometry
+  carries over); see the marker hunt in the mockup.
 - **Magenta/purple accent — job found, de facto (2026-07-19): SPECIAL damage.**
   The shipped `special_d` move-type icon is a magenta sparkle, and the
   phys/spec/support trio now rides on move chips as well as the detail panel,

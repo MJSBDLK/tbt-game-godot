@@ -515,6 +515,9 @@
     font-size: 10px;
     text-shadow: 0 0 4px rgba(0, 0, 0, .8);
   }
+  /* .asn-orbit has no CSS: the orbit is SVG built by refreshMarquees() with
+     MARQUEE_RAMP_BONE (the revival, RQD 2026-07-26). Reduce-motion rebuilds it
+     with the highlights parked — two static bone dashes on opposite edges. */
 
 
 
@@ -1061,14 +1064,16 @@
   <h2>Assigned ≠ selected — the marker hunt</h2>
   <p class="sub">RQD 2026-07-19: parked-vs-snapping brackets <strong>conflate two concepts</strong> —
   assignment is a persistent fact about the unit, selection is where the cursor is. If assignment
-  gets its own STATIC marker, brackets go back to meaning exactly one thing ("you are here"), it
-  works in display venues, and the reduce-motion degradation (parked ≈ snapping) dissolves for
-  free. Three candidates on Frost Lance; Ember holds the cursor for contrast. Bone-white on
-  purpose — azure is interactivity, amber is the CTA monopoly.</p>
+  gets its own marker, brackets go back to meaning exactly one thing ("you are here") and it
+  works in display venues. Three static bone candidates on Frost Lance; Ember holds the cursor
+  for contrast. Bone-white on purpose — azure is interactivity, amber is the CTA monopoly.
+  <strong>RQD 2026-07-26: the marquee orbit returns</strong> as candidate #4 — retired from
+  selection, revived for assignment. The motion taxonomy stays one-meaning-per-motion:
+  converging = "come here", snapping = "you are here", orbiting = "armed".</p>
 
   <div class="rig-row">
     <div class="rig">
-      <div class="rig-title">Cursor (for contrast) + 3 assigned markers</div>
+      <div class="rig-title">Cursor (for contrast) + 4 assigned markers + depleted orbit</div>
       <div class="menu">
         <button class="btn chip st-selected v-bracket pinned sfx" style="--chip-hi:#c98d47; --chip-lo:#3a2410; --fill:60%;">
           <span class="chip-icon" style="color:#f0b060;">♦</span><span>Ember</span><span class="chip-uses">3/5</span>
@@ -1082,6 +1087,13 @@
         </button>
         <button class="btn chip st-idle sfx" style="--chip-hi:#6cc4d9; --chip-lo:#0f2f38; --fill:66%;">
           <span class="asn-pip">▸</span><span class="chip-icon" style="color:#bfeaf5;">❆</span><span>Frost Lance</span><span class="chip-uses">2/3</span>
+        </button>
+        <button class="btn chip st-idle sfx asn-orbit" style="--chip-hi:#6cc4d9; --chip-lo:#0f2f38; --fill:66%;">
+          <span class="chip-icon" style="color:#bfeaf5;">❆</span><span>Frost Lance</span><span class="chip-uses">2/3</span>
+        </button>
+        <button class="btn chip depleted sfx-deny asn-orbit" style="--fill:0%;">
+          <span class="chip-icon" style="color:#8a857a;">❆</span><span>Frost Lance</span><span class="chip-uses">0/3</span>
+          <span class="why">NO USES REMAINING</span>
         </button>
       </div>
     </div>
@@ -1098,13 +1110,24 @@
         <li><strong>Pip</strong> — a static ▸ before the element icon. Yes, this is the old
         "&gt;&nbsp;" reborn as a glyph instead of text — the objection was the TEXT prefix
         mangling the name column; a fixed-width pip column may read fine. Cheapest to build.</li>
-        <li><strong>The payoff if any of these wins:</strong> parked brackets RETIRE. Brackets
-        mean only "you are here," the assigned marker works identically in the action menu,
-        preview, and detail panel, and the known reduce-motion caveat (parked and snapping
-        collapse into the same look) simply stops existing.</li>
+        <li><strong>Orbit — the revival (RQD 2026-07-26, front-runner)</strong> — the marquee
+        orbit, back from the selection graveyard: two opposed highlights traveling the chip's
+        perimeter at the fixed px/s above. BONE ramp stepping toward the chip's gray skin
+        border, not the azure one — azure stays interactivity's color, and this marker is a
+        fact. Locked geometry carries over: core = step = 3 game px. Things to judge in the
+        rig: on a chip this short the 21px tail wraps the corners and floods the short edges
+        (charm or noise?); when the cursor lands ON the assigned chip, snapping brackets ride
+        on top of a still-running orbit — two motions composing.</li>
+        <li><strong>The payoff, either way:</strong> parked brackets RETIRE. Brackets mean only
+        "you are here" and the marker works identically in the action menu, preview, and detail
+        panel. The static three also dissolve the reduce-motion caveat outright; the orbit
+        instead degrades defined-but-different — reduce-motion parks the highlights into two
+        static bone dashes on opposite edges (the edge bar, doubled).</li>
         <li><strong>Depleted + assigned</strong> composes: the marker rides the dark tier
         unchanged (it's a fact, not an affordance) — whichever candidate wins should be
-        checked against the grey body before locking.</li>
+        checked against the grey body before locking. The orbit gets that specimen in the rig
+        above, because it's the sharpest version of the question: does a traveling light on a
+        dead chip promise pressability the chip can't honor?</li>
       </ul>
     </div>
   </div>
@@ -1181,9 +1204,15 @@
   // core → tail; azure so the tails melt into the lit border (the magenta ramp
   // retired with the purple-selection experiment, 2026-07-15)
   var MARQUEE_RAMP = ['#ffffff', '#b8e0ff', '#9cc4e4', '#88aed0'];
-  var MARQUEE_LAYERS = MARQUEE_RAMP.map(function (color, index) {
-    return { color: color, gamePx: MARQUEE_STEP_GAME_PX * (1 + 2 * index) };
-  }).reverse(); // longest (tail) drawn first, white core on top
+  // Assigned-marker revival (RQD 2026-07-26): same orbit, BONE ramp — azure is
+  // interactivity's color and assignment is a fact. Tails step down toward the
+  // chip's gray skin border (#7a766b) instead of melting into a lit azure one.
+  var MARQUEE_RAMP_BONE = ['#ffffff', '#f2ead8', '#c9bfa4', '#9a927e'];
+  function marqueeLayers(ramp) {
+    return ramp.map(function (color, index) {
+      return { color: color, gamePx: MARQUEE_STEP_GAME_PX * (1 + 2 * index) };
+    }).reverse(); // longest (tail) drawn first, white core on top
+  }
   var marqueeSpeed = 50; // game px per second along the border
 
   function clearMarquee(el) {
@@ -1191,7 +1220,7 @@
     if (old) old.remove();
   }
 
-  function buildMarquee(el) {
+  function buildMarquee(el, ramp) {
     clearMarquee(el);
     var unit = 3; // screen px per game px
     var w = el.offsetWidth, h = el.offsetHeight;
@@ -1208,7 +1237,7 @@
     var perimeter = 2 * (inner.w + inner.h);
     var reduced = document.body.classList.contains('reduced')
       || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    MARQUEE_LAYERS.forEach(function (layer) {
+    marqueeLayers(ramp || MARQUEE_RAMP).forEach(function (layer) {
       var rect = document.createElementNS(ns, 'rect');
       var len = layer.gamePx * unit;
       rect.setAttribute('x', inner.x);
@@ -1239,6 +1268,8 @@
       var selected = el.classList.contains('st-selected');
       if (selected && (el.classList.contains('v-rotate') || el.classList.contains('v-both'))) {
         buildMarquee(el);
+      } else if (el.classList.contains('asn-orbit')) {
+        buildMarquee(el, MARQUEE_RAMP_BONE); // assigned marker: bone, not azure
       } else {
         clearMarquee(el);
       }
