@@ -3,7 +3,8 @@
 ## move chips are MoveChipButtons, text actions are InteractiveButtons — the
 ## exact components the F6 gallery rehearsed (Lawrence: "cramped but
 ## organized", accepted 2026-07-19). Focus is the menu cursor: brackets
-## follow it; the assigned move keeps parked brackets.
+## follow it; the assigned move carries the bone orbit (marker hunt revival,
+## RQD 2026-07-26 — parked brackets retired with it).
 ## Signals back to ActionMenuManager for business logic.
 class_name ActionMenuPanel
 extends PanelContainer

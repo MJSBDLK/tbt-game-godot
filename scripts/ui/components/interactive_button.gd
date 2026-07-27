@@ -260,9 +260,9 @@ func _border_color() -> Color:
 	return GameColors.INTERACTIVE_BORDER_IDLE
 
 
-## Bracket hooks for subclasses with additional bracket-marked states.
-## MoveChipButton shows PARKED brackets for its assigned move: same shape,
-## no snap — motion category distinguishes "assigned" from "cursor is here".
+## Bracket hooks for subclasses. Brackets mean ONLY "you are here" — the
+## parked-bracket assigned state they once shared retired when the assigned
+## orbit took that job (MoveChipButton; marker hunt, RQD 2026-07-26).
 func _brackets_visible() -> bool:
 	return selected
 

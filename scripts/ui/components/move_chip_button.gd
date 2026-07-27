@@ -5,11 +5,17 @@
 ## (RQD 2026-07-16). The vocabulary contributes:
 ##   backlight  — the body lifts one luminance step on hover/focus (fill and
 ##                empty together, so the usage boundary keeps its contrast)
-##   brackets   — snapping = the menu cursor is here (inherited `selected`);
-##                PARKED = this is the assigned move. Same shape, same white;
-##                motion category carries the difference. Replaces "> ".
+##   brackets   — snapping = the menu cursor is here (inherited `selected`).
+##                Brackets mean ONLY "you are here" — parked brackets retired
+##                with the orbit revival (marker hunt, RQD 2026-07-26).
+##   orbit      — ASSIGNED move: two bone highlights traveling the chip's
+##                border ring at a fixed px/s (the marquee, back from the
+##                selection graveyard). Motion taxonomy: converging = "come
+##                here", snapping = "you are here", orbiting = "armed".
 ##   disabled   — depleted/locked drop the whole chip to the dark tier and
-##                pressing emits `denied`; `disabled_reason` says why.
+##                pressing emits `denied`; `disabled_reason` says why. The
+##                orbit RIDES the dark tier unchanged: assignment is a fact,
+##                not an affordance.
 ##   press/CTA  — inherited unchanged (1px shift + flash; amber rings).
 class_name MoveChipButton
 extends InteractiveButton
@@ -26,6 +32,15 @@ const NAME_COLUMN_WIDTH: float = 38.0
 ## margin_top = 2): pixel caps carry their mass high, so true center reads
 ## high. Chip text rides the same 2px so it sits like every panel label.
 const TEXT_TOP_MARGIN: int = 2
+
+## Assigned-orbit geometry, LOCKED with the mockup (RQD 2026-07-15 ramp lock,
+## revived for assignment 2026-07-26): the white core is the same length as
+## each shade step — one knob — and travel is a FIXED px/s along the border
+## (the whole point vs. the old angular sweep, whose highlights elongated on
+## long edges like a siren). Speed = the mockup slider's default.
+const ORBIT_STEP_PIXELS: int = 3
+const ORBIT_SPEED_PX_PER_SECOND: float = 50.0
+const ORBIT_LAYER_COUNT: int = 4
 
 ## Why pressing is currently refused — surfaced by deny UI (styled tooltip).
 var disabled_reason: String = ""
@@ -52,7 +67,8 @@ var disabled_reason: String = ""
 ## M&K/controller answer), so the panel itself watches for touch holds.
 @export var peek_enabled: bool = true
 
-## This move is the unit's assigned move: parked brackets, persistent.
+## This move is the unit's assigned move: the bone orbit rides the border
+## ring, persistent — including over the disabled tier (fact, not affordance).
 var assigned: bool = false:
 	set(value):
 		if assigned == value:
@@ -478,21 +494,96 @@ func _cancel_press_attempt() -> void:
 # =============================================================================
 
 ## Behind-chrome draws nothing: the chip shader IS the body and the border.
-## Front-chrome (brackets, rings, press flash) inherits.
+## Front-chrome adds the assigned orbit UNDER the inherited chrome, so the
+## snapping brackets (the cursor arriving ON the assigned chip) and the press
+## flash draw over a still-running orbit — two motions composing, per the rig.
 func _draw_chrome(canvas: Control, behind: bool) -> void:
 	if behind:
 		return
+	if assigned:
+		var shift := Vector2(0, PRESS_SHIFT_PIXELS if is_pressed() else 0)
+		_draw_assigned_orbit(canvas, Rect2(shift, size))
 	super._draw_chrome(canvas, behind)
 
 
 func _brackets_visible() -> bool:
-	return selected or assigned
-
-
-func _brackets_snapping() -> bool:
-	# Parked for the assigned move; the cursor landing here resumes the snap —
-	# that IS "you are here".
+	# Brackets mean ONLY "you are here". The assigned move used to park these
+	# (same shape, no snap) — retired when the orbit took the assignment job.
 	return selected
+
+
+## The orbit keeps the redraw loop alive on its own terms: unlike selected/CTA
+## it ignores `disabled` — a depleted assigned chip keeps orbiting (the marker
+## is a fact about the unit, not an affordance of the chip).
+func _wants_motion() -> bool:
+	return super() or (assigned and _motion_enabled())
+
+
+# =============================================================================
+# ASSIGNED ORBIT — the marquee, back from the selection graveyard (marker
+# hunt, RQD 2026-07-26). Two diametrically opposed bone highlights traveling
+# the chip's border ring; each highlight is a white core with shade steps
+# down the Eggshell ramp on both sides. Reduce-motion parks both highlights
+# at their spawn points — two static bone dashes on opposite edges.
+# Statics are pure so GUT can pin the geometry exactly (house idiom).
+# =============================================================================
+
+## The border ring as an ordered clockwise pixel path, radius-2 rounded
+## corners (matching the chip shader's radius_px) rendered as one diagonal
+## pixel each. Starts at (2, 0) — the top edge's first pixel past the corner.
+static func orbit_perimeter_points(chip_size: Vector2i) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	var width: int = chip_size.x
+	var height: int = chip_size.y
+	if width < 5 or height < 5:
+		return points
+	for x: int in range(2, width - 2):
+		points.append(Vector2(x, 0))
+	points.append(Vector2(width - 2, 1))
+	for y: int in range(2, height - 2):
+		points.append(Vector2(width - 1, y))
+	points.append(Vector2(width - 2, height - 2))
+	for x: int in range(width - 3, 1, -1):
+		points.append(Vector2(x, height - 1))
+	points.append(Vector2(1, height - 2))
+	for y: int in range(height - 3, 1, -1):
+		points.append(Vector2(0, y))
+	points.append(Vector2(1, 1))
+	return points
+
+
+## Whole pixels traveled along the ring after `seconds` — floor, so the
+## highlight steps the path one pixel at a time (stepped like the brackets
+## and CTA rings, never a smooth glide).
+static func orbit_travel_at(seconds: float) -> int:
+	return int(floorf(seconds * ORBIT_SPEED_PX_PER_SECOND))
+
+
+## Ramp layer for a pixel `distance` steps along the ring from a highlight's
+## center: 0 = white core, rising through the shades, -1 = past the tail.
+## Layer i spans step*(1+2i) pixels centered on the highlight (3/9/15/21).
+static func orbit_layer_at_distance(distance: int) -> int:
+	var absolute_distance: int = absi(distance)
+	for layer: int in ORBIT_LAYER_COUNT:
+		if absolute_distance <= (ORBIT_STEP_PIXELS * (1 + 2 * layer) - 1) / 2:
+			return layer
+	return -1
+
+
+func _draw_assigned_orbit(canvas: Control, rect: Rect2) -> void:
+	var path: PackedVector2Array = orbit_perimeter_points(Vector2i(rect.size))
+	var perimeter: int = path.size()
+	if perimeter == 0:
+		return
+	var ramp: Array[Color] = GameColors.get_assigned_orbit_ramp()
+	var travel: int = orbit_travel_at(_now_seconds()) if _motion_enabled() else 0
+	var tail_half: int = (ORBIT_STEP_PIXELS * (2 * ORBIT_LAYER_COUNT - 1) - 1) / 2
+	for highlight_start: int in [0, perimeter / 2]:
+		var center: int = travel + highlight_start
+		for offset: int in range(-tail_half, tail_half + 1):
+			var point: Vector2 = path[posmod(center + offset, perimeter)]
+			canvas.draw_rect(Rect2(rect.position + point, Vector2.ONE),
+					ramp[orbit_layer_at_distance(offset)], true)
 
 
 func _redraw_chrome() -> void:

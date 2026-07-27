@@ -1,9 +1,10 @@
 ## MoveChipButton — the border vocabulary translated onto themed move chips.
 ## Pins the translation rules from the mockup's "Move chips" section: the
-## body/border are skin (element colors, usage fill untouchable), assigned =
-## parked brackets vs cursor = snapping, depleted/locked = disabled tier with
-## a reason, and the backlight lifts both body colors together so the usage
-## boundary keeps its contrast.
+## body/border are skin (element colors, usage fill untouchable), cursor =
+## snapping brackets, assigned = the bone orbit on the border ring (marker
+## hunt revival — parked brackets retired), depleted/locked = disabled tier
+## with a reason, and the backlight lifts both body colors together so the
+## usage boundary keeps its contrast.
 extends GutTest
 
 
@@ -48,13 +49,70 @@ func test_setup_reads_the_move() -> void:
 	assert_false(chip_button.disabled)
 
 
-func test_assigned_shows_parked_brackets_cursor_makes_them_snap() -> void:
+func test_assigned_orbits_and_brackets_mean_only_you_are_here() -> void:
 	var chip_button := _make_chip_button(_make_move(), true)
-	assert_true(chip_button._brackets_visible(), "assigned move carries brackets")
-	assert_false(chip_button._brackets_snapping(), "parked — motion category says 'assigned'")
+	assert_false(chip_button._brackets_visible(),
+			"parked brackets RETIRED — assignment is the orbit's job now")
+	assert_true(chip_button._wants_motion(), "the orbit keeps the redraw loop alive")
 	chip_button.selected = true
-	assert_true(chip_button._brackets_snapping(),
-			"the cursor landing here resumes the snap: that IS 'you are here'")
+	assert_true(chip_button._brackets_visible(),
+			"the cursor landing here snaps brackets OVER the orbit: 'you are here'")
+
+
+func test_orbit_rides_the_disabled_tier_but_parks_without_motion() -> void:
+	# A depleted assigned move keeps its marker moving: assignment is a fact
+	# about the unit, not an affordance of the chip (mockup's grey specimen).
+	var chip_button := _make_chip_button(_make_move(0, 4), true)
+	assert_true(chip_button.disabled, "0 uses = disabled tier")
+	assert_true(chip_button._wants_motion(),
+			"the orbit ignores `disabled` — fact, not affordance")
+	Settings.ui_motion_enabled = false
+	assert_false(chip_button._wants_motion(),
+			"reduce-motion parks the highlights (drawn at travel 0, no loop)")
+
+
+func test_orbit_path_is_a_closed_pixel_ring_with_radius_2_corners() -> void:
+	var chip_size := Vector2i(120, 14)
+	var path := MoveChipButton.orbit_perimeter_points(chip_size)
+	assert_eq(path.size(), 2 * (chip_size.x + chip_size.y) - 12,
+			"straight edges + 1 diagonal pixel per corner (2w + 2h - 12)")
+	assert_eq(path[0], Vector2(2, 0), "spawn point: top edge, past the corner cut")
+	var seen := {}
+	for i: int in path.size():
+		assert_false(seen.has(path[i]), "no pixel visited twice")
+		seen[path[i]] = true
+		var step: Vector2 = path[(i + 1) % path.size()] - path[i]
+		assert_lt(step.length(), 1.5, "consecutive pixels stay 8-connected (ring closes)")
+	for corner: Vector2 in [Vector2(0, 0), Vector2(119, 0), Vector2(0, 13), Vector2(119, 13)]:
+		assert_false(seen.has(corner), "square corners are cut — the ring is rounded r=2")
+
+
+func test_orbit_travel_steps_whole_pixels_at_fixed_speed() -> void:
+	assert_eq(MoveChipButton.orbit_travel_at(0.0), 0)
+	assert_eq(MoveChipButton.orbit_travel_at(0.019), 0, "sub-pixel time floors — stepped, no glide")
+	assert_eq(MoveChipButton.orbit_travel_at(0.02), 1, "1px per 1/50s at the locked 50 px/s")
+	assert_eq(MoveChipButton.orbit_travel_at(1.0), 50)
+
+
+func test_orbit_layers_lock_core_equals_step_equals_3() -> void:
+	# Layer spans 3/9/15/21 px centered on the highlight (the mockup's locked
+	# "core = step" geometry): |d|<=1 core, <=4, <=7, <=10, then past the tail.
+	for distance: int in [-1, 0, 1]:
+		assert_eq(MoveChipButton.orbit_layer_at_distance(distance), 0, "white core spans 3px")
+	assert_eq(MoveChipButton.orbit_layer_at_distance(2), 1)
+	assert_eq(MoveChipButton.orbit_layer_at_distance(-4), 1)
+	assert_eq(MoveChipButton.orbit_layer_at_distance(7), 2)
+	assert_eq(MoveChipButton.orbit_layer_at_distance(10), 3)
+	assert_eq(MoveChipButton.orbit_layer_at_distance(-11), -1, "past the tail: nothing drawn")
+
+
+func test_orbit_ramp_is_palette_true_bone() -> void:
+	# Bone, not azure: azure is interactivity's color and assignment is a fact.
+	# Indices = nearest palette entries to the approved mockup hexes.
+	var ramp: Array[Color] = GameColors.get_assigned_orbit_ramp()
+	assert_eq(ramp.size(), MoveChipButton.ORBIT_LAYER_COUNT)
+	assert_eq(ramp[0], GameColorPalette.get_color("Eggshell", 10), "core: near-white")
+	assert_eq(ramp[3], GameColorPalette.get_color("Eggshell", 6), "tail dims into the frame")
 
 
 func test_depleted_is_the_disabled_tier_with_a_reason() -> void:

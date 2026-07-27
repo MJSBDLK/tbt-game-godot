@@ -463,6 +463,22 @@ static func get_scheme_glyph_ink(element_type: Enums.ElementalType,
 	return GameColorPalette.get_color(ramp[0], 10)
 
 
+## Bone marquee ramp for the ASSIGNED move's orbit (marker hunt revival, RQD
+## 2026-07-26): core → tail, near-white stepping down the Eggshell ramp so
+## the tails dim into the chip frame. Bone on purpose — azure is
+## interactivity's color and assignment is a FACT about the unit, same
+## family as the marker hunt's static candidates. Indices are the nearest
+## palette entries to the approved mockup hexes (#ffffff/#f2ead8/#c9bfa4/
+## #9a927e → Eggshell 10/9/7/6; the tail is a near-exact match).
+static func get_assigned_orbit_ramp() -> Array[Color]:
+	return [
+		GameColorPalette.get_color("Eggshell", 10),
+		GameColorPalette.get_color("Eggshell", 9),
+		GameColorPalette.get_color("Eggshell", 7),
+		GameColorPalette.get_color("Eggshell", 6),
+	]
+
+
 ## WCAG contrast ratio (1..21) on linearized luminance.
 static func _contrast_ratio(a: Color, b: Color) -> float:
 	var luminance_a: float = a.srgb_to_linear().get_luminance()

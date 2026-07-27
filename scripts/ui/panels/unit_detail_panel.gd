@@ -714,9 +714,10 @@ func _update_move_tablets() -> void:
 			var move: Move = _character_data.equipped_moves[i]
 			chip_button.visible = true
 			# VOID lock is per-battle — only meaningful with a live unit.
-			# NO assigned brackets: they'd double-book with the inspection
-			# brackets in this venue (parked vs snapping is too subtle when
-			# both live in one column — RQD 2026-07-19).
+			# NO assigned marker: this venue inspects the roster, it doesn't
+			# arm moves (was "brackets double-book" under the parked-bracket
+			# scheme, RQD 2026-07-19; the orbit COULD coexist with inspection
+			# brackets now — revisit only if the marker hunt asks for it).
 			chip_button.setup(move, false,
 					_unit != null and _unit.is_move_index_locked(i))
 		else:

@@ -151,7 +151,8 @@ out-of-panel debug/devtools.
   chip is a mnemonic, not the spec sheet.
 - Depleted moves grey out (folds into the §14 disabled tier at action-menu adoption).
 - Hover/click feedback: **built** — the §14 vocabulary via `MoveChipButton`
-  (ramp-step backlight, parked/snapping brackets, press response, deny).
+  (ramp-step backlight, snapping cursor brackets, assigned bone orbit, press
+  response, deny).
 
 ### Status chips (unit preview panel)
 - `ColorRect` + 6×6 icon + abbreviated name + turns-remaining label.
@@ -218,7 +219,9 @@ out-of-panel debug/devtools.
   menu, system menu, and options Close button are real `InteractiveButton` /
   `MoveChipButton` components — the hand-rolled styles (and the Gray 2/3 line
   below) are gone. Focus is the menu cursor (opens on the first item); the "> "
-  assigned prefix became parked brackets; deny surfaces via `DenyTooltip`. The
+  assigned prefix became parked brackets, which then became the **bone orbit**
+  (marker hunt revival, in-engine trial 2026-07-26 — see §14 "Assigned
+  marker"); deny surfaces via `DenyTooltip`. The
   system menu's End Turn dropped its magenta accent (magenta = special damage);
   its CTA stays unwired because TurnManager auto-ends the phase when all units
   have acted. Options toggle pills stay hand-rolled — the vocabulary has no
@@ -347,9 +350,9 @@ disabled < static < idle < selected < call to action.
   **LOCKED**: core = step = **3 game px** (footprint 3/9/15/21 — bands read too
   obviously above 3). Retired: whole-button magenta recolor, quiet (color-only),
   orbit-once (both depended on the recolor). **Revival (RQD 2026-07-26)**: the
-  orbit is no longer a selection candidate — it returned as the **assigned-marker
-  front-runner** on move chips (bone ramp, chip perimeter, locked geometry
-  carries over); see the marker hunt in the mockup.
+  orbit is no longer a selection candidate — it returned as the **assigned
+  marker** on move chips, now built in-engine (see "Assigned marker" below;
+  mockup's marker hunt holds the static runner-ups).
 - **Magenta/purple accent — job found, de facto (2026-07-19): SPECIAL damage.**
   The shipped `special_d` move-type icon is a magenta sparkle, and the
   phys/spec/support trio now rides on move chips as well as the detail panel,
@@ -361,6 +364,24 @@ disabled < static < idle < selected < call to action.
   in-place pulse is explicitly rejected (reads as selected/idle).
 - **Press response — LOCK**: 1 game px downward shift + brightness flash. No scaling,
   ever (integer pixel grid). Pairs with the input-layer tap ring.
+
+### Assigned marker — IN-ENGINE TRIAL (RQD 2026-07-26; Lawrence to eyeball)
+The assigned move wears the **bone orbit**: two diametrically opposed
+highlights traveling the chip's border ring at **50 px/s**, each a white core
+with shade steps down the **Eggshell ramp (10/9/7/6** — nearest palette
+entries to the approved mockup hexes**)**. Locked geometry carries over from
+the selection-era marquee: core = step = **3 game px**. Bone on purpose —
+azure is interactivity, amber is the CTA monopoly, and assignment is a
+*fact*, so the marker rides the depleted grey tier unchanged and ignores
+`disabled`. **Parked brackets RETIRED with this**: brackets mean only "you
+are here," and the cursor landing on the assigned chip snaps brackets over a
+still-running orbit (two motions composing — judge in the F6 gallery:
+F. Lance live, Spark depleted). Reduce-motion parks both highlights at their
+spawn points (two static bone dashes on opposite edges). Static runner-up
+candidates (edge bar / underline / pip) stay in the mockup's marker hunt if
+the orbit muddles in practice. Corner geometry: radius-2 pixel ring, one
+diagonal pixel per corner; the 21px tail wraps corners and floods the short
+edges — flagged for the eyeball, not pre-judged.
 
 ### Detail tooltips — CORE, LOCK (RQD + Lawrence 2026-07-19)
 One gesture across every input opens "tell me more" on a move chip (and later,

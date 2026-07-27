@@ -127,6 +127,11 @@ func _build_snug_rig() -> VBoxContainer:
 	# the shape. Both at 2/3 (divider x~74, through the glyph) so the worst
 	# case stays judged where it was ugliest. Gray also carries the only
 	# shadow-depth exception (3 fill steps).
+	# F. Lance (assigned) wears the marker-hunt orbit (RQD 2026-07-26): two
+	# bone highlights traveling the border ring. Spark is ALSO assigned — the
+	# depleted-orbit specimen, the hunt's sharpest open question: does a
+	# traveling light on a dead grey chip promise pressability it can't
+	# honor? Judge both; parked brackets already retired either way.
 	var chip_specs: Array[Dictionary] = [
 		{"name": "Ember", "element": Enums.ElementalType.FIRE, "uses": 13,
 				"max": 20, "damage": Enums.DamageType.SPECIAL, "range": 2,
@@ -138,7 +143,7 @@ func _build_snug_rig() -> VBoxContainer:
 		{"name": "Dynamo", "element": Enums.ElementalType.ELECTRIC, "uses": 2,
 				"max": 3, "range": 2},
 		{"name": "Spark", "element": Enums.ElementalType.ELECTRIC, "uses": 0,
-				"max": 4},
+				"max": 4, "assigned": true},
 		{"name": "Gloom", "element": Enums.ElementalType.VOID, "uses": 2,
 				"max": 2, "locked": true, "damage": Enums.DamageType.SUPPORT,
 				"target": Enums.TargetType.ALLY},
@@ -164,6 +169,8 @@ func _build_snug_rig() -> VBoxContainer:
 	wrap.add_child(_make_glow_label("(press End Turn to move the CTA here)",
 			GameColors.TEXT_SECONDARY, GameColors.TEXT_SECONDARY_GLOW))
 	wrap.add_child(_make_glow_label("(hold right-click on a chip: detail card)",
+			GameColors.TEXT_SECONDARY, GameColors.TEXT_SECONDARY_GLOW))
+	wrap.add_child(_make_glow_label("(bone orbit = assigned: F. Lance live, Spark depleted)",
 			GameColors.TEXT_SECONDARY, GameColors.TEXT_SECONDARY_GLOW))
 
 	(menu.get_child(0) as InteractiveButton).selected = true
