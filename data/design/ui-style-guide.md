@@ -151,8 +151,8 @@ out-of-panel debug/devtools.
   chip is a mnemonic, not the spec sheet.
 - Depleted moves grey out (folds into the §14 disabled tier at action-menu adoption).
 - Hover/click feedback: **built** — the §14 vocabulary via `MoveChipButton`
-  (ramp-step backlight, snapping cursor brackets, assigned bone orbit, press
-  response, deny).
+  (ramp-step backlight, snapping cursor brackets, assigned border-ramp orbit,
+  press response, deny).
 
 ### Status chips (unit preview panel)
 - `ColorRect` + 6×6 icon + abbreviated name + turns-remaining label.
@@ -219,7 +219,7 @@ out-of-panel debug/devtools.
   menu, system menu, and options Close button are real `InteractiveButton` /
   `MoveChipButton` components — the hand-rolled styles (and the Gray 2/3 line
   below) are gone. Focus is the menu cursor (opens on the first item); the "> "
-  assigned prefix became parked brackets, which then became the **bone orbit**
+  assigned prefix became parked brackets, which then became the **orbit**
   (marker hunt revival, in-engine trial 2026-07-26 — see §14 "Assigned
   marker"); deny surfaces via `DenyTooltip`. The
   system menu's End Turn dropped its magenta accent (magenta = special damage);
@@ -366,18 +366,25 @@ disabled < static < idle < selected < call to action.
   ever (integer pixel grid). Pairs with the input-layer tap ring.
 
 ### Assigned marker — IN-ENGINE TRIAL (RQD 2026-07-26; Lawrence to eyeball)
-The assigned move wears the **bone orbit**: two diametrically opposed
-highlights traveling the chip's border ring at **50 px/s**, each a white core
-with shade steps down the **Eggshell ramp (10/9/7/6** — nearest palette
-entries to the approved mockup hexes**)**. Locked geometry carries over from
-the selection-era marquee: core = step = **3 game px**. Bone on purpose —
-azure is interactivity, amber is the CTA monopoly, and assignment is a
-*fact*, so the marker rides the depleted grey tier unchanged and ignores
-`disabled`. **Parked brackets RETIRED with this**: brackets mean only "you
-are here," and the cursor landing on the assigned chip snaps brackets over a
+The assigned move wears the **orbit**: two diametrically opposed highlights
+traveling the chip's border ring at **50 px/s** (`ORBIT_SPEED_PX_PER_SECOND`,
+the tinker knob), each a white core with shade steps down the **border's own
+ramp — Gray 10/9/8/7**, tail landing exactly on the skin border's code color
+(Gray 7). That's the selection-era melt-into-the-frame trick transplanted:
+azure tails melted into the lit azure border, gray tails melt into the gray
+frame. (Recolored 2026-07-29 from the first bone Eggshell cut, which matched
+the *mockup's* warm `#7a766b` border — the engine's border was never warm.
+Note the RENDERED border is body-tinted: the shader's edge blend mixes the
+1px ring with the fill/empty beneath it, so it reads dual-shade on screen;
+the orbit melts to the border's *code* color, accepted.) Locked geometry
+carries over from the selection-era marquee: core = step = **3 game px**.
+Not azure — that's interactivity's color, and assignment is a *fact*, so the
+marker rides the depleted grey tier unchanged and ignores `disabled`.
+**Parked brackets RETIRED with this**: brackets mean only "you are here,"
+and the cursor landing on the assigned chip snaps brackets over a
 still-running orbit (two motions composing — judge in the F6 gallery:
 F. Lance live, Spark depleted). Reduce-motion parks both highlights at their
-spawn points (two static bone dashes on opposite edges). Static runner-up
+spawn points (two static dashes on opposite edges). Static runner-up
 candidates (edge bar / underline / pip) stay in the mockup's marker hunt if
 the orbit muddles in practice. Corner geometry: radius-2 pixel ring, one
 diagonal pixel per corner; the 21px tail wraps corners and floods the short

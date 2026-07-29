@@ -65,7 +65,7 @@ func test_assign_submenu_builds_real_move_chips() -> void:
 
 	var ember := items[0] as MoveChipButton
 	assert_not_null(ember, "chips are the real component")
-	assert_true(ember.assigned, "the assigned move carries the bone orbit")
+	assert_true(ember.assigned, "the assigned move carries the orbit")
 	assert_false(ember.disabled)
 
 	var spark := items[1] as MoveChipButton

@@ -8,10 +8,11 @@
 ##   brackets   — snapping = the menu cursor is here (inherited `selected`).
 ##                Brackets mean ONLY "you are here" — parked brackets retired
 ##                with the orbit revival (marker hunt, RQD 2026-07-26).
-##   orbit      — ASSIGNED move: two bone highlights traveling the chip's
-##                border ring at a fixed px/s (the marquee, back from the
-##                selection graveyard). Motion taxonomy: converging = "come
-##                here", snapping = "you are here", orbiting = "armed".
+##   orbit      — ASSIGNED move: two highlights traveling the chip's border
+##                ring at a fixed px/s (the marquee, back from the selection
+##                graveyard), white core melting down the border's own Gray
+##                ramp. Motion taxonomy: converging = "come here", snapping
+##                = "you are here", orbiting = "armed".
 ##   disabled   — depleted/locked drop the whole chip to the dark tier and
 ##                pressing emits `denied`; `disabled_reason` says why. The
 ##                orbit RIDES the dark tier unchanged: assignment is a fact,
@@ -67,8 +68,8 @@ var disabled_reason: String = ""
 ## M&K/controller answer), so the panel itself watches for touch holds.
 @export var peek_enabled: bool = true
 
-## This move is the unit's assigned move: the bone orbit rides the border
-## ring, persistent — including over the disabled tier (fact, not affordance).
+## This move is the unit's assigned move: the orbit rides the border ring,
+## persistent — including over the disabled tier (fact, not affordance).
 var assigned: bool = false:
 	set(value):
 		if assigned == value:
@@ -521,11 +522,12 @@ func _wants_motion() -> bool:
 
 # =============================================================================
 # ASSIGNED ORBIT — the marquee, back from the selection graveyard (marker
-# hunt, RQD 2026-07-26). Two diametrically opposed bone highlights traveling
-# the chip's border ring; each highlight is a white core with shade steps
-# down the Eggshell ramp on both sides. Reduce-motion parks both highlights
-# at their spawn points — two static bone dashes on opposite edges.
-# Statics are pure so GUT can pin the geometry exactly (house idiom).
+# hunt, RQD 2026-07-26). Two diametrically opposed highlights traveling the
+# chip's border ring; each is a white core with shade steps down the ramp
+# from GameColors.get_assigned_orbit_ramp() — increments of the border's own
+# Gray ramp, so the tail melts into the resting frame. Reduce-motion parks
+# both highlights at their spawn points — two static dashes on opposite
+# edges. Statics are pure so GUT can pin the geometry exactly (house idiom).
 # =============================================================================
 
 ## The border ring as an ordered clockwise pixel path, radius-2 rounded

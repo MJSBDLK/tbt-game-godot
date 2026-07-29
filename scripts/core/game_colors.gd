@@ -463,19 +463,23 @@ static func get_scheme_glyph_ink(element_type: Enums.ElementalType,
 	return GameColorPalette.get_color(ramp[0], 10)
 
 
-## Bone marquee ramp for the ASSIGNED move's orbit (marker hunt revival, RQD
-## 2026-07-26): core → tail, near-white stepping down the Eggshell ramp so
-## the tails dim into the chip frame. Bone on purpose — azure is
-## interactivity's color and assignment is a FACT about the unit, same
-## family as the marker hunt's static candidates. Indices are the nearest
-## palette entries to the approved mockup hexes (#ffffff/#f2ead8/#c9bfa4/
-## #9a927e → Eggshell 10/9/7/6; the tail is a near-exact match).
+## Marquee ramp for the ASSIGNED move's orbit (marker hunt revival, RQD
+## 2026-07-26; recolored 2026-07-29): increments of the BORDER'S OWN ramp —
+## the chip skin's border_color is Gray 7 in code, so the orbit runs Gray
+## 10 → 7 and the tail lands exactly on the resting border, the same
+## melt-into-the-frame trick the selection-era orbit did with azure. (The
+## RENDERED border is body-tinted — the shader's edge blend mixes the 1px
+## ring with the fill/empty underneath — so the melt is to the border's
+## code color, not its on-screen pixels; accepted, RQD 2026-07-29. The
+## first Eggshell bone cut matched the mockup's warm border, which the
+## engine's never was.) Not azure: that's interactivity's color, and
+## assignment is a fact about the unit.
 static func get_assigned_orbit_ramp() -> Array[Color]:
 	return [
-		GameColorPalette.get_color("Eggshell", 10),
-		GameColorPalette.get_color("Eggshell", 9),
-		GameColorPalette.get_color("Eggshell", 7),
-		GameColorPalette.get_color("Eggshell", 6),
+		GameColorPalette.get_color("Gray", 10),
+		GameColorPalette.get_color("Gray", 9),
+		GameColorPalette.get_color("Gray", 8),
+		GameColorPalette.get_color("Gray", 7),
 	]
 
 

@@ -1,7 +1,7 @@
 ## MoveChipButton — the border vocabulary translated onto themed move chips.
 ## Pins the translation rules from the mockup's "Move chips" section: the
 ## body/border are skin (element colors, usage fill untouchable), cursor =
-## snapping brackets, assigned = the bone orbit on the border ring (marker
+## snapping brackets, assigned = the border-ramp orbit on the ring (marker
 ## hunt revival — parked brackets retired), depleted/locked = disabled tier
 ## with a reason, and the backlight lifts both body colors together so the
 ## usage boundary keeps its contrast.
@@ -106,13 +106,18 @@ func test_orbit_layers_lock_core_equals_step_equals_3() -> void:
 	assert_eq(MoveChipButton.orbit_layer_at_distance(-11), -1, "past the tail: nothing drawn")
 
 
-func test_orbit_ramp_is_palette_true_bone() -> void:
-	# Bone, not azure: azure is interactivity's color and assignment is a fact.
-	# Indices = nearest palette entries to the approved mockup hexes.
+func test_orbit_ramp_is_border_ramp_increments() -> void:
+	# The chip skin's border_color is Gray 7 in code — the orbit runs the
+	# border's OWN ramp so the tail lands exactly on the resting frame
+	# (RQD 2026-07-29; recolored from the bone cut that matched the mockup's
+	# warm border, which the engine's never was).
 	var ramp: Array[Color] = GameColors.get_assigned_orbit_ramp()
 	assert_eq(ramp.size(), MoveChipButton.ORBIT_LAYER_COUNT)
-	assert_eq(ramp[0], GameColorPalette.get_color("Eggshell", 10), "core: near-white")
-	assert_eq(ramp[3], GameColorPalette.get_color("Eggshell", 6), "tail dims into the frame")
+	assert_eq(ramp[0], GameColorPalette.get_color("Gray", 10), "core: white")
+	assert_eq(ramp[1], GameColorPalette.get_color("Gray", 9))
+	assert_eq(ramp[2], GameColorPalette.get_color("Gray", 8))
+	assert_eq(ramp[3], GameColorPalette.get_color("Gray", 7),
+			"tail = the border's code color — the melt-into-the-frame trick")
 
 
 func test_depleted_is_the_disabled_tier_with_a_reason() -> void:

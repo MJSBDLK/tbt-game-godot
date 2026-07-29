@@ -128,10 +128,12 @@ func _build_snug_rig() -> VBoxContainer:
 	# case stays judged where it was ugliest. Gray also carries the only
 	# shadow-depth exception (3 fill steps).
 	# F. Lance (assigned) wears the marker-hunt orbit (RQD 2026-07-26): two
-	# bone highlights traveling the border ring. Spark is ALSO assigned — the
-	# depleted-orbit specimen, the hunt's sharpest open question: does a
-	# traveling light on a dead grey chip promise pressability it can't
-	# honor? Judge both; parked brackets already retired either way.
+	# highlights traveling the border ring, white core melting down the
+	# border's own Gray ramp (10→7, recolored from bone 2026-07-29). Spark is
+	# ALSO assigned — the depleted-orbit specimen, the hunt's sharpest open
+	# question: does a traveling light on a dead grey chip promise
+	# pressability it can't honor? Judge both; parked brackets already
+	# retired either way.
 	var chip_specs: Array[Dictionary] = [
 		{"name": "Ember", "element": Enums.ElementalType.FIRE, "uses": 13,
 				"max": 20, "damage": Enums.DamageType.SPECIAL, "range": 2,
@@ -170,7 +172,7 @@ func _build_snug_rig() -> VBoxContainer:
 			GameColors.TEXT_SECONDARY, GameColors.TEXT_SECONDARY_GLOW))
 	wrap.add_child(_make_glow_label("(hold right-click on a chip: detail card)",
 			GameColors.TEXT_SECONDARY, GameColors.TEXT_SECONDARY_GLOW))
-	wrap.add_child(_make_glow_label("(bone orbit = assigned: F. Lance live, Spark depleted)",
+	wrap.add_child(_make_glow_label("(orbit = assigned: F. Lance live, Spark depleted)",
 			GameColors.TEXT_SECONDARY, GameColors.TEXT_SECONDARY_GLOW))
 
 	(menu.get_child(0) as InteractiveButton).selected = true
