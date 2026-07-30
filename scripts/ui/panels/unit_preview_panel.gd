@@ -348,11 +348,15 @@ func _update_moves(unit: Unit) -> void:
 		var chip_button := chip_buttons[i]
 		if i < moves.size() and moves[i] != null:
 			chip_button.visible = true
-			# NO assigned brackets here: parked brackets are an action-menu
-			# signal, and in a static readout they read as "selected" (RQD
-			# 2026-07-19, the Bonk confusion). A display-safe assigned marker
-			# is a mockup question.
-			chip_button.setup(moves[i], false, unit.is_move_index_locked(i))
+			# The display-safe assigned marker arrived: the orbit (marker
+			# hunt, RQD 2026-07-26/29). Unlike the parked brackets it
+			# replaced — banned here because a static readout made them read
+			# as "selected" (the Bonk confusion) — the orbit can't be
+			# mistaken for the cursor, so the venue ban retires with them.
+			# A unit's armed move is tactical info the game already treats
+			# as public: the combat preview reads defender.assigned_move.
+			chip_button.setup(moves[i], moves[i] == unit.assigned_move,
+					unit.is_move_index_locked(i))
 		else:
 			chip_button.visible = false
 

@@ -383,7 +383,12 @@ marker rides the depleted grey tier unchanged and ignores `disabled`.
 **Parked brackets RETIRED with this**: brackets mean only "you are here,"
 and the cursor landing on the assigned chip snaps brackets over a
 still-running orbit (two motions composing — judge in the F6 gallery:
-F. Lance live, Spark depleted). Reduce-motion parks both highlights at their
+F. Lance live, Spark depleted). Venues (2026-07-29): **action menu + unit
+preview readout** — the old display-venue ban existed because parked
+brackets read as "selected" there, which the orbit can't; an armed move is
+public info anyway (combat preview reads `defender.assigned_move`). The
+**detail panel opts out** — it inspects the roster, it doesn't arm moves.
+Reduce-motion parks both highlights at their
 spawn points (two static dashes on opposite edges). Static runner-up
 candidates (edge bar / underline / pip) stay in the mockup's marker hunt if
 the orbit muddles in practice. Corner geometry: radius-2 pixel ring, one
