@@ -38,10 +38,12 @@ func _ready() -> void:
 	add_theme_stylebox_override("panel", panel_style)
 
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 12)
-	margin.add_theme_constant_override("margin_right", 12)
-	margin.add_theme_constant_override("margin_top", 12)
-	margin.add_theme_constant_override("margin_bottom", 31)
+	# +1 on every side (RQD 2026-07-29): breathing room for the selector —
+	# the focused item's bracket arms reach up to 3px past its rect.
+	margin.add_theme_constant_override("margin_left", 13)
+	margin.add_theme_constant_override("margin_right", 13)
+	margin.add_theme_constant_override("margin_top", 13)
+	margin.add_theme_constant_override("margin_bottom", 32)
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(margin)
 
@@ -238,7 +240,7 @@ func _resize_panel() -> void:
 	custom_minimum_size.y = 0
 	await get_tree().process_frame
 	var item_count := _content_container.get_child_count()
-	var total_height := item_count * (CHIP_HEIGHT + 2) + 24  # margins (12 top + 12 bottom)
+	var total_height := item_count * (CHIP_HEIGHT + 2) + 26  # margins (13 top + 13 bottom)
 	custom_minimum_size.y = total_height
 
 
