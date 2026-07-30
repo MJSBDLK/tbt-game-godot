@@ -66,6 +66,13 @@ var max_fps: int = 0
 ## into a tooltip (RQD 2026-07-19). Options slider: 200–1000ms in 50ms steps.
 var tooltip_hold_ms: int = 200
 
+## When true (the default = today's behavior), the player phase hands off to
+## the enemy the moment every player unit has acted. When false, the phase
+## WAITS — the player ends it via End Turn, whose call-to-action finally has
+## a reachable trigger (with auto-end on, "all acted" ends the phase before
+## anything could invite the press). Meeting ask 2026-06-28; built 2026-07-29.
+var auto_end_turn: bool = true
+
 const TOOLTIP_HOLD_MIN_MS: int = 200
 const TOOLTIP_HOLD_MAX_MS: int = 1000
 const TOOLTIP_HOLD_STEP_MS: int = 50
@@ -105,6 +112,8 @@ func load_settings() -> void:
 				"display", "max_fps", max_fps)), 0, 1000)
 		tooltip_hold_ms = _snap_tooltip_hold(int(config.get_value(
 				"controls", "tooltip_hold_ms", tooltip_hold_ms)))
+		auto_end_turn = bool(config.get_value(
+				"gameplay", "auto_end_turn", auto_end_turn))
 	# Engine-level prefs (fps cap, bus volumes) must apply even with no file —
 	# a fresh install still needs the buses minted and defaults pushed.
 	_apply_engine_settings()
@@ -211,6 +220,15 @@ func set_tooltip_hold_ms(value: int) -> void:
 	changed.emit()
 
 
+## Persists + notifies. No-ops when unchanged (see set_portrait_effects_enabled).
+func set_auto_end_turn(value: bool) -> void:
+	if value == auto_end_turn:
+		return
+	auto_end_turn = value
+	_save()
+	changed.emit()
+
+
 func _snap_tooltip_hold(value: int) -> int:
 	var snapped_value: int = roundi(float(value) / float(TOOLTIP_HOLD_STEP_MS)) \
 			* TOOLTIP_HOLD_STEP_MS
@@ -265,6 +283,7 @@ func _save() -> void:
 	config.set_value("audio", "music_volume", music_volume)
 	config.set_value("display", "max_fps", max_fps)
 	config.set_value("controls", "tooltip_hold_ms", tooltip_hold_ms)
+	config.set_value("gameplay", "auto_end_turn", auto_end_turn)
 	var err: int = config.save(settings_path)
 	if err != OK:
 		push_warning("Settings: failed to save %s (error %d)" % [settings_path, err])

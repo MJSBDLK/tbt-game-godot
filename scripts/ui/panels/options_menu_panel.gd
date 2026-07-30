@@ -25,6 +25,8 @@ var _ui_motion_on_button: Button = null
 var _ui_motion_off_button: Button = null
 var _click_attack_on_button: Button = null
 var _click_attack_off_button: Button = null
+var _auto_end_on_button: Button = null
+var _auto_end_off_button: Button = null
 var _type_icons_on_button: Button = null
 var _type_icons_off_button: Button = null
 
@@ -125,6 +127,9 @@ func _populate_options() -> void:
 
 	# Quick Attack (click enemy = instant attack; power-user shortcut)
 	_create_click_attack_option()
+
+	# Auto End Turn (phase hands off when every unit has acted)
+	_create_auto_end_option()
 
 	# On-map elemental type icons beside unit health bars
 	_create_type_icons_option()
@@ -424,6 +429,58 @@ func _on_click_attack_off() -> void:
 	Settings.set_click_to_attack_enabled(false)
 	_apply_toggle_state(_click_attack_on_button, false)
 	_apply_toggle_state(_click_attack_off_button, true)
+
+
+# Auto end turn (meeting ask 2026-06-28): ON = the phase hands off the moment
+# every unit has acted (the long-standing behavior). OFF = the phase waits and
+# the system menu's End Turn wears the call-to-action. Persisted via Settings.
+
+func _create_auto_end_option() -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+
+	var label := Label.new()
+	label.text = "Auto End Turn"
+	label.tooltip_text = "End your turn automatically once every unit has acted."
+	label.custom_minimum_size = Vector2(OPTION_LABEL_WIDTH, 0)
+	label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
+	var glow: ShaderMaterial = GLOW_MATERIAL.duplicate()
+	glow.set_shader_parameter("glow_color", GameColors.TEXT_PRIMARY_GLOW)
+	label.material = glow
+	row.add_child(label)
+
+	var button_container := HBoxContainer.new()
+	button_container.add_theme_constant_override("separation", 2)
+
+	var enabled: bool = Settings.auto_end_turn
+
+	_auto_end_on_button = _create_toggle_button("On", enabled)
+	_auto_end_on_button.pressed.connect(_on_auto_end_on)
+	button_container.add_child(_auto_end_on_button)
+
+	_auto_end_off_button = _create_toggle_button("Off", not enabled)
+	_auto_end_off_button.pressed.connect(_on_auto_end_off)
+	button_container.add_child(_auto_end_off_button)
+
+	row.add_child(button_container)
+	_content_container.add_child(row)
+
+
+func _on_auto_end_on() -> void:
+	Settings.set_auto_end_turn(true)
+	_apply_toggle_state(_auto_end_on_button, true)
+	_apply_toggle_state(_auto_end_off_button, false)
+	# Flipping auto-end ON with a spent phase pending honors the new rule now:
+	# the hand-off the player just asked for happens instead of dangling.
+	var turn_manager: Node = get_node_or_null("/root/TurnManager")
+	if turn_manager != null:
+		turn_manager.check_end_player_turn()
+
+
+func _on_auto_end_off() -> void:
+	Settings.set_auto_end_turn(false)
+	_apply_toggle_state(_auto_end_on_button, false)
+	_apply_toggle_state(_auto_end_off_button, true)
 
 
 # On-map type icons beside unit health bars. Off by default (noisy); units

@@ -223,9 +223,12 @@ out-of-panel debug/devtools.
   (marker hunt revival, in-engine trial 2026-07-26 — see §14 "Assigned
   marker"); deny surfaces via `DenyTooltip`. The
   system menu's End Turn dropped its magenta accent (magenta = special damage);
-  its CTA stays unwired because TurnManager auto-ends the phase when all units
-  have acted. Options toggle pills stay hand-rolled — the vocabulary has no
-  toggle/segmented design yet (future §14 extension).
+  its CTA is **wired (2026-07-29)**: an "Auto End Turn" Options toggle (default
+  ON = the long-standing hand-off) lets the phase WAIT when off — End Turn then
+  wears the converging rings for the spent phase (all units acted). TurnManager
+  emits `player_phase_spent` for that state. Options toggle pills stay
+  hand-rolled — the vocabulary has no toggle/segmented design yet (future §14
+  extension).
 - ~~Default button: Gray 2 bg @ 30%, Gray 7 border. Hover: Gray 3 @ 50%.~~
 - **Disabled / out-of-range handling**:
   - Out-of-range attacks are **hidden**, not shown disabled.

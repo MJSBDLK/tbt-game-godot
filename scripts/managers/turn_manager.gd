@@ -12,6 +12,10 @@ signal battle_ended(is_victory: bool)
 ## post-mission level-up report can detect deltas even when level-ups
 ## happened mid-battle (i.e. via combat XP, not the post-victory roll).
 signal battle_started(player_units: Array[Unit])
+## Every player unit has acted but Settings.auto_end_turn is OFF: the phase
+## is waiting for a manual End Turn. This is the End Turn CTA's trigger —
+## with auto-end on, the state ends the phase before anything could fire.
+signal player_phase_spent()
 
 var current_phase: Enums.TurnPhase = Enums.TurnPhase.PLAYER_PHASE
 var turn_count: int = 0
@@ -66,15 +70,27 @@ func check_end_player_turn() -> void:
 	if current_phase != Enums.TurnPhase.PLAYER_PHASE or _is_processing_phase:
 		return
 
-	var all_acted := true
+	if not all_player_units_acted():
+		return
+
+	if Settings != null and not Settings.auto_end_turn:
+		# Manual mode (Options toggle): the phase waits for End Turn — the
+		# system menu's button wears the call-to-action for this state.
+		DebugConfig.log_turn(
+				"TurnManager: All player units acted — waiting for End Turn (auto-end off)")
+		player_phase_spent.emit()
+		return
+
+	DebugConfig.log_turn("TurnManager: All player units acted, starting enemy phase")
+	start_enemy_phase()
+
+
+## True when no living player unit can still act — the phase is spent.
+func all_player_units_acted() -> bool:
 	for unit: Unit in _player_units:
 		if not unit.is_defeated() and unit.can_act:
-			all_acted = false
-			break
-
-	if all_acted:
-		DebugConfig.log_turn("TurnManager: All player units acted, starting enemy phase")
-		start_enemy_phase()
+			return false
+	return true
 
 
 func force_end_player_turn() -> void:

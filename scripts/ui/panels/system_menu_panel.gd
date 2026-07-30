@@ -120,18 +120,31 @@ func _create_end_turn_button() -> InteractiveButton:
 	# Vocabulary End Turn: a plain lit button, taller for prominence. The old
 	# magenta accent died with adoption — magenta belongs to SPECIAL damage
 	# now (§14), and the mockup's End Turn is a standard vocabulary button.
-	# call_to_action stays UNWIRED on purpose: TurnManager auto-ends the
-	# phase when every unit has acted, so "all acted" can never light this.
-	# When a real trigger exists (tutorial hint, auto-end setting), it's one
-	# line: button.call_to_action = true.
 	var button := InteractiveButton.new()
 	button.text = "END TURN"
 	button.custom_minimum_size = Vector2(BUTTON_WIDTH, END_TURN_BUTTON_HEIGHT)
 	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# The CTA's long-promised trigger (wired 2026-07-29 with the auto-end-turn
+	# Options toggle): a SPENT phase — every unit acted, phase waiting. Only
+	# reachable with auto-end off; with it on, TurnManager ends the phase
+	# before this state could ever be seen. Computed at populate: the menu
+	# rebuilds on every open, and input is locked while it's up.
+	button.call_to_action = _end_turn_wants_attention()
 	button.pressed.connect(func() -> void: end_turn_selected.emit())
 	button.focus_entered.connect(_on_item_focused.bind(button))
 	_content_container.add_child(button)
 	return button
+
+
+func _end_turn_wants_attention() -> bool:
+	var turn_manager: Node = get_node_or_null("/root/TurnManager")
+	if turn_manager == null or not turn_manager.is_player_phase():
+		return false
+	# Empty roster guard: outside battle the phase defaults to PLAYER and
+	# all_player_units_acted() is vacuously true — no units, no invitation.
+	if turn_manager.get_player_units().is_empty():
+		return false
+	return turn_manager.all_player_units_acted()
 
 
 func _create_spacer() -> void:
