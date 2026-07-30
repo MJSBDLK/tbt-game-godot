@@ -6,6 +6,16 @@
 extends GutTest
 
 
+func before_each() -> void:
+	# Cursor-driven by default so the long-standing focus-on-open behavior
+	# holds for every test that doesn't probe the quiet-open path.
+	InputSource.last_kind = InputSource.Kind.CURSOR
+
+
+func after_each() -> void:
+	InputSource.last_kind = InputSource.Kind.POINTER  # the boot default
+
+
 func _make_move(move_name: String, uses: int = 3, max_uses: int = 5) -> Move:
 	var move := Move.new()
 	move.move_name = move_name
@@ -103,6 +113,23 @@ func test_focus_is_the_menu_cursor() -> void:
 	assert_true((items[2] as InteractiveButton).selected, "brackets follow focus")
 	assert_false((items[0] as InteractiveButton).selected,
 			"exactly one cursor position")
+
+
+func test_pointer_open_is_quiet_until_a_nav_press_summons_the_cursor() -> void:
+	# InputSource (RQD 2026-07-29): pointer-driven opens show no phantom
+	# cursor; the first directional press adopts focus onto the first item.
+	InputSource.last_kind = InputSource.Kind.POINTER
+	get_viewport().gui_release_focus()
+	var panel := _make_panel(_make_unit([]))
+	await wait_process_frames(2)
+	var first := panel._content_container.get_child(0) as InteractiveButton
+	assert_false(first.selected, "pointer-driven open shows no phantom cursor")
+	var nav := InputEventAction.new()
+	nav.action = "ui_down"
+	nav.pressed = true
+	panel._unhandled_input(nav)
+	await wait_process_frames(2)
+	assert_true(first.selected, "the first nav press summons the cursor onto item one")
 
 
 func test_pressing_wait_still_signals_the_manager() -> void:

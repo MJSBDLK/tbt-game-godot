@@ -72,6 +72,14 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		hide_menu()
 		get_viewport().set_input_as_handled()
+		return
+	# Quiet-open adoption (InputSource, RQD 2026-07-29): a pointer-opened
+	# menu has no cursor — the first navigation press summons it onto the
+	# first item instead of falling on deaf ears.
+	if InputSource.is_navigation_press(event) \
+			and get_viewport().gui_get_focus_owner() == null:
+		_focus_first_item()
+		get_viewport().set_input_as_handled()
 
 
 # =============================================================================
@@ -106,7 +114,11 @@ func _populate_menu() -> void:
 	_create_button("Close", func() -> void: hide_menu())
 
 	_resize_panel()
-	_focus_first_item()
+	# Default selection is a CURSOR-model courtesy (controller/keyboard needs
+	# a starting point). Under pointer input it reads as a phantom "you are
+	# here" nobody put there — open quiet; the first nav press adopts focus.
+	if InputSource.is_cursor_driven():
+		_focus_first_item()
 
 
 const END_TURN_BUTTON_HEIGHT: int = 22

@@ -51,7 +51,7 @@ res://
 
 ## Autoloads
 
-`DebugConfig`, `SceneRouter`, `TerrainDataManager`, `GridManager`, `GameStateManager`, `InputManager`, `TurnManager`, `ActionMenuManager`, `TypeChartManager`, `StatusEffectSystem`, `UIManager`, `VisualFeedbackManager`
+`DebugConfig`, `InputSource`, `Settings`, `SceneRouter`, `TerrainDataManager`, `GridManager`, `GameStateManager`, `InputManager`, `TurnManager`, `ActionMenuManager`, `TypeChartManager`, `StatusEffectSystem`, `UIManager`, `VisualFeedbackManager`
 
 ## Rendering Architecture
 

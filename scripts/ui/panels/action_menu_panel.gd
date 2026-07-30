@@ -145,7 +145,7 @@ func _populate_main_menu(unit: Unit) -> void:
 	_create_button("Cancel", func() -> void: cancel_selected.emit())
 
 	_resize_panel()
-	_focus_first_item()
+	_focus_when_cursor_driven()
 
 
 func _populate_assign_submenu(unit: Unit) -> void:
@@ -175,7 +175,7 @@ func _populate_assign_submenu(unit: Unit) -> void:
 		_populate_main_menu(unit))
 
 	_resize_panel()
-	_focus_first_item()
+	_focus_when_cursor_driven()
 
 
 # =============================================================================
@@ -220,6 +220,28 @@ func _on_item_focused(item: InteractiveButton) -> void:
 		var button := child as InteractiveButton
 		if button != null:
 			button.selected = (button == item)
+
+
+## Default selection is a CURSOR-model courtesy (InputSource, RQD 2026-07-29):
+## controller/keyboard needs a starting point; under pointer input it reads
+## as a phantom "you are here" nobody put there. Pointer opens quiet, and the
+## first navigation press adopts focus (see _unhandled_input). A submenu
+## opened BY a press inherits the right answer for free — the opening press
+## itself set InputSource's model.
+func _focus_when_cursor_driven() -> void:
+	if InputSource.is_cursor_driven():
+		_focus_first_item()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible:
+		return
+	# Quiet-open adoption: a pointer-opened menu has no cursor — the first
+	# navigation press summons it onto the first item.
+	if InputSource.is_navigation_press(event) \
+			and get_viewport().gui_get_focus_owner() == null:
+		_focus_first_item()
+		get_viewport().set_input_as_handled()
 
 
 ## The cursor opens on the first item — matters most on controller, where

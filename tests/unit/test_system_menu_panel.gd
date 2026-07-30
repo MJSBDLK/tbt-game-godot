@@ -12,10 +12,14 @@ func before_each() -> void:
 	# would mask the CTA. Start from a clean idle player phase.
 	TurnManager._is_processing_phase = false
 	TurnManager.current_phase = Enums.TurnPhase.PLAYER_PHASE
+	# Cursor-driven by default so the long-standing focus-on-open behavior
+	# holds for every test that doesn't probe the quiet-open path.
+	InputSource.last_kind = InputSource.Kind.CURSOR
 
 
 func after_each() -> void:
 	_set_roster([])
+	InputSource.last_kind = InputSource.Kind.POINTER  # the boot default
 
 
 ## Roster poked directly, NOT via initialize_battle — that launches the full
@@ -58,7 +62,26 @@ func test_focus_cursor_opens_on_end_turn() -> void:
 	var panel := _make_panel()
 	await wait_process_frames(2)
 	var first := panel._content_container.get_child(0) as InteractiveButton
-	assert_true(first.selected, "the cursor opens on the first item")
+	assert_true(first.selected, "cursor-driven open: the cursor starts on the first item")
+
+
+func test_pointer_open_is_quiet_until_a_nav_press_summons_the_cursor() -> void:
+	# InputSource (RQD 2026-07-29): default selection is a cursor-model
+	# courtesy — under pointer input the menu opens with no phantom cursor,
+	# and the first directional press adopts focus onto the first item.
+	InputSource.last_kind = InputSource.Kind.POINTER
+	get_viewport().gui_release_focus()
+	var panel := _make_panel()
+	await wait_process_frames(2)
+	var first := panel._content_container.get_child(0) as InteractiveButton
+	assert_false(first.selected, "pointer-driven open shows no phantom cursor")
+	assert_null(get_viewport().gui_get_focus_owner(), "nothing holds focus on quiet open")
+	var nav := InputEventAction.new()
+	nav.action = "ui_down"
+	nav.pressed = true
+	panel._unhandled_input(nav)
+	await wait_process_frames(2)
+	assert_true(first.selected, "the first nav press summons the cursor onto item one")
 
 
 func test_end_turn_wears_the_cta_only_when_the_phase_is_spent() -> void:

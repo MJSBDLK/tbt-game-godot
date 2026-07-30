@@ -218,7 +218,14 @@ out-of-panel debug/devtools.
 - **ADOPTED into §14 (2026-07-19, Lawrence: "cramped but organized")**: the action
   menu, system menu, and options Close button are real `InteractiveButton` /
   `MoveChipButton` components — the hand-rolled styles (and the Gray 2/3 line
-  below) are gone. Focus is the menu cursor (opens on the first item); the "> "
+  below) are gone. Focus is the menu cursor — and **default selection is a
+  cursor-model courtesy (InputSource, 2026-07-29)**: menus open focused on the
+  first item only when controller/keyboard is driving; under mouse/touch they
+  open quiet and the first directional press summons the cursor. `InputSource`
+  (autoload) tracks which model drove last — presses always flip it, mouse
+  jitter (<4px) and stick drift (<0.5) never do, and consumers sample at
+  boundaries (menu open, focus adoption) rather than live-swapping — that
+  combination is what makes prompt flicker structurally impossible. The "> "
   assigned prefix became parked brackets, which then became the **orbit**
   (marker hunt revival, in-engine trial 2026-07-26 — see §14 "Assigned
   marker"); deny surfaces via `DenyTooltip`. The
