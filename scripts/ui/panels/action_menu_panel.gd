@@ -31,11 +31,27 @@ func _ready() -> void:
 	custom_minimum_size = Vector2(140, 0)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 
-	# Panel background — dark HUD style, no content margins so border overlay
-	# draws at the panel edge (content is inset via MarginContainer instead).
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = GameColors.HUD_PANEL_BACKGROUND
+	# Transparent panel — the tint is an inset child, NOT the stylebox: a
+	# full-rect square fill peeked past the border overlay's rounded corners
+	# (RQD 2026-07-29; same fix the system menu ships). Content stays inset
+	# via the MarginContainer.
+	var panel_style := StyleBoxEmpty.new()
 	add_theme_stylebox_override("panel", panel_style)
+
+	# Inset background (5px from each edge = midpoint of the 10px border
+	# art) with rounded corners, so the tint stays tucked under the border.
+	var background := Panel.new()
+	var background_style := StyleBoxFlat.new()
+	background_style.bg_color = GameColors.HUD_PANEL_BACKGROUND
+	background_style.set_corner_radius_all(5)
+	background.add_theme_stylebox_override("panel", background_style)
+	background.set_anchors_preset(Control.PRESET_FULL_RECT)
+	background.offset_left = 5
+	background.offset_right = -5
+	background.offset_top = 5
+	background.offset_bottom = -5
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(background)
 
 	var margin := MarginContainer.new()
 	# +1 on every side (RQD 2026-07-29): breathing room for the selector —

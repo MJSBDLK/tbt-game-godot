@@ -45,6 +45,22 @@ func _press(button: BaseButton) -> void:
 	button._gui_input(release)
 
 
+func test_background_tint_is_inset_under_the_rounded_border() -> void:
+	# The tint must be an inset rounded child, never the stylebox: a full-rect
+	# square fill peeked past the border overlay's rounded corners (RQD
+	# 2026-07-29; the system/options menus ship the same recipe).
+	var panel := _make_panel(_make_unit([_make_move("Ember")]))
+	assert_true(panel.get_theme_stylebox("panel") is StyleBoxEmpty,
+			"panel stylebox draws nothing — the tint is a child")
+	var background := panel.get_child(0) as Panel
+	assert_not_null(background, "inset background is the first child (under content)")
+	assert_eq(background.offset_left, 5.0, "inset to the 10px border art's midpoint")
+	assert_eq(background.offset_right, -5.0)
+	var style := background.get_theme_stylebox("panel") as StyleBoxFlat
+	assert_eq(style.bg_color, GameColors.HUD_PANEL_BACKGROUND)
+	assert_eq(style.corner_radius_top_left, 5, "rounded so corners stay tucked")
+
+
 func test_main_menu_text_actions_are_interactive_buttons() -> void:
 	var panel := _make_panel(_make_unit([_make_move("Ember")]))
 	var items := panel._content_container.get_children()

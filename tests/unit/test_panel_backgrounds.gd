@@ -23,11 +23,16 @@ func test_hud_panel_background_bakes_the_designed_alpha() -> void:
 
 
 func test_action_menu_panel_applies_hud_background_at_ready() -> void:
+	# Since 2026-07-29 the tint is an INSET CHILD, not the stylebox — a
+	# full-rect fill peeked past the border overlay's rounded corners. The
+	# color contract is unchanged: HUD_PANEL_BACKGROUND, alpha included.
 	var panel := ActionMenuPanel.new()
 	add_child_autofree(panel)
-	var style: StyleBox = panel.get_theme_stylebox("panel")
-	assert_true(style is StyleBoxFlat, "Action menu builds its own StyleBoxFlat in code")
-	var flat := style as StyleBoxFlat
+	assert_true(panel.get_theme_stylebox("panel") is StyleBoxEmpty,
+			"Action menu stylebox draws nothing — the tint is an inset child")
+	var background := panel.get_child(0) as Panel
+	assert_not_null(background, "inset background panel is the first child")
+	var flat := background.get_theme_stylebox("panel") as StyleBoxFlat
 	assert_eq(flat.bg_color, GameColors.HUD_PANEL_BACKGROUND,
 			"Action menu background == GameColors.HUD_PANEL_BACKGROUND (alpha included)")
 	assert_almost_eq(flat.bg_color.a, _EXPECTED_PANEL_ALPHA, 0.001,
