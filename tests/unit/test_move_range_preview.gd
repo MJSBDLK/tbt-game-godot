@@ -150,8 +150,28 @@ func test_display_preview_tracks_move_and_paints_cells() -> void:
 	var renderer: ThreatOverlayRenderer = GridManager._move_range_preview_renderer
 	assert_not_null(renderer, "renderer lazily created")
 	assert_eq(renderer._centers.size(), 4, "one decal per footprint cell")
-	assert_eq(renderer._style, ThreatOverlayRenderer.Style.MOVE_PREVIEW,
-			"painted in the MOVE_PREVIEW palette, not a danger style")
+	assert_eq(renderer._style, ThreatOverlayRenderer.Style.PREVIEW_DAMAGE,
+			"a damaging move paints in the damage palette, not a danger style")
+	assert_true(renderer.material is ShaderMaterial,
+			"projection-static trial rides the decal layer (RQD/Lawrence 2026-07-30)")
+
+
+func test_preview_style_follows_move_intent() -> void:
+	# RQD 2026-07-30, "the generally agreed upon color codes": red = damaging,
+	# green = healing, blue = neither. `heals` wins over base_power — a heal's
+	# base_power is its heal amount (First Aid), not damage.
+	assert_eq(GridManager.move_range_preview_style(_move(1)),
+			ThreatOverlayRenderer.Style.PREVIEW_DAMAGE)
+	var heal := _move(1)
+	heal.heals = true
+	assert_eq(GridManager.move_range_preview_style(heal),
+			ThreatOverlayRenderer.Style.PREVIEW_HEAL, "heals wins even with base_power set")
+	var support := _move(1)
+	support.base_power = 0
+	assert_eq(GridManager.move_range_preview_style(support),
+			ThreatOverlayRenderer.Style.PREVIEW_NEUTRAL)
+	assert_eq(GridManager.move_range_preview_style(null),
+			ThreatOverlayRenderer.Style.PREVIEW_NEUTRAL, "null-safe")
 
 
 func test_clear_preview_resets_state_and_decals() -> void:

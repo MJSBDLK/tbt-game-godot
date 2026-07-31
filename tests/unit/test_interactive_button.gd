@@ -172,3 +172,21 @@ func test_reduce_motion_stops_animation_requests() -> void:
 	button.selected = true
 	add_child_autofree(button)
 	assert_false(button._wants_motion(), "parked brackets: no per-frame redraws")
+
+
+# =============================================================================
+# The cursor is a fact about the CURSOR, not an affordance of the item
+# =============================================================================
+
+func test_selected_brackets_survive_disabled() -> void:
+	# RQD bug 2026-07-30: _draw_chrome used to gate brackets on `not disabled`,
+	# so the menu cursor VANISHED whenever it landed on a depleted/locked chip —
+	# in-game it read as "my arrow keys stopped working." _brackets_visible()
+	# is now the COMPLETE visibility decision; the draw site must stay bare
+	# (no extra disabled clause — see the comment there).
+	var button := InteractiveButton.new()
+	add_child_autofree(button)
+	button.disabled = true
+	button.selected = true
+	assert_true(button._brackets_visible(),
+			"the cursor renders on disabled items — brackets are 'you are here', not 'pressable'")

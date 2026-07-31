@@ -385,7 +385,21 @@ func display_move_range_preview(unit: Unit, move: Move) -> void:
 	var cells := {}
 	for tile: Tile in MoveTargeting.get_reach_tiles(unit, move):
 		cells[Vector2i(tile.grid_x, tile.grid_y)] = 1
-	_ensure_move_range_preview_renderer().set_map(cells, ThreatOverlayRenderer.Style.MOVE_PREVIEW)
+	_ensure_move_range_preview_renderer().set_map(cells, move_range_preview_style(move))
+
+
+## The paint carries the move's INTENT (RQD 2026-07-30, "the generally agreed
+## upon color codes"): red = damaging, green = healing, blue = neither.
+## `heals` wins over base_power — a heal's base_power is its heal amount
+## (First Aid), not damage.
+static func move_range_preview_style(move: Move) -> int:
+	if move == null:
+		return ThreatOverlayRenderer.Style.PREVIEW_NEUTRAL
+	if move.heals:
+		return ThreatOverlayRenderer.Style.PREVIEW_HEAL
+	if move.base_power > 0:
+		return ThreatOverlayRenderer.Style.PREVIEW_DAMAGE
+	return ThreatOverlayRenderer.Style.PREVIEW_NEUTRAL
 
 
 func clear_move_range_preview() -> void:

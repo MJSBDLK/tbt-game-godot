@@ -248,12 +248,20 @@ out-of-panel debug/devtools.
   `MoveTargeting.get_reach_tiles` (ball of effective range, own tile only for
   self-targetable moves, Extendo's bonus ring gated by reach — exactly
   `can_target`'s geometry). View = `GridManager.display_move_range_preview` on
-  its own decal layer (`ThreatOverlayRenderer`, `MOVE_PREVIEW` style, azure
-  family = interactivity's hue; placeholder colors @export'd for Lawrence's
-  restyle) — deliberately NOT `Tile.set_color`, which the movement-range tint
-  still owns while the action menu is open. Cursor-driven opens paint the first
-  chip immediately; quiet opens paint on first hover/adoption. Static paint —
-  no motion to gate behind reduce-motion.
+  its own decal layer (`ThreatOverlayRenderer`, `PREVIEW_*` styles) —
+  deliberately NOT `Tile.set_color`, which the movement-range tint still owns
+  while the action menu is open. **Paint color = the move's intent (RQD
+  2026-07-30, "the generally agreed upon color codes"): red = damaging, green
+  = healing, blue = neither** (`heals` wins over base_power — a heal's power
+  is its heal amount). Placeholder colors @export'd for Lawrence's restyle;
+  the damage red is rosier than the army-zone red so a pinned enemy zone and
+  a hovered attack don't read identical. Cursor-driven opens paint the first
+  chip immediately; quiet opens paint on first hover/adoption. All grid
+  overlay decals (army zone, pins, live-paint) wear the **projection-static
+  trial** (RQD/Lawrence 2026-07-30): the portraits' glass static + scanlines
+  reformulated for tint decals — `shaders/overlay_static.gdshader`, tuned in
+  `resources/overlay_static.tres`, reduce-motion freezes the flicker but
+  keeps the texture. Awaiting the in-game eyeball before it's a keep.
 
 ### Selected/active button — superseded by §14
 - Was locked as "pulsing border glow + slow rotational shimmer, reconsider if it
@@ -368,7 +376,10 @@ disabled < static < idle < selected < call to action.
   between exactly 2 positions (in / 1 game px out, no easing) at **1.25 Hz**. The
   button itself does NOT recolor: purple was retired from selection semantics
   ("kill your darlings") — the shape is the whole signal, which also means it
-  survives reduce-motion as parked white ticks. Runner-up kept in the mockup:
+  survives reduce-motion as parked white ticks. **Brackets render on DISABLED
+  items too (fixed 2026-07-30)**: "you are here" is a fact about the cursor,
+  not an affordance of the item — the old `not disabled` draw gate made the
+  cursor vanish on depleted/locked chips, reading as dead arrow keys. Runner-up kept in the mockup:
   *marquee orbit* — two diametrically opposed highlights traveling the border at a
   FIXED px/s (default 50), azure ramp so tails melt into the lit border; ramp
   **LOCKED**: core = step = **3 game px** (footprint 3/9/15/21 — bands read too

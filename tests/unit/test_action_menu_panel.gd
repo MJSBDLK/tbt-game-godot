@@ -171,6 +171,30 @@ func test_hover_paints_under_the_pointer_model() -> void:
 			"hover left, nothing else attends — the board clears")
 
 
+func test_adopted_cursor_is_visible_on_a_depleted_first_chip() -> void:
+	# The in-game repro (RQD bug 2026-07-30): pointer-quiet open, first arrow
+	# press summons the cursor onto item one — which mid-battle is often a
+	# depleted (disabled) chip. The cursor must land AND render there; it used
+	# to vanish (brackets were gated on `not disabled`), which read as "my
+	# arrow keys stopped working — only the slight illumination."
+	InputSource.last_kind = InputSource.Kind.POINTER
+	get_viewport().gui_release_focus()
+	var unit := _make_unit([_make_move("Spark", 0, 4)])
+	var panel := _make_panel(unit)
+	panel.show_assign_submenu()
+	await wait_process_frames(2)
+	var spark := panel._content_container.get_child(0) as MoveChipButton
+	assert_true(spark.disabled, "precondition: depleted = disabled tier")
+	var nav := InputEventAction.new()
+	nav.action = "ui_down"
+	nav.pressed = true
+	panel._unhandled_input(nav)
+	await wait_process_frames(2)
+	assert_true(spark.selected, "the summoned cursor lands on the disabled chip")
+	assert_true(spark._brackets_visible(),
+			"and it renders there — the cursor is a fact, not an affordance")
+
+
 func test_hiding_the_menu_clears_the_live_paint() -> void:
 	var unit := _make_unit([_make_move("Ember")])
 	var panel := _make_panel(unit)

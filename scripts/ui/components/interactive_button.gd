@@ -239,7 +239,13 @@ func _draw_chrome(canvas: Control, behind: bool) -> void:
 		canvas.draw_rect(Rect2(rect.position + Vector2(0.5, 0.5), rect.size - Vector2.ONE),
 				_border_color(), false, 1.0)
 		return
-	if _brackets_visible() and not disabled:
+	# Brackets render on DISABLED items too — "you are here" is a fact about
+	# the CURSOR, not an affordance of the item (same doctrine as the orbit
+	# and the grid live-paint). The old `and not disabled` gate made the menu
+	# cursor vanish whenever it landed on a depleted/locked chip, which read
+	# as "my arrow keys stopped working" (RQD bug 2026-07-30). CTA keeps its
+	# disabled gate: the game can't invite a press the item would refuse.
+	if _brackets_visible():
 		_draw_brackets(canvas, rect)
 	if call_to_action and not disabled and _motion_enabled():
 		_draw_cta_rings(canvas, rect)
