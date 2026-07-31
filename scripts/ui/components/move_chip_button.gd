@@ -78,6 +78,9 @@ var assigned: bool = false:
 		_redraw_chrome()
 
 var _chip: MoveChip = null
+## Clips the body + data row (the 2026-07-19 no-spill contract) so the BUTTON
+## itself never has to — its chrome draws outside the rect (see _ready).
+var _content_clipper: Control = null
 ## The configured move — kept for the peek card (and venue hit-testing).
 var _move: Move = null
 ## Wall-clock ms when a genuine touch press started arming the hold-to-peek;
@@ -113,8 +116,16 @@ func _ready() -> void:
 	# Overflow must never spill into neighboring panels (RQD bug 2026-07-19:
 	# detail-panel chips appended their data over the description pane). What
 	# to SHOW at narrow widths is the pending density decision; until then,
-	# clip is the contract.
-	clip_contents = true
+	# clip is the contract — but it lives on a CONTENT wrapper, never on the
+	# button itself: clipping the button's own canvas swallowed the §14
+	# brackets, which draw 2-3px OUTSIDE the rect (RQD bug 2026-07-31, "no
+	# brackets on the move chips" — backlight and orbit sit inside the rect,
+	# so only the cursor vanished). Chrome stays a direct child, unclipped.
+	_content_clipper = Control.new()
+	_content_clipper.clip_contents = true
+	_content_clipper.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_content_clipper.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_content_clipper)
 
 	_chip = MoveChip.new()
 	_chip.material = CHIP_MATERIAL.duplicate()
@@ -122,7 +133,7 @@ func _ready() -> void:
 	_chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_chip.show_behind_parent = true
 	_chip.radius_px = 2.0
-	add_child(_chip)
+	_content_clipper.add_child(_chip)
 
 	var row := HBoxContainer.new()
 	row.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -133,7 +144,7 @@ func _ready() -> void:
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# Seven children now — the default 4px separation no longer fits 120px.
 	row.add_theme_constant_override("separation", 2)
-	add_child(row)
+	_content_clipper.add_child(row)
 
 	# Elemental type icon leads the row — same 10x10 set the action menu uses.
 	_icon = TextureRect.new()

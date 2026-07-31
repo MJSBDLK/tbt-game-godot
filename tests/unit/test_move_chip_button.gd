@@ -568,3 +568,22 @@ func test_resetup_closes_a_stale_card() -> void:
 	chip_button.setup(_make_move(1, 5))
 	assert_false(MoveTooltip.is_open_for(chip_button),
 			"re-setup means new data — an open card would show stale numbers")
+
+
+func test_chip_clips_content_never_chrome() -> void:
+	# RQD bug 2026-07-31 ("no brackets on the move chips" — the badge said
+	# AMP): clip_contents on the BUTTON swallowed the §14 brackets, which
+	# draw 2-3px outside the rect. Backlight and orbit sit inside the rect,
+	# so only the cursor vanished — on every chip, in every menu, since the
+	# chip was born. The no-spill contract (2026-07-19) now lives on a
+	# content wrapper; the button's own canvas must stay unclipped.
+	var chip_button := _make_chip_button(_make_move())
+	assert_false(chip_button.clip_contents,
+			"the button never clips — its chrome draws outside the rect")
+	assert_not_null(chip_button._content_clipper, "the no-spill contract still holds...")
+	assert_true(chip_button._content_clipper.clip_contents,
+			"...on the wrapper that owns the body and data row")
+	assert_eq(chip_button._chip.get_parent(), chip_button._content_clipper,
+			"chip body is clipped content")
+	assert_true(chip_button._chrome_front.get_parent() == chip_button,
+			"front chrome (brackets/rings/flash) stays a direct, unclipped child")

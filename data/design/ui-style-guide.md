@@ -380,6 +380,11 @@ disabled < static < idle < selected < call to action.
   items too (fixed 2026-07-30)**: "you are here" is a fact about the cursor,
   not an affordance of the item — the old `not disabled` draw gate made the
   cursor vanish on depleted/locked chips, reading as dead arrow keys.
+  **Chip clip fix (2026-07-31, found via the AMP badge)**: MoveChipButton's
+  no-spill `clip_contents` sat on the button itself and swallowed these
+  brackets (they draw 2-3px outside the rect) on every chip since the chip
+  was born — backlight and orbit sit inside the rect, so only the cursor
+  vanished. The clip now lives on a content wrapper; chrome never clips.
   **The vocabulary extends to the BOARD (2026-07-31)**: during attack
   targeting, arrows walk a target cursor across the valid targets and it
   wears these same brackets on the TILE (`TargetCursorRenderer` — same arm
