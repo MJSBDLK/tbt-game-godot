@@ -280,28 +280,41 @@ func _brackets_snapping() -> bool:
 func _draw_brackets(canvas: Control, rect: Rect2) -> void:
 	var out: bool = _motion_enabled() and _brackets_snapping() and brackets_out_at(_now_seconds())
 	var inset: float = BRACKET_INSET_PIXELS + (1 if out else 0)
-	var arm: float = BRACKET_ARM_PIXELS
 	var color := GameColors.INTERACTIVE_BRACKET
+	for tick: Rect2 in bracket_tick_rects(rect, inset, BRACKET_ARM_PIXELS):
+		canvas.draw_rect(tick, color, true)
+
+
+## THE bracket-tick geometry — the single source both wearers draw from
+## (menu buttons here, the board cursors via TargetCursorRenderer). Extracted
+## after the board's reimplementation drifted one pixel wide on the right and
+## bottom edges (RQD 2026-07-31): Rect2.end is EXCLUSIVE — a 16px rect's last
+## pixel is column 15 — so far-edge arms anchor at `corner - arm` (ink's
+## outermost pixel = corner - 1) and get the -1 nudges below, keeping the ink
+## exactly `inset` px off the VISIBLE edge on all four sides. Returns 8 rects:
+## horizontal + vertical arm per corner, each 1px thick, drawn inward.
+static func bracket_tick_rects(rect: Rect2, inset: float, arm: float) -> Array[Rect2]:
 	var corners: Array[Vector2] = [
 		rect.position + Vector2(-inset, -inset),                            # TL
 		Vector2(rect.end.x + inset, rect.position.y - inset),               # TR
 		Vector2(rect.position.x - inset, rect.end.y + inset),               # BL
 		rect.end + Vector2(inset, inset),                                   # BR
 	]
+	var ticks: Array[Rect2] = []
 	for i: int in corners.size():
 		var corner: Vector2 = corners[i]
 		var toward_center := Vector2(
 				1.0 if corner.x < rect.get_center().x else -1.0,
 				1.0 if corner.y < rect.get_center().y else -1.0)
-		# Horizontal arm, then vertical arm — each 1px thick, drawn inward.
 		var horizontal_origin := corner if toward_center.x > 0 else corner - Vector2(arm, 0)
 		var vertical_origin := corner if toward_center.y > 0 else corner - Vector2(0, arm)
 		if toward_center.y < 0:
 			horizontal_origin.y -= 1.0
 		if toward_center.x < 0:
 			vertical_origin.x -= 1.0
-		canvas.draw_rect(Rect2(horizontal_origin, Vector2(arm, 1)), color, true)
-		canvas.draw_rect(Rect2(vertical_origin, Vector2(1, arm)), color, true)
+		ticks.append(Rect2(horizontal_origin, Vector2(arm, 1)))
+		ticks.append(Rect2(vertical_origin, Vector2(1, arm)))
+	return ticks
 
 
 func _draw_cta_rings(canvas: Control, rect: Rect2) -> void:

@@ -57,23 +57,13 @@ func _draw() -> void:
 	var out: bool = motion and InteractiveButton.brackets_out_at(
 			Time.get_ticks_msec() / 1000.0)
 	var inset: float = InteractiveButton.BRACKET_INSET_PIXELS + (1 if out else 0)
-	var arm: float = InteractiveButton.BRACKET_ARM_PIXELS
 	var color: Color = GameColors.INTERACTIVE_BRACKET
 
-	# Four corner ticks, each an L of two 1px arms pointing inward.
-	var tl := rect.position + Vector2(-inset, -inset)
-	var tr := Vector2(rect.end.x + inset, rect.position.y - inset)
-	var bl := Vector2(rect.position.x - inset, rect.end.y + inset)
-	var br := rect.end + Vector2(inset, inset)
-	_tick(tl, Vector2.RIGHT, Vector2.DOWN, arm, color)
-	_tick(tr, Vector2.LEFT, Vector2.DOWN, arm, color)
-	_tick(bl, Vector2.RIGHT, Vector2.UP, arm, color)
-	_tick(br, Vector2.LEFT, Vector2.UP, arm, color)
-
-
-func _tick(corner: Vector2, horizontal: Vector2, vertical: Vector2, arm: float, color: Color) -> void:
-	# 1px-thick rects, not draw_line — lines land on half-pixels and blur.
-	var h_origin := corner + (Vector2(-arm + 1, 0) if horizontal == Vector2.LEFT else Vector2.ZERO)
-	draw_rect(Rect2(h_origin, Vector2(arm, 1)), color, true)
-	var v_origin := corner + (Vector2(0, -arm + 1) if vertical == Vector2.UP else Vector2.ZERO)
-	draw_rect(Rect2(v_origin, Vector2(1, arm)), color, true)
+	# Tick geometry comes from InteractiveButton.bracket_tick_rects — the ONE
+	# source for §14 bracket shapes, so board and menu ink can never drift.
+	# (A local reimplementation once painted 1px wide right/bottom — Rect2.end
+	# is exclusive.) 1px-thick rects, not draw_line: lines land on half-pixels
+	# and blur.
+	for tick: Rect2 in InteractiveButton.bracket_tick_rects(
+			rect, inset, InteractiveButton.BRACKET_ARM_PIXELS):
+		draw_rect(tick, color, true)

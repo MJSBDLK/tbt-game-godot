@@ -190,3 +190,36 @@ func test_selected_brackets_survive_disabled() -> void:
 	button.selected = true
 	assert_true(button._brackets_visible(),
 			"the cursor renders on disabled items — brackets are 'you are here', not 'pressable'")
+
+
+# =============================================================================
+# Bracket tick geometry — one source, symmetric ink
+# =============================================================================
+
+func test_bracket_ink_sits_symmetrically_off_every_edge() -> void:
+	# RQD bug 2026-07-31: the board cursor's reimplementation of the ticks
+	# painted one pixel too wide on the right and bottom — Rect2.end is
+	# EXCLUSIVE (a 16px rect's last pixel is 15), and the copy anchored
+	# far-edge arms at `corner - arm + 1` instead of `corner - arm`. Both
+	# wearers now draw from bracket_tick_rects; this pins the symmetry.
+	var rect := Rect2(0, 0, 16, 16)
+	var inset := 2.0
+	var ticks: Array[Rect2] = InteractiveButton.bracket_tick_rects(rect, inset, 5.0)
+	assert_eq(ticks.size(), 8, "two 1px arms per corner")
+
+	var ink_min := ticks[0].position
+	var ink_max := ticks[0].end - Vector2.ONE  # last painted pixel, inclusive
+	for tick: Rect2 in ticks:
+		ink_min = ink_min.min(tick.position)
+		ink_max = ink_max.max(tick.end - Vector2.ONE)
+
+	# Visible rect pixels span 0..15; ink must sit `inset` px outside on ALL
+	# sides — the right/bottom overhang the copy had was exactly +1 on these.
+	assert_eq(ink_min, Vector2(-inset, -inset), "top-left ink at -inset")
+	assert_eq(ink_max, Vector2(15 + inset, 15 + inset),
+			"bottom-right ink at last-pixel + inset (not rect.end + inset)")
+
+	var left_gap := 0.0 - ink_min.x
+	var right_gap := ink_max.x - 15.0
+	assert_eq(left_gap, right_gap, "horizontal symmetry")
+	assert_eq(0.0 - ink_min.y, ink_max.y - 15.0, "vertical symmetry")
