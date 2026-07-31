@@ -379,7 +379,17 @@ disabled < static < idle < selected < call to action.
   survives reduce-motion as parked white ticks. **Brackets render on DISABLED
   items too (fixed 2026-07-30)**: "you are here" is a fact about the cursor,
   not an affordance of the item — the old `not disabled` draw gate made the
-  cursor vanish on depleted/locked chips, reading as dead arrow keys. Runner-up kept in the mockup:
+  cursor vanish on depleted/locked chips, reading as dead arrow keys.
+  **The vocabulary extends to the BOARD (2026-07-31)**: during attack
+  targeting, arrows walk a target cursor across the valid targets and it
+  wears these same brackets on the TILE (`TargetCursorRenderer` — same arm
+  length, same 1.25 Hz snap phase as the menus, so board and menu cursors
+  blink in lockstep). CURSOR model only — mouse hover keeps its tile tint
+  and the OS pointer; brackets follow focus, never hover. Entry mirrors the
+  menus: cursor-driven entry adopts the nearest target immediately, pointer
+  entry stays quiet until the first arrow press; accept confirms, and while
+  the cursor model drives, the parked mouse position stops fighting for
+  hover (next real mouse motion reclaims it). Runner-up kept in the mockup:
   *marquee orbit* — two diametrically opposed highlights traveling the border at a
   FIXED px/s (default 50), azure ramp so tails melt into the lit border; ramp
   **LOCKED**: core = step = **3 game px** (footprint 3/9/15/21 — bands read too

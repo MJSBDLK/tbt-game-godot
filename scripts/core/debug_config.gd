@@ -30,6 +30,7 @@ var testing_enemy_ghost: bool = false  # Grant every enemy the Ghost passive (pa
 var testing_hypoesthesia: bool = false  # Give every player unit a Minor Hypoesthesia injury on spawn (censors HP bar above 50%)
 var testing_hypoesthesia_major: bool = false  # Use Major severity instead of Minor (censor always on unless HP=0)
 var testing_random_hp_on_spawn: bool = false  # Spawn every player unit at 15-100% HP — useful for testing heals
+var debug_menu_badges: bool = true  # Etch each menu's class initials into its border (top-right, PanelBorderOverlay) — themed serial-tag so bug reports can name the misbehaving menu; looks intentional in screenshots. Flip false to hide. (RQD 2026-07-31)
 
 # Input & State
 var input: bool = false

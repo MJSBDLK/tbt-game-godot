@@ -4,3 +4,9 @@
 
 [resource]
 shader = ExtResource("1_static")
+shader_parameter/static_strength = 0.6
+shader_parameter/static_rate = 8.0
+shader_parameter/chunk_size_in_reference = 1.0
+shader_parameter/scanline_strength = 0.35
+shader_parameter/scanline_period_px = 3.0
+shader_parameter/animate = 1.0

@@ -132,7 +132,11 @@ static func calculate_damage(attacker: Node2D, defender: Node2D, move: Move) -> 
 	# Bellows: +25% fire damage per stack
 	var bellows_multiplier := 1.0
 	if move.element_type == Enums.ElementalType.FIRE:
-		var status_system: Node = attacker.get_node_or_null("/root/StatusEffectSystem")
+		# Tree-residency guard: autoload lookup rides the attacker node, and an
+		# off-tree unit (test harnesses) makes an absolute get_node push an
+		# engine error before returning null. Same null, minus the noise.
+		var status_system: Node = attacker.get_node_or_null("/root/StatusEffectSystem") \
+				if attacker.is_inside_tree() else null
 		if status_system != null:
 			var bellows_stacks: int = status_system.get_effect_stacks(attacker, "BELLOWS")
 			if bellows_stacks > 0:
@@ -287,8 +291,9 @@ static func get_type_effectiveness(attacker: Node2D, defender: Node2D, move: Mov
 		return 1.0
 
 	var type_chart_manager: Node = Engine.get_singleton("TypeChartManager") if Engine.has_singleton("TypeChartManager") else null
-	if type_chart_manager == null:
-		# Fallback: try autoload path
+	if type_chart_manager == null and attacker.is_inside_tree():
+		# Fallback: try autoload path (tree-residency guarded — an off-tree
+		# unit's absolute get_node pushes an engine error before nulling).
 		type_chart_manager = attacker.get_node_or_null("/root/TypeChartManager")
 	if type_chart_manager == null:
 		return 1.0

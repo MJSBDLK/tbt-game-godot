@@ -71,7 +71,19 @@ func is_pointer_driven() -> bool:
 ## cursor onto a quiet-opened menu (accept/cancel are NOT summons: nothing
 ## is selected yet, so there is nothing to accept).
 func is_navigation_press(event: InputEvent) -> bool:
-	for action: String in ["ui_up", "ui_down", "ui_left", "ui_right"]:
-		if event.is_action_pressed(action):
-			return true
-	return false
+	return navigation_direction(event) != Vector2i.ZERO
+
+
+## The grid direction of a navigation press (screen convention: -y is up), or
+## ZERO for any other event. Board consumers (the attack-target cursor) use
+## the vector; menus only care that it isn't ZERO.
+func navigation_direction(event: InputEvent) -> Vector2i:
+	if event.is_action_pressed("ui_up"):
+		return Vector2i(0, -1)
+	if event.is_action_pressed("ui_down"):
+		return Vector2i(0, 1)
+	if event.is_action_pressed("ui_left"):
+		return Vector2i(-1, 0)
+	if event.is_action_pressed("ui_right"):
+		return Vector2i(1, 0)
+	return Vector2i.ZERO

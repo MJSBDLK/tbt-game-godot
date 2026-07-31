@@ -37,6 +37,8 @@ var _current_attack_range_tiles: Array[Tile] = []
 # Move-range live-paint (see "Move-range live-paint" section below).
 var _move_range_preview_move: Move = null
 var _move_range_preview_renderer: ThreatOverlayRenderer = null
+# Attack-target cursor (see "Attack-target cursor" section below).
+var _target_cursor_renderer: TargetCursorRenderer = null
 
 # Public read-only accessors
 var grid_width: int:
@@ -115,6 +117,7 @@ func clear_grid() -> void:
 	_current_movement_range_tiles.clear()
 	_current_attack_range_tiles.clear()
 	clear_move_range_preview()
+	clear_target_cursor()
 
 
 # =============================================================================
@@ -412,6 +415,37 @@ func clear_move_range_preview() -> void:
 ## here instead of poking the renderer.
 func move_range_preview_move() -> Move:
 	return _move_range_preview_move
+
+
+# --- Attack-target cursor ------------------------------------------------------
+# The keyboard/controller cursor's "you are here" on the board: §14 corner
+# brackets around the tile it points at (TargetCursorRenderer). CURSOR model
+# only — mouse hover keeps its tile tint and the OS cursor.
+
+func display_target_cursor(tile: Tile) -> void:
+	if tile == null:
+		clear_target_cursor()
+		return
+	_ensure_target_cursor_renderer().set_tile(tile)
+
+
+func clear_target_cursor() -> void:
+	if _target_cursor_renderer != null and is_instance_valid(_target_cursor_renderer):
+		_target_cursor_renderer.clear()
+
+
+func target_cursor_tile() -> Tile:
+	if _target_cursor_renderer == null or not is_instance_valid(_target_cursor_renderer):
+		return null
+	return _target_cursor_renderer.target_tile()
+
+
+func _ensure_target_cursor_renderer() -> TargetCursorRenderer:
+	if _target_cursor_renderer == null or not is_instance_valid(_target_cursor_renderer):
+		_target_cursor_renderer = TargetCursorRenderer.new()
+		_target_cursor_renderer.name = "TargetCursorRenderer"
+		add_child(_target_cursor_renderer)
+	return _target_cursor_renderer
 
 
 func _ensure_move_range_preview_renderer() -> ThreatOverlayRenderer:

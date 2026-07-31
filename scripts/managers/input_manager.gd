@@ -16,6 +16,10 @@ var _is_selecting_attack_target: bool = false
 var _attacking_unit: Unit = null
 var _attack_move: Move = null
 var _attackable_tiles: Array[Tile] = []
+# The board target cursor (RQD 2026-07-31): under the CURSOR model, arrows
+# walk this across the valid targets and it wears the §14 brackets
+# (GridManager.display_target_cursor). Null = pointer is driving.
+var _keyboard_target_tile: Tile = null
 
 # Long-press detection for opening unit detail on touch
 const LONG_PRESS_DURATION: float = 0.2  # seconds
@@ -96,12 +100,19 @@ func start_attack_targeting(attacker: Unit, move: Move) -> void:
 	DebugConfig.log_input("InputManager: Attack targeting with '%s' (%d valid tiles)" % [
 		move.move_name, _attackable_tiles.size()])
 
+	# Cursor-model courtesy (InputSource, same doctrine as the menus): a
+	# keyboard/controller-driven entry adopts the nearest target immediately;
+	# a pointer-driven entry stays quiet until the first arrow press.
+	if InputSource.is_cursor_driven():
+		_adopt_initial_target()
+
 
 func cancel_attack_targeting() -> void:
 	_is_selecting_attack_target = false
 	_attacking_unit = null
 	_attack_move = null
 	_attackable_tiles.clear()
+	_clear_keyboard_target()
 	GridManager.clear_attack_range()
 
 	var ui_manager: Node = _get_ui_manager()
@@ -178,6 +189,21 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 
+	# Attack targeting under the CURSOR model: arrows walk the board target
+	# cursor across the valid targets (it wears the §14 brackets); accept
+	# confirms it. Pointer entry stays quiet — the first arrow press adopts
+	# the nearest target, mirroring the menus' quiet-open adoption.
+	if _is_selecting_attack_target:
+		var direction: Vector2i = InputSource.navigation_direction(event)
+		if direction != Vector2i.ZERO:
+			_move_target_cursor(direction)
+			get_viewport().set_input_as_handled()
+			return
+		if event.is_action_pressed("ui_accept") and _keyboard_target_tile != null:
+			_try_attack_tile(_keyboard_target_tile)
+			get_viewport().set_input_as_handled()
+			return
+
 	# Mouse/touch clicks
 	if event is InputEventMouseButton:
 		var mouse_event := event as InputEventMouseButton
@@ -197,6 +223,12 @@ func _unhandled_input(event: InputEvent) -> void:
 # =============================================================================
 
 func _update_hover() -> void:
+	# Cursor-model guard (InputSource): while keyboard/controller drives, the
+	# mouse's PARKED position must not fight the board cursor for hover every
+	# frame. The next real mouse motion (≥4px) flips the model back to POINTER
+	# and this resumes from the live mouse position.
+	if InputSource.is_cursor_driven():
+		return
 	# Camera2D is in the root viewport (WorldRoot's tree). This autoload is at
 	# /root, so get_viewport() returns the root viewport directly.
 	var camera := SceneRouter.get_world_camera() as CameraController
@@ -454,26 +486,113 @@ func _handle_movement_planning_click() -> void:
 
 
 func _handle_attack_target_click() -> void:
-	var clicked_tile := GridManager.get_tile_at_position(_get_world_mouse_position())
-	if clicked_tile == null:
+	_try_attack_tile(GridManager.get_tile_at_position(_get_world_mouse_position()))
+
+
+## Shared confirm for the mouse click and the board cursor's accept press. A
+## press on anything outside the valid set cancels targeting — unchanged
+## click semantics; the keyboard path can only arrive with a valid tile.
+func _try_attack_tile(tile: Tile) -> void:
+	if tile == null or not _attackable_tiles.has(tile) \
+			or tile.current_unit == null or tile.current_unit is not Unit:
 		cancel_attack_targeting()
 		return
 
-	if not _attackable_tiles.has(clicked_tile):
-		cancel_attack_targeting()
-		return
-
-	if clicked_tile.current_unit == null or clicked_tile.current_unit is not Unit:
-		cancel_attack_targeting()
-		return
-
-	var target := clicked_tile.current_unit as Unit
+	var target := tile.current_unit as Unit
 	if not MoveTargeting.is_valid_target(target, _attacking_unit, _attack_move):
 		cancel_attack_targeting()
 		return
 
-	# Execute attack
 	_execute_attack(target)
+
+
+# =============================================================================
+# BOARD TARGET CURSOR — the CURSOR model's "you are here" during targeting
+# (RQD 2026-07-31: "still not seeing the brackets when picking which unit to
+# attack" — this step had no keyboard support at all; the menus did.)
+# =============================================================================
+
+func _move_target_cursor(direction: Vector2i) -> void:
+	if _attackable_tiles.is_empty():
+		return
+	# First press on a quiet (pointer-opened) targeting session summons the
+	# cursor onto the nearest target instead of stepping.
+	if _keyboard_target_tile == null or not _attackable_tiles.has(_keyboard_target_tile):
+		_adopt_initial_target()
+		return
+	var current := Vector2i(_keyboard_target_tile.grid_x, _keyboard_target_tile.grid_y)
+	var index := pick_target_in_direction(current, _attackable_cells(), direction)
+	if index >= 0:
+		_set_keyboard_target(_attackable_tiles[index])
+
+
+func _adopt_initial_target() -> void:
+	if _attackable_tiles.is_empty() or _attacking_unit == null \
+			or _attacking_unit.current_tile == null:
+		return
+	var origin := Vector2i(_attacking_unit.current_tile.grid_x, _attacking_unit.current_tile.grid_y)
+	var index := pick_initial_target(origin, _attackable_cells())
+	if index >= 0:
+		_set_keyboard_target(_attackable_tiles[index])
+
+
+func _set_keyboard_target(tile: Tile) -> void:
+	_keyboard_target_tile = tile
+	# The cursor IS the hover under this model: tile tint, terrain readout,
+	# combat preview, and the unit-info hotkey all follow it.
+	_hovered_tile = tile
+	GridManager.set_hovered_tile(tile)
+	GridManager.display_target_cursor(tile)
+	_update_combat_preview(tile)
+
+
+func _clear_keyboard_target() -> void:
+	_keyboard_target_tile = null
+	GridManager.clear_target_cursor()
+
+
+func _attackable_cells() -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	for tile: Tile in _attackable_tiles:
+		cells.append(Vector2i(tile.grid_x, tile.grid_y))
+	return cells
+
+
+## Nearest candidate in the pressed direction's half-plane: candidates behind
+## or perpendicular to the press never win; among the rest, straight-ahead
+## beats diagonal drift (sideways distance counts double). Returns an index
+## into `candidates`, or -1 when nothing lies that way — the cursor then
+## stays put rather than wrapping. Pure + static for GUT.
+static func pick_target_in_direction(current: Vector2i, candidates: Array[Vector2i],
+		direction: Vector2i) -> int:
+	var best := -1
+	var best_score := 0
+	for i: int in candidates.size():
+		var delta := candidates[i] - current
+		if delta == Vector2i.ZERO:
+			continue
+		var along := delta.x * direction.x + delta.y * direction.y
+		if along <= 0:
+			continue
+		var across := absi(delta.x * direction.y) + absi(delta.y * direction.x)
+		var score := along + across * 2
+		if best == -1 or score < best_score:
+			best = i
+			best_score = score
+	return best
+
+
+## The summon target for a fresh cursor: nearest candidate to the attacker
+## (Manhattan), first-listed wins ties. Pure + static for GUT.
+static func pick_initial_target(origin: Vector2i, candidates: Array[Vector2i]) -> int:
+	var best := -1
+	var best_distance := 0
+	for i: int in candidates.size():
+		var distance := absi(candidates[i].x - origin.x) + absi(candidates[i].y - origin.y)
+		if best == -1 or distance < best_distance:
+			best = i
+			best_distance = distance
+	return best
 
 
 # =============================================================================
@@ -536,6 +655,7 @@ func _execute_attack(target: Unit) -> void:
 
 	_is_selecting_attack_target = false
 	_attackable_tiles.clear()
+	_clear_keyboard_target()
 	GridManager.clear_attack_range()
 
 	var ui_manager: Node = _get_ui_manager()

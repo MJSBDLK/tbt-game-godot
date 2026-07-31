@@ -38,7 +38,57 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build_nodes()
 	_layout_border()
+	_build_debug_badge()
 	resized.connect(_layout_border)
+
+
+## Themed debug tag (RQD 2026-07-31): the owning panel's class initials etched
+## into the border's top-right corner — reads as a serial marking in
+## screenshots, names the misbehaving menu in bug reports ("the brackets bug
+## is in AMP"). One switch: DebugConfig.debug_menu_badges (restart to apply,
+## like every DebugConfig flag).
+func _build_debug_badge() -> void:
+	if DebugConfig == null or not DebugConfig.debug_menu_badges:
+		return
+	var badge := Label.new()
+	badge.name = "DebugBadge"
+	badge.text = badge_initials(_owner_class_name())
+	if UIManager != null and UIManager.font_5px != null:
+		badge.add_theme_font_override("font", UIManager.font_5px)
+		badge.add_theme_font_size_override("font_size", 5)
+	badge.add_theme_color_override("font_color", GameColorPalette.get_color("Gray", 6))
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(badge)
+	badge.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	badge.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	# Tucked onto the border art itself: 2px down, ending 6px shy of the
+	# right edge — inside the corner piece, clear of panel content.
+	badge.offset_top = 2
+	badge.offset_right = -6
+
+
+func _owner_class_name() -> String:
+	var host := get_parent()
+	if host == null:
+		return ""
+	var script: Script = host.get_script()
+	if script != null and script.get_global_name() != &"":
+		return String(script.get_global_name())
+	return host.get_class()
+
+
+## "ActionMenuPanel" -> "AMP". Uppercase initials are short, unique across
+## the current panel roster, and self-derived — a new panel gets a badge for
+## free. Pure + static for GUT.
+static func badge_initials(from_class_name: String) -> String:
+	var initials := ""
+	for i: int in from_class_name.length():
+		var character := from_class_name[i]
+		if character == character.to_upper() and character != character.to_lower():
+			initials += character
+	if initials == "":
+		return from_class_name.left(3).to_upper()
+	return initials
 
 
 func _build_nodes() -> void:

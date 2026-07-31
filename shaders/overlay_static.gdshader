@@ -17,11 +17,11 @@
 // portrait static, so the grain size is zoom-stable.
 shader_type canvas_item;
 
-uniform float static_strength : hint_range(0.0, 1.0) = 0.35;
+uniform float static_strength : hint_range(0.0, 1.0) = 0.6;
 uniform float static_rate : hint_range(1.0, 60.0) = 8.0;
 uniform float chunk_size_in_reference : hint_range(0.5, 8.0) = 1.0;
 
-uniform float scanline_strength : hint_range(0.0, 1.0) = 0.2;
+uniform float scanline_strength : hint_range(0.0, 1.0) = 0.35;
 uniform float scanline_period_px : hint_range(1.0, 16.0) = 3.0;
 
 // Settings.ui_motion_enabled mirror — ThreatOverlayRenderer sets this. 0
@@ -64,13 +64,15 @@ void fragment() {
 		vec2 ref_coord = floor(FRAGCOORD.xy / chunk_pixel_size);
 		float t_bucket = floor(TIME * static_rate) * animate;
 		float n = hash_seeded(ref_coord, t_bucket);
-		// Upper half of the hash = sparkle (lift toward white + thicken the
-		// fill); lower half thins it. Mirrors the portrait static's "bright
-		// chunks being added" read without needing blend_add.
-		float sparkle = max(0.0, n - 0.5) * 2.0 * static_strength;
-		float thin = max(0.0, 0.5 - n) * 2.0 * static_strength;
-		tint.rgb = mix(tint.rgb, vec3(1.0), sparkle * 0.6);
-		tint.a *= 1.0 + sparkle * 0.5 - thin * 0.35;
+		// Top of the hash distribution = sparkle (lift toward white +
+		// thicken the fill); bottom = the fill drops toward transparent —
+		// flickering holes read as static far better than brightness
+		// wobble on a low-alpha decal. Mirrors the portrait static's
+		// "bright chunks being added" without needing blend_add.
+		float sparkle = clamp(max(0.0, n - 0.6) * 2.5 * static_strength, 0.0, 1.0);
+		float thin = clamp(max(0.0, 0.45 - n) * 2.2 * static_strength, 0.0, 1.0);
+		tint.rgb = mix(tint.rgb, vec3(1.0), sparkle * 0.7);
+		tint.a *= clamp(1.0 + sparkle * 0.9 - thin * 0.9, 0.0, 2.0);
 	}
 
 	COLOR = tint;
