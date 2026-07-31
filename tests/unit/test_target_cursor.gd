@@ -1,23 +1,33 @@
-## The board target cursor (RQD 2026-07-31: "still not seeing the brackets
-## when picking which unit to attack with the arrow keys" — ATTACK_TARGETING
-## had no keyboard support at all; the menus did). Under the CURSOR model,
-## arrows walk a cursor across the valid targets, it wears the §14 brackets
-## on the tile (TargetCursorRenderer via GridManager), and accept confirms.
-## Doctrine mirrors the menus exactly: cursor-driven entry adopts the nearest
-## target immediately; pointer entry stays quiet until the first arrow press.
-## Grid harness mirrors test_extendo_passive.gd.
+## The board cursors (RQD 2026-07-31: "still not seeing the brackets when
+## picking which unit to attack with the arrow keys" — ATTACK_TARGETING had no
+## keyboard support at all; the menus did). Under the CURSOR model, arrows walk
+## a cursor wearing the §14 brackets on its tile (TargetCursorRenderer via
+## GridManager): constrained to valid targets during ATTACK_TARGETING, and —
+## since the FE free-cursor pass — roaming the whole grid during the map-view
+## states, where accept carries exact click semantics. Doctrine mirrors the
+## menus exactly: cursor-driven entry adopts immediately; pointer entry stays
+## quiet until the first arrow press summons. Grid harness mirrors
+## test_extendo_passive.gd.
 extends GutTest
 
 
 func before_each() -> void:
 	GridManager.clear_grid()
-	InputManager.cancel_attack_targeting()
 	InputSource.last_kind = InputSource.Kind.POINTER
+	InputManager.cancel_attack_targeting()
+	InputManager.deselect_unit()
+	InputManager._clear_board_cursor()
+	InputManager._held_nav_direction = Vector2i.ZERO
+	InputManager.enable_input()
 
 
 func after_each() -> void:
-	InputManager.cancel_attack_targeting()
 	InputSource.last_kind = InputSource.Kind.POINTER
+	InputManager.cancel_attack_targeting()
+	InputManager.deselect_unit()
+	InputManager._clear_board_cursor()
+	InputManager._held_nav_direction = Vector2i.ZERO
+	InputManager.enable_input()
 	GameStateManager.change_state(Enums.InputState.DEFAULT)
 
 
@@ -179,8 +189,216 @@ func test_cancel_clears_the_board_cursor() -> void:
 	InputSource.last_kind = InputSource.Kind.CURSOR
 	InputManager.start_attack_targeting(attacker, _move(1))
 	assert_not_null(GridManager.target_cursor_tile(), "precondition: cursor worn")
+	# Pointer-driven cancel: the attack cursor's brackets leave with it. (A
+	# CURSOR-driven cancel into DEFAULT immediately re-adopts the FREE cursor
+	# at the remembered spot — that continuity is pinned separately below.)
+	InputSource.last_kind = InputSource.Kind.POINTER
 	InputManager.cancel_attack_targeting()
+	assert_null(InputManager._keyboard_target_tile, "the attack cursor itself is gone")
 	assert_null(GridManager.target_cursor_tile(), "cancel takes the brackets with it")
+
+
+func test_attack_cursor_vertical_steps_match_screen_direction() -> void:
+	# REGRESSION (found during the free-cursor pass): the game grid is Y-up but
+	# navigation_direction speaks screen convention (up = -y). Without the flip
+	# in _move_target_cursor, "up" walked the cursor to the target visually
+	# BELOW. The original stepping tests used a one-row grid, so it hid.
+	_open_grid(0, 4, 0, 4)
+	var attacker := _unit()
+	_place(attacker, 2, 1)
+	var below := _unit(Enums.UnitFaction.ENEMY)
+	_place(below, 2, 0)
+	var above := _unit(Enums.UnitFaction.ENEMY)
+	_place(above, 2, 3)
+
+	InputSource.last_kind = InputSource.Kind.CURSOR
+	InputManager.start_attack_targeting(attacker, _move(2))
+	assert_eq(GridManager.target_cursor_tile(), GridManager.get_tile(2, 0),
+			"precondition: adopts the nearest target (the one below)")
+	InputManager._unhandled_input(_nav("ui_up"))
+	assert_eq(GridManager.target_cursor_tile(), GridManager.get_tile(2, 3),
+			"screen-up walks to the target visually above (grid_y is Y-up)")
+	InputManager._unhandled_input(_nav("ui_down"))
+	assert_eq(GridManager.target_cursor_tile(), GridManager.get_tile(2, 0),
+			"screen-down walks back")
+
+
+# =============================================================================
+# The FREE board cursor — full-map roam in the map-view states
+# =============================================================================
+
+func test_first_arrow_summons_the_free_cursor_at_the_hovered_tile() -> void:
+	_open_grid(0, 4, 0, 4)
+	InputSource.last_kind = InputSource.Kind.CURSOR
+	InputManager._hovered_tile = GridManager.get_tile(2, 2)
+	InputManager._unhandled_input(_nav("ui_right"))
+	assert_eq(GridManager.target_cursor_tile(), GridManager.get_tile(2, 2),
+			"first press summons (mouse→keys continuity), never steps")
+
+
+func test_free_cursor_steps_in_screen_directions() -> void:
+	_open_grid(0, 4, 0, 4)
+	InputSource.last_kind = InputSource.Kind.CURSOR
+	InputManager._hovered_tile = GridManager.get_tile(2, 2)
+	InputManager._unhandled_input(_nav("ui_right"))
+
+	InputManager._unhandled_input(_nav("ui_up"))
+	assert_eq(GridManager.target_cursor_tile(), GridManager.get_tile(2, 3),
+			"screen-up = grid_y + 1 on the Y-up grid")
+	InputManager._unhandled_input(_nav("ui_right"))
+	assert_eq(GridManager.target_cursor_tile(), GridManager.get_tile(3, 3))
+	InputManager._unhandled_input(_nav("ui_down"))
+	assert_eq(GridManager.target_cursor_tile(), GridManager.get_tile(3, 2))
+	InputManager._unhandled_input(_nav("ui_left"))
+	assert_eq(GridManager.target_cursor_tile(), GridManager.get_tile(2, 2))
+
+
+func test_free_cursor_stays_put_at_the_map_edge() -> void:
+	_open_grid(0, 1, 0, 0)
+	InputSource.last_kind = InputSource.Kind.CURSOR
+	InputManager._hovered_tile = GridManager.get_tile(0, 0)
+	InputManager._unhandled_input(_nav("ui_right"))
+	assert_eq(GridManager.target_cursor_tile(), GridManager.get_tile(0, 0),
+			"precondition: summoned at the corner")
+
+	InputManager._unhandled_input(_nav("ui_left"))
+	assert_eq(GridManager.target_cursor_tile(), GridManager.get_tile(0, 0),
+			"no tile west -> stays put, no wrap")
+	InputManager._unhandled_input(_nav("ui_down"))
+	assert_eq(GridManager.target_cursor_tile(), GridManager.get_tile(0, 0),
+			"no tile south -> stays put")
+	InputManager._unhandled_input(_nav("ui_right"))
+	assert_eq(GridManager.target_cursor_tile(), GridManager.get_tile(1, 0),
+			"open direction still steps")
+
+
+func test_accept_selects_the_player_unit_under_the_cursor() -> void:
+	_open_grid(0, 4, 0, 4)
+	var unit := _unit()
+	_place(unit, 1, 1)
+
+	InputSource.last_kind = InputSource.Kind.CURSOR
+	InputManager._hovered_tile = GridManager.get_tile(1, 1)
+	InputManager._unhandled_input(_nav("ui_right"))
+	InputManager._unhandled_input(_nav("ui_accept"))
+	assert_eq(InputManager.get_selected_unit(), unit,
+			"accept on a ready player unit = the click that selects it")
+	assert_eq(GameStateManager.current_state, Enums.InputState.UNIT_SELECTED)
+
+
+func test_accept_on_a_reachable_tile_drops_a_waypoint() -> void:
+	_open_grid(0, 4, 0, 4)
+	var unit := _unit()
+	_place(unit, 1, 1)
+
+	InputSource.last_kind = InputSource.Kind.CURSOR
+	InputManager._hovered_tile = GridManager.get_tile(1, 1)
+	InputManager._unhandled_input(_nav("ui_right"))
+	InputManager._unhandled_input(_nav("ui_accept"))
+
+	InputManager._unhandled_input(_nav("ui_right"))
+	assert_eq(GridManager.target_cursor_tile(), GridManager.get_tile(2, 1),
+			"selection does not eat the cursor; it keeps roaming")
+	InputManager._unhandled_input(_nav("ui_accept"))
+	assert_eq(unit.planned_waypoints.size(), 1,
+			"accept on an in-range tile plans a waypoint, same as the click")
+	assert_eq(GameStateManager.current_state, Enums.InputState.MOVEMENT_PLANNING)
+
+
+func test_menus_retire_the_cursor_and_cursor_driven_reentry_resummons() -> void:
+	_open_grid(0, 2, 0, 2)
+	InputSource.last_kind = InputSource.Kind.CURSOR
+	InputManager._hovered_tile = GridManager.get_tile(1, 1)
+	InputManager._unhandled_input(_nav("ui_right"))
+	assert_not_null(GridManager.target_cursor_tile(), "precondition: cursor worn")
+
+	GameStateManager.change_state(Enums.InputState.ACTION_MENU_OPEN)
+	assert_null(GridManager.target_cursor_tile(),
+			"a menu raises its own brackets; the board cursor yields")
+
+	GameStateManager.change_state(Enums.InputState.DEFAULT)
+	assert_eq(GridManager.target_cursor_tile(), GridManager.get_tile(1, 1),
+			"cursor-driven re-entry adopts immediately at the remembered spot")
+
+
+func test_pointer_reclaim_doffs_the_free_cursor() -> void:
+	_open_grid(0, 2, 0, 2)
+	InputSource.last_kind = InputSource.Kind.CURSOR
+	InputManager._hovered_tile = GridManager.get_tile(1, 1)
+	InputManager._unhandled_input(_nav("ui_right"))
+	assert_not_null(GridManager.target_cursor_tile(), "precondition: cursor worn")
+
+	InputSource.last_kind = InputSource.Kind.POINTER
+	InputManager._update_hover()
+	assert_null(GridManager.target_cursor_tile(),
+			"real mouse motion flips the model; brackets follow the CURSOR model only")
+
+
+func test_disable_input_retires_the_free_cursor() -> void:
+	_open_grid(0, 2, 0, 2)
+	InputSource.last_kind = InputSource.Kind.CURSOR
+	InputManager._hovered_tile = GridManager.get_tile(1, 1)
+	InputManager._unhandled_input(_nav("ui_right"))
+	assert_not_null(GridManager.target_cursor_tile(), "precondition: cursor worn")
+
+	InputManager.disable_input()
+	assert_null(GridManager.target_cursor_tile(),
+			"no agency, no 'you are here' — AI phases take the cursor with them")
+	InputManager.enable_input()
+
+
+func test_phase_start_summons_on_the_first_ready_unit() -> void:
+	_open_grid(0, 3, 0, 0)
+	var unit := _unit()
+	_place(unit, 3, 0)
+	var previous_units: Array[Unit] = TurnManager._player_units
+	var roster: Array[Unit] = [unit]
+	TurnManager._player_units = roster
+
+	InputSource.last_kind = InputSource.Kind.CURSOR
+	InputManager._hovered_tile = GridManager.get_tile(0, 0)
+	InputManager._on_player_phase_started(1)
+	assert_eq(GridManager.target_cursor_tile(), GridManager.get_tile(3, 0),
+			"a new phase greets you on your army, not the parked hover")
+	TurnManager._player_units = previous_units
+
+
+func test_hold_to_repeat_steps_after_delay_then_interval() -> void:
+	_open_grid(0, 4, 0, 4)
+	InputSource.last_kind = InputSource.Kind.CURSOR
+	InputManager._hovered_tile = GridManager.get_tile(0, 2)
+	InputManager._unhandled_input(_nav("ui_right"))
+	assert_eq(GridManager.target_cursor_tile(), GridManager.get_tile(0, 2),
+			"precondition: summoned")
+
+	Input.action_press("ui_right")
+	InputManager._begin_nav_repeat(Vector2i(1, 0), 0.0)
+	InputManager._tick_nav_repeat(0.2)
+	assert_eq(GridManager.target_cursor_tile(), GridManager.get_tile(0, 2),
+			"inside the initial delay: no step")
+	InputManager._tick_nav_repeat(0.4)
+	assert_eq(GridManager.target_cursor_tile(), GridManager.get_tile(1, 2),
+			"past the delay: first repeat step")
+	InputManager._tick_nav_repeat(0.44)
+	assert_eq(GridManager.target_cursor_tile(), GridManager.get_tile(1, 2),
+			"inside the repeat interval: no step")
+	InputManager._tick_nav_repeat(0.5)
+	assert_eq(GridManager.target_cursor_tile(), GridManager.get_tile(2, 2),
+			"each interval: another step")
+
+	Input.action_release("ui_right")
+	InputManager._tick_nav_repeat(0.7)
+	assert_eq(GridManager.target_cursor_tile(), GridManager.get_tile(2, 2),
+			"release disarms the repeat")
+
+
+func test_action_for_direction_is_navigation_directions_inverse() -> void:
+	assert_eq(InputSource.action_for_direction(Vector2i(0, -1)), &"ui_up")
+	assert_eq(InputSource.action_for_direction(Vector2i(0, 1)), &"ui_down")
+	assert_eq(InputSource.action_for_direction(Vector2i(-1, 0)), &"ui_left")
+	assert_eq(InputSource.action_for_direction(Vector2i(1, 0)), &"ui_right")
+	assert_eq(InputSource.action_for_direction(Vector2i.ZERO), &"",
+			"ZERO backs no action — the repeat engine disarms on it")
 
 
 # =============================================================================

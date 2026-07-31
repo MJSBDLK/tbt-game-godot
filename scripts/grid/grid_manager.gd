@@ -417,10 +417,12 @@ func move_range_preview_move() -> Move:
 	return _move_range_preview_move
 
 
-# --- Attack-target cursor ------------------------------------------------------
+# --- Board cursor --------------------------------------------------------------
 # The keyboard/controller cursor's "you are here" on the board: §14 corner
-# brackets around the tile it points at (TargetCursorRenderer). CURSOR model
-# only — mouse hover keeps its tile tint and the OS cursor.
+# brackets around the tile it points at (TargetCursorRenderer). Worn by both
+# of InputManager's board cursors — the free map cursor and the constrained
+# attack-target cursor — one at a time. CURSOR model only — mouse hover keeps
+# its tile tint and the OS cursor.
 
 func display_target_cursor(tile: Tile) -> void:
 	if tile == null:

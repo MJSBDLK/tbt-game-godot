@@ -452,6 +452,10 @@ func set_selected(selected: bool) -> void:
 
 func _start_selection_pulse() -> void:
 	_stop_selection_pulse()
+	# Sprite-less units (headless tests select bare Units) have nothing to
+	# pulse — tween_property on a null target is an engine error, not a no-op.
+	if _sprite == null:
+		return
 	_selection_tween = create_tween().set_loops()
 	_selection_tween.tween_property(_sprite, "modulate",
 		Color(1.3, 1.3, 1.3, 1.0), 0.4)

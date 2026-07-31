@@ -75,8 +75,9 @@ func is_navigation_press(event: InputEvent) -> bool:
 
 
 ## The grid direction of a navigation press (screen convention: -y is up), or
-## ZERO for any other event. Board consumers (the attack-target cursor) use
-## the vector; menus only care that it isn't ZERO.
+## ZERO for any other event. Board consumers (the board cursors) use the
+## vector; menus only care that it isn't ZERO. NOTE: the game grid is Y-up —
+## board consumers flip the vertical before touching grid coordinates.
 func navigation_direction(event: InputEvent) -> Vector2i:
 	if event.is_action_pressed("ui_up"):
 		return Vector2i(0, -1)
@@ -87,3 +88,19 @@ func navigation_direction(event: InputEvent) -> Vector2i:
 	if event.is_action_pressed("ui_right"):
 		return Vector2i(1, 0)
 	return Vector2i.ZERO
+
+
+## Inverse of navigation_direction: the input action whose held state backs a
+## direction. Powers hold-to-repeat cursor travel — key echo is keyboard-only,
+## so repeat is timer-driven off Input.is_action_pressed and this mapping,
+## serving keyboard and d-pad identically. Empty StringName for ZERO/diagonals.
+func action_for_direction(direction: Vector2i) -> StringName:
+	if direction == Vector2i(0, -1):
+		return &"ui_up"
+	if direction == Vector2i(0, 1):
+		return &"ui_down"
+	if direction == Vector2i(-1, 0):
+		return &"ui_left"
+	if direction == Vector2i(1, 0):
+		return &"ui_right"
+	return &""

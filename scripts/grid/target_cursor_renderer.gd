@@ -1,10 +1,13 @@
 ## The board-side "you are here": four corner ticks around one tile, worn by
-## the keyboard/controller attack-target cursor (RQD 2026-07-31 — "still not
-## seeing the brackets when picking which unit to attack"). Speaks the §14
-## bracket vocabulary EXACTLY: same arm length, same 2-position snap at the
-## same 1.25 Hz (constants and phase borrowed from InteractiveButton, so the
-## board cursor and a menu cursor blink in lockstep), same hot-white ink.
-## Reduce-motion parks the ticks in the inner position.
+## BOTH keyboard/controller board cursors — the free map cursor that roams the
+## whole grid during the map-view states, and the constrained attack-target
+## cursor (RQD 2026-07-31 — "still not seeing the brackets when picking which
+## unit to attack"). One instance, one wearer at a time; InputManager hands the
+## vocabulary over on state transitions. Speaks the §14 bracket vocabulary
+## EXACTLY: same arm length, same 2-position snap at the same 1.25 Hz
+## (constants and phase borrowed from InteractiveButton, so the board cursor
+## and a menu cursor blink in lockstep), same hot-white ink. Reduce-motion
+## parks the ticks in the inner position.
 ##
 ## Pointer users never see this — mouse hover already tints the hovered tile
 ## and the OS cursor is its own "you are here"; brackets follow the CURSOR

@@ -394,7 +394,19 @@ disabled < static < idle < selected < call to action.
   menus: cursor-driven entry adopts the nearest target immediately, pointer
   entry stays quiet until the first arrow press; accept confirms, and while
   the cursor model drives, the parked mouse position stops fighting for
-  hover (next real mouse motion reclaims it). Runner-up kept in the mockup:
+  hover (next real mouse motion reclaims it).
+  **FE free cursor (2026-07-31)**: outside targeting the same brackets roam
+  the WHOLE grid during the map-view states — arrows step tile-by-tile
+  (hold-to-repeat: 0.35 s delay, then 12.5 steps/s, timer-driven so d-pads
+  repeat like keyboards), accept carries exact click semantics (select a
+  unit, drop a waypoint, accept again to march, inspect an enemy), and the
+  camera glides minimally when the cursor nears the view edge
+  (`CameraController.ensure_point_visible`). The cursor IS the hover: terrain
+  readout and the unit-info hotkey follow it. Handoffs: menus and AI phases
+  retire it (their own "you are here" takes over; only one may exist),
+  cursor-driven re-entry re-adopts immediately, a new player phase summons it
+  onto the first ready unit, and real mouse motion doffs it. One renderer
+  serves both board cursors — they never coexist. Runner-up kept in the mockup:
   *marquee orbit* — two diametrically opposed highlights traveling the border at a
   FIXED px/s (default 50), azure ramp so tails melt into the lit border; ramp
   **LOCKED**: core = step = **3 game px** (footprint 3/9/15/21 — bands read too

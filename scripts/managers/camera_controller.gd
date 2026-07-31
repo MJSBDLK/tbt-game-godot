@@ -296,6 +296,45 @@ func set_zoom_level(new_zoom: float, smooth: bool = true) -> void:
 		zoom = Vector2(_target_zoom, _target_zoom)
 
 
+## Minimal-pan "keep the point on screen": if world_point sits within `margin`
+## world px of the view edge (or beyond it), shift the camera target just far
+## enough to bring it back inside — the exponential smoothing in
+## _apply_smooth_movement turns that into a short glide, and the usual bounds
+## clamp still applies. The board cursor calls this every step; it's a no-op
+## while the point is comfortably visible, so a mid-screen cursor never drags
+## the camera around.
+func ensure_point_visible(world_point: Vector2, margin: float) -> void:
+	var half_extent := get_viewport_rect().size / (2.0 * zoom.x)
+	var shift := point_visibility_shift(_target_position, half_extent, world_point, margin)
+	if shift == Vector2.ZERO:
+		return
+	_cancel_tween()
+	_target_position += shift
+
+
+## Pure math for ensure_point_visible (static for GUT): the minimal translation
+## of a view centered at `center` with half-size `half_extent` so `point` ends
+## at least `margin` inside every edge. Margin is capped at half the
+## half-extent per axis so a deep zoom-in can't demand contradictory shifts.
+static func point_visibility_shift(center: Vector2, half_extent: Vector2,
+		point: Vector2, margin: float) -> Vector2:
+	var inset := Vector2(
+			minf(margin, half_extent.x * 0.5),
+			minf(margin, half_extent.y * 0.5))
+	var low := center - half_extent + inset
+	var high := center + half_extent - inset
+	var shift := Vector2.ZERO
+	if point.x < low.x:
+		shift.x = point.x - low.x
+	elif point.x > high.x:
+		shift.x = point.x - high.x
+	if point.y < low.y:
+		shift.y = point.y - low.y
+	elif point.y > high.y:
+		shift.y = point.y - high.y
+	return shift
+
+
 # =============================================================================
 # SCREENSHAKE
 # =============================================================================
