@@ -4,7 +4,9 @@
 ## exact components the F6 gallery rehearsed (Lawrence: "cramped but
 ## organized", accepted 2026-07-19). Focus is the menu cursor: brackets
 ## follow it; the assigned move carries the border-ramp orbit (marker hunt
-## revival, RQD 2026-07-26 — parked brackets retired with it).
+## revival, RQD 2026-07-26 — parked brackets retired with it). A chip holding
+## attention (focus or hover) live-paints its reach on the grid via
+## GridManager.display_move_range_preview (RQD 2026-07-30).
 ## Signals back to ActionMenuManager for business logic.
 class_name ActionMenuPanel
 extends PanelContainer
@@ -191,6 +193,11 @@ func _create_move_chip(move: Move, is_assigned: bool, callback: Callable, locked
 	# silently — §14 press-for-why. setup() decides disabled from the move.
 	chip_button.denied.connect(_on_chip_denied.bind(chip_button))
 	chip_button.focus_entered.connect(_on_item_focused.bind(chip_button))
+	# Grid live-paint: attention on a chip (focus OR hover) paints its reach.
+	chip_button.focus_entered.connect(_on_chip_attention_gained.bind(chip_button))
+	chip_button.mouse_entered.connect(_on_chip_attention_gained.bind(chip_button))
+	chip_button.focus_exited.connect(_on_chip_attention_lost)
+	chip_button.mouse_exited.connect(_on_chip_attention_lost)
 	_content_container.add_child(chip_button)
 	chip_button.setup(move, is_assigned, locked)
 	return chip_button
@@ -220,6 +227,53 @@ func _on_item_focused(item: InteractiveButton) -> void:
 		var button := child as InteractiveButton
 		if button != null:
 			button.selected = (button == item)
+
+
+# =============================================================================
+# GRID LIVE-PAINT — the chip is a mnemonic, the board is the truth
+# =============================================================================
+
+## Whichever chip holds attention paints its move's reach footprint on the
+## actual grid (RQD 2026-07-30). Attention = focus under the cursor model,
+## hover under pointer — the same two channels the backlight answers to, so
+## the lit chip and the painted board always agree. Depleted and locked chips
+## paint too: range is a fact of the move, not an affordance. Text actions
+## carry no move, so focus moving onto them lets the paint clear.
+func _on_chip_attention_gained(chip: MoveChipButton) -> void:
+	if visible and _active_unit != null and chip.get_move() != null:
+		GridManager.display_move_range_preview(_active_unit, chip.get_move())
+
+
+## Loss re-derives DEFERRED: focus hopping chip-to-chip fires exited before
+## the next entered, and an immediate clear would flash the board between
+## adjacent chips. After the dust settles, whichever chip still holds
+## attention (focus preferred, else hover) repaints; none = clear.
+func _on_chip_attention_lost() -> void:
+	_rederive_range_paint.call_deferred()
+
+
+func _rederive_range_paint() -> void:
+	if not visible or _active_unit == null:
+		GridManager.clear_move_range_preview()
+		return
+	var attended := _attended_chip()
+	if attended != null:
+		GridManager.display_move_range_preview(_active_unit, attended.get_move())
+	else:
+		GridManager.clear_move_range_preview()
+
+
+func _attended_chip() -> MoveChipButton:
+	var hovered: MoveChipButton = null
+	for child: Node in _content_container.get_children():
+		var chip := child as MoveChipButton
+		if chip == null:
+			continue
+		if chip.has_focus():
+			return chip
+		if chip.is_hovered():
+			hovered = chip
+	return hovered
 
 
 ## Default selection is a CURSOR-model courtesy (InputSource, RQD 2026-07-29):
@@ -268,6 +322,10 @@ func _on_chip_denied(chip: MoveChipButton) -> void:
 func _clear_items() -> void:
 	if _content_container == null:
 		return
+	# Every repopulate (and hide) drops the live-paint with the chips that drove
+	# it; the next attention event repaints. Cursor-driven opens repaint on the
+	# same frame their first chip grabs focus.
+	GridManager.clear_move_range_preview()
 	for child: Node in _content_container.get_children():
 		_content_container.remove_child(child)
 		child.queue_free()

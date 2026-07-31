@@ -34,6 +34,9 @@ var _hovered_tile: Tile = null
 var _selected_tile: Tile = null
 var _current_movement_range_tiles: Array[Tile] = []
 var _current_attack_range_tiles: Array[Tile] = []
+# Move-range live-paint (see "Move-range live-paint" section below).
+var _move_range_preview_move: Move = null
+var _move_range_preview_renderer: ThreatOverlayRenderer = null
 
 # Public read-only accessors
 var grid_width: int:
@@ -111,6 +114,7 @@ func clear_grid() -> void:
 	_selected_tile = null
 	_current_movement_range_tiles.clear()
 	_current_attack_range_tiles.clear()
+	clear_move_range_preview()
 
 
 # =============================================================================
@@ -363,6 +367,50 @@ func clear_attack_range() -> void:
 		if tile != _selected_tile:
 			tile.set_color(GameColors.TILE_DEFAULT)
 	_current_attack_range_tiles.clear()
+
+
+# --- Move-range live-paint -----------------------------------------------------
+# While a move chip holds attention in a menu (focus under the cursor model,
+# hover under pointer — ui-style-guide §7), the board previews that move's reach
+# footprint. Rendered on its OWN decal layer (a ThreatOverlayRenderer instance in
+# MOVE_PREVIEW style), deliberately NOT Tile.set_color: the movement-range tint
+# is still on the board while the action menu is open, and the stateful
+# set_color/restore dance can't hold two owners without stomping.
+
+func display_move_range_preview(unit: Unit, move: Move) -> void:
+	if unit == null or move == null:
+		clear_move_range_preview()
+		return
+	_move_range_preview_move = move
+	var cells := {}
+	for tile: Tile in MoveTargeting.get_reach_tiles(unit, move):
+		cells[Vector2i(tile.grid_x, tile.grid_y)] = 1
+	_ensure_move_range_preview_renderer().set_map(cells, ThreatOverlayRenderer.Style.MOVE_PREVIEW)
+
+
+func clear_move_range_preview() -> void:
+	_move_range_preview_move = null
+	if _move_range_preview_renderer != null and is_instance_valid(_move_range_preview_renderer):
+		_move_range_preview_renderer.clear()
+
+
+## The move currently live-painted (null = none). UI and tests read the state
+## here instead of poking the renderer.
+func move_range_preview_move() -> Move:
+	return _move_range_preview_move
+
+
+func _ensure_move_range_preview_renderer() -> ThreatOverlayRenderer:
+	if _move_range_preview_renderer == null or not is_instance_valid(_move_range_preview_renderer):
+		_move_range_preview_renderer = ThreatOverlayRenderer.new()
+		_move_range_preview_renderer.name = "MoveRangePreviewRenderer"
+		# Child of this autoload = root-viewport canvas, same space the world
+		# renders in; the renderer positions cells via to_local(global), so an
+		# identity parent transform reproduces tile positions exactly.
+		add_child(_move_range_preview_renderer)
+		assert(_move_range_preview_renderer.is_inside_tree(),
+				"GridManager: move-range preview renderer failed to enter the tree")
+	return _move_range_preview_renderer
 
 
 ## Get all tiles within Manhattan distance of a center tile.

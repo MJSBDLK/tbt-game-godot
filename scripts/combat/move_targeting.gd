@@ -52,6 +52,31 @@ static func get_valid_target_tiles(attacker: Unit, move: Move) -> Array[Tile]:
 	return tiles
 
 
+## Every tile within the move's effective reach from where the attacker stands —
+## the range FOOTPRINT itself, regardless of who (if anyone) occupies it. This
+## is the grid live-paint truth: while a move chip holds the menu cursor's
+## attention, the board shows where that move could land ("the chip is a
+## mnemonic, the board is the truth"). Geometry matches can_target exactly:
+## Manhattan ball of effective range, the attacker's own tile only for
+## self-targetable moves, and tiles past the move's base range (Extendo's bonus
+## reach) only where the forgiving reach is clear.
+static func get_reach_tiles(attacker: Unit, move: Move) -> Array[Tile]:
+	var tiles: Array[Tile] = []
+	if attacker == null or move == null or attacker.current_tile == null:
+		return tiles
+
+	var from: Tile = attacker.current_tile
+	var unit_type := GridManager.get_unit_type(attacker)
+	for tile: Tile in GridManager.get_tiles_within_range(from, effective_attack_range(attacker, move)):
+		var distance := absi(from.grid_x - tile.grid_x) + absi(from.grid_y - tile.grid_y)
+		if distance > move.attack_range and not is_reach_clear(from, tile, unit_type):
+			continue
+		tiles.append(tile)
+	if move.target_type == Enums.TargetType.ALLY or move.target_type == Enums.TargetType.SELF:
+		tiles.append(from)
+	return tiles
+
+
 ## The move's attack range including the attacker's passive range bonuses
 ## (Extendo). Single source of truth so the menu, highlights, AI, click shortcut,
 ## and counters all agree. Tiles gained beyond move.attack_range are only legal

@@ -14,6 +14,7 @@ func before_each() -> void:
 
 func after_each() -> void:
 	InputSource.last_kind = InputSource.Kind.POINTER  # the boot default
+	GridManager.clear_move_range_preview()
 
 
 func _make_move(move_name: String, uses: int = 3, max_uses: int = 5) -> Move:
@@ -130,6 +131,55 @@ func test_pointer_open_is_quiet_until_a_nav_press_summons_the_cursor() -> void:
 	panel._unhandled_input(nav)
 	await wait_process_frames(2)
 	assert_true(first.selected, "the first nav press summons the cursor onto item one")
+
+
+func test_focused_chip_live_paints_and_text_focus_clears() -> void:
+	# Grid live-paint (RQD 2026-07-30): the chip holding the menu cursor paints
+	# its move's reach via GridManager; focus moving onto a text action (which
+	# carries no move) lets the paint clear. Units here have no tile, so the
+	# footprint is empty — the STATE seam is what's pinned; footprint math
+	# lives in test_move_range_preview.gd.
+	var unit := _make_unit([_make_move("Ember"), _make_move("Spark")])
+	var panel := _make_panel(unit)
+	panel.show_assign_submenu()
+	await wait_process_frames(2)  # deferred focus grab
+	assert_eq(GridManager.move_range_preview_move(), unit.character_data.equipped_moves[0],
+			"cursor-driven open: the first chip's move paints immediately")
+	(panel._content_container.get_child(2) as InteractiveButton).grab_focus()  # Back
+	await wait_process_frames(2)  # deferred re-derive
+	assert_null(GridManager.move_range_preview_move(),
+			"no chip holds attention — the board clears")
+
+
+func test_hover_paints_under_the_pointer_model() -> void:
+	# Pointer users get the paint from hover — the same attention channel the
+	# backlight answers to. Quiet open paints nothing until a chip is hovered.
+	InputSource.last_kind = InputSource.Kind.POINTER
+	get_viewport().gui_release_focus()
+	var unit := _make_unit([_make_move("Ember")])
+	var panel := _make_panel(unit)
+	panel.show_assign_submenu()
+	await wait_process_frames(2)
+	assert_null(GridManager.move_range_preview_move(), "quiet open: no phantom paint")
+	var chip := panel._content_container.get_child(0) as MoveChipButton
+	chip.mouse_entered.emit()
+	assert_eq(GridManager.move_range_preview_move(), chip.get_move(),
+			"hover paints the chip's move")
+	chip.mouse_exited.emit()
+	await wait_process_frames(2)  # deferred re-derive
+	assert_null(GridManager.move_range_preview_move(),
+			"hover left, nothing else attends — the board clears")
+
+
+func test_hiding_the_menu_clears_the_live_paint() -> void:
+	var unit := _make_unit([_make_move("Ember")])
+	var panel := _make_panel(unit)
+	panel.show_assign_submenu()
+	await wait_process_frames(2)
+	assert_not_null(GridManager.move_range_preview_move(), "precondition: painted")
+	panel.hide_menu()
+	assert_null(GridManager.move_range_preview_move(),
+			"closing the menu drops the paint synchronously")
 
 
 func test_pressing_wait_still_signals_the_manager() -> void:

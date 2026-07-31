@@ -12,17 +12,23 @@ class_name ThreatOverlayRenderer
 extends Node2D
 
 
-## Which zone is being painted — the army-wide sweep or individually-pinned
-## enemies. Distinct palettes so the player can always tell which one they're
-## looking at (design call 2026-07-06).
-enum Style { ARMY, PINNED }
+## Which zone is being painted — the army-wide sweep, individually-pinned
+## enemies, or the move-range live-paint (a chip holding menu attention paints
+## its reach — GridManager's preview instance uses this style). Distinct
+## palettes so the player can always tell which one they're looking at
+## (design call 2026-07-06; MOVE_PREVIEW added 2026-07-30).
+enum Style { ARMY, PINNED, MOVE_PREVIEW }
 
 # Army-wide zone: red. Pinned zones: amber — same "danger" family, clearly not
-# the whole army. All four are placeholder values for Lawrence's restyle.
+# the whole army. Move preview: azure — interactivity's hue, the same family
+# the chip's backlight lifts toward, and nothing like the danger palettes.
+# All six are placeholder values for Lawrence's restyle.
 @export var fill_color: Color = Color(0.85, 0.12, 0.12, 0.26)
 @export var edge_color: Color = Color(0.95, 0.22, 0.22, 0.55)
 @export var pinned_fill_color: Color = Color(1.0, 0.6, 0.08, 0.26)
 @export var pinned_edge_color: Color = Color(1.0, 0.72, 0.18, 0.6)
+@export var move_preview_fill_color: Color = Color(0.25, 0.62, 0.95, 0.24)
+@export var move_preview_edge_color: Color = Color(0.42, 0.78, 1.0, 0.6)
 @export var draw_edges: bool = true
 ## Ground-decal layer: above the floor, below units (unit sprites start at z 6).
 ## Exported so the danger tint vs the move-range highlight can be reordered freely.
@@ -61,8 +67,15 @@ func clear() -> void:
 func _draw() -> void:
 	if _centers.is_empty():
 		return
-	var fill: Color = fill_color if _style == Style.ARMY else pinned_fill_color
-	var edge: Color = edge_color if _style == Style.ARMY else pinned_edge_color
+	var fill: Color = fill_color
+	var edge: Color = edge_color
+	match _style:
+		Style.PINNED:
+			fill = pinned_fill_color
+			edge = pinned_edge_color
+		Style.MOVE_PREVIEW:
+			fill = move_preview_fill_color
+			edge = move_preview_edge_color
 	var size: float = float(GridManager.tile_size)
 	var half := Vector2(size, size) * 0.5
 	for center: Vector2 in _centers:

@@ -1,5 +1,34 @@
 ## [ ] Meeting 2026.06.28
 ### [ ] RQD
+- [x] move chip visual design
+	- [x] definitely want to keep "basic" move target schemes because it's useful to new players
+	- [x] add tooltips with move details (basically the same as expanding the detail panel, perhaps with explanations) - major design decision made re: tooltips, see below — SHIPPED (hold-to-peek MoveTooltip)
+	- [x] definitely need range, but let's keep it separated from the usages because having them side-by-side is confusing
+	- [x] try moving the damage type icon next to the elemental type on the left? if it's ugly we'll move it back
+
+> Let's pause and think of what's needed for targeting
+Target type: enemy | point | self | unit (did I miss anything?) - represent this with Color
+AoE shape: I like how you represented falloff in your mockup. We probably need the epicenter to be visually distinct
+Who's damaged (for lack of a better term) - does this hit all units in its AoE, or just enemies/friendlies/other/some combination?
+
+- [x] Implement move chips
+- [x] add to options menu: auto-end turn (when no actions remaining) — SHIPPED 2026-07-29: Settings.auto_end_turn (default ON = old behavior), Options toggle, and OFF finally wires the End Turn CTA (TurnManager emits player_phase_spent; system menu's End Turn wears the rings)
+- [x] having an option default selected should probably only happen when we're controlling with a controller... If there's an elegant solution lmk — SHIPPED 2026-07-29: InputSource autoload tracks which interaction MODEL drove last (presses flip it; mouse jitter/stick drift debounced out; consumers sample at boundaries = no flicker possible). Menus focus-on-open only when cursor-driven; pointer opens quiet, first nav press summons the cursor. Both inputs always live, no mode. Testable with keyboard arrows (cursor-model) — no controller needed.
+- [ ] 
+
+- [x] Core design: Long press (touchscreen) = right click = (Back Button or R3) on controller - playtest = tooltip — SHIPPED (hold-to-peek MoveTooltip, ui-style-guide §14)
+	- [x] customize the length of the long press, default 200ms (add this to the options menu) — SHIPPED (Settings.tooltip_hold_ms + Options slider 200–1000ms)
+- [ ] 
+
+#### [ ] Parked items from quickfix list
+- [~] assigned ≠ selected marker: the REVIVED marquee orbit is now IN-ENGINE (RQD 2026-07-26) — Gray 10/9/8/7 on the chip's border ring (recolored 2026-07-29: increments of the border's OWN ramp, tail lands on the skin's Gray 7 — the bone cut matched the mockup's warm border, which the engine's never was), 50 px/s (ORBIT_SPEED_PX_PER_SECOND = the tinker knob), core=step=3; parked brackets RETIRED (brackets mean ONLY "you are here"; the cursor snaps brackets over a still-running orbit). Awaiting Lawrence's F6 eyeball: F. Lance (live orbit), Spark (orbit over the depleted grey tier — traveling light on a dead chip), tail wrap on short edges. Reduce-motion parks the highlights. Static candidates (edge bar / underline / pip) remain in the mockup's marker hunt as fallbacks.
+- [ ] display-mode chip look: pick from the mockup's three candidates (borderless / ramp-step-down / compact) for preview + other read-only venues.
+- [ ] two-line chip + power: decide if/when chips grow the second line (power in the damage-type color) — ties into the density crisis section of the mockup.
+- [x] grid live-paint on chip focus — SHIPPED 2026-07-30: a chip holding attention in the action menu (focus under cursor model, hover under pointer — the backlight's own channels) paints its reach footprint on the grid. Truth = MoveTargeting.get_reach_tiles (can_target's exact geometry incl. Extendo reach gating); view = GridManager.display_move_range_preview on its own decal layer (ThreatOverlayRenderer MOVE_PREVIEW style, azure placeholder for Lawrence). Depleted/locked chips paint too (fact, not affordance). Composes OVER the green movement tint. In-game eyeball pending: azure-over-green readability + whether the preview readout's chips deserve the same on hover (different venue, enemy context — SHOW RANGE pin already covers enemy reach).
+- [x] auto-end-turn options toggle (from the meeting list above) — SHIPPED 2026-07-29; End Turn's CTA is wired to the spent-phase state (only reachable with auto-end off).
+- [ ] controller peek button: tooltip_peek is mapped to BOTH Back and R3 — playtest and cull one.
+- [~] glyph ink: dark-cut flip vetoed (Lawrence: "weird when the dividing line runs through it"), per-side bleach vetoed (RQD: "center of the target brighter than the edges") → now UNIFORM bleach: whole glyph goes to index 10 of the element's own ramp when the fill is too close; shadow carries legibility. Awaiting Lawrence's eyes on Piston + Dynamo in the F6 gallery; revisit again when real scheme sprites land (multi-color art can't value-shift like the generated glyph).
+
 - [ ] pulse-glow/rotating-glow border:
   + OK all good points so let's work through this. Maybe I need to spend some time with Lawrence mocking the thing up.
   + Collision1: Keep in mind that the GlowLabel has to do with text, not the button/stylebox, so I think we're ok there.
@@ -530,6 +559,11 @@ New sprites — faction needed:
 - [ ] Void lock effect - tweak the density of the FX (frequency as applicable) for larger styleboxes
 - [x] If color-swapped sprite variants is something we wish to do, is designing around indexed palettes super important right now? -> decided against this -> we're using layers that can be swapped out
 - [ ] The option to display units' elemental type icons on the map is extremely useful, but takes up far too much screen real estate. What are some good solutions to this?
+- [ ] Options menu is getting cluttered, let's organize into tabs:
+	- [ ] Gameplay
+	- [ ] Video
+	- [ ] Audio
+	- [ ] Anything else yet?
 
 # Stretch Goals
 - [ ] Sync beacons to music BPM

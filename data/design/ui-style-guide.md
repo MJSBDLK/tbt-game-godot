@@ -240,6 +240,20 @@ out-of-panel debug/devtools.
 - **Disabled / out-of-range handling**:
   - Out-of-range attacks are **hidden**, not shown disabled.
   - Depleted moves are **grayed out** in place (press-for-why since adoption).
+- **Grid live-paint (2026-07-30)**: a chip holding attention — focus under the
+  cursor model, hover under pointer, the same two channels the backlight
+  answers to — paints its move's reach footprint on the actual grid ("the chip
+  is a mnemonic, the board is the truth"). Depleted and locked chips paint too:
+  range is a fact of the move, not an affordance. Truth =
+  `MoveTargeting.get_reach_tiles` (ball of effective range, own tile only for
+  self-targetable moves, Extendo's bonus ring gated by reach — exactly
+  `can_target`'s geometry). View = `GridManager.display_move_range_preview` on
+  its own decal layer (`ThreatOverlayRenderer`, `MOVE_PREVIEW` style, azure
+  family = interactivity's hue; placeholder colors @export'd for Lawrence's
+  restyle) — deliberately NOT `Tile.set_color`, which the movement-range tint
+  still owns while the action menu is open. Cursor-driven opens paint the first
+  chip immediately; quiet opens paint on first hover/adoption. Static paint —
+  no motion to gate behind reduce-motion.
 
 ### Selected/active button — superseded by §14
 - Was locked as "pulsing border glow + slow rotational shimmer, reconsider if it
