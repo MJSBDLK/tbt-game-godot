@@ -20,10 +20,11 @@ Who's damaged (for lack of a better term) - does this hit all units in its AoE, 
 	- [x] customize the length of the long press, default 200ms (add this to the options menu) — SHIPPED (Settings.tooltip_hold_ms + Options slider 200–1000ms)
 - [ ] 
 
-#### [ ] Dynamic unit shadow sprite system
-  - [ ] Let's attempt to just rotate at the pivot 90°, and distort at an angle (imprecise verbiage so let me try to explain)
-    - That didn't make sense because I don't know how to explain it, but basically the shadow shares a pivot at the feet, same height, cast to the right, but you distort the top and bottom slightly to simulate 3D space. The direction of attack could be used as an input to the distortion to have the most natural-looking effect.
-    - I don't know if this will even look good, but if it does, it saves Lawrence dozens of hours animating this stuff by hand.
+#### [x] Dynamic unit shadow sprite system — SHIPPED (RQD-approved 2026-08-01)
+  - [x] UnitShadow (scripts/units/unit_shadow.gd — its header is the living doc): live frame mirrored + CPU-rasterized on the world pixel grid; full silhouette turned 90° on the TRUE feet (art_bounds.bottom → feet_drop; the whole cast is body-centered — do NOT re-expand canvases, the game's stance depends on mid-body anchors); stance-sized blob disc welds wide stances (feet-band percentile from idle, once per character); flat 40% ink (GameColors.CAST_SHADOW_INK); z slot TERRAIN_EFFECTS−UNITS; kill switch DebugConfig.unit_cast_shadows. Dials locked by RQD eyeball: SMOOSH_X 1.0, SMOOSH_Y 0.25, SHEAR 0, OFFSET_Y −2, blob on ×1.0.
+  - [ ] Lawrence pass (has the override knob: character JSON sprite.shadowBlobRadius, 0 = casts no blob; global taste = SHADOW_* consts). Double/triple-darkening between units pre-approved.
+  - [ ] Per-clip authored override: exporter already emits <tag>_shadow.png strips; play verbatim when one exists. Deferred until Lawrence authors the first one.
+  - [ ] Grunt pivot non-compliance — Lawrence redesigning the sprite (RQD 2026-07-31 meeting item).
 #### [ ] Parked items from quickfix list
 - [~] assigned ≠ selected marker: the REVIVED marquee orbit is now IN-ENGINE (RQD 2026-07-26) — Gray 10/9/8/7 on the chip's border ring (recolored 2026-07-29: increments of the border's OWN ramp, tail lands on the skin's Gray 7 — the bone cut matched the mockup's warm border, which the engine's never was), 50 px/s (ORBIT_SPEED_PX_PER_SECOND = the tinker knob), core=step=3; parked brackets RETIRED (brackets mean ONLY "you are here"; the cursor snaps brackets over a still-running orbit). Awaiting Lawrence's F6 eyeball: F. Lance (live orbit), Spark (orbit over the depleted grey tier — traveling light on a dead chip), tail wrap on short edges. Reduce-motion parks the highlights. Static candidates (edge bar / underline / pip) remain in the mockup's marker hunt as fallbacks.
 - [ ] display-mode chip look: pick from the mockup's three candidates (borderless / ramp-step-down / compact) for preview + other read-only venues.

@@ -163,6 +163,14 @@ static var INTERACTIVE_BORDER_DISABLED: Color:
 static var INTERACTIVE_TEXT_DISABLED: Color:
 	get: return GameColorPalette.get_color("Gray", 6)
 
+## Cast-shadow ink — ONE ink for every shadow thrown on the board. Not a
+## palette ramp color: decoded from Lawrence's baked decoration shadow PNGs
+## (shelltree_a_shadow.png et al are rgba(0,0,0,102) = 40% black, cast right).
+## Decorations bake it into their _shadow.png; UnitShadow modulates the
+## mirrored unit frame with it. Change here and hand-authored art drifts —
+## coordinate with Lawrence.
+const CAST_SHADOW_INK: Color = Color(0.0, 0.0, 0.0, 0.4)
+
 
 # =============================================================================
 # TEXT COLORS

@@ -130,6 +130,15 @@ var _selection_tween: Tween = null
 # Loaded from the idle.json sidecar's `art_bounds.top`; 0 if no sidecar.
 var _art_top: float = 0.0
 
+# How far the sprite's VISUAL FEET sit below the node origin, in pixels.
+# Lawrence authors the BODY centered on the canvas, so the runtime anchor
+# (canvas center = cell center) is mid-body and the feet land ~10-16px lower
+# — uniformly true across the whole cast (RQD survey 2026-07-31). The unit
+# STANDS correctly that way; only the cast shadow needs the true feet line,
+# so it pivots at the boots instead of the waist. From the idle.json
+# sidecar's `art_bounds.bottom` minus the pivot; 0 if no sidecar.
+var _art_feet_drop: float = 0.0
+
 # Bumped every time a new attack clip starts. Pending coroutines that finish
 # the tail of the previous clip check this before mutating region_rect, so a
 # fresh clip can't be corrupted by a stale "after hit" continuation.
@@ -152,6 +161,7 @@ var _attack_raise_count: int = 0
 
 # Child node references
 var _sprite: Sprite2D = null
+var _shadow: UnitShadow = null
 var _health_bar: Node2D = null
 var _health_bar_background: ColorRect = null
 var _health_bar_fill: ColorRect = null
@@ -176,6 +186,13 @@ const _STATIC_TICK_INTERVAL: float = 0.12
 
 func _ready() -> void:
 	_sprite = $Sprite2D as Sprite2D
+	# Generated cast shadow mirroring whatever frame _sprite shows (see
+	# UnitShadow's header). Bare test units have no Sprite2D — no shadow.
+	if _sprite != null:
+		_shadow = UnitShadow.new()
+		_shadow.name = "CastShadow"
+		_shadow.source_sprite = _sprite
+		add_child(_shadow)
 	_health_bar = $HealthBar as Node2D
 	_health_bar_background = $HealthBar/Background as ColorRect
 	_health_bar_fill = $HealthBar/Fill as ColorRect
@@ -220,6 +237,16 @@ func initialize(starting_tile: Tile) -> void:
 
 	# Visuals
 	_load_character_sprite()
+	if _shadow != null:
+		_shadow.feet_drop = _art_feet_drop
+		# Blob disc radius: the character JSON override wins when set
+		# (>= 0; 0 legitimately means "casts no blob"); otherwise measure
+		# the idle stance ONCE — constant across every animation frame so
+		# the shadow never breathes mid-attack.
+		if character_data.shadow_blob_radius >= 0.0:
+			_shadow.blob_radius = character_data.shadow_blob_radius
+		elif _sprite != null and _sprite.texture != null:
+			_shadow.blob_radius = UnitShadow.measure_stance_radius(_sprite.texture)
 	_apply_faction_healthbar()
 	_update_level_label()
 	_update_type_icons()
@@ -1386,6 +1413,7 @@ func _handle_defeat() -> void:
 func _load_character_sprite() -> void:
 	if _sprite == null or character_data == null:
 		return
+	_art_feet_drop = 0.0
 	if character_data.sprite_sheet_path == "":
 		return
 
@@ -1438,6 +1466,10 @@ func _resolve_pivot_offset(sheet_path: String, texture: Texture2D) -> Vector2:
 				if parsed.has("art_bounds"):
 					var bounds: Dictionary = parsed["art_bounds"]
 					_art_top = float(bounds.get("top", 0))
+					# Visual feet = bottom of the opaque art. With the cast's
+					# body-centered canvases the pivot is mid-body; the gap is
+					# what the shadow needs to pivot at the boots.
+					_art_feet_drop = maxf(0.0, float(bounds.get("bottom", py)) - py)
 				return Vector2(width / 2.0 - px, height / 2.0 - py)
 	return Vector2(0, -height / 2.0)
 

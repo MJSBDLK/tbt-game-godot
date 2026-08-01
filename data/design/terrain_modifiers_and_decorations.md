@@ -346,6 +346,13 @@ and applying the right config. V1 is manual.
 
 ## Runtime shadow rendering
 
+> **Units cast shadows too** — generated, not authored: `UnitShadow`
+> (`scripts/units/unit_shadow.gd`) rasterizes the unit's live frame onto the
+> ground on the world pixel grid, speaking this section's visual language
+> exactly (cast right, squat, 40% black = `GameColors.CAST_SHADOW_INK` —
+> decoded from the baked `_shadow.png` decoration art). If the decoration
+> shadow look ever changes, retune UnitShadow's knobs in the same pass.
+
 Shadows are not painted onto the map. They're spawned at runtime:
 
 1. At scene load, `ShadowRenderer` (lives under TilemapBuilder) iterates

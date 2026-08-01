@@ -59,6 +59,8 @@ static func _parse_character_json(data: Dictionary) -> CharacterData:
 	character.sprite_sheet_path = sprite_data.get("sheetPath", "")
 	character.sprite_atlas_path = sprite_data.get("atlasPath", "")
 	character.sprite_frame_index = int(sprite_data.get("frameIndex", 0))
+	# Optional blob-shadow override; absent → -1 sentinel → measured stance.
+	character.shadow_blob_radius = float(sprite_data.get("shadowBlobRadius", -1.0))
 
 	# Attack animation clips (optional). Keys are clip names like "melee",
 	# "melee_long", "shoot". See character_data.attack_animations docstring.

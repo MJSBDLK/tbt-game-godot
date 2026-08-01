@@ -51,6 +51,13 @@ extends Resource
 @export var sprite_atlas_path: String = ""
 @export var sprite_frame_index: int = 0
 
+# Optional blob-shadow override, JSON `sprite.shadowBlobRadius` (pixels,
+# pre-distortion). Negative = unset → UnitShadow measures the idle stance
+# (feet-band percentile width). 0 = this character casts NO blob (ghosts,
+# floaters). Positive = artist-authored radius, used verbatim. The escape
+# hatch for stances the measurement misjudges — RQD 2026-08-01.
+@export var shadow_blob_radius: float = -1.0
+
 # Optional attack-animation clips keyed by clip name. Each entry is a Dictionary:
 #   { "path": String, "frames": int, "fps": int, "hit_frame": int,
 #     "use_when": { "direction": "horizontal"|"vertical"|"any", "range": int|null } }
