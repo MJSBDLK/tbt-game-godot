@@ -101,9 +101,11 @@ const SHADOW_OFFSET_Y: float = -2
 ## injected by Unit as blob_radius) — a feet-band percentile width, NOT the
 ## sprite's widest points, and constant across every animation frame so the
 ## blob never breathes mid-attack. Atlas-path placeholders (no readable
-## measurement) get radius 0 → no blob. If a specific character's stance
-## defies the heuristic, the escape hatch is a per-character radius in the
-## character JSON — deliberately unbuilt until someone needs it.
+## measurement) get radius 0 → no blob. Escape hatch: the character JSON's
+## `sprite.shadowBlobRadius` (CharacterData.shadow_blob_radius; 0 = casts no
+## blob) is BUILT and wired but deliberately unused in authoring — a fixed
+## authored radius fights animated clips, so it's only safe for characters
+## with idle-only sprites (RQD 2026-08-01). Prefer the measurement.
 const SHADOW_BLOB_ENABLED: bool = true
 
 ## Blob size: taste multiplier on the measured stance radius. 1.0 = the
