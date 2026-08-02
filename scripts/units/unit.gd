@@ -289,6 +289,9 @@ func initialize(starting_tile: Tile) -> void:
 	if DebugConfig.testing_random_hp_on_spawn and faction == Enums.UnitFaction.PLAYER:
 		current_hp = maxi(1, roundi(character_data.max_hp * randf_range(0.15, 1.0)))
 
+	if DebugConfig.testing_displacement_moves and faction == Enums.UnitFaction.PLAYER:
+		_apply_debug_displacement_moves()
+
 	_update_health_bar()
 
 
@@ -756,10 +759,15 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 	if defender_can_counter:
 		defender_hits = DamageCalculator.calculate_attack_count(defender, self)
 
-	# Consume PP once per combatant
+	# The attacker pays PP up front. The defender pays at counter time instead:
+	# displacement can shove either combatant out of range between hits (denying
+	# the counter is knockback's tactical payoff), and a counter that never
+	# fires shouldn't cost PP. One consume covers the whole counter chain.
+	# Each side announces a range-denied follow-up at most once per combat.
 	attacker_move.consume_use()
-	if defender_can_counter and defender.assigned_move != null:
-		defender.assigned_move.consume_use()
+	var defender_counter_paid := false
+	var attacker_denial_shown := false
+	var defender_denial_shown := false
 
 	# === Hit 1: Attacker ===
 	await _execute_single_hit(defender, attacker_move, true)
@@ -769,17 +777,32 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 		return
 
 	# === Counter 1: Defender ===
+	# Range re-checked at execution time, not just at planning — hit 1 may have
+	# displaced someone.
 	if defender_can_counter and not defender.is_defeated():
-		await get_tree().create_timer(HIT_DELAY).timeout
-		await defender._execute_single_hit(self, defender.assigned_move, true)
-		if is_defeated():
-			await _handle_defeat()
-			combat_completed.emit(self, defender)
-			return
+		if DamageCalculator.is_within_attack_range(defender, self, defender.assigned_move):
+			defender.assigned_move.consume_use()
+			defender_counter_paid = true
+			await get_tree().create_timer(HIT_DELAY).timeout
+			await defender._execute_single_hit(self, defender.assigned_move, true)
+			if is_defeated():
+				await _handle_defeat()
+				combat_completed.emit(self, defender)
+				return
+		elif not defender_denial_shown:
+			defender_denial_shown = true
+			await defender._announce_out_of_range()
 
 	# === Bonus attacker hits (2nd through Nth) ===
+	# A knockback move's own shove can push the target out of reach mid-chain —
+	# the remaining hits are forfeit, not teleporting lunges.
 	for i: int in range(1, attacker_hits):
 		if defender.is_defeated():
+			break
+		if not DamageCalculator.is_within_attack_range(self, defender, attacker_move):
+			if not attacker_denial_shown:
+				attacker_denial_shown = true
+				await _announce_out_of_range()
 			break
 		await get_tree().create_timer(HIT_DELAY).timeout
 		await _execute_single_hit(defender, attacker_move, false)
@@ -792,6 +815,14 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 		for i: int in range(1, defender_hits):
 			if is_defeated() or defender.is_defeated():
 				break
+			if not DamageCalculator.is_within_attack_range(defender, self, defender.assigned_move):
+				if not defender_denial_shown:
+					defender_denial_shown = true
+					await defender._announce_out_of_range()
+				break
+			if not defender_counter_paid:
+				defender.assigned_move.consume_use()
+				defender_counter_paid = true
 			await get_tree().create_timer(HIT_DELAY).timeout
 			await defender._execute_single_hit(self, defender.assigned_move, false)
 
@@ -1333,12 +1364,28 @@ func _lower_after_attack() -> void:
 	_attack_raised_original_index = -1
 
 
+## Attach a popup where it can live: the current scene normally, this unit's
+## parent when there is no current scene (headless tests, detached contexts).
+## Freed unspawned if neither exists. Position MUST be set before add_child:
+## DamagePopup._ready anchors its rise animation to the position it wakes up
+## with — positioned after, every popup snaps to the host's origin on the next
+## frame (the center-screen-popups regression, RQD 2026-08-01).
+func _host_popup(popup: Node2D, at_global: Vector2) -> void:
+	var host: Node = get_tree().current_scene
+	if host == null:
+		host = get_parent()
+	if host == null:
+		popup.queue_free()
+		return
+	popup.global_position = at_global
+	host.add_child(popup)
+
+
 func _spawn_damage_popup(target: Unit, damage: int, effectiveness_text: String, multiplier: float) -> void:
 	var popup_scene := preload("res://scenes/ui/damage_popup.tscn")
 	var popup: Node2D = popup_scene.instantiate()
-	popup.global_position = target.global_position + Vector2(0, -8)
 	popup.z_index = target.z_index + 2  # UNITS layer + 2 = UI layer, always above defending unit
-	get_tree().current_scene.add_child(popup)
+	_host_popup(popup, target.global_position + Vector2(0, -8))
 	if popup.has_method("initialize"):
 		popup.call("initialize", damage, effectiveness_text, multiplier)
 
@@ -1346,9 +1393,8 @@ func _spawn_damage_popup(target: Unit, damage: int, effectiveness_text: String, 
 func _spawn_heal_popup(target: Unit, amount: int) -> void:
 	var popup_scene := preload("res://scenes/ui/damage_popup.tscn")
 	var popup: Node2D = popup_scene.instantiate()
-	popup.global_position = target.global_position + Vector2(0, -8)
 	popup.z_index = target.z_index + 2
-	get_tree().current_scene.add_child(popup)
+	_host_popup(popup, target.global_position + Vector2(0, -8))
 	if popup.has_method("initialize_heal"):
 		popup.call("initialize_heal", amount)
 
@@ -1359,11 +1405,21 @@ func _spawn_heal_popup(target: Unit, amount: int) -> void:
 func spawn_text_callout(text: String, color: Color) -> void:
 	var popup_scene := preload("res://scenes/ui/damage_popup.tscn")
 	var popup: Node2D = popup_scene.instantiate()
-	popup.global_position = global_position + Vector2(0, -20)
 	popup.z_index = z_index + 2
-	get_tree().current_scene.add_child(popup)
+	_host_popup(popup, global_position + Vector2(0, -20))
 	if popup.has_method("initialize_callout"):
 		popup.call("initialize_callout", text, color)
+
+
+## Surface a follow-up (counter or bonus hit) that the mid-combat range
+## re-check refused — displacement moved someone out of reach. Without this
+## the lost attack is invisible negative space: the player reads "the game
+## forgot to counter," not "they got shoved out of reach." Same muted ink as
+## MISS (the "attack didn't happen" family) + the CORRUPTION-style read-beat
+## so cause-and-effect lands before combat moves on.
+func _announce_out_of_range() -> void:
+	spawn_text_callout("OUT OF RANGE", GameColorPalette.get_color("Gray", 5))
+	await get_tree().create_timer(0.4).timeout
 
 
 ## Handle unit defeat: gray out, fade, clear tile.
@@ -1592,6 +1648,49 @@ func _update_status_indicators() -> void:
 
 ## Debug: randomly equip 1-4 passives from passives.json.
 ## Prefers the character's base pool; fills remaining slots from the full JSON pool.
+## The displacement test kit (DebugConfig.testing_displacement_moves): every
+## subject, vector family, and on_blocked policy across two 4-move windows.
+## Units take rotating windows of 4, so unit 1 gets the target-shove pack and
+## unit 2 the exotics; unit 3 wraps around.
+const DEBUG_DISPLACEMENT_KIT: Array[String] = [
+	"Bounce Out",      # target push 2 + constitution contest + wall-slam bonus damage
+	"Grav Hook",       # ranged pull (toward_attacker)
+	"Mass Drive",      # push_chain domino
+	"Shockwave",       # row(3) wave push
+	"Compressed Air",  # self recoil (ranged, Hasted rider)
+	"Slingshot",       # fall_through — sails clean over bystanders
+	"Orbit",           # ring(1) rotate_cw spin around the target
+	"Switcheroo",      # self charge + swap places with the target
+]
+
+static var _debug_displacement_kit_cursor: int = 0
+
+
+## Debug: replace this player unit's equipped moves with the next 4-move window
+## of DEBUG_DISPLACEMENT_KIT. Mutates character_data.equipped_moves — in a
+## campaign the squad keeps the kit until re-equipped, so this is meant for F6
+## battle-scene runs (fresh spawns every launch).
+func _apply_debug_displacement_moves() -> void:
+	if character_data == null:
+		return
+	var equipped: Array[Move] = []
+	for i: int in range(4):
+		var kit_index: int = (Unit._debug_displacement_kit_cursor + i) % DEBUG_DISPLACEMENT_KIT.size()
+		var move: Move = MoveData.get_move(DEBUG_DISPLACEMENT_KIT[kit_index])
+		if move != null:
+			equipped.append(move)
+	if equipped.is_empty():
+		return
+	Unit._debug_displacement_kit_cursor = \
+			(Unit._debug_displacement_kit_cursor + 4) % DEBUG_DISPLACEMENT_KIT.size()
+	character_data.equipped_moves = equipped
+	auto_assign_first_usable_move()
+	var names: Array[String] = []
+	for move: Move in equipped:
+		names.append(move.move_name)
+	DebugConfig.log_unit_init("Debug displacement kit for '%s': %s" % [unit_name, str(names)])
+
+
 func _apply_random_debug_passives() -> void:
 	if character_data == null:
 		return

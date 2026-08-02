@@ -90,19 +90,21 @@ static func _parse_move_entry(move_name: String, data: Dictionary) -> Move:
 	# Heal flag (formula: caster.special + base_power, applied in Unit._execute_single_hit)
 	move.heals = bool(data.get("heal", false))
 
-	# On-hit instant effects (displacement, custom script). Non-lingering, post-damage.
+	# On-hit instant effects (displacement, cleanse). Non-lingering, post-damage.
+	# Displacement schema is documented in displacement_system.gd's header.
 	var on_hit_data: Variant = data.get("onHit", null)
 	if on_hit_data is Dictionary:
 		var displace_data: Variant = on_hit_data.get("displace", null)
 		if displace_data is Dictionary:
 			move.displace_distance = int(displace_data.get("distance", 0))
+			move.displace_subject = String(displace_data.get("subject", "target"))
+			move.displace_shape = String(displace_data.get("shape", "single"))
 			move.displace_vector = String(displace_data.get("vector", "away_from_attacker"))
 			move.displace_on_blocked = String(displace_data.get("on_blocked", "stop"))
 			var save_data: Variant = displace_data.get("save", null)
 			if save_data is Dictionary:
-				move.displace_save_stat = String(save_data.get("vs", ""))
-				move.displace_save_dc_source = String(save_data.get("dc", ""))
-		move.on_hit_script = String(on_hit_data.get("script", ""))
+				move.displace_contest_stat = String(save_data.get("contest", "constitution"))
+				move.displace_contest_margin = int(save_data.get("margin", 0))
 		var cleanse_data: Variant = on_hit_data.get("cleanse", null)
 		if cleanse_data is Array:
 			var cleansed: PackedStringArray = PackedStringArray()

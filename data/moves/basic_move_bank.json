@@ -99,6 +99,13 @@
 			"chance": 0.3,
 			"stacks": 2,
 			"target": "self"
+		},
+		"onHit": {
+			"displace": {
+				"subject": "self",
+				"vector": "away_from_target",
+				"distance": 1
+			}
 		}
 	},
 	"Cyclone": {
@@ -289,6 +296,28 @@
 		"targetType": "Single"
 	},
 
+	"Bounce Out": {
+		"description": "A belly-first body check that bounces the target away — into a wall, if one obliges. Stout foes stand their ground.",
+		"abbrevName": "Bounce",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 4,
+		"accuracy": 90,
+		"damageType": "Physical",
+		"elementType": "Simple",
+		"targetType": "Single",
+		"onHit": {
+			"displace": {
+				"distance": 2,
+				"vector": "away_from_attacker",
+				"save": {
+					"contest": "constitution",
+					"margin": 1
+				},
+				"on_blocked": "bonus_damage"
+			}
+		}
+	},
 	"Gravity Well": {
 		"description": "A localized gravity distortion. Hard to move through.",
 		"abbrevName": "Grv Well",
@@ -314,6 +343,116 @@
 		"damageType": "Physical",
 		"elementType": "Gravity",
 		"targetType": "Single"
+	},
+	"Grav Hook": {
+		"description": "A tether of collapsing space that reels the target in.",
+		"abbrevName": "Grv Hook",
+		"range": 3,
+		"areaOfEffect": 0,
+		"basePower": 3,
+		"accuracy": 95,
+		"damageType": "Special",
+		"elementType": "Gravity",
+		"targetType": "Single",
+		"onHit": {
+			"displace": {
+				"distance": 2,
+				"vector": "toward_attacker"
+			}
+		}
+	},
+	"Mass Drive": {
+		"description": "A wall of leaden force. Whatever it hits, hits the next thing over.",
+		"abbrevName": "Mass Drv",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 5,
+		"accuracy": 90,
+		"damageType": "Physical",
+		"elementType": "Gravity",
+		"targetType": "Single",
+		"onHit": {
+			"displace": {
+				"distance": 2,
+				"vector": "away_from_attacker",
+				"on_blocked": "push_chain"
+			}
+		}
+	},
+	"Shockwave": {
+		"description": "A flat slab of force that bowls over the whole rank.",
+		"abbrevName": "Shckwave",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 4,
+		"accuracy": 90,
+		"damageType": "Physical",
+		"elementType": "Gravity",
+		"targetType": "Single",
+		"onHit": {
+			"displace": {
+				"subject": "others_in_shape",
+				"shape": "row(3)",
+				"vector": "away_from_attacker",
+				"distance": 1
+			}
+		}
+	},
+	"Slingshot": {
+		"description": "Flings the target along a gravity assist — clean over anyone in the way.",
+		"abbrevName": "Slngshot",
+		"range": 2,
+		"areaOfEffect": 0,
+		"basePower": 3,
+		"accuracy": 90,
+		"damageType": "Special",
+		"elementType": "Gravity",
+		"targetType": "Single",
+		"onHit": {
+			"displace": {
+				"distance": 3,
+				"vector": "away_from_attacker",
+				"on_blocked": "fall_through"
+			}
+		}
+	},
+	"Orbit": {
+		"description": "Wrenches everyone around the target one step along a shared orbit.",
+		"abbrevName": "Orbit",
+		"range": 2,
+		"areaOfEffect": 0,
+		"basePower": 2,
+		"accuracy": 100,
+		"damageType": "Special",
+		"elementType": "Gravity",
+		"targetType": "Single",
+		"onHit": {
+			"displace": {
+				"subject": "others_in_shape",
+				"shape": "ring(1)",
+				"vector": "rotate_cw",
+				"distance": 1
+			}
+		}
+	},
+	"Switcheroo": {
+		"description": "Tap and trade — the universe briefly loses track of who was where. For testing.",
+		"abbrevName": "Swtchroo",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 1,
+		"accuracy": 100,
+		"damageType": "Physical",
+		"elementType": "Gravity",
+		"targetType": "Single",
+		"onHit": {
+			"displace": {
+				"subject": "self",
+				"vector": "toward_target",
+				"distance": 1,
+				"on_blocked": "swap"
+			}
+		}
 	},
 
 	"March": {

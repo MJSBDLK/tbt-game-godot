@@ -40,6 +40,7 @@
 	},
 	"level": 1,
 	"basePoolMoves": [
+		"Bounce Out",
 		"Bonk",
 		"Club",
 		"Hook Swipe",

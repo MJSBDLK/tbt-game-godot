@@ -59,18 +59,15 @@ var current_uses: int = 0
 @export var crit_self_target: bool = false
 
 # On-hit displacement (instant, non-lingering). 0 = no displacement.
-# Resolved by DisplacementSystem after damage. Save formula: target fails when
-# the chosen dc_source on the hit exceeds target.<displace_save_stat>.
+# Resolved by DisplacementSystem after damage — its header is the living doc for
+# the full schema (subjects, shapes, vectors, contest saves, blocked policies).
 @export var displace_distance: int = 0
-@export var displace_vector: String = ""  # away_from_attacker, toward_attacker, attacker_facing, from_aoe_center
-@export var displace_save_stat: String = ""  # CharacterData property name (constitution, athleticism, ...)
-@export var displace_save_dc_source: String = ""  # damage, base_power
-@export var displace_on_blocked: String = "stop"  # stop, bonus_damage, swap, fall_through
-
-# Escape hatch for complex on-hit effects that can't be expressed declaratively
-# (e.g. gravity orbits). Path to a script with a static resolve(caster, target, move, damage) method.
-# Not yet wired — DisplacementSystem will warn if set.
-@export var on_hit_script: String = ""
+@export var displace_subject: String = "target"  # target | self | others_in_shape
+@export var displace_shape: String = "single"  # single | line(N) | row(N) | ring(N)
+@export var displace_vector: String = ""  # away/toward_attacker, away/toward_target, away/toward_point, rotate_cw/ccw
+@export var displace_contest_stat: String = ""  # "" = no save; else a CharacterData stat (constitution)
+@export var displace_contest_margin: int = 0  # displaced when caster.stat - subject.stat > margin
+@export var displace_on_blocked: String = "stop"  # stop | swap | bonus_damage | fall_through | push_chain
 
 # Healing. When true, the move heals the target instead of dealing damage.
 # Heal amount = caster.special + base_power (matches the Unity formula for First Aid).

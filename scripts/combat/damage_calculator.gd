@@ -363,16 +363,25 @@ static func can_counter_attack(defender: Node2D, attacker: Node2D) -> bool:
 	# Must be in range — including the defender's own range passives (Extendo), so
 	# an extended-reach unit counters at its bonus range too. Beyond base range,
 	# the counter needs a clear reach just like an opening attack would.
-	var distance := get_manhattan_distance(defender, attacker)
-	if distance > MoveTargeting.effective_attack_range(defender, defender_move):
-		return false
-	if distance > defender_move.attack_range:
-		var defender_tile: Variant = defender.get("current_tile")
-		var attacker_tile: Variant = attacker.get("current_tile")
-		var unit_type: String = GridManager.get_unit_type(defender)
-		if not MoveTargeting.is_reach_clear(defender_tile, attacker_tile, unit_type):
-			return false
+	return is_within_attack_range(defender, attacker, defender_move)
 
+
+## The position-sensitive half of can_counter_attack: is `target` within
+## `unit`'s effective range for `move` (Extendo included), with a clear reach
+## when beyond base range? Re-checked MID-combat by execute_combat_sequence
+## before counters and bonus hits — displacement can move either combatant
+## between hits, and a shove out of range denies the follow-up.
+static func is_within_attack_range(unit: Node2D, target: Node2D, move: Move) -> bool:
+	if unit == null or target == null or move == null:
+		return false
+	var distance := get_manhattan_distance(unit, target)
+	if distance > MoveTargeting.effective_attack_range(unit, move):
+		return false
+	if distance > move.attack_range:
+		var unit_tile: Variant = unit.get("current_tile")
+		var target_tile: Variant = target.get("current_tile")
+		if not MoveTargeting.is_reach_clear(unit_tile, target_tile, GridManager.get_unit_type(unit)):
+			return false
 	return true
 
 
