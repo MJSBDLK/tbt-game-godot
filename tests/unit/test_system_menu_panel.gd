@@ -84,6 +84,32 @@ func test_pointer_open_is_quiet_until_a_nav_press_summons_the_cursor() -> void:
 	assert_true(first.selected, "the first nav press summons the cursor onto item one")
 
 
+func test_pointer_click_on_a_stay_open_item_leaves_no_phantom_cursor() -> void:
+	# Regression (RQD 2026-08-01): Godot natively focuses a clicked button, so
+	# pressing Save — the first item that KEEPS the menu open — hung the §14
+	# brackets on it under mouse control. Pointer presses must clean up the
+	# click-focus; cursor presses keep their "you are here."
+	InputSource.last_kind = InputSource.Kind.POINTER
+	get_viewport().gui_release_focus()
+	var panel := _make_panel()
+	await wait_process_frames(2)
+	var save_button := panel._save_button
+	assert_not_null(save_button, "panel exposes its Save row")
+	save_button.grab_focus()  # what a mouse click does natively, pre-pressed
+	save_button.pressed.emit()
+	await wait_process_frames(1)
+	assert_false(save_button.selected, "no brackets after a pointer press")
+	assert_false(save_button.has_focus(), "click-focus is released under pointer")
+
+	# Same press under the cursor model keeps the cursor parked on the item.
+	InputSource.last_kind = InputSource.Kind.CURSOR
+	save_button.grab_focus()
+	save_button.pressed.emit()
+	await wait_process_frames(1)
+	assert_true(save_button.selected, "cursor-model press keeps the brackets")
+	assert_true(save_button.has_focus(), "cursor-model press keeps focus")
+
+
 func test_end_turn_wears_the_cta_only_when_the_phase_is_spent() -> void:
 	_set_roster([_make_unit(true)])
 	var panel := _make_panel()

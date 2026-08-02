@@ -191,7 +191,7 @@ func process_turn_start(unit: Node2D, _turn_index_in_battle: int) -> void:
 		match data.mechanic:
 			Enums.InjuryMechanic.TURN_SKIP_CHANCE:
 				# PTSD — chance to lose this turn entirely
-				if randf() * 100.0 < mag:
+				if GameRng.randf() * 100.0 < mag:
 					unit.set("can_act", false)
 					DebugConfig.log_status("InjurySystem: %s skipped turn from PTSD" % unit.get("unit_name"))
 			Enums.InjuryMechanic.MOVE_LOCK:
@@ -206,7 +206,7 @@ func _lock_random_move_slots(unit: Node2D, character_data: CharacterData, count:
 	var indices: Array[int] = []
 	for i: int in range(equipped.size()):
 		indices.append(i)
-	indices.shuffle()
+	GameRng.shuffle(indices)
 	var locked: Array[int] = []
 	for i: int in range(mini(count, indices.size())):
 		locked.append(indices[i])

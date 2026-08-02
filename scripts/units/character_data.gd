@@ -514,7 +514,7 @@ func can_accept_injury(slots: int) -> bool:
 ## Returns true on success.
 func roll_succeeds(chance: float) -> bool:
 	var modified: float = chance - (luck_penalty_pct / 100.0)
-	return randf() < modified
+	return GameRng.randf() < modified
 
 
 ## Returns the unit's move distance after Broken Bone injury penalties.
@@ -618,21 +618,21 @@ func reset_bond_bonuses() -> void:
 ## Godot port. Stat-up allocation points and unlocked moves/passives will land
 ## with the squad/prep screen (alpha item #3).
 func process_level_up() -> void:
-	if randf() * 100.0 < growth_rate_hp and not is_at_stat_cap("max_hp"):
+	if GameRng.randf() * 100.0 < growth_rate_hp and not is_at_stat_cap("max_hp"):
 		growth_gains_hp += 1
-	if randf() * 100.0 < growth_rate_strength and not is_at_stat_cap("strength"):
+	if GameRng.randf() * 100.0 < growth_rate_strength and not is_at_stat_cap("strength"):
 		growth_gains_strength += 1
-	if randf() * 100.0 < growth_rate_special and not is_at_stat_cap("special"):
+	if GameRng.randf() * 100.0 < growth_rate_special and not is_at_stat_cap("special"):
 		growth_gains_special += 1
-	if randf() * 100.0 < growth_rate_skill and not is_at_stat_cap("skill"):
+	if GameRng.randf() * 100.0 < growth_rate_skill and not is_at_stat_cap("skill"):
 		growth_gains_skill += 1
-	if randf() * 100.0 < growth_rate_agility and not is_at_stat_cap("agility"):
+	if GameRng.randf() * 100.0 < growth_rate_agility and not is_at_stat_cap("agility"):
 		growth_gains_agility += 1
-	if randf() * 100.0 < growth_rate_athleticism and not is_at_stat_cap("athleticism"):
+	if GameRng.randf() * 100.0 < growth_rate_athleticism and not is_at_stat_cap("athleticism"):
 		growth_gains_athleticism += 1
-	if randf() * 100.0 < growth_rate_defense and not is_at_stat_cap("defense"):
+	if GameRng.randf() * 100.0 < growth_rate_defense and not is_at_stat_cap("defense"):
 		growth_gains_defense += 1
-	if randf() * 100.0 < growth_rate_resistance and not is_at_stat_cap("resistance"):
+	if GameRng.randf() * 100.0 < growth_rate_resistance and not is_at_stat_cap("resistance"):
 		growth_gains_resistance += 1
 	level += 1
 	available_stat_ups += StatAllocation.points_awarded_at_level(level)
@@ -693,9 +693,9 @@ func process_bexp_level_up() -> void:
 			total_weight += float(get(c[1]))
 		var picked_index: int
 		if total_weight <= 0.0:
-			picked_index = randi() % candidates.size()
+			picked_index = GameRng.randi() % candidates.size()
 		else:
-			var roll: float = randf() * total_weight
+			var roll: float = GameRng.randf() * total_weight
 			var cumulative: float = 0.0
 			picked_index = candidates.size() - 1
 			for j: int in range(candidates.size()):
@@ -729,3 +729,109 @@ func grant_xp(amount: int) -> int:
 		process_level_up()
 		levels_gained += 1
 	return levels_gained
+
+
+# =============================================================================
+# SAVE / LOAD
+# =============================================================================
+
+## Every persistent scalar the save system carries per character. Everything
+## NOT here is either authored data (re-loaded from the character's JSON on
+## load) or derived state that a recompute pass rebuilds: passive_bonus_* (aura
+## pass), status_modifier_* (re-applying active status effects), and
+## injury_modifier_* (InjurySystem.recalculate_injury_modifiers, which
+## apply_save_dict runs after restoring the injury lists).
+const _SAVE_SCALAR_FIELDS: Array[String] = [
+	"level", "experience", "tier",
+	"growth_gains_hp", "growth_gains_strength", "growth_gains_special",
+	"growth_gains_skill", "growth_gains_agility", "growth_gains_athleticism",
+	"growth_gains_defense", "growth_gains_resistance",
+	"allocated_hp", "allocated_strength", "allocated_special",
+	"allocated_skill", "allocated_agility", "allocated_athleticism",
+	"allocated_defense", "allocated_resistance",
+	"available_stat_ups",
+	"bond_bonus_hp", "bond_bonus_strength", "bond_bonus_special",
+	"bond_bonus_skill", "bond_bonus_agility", "bond_bonus_athleticism",
+	"bond_bonus_defense", "bond_bonus_resistance",
+]
+
+
+## Serializes this character's persistent DELTAS from their authored JSON —
+## references and numbers, never copies of static data. Moves ship as names
+## (+ current PP): a rebalanced move bank flows into old saves automatically
+## because load re-resolves through MoveData.get_move.
+func to_save_dict() -> Dictionary:
+	var fields: Dictionary = {}
+	for field: String in _SAVE_SCALAR_FIELDS:
+		fields[field] = get(field)
+	var moves: Array = []
+	for move: Move in equipped_moves:
+		if move != null:
+			moves.append({"name": move.move_name, "current_uses": move.current_uses})
+	return {
+		"character_id": character_id,
+		"fields": fields,
+		"current_injuries": _injuries_to_dicts(current_injuries),
+		"pending_injuries": _injuries_to_dicts(pending_injuries),
+		"equipped_moves": moves,
+		"equipped_passives": equipped_passives.duplicate(),
+	}
+
+
+## Applies a to_save_dict() snapshot onto a freshly-JSON-loaded character.
+## Call ONLY on a fresh load — deltas layer onto authored baselines, so
+## applying twice would still be idempotent for scalars but would re-resolve
+## moves and stomp any in-session mutations. Ends with an injury-modifier
+## recompute so stat getters reflect restored injuries immediately.
+func apply_save_dict(save: Dictionary) -> void:
+	var fields: Dictionary = save.get("fields", {})
+	for field: String in _SAVE_SCALAR_FIELDS:
+		if fields.has(field):
+			# JSON numbers arrive as floats — every scalar here is an int.
+			set(field, int(fields[field]))
+
+	current_injuries = _injuries_from_dicts(save.get("current_injuries", []))
+	pending_injuries = _injuries_from_dicts(save.get("pending_injuries", []))
+
+	equipped_moves.clear()
+	for entry: Variant in save.get("equipped_moves", []):
+		if not entry is Dictionary:
+			continue
+		var move: Move = MoveData.get_move(str(entry.get("name", "")))
+		if move == null:
+			push_warning("CharacterData: saved move '%s' no longer in the bank — dropped on load" % [entry.get("name", "")])
+			continue
+		move.current_uses = int(entry.get("current_uses", move.max_uses))
+		equipped_moves.append(move)
+
+	equipped_passives.clear()
+	for passive_name: Variant in save.get("equipped_passives", []):
+		equipped_passives.append(str(passive_name))
+
+	InjurySystem.recalculate_injury_modifiers(self)
+
+
+static func _injuries_to_dicts(injuries: Array[Injury]) -> Array:
+	var out: Array = []
+	for injury: Injury in injuries:
+		out.append({
+			"injury_id": injury.injury_id,
+			"severity": injury.severity,
+			"battles_remaining": injury.battles_remaining,
+		})
+	return out
+
+
+static func _injuries_from_dicts(entries: Variant) -> Array[Injury]:
+	var out: Array[Injury] = []
+	if not entries is Array:
+		return out
+	for entry: Variant in entries:
+		if not entry is Dictionary:
+			continue
+		var injury := Injury.new()
+		injury.injury_id = str(entry.get("injury_id", ""))
+		injury.severity = int(entry.get("severity", Enums.InjurySeverity.MINOR)) as Enums.InjurySeverity
+		injury.battles_remaining = int(entry.get("battles_remaining", 0))
+		out.append(injury)
+	return out

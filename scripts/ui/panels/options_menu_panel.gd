@@ -27,6 +27,8 @@ var _click_attack_on_button: Button = null
 var _click_attack_off_button: Button = null
 var _auto_end_on_button: Button = null
 var _auto_end_off_button: Button = null
+var _seeded_reload_on_button: Button = null
+var _seeded_reload_off_button: Button = null
 var _type_icons_on_button: Button = null
 var _type_icons_off_button: Button = null
 
@@ -130,6 +132,9 @@ func _populate_options() -> void:
 
 	# Auto End Turn (phase hands off when every unit has acted)
 	_create_auto_end_option()
+
+	# Seeded Reload (loading a save keeps or re-rolls the dice)
+	_create_seeded_reload_option()
 
 	# On-map elemental type icons beside unit health bars
 	_create_type_icons_option()
@@ -481,6 +486,54 @@ func _on_auto_end_off() -> void:
 	Settings.set_auto_end_turn(false)
 	_apply_toggle_state(_auto_end_on_button, false)
 	_apply_toggle_state(_auto_end_off_button, true)
+
+
+# Seeded Reload: On = loading a save restores the dice exactly (repeating the
+# same actions repeats the same outcomes — Fire-Emblem-fair). Off = every load
+# re-rolls fate, the save-scummer's option. Saves always record the dice, so
+# flipping this never invalidates one.
+
+func _create_seeded_reload_option() -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+
+	var label := Label.new()
+	label.text = "Seeded Reload"
+	label.tooltip_text = "On: loading a save keeps the dice — same choices, same results.\nOff: every load re-rolls fate."
+	label.custom_minimum_size = Vector2(OPTION_LABEL_WIDTH, 0)
+	label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
+	var glow: ShaderMaterial = GLOW_MATERIAL.duplicate()
+	glow.set_shader_parameter("glow_color", GameColors.TEXT_PRIMARY_GLOW)
+	label.material = glow
+	row.add_child(label)
+
+	var button_container := HBoxContainer.new()
+	button_container.add_theme_constant_override("separation", 2)
+
+	var enabled: bool = Settings.seeded_reload
+
+	_seeded_reload_on_button = _create_toggle_button("On", enabled)
+	_seeded_reload_on_button.pressed.connect(_on_seeded_reload_on)
+	button_container.add_child(_seeded_reload_on_button)
+
+	_seeded_reload_off_button = _create_toggle_button("Off", not enabled)
+	_seeded_reload_off_button.pressed.connect(_on_seeded_reload_off)
+	button_container.add_child(_seeded_reload_off_button)
+
+	row.add_child(button_container)
+	_content_container.add_child(row)
+
+
+func _on_seeded_reload_on() -> void:
+	Settings.set_seeded_reload(true)
+	_apply_toggle_state(_seeded_reload_on_button, true)
+	_apply_toggle_state(_seeded_reload_off_button, false)
+
+
+func _on_seeded_reload_off() -> void:
+	Settings.set_seeded_reload(false)
+	_apply_toggle_state(_seeded_reload_on_button, false)
+	_apply_toggle_state(_seeded_reload_off_button, true)
 
 
 # On-map type icons beside unit health bars. Off by default (noisy); units

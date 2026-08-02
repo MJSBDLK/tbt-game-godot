@@ -46,7 +46,7 @@ func apply_status_effect(caster: Node2D, target: Node2D, move: Move) -> bool:
 	if caster_data != null:
 		success = caster_data.roll_succeeds(move.status_effect_chance)
 	else:
-		success = randf() < move.status_effect_chance
+		success = GameRng.randf() < move.status_effect_chance
 	if not success:
 		DebugConfig.log_status("StatusEffectSystem: %s missed (chance %.2f, luck-adjusted)" % [
 			Enums.StatusEffectType.keys()[move.status_effect_type], move.status_effect_chance])
@@ -497,4 +497,4 @@ func _assign_void_locks(effect: StatusEffect, target: Node2D) -> void:
 				candidates.append({"kind": StatusEffect.SLOT_PASSIVE, "index": i})
 		if candidates.is_empty():
 			break
-		effect.locked_slots.append(candidates[randi() % candidates.size()])
+		effect.locked_slots.append(candidates[GameRng.randi() % candidates.size()])

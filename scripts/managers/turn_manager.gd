@@ -50,6 +50,48 @@ func initialize_battle(player_units: Array[Unit], enemy_units: Array[Unit]) -> v
 	start_player_phase()
 
 
+## Re-enters a battle mid-flight from a save snapshot. Deliberately NOT
+## initialize_battle + start_player_phase:
+##   - no battle_started — SquadManager's listener refills PP and re-snapshots
+##     pre-battle levels, both of which would stomp the restored state (the
+##     saved pre-battle snapshot comes back via restore_pre_battle_snapshots).
+##   - no phase upkeep — snapshots are captured AFTER upkeep ran (status
+##     ticks, refreshes, control locks), so the restored can_act/can_move
+##     latches and status stacks already embody it. Re-ticking would
+##     double-charge the player a turn of DoT.
+## player_phase_started still fires (UI listeners orient on it); SaveManager
+## suppresses its own autosave echo for exactly this emission.
+func resume_battle(player_units: Array[Unit], enemy_units: Array[Unit],
+		saved_turn_count: int) -> void:
+	_player_units = player_units
+	_enemy_units = enemy_units
+	_battle_ended = false
+	_is_processing_phase = false
+	turn_count = saved_turn_count
+	current_phase = Enums.TurnPhase.PLAYER_PHASE
+
+	for unit: Unit in _player_units:
+		if not unit.unit_defeated.is_connected(_on_unit_defeated):
+			unit.unit_defeated.connect(_on_unit_defeated)
+	for unit: Unit in _enemy_units:
+		if not unit.unit_defeated.is_connected(_on_unit_defeated):
+			unit.unit_defeated.connect(_on_unit_defeated)
+
+	DebugConfig.log_turn("TurnManager: Battle RESUMED at turn %d — %d players, %d enemies" % [
+		turn_count, _player_units.size(), _enemy_units.size()])
+
+	var input_manager: Node = get_node_or_null("/root/InputManager")
+	if input_manager != null:
+		input_manager.enable_input()
+		input_manager.deselect_unit()
+	var state_manager: Node = get_node_or_null("/root/GameStateManager")
+	if state_manager != null:
+		state_manager.change_state(Enums.InputState.DEFAULT)
+
+	player_phase_started.emit(turn_count)
+	_check_victory_conditions()
+
+
 func is_player_phase() -> bool:
 	return current_phase == Enums.TurnPhase.PLAYER_PHASE and not _is_processing_phase
 

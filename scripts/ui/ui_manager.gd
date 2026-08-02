@@ -56,6 +56,7 @@ var _battle_result_overlay: Node = null
 var _unit_detail_panel: UnitDetailPanel = null
 var _system_menu_panel: SystemMenuPanel = null
 var _options_menu_panel: OptionsMenuPanel = null
+var _save_browser_panel: SaveBrowserPanel = null
 var _post_mission_report_panel: PostMissionReportPanel = null
 var _level_up_report_panel: LevelUpReportPanel = null
 var _bonus_xp_panel: BonusXpPanel = null
@@ -498,6 +499,8 @@ func _instantiate_panels() -> void:
 	_system_menu_panel.closed.connect(_on_system_menu_closed)
 	_system_menu_panel.end_turn_selected.connect(_on_system_menu_end_turn)
 	_system_menu_panel.options_selected.connect(_on_system_menu_options)
+	_system_menu_panel.save_selected.connect(_on_system_menu_save)
+	_system_menu_panel.load_selected.connect(_on_system_menu_load)
 	_system_menu_panel.quit_selected.connect(_on_system_menu_quit)
 
 	# Options menu panel — centered overlay
@@ -507,6 +510,15 @@ func _instantiate_panels() -> void:
 	_options_menu_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
 	_overlay_layer.add_child(_options_menu_panel)
 	_options_menu_panel.closed.connect(_on_options_menu_closed)
+
+	# Save browser — centered overlay, same shell recipe as the options menu
+	_save_browser_panel = SaveBrowserPanel.new()
+	_save_browser_panel.set_anchors_preset(Control.PRESET_CENTER)
+	_save_browser_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_save_browser_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_overlay_layer.add_child(_save_browser_panel)
+	_save_browser_panel.closed.connect(_on_save_browser_closed)
+	_save_browser_panel.save_chosen.connect(_on_save_browser_chosen)
 
 
 func _instantiate_overlays() -> void:
@@ -829,6 +841,42 @@ func _on_system_menu_options() -> void:
 	if _system_menu_panel != null:
 		_system_menu_panel.visible = false
 	show_options_menu()
+
+
+func _on_system_menu_save() -> void:
+	# Menu stays open; the Save row itself flashes the outcome.
+	var path: String = SaveManager.write_manual_save()
+	if _system_menu_panel != null:
+		_system_menu_panel.flash_save_result(not path.is_empty())
+
+
+func _on_system_menu_load() -> void:
+	# Same dance as Options: hide without emitting closed (stay PAUSED),
+	# browser's own closed signal brings the menu back.
+	if _system_menu_panel != null:
+		_system_menu_panel.visible = false
+	if _save_browser_panel != null:
+		_save_browser_panel.show_panel()
+
+
+func _on_save_browser_closed() -> void:
+	# Return to the system menu — but only if still PAUSED (a chosen save
+	# changes scene and resets state; don't resurrect the menu over the load).
+	var state_manager := get_node_or_null("/root/GameStateManager")
+	if state_manager != null and state_manager.current_state == Enums.InputState.PAUSED:
+		if _system_menu_panel != null:
+			_system_menu_panel.show_menu()
+
+
+func _on_save_browser_chosen(path: String) -> void:
+	# Hide WITHOUT closed (hide_panel would re-show the system menu over the
+	# scene change); load_save_and_continue handles the routing from here.
+	if _save_browser_panel != null:
+		_save_browser_panel.visible = false
+	if not SaveManager.load_save_and_continue(path):
+		push_warning("UIManager: failed to load save '%s'" % path)
+		if _save_browser_panel != null:
+			_save_browser_panel.show_panel()
 
 
 func _on_options_menu_closed() -> void:

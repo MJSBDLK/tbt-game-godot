@@ -78,6 +78,19 @@ func _on_grid_ready() -> void:
 	if show_vignette:
 		_build_vignette()
 
+	# A pending battle restore (SaveManager.load_save_and_continue stashed it)
+	# rebuilds the saved board instead of rolling fresh spawns.
+	var battle_restore: Dictionary = SaveManager.take_pending_battle_restore()
+	if not battle_restore.is_empty():
+		_resume_from_snapshot(battle_restore)
+		return
+
+	_spawn_fresh_battle()
+
+
+## The normal (non-resume) battle start: spawn from painted spawn tiles and
+## initialize the turn loop from turn 0.
+func _spawn_fresh_battle() -> void:
 	var spawn_points := _get_tile_spawn_points()
 	var player_units := _spawn_units_from_tiles(spawn_points["Player"], Enums.UnitFaction.PLAYER, default_player_character)
 	var enemy_units := _spawn_units_from_tiles(spawn_points["Enemy"], Enums.UnitFaction.ENEMY, default_enemy_character)
@@ -94,6 +107,12 @@ func _on_grid_ready() -> void:
 	else:
 		push_warning("BattleScene: TurnManager not found — running without turn loop")
 
+	_register_battle_systems(player_units, enemy_units)
+
+
+## Post-spawn wiring shared by fresh starts and save resumes: passive-effect
+## recompute, threat overlay, and foot tracks all learn the unit lists here.
+func _register_battle_systems(player_units: Array[Unit], enemy_units: Array[Unit]) -> void:
 	# Wire passive effects after TurnManager owns the unit lists; the system
 	# does an initial recompute so opening-turn passive bonuses are correct.
 	var passive_effects: Node = get_node_or_null("/root/PassiveEffectsSystem")
@@ -112,6 +131,68 @@ func _on_grid_ready() -> void:
 		var seed_layer := find_child("FootTrackTileLayer", true, false) as TileMapLayer
 		if seed_layer != null:
 			_foot_track_renderer.ingest_seed_layer(seed_layer)
+
+
+# =============================================================================
+# SAVE RESUME
+# =============================================================================
+
+## Rebuilds the board from a save's battle section and re-enters the turn loop
+## mid-fight via TurnManager.resume_battle (no battle_started, no upkeep —
+## see that function's header for why). Player units come from the restored
+## SquadManager roster; enemies reconstruct from their JSON + saved deltas
+## through the same pipelines as a fresh spawn.
+func _resume_from_snapshot(battle: Dictionary) -> void:
+	var player_units: Array[Unit] = []
+	var enemy_units: Array[Unit] = []
+
+	for entry: Variant in battle.get("units", []):
+		if not entry is Dictionary:
+			continue
+		var tile := GridManager.get_tile(int(entry.get("grid_x", 0)), int(entry.get("grid_y", 0)))
+		if tile == null:
+			push_warning("BattleScene: restore lost a unit — no tile at (%s, %s)" % [
+				entry.get("grid_x"), entry.get("grid_y")])
+			continue
+		var faction: Enums.UnitFaction = int(entry.get("faction", Enums.UnitFaction.PLAYER)) as Enums.UnitFaction
+
+		var unit: Unit = null
+		if faction == Enums.UnitFaction.PLAYER:
+			var character: CharacterData = SquadManager.get_character_by_id(str(entry.get("character_id", "")))
+			if character == null:
+				push_warning("BattleScene: restore lost player '%s' — not in restored roster" % [
+					entry.get("character_id")])
+				continue
+			unit = _create_unit_from_data(character, faction, tile)
+		else:
+			var json_path: String = str(entry.get("json_path", ""))
+			var character: CharacterData = CharacterDataLoader.load_character(json_path)
+			if character == null:
+				push_warning("BattleScene: restore lost enemy at '%s' — JSON failed to load" % json_path)
+				continue
+			character.apply_save_dict(entry.get("character", {}))
+			var behavior: Enums.AIBehaviorType = int(entry.get("ai_behavior",
+					Enums.AIBehaviorType.AGGRESSIVE)) as Enums.AIBehaviorType
+			unit = _create_unit_from_data(character, faction, tile, behavior)
+			unit.character_json_path = json_path
+
+		SaveManager.apply_unit_state(unit, entry)
+		if faction == Enums.UnitFaction.PLAYER:
+			player_units.append(unit)
+		else:
+			enemy_units.append(unit)
+
+	if player_units.is_empty() and enemy_units.is_empty():
+		push_warning("BattleScene: battle restore produced an empty board — falling back to fresh spawns")
+		_spawn_fresh_battle()
+		return
+
+	DebugConfig.log_unit_init("BattleScene: Resumed %d players + %d enemies from save" % [
+		player_units.size(), enemy_units.size()])
+
+	SquadManager.restore_pre_battle_snapshots(battle.get("pre_battle_snapshots", {}))
+	TurnManager.resume_battle(player_units, enemy_units, int(battle.get("turn_count", 1)))
+	_register_battle_systems(player_units, enemy_units)
 
 
 # =============================================================================
@@ -167,7 +248,7 @@ func _spawn_units_from_tiles(positions: Array, faction: Enums.UnitFaction, chara
 			continue
 		var json_path: String = character_path
 		if not enemy_spawn_pool.is_empty():
-			json_path = enemy_spawn_pool[randi() % enemy_spawn_pool.size()]
+			json_path = enemy_spawn_pool[GameRng.randi() % enemy_spawn_pool.size()]
 		var unit := _create_unit(json_path, faction, tile, Enums.AIBehaviorType.AGGRESSIVE, difficulty)
 		if unit != null:
 			units.append(unit)

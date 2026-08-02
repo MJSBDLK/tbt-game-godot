@@ -73,6 +73,13 @@ var tooltip_hold_ms: int = 200
 ## anything could invite the press). Meeting ask 2026-06-28; built 2026-07-29.
 var auto_end_turn: bool = true
 
+## When true (default), loading a save restores the gameplay dice (GameRng)
+## exactly where they were — repeating the same actions after a reload repeats
+## the same outcomes (Fire-Emblem-fair). When false, every load re-rolls fate:
+## the save-scummer's option. Saves always RECORD the dice state; this only
+## branches the load path, so flipping it never invalidates a save.
+var seeded_reload: bool = true
+
 const TOOLTIP_HOLD_MIN_MS: int = 200
 const TOOLTIP_HOLD_MAX_MS: int = 1000
 const TOOLTIP_HOLD_STEP_MS: int = 50
@@ -114,6 +121,8 @@ func load_settings() -> void:
 				"controls", "tooltip_hold_ms", tooltip_hold_ms)))
 		auto_end_turn = bool(config.get_value(
 				"gameplay", "auto_end_turn", auto_end_turn))
+		seeded_reload = bool(config.get_value(
+				"gameplay", "seeded_reload", seeded_reload))
 	# Engine-level prefs (fps cap, bus volumes) must apply even with no file —
 	# a fresh install still needs the buses minted and defaults pushed.
 	_apply_engine_settings()
@@ -229,6 +238,15 @@ func set_auto_end_turn(value: bool) -> void:
 	changed.emit()
 
 
+## Persists + notifies. No-ops when unchanged (see set_portrait_effects_enabled).
+func set_seeded_reload(value: bool) -> void:
+	if value == seeded_reload:
+		return
+	seeded_reload = value
+	_save()
+	changed.emit()
+
+
 func _snap_tooltip_hold(value: int) -> int:
 	var snapped_value: int = roundi(float(value) / float(TOOLTIP_HOLD_STEP_MS)) \
 			* TOOLTIP_HOLD_STEP_MS
@@ -284,6 +302,7 @@ func _save() -> void:
 	config.set_value("display", "max_fps", max_fps)
 	config.set_value("controls", "tooltip_hold_ms", tooltip_hold_ms)
 	config.set_value("gameplay", "auto_end_turn", auto_end_turn)
+	config.set_value("gameplay", "seeded_reload", seeded_reload)
 	var err: int = config.save(settings_path)
 	if err != OK:
 		push_warning("Settings: failed to save %s (error %d)" % [settings_path, err])

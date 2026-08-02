@@ -347,6 +347,86 @@ func is_permadead(character_id: String) -> bool:
 
 
 # =============================================================================
+# SAVE / LOAD — orchestrated by SaveManager
+# =============================================================================
+
+## The pre-battle level snapshot, exposed for battle saves: a resumed battle
+## must diff its level-up report against the levels at BATTLE start, which a
+## process restart would otherwise have forgotten.
+func get_pre_battle_snapshots() -> Dictionary:
+	return _pre_battle_snapshots.duplicate(true)
+
+
+## Restores get_pre_battle_snapshots() output on battle resume, coercing JSON
+## floats back to the ints the report's typed locals expect. Resume never
+## re-emits battle_started (that would refill PP mid-fight), so this is the
+## only way the snapshot survives a reload.
+func restore_pre_battle_snapshots(snapshots: Dictionary) -> void:
+	_pre_battle_snapshots.clear()
+	for id: Variant in snapshots.keys():
+		var entry: Variant = snapshots[id]
+		if not entry is Dictionary:
+			continue
+		var growth: Dictionary = {}
+		var growth_in: Variant = entry.get("growth_gains", {})
+		if growth_in is Dictionary:
+			for field: Variant in growth_in.keys():
+				growth[str(field)] = int(growth_in[field])
+		_pre_battle_snapshots[str(id)] = {
+			"level": int(entry.get("level", 1)),
+			"stat_ups": int(entry.get("stat_ups", 0)),
+			"growth_gains": growth,
+		}
+
+
+## Serializes the whole persistent squad: every roster member as (source JSON
+## path + CharacterData deltas), the permadead set, and the bEXP pool.
+func capture_save_state() -> Dictionary:
+	var characters: Array = []
+	for id: String in _roster_by_id.keys():
+		characters.append({
+			"path": _path_by_id.get(id, ""),
+			"data": (_roster_by_id[id] as CharacterData).to_save_dict(),
+		})
+	return {
+		"characters": characters,
+		"permadead_ids": _permadead_ids.keys(),
+		"bonus_xp_pool": bonus_xp_pool,
+	}
+
+
+## Replaces the current roster wholesale with a capture_save_state() snapshot.
+## Each character reloads FRESH from their authored JSON and then gets the
+## saved deltas layered on — the reconstruct-don't-restore rule, so rebalanced
+## character/move data flows into old saves. Characters whose JSON no longer
+## loads are dropped with a warning rather than failing the whole restore.
+func restore_save_state(state: Dictionary) -> void:
+	_roster_by_id.clear()
+	_path_by_id.clear()
+	_permadead_ids.clear()
+	_pre_battle_snapshots.clear()
+
+	for id: Variant in state.get("permadead_ids", []):
+		_permadead_ids[str(id)] = true
+
+	for entry: Variant in state.get("characters", []):
+		if not entry is Dictionary:
+			continue
+		var path: String = str(entry.get("path", ""))
+		var character: CharacterData = CharacterDataLoader.load_character(path)
+		if character == null:
+			push_warning("SquadManager: saved character at '%s' failed to load — dropped" % path)
+			continue
+		character.apply_save_dict(entry.get("data", {}))
+		_register(character, path)
+
+	bonus_xp_pool = int(state.get("bonus_xp_pool", 0))
+	bonus_xp_changed.emit(bonus_xp_pool)
+	DebugConfig.log_unit_init("SquadManager: restored %d characters from save: %s" % [
+		_roster_by_id.size(), _roster_by_id.keys()])
+
+
+# =============================================================================
 # MUTATIONS — called by InjurySystem on permadeath
 # =============================================================================
 

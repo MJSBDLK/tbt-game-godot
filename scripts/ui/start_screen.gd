@@ -34,6 +34,7 @@ const START_LEVEL_OPTIONS: Array[int] = [5, 20, 40, 60]
 var _selected_level: int = 5
 var _level_buttons: Array[Button] = []
 var _begin_button: Button = null
+var _save_browser: SaveBrowserPanel = null
 
 
 func _ready() -> void:
@@ -106,6 +107,71 @@ func _build_content() -> void:
 	begin_wrap.alignment = BoxContainer.ALIGNMENT_CENTER
 	begin_wrap.add_child(_begin_button)
 	center.add_child(begin_wrap)
+
+	_build_continue_button(center, ui_manager)
+
+
+## "Continue" resumes the NEWEST save across all rings; "Load Game" beside it
+## opens the full save browser (every slot, yellow/blue/manual identity).
+## Continue's text carries the save's label and slot color. Both hidden when
+## no saves exist — dead buttons on a fresh install are noise.
+func _build_continue_button(center: VBoxContainer, ui_manager: Node) -> void:
+	var saves: Array[Dictionary] = SaveManager.list_saves()
+	if saves.is_empty():
+		return
+	var newest: Dictionary = saves[0]
+
+	var continue_button := Button.new()
+	continue_button.text = "Continue — %s" % str(newest.get("label", "saved game"))
+	continue_button.custom_minimum_size = Vector2(120, 22)
+	if ui_manager != null:
+		continue_button.add_theme_font_override("font", ui_manager.font_8px)
+		continue_button.add_theme_font_size_override("font_size", 8)
+	var kind_color: Color = GameColors.SAVE_AUTO_BATTLE \
+			if str(newest.get("kind", "")) == SaveManager.KIND_AUTO_BATTLE \
+			else GameColors.SAVE_AUTO_TURN
+	continue_button.add_theme_color_override("font_color", kind_color)
+	continue_button.add_theme_color_override("font_hover_color", kind_color)
+	continue_button.pressed.connect(_on_continue_pressed.bind(str(newest.get("path", ""))))
+
+	var load_button := Button.new()
+	load_button.text = "Load Game"
+	load_button.custom_minimum_size = Vector2(0, 22)
+	if ui_manager != null:
+		load_button.add_theme_font_override("font", ui_manager.font_8px)
+		load_button.add_theme_font_size_override("font_size", 8)
+	load_button.pressed.connect(_on_load_pressed)
+
+	var continue_wrap := HBoxContainer.new()
+	continue_wrap.alignment = BoxContainer.ALIGNMENT_CENTER
+	continue_wrap.add_theme_constant_override("separation", 6)
+	continue_wrap.add_child(continue_button)
+	continue_wrap.add_child(load_button)
+	center.add_child(continue_wrap)
+
+
+func _on_continue_pressed(save_path: String) -> void:
+	if not SaveManager.load_save_and_continue(save_path):
+		push_warning("StartScreen: failed to load '%s'" % save_path)
+
+
+## The browser is lazily built — most sessions never open it here.
+func _on_load_pressed() -> void:
+	if _save_browser == null:
+		_save_browser = SaveBrowserPanel.new()
+		_save_browser.set_anchors_preset(Control.PRESET_CENTER)
+		_save_browser.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		_save_browser.grow_vertical = Control.GROW_DIRECTION_BOTH
+		add_child(_save_browser)
+		_save_browser.save_chosen.connect(_on_browser_save_chosen)
+	_save_browser.show_panel()
+
+
+func _on_browser_save_chosen(path: String) -> void:
+	_save_browser.visible = false
+	if not SaveManager.load_save_and_continue(path):
+		push_warning("StartScreen: failed to load '%s'" % path)
+		_save_browser.show_panel()
 
 
 func _on_level_button_pressed(level: int, source_button: Button) -> void:

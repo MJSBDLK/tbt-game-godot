@@ -194,7 +194,7 @@ func _assign_move_for_turn() -> void:
 		if idx != _unit.last_used_move_index:
 			filtered.append(idx)
 	var pool: Array[int] = filtered if not filtered.is_empty() else usable_indices
-	var chosen: int = pool[randi() % pool.size()]
+	var chosen: int = pool[GameRng.randi() % pool.size()]
 	_unit.assigned_move = data.equipped_moves[chosen]
 
 

@@ -200,7 +200,7 @@ func _pick_recruit_candidates(count: int) -> Array[String]:
 	for path: String in _recruit_pool:
 		if not _recruited_paths.has(path):
 			available.append(path)
-	available.shuffle()
+	GameRng.shuffle(available)
 	var picked: Array[String] = []
 	for i: int in range(mini(count, available.size())):
 		picked.append(available[i])
@@ -302,8 +302,8 @@ func pick_enemy_level(difficulty: Enums.EnemyDifficulty = Enums.EnemyDifficulty.
 	if difficulty == Enums.EnemyDifficulty.DEFAULT:
 		# Gaussian over the effective range, centered on squad mean.
 		var std_dev: float = span_f / 4.0
-		var u1: float = maxf(randf(), 1e-9)  # avoid log(0)
-		var u2: float = randf()
+		var u1: float = maxf(GameRng.randf(), 1e-9)  # avoid log(0)
+		var u2: float = GameRng.randf()
 		var z: float = sqrt(-2.0 * log(u1)) * cos(TAU * u2)
 		var sample: float = squad_mean + z * std_dev
 		return maxi(1, clampi(roundi(sample), int(roundf(effective_min)), int(roundf(effective_max))))
@@ -315,7 +315,7 @@ func pick_enemy_level(difficulty: Enums.EnemyDifficulty = Enums.EnemyDifficulty.
 	var lo: float = band[0]
 	var hi: float = band[1]
 	# Uniform pick within the band, rounded to int.
-	var pick: float = lo + randf() * (hi - lo)
+	var pick: float = lo + GameRng.randf() * (hi - lo)
 	return maxi(1, roundi(pick))
 
 
@@ -371,6 +371,44 @@ func get_mission_count() -> int:
 
 func is_final_mission() -> bool:
 	return _current_mission_index == _mission_paths.size() - 1
+
+
+# =============================================================================
+# SAVE / LOAD — orchestrated by SaveManager
+# =============================================================================
+
+## Serializes campaign progress: mission list + index, recruit bookkeeping,
+## start level, and the player's deployment pick. All paths/ids — no object state.
+func capture_save_state() -> Dictionary:
+	return {
+		"mission_paths": _mission_paths.duplicate(),
+		"recruit_pool": _recruit_pool.duplicate(),
+		"recruited_paths": _recruited_paths.duplicate(),
+		"current_mission_index": _current_mission_index,
+		"start_level": _start_level,
+		"deployment_selection": _deployment_selection.duplicate(),
+	}
+
+
+## Restores a capture_save_state() snapshot. Does NOT route scenes — the
+## caller (SaveManager) decides where the player lands after a load.
+func restore_save_state(state: Dictionary) -> void:
+	_mission_paths.assign(_to_string_array(state.get("mission_paths", [])))
+	_recruit_pool.assign(_to_string_array(state.get("recruit_pool", [])))
+	_recruited_paths.assign(_to_string_array(state.get("recruited_paths", [])))
+	_deployment_selection.assign(_to_string_array(state.get("deployment_selection", [])))
+	_current_mission_index = int(state.get("current_mission_index", -1))
+	_start_level = int(state.get("start_level", FALLBACK_DEFAULT_LEVEL))
+
+
+## JSON arrays parse untyped — coerce elementwise before assigning to the
+## typed Array[String] fields.
+static func _to_string_array(values: Variant) -> Array[String]:
+	var out: Array[String] = []
+	if values is Array:
+		for value: Variant in values:
+			out.append(str(value))
+	return out
 
 
 # =============================================================================

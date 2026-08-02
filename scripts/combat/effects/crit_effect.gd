@@ -27,7 +27,7 @@ func modify_damage(ctx: CombatHitContext) -> void:
 		attacker.set("pending_crit", false)
 	# Otherwise roll the move's secondary crit (first hit only, like afflictions).
 	elif ctx.apply_status and ctx.move.crit_chance > 0.0:
-		should_crit = randf() < ctx.move.crit_chance
+		should_crit = GameRng.randf() < ctx.move.crit_chance
 
 	if should_crit:
 		ctx.damage = roundi(ctx.damage * DamageCalculator.CRIT_MULTIPLIER)
@@ -42,5 +42,5 @@ func on_hit(ctx: CombatHitContext) -> void:
 		return
 	if ctx.move.crit_chance <= 0.0:
 		return
-	if randf() < ctx.move.crit_chance and ctx.attacker != null:
+	if GameRng.randf() < ctx.move.crit_chance and ctx.attacker != null:
 		ctx.attacker.set("pending_crit", true)

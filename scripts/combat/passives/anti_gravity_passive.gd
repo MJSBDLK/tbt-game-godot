@@ -20,5 +20,5 @@ func on_turn_start(unit: Unit, _allies: Array[Unit]) -> void:
 			debuff_names.append(effect.effect_type_name)
 
 	for effect_name: String in debuff_names:
-		if randf() < CLEAR_CHANCE:
+		if GameRng.randf() < CLEAR_CHANCE:
 			StatusEffectSystem.remove_status_effect(unit, effect_name)

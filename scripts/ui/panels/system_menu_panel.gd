@@ -21,6 +21,9 @@ const BUTTON_WIDTH: int = 114
 
 var _content_container: VBoxContainer = null
 var _border_overlay: PanelBorderOverlay = null
+var _save_button: InteractiveButton = null
+# Bumped on every flash so an older restore-timer can't clobber a newer flash.
+var _save_flash_serial: int = 0
 
 
 func _ready() -> void:
@@ -108,7 +111,7 @@ func _populate_menu() -> void:
 	_create_end_turn_button()
 	_create_spacer()
 	_create_button("Options", func() -> void: options_selected.emit())
-	_create_button("Save", func() -> void: save_selected.emit())
+	_save_button = _create_button("Save", func() -> void: save_selected.emit())
 	_create_button("Load", func() -> void: load_selected.emit())
 	_create_button("Quit", func() -> void: quit_selected.emit())
 	_create_button("Close", func() -> void: hide_menu())
@@ -127,6 +130,21 @@ const END_TURN_BUTTON_HEIGHT: int = 22
 # =============================================================================
 # BUTTON BUILDING
 # =============================================================================
+
+## Flashes the save outcome ON the Save row itself — the menu stays open, so
+## the button the player just pressed is the feedback venue. Restores the
+## label after a beat; the serial guards against an older timer clobbering a
+## rapid re-save's flash.
+func flash_save_result(success: bool) -> void:
+	if _save_button == null:
+		return
+	_save_flash_serial += 1
+	var serial: int = _save_flash_serial
+	_save_button.text = "Saved!" if success else "Save FAILED"
+	await get_tree().create_timer(1.2).timeout
+	if is_instance_valid(_save_button) and serial == _save_flash_serial:
+		_save_button.text = "Save"
+
 
 func _create_end_turn_button() -> InteractiveButton:
 	# Vocabulary End Turn: a plain lit button, taller for prominence. The old
@@ -171,10 +189,27 @@ func _create_button(text: String, callback: Callable) -> InteractiveButton:
 	button.text = text
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	button.custom_minimum_size = Vector2(BUTTON_WIDTH, BUTTON_HEIGHT)
-	button.pressed.connect(callback)
+	button.pressed.connect(func() -> void:
+		# Godot natively focuses any clicked button, which routes through
+		# _on_item_focused and hangs the §14 brackets on it. Under the POINTER
+		# model that's a phantom cursor nobody summoned (InputSource doctrine:
+		# pointer opens quiet) — invisible historically because every item
+		# closed the menu on press; Save, the first stay-open item, exposed it
+		# (RQD 2026-08-01). Cursor-model presses keep their "you are here."
+		if not InputSource.is_cursor_driven():
+			button.release_focus()
+			_clear_selection_marks()
+		callback.call())
 	button.focus_entered.connect(_on_item_focused.bind(button))
 	_content_container.add_child(button)
 	return button
+
+
+func _clear_selection_marks() -> void:
+	for child: Node in _content_container.get_children():
+		var item := child as InteractiveButton
+		if item != null:
+			item.selected = false
 
 
 # =============================================================================

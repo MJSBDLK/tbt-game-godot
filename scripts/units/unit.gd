@@ -681,7 +681,7 @@ func _pick_random_ally_in_range(attack_range: int) -> Unit:
 
 	if candidates.is_empty():
 		return null
-	return candidates[randi() % candidates.size()]
+	return candidates[GameRng.randi() % candidates.size()]
 
 
 ## Corruption's retarget decision, split out for testability: the ally-victim
@@ -715,7 +715,7 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 	# counterplay, so standing alone must be safe, not wasted).
 	# Skipped for ally-targeting moves (they're already friendly).
 	if not is_ally_move and character_data != null and character_data.friendly_fire_chance_pct() > 0.0:
-		if randf() * 100.0 < character_data.friendly_fire_chance_pct():
+		if GameRng.randf() * 100.0 < character_data.friendly_fire_chance_pct():
 			var victim: Unit = resolve_friendly_fire_victim(defender, attacker_move)
 			if victim == defender:
 				DebugConfig.log_combat("FriendlyFire: %s procced with no ally in range — attack proceeds normally" % unit_name)
@@ -848,7 +848,7 @@ func _capricious_post_combat_reroll(combatant: Unit) -> void:
 			different.append(idx)
 	if different.is_empty():
 		return
-	var chosen: int = different[randi() % different.size()]
+	var chosen: int = different[GameRng.randi() % different.size()]
 	combatant.assigned_move = data.equipped_moves[chosen]
 
 
@@ -864,7 +864,7 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 	# so the swing reads as a swing-and-dodge rather than "nothing happened."
 	# Move usage is NOT refunded on miss — RD style.
 	var hit_pct := DamageCalculator.hit_chance_pct(self, target, move)
-	if randi() % 100 >= hit_pct:
+	if GameRng.randi() % 100 >= hit_pct:
 		await _play_miss(target, move)
 		DebugConfig.log_combat("Miss: %s -> %s (hit %d%%)" % [unit_name, target.unit_name, hit_pct])
 		return
