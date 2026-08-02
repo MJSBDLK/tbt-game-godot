@@ -192,7 +192,13 @@ func _update_defender_section(attacker: Node, defender: Node, move: Move) -> voi
 	_set_unit_type_icons(_defender_primary_type_icon, _defender_secondary_type_icon, defender_data)
 
 	var can_counter := DamageCalculator.can_counter_attack(defender, attacker)
-	if can_counter:
+	# Displacement can deny the counter before it ever fires (the shove-then-
+	# no-counter rule) — the preview says so UP FRONT instead of predicting
+	# counter damage that will never land. Pure query; distance-only
+	# approximation, same caveat as its source.
+	var shove_denies_counter := can_counter \
+			and not DisplacementSystem.counter_survives_displacement(attacker, defender, move)
+	if can_counter and not shove_denies_counter:
 		var counter_move: Move = defender.get("assigned_move")
 		_defender_move_label.text = _truncate(counter_move.abbrev_name)
 		_set_elemental_icon(_defender_move_type_icon, counter_move.element_type)
@@ -221,6 +227,10 @@ func _update_defender_section(attacker: Node, defender: Node, move: Move) -> voi
 		_defender_hit_label.text = "--"
 		_defender_secondary_label.text = "--"
 		_set_multiplier_label(_defender_multiplier_label, 0.0)
+		if shove_denies_counter:
+			# They COULD counter — the shove is what takes it away. Name the
+			# cause in the move slot so the row doesn't read as "unarmed."
+			_defender_move_label.text = _truncate("NO COUNTER")
 
 
 # =============================================================================
@@ -244,7 +254,10 @@ func _update_health_pips(attacker: Node, defender: Node, move: Move) -> void:
 	var defender_max_hp: int = defender_data.max_hp if defender_data else 1
 
 	# Attacker HP — show counter-attack damage preview if defender can counter
-	var can_counter := DamageCalculator.can_counter_attack(defender, attacker)
+	# AND the shove wouldn't deny it (a denied counter deals no damage, so the
+	# attacker's bar shows no damage band — consistent with NO COUNTER above).
+	var can_counter := DamageCalculator.can_counter_attack(defender, attacker) \
+			and DisplacementSystem.counter_survives_displacement(attacker, defender, move)
 	if can_counter:
 		var counter_move: Move = defender.get("assigned_move")
 		var counter_damage := DamageCalculator.calculate_damage(defender, attacker, counter_move)

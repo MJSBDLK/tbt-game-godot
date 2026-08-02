@@ -149,6 +149,7 @@ func cancel_attack_targeting() -> void:
 	_attackable_tiles.clear()
 	_clear_keyboard_target()
 	GridManager.clear_attack_range()
+	GridManager.clear_displacement_preview()
 
 	var ui_manager: Node = _get_ui_manager()
 	if ui_manager != null:
@@ -335,18 +336,25 @@ func _update_combat_preview(tile: Tile) -> void:
 			if _attack_move.heals:
 				var heal_amount := DamageCalculator.calculate_heal_amount(_attacking_unit, target, _attack_move)
 				ui_manager.show_heal_preview(_attacking_unit, target, _attack_move, heal_amount)
+				GridManager.clear_displacement_preview()
 				return
 			if _attack_move.targets_allies():
 				# Non-healing buff/support — no preview UI yet, defer that pass.
 				ui_manager.hide_combat_preview()
+				GridManager.clear_displacement_preview()
 				return
 			# Preview the unit the shot will actually hit — a Protector between the
 			# attacker and the aimed-at enemy body-blocks, so show it taking the hit.
 			var actual: Unit = MoveTargeting.resolve_actual_target(_attacking_unit, target, _attack_move)
 			ui_manager.show_combat_preview(_attacking_unit, actual, _attack_move)
+			# Displacing moves ALSO play their future on the board — ghosts,
+			# arrows, slam stars (DisplacementPreviewRenderer). No-op for
+			# non-displacing moves.
+			GridManager.preview_displacement(_attacking_unit, actual, _attack_move)
 			return
 
 	ui_manager.hide_combat_preview()
+	GridManager.clear_displacement_preview()
 
 
 # =============================================================================
@@ -877,6 +885,7 @@ func _execute_attack(target: Unit) -> void:
 	_attackable_tiles.clear()
 	_clear_keyboard_target()
 	GridManager.clear_attack_range()
+	GridManager.clear_displacement_preview()
 
 	var ui_manager: Node = _get_ui_manager()
 	if ui_manager != null:

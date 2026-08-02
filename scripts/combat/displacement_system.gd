@@ -348,7 +348,7 @@ static func _resolve_linear(subject: Node2D, caster: Node2D, target: Node2D,
 		if next_tile == null or not next_tile.can_unit_move_to(GridManager.get_unit_type(subject)):
 			# Wall or map edge. Every policy stops here; bonus_damage slams.
 			if policy == "bonus_damage":
-				_record_collision(plan, subject, distance - traveled)
+				_record_collision(plan, subject, distance - traveled, cell)
 			break
 
 		var occupant: Node2D = _occupant(overlay, next, next_tile)
@@ -361,8 +361,8 @@ static func _resolve_linear(subject: Node2D, caster: Node2D, target: Node2D,
 					return _RESOLVED
 				"bonus_damage":
 					var remaining := distance - traveled
-					_record_collision(plan, subject, remaining)
-					_record_collision(plan, occupant, remaining)
+					_record_collision(plan, subject, remaining, cell)
+					_record_collision(plan, occupant, remaining, next)
 				"fall_through":
 					# Sail over — the cell still costs a step; landing legality
 					# is settled by the backtrack below.
@@ -707,5 +707,48 @@ static func _add_mover(plan: DisplacePlan, unit: Node2D, path: Array[Tile],
 	overlay[Vector2i(final_tile.grid_x, final_tile.grid_y)] = unit
 
 
-static func _record_collision(plan: DisplacePlan, unit: Node2D, remaining_tiles: int) -> void:
-	plan.collisions.append({"unit": unit, "damage": COLLISION_DAMAGE_PER_TILE * remaining_tiles})
+## `cell` = where the damaged unit sits when the impact lands (the subject's
+## landing cell / the obstacle's own cell) — the preview draws its impact star
+## there; execution ignores it.
+static func _record_collision(plan: DisplacePlan, unit: Node2D, remaining_tiles: int,
+		cell: Vector2i) -> void:
+	plan.collisions.append({
+		"unit": unit,
+		"damage": COLLISION_DAMAGE_PER_TILE * remaining_tiles,
+		"cell": cell,
+	})
+
+
+# =============================================================================
+# PREVIEW QUERIES (pure — the board preview and combat preview panel read these)
+# =============================================================================
+
+## Would the defender's counter still reach after this move's displacement
+## resolves? Distance-only approximation of the counter-time gate (skips the
+## reach-clear check extended range needs — DamageCalculator's
+## is_within_attack_range at execution time stays authoritative). True when
+## nothing displaces, there's no counter move to deny, or the post-shove
+## distance is within the counter move's effective range.
+static func counter_survives_displacement(caster: Node2D, target: Node2D, move: Move) -> bool:
+	if move == null or move.displace_distance <= 0:
+		return true
+	var counter_move: Move = target.get("assigned_move")
+	if counter_move == null:
+		return true
+	var plan := build_plan(caster, target, move)
+	if plan == null:
+		return true
+	var caster_cell := _plan_final_cell(plan, caster)
+	var target_cell := _plan_final_cell(plan, target)
+	var distance := absi(caster_cell.x - target_cell.x) + absi(caster_cell.y - target_cell.y)
+	return distance <= MoveTargeting.effective_attack_range(target, counter_move)
+
+
+## A unit's cell after the plan resolves: its mover's destination, or where it
+## already stands if the plan doesn't move it.
+static func _plan_final_cell(plan: DisplacePlan, unit: Node2D) -> Vector2i:
+	var mover := plan.mover_for(unit)
+	if mover.is_empty():
+		return _cell_of(unit)
+	var tile: Tile = (mover.path as Array[Tile]).back()
+	return Vector2i(tile.grid_x, tile.grid_y)

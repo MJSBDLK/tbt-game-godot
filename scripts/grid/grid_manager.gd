@@ -117,6 +117,7 @@ func clear_grid() -> void:
 	_current_movement_range_tiles.clear()
 	_current_attack_range_tiles.clear()
 	clear_move_range_preview()
+	clear_displacement_preview()
 	clear_target_cursor()
 
 
@@ -409,6 +410,37 @@ func clear_move_range_preview() -> void:
 	_move_range_preview_move = null
 	if _move_range_preview_renderer != null and is_instance_valid(_move_range_preview_renderer):
 		_move_range_preview_renderer.clear()
+
+
+# --- Displacement preview ------------------------------------------------------
+# While the player aims a displacing move at a concrete target, ghosts of the
+# future play on the board (DisplacementPreviewRenderer — its header is the
+# spec). Driven from InputManager._update_combat_preview, the same choke point
+# as the combat preview panel.
+
+var _displacement_preview_renderer: DisplacementPreviewRenderer = null
+
+
+func preview_displacement(attacker: Unit, target: Unit, move: Move) -> void:
+	if attacker == null or target == null or move == null or move.displace_distance <= 0:
+		clear_displacement_preview()
+		return
+	_ensure_displacement_preview_renderer().show_preview(attacker, target, move)
+
+
+func clear_displacement_preview() -> void:
+	if _displacement_preview_renderer != null and is_instance_valid(_displacement_preview_renderer):
+		_displacement_preview_renderer.clear()
+
+
+func _ensure_displacement_preview_renderer() -> DisplacementPreviewRenderer:
+	if _displacement_preview_renderer == null or not is_instance_valid(_displacement_preview_renderer):
+		_displacement_preview_renderer = DisplacementPreviewRenderer.new()
+		_displacement_preview_renderer.name = "DisplacementPreviewRenderer"
+		# Same mounting as the move-range renderer: child of this autoload =
+		# root-viewport canvas at identity, so world coords pass straight through.
+		add_child(_displacement_preview_renderer)
+	return _displacement_preview_renderer
 
 
 ## The move currently live-painted (null = none). UI and tests read the state
