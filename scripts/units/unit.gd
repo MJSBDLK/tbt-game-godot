@@ -102,6 +102,11 @@ var active_status_effects: Array = []  # Array of StatusEffect
 # a setup move spends the turn, so the crit must survive to the next attack. Not
 # an affliction/boost; lives purely in the combat pipeline. Reset at battle init.
 var pending_crit: bool = false
+# Pending delayed effects queued ON this unit (Phase 4 — Shriek's chain-
+# lightning mark). Entry schema + tick clock live in ScheduledEffects' header;
+# TurnManager ticks these at the CASTING faction's phase start. Plain data —
+# SaveManager serializes the queue verbatim.
+var scheduled_effects: Array[Dictionary] = []
 # Move-uses this unit has INITIATED since its last turn refresh (counters don't
 # count — only combats this unit starts). Drives Impetuous (+20% on the 1st, then
 # -10% per use after). Counts every move use, attack or support.
@@ -289,8 +294,10 @@ func initialize(starting_tile: Tile) -> void:
 	if DebugConfig.testing_random_hp_on_spawn and faction == Enums.UnitFaction.PLAYER:
 		current_hp = maxi(1, roundi(character_data.max_hp * randf_range(0.15, 1.0)))
 
-	if DebugConfig.testing_displacement_moves and faction == Enums.UnitFaction.PLAYER:
-		_apply_debug_displacement_moves()
+	if DebugConfig.testing_phase4_moves and faction == Enums.UnitFaction.PLAYER:
+		_apply_debug_kit_moves(DEBUG_PHASE4_KIT)
+	elif DebugConfig.testing_displacement_moves and faction == Enums.UnitFaction.PLAYER:
+		_apply_debug_kit_moves(DEBUG_DISPLACEMENT_KIT)
 
 	_update_health_bar()
 
@@ -709,7 +716,11 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 	if defender == null or attacker_move == null:
 		return
 
-	var is_ally_move := attacker_move.targets_allies()
+	# Friendly casts: ally-targeting moves AND self-casts (Fortify, Roar) both
+	# resolve as a single application — no counter, no multi-hit, no corruption
+	# retarget, no Protector body-block.
+	var is_ally_move := attacker_move.targets_allies() \
+			or attacker_move.target_type == Enums.TargetType.SELF
 
 	# Friendly fire (Corruption injury): the attacker has been "acting shifty."
 	# On a proc, retarget a random ally in range. If no ally is in range, the
@@ -746,10 +757,17 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 	attacks_this_turn += 1
 	DebugConfig.log_combat("Combat: %s (move=%s) vs %s" % [unit_name, attacker_move.move_name, defender.unit_name])
 
-	# Ally-targeting moves (heals, buffs): single application, no counter, no multi-hit.
+	# Friendly casts (heals, buffs, self-target support): single application, no
+	# counter, no multi-hit. A self-cast whose payload is entirely for OTHERS
+	# (Roar's shout, Shriek's mark — nothing self-directed) skips the primary
+	# self application; the cast flourish + AoE pass below ARE the move.
 	if is_ally_move:
 		attacker_move.consume_use()
-		await _execute_single_hit(defender, attacker_move, true)
+		if defender != self or _self_cast_has_self_payload(attacker_move):
+			await _execute_single_hit(defender, attacker_move, true)
+		else:
+			await _play_support_cast_flourish(attacker_move)
+		await _execute_area_applications(defender, attacker_move)
 		combat_completed.emit(self, defender)
 		return
 
@@ -890,6 +908,9 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 	if move.heals:
 		await _execute_heal_hit(target, move, apply_status)
 		return
+	if move.damage_type == Enums.DamageType.SUPPORT:
+		await _execute_support_hit(target, move, apply_status)
+		return
 
 	# Hit roll. Miss path plays the approach but skips damage/flash/popup/status
 	# so the swing reads as a swing-and-dodge rather than "nothing happened."
@@ -1006,6 +1027,79 @@ func _execute_heal_hit(target: Unit, move: Move, apply_status: bool) -> void:
 	ctx.apply_status = apply_status
 	var effects := CombatEffectPipeline.gather(ctx)
 	await CombatEffectPipeline.run_on_hit(ctx, effects)
+
+
+## Support-side counterpart to _execute_single_hit for non-heal, non-damage
+## applications (Fortify's buff, Roar's shout landing on a victim, Shriek's
+## mark). Support moves auto-hit — no accuracy roll (their riders' own chance
+## fields are the gate), no damage, no XP, no approach animation (the cast
+## flourish or the primary combat beat already carried the motion). Everything
+## lands through the pipeline so afflictions, conditionals, marks, cleanses,
+## and support shoves use the same machinery as combat hits.
+func _execute_support_hit(target: Unit, move: Move, apply_status: bool) -> void:
+	var ctx := CombatHitContext.new()
+	ctx.attacker = self
+	ctx.defender = target
+	ctx.move = move
+	ctx.apply_status = apply_status
+	ctx.is_support = true
+	var effects := CombatEffectPipeline.gather(ctx)
+	DebugConfig.log_combat("Support: %s -> %s (move=%s)" % [
+		unit_name, target.unit_name, move.move_name])
+	await CombatEffectPipeline.run_on_hit(ctx, effects)
+
+
+## The AoE pass: after the primary application, every OTHER unit inside the
+## move's area (epicenter = the primary target's tile; for a self-cast, the
+## caster's own tile) gets its own pipeline application. AoE victims never
+## counter and never trigger multi-hit — that belongs to the primary exchange.
+func _execute_area_applications(primary: Unit, move: Move) -> void:
+	if move.area_of_effect <= 0:
+		return
+	var epicenter: Tile = primary.current_tile if primary != null else current_tile
+	if epicenter == null:
+		return
+	for victim: Unit in MoveTargeting.get_area_victims(self, epicenter, move):
+		if victim == primary:
+			continue
+		await _execute_single_hit(victim, move, true)
+		if victim.is_defeated():
+			await victim._handle_defeat()
+
+
+## Does a SELF-cast of this move do anything to the caster themselves? Heals,
+## flat statuses, cleanses, and displacement are self-directed on a self-cast;
+## conditional statuses and scheduled effects on a self-cast AoE are for the
+## VICTIMS (skipping the primary self application keeps Roar from shocking
+## its own caster).
+func _self_cast_has_self_payload(move: Move) -> bool:
+	return move.heals \
+			or move.status_effect_type != Enums.StatusEffectType.NONE \
+			or not move.cleanse_effects.is_empty() \
+			or move.displace_distance > 0
+
+
+## The visible beat for a self-cast whose payload is all AoE (Roar, Shriek):
+## a quick sprite pulse, plus the move-name callout for PLAYER casters (the
+## enemy AI already announces its move pre-swing — a second callout would
+## read as a stutter).
+func _play_support_cast_flourish(move: Move) -> void:
+	if faction == Enums.UnitFaction.PLAYER:
+		var callout_color: Color = GameColors.get_move_chip_foreground(move.element_type) \
+				if move.element_type != Enums.ElementalType.NONE else GameColors.PLAYER_UNIT
+		spawn_text_callout(move.move_name.to_upper(), callout_color)
+	var sprite := get_node_or_null("Sprite2D") as Sprite2D
+	if sprite == null or not is_inside_tree():
+		return
+	var tween := create_tween()
+	tween.tween_property(sprite, "scale", Vector2(1.15, 1.15), 0.12).set_ease(Tween.EASE_OUT)
+	tween.tween_property(sprite, "scale", Vector2.ONE, 0.12).set_ease(Tween.EASE_IN)
+	await tween.finished
+
+
+## Fear-cluster query — see CombatPredicates.is_brave (the one source of truth).
+func is_brave() -> bool:
+	return CombatPredicates.is_brave(self)
 
 
 ## Grant combat XP to this unit (the attacker) for a hit on `target`. Only
@@ -1370,22 +1464,29 @@ func _lower_after_attack() -> void:
 ## DamagePopup._ready anchors its rise animation to the position it wakes up
 ## with — positioned after, every popup snaps to the host's origin on the next
 ## frame (the center-screen-popups regression, RQD 2026-08-01).
-func _host_popup(popup: Node2D, at_global: Vector2) -> void:
-	var host: Node = get_tree().current_scene
+## Returns false when there was nowhere to host the popup (out-of-tree bare
+## test units) — the popup is already freed, so callers must NOT touch it.
+func _host_popup(popup: Node2D, at_global: Vector2) -> bool:
+	# is_inside_tree() first: get_tree() on an out-of-tree node LOGS an engine
+	# error even though it returns null.
+	var host: Node = get_tree().current_scene if is_inside_tree() else null
 	if host == null:
 		host = get_parent()
 	if host == null:
-		popup.queue_free()
-		return
+		# free(), not queue_free(): with no tree there's nothing to defer to.
+		popup.free()
+		return false
 	popup.global_position = at_global
 	host.add_child(popup)
+	return true
 
 
 func _spawn_damage_popup(target: Unit, damage: int, effectiveness_text: String, multiplier: float) -> void:
 	var popup_scene := preload("res://scenes/ui/damage_popup.tscn")
 	var popup: Node2D = popup_scene.instantiate()
 	popup.z_index = target.z_index + 2  # UNITS layer + 2 = UI layer, always above defending unit
-	_host_popup(popup, target.global_position + Vector2(0, -8))
+	if not _host_popup(popup, target.global_position + Vector2(0, -8)):
+		return
 	if popup.has_method("initialize"):
 		popup.call("initialize", damage, effectiveness_text, multiplier)
 
@@ -1394,7 +1495,8 @@ func _spawn_heal_popup(target: Unit, amount: int) -> void:
 	var popup_scene := preload("res://scenes/ui/damage_popup.tscn")
 	var popup: Node2D = popup_scene.instantiate()
 	popup.z_index = target.z_index + 2
-	_host_popup(popup, target.global_position + Vector2(0, -8))
+	if not _host_popup(popup, target.global_position + Vector2(0, -8)):
+		return
 	if popup.has_method("initialize_heal"):
 		popup.call("initialize_heal", amount)
 
@@ -1406,7 +1508,8 @@ func spawn_text_callout(text: String, color: Color) -> void:
 	var popup_scene := preload("res://scenes/ui/damage_popup.tscn")
 	var popup: Node2D = popup_scene.instantiate()
 	popup.z_index = z_index + 2
-	_host_popup(popup, global_position + Vector2(0, -20))
+	if not _host_popup(popup, global_position + Vector2(0, -20)):
+		return
 	if popup.has_method("initialize_callout"):
 		popup.call("initialize_callout", text, color)
 
@@ -1449,10 +1552,11 @@ func _handle_defeat() -> void:
 	for icon: Sprite2D in _type_icons:
 		icon.visible = false
 
-	# Fade out over 1 second
-	var tween := create_tween()
-	tween.tween_property(self, "modulate:a", 0.0, 1.0)
-	await tween.finished
+	# Fade out over 1 second (tweens need the tree; bare test units skip the fade)
+	if is_inside_tree():
+		var tween := create_tween()
+		tween.tween_property(self, "modulate:a", 0.0, 1.0)
+		await tween.finished
 
 	# Clear tile occupancy
 	if current_tile != null:
@@ -1663,32 +1767,47 @@ const DEBUG_DISPLACEMENT_KIT: Array[String] = [
 	"Switcheroo",      # self charge + swap places with the target
 ]
 
-static var _debug_displacement_kit_cursor: int = 0
+## The Phase 4 test kit (DebugConfig.testing_phase4_moves): window 1 is the
+## fear cluster loop — roar them, shriek them, defuse the mark, patch up;
+## window 2 is the revived self-cast buffs (unreachable before the SELF
+## targeting fix). Roar's CHALLENGED branch needs a brave enemy on the field
+## (knight, buglers, ogre_squire, pierre) to show its teeth.
+const DEBUG_PHASE4_KIT: Array[String] = [
+	"Roar",                  # self AoE 2 — SHOCKED, or CHALLENGED on the brave
+	"Shriek of the Damned",  # self AoE 5 — delayed chain-lightning marks
+	"Steady",                # ally cleanse — defuses marks, settles SHOCKED
+	"First Aid",             # ally heal (splash damage patch-up)
+	"Focus",                 # self: banks a crit
+	"Fortify",               # self: Fortified
+	"Battle Cry",            # self: Rallied
+	"Bloom",                 # self: Regen
+]
+
+static var _debug_kit_cursor: int = 0
 
 
 ## Debug: replace this player unit's equipped moves with the next 4-move window
-## of DEBUG_DISPLACEMENT_KIT. Mutates character_data.equipped_moves — in a
-## campaign the squad keeps the kit until re-equipped, so this is meant for F6
-## battle-scene runs (fresh spawns every launch).
-func _apply_debug_displacement_moves() -> void:
+## of the given kit. Mutates character_data.equipped_moves — in a campaign the
+## squad keeps the kit until re-equipped, so this is meant for F6 battle-scene
+## runs (fresh spawns every launch).
+func _apply_debug_kit_moves(kit: Array[String]) -> void:
 	if character_data == null:
 		return
 	var equipped: Array[Move] = []
 	for i: int in range(4):
-		var kit_index: int = (Unit._debug_displacement_kit_cursor + i) % DEBUG_DISPLACEMENT_KIT.size()
-		var move: Move = MoveData.get_move(DEBUG_DISPLACEMENT_KIT[kit_index])
+		var kit_index: int = (Unit._debug_kit_cursor + i) % kit.size()
+		var move: Move = MoveData.get_move(kit[kit_index])
 		if move != null:
 			equipped.append(move)
 	if equipped.is_empty():
 		return
-	Unit._debug_displacement_kit_cursor = \
-			(Unit._debug_displacement_kit_cursor + 4) % DEBUG_DISPLACEMENT_KIT.size()
+	Unit._debug_kit_cursor = (Unit._debug_kit_cursor + 4) % kit.size()
 	character_data.equipped_moves = equipped
 	auto_assign_first_usable_move()
 	var names: Array[String] = []
 	for move: Move in equipped:
 		names.append(move.move_name)
-	DebugConfig.log_unit_init("Debug displacement kit for '%s': %s" % [unit_name, str(names)])
+	DebugConfig.log_unit_init("Debug move kit for '%s': %s" % [unit_name, str(names)])
 
 
 func _apply_random_debug_passives() -> void:

@@ -38,6 +38,7 @@
 	"level": 1,
 	"basePoolMoves": [
 		"First Aid",
+		"Steady",
 		"Fortify",
 		"Bloom",
 		"Focus",

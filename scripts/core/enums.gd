@@ -75,8 +75,8 @@ enum StatusEffectType {
 	BLEED,            # DoT, damage over time
 	BUGLE,            # Take +1 damage from heraldic moves
 	BURN,             # DoT, lower attack
-	CHAIN_LIGHTNING,  # .5 dmg to adjacent, .25 to next, until <1 damage
-	CHALLENGED,       # Draws aggro, can't target weaker units if near challenger
+	CHAIN_LIGHTNING,  # Marked for a delayed strike; splashes .5 to adjacent (ScheduledEffects)
+	CHALLENGED,       # AI targeting locks onto the challenger while they live (source_unit)
 	FREEZE,           # Immobilized, can't act
 	GRAVITY,          # -% agility
 	POISON,           # DoT, damage over time

@@ -348,6 +348,9 @@ func _unit_to_save_dict(unit: Unit) -> Dictionary:
 		"assigned_move_index": moves.find(unit.assigned_move),
 		"last_used_move_index": unit.last_used_move_index,
 		"statuses": statuses,
+		# Pending delayed strikes ON this unit (Phase 4) — plain data, schema in
+		# ScheduledEffects' header. Restored with int re-coercion (JSON floats).
+		"scheduled_effects": unit.scheduled_effects.duplicate(true),
 	}
 	if unit.faction == Enums.UnitFaction.PLAYER:
 		entry["character_id"] = unit.character_data.character_id if unit.character_data != null else ""
@@ -362,7 +365,7 @@ func _unit_to_save_dict(unit: Unit) -> Dictionary:
 
 
 static func _status_to_dict(effect: StatusEffect) -> Dictionary:
-	return {
+	var entry: Dictionary = {
 		"effect_type_name": effect.effect_type_name,
 		"category": effect.category,
 		"affected_stat": effect.affected_stat,
@@ -374,6 +377,14 @@ static func _status_to_dict(effect: StatusEffect) -> Dictionary:
 		"source_element": effect.source_element,
 		"source_damage_type": effect.source_damage_type,
 	}
+	# Live unit references can't ride in a file — persist the source (the
+	# CHALLENGED challenger) as its board cell; resolve_status_sources
+	# re-points it after restore re-places everyone.
+	if effect.source_unit != null and is_instance_valid(effect.source_unit):
+		var source_tile: Variant = effect.source_unit.get("current_tile")
+		if source_tile != null:
+			entry["source_cell"] = [source_tile.grid_x, source_tile.grid_y]
+	return entry
 
 
 # =============================================================================
@@ -411,10 +422,45 @@ func apply_unit_state(unit: Unit, entry: Dictionary) -> void:
 	StatusEffectSystem.recalculate_stat_modifiers(unit)
 	unit._update_status_indicators()
 
+	unit.scheduled_effects.clear()
+	for pending_entry: Variant in entry.get("scheduled_effects", []):
+		if pending_entry is Dictionary:
+			unit.scheduled_effects.append(_scheduled_from_dict(pending_entry))
+
 	if unit.character_data != null:
 		unit.current_hp = clampi(int(entry.get("current_hp", unit.character_data.max_hp)),
 				1, unit.character_data.max_hp)
 	unit._update_health_bar()
+
+
+## After a battle restore has re-placed every unit, re-point status source
+## references (the CHALLENGED challenger) from saved grid cells to the live
+## units now standing there. Unresolvable cells (occupant gone) degrade to a
+## sourceless status — the compulsion lapses, nothing breaks.
+static func resolve_status_sources(units: Array[Unit]) -> void:
+	for unit: Unit in units:
+		for effect: StatusEffect in unit.active_status_effects:
+			if effect.pending_source_cell == null:
+				continue
+			var cell: Array = effect.pending_source_cell
+			effect.pending_source_cell = null
+			var tile: Tile = GridManager.get_tile(int(cell[0]), int(cell[1]))
+			if tile != null and tile.current_unit is Unit:
+				effect.source_unit = tile.current_unit
+
+
+## JSON round-trip re-coercion for one scheduled-effect entry (schema in
+## ScheduledEffects' header). Ints ride home as floats; handlers compare ints.
+static func _scheduled_from_dict(entry: Dictionary) -> Dictionary:
+	return {
+		"faction": int(entry.get("faction", Enums.UnitFaction.ENEMY)),
+		"turns_remaining": int(entry.get("turns_remaining", 1)),
+		"effect": str(entry.get("effect", "")),
+		"marker": str(entry.get("marker", "")),
+		"immune": str(entry.get("immune", "")),
+		"params": (entry.get("params", {}) as Dictionary).duplicate(true),
+		"source_name": str(entry.get("source_name", "")),
+	}
 
 
 static func _status_from_dict(entry: Dictionary) -> StatusEffect:
@@ -428,6 +474,10 @@ static func _status_from_dict(entry: Dictionary) -> StatusEffect:
 	effect.hot_heal_per_tick = int(entry.get("hot_heal_per_tick", 0))
 	effect.source_element = int(entry.get("source_element", Enums.ElementalType.NONE)) as Enums.ElementalType
 	effect.source_damage_type = int(entry.get("source_damage_type", Enums.DamageType.PHYSICAL)) as Enums.DamageType
+	if entry.has("source_cell"):
+		var cell: Variant = entry.get("source_cell")
+		if cell is Array and (cell as Array).size() == 2:
+			effect.pending_source_cell = [int(cell[0]), int(cell[1])]
 	# JSON floats → the ints the lock-check compares against.
 	for slot: Variant in entry.get("locked_slots", []):
 		if slot is Dictionary:

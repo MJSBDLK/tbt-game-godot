@@ -67,6 +67,16 @@ func execute_turn() -> void:
 # =============================================================================
 
 func _find_best_target() -> Unit:
+	# CHALLENGED (Phase 4): a challenged unit answers the challenge. While the
+	# status holds and the challenger lives, targeting locks onto them — no
+	# scoring, no second-guessing. The compulsion ends when the status expires
+	# or the challenger falls.
+	var challenger := _active_challenger()
+	if challenger != null:
+		DebugConfig.log_ai("AI '%s' is CHALLENGED — locked onto '%s'" % [
+			_unit.unit_name, challenger.unit_name])
+		return challenger
+
 	var turn_manager: Node = get_node_or_null("/root/TurnManager")
 	if turn_manager == null:
 		return null
@@ -84,6 +94,19 @@ func _find_best_target() -> Unit:
 			best_target = player_unit
 
 	return best_target
+
+
+## The live challenger compelling this unit, or null. Reads the CHALLENGED
+## status' source_unit (stamped by StatusEffectSystem at apply time; re-pointed
+## on restack so the newest roar wins; restored from saves via grid cell).
+func _active_challenger() -> Unit:
+	for effect: StatusEffect in _unit.active_status_effects:
+		if effect.effect_type_name != "CHALLENGED" or effect.stacks <= 0:
+			continue
+		var source := effect.source_unit as Unit
+		if source != null and is_instance_valid(source) and not source.is_defeated():
+			return source
+	return null
 
 
 func _evaluate_target(target: Unit) -> float:

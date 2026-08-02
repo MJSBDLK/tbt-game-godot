@@ -32,6 +32,15 @@ var locked_slots: Array[Dictionary] = []
 # attribution when a DoT tick deals the killing blow.
 var source_element: Enums.ElementalType = Enums.ElementalType.NONE
 var source_damage_type: Enums.DamageType = Enums.DamageType.PHYSICAL
+# The unit that applied this effect (runtime reference — NOT serialized as-is).
+# CHALLENGED reads it: the challenged unit's AI locks its targeting onto the
+# challenger while they live. Saves persist it as the source's grid cell;
+# SaveManager.resolve_status_sources re-points it after a battle restore. Null
+# = no compulsion (challenger died, or the save predates the source).
+var source_unit: Node2D = null
+# Save-restore intermediary: [x, y] of source_unit at capture time, consumed
+# by SaveManager.resolve_status_sources once every unit is back on the board.
+var pending_source_cell: Variant = null
 
 
 ## True if the given equipped_moves slot index is locked by this effect.

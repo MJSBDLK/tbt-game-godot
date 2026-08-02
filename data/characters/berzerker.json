@@ -37,6 +37,7 @@
 	},
 	"level": 1,
 	"basePoolMoves": [
+		"Roar",
 		"Bonk",
 		"Klunk",
 		"Uppercut",

@@ -15,6 +15,14 @@ extends Resource
 @export var attack_range: int = 1
 @export var area_of_effect: int = 0
 @export var target_type: Enums.TargetType = Enums.TargetType.SINGLE
+# Which factions an area_of_effect > 0 move touches, relative to the CASTER
+# (JSON: aoeAffects). "enemies" (default) | "allies" | "all". The caster is
+# never a victim of their own AoE.
+@export var aoe_affects: String = "enemies"
+# CombatPredicates name (JSON: immune). Units matching it are passed over by
+# this move entirely — AoE gathering skips them, riders skip them. ("brave"
+# for Shriek of the Damned; empty = nobody is immune.)
+@export var immune_predicate: String = ""
 
 # Animation style hint (JSON key: animationStyle). "auto" derives from
 # attack_range (>= 2 reads as ranged); "melee"/"ranged" force the clip family
@@ -49,6 +57,18 @@ var current_uses: int = 0
 # This is how rider buffs work — a damage move that buffs the user on hit.
 @export var status_effect_self_target: bool = false
 
+# Conditional-by-target status (Phase 4). Alternative to the flat status fields
+# above — the applied effect depends on a predicate evaluated per TARGET.
+# Normalized by MoveData from JSON statusEffect.conditional into:
+#   { "predicate": String,                       # CombatPredicates name ("brave")
+#     "then": { "effect": String (UPPER), "chance": float 0-1,
+#               "stacks": int, "replaces": bool },
+#     "else": { ...same shape... } }
+# Either branch may be {} = "apply nothing to these targets". Empty dict = no
+# conditional. Resolved by ConditionalAfflictionEffect in the pipeline.
+# (Roar: brave → CHALLENGED, everyone else → SHOCKED.)
+@export var status_conditional: Dictionary = {}
+
 # Secondary crit. Crit is NOT a status — it's a one-time damage doubling resolved
 # by CritEffect in the combat pipeline. A move's secondary slot holds EITHER a
 # status effect OR crit (mutually exclusive). crit_chance > 0 means the secondary
@@ -76,6 +96,19 @@ var current_uses: int = 0
 # Status effects to remove from the target on hit (e.g. "BLEED" to cure a wound).
 # Names match Enums.StatusEffectType keys (case-insensitive — normalized in MoveData).
 @export var cleanse_effects: PackedStringArray = PackedStringArray()
+
+# Scheduled effect (Phase 4): something happens N turns AFTER this move hits.
+# Normalized by MoveData from JSON onHit.scheduled into:
+#   { "effect": String,        # ScheduledEffects handler name ("chain_lightning_strike")
+#     "delay": int,            # full turns until it fires (ticks on the CASTER's
+#                              #   faction phase start, so victims get exactly
+#                              #   `delay` of their own turns to react)
+#     "marker": String (UPPER),# status stamped on the victim as the visible
+#                              #   telegraph; cleansing it DEFUSES the strike
+#     "params": Dictionary }   # handler-specific knobs (power, splashPct, ...)
+# Empty dict = nothing scheduled. Applied by ScheduleEffectHandler in the
+# pipeline; ticked + fired by ScheduledEffects. (Shriek of the Damned.)
+@export var scheduled_effect: Dictionary = {}
 
 
 ## True if this move targets allies (ALLY or ALLY_NOT_SELF). Used by
@@ -120,6 +153,16 @@ func has_meaningful_effect_on(target: Unit) -> bool:
 	if heals:
 		if target.character_data != null and target.current_hp >= target.character_data.max_hp:
 			return false
+
+	# Self-cast AoE (Roar, Shriek): the payload lands on OTHER units around the
+	# caster, so "meaningful" = at least one victim inside the radius right now.
+	# The action menu runs this after movement, so the position is final — a
+	# Roar with nobody in earshot greys out instead of burning PP on silence.
+	# Off-grid targets (bare test units) can't be position-checked; let them fly.
+	if target_type == Enums.TargetType.SELF and area_of_effect > 0:
+		if target.current_tile == null:
+			return true
+		return not MoveTargeting.get_area_victims(target, target.current_tile, self).is_empty()
 
 	# Determine if this move has any "primary" effect besides the status/cleanse.
 	# A move with base_power > 0 deals damage; heals deal healing. Either counts

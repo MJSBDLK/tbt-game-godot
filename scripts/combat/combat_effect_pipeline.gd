@@ -20,10 +20,11 @@ static func gather(ctx: CombatHitContext) -> Array[CombatEffect]:
 	if move == null:
 		return effects
 
-	# Crit (damage hits only). Added when the move has a secondary crit, or the
-	# attacker is carrying a banked pending_crit to spend on this hit. Runs in the
+	# Crit (damage hits only — heals and support applications have no damage
+	# to double). Added when the move has a secondary crit, or the attacker is
+	# carrying a banked pending_crit to spend on this hit. Runs in the
 	# modify_damage phase (this-hit crit) and/or on_hit (banking setup moves).
-	if not ctx.is_heal:
+	if not ctx.is_heal and not ctx.is_support:
 		var attacker_pending: bool = ctx.attacker != null and bool(ctx.attacker.get("pending_crit"))
 		if move.crit_chance > 0.0 or attacker_pending:
 			effects.append(CritEffect.new())
@@ -33,21 +34,33 @@ static func gather(ctx: CombatHitContext) -> Array[CombatEffect]:
 	if move.status_effect_type != Enums.StatusEffectType.NONE:
 		effects.append(ApplyAfflictionEffect.new())
 
+	# Conditional-by-target affliction (Phase 4 — Roar). Which effect lands is
+	# the handler's per-target decision; mutually exclusive with the flat form.
+	if not move.status_conditional.is_empty():
+		effects.append(ConditionalAfflictionEffect.new())
+
+	# Scheduled effect (Phase 4 — Shriek). Marks the target now, fires later
+	# via ScheduledEffects' tick clock.
+	if not move.scheduled_effect.is_empty():
+		effects.append(ScheduleEffectHandler.new())
+
 	# On-hit cleanse (every hit).
 	if not move.cleanse_effects.is_empty():
 		effects.append(CleanseEffect.new())
 
-	# On-hit displacement (damage hits only — heals don't displace).
+	# On-hit displacement (heals don't displace; support applications MAY —
+	# that's how a Roar-knockback style shove would ride a support cast).
 	if not ctx.is_heal and move.displace_distance > 0:
 		effects.append(DisplaceEffect.new())
 
 	# Passive handlers from both combatants participate in the per-hit phases
 	# (damage hits only — matches the old check_passive_triggers_on_hit, which
-	# never ran on heals). Appended after move effects so passive on-hit triggers
-	# (e.g. Bellows) fire after the move's own riders, preserving prior order.
-	# Each handler checks ctx for the relevant unit, so adding both sides is safe;
-	# dedup keeps a shared passive from firing twice.
-	if not ctx.is_heal:
+	# never ran on heals; support applications aren't combat exchanges either).
+	# Appended after move effects so passive on-hit triggers (e.g. Bellows) fire
+	# after the move's own riders, preserving prior order. Each handler checks
+	# ctx for the relevant unit, so adding both sides is safe; dedup keeps a
+	# shared passive from firing twice.
+	if not ctx.is_heal and not ctx.is_support:
 		_append_passives(effects, ctx.attacker)
 		_append_passives(effects, ctx.defender)
 

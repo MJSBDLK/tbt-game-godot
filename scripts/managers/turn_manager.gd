@@ -175,6 +175,10 @@ func start_player_phase() -> void:
 		await ui_manager.show_phase_transition("PLAYER PHASE - Turn %d" % turn_count, GameColors.PLAYER_UNIT)
 
 	_process_status_effects(_player_units)
+	# Scheduled effects tick on the CASTER's faction clock, so this fires
+	# strikes queued by PLAYER casts — on victims of EITHER faction (the queue
+	# rides on the victim; the clock belongs to the caster's side).
+	await ScheduledEffects.tick_faction_phase(Enums.UnitFaction.PLAYER, _all_battle_units())
 	_refresh_units(_player_units)
 	# Control locks (ROOTED/FREEZE) and injury effects both run AFTER refresh so
 	# their can_move/can_act=false latches aren't immediately reset. Control locks
@@ -220,6 +224,9 @@ func start_enemy_phase() -> void:
 		await ui_manager.show_phase_transition("ENEMY PHASE", GameColors.ENEMY_UNIT)
 
 	_process_status_effects(_enemy_units)
+	# Enemy-cast scheduled strikes (an enemy Shriek from last turn) land here —
+	# the player had exactly one full turn to scatter or cleanse the marks.
+	await ScheduledEffects.tick_faction_phase(Enums.UnitFaction.ENEMY, _all_battle_units())
 	_refresh_units(_enemy_units)
 	_process_control_locks(_enemy_units)
 	_process_injury_turn_effects(_enemy_units)
@@ -343,6 +350,19 @@ func _audit_tile_occupancy(units: Array[Unit], phase: String) -> void:
 				occupant_name = unit.current_tile.current_unit.unit_name
 			push_warning("OCCUPANCY AUDIT [%s] %s thinks it's on tile [%d,%d] but tile.current_unit=%s" % [
 				phase, unit.unit_name, unit.current_tile.grid_x, unit.current_tile.grid_y, occupant_name])
+
+
+## Every live unit on the board, both factions — scheduled-effect ticks span
+## the whole board because a caster's delayed strikes ride on its VICTIMS.
+func _all_battle_units() -> Array[Unit]:
+	var all: Array[Unit] = []
+	for unit: Unit in _player_units:
+		if is_instance_valid(unit):
+			all.append(unit)
+	for unit: Unit in _enemy_units:
+		if is_instance_valid(unit):
+			all.append(unit)
+	return all
 
 
 func _process_status_effects(units: Array[Unit]) -> void:

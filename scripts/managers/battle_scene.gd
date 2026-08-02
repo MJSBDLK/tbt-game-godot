@@ -190,6 +190,11 @@ func _resume_from_snapshot(battle: Dictionary) -> void:
 	DebugConfig.log_unit_init("BattleScene: Resumed %d players + %d enemies from save" % [
 		player_units.size(), enemy_units.size()])
 
+	# Cross-unit status references (CHALLENGED's challenger) resolve only after
+	# EVERY unit is back on its tile — per-unit apply_unit_state can't do it.
+	SaveManager.resolve_status_sources(player_units)
+	SaveManager.resolve_status_sources(enemy_units)
+
 	SquadManager.restore_pre_battle_snapshots(battle.get("pre_battle_snapshots", {}))
 	TurnManager.resume_battle(player_units, enemy_units, int(battle.get("turn_count", 1)))
 	_register_battle_systems(player_units, enemy_units)

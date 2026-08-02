@@ -78,5 +78,9 @@
 	"Zone Control": {
 		"abbrevName": "Zone Ctrl",
 		"description": "Enemies that move within this unit's attack range trigger an immediate free attack"
+	},
+	"Bravery": {
+		"abbrevName": "Bravery",
+		"description": "This unit counts as brave: challenged by Roar rather than rattled, and passed over by Shriek of the Damned. Courage without Chivalric's weaknesses — or its resistances."
 	}
 }

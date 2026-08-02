@@ -121,6 +121,7 @@ func apply_status_effect_by_name(caster: Node2D, target: Node2D, effect_type_nam
 	effect.stacks = mini(stacks_to_apply, config.max_stacks)
 	effect.source_element = source_element
 	effect.source_damage_type = source_damage_type
+	effect.source_unit = caster
 
 	var caster_data: Variant = caster.get("character_data") if caster != null else null
 	effect.caster_level = caster_data.level if caster_data != null else 1
@@ -460,6 +461,10 @@ func _calculate_dot_damage_value(caster_level: int, target: Node2D) -> int:
 ## On reapplication of an existing effect, refresh runtime values that depend
 ## on the (possibly newer) caster.
 func _refresh_effect_on_restack(effect: StatusEffect, config: StatusEffectData, caster: Node2D, target: Node2D) -> void:
+	# Re-point the source: a fresh CHALLENGED from a NEW challenger takes over
+	# the compulsion (last roar wins).
+	if caster != null:
+		effect.source_unit = caster
 	var caster_data: Variant = caster.get("character_data") if caster != null else null
 	if caster_data != null:
 		effect.caster_level = caster_data.level

@@ -90,6 +90,10 @@ static func _parse_move_entry(move_name: String, data: Dictionary) -> Move:
 	# Heal flag (formula: caster.special + base_power, applied in Unit._execute_single_hit)
 	move.heals = bool(data.get("heal", false))
 
+	# AoE faction filter + move-wide immunity predicate (see Move field docs).
+	move.aoe_affects = String(data.get("aoeAffects", "enemies")).to_lower()
+	move.immune_predicate = String(data.get("immune", "")).to_lower()
+
 	# On-hit instant effects (displacement, cleanse). Non-lingering, post-damage.
 	# Displacement schema is documented in displacement_system.gd's header.
 	var on_hit_data: Variant = data.get("onHit", null)
@@ -111,10 +115,34 @@ static func _parse_move_entry(move_name: String, data: Dictionary) -> Move:
 			for entry: Variant in cleanse_data:
 				cleansed.append(String(entry).to_upper())
 			move.cleanse_effects = cleansed
+		var scheduled_data: Variant = on_hit_data.get("scheduled", null)
+		if scheduled_data is Dictionary:
+			# Everything that isn't schema plumbing rides through as a handler
+			# param, so new knobs don't need a parser change.
+			var params: Dictionary = {}
+			for key: Variant in scheduled_data.keys():
+				if String(key) not in ["effect", "delay", "marker"]:
+					params[String(key)] = scheduled_data[key]
+			move.scheduled_effect = {
+				"effect": String(scheduled_data.get("effect", "")),
+				"delay": maxi(1, int(scheduled_data.get("delay", 1))),
+				"marker": String(scheduled_data.get("marker", "")).to_upper(),
+				"params": params,
+			}
 
 	# Status effect / crit (the single secondary slot — mutually exclusive).
 	var status_data: Variant = data.get("statusEffect", null)
-	if status_data is Dictionary:
+	if status_data is Dictionary and status_data.has("conditional"):
+		# Conditional-by-target branch (Phase 4): which effect lands depends on
+		# a per-target predicate. Mutually exclusive with the flat form below.
+		var conditional: Variant = status_data.get("conditional")
+		if conditional is Dictionary:
+			move.status_conditional = {
+				"predicate": String(conditional.get("predicate", "")).to_lower(),
+				"then": _parse_conditional_branch(conditional.get("then", null)),
+				"else": _parse_conditional_branch(conditional.get("else", null)),
+			}
+	elif status_data is Dictionary:
 		var effect_name: String = status_data.get("effect", "")
 		var effect_upper: String = effect_name.to_upper()
 		var status_target: String = String(status_data.get("target", "target")).to_lower()
@@ -132,6 +160,22 @@ static func _parse_move_entry(move_name: String, data: Dictionary) -> Move:
 			move.status_effect_self_target = status_target == "self"
 
 	return move
+
+
+## One arm of a conditional statusEffect. {} in the JSON (or an absent arm)
+## means "these targets get nothing" — a legal way to author e.g. "brave units
+## are simply unaffected." Effect names are validated at apply time by
+## StatusEffectSystem (unknown → logged error, no crash).
+static func _parse_conditional_branch(branch_data: Variant) -> Dictionary:
+	if not branch_data is Dictionary or (branch_data as Dictionary).is_empty():
+		return {}
+	var branch: Dictionary = branch_data
+	return {
+		"effect": String(branch.get("effect", "")).to_upper(),
+		"chance": float(branch.get("chance", 1.0)),
+		"stacks": int(branch.get("stacks", 0)),
+		"replaces": bool(branch.get("replaces", false)),
+	}
 
 
 static func _parse_status_effect(effect_name: String) -> Enums.StatusEffectType:

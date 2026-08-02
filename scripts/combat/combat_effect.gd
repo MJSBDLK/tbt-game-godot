@@ -101,6 +101,13 @@ func randomizes_move() -> bool:
 	return false
 
 
+## Fear cluster: does this passive make its owner count as brave (challenged by
+## Roar, immune to Shriek) without being Chivalric-typed? Queried by
+## CombatPredicates.is_brave — never check this directly. (Bravery.)
+func grants_bravery() -> bool:
+	return false
+
+
 ## Targeting: extra attack range (additive) this passive grants its owner for the
 ## given move. Gathered from the ATTACKER's passives by
 ## MoveTargeting.effective_attack_range. Tiles beyond the move's base range are

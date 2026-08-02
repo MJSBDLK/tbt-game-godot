@@ -209,7 +209,7 @@ Dispatch points that still need wiring are noted per group:
 - [x] NEW dispatch: `on_kill` wiring → **Waste Not** (refunds the killing move's use).
 - [x] NEW dispatch: redirect hook (`intercepts_attack`) → **Protector** (body-blocks ranged offensive attacks aimed at an ally further along its row/column/diagonal). `MoveTargeting.resolve_actual_target` scans `cells_between_on_axis` for the nearest non-defeated ally-of-target with the hook; naturally ranged-only (adjacent shots have no cell between). One wiring point in `Unit.execute_combat_sequence` (covers player + AI) + the combat preview. Shared geometry in [[grid_geometry]]. Tests in test_protector_passive.gd.
 - [x] NEW dispatch: range hook (`extra_attack_range`) → **Extendo** (+1 physical range). Bonus tiles past base range require a forgiving GridGeometry reach (terrain-blocked for the attacker's type; units don't block). Unified `MoveTargeting.effective_attack_range`/`can_target`/`is_reach_clear` as the single source across player targeting, highlights, AI, click-shortcut, and counters. Shared geometry in [[grid_geometry]]. Tests in test_extendo_passive.gd.
-- [ ] **Bravery** (new) — `is_brave()` flag (challenged by Roar, immune to Shriek) without Chivalric's type weaknesses/resistances. Backs the Phase 4 fear cluster. **Deferred to Phase 4** (inert until Roar/Shriek exist; building it now = a flag with no consumer).
+- [x] **Bravery** — SHIPPED with Phase 4 (2026-08-01): BraveryPassive marker handler + `grants_bravery()` hook, consumed via CombatPredicates.is_brave. Challenged by Roar, immune to Shriek, no Chivalric type-chart baggage.
 - [ ] **Zone Control** — **DEFERRED + reframed.** Dropping the stat-aura spec entirely (it was just a fourth `passive_bonus_*` aura with no identity). Zone Control is now a Songs-of-Conquest **zone of control**: an enemy that moves within this unit's attack range triggers an immediate **free attack** (no counter, no use cost — a reaction variant of `Unit.execute_combat_sequence`). `data/passives.json` description updated to match. Depends on the threat-overlay viz below as its telegraph (unfair without it) and needs OoO decisions (trigger on enter/within/leave; stop-on-hit vs continue; one-per-turn vs per-move).
 - [~] **Threat-overlay system** (prereq for Zone Control's AoO; Alpha-worthy on its own — an FE-style danger zone helps planning against *every* enemy, not just ZC). Render enemy **move-zone**, **danger-zone** (move + attack), and **passive-danger-zone** as styled tile overlays. Build as ONE overlay system with multiple sources/styles, not three hardcoded features. Model/view split so Lawrence can swap the visuals without touching logic.
   - [x] **Model** — `ThreatCalculator` (pure: `compute_danger_zone(units)` for any list → cell→count; honors Extendo reach; V1 = move+attack, Manhattan ball, no per-tile LoS). Tests in test_threat_calculator.gd.
@@ -256,14 +256,61 @@ Follow-ups (from RQD's 2026-08-01 playtest):
 - [ ] Keep the callout convention inviolate: OUT OF RANGE always floats over the unit that LOST its attack. Lawrence eventually: a broken-link/denied glyph beside the text so it isn't carrying everything in 5px type.
 - [ ] **Generated displacement diagrams** (RQD 2026-08-01: "no great visual representation of what the moves do"): a schematic renderer that draws an Into-the-Breach-style vignette straight from the declarative displace params — 3-5 mini tiles, caster/target pips, arrow with distance notches, ghost pip at the destination; impact star for slams, arc-over for fall_through, crossed arrows for swap, spin arc for rotations. Generated = zero per-move art, new moves get diagrams free, can never drift from behavior. Lives in the unit detail panel's move description area first, same widget reused in the hold-to-peek tooltip. Animatable cheaply (pip slides A→B, loops). Build with programmer art (palette rects + drawn arrows) per functionality-first order. **Lawrence art request = the ATOMS, not per-move art**: mini tile cell (~8px), faction-tintable unit pip, ghost pip, arrow segment + head, impact star, spin arc. Ties into the locked target-scheme color language (target type = color, epicenter distinct). Optional cheaper layer: five 10×10 displacement-family badges (push/pull/self/spin/swap) for move chips, same slot logic as the damage-type icon.
 
-## [ ] PHASE 4 — Conditional + scheduled effects (Roar, Shriek)
+## [x] PHASE 4 — Conditional + scheduled effects (Roar, Shriek) — SHIPPED 2026-08-01
 **Why:** two new effect capabilities that the pipeline makes cheap once it exists.
 
-- [ ] `is_brave()` — Unit/CharacterData helper: `primary_type == Chivalric OR has Bravery passive`. Shared by the whole fear-interaction cluster.
-- [ ] **Conditional-by-target** effect: an `on_hit` handler that branches on a predicate. Roar → SHOCKED normally, CHALLENGED to brave units.
-- [ ] **Scheduled effect queue**: per-unit list `{ turns_remaining, effect, params }`, ticked in `on_turn_start`. Generalizes "happens N turns later."
-- [ ] Author **Roar** — support, self-target, AOE 2, applies the conditional affliction (accuracy 255 ≈ can't-miss).
-- [ ] Author **Shriek of the Damned** — Occult, self-target, AOE 5 (playtest the radius), brave-immune, schedules a Chain Lightning proc on non-brave units one turn later.
+**SHIPPED 2026-08-01 (rqd--phase4-conditional-effects):** the whole checklist, plus the
+self-cast layer nobody knew was missing. Suite 667/2195 green.
+- **Self-cast targeting fix** — `MoveTargeting.is_valid_target` had no SELF branch, so
+  SELF moves fell into the "enemies only" else and failed against their own caster:
+  **Focus, Fortify, Bloom, and Battle Cry were never castable in-game.** All four are
+  alive now. New support execution path (`Unit._execute_support_hit`): auto-hit, no
+  damage/XP, riders through the pipeline; friendly casts (ally + self) never counter.
+- **AoE execution finally exists** — `areaOfEffect` was data + a chip glyph, executed
+  nowhere. `MoveTargeting.get_area_victims` (Manhattan ball, `aoeAffects`
+  enemies/allies/all relative to caster, `immune` predicate, caster exempt) +
+  `Unit._execute_area_applications`. Self-cast AoE with no self payload skips the
+  primary hit — Roar can't shock its own caster. `has_meaningful_effect_on` counts the
+  audience, so a Roar with nobody in earshot greys out.
+- [x] `is_brave()` — [CombatPredicates](../scripts/combat/combat_predicates.gd) (named-predicate
+  registry: "brave"/"not_brave"): effective Chivalric PRIMARY (Crystallization strips courage
+  with the type) OR the **Bravery** passive (new marker handler + passives.json — courage
+  without the type chart; the un-strippable way to be brave).
+- [x] **Conditional-by-target** — `statusEffect.conditional {predicate, then, else}` in JSON →
+  ConditionalAfflictionEffect. Empty branch = "those targets get nothing."
+- [x] **Scheduled effect queue** — [scheduled_effects.gd](../scripts/combat/scheduled_effects.gd)
+  (header = living doc): entries ride the VICTIM, tick on the CASTER's faction phase (victims
+  get exactly `delay` full turns to react), marker status = visible telegraph, **cleansing the
+  mark defuses the strike**, occupied debuff slot = mark can't take hold. Save round-trip
+  (queue per unit; ints re-coerced).
+- [x] Author **Roar** — Support/Simple, self, AoE 2, acc 255, enemies only: brave →
+  CHALLENGED, everyone else → SHOCKED. Pooled: berzerker (front), ogre (behind Bounce Out).
+- [x] Author **Shriek of the Damned** — Support/Occult, self, AoE 5, `aoeAffects: all`
+  (the damned don't discriminate — the caster's own side gets marked too), brave-immune,
+  delay-1 chain-lightning strike: flat 6 to the marked, ceil-half splash to orthogonal
+  neighbors of ANY faction (spreading out is the counterplay), brave spared from splash
+  too. Pooled: occult, blood_mage. PP 3 (usagesOffset).
+- [x] **CHALLENGED has teeth now** (was a config with zero consumers): StatusEffect gains
+  `source_unit` (stamped at apply, re-pointed on restack — last roar wins; saved as grid
+  cell, re-resolved post-restore via SaveManager.resolve_status_sources); EnemyAI target
+  selection locks onto a living challenger before any scoring. Player-side CHALLENGED is
+  a soft rule (we can't compel a human) — surface in UI someday if it matters.
+- [x] Author **Steady** (new, RQD to review) — Support/Simple ally cleanse
+  ["Chain_Lightning", "Shocked"]: the defuse counterplay needed a cleanser that could
+  actually reach those statuses (First Aid only strips Bleed). Pooled: both healers.
+- Debug kit: `DebugConfig.testing_phase4_moves` → rotating 4-move windows of
+  Unit.DEBUG_PHASE4_KIT (Roar/Shriek/Steady/First Aid + Focus/Fortify/Battle Cry/Bloom).
+  Needs a brave ENEMY on the field (knight, buglers, ogre_squire, pierre) to see the
+  CHALLENGED branch + aggro lock.
+- Tests: test_phase4_conditional (10), test_scheduled_effects (8), test_challenged_aggro (5).
+  Bundled hardening: `_host_popup` survives out-of-tree units (returns hosted/not),
+  `_handle_defeat` fade skips treeless units.
+- **TUNING GUESSES (playtest):** Shriek strike 6 / splash 50% / AoE 5 / PP 3; Roar AoE 2 /
+  PP 8; CHALLENGED = hard target lock for its 3-turn tick-down; Chain-Lightning splash is
+  faction-blind; support casts award no XP; Steady's existence + its cleanse list.
+- **STILL OPEN:** in-game eyeball (callout pacing on strike day, mark icon legibility,
+  flourish pulse); SHOCKED's "may skip turn" clause remains unimplemented (pre-existing);
+  Stampede/Razor Wing charge authoring still parked under Phase 3's [~].
 
 **Cross-cutting (Chivalric fear cluster):** Roar (CHALLENGED-on-brave) and Shriek (skips brave) both lean on `is_brave()`.
 

@@ -765,5 +765,65 @@
 		"onHit": {
 			"cleanse": ["Bleed"]
 		}
+	},
+
+	"Steady": {
+		"description": "A firm hand and a steadying word. Grounds out lightning marks and settles rattled nerves.",
+		"abbrevName": "Steady",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 0,
+		"accuracy": 100,
+		"damageType": "Support",
+		"elementType": "Simple",
+		"targetType": "Ally",
+		"onHit": {
+			"cleanse": ["Chain_Lightning", "Shocked"]
+		}
+	},
+
+	"Roar": {
+		"description": "A challenge bellowed across the field. Nearby foes are rattled — but the brave hear an invitation.",
+		"abbrevName": "Roar",
+		"range": 0,
+		"areaOfEffect": 2,
+		"basePower": 0,
+		"accuracy": 255,
+		"usagesOffset": -22,
+		"damageType": "Support",
+		"elementType": "Simple",
+		"targetType": "Self",
+		"aoeAffects": "enemies",
+		"statusEffect": {
+			"conditional": {
+				"predicate": "brave",
+				"then": { "effect": "Challenged", "chance": 1.0 },
+				"else": { "effect": "Shocked", "chance": 1.0 }
+			}
+		}
+	},
+
+	"Shriek of the Damned": {
+		"description": "A scream from somewhere no one living should have stood. The marked are struck by chain lightning one turn later — cleanse the mark to defuse it. The brave do not flinch, and are passed over.",
+		"abbrevName": "Shriek",
+		"range": 0,
+		"areaOfEffect": 5,
+		"basePower": 0,
+		"accuracy": 255,
+		"usagesOffset": -27,
+		"damageType": "Support",
+		"elementType": "Occult",
+		"targetType": "Self",
+		"aoeAffects": "all",
+		"immune": "brave",
+		"onHit": {
+			"scheduled": {
+				"effect": "chain_lightning_strike",
+				"delay": 1,
+				"marker": "Chain_Lightning",
+				"power": 6,
+				"splashPct": 50
+			}
+		}
 	}
 }

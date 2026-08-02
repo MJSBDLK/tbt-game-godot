@@ -20,7 +20,14 @@ static func is_valid_target(target: Unit, attacker: Unit, move: Move) -> bool:
 		return false
 	if target.is_defeated():
 		return false
-	if move.targets_allies():
+	if move.target_type == Enums.TargetType.SELF:
+		# Self-cast: the caster is the ONLY legal recipient. This branch was
+		# missing until Phase 4 — SELF moves fell into the "enemies only" else
+		# below and failed the same-faction check against their own caster, so
+		# Focus/Fortify/Bloom/Battle Cry never lit up a single tile.
+		if target != attacker:
+			return false
+	elif move.targets_allies():
 		if target.faction != attacker.faction:
 			return false
 		if move.target_type == Enums.TargetType.ALLY_NOT_SELF and target == attacker:
@@ -158,6 +165,39 @@ static func _intercepts(blocker: Unit, attacker: Unit, target: Unit, move: Move)
 		if handler.intercepts_attack(blocker, attacker, target, move):
 			return true
 	return false
+
+
+## Everyone a move's area-of-effect touches, epicenter excluded. Victims are
+## units within `move.area_of_effect` Manhattan tiles of `epicenter`, minus the
+## caster (your own shout never hits you), filtered by the move's aoe_affects
+## faction rule (relative to the CASTER: "enemies" default / "allies" / "all")
+## and its immune_predicate (e.g. Shriek's "brave" — those units are passed
+## over entirely). Execution (Unit's AoE loop) and the action menu's
+## "would this even do anything" check both read this, so they always agree.
+static func get_area_victims(caster: Unit, epicenter: Tile, move: Move) -> Array[Unit]:
+	var victims: Array[Unit] = []
+	if caster == null or epicenter == null or move == null or move.area_of_effect <= 0:
+		return victims
+	for tile: Tile in GridManager.get_tiles_within_range(epicenter, move.area_of_effect):
+		if tile.current_unit == null or not tile.current_unit is Unit:
+			continue
+		var unit := tile.current_unit as Unit
+		if unit == caster or unit.is_defeated():
+			continue
+		match move.aoe_affects:
+			"allies":
+				if unit.faction != caster.faction:
+					continue
+			"all":
+				pass
+			_:  # "enemies" — the default
+				if unit.faction == caster.faction:
+					continue
+		if not move.immune_predicate.is_empty() \
+				and CombatPredicates.evaluate(move.immune_predicate, unit):
+			continue
+		victims.append(unit)
+	return victims
 
 
 ## Extended-reach line check: can a poke from `from_tile` get to `to_tile`
