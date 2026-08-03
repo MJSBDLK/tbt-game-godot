@@ -119,6 +119,12 @@ var attacks_this_turn: int = 0
 # re-earn is a few XP.)
 var _survival_xp_sources: Dictionary = {}
 
+# XP earned during the current combat sequence, batched into ONE "+N XP"
+# callout when it ends (per-hit popups would spam a 4-hit chain). Flushed by
+# _flush_xp_feedback; levels ride along for the LEVEL UP! callout.
+var _combat_xp_gained: int = 0
+var _combat_levels_gained: int = 0
+
 # Set by take_damage when the killing blow lands. Used by InjurySystem to
 # pick the right injury when the unit_defeated handler runs.
 # Shape: { "element": Enums.ElementalType, "damage_type": Enums.DamageType, "name": String }
@@ -784,6 +790,7 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 		# already landed and the target reads as "already buffed."
 		if not attacker_move.heals:
 			_award_support_xp(attacker_move)
+		await _flush_xp_feedback()
 		combat_completed.emit(self, defender)
 		return
 
@@ -889,6 +896,14 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 	# using a different move.
 	_capricious_post_combat_reroll(self)
 	_capricious_post_combat_reroll(defender)
+
+	# XP feedback, batched per combatant. XP earned by a unit that then died
+	# stays banked (earned before dying counts) — only its popup is skipped;
+	# _handle_defeat may have started freeing the node.
+	if not is_defeated():
+		await _flush_xp_feedback()
+	if is_instance_valid(defender) and not defender.is_defeated():
+		await defender._flush_xp_feedback()
 
 	combat_completed.emit(self, defender)
 	DebugConfig.log_combat("Combat complete: %s HP=%d, %s HP=%d" % [
@@ -1153,10 +1168,7 @@ func _award_combat_xp(target: Unit, killed: bool) -> void:
 		return
 	var xp: int = CombatXpCalculator.compute_combat_xp(
 			character_data, target.character_data, killed)
-	var levels_gained: int = character_data.grant_xp(xp)
-	if levels_gained > 0:
-		_update_level_label()
-		_update_health_bar()
+	_grant_combat_xp(xp)
 
 
 ## Heal-side XP grant. RD awards a flat amount per cast regardless of HP
@@ -1168,11 +1180,7 @@ func _award_heal_xp(target: Unit, amount: int) -> void:
 	if character_data == null or amount <= 0:
 		return
 	var target_data: CharacterData = target.character_data if target != null else null
-	var xp: int = CombatXpCalculator.compute_heal_xp(character_data, target_data)
-	var levels_gained: int = character_data.grant_xp(xp)
-	if levels_gained > 0:
-		_update_level_label()
-		_update_health_bar()
+	_grant_combat_xp(CombatXpCalculator.compute_heal_xp(character_data, target_data))
 
 
 ## Support-cast XP grant (buffs, cleanses, shouts — the non-heal friendly
@@ -1181,11 +1189,7 @@ func _award_heal_xp(target: Unit, amount: int) -> void:
 func _award_support_xp(move: Move) -> void:
 	if faction != Enums.UnitFaction.PLAYER or character_data == null:
 		return
-	var xp: int = CombatXpCalculator.compute_support_xp(character_data, move)
-	var levels_gained: int = character_data.grant_xp(xp)
-	if levels_gained > 0:
-		_update_level_label()
-		_update_health_bar()
+	_grant_combat_xp(CombatXpCalculator.compute_support_xp(character_data, move))
 
 
 ## Survival XP: awarded to a player unit that lived through an enemy's
@@ -1204,12 +1208,38 @@ func _award_survival_xp(attacker: Unit) -> void:
 	if _survival_xp_sources.has(source_id):
 		return
 	_survival_xp_sources[source_id] = true
-	var xp: int = CombatXpCalculator.compute_survival_xp(
-			character_data, attacker.character_data)
+	_grant_combat_xp(CombatXpCalculator.compute_survival_xp(
+			character_data, attacker.character_data))
+
+
+## The one funnel every XP award flows through. Banks into the character,
+## accumulates for the end-of-combat "+N XP" callout, and refreshes the
+## on-map labels when a level fires. Callers have already faction-guarded.
+func _grant_combat_xp(xp: int) -> void:
+	if xp <= 0:
+		return
+	_combat_xp_gained += xp
 	var levels_gained: int = character_data.grant_xp(xp)
 	if levels_gained > 0:
+		_combat_levels_gained += levels_gained
 		_update_level_label()
 		_update_health_bar()
+
+
+## End-of-combat XP feedback: one gold "+N XP" callout for everything earned
+## this sequence (hits, kills, heals, support, survival — batched so a 4-hit
+## chain doesn't spam four popups), then LEVEL UP! on a beat of its own.
+## The mid-battle celebration stays deliberately small — the full stat
+## reveal belongs to LevelUpReportPanel at mission end.
+func _flush_xp_feedback() -> void:
+	if _combat_xp_gained <= 0:
+		return
+	spawn_text_callout("+%d XP" % _combat_xp_gained, GameColorPalette.get_color("Yellow", 7))
+	if _combat_levels_gained > 0 and is_inside_tree():
+		await get_tree().create_timer(0.5).timeout
+		spawn_text_callout("LEVEL UP!", GameColorPalette.get_color("Yellow", 8))
+	_combat_xp_gained = 0
+	_combat_levels_gained = 0
 
 
 ## Miss path: attacker plays its approach, brief hold so the player can read

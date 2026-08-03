@@ -75,7 +75,12 @@ func _spawn_unit(json_path: String, faction: Enums.UnitFaction) -> Unit:
 	var unit: Unit = (load("res://scenes/battle/unit.tscn") as PackedScene).instantiate() as Unit
 	unit.character_json_path = json_path
 	unit.faction = faction
-	add_child_autofree(unit)
+	# Each unit gets its own parent container so popup scans (_callout_texts
+	# walks the unit's parent) can't see callouts spawned by a previous test
+	# in this script — popups outlive their test by ~a second.
+	var container := Node2D.new()
+	add_child_autofree(container)
+	container.add_child(unit)
 	var tile: Tile = autofree(Tile.new())
 	tile.grid_x = 0
 	tile.grid_y = 0
@@ -130,3 +135,45 @@ func test_support_award_is_player_only() -> void:
 	var enemy := _spawn_unit(GRUNT_PATH, Enums.UnitFaction.ENEMY)
 	enemy._award_support_xp(null)
 	assert_eq(enemy.character_data.experience, 0, "enemy casts pay nothing")
+
+
+# =============================================================================
+# XP FEEDBACK (batched "+N XP" callout + LEVEL UP! beat)
+# =============================================================================
+
+func _callout_texts(unit: Unit) -> Array:
+	var texts: Array = []
+	for child: Node in unit.get_parent().get_children():
+		if child is DamagePopup and child._damage_label != null:
+			texts.append(child._damage_label.text)
+	return texts
+
+
+func test_xp_feedback_batches_the_whole_combat_into_one_popup() -> void:
+	var unit := _spawn_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER)
+	unit._grant_combat_xp(12)
+	unit._grant_combat_xp(5)
+	assert_eq(unit._combat_xp_gained, 17, "grants accumulate across the sequence")
+
+	await unit._flush_xp_feedback()
+	assert_has(_callout_texts(unit), "+17 XP",
+			"ONE gold callout for the whole combat — a 4-hit chain doesn't spam four")
+	assert_eq(unit._combat_xp_gained, 0, "flush resets the accumulator")
+
+
+func test_level_up_gets_its_own_callout_beat() -> void:
+	var unit := _spawn_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER)
+	unit._grant_combat_xp(100)
+	assert_eq(unit._combat_levels_gained, 1, "the 100-XP threshold leveled mid-combat")
+
+	await unit._flush_xp_feedback()
+	var texts: Array = _callout_texts(unit)
+	assert_has(texts, "+100 XP")
+	assert_has(texts, "LEVEL UP!",
+			"mid-battle level-ups announce themselves — the full stat reveal still waits for mission end")
+
+
+func test_flush_with_nothing_earned_stays_silent() -> void:
+	var unit := _spawn_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER)
+	await unit._flush_xp_feedback()
+	assert_eq(_callout_texts(unit).size(), 0, "no XP, no popup — enemies' combats stay quiet")

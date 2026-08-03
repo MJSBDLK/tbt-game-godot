@@ -571,6 +571,12 @@ func _update_identity() -> void:
 	if _class_label:
 		var class_text: String = Enums.get_class_display_name(_character_data.current_class)
 		_class_label.text = class_text.to_upper() + " Lv." + str(_character_data.level)
+		# XP progress rides the class row for PLAYER units (2026-08-03 XP
+		# visibility pass — combat XP existed for months with no readout
+		# anywhere, so players believed fighting earned nothing). Enemies
+		# never earn XP; showing their 0/100 would be noise.
+		if _unit != null and _unit.get("faction") == Enums.UnitFaction.PLAYER:
+			_class_label.text += "  ·  %d/100 XP" % _character_data.experience
 
 	# Type icons
 	var primary_visible := _character_data.primary_type != Enums.ElementalType.NONE
