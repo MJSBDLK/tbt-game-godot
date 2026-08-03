@@ -191,14 +191,12 @@ func _update_defender_section(attacker: Node, defender: Node, move: Move) -> voi
 	var defender_data: CharacterData = defender.get("character_data")
 	_set_unit_type_icons(_defender_primary_type_icon, _defender_secondary_type_icon, defender_data)
 
-	var can_counter := DamageCalculator.can_counter_attack(defender, attacker)
-	# Displacement can deny the counter before it ever fires (the shove-then-
-	# no-counter rule) — the preview says so UP FRONT instead of predicting
-	# counter damage that will never land. Pure query; distance-only
-	# approximation, same caveat as its source.
-	var shove_denies_counter := can_counter \
-			and not DisplacementSystem.counter_survives_displacement(attacker, defender, move)
-	if can_counter and not shove_denies_counter:
+	var will_counter := _predicts_counter(attacker, defender, move)
+	# A counter that's in range RIGHT NOW but dies to the shove gets a named
+	# cause ("NO COUNTER" below) instead of reading as unarmed.
+	var shove_denies_counter := not will_counter \
+			and DamageCalculator.can_counter_attack(defender, attacker)
+	if will_counter:
 		var counter_move: Move = defender.get("assigned_move")
 		_defender_move_label.text = _truncate(counter_move.abbrev_name)
 		_set_elemental_icon(_defender_move_type_icon, counter_move.element_type)
@@ -233,6 +231,18 @@ func _update_defender_section(attacker: Node, defender: Node, move: Move) -> voi
 			_defender_move_label.text = _truncate("NO COUNTER")
 
 
+## One counter verdict for both halves of the panel: does the preview predict
+## a counter once this move (displacement included) resolves? In range now
+## and not shoved out — or out of range now but pulled in. Execution
+## re-checks range before every counter, so both predictions are honest.
+## Pure queries; distance-only approximation, same caveat as their source.
+static func _predicts_counter(attacker: Node, defender: Node, move: Move) -> bool:
+	if DamageCalculator.can_counter_attack(defender, attacker):
+		return DisplacementSystem.counter_survives_displacement(attacker, defender, move)
+	return DamageCalculator.is_counter_eligible(defender) \
+			and DisplacementSystem.counter_granted_by_displacement(attacker, defender, move)
+
+
 # =============================================================================
 # HEALTH PIPS — shader-driven HP bars with damage preview
 # =============================================================================
@@ -253,11 +263,10 @@ func _update_health_pips(attacker: Node, defender: Node, move: Move) -> void:
 	var defender_hp: int = defender.get("current_hp")
 	var defender_max_hp: int = defender_data.max_hp if defender_data else 1
 
-	# Attacker HP — show counter-attack damage preview if defender can counter
-	# AND the shove wouldn't deny it (a denied counter deals no damage, so the
-	# attacker's bar shows no damage band — consistent with NO COUNTER above).
-	var can_counter := DamageCalculator.can_counter_attack(defender, attacker) \
-			and DisplacementSystem.counter_survives_displacement(attacker, defender, move)
+	# Attacker HP — show counter-attack damage preview when the counter is
+	# predicted to actually fire (same verdict as the defender section, shove
+	# denials and pull grants included, so the bar matches the move row).
+	var can_counter := _predicts_counter(attacker, defender, move)
 	if can_counter:
 		var counter_move: Move = defender.get("assigned_move")
 		var counter_damage := DamageCalculator.calculate_damage(defender, attacker, counter_move)

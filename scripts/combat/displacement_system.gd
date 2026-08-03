@@ -738,6 +738,32 @@ static func counter_survives_displacement(caster: Node2D, target: Node2D, move: 
 	var plan := build_plan(caster, target, move)
 	if plan == null:
 		return true
+	return _plan_leaves_counter_in_range(plan, caster, target, counter_move)
+
+
+## The mirror query: does this move's displacement PULL a currently-out-of-
+## range defender into its counter range? Execution re-checks range before
+## every counter, so a pulled-in defender really does retaliate (Grav Hook's
+## honest price) — this lets the preview predict it instead of promising a
+## free hit. False when nothing displaces, no counter move, or no legal plan
+## (blocked pull = nobody moves = nothing granted). Same distance-only
+## approximation as counter_survives_displacement.
+static func counter_granted_by_displacement(caster: Node2D, target: Node2D, move: Move) -> bool:
+	if move == null or move.displace_distance <= 0:
+		return false
+	var counter_move: Move = target.get("assigned_move")
+	if counter_move == null:
+		return false
+	var plan := build_plan(caster, target, move)
+	if plan == null:
+		return false
+	return _plan_leaves_counter_in_range(plan, caster, target, counter_move)
+
+
+## Shared core of the two counter queries: post-plan Manhattan distance vs the
+## counter move's effective range (Extendo included, reach-clear skipped).
+static func _plan_leaves_counter_in_range(plan: DisplacePlan, caster: Node2D,
+		target: Node2D, counter_move: Move) -> bool:
 	var caster_cell := _plan_final_cell(plan, caster)
 	var target_cell := _plan_final_cell(plan, target)
 	var distance := absi(caster_cell.x - target_cell.x) + absi(caster_cell.y - target_cell.y)

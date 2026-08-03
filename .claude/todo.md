@@ -17,8 +17,23 @@
     caches AtlasTextures per frame, so UnitShadow's RID-keyed projection cache stops re-
     rasterizing (and growing) after every attack-clip restore. Pinned in test_unit_shadow.gd
     (atlas spawn chain + shared-instance cache). Delete the four images once verified in-game.
-- [ ] Save/Load causes expended (for the turn) units to appear not-grayed-out
-- [ ] Grav hook pulling an enemy unit into range should allow that unit to counterattack if pulled into range of its equipped attack
+- [x] Save/Load causes expended (for the turn) units to appear not-grayed-out
+  - **FIXED 2026-08-03**: `SaveManager.apply_unit_state` restored the `can_act` latch but not
+    the visual — `set_acted()` is what paints the gray, and `resume_battle` deliberately skips
+    the upkeep that would repaint it. The restore now applies the acted/active modulate to
+    match the latch. Pinned in test_battle_save.gd (both directions: gray comes back, and a
+    ready unit restores to full color).
+- [x] Grav hook pulling an enemy unit into range should allow that unit to counterattack if pulled into range of its equipped attack
+  - **FIXED 2026-08-03**: counters were gated by a planning-time `can_counter_attack` (range
+    baked in before hit 1) — the mid-combat range re-checks could only DENY. Split into
+    ELIGIBILITY (alive, usable damaging move — locked up front) + live per-hit range, so a
+    pull grants the counter exactly like a shove denies it. Combat preview predicts the
+    granted counter too (`counter_granted_by_displacement`, mirror of the survives query), so
+    Grav Hook's forecast shows the retaliation instead of promising a free hit. The
+    OUT OF RANGE callout stays reserved for counters actually taken away — a melee defender
+    plinked from range 3 is silent, same as always. Tests in test_displacement_system.gd
+    (execution: pull-grants + never-in-range silence) and test_displacement_preview.gd
+    (pure grant query ×4).
 - [x] Bug with chain lightning effect - this is somewhat unique from other afflictions in that its stacks don't persist - they should all execute immediately in sequence, depending on how many enemy units are in range.
   - Chain Lightning 1 -> target receives 100% damage, arcs to second target, receives 50% damage
   - Chain Lightning 2 -> target receives 100% damage, arcs to second target, receives 50% damage, arcs to third target, received 25% damage. Can't hit the same target twice.

@@ -340,9 +340,26 @@ static func calculate_heal_amount(caster: Node2D, target: Node2D, move: Move) ->
 	return apply_healing_reduction(target, move_heal_output(caster, move))
 
 
-## Check if defender can counter-attack the attacker.
+## Check if defender can counter-attack the attacker from where everyone
+## stands RIGHT NOW. Planning-time verdict — combat execution splits this into
+## is_counter_eligible (locked in up front) + per-hit is_within_attack_range,
+## because displacement can grant or deny the range half mid-combat.
 static func can_counter_attack(defender: Node2D, attacker: Node2D) -> bool:
-	if defender == null or attacker == null:
+	if not is_counter_eligible(defender) or attacker == null:
+		return false
+
+	# Must be in range — including the defender's own range passives (Extendo), so
+	# an extended-reach unit counters at its bonus range too. Beyond base range,
+	# the counter needs a clear reach just like an opening attack would.
+	return is_within_attack_range(defender, attacker, defender.get("assigned_move"))
+
+
+## The position-INDEPENDENT half of can_counter_attack: alive, holding a
+## damaging assigned move with uses left. A defender who passes this but
+## stands out of range still gains its counter if displacement (Grav Hook's
+## pull) drags it into reach mid-combat.
+static func is_counter_eligible(defender: Node2D) -> bool:
+	if defender == null:
 		return false
 
 	# Must not be defeated
@@ -357,13 +374,7 @@ static func can_counter_attack(defender: Node2D, attacker: Node2D) -> bool:
 
 	# Support moves don't deal damage, so they can't counter-attack.
 	# A unit with only support moves equipped is helpless on retaliation by design.
-	if defender_move.damage_type == Enums.DamageType.SUPPORT:
-		return false
-
-	# Must be in range — including the defender's own range passives (Extendo), so
-	# an extended-reach unit counters at its bonus range too. Beyond base range,
-	# the counter needs a clear reach just like an opening attack would.
-	return is_within_attack_range(defender, attacker, defender_move)
+	return defender_move.damage_type != Enums.DamageType.SUPPORT
 
 
 ## The position-sensitive half of can_counter_attack: is `target` within

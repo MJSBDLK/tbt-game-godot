@@ -687,3 +687,95 @@ func test_knockback_within_counter_range_still_counters() -> void:
 		"distance 2 is still inside the range-2 counter — it fires")
 	assert_eq(counter_move.current_uses, counter_move.max_uses - 1,
 		"a counter that fires pays its PP")
+
+
+func test_pull_grants_the_counter_to_a_defender_reeled_into_range() -> void:
+	# The mirror of the denial rule (RQD 2026-08-03): Grav Hook reels a melee
+	# defender from distance 3 to distance 1. Counter gating is by ELIGIBILITY
+	# (alive, usable damaging move) with range checked live per hit — so the
+	# counter that was impossible at planning time fires from the new
+	# positions, and pays its PP like any other.
+	_open_grid(0, 7, 0, 2)
+	var attacker := _spawn_scene_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 1, 1)
+	var defender := _spawn_scene_unit(GRUNT_PATH, Enums.UnitFaction.ENEMY, 4, 1)
+	attacker.character_data.agility = 5
+	defender.character_data.agility = 5
+	attacker.character_data.strength = 1
+	attacker.character_data.max_hp = 50
+	attacker.current_hp = 50
+	defender.character_data.max_hp = 50
+	defender.current_hp = 50
+	var attacker_hp_before := attacker.current_hp
+
+	var hook := _displace_move(2, "toward_attacker")
+	hook.base_power = 1
+	hook.accuracy = 500  # clamped to 100 — never miss
+	hook.damage_type = Enums.DamageType.PHYSICAL
+	hook.attack_range = 3
+	hook.max_uses = 5
+	hook.current_uses = 5
+
+	var counter_move := Move.new()
+	counter_move.move_name = "Melee Counter"
+	counter_move.base_power = 3
+	counter_move.accuracy = 500
+	counter_move.damage_type = Enums.DamageType.PHYSICAL
+	counter_move.attack_range = 1
+	counter_move.max_uses = 5
+	counter_move.current_uses = 5
+	defender.assigned_move = counter_move
+
+	await attacker.execute_combat_sequence(defender, hook)
+
+	assert_eq(defender.current_tile, GridManager.get_tile(2, 1), "defender reeled 2 west")
+	assert_lt(attacker.current_hp, attacker_hp_before,
+		"pulled to distance 1 — the counter the planning check never saw fires")
+	assert_eq(counter_move.current_uses, counter_move.max_uses - 1,
+		"a granted counter pays its PP like any other")
+
+
+func test_never_in_range_defender_stays_silent() -> void:
+	# Guard on the eligibility split: a melee defender plinked by a range-3
+	# attack with no displacement just doesn't counter — silently, exactly as
+	# before. The "OUT OF RANGE" callout is reserved for counters that were
+	# actually taken away, not ones that were never on the table.
+	_open_grid(0, 7, 0, 2)
+	var attacker := _spawn_scene_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 1, 1)
+	var defender := _spawn_scene_unit(GRUNT_PATH, Enums.UnitFaction.ENEMY, 4, 1)
+	attacker.character_data.agility = 5
+	defender.character_data.agility = 5
+	attacker.character_data.strength = 1
+	defender.character_data.max_hp = 50
+	defender.current_hp = 50
+	var attacker_hp_before := attacker.current_hp
+
+	var plink := Move.new()
+	plink.move_name = "Plink Probe"
+	plink.base_power = 1
+	plink.accuracy = 500  # clamped to 100 — never miss
+	plink.damage_type = Enums.DamageType.PHYSICAL
+	plink.attack_range = 3
+	plink.max_uses = 5
+	plink.current_uses = 5
+
+	var counter_move := Move.new()
+	counter_move.move_name = "Melee Counter"
+	counter_move.base_power = 3
+	counter_move.damage_type = Enums.DamageType.PHYSICAL
+	counter_move.attack_range = 1
+	counter_move.max_uses = 5
+	counter_move.current_uses = 5
+	defender.assigned_move = counter_move
+
+	await attacker.execute_combat_sequence(defender, plink)
+
+	assert_eq(attacker.current_hp, attacker_hp_before, "no counter fired")
+	assert_eq(counter_move.current_uses, counter_move.max_uses,
+		"no counter, no PP paid")
+	var callouts := 0
+	for child: Node in defender.get_parent().get_children():
+		if child is DamagePopup and child._damage_label != null \
+				and child._damage_label.text == "OUT OF RANGE":
+			callouts += 1
+	assert_eq(callouts, 0,
+		"a defender that never had the range doesn't shout about losing it")

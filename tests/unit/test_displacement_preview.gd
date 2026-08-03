@@ -183,6 +183,64 @@ func test_recoil_denies_the_counter_from_the_other_side() -> void:
 		"the attacker stepped back — the range-1 counter can no longer reach")
 
 
+func test_pull_grants_the_counter_it_reels_into_range() -> void:
+	# The mirror of the denial rule (RQD 2026-08-03): a defender out of counter
+	# range at planning gets reeled to distance 1 — execution re-checks range
+	# before every counter, so the grant query lets the preview predict the
+	# retaliation instead of promising a free hit.
+	_open_grid(0, 6, 0, 0)
+	var attacker := _unit("attacker")
+	var defender := _unit("defender")
+	_place(attacker, 0, 0)
+	_place(defender, 3, 0)
+	defender.assigned_move = _counter_move(1)
+	assert_true(DisplacementSystem.counter_granted_by_displacement(
+			attacker, defender, _displace_move(2, "toward_attacker")),
+		"reeled from distance 3 to 1 — the range-1 counter reaches now")
+
+
+func test_pull_that_leaves_the_defender_short_grants_nothing() -> void:
+	_open_grid(0, 8, 0, 0)
+	var attacker := _unit("attacker")
+	var defender := _unit("defender")
+	_place(attacker, 0, 0)
+	_place(defender, 5, 0)
+	defender.assigned_move = _counter_move(1)
+	assert_false(DisplacementSystem.counter_granted_by_displacement(
+			attacker, defender, _displace_move(2, "toward_attacker")),
+		"distance 5 pulled to 3 — still outside the range-1 counter")
+
+
+func test_grant_query_trivially_false_without_displacement_or_counter() -> void:
+	_open_grid(0, 4, 0, 0)
+	var attacker := _unit("attacker")
+	var defender := _unit("defender")
+	_place(attacker, 0, 0)
+	_place(defender, 3, 0)
+	defender.assigned_move = _counter_move(1)
+	var plain := Move.new()
+	plain.base_power = 3
+	assert_false(DisplacementSystem.counter_granted_by_displacement(attacker, defender, plain),
+		"no displacement, nothing granted")
+	defender.assigned_move = null
+	assert_false(DisplacementSystem.counter_granted_by_displacement(
+			attacker, defender, _displace_move(2, "toward_attacker")),
+		"no counter move — nothing to grant")
+
+
+func test_resisted_pull_grants_nothing() -> void:
+	_open_grid(0, 6, 0, 0)
+	var attacker := _unit("attacker", 5)
+	var defender := _unit("defender", 9)
+	_place(attacker, 0, 0)
+	_place(defender, 3, 0)
+	defender.assigned_move = _counter_move(1)
+	var pull := _displace_move(2, "toward_attacker")
+	pull.displace_contest_stat = "constitution"
+	assert_false(DisplacementSystem.counter_granted_by_displacement(attacker, defender, pull),
+		"the pull is resisted — nobody moves, no counter appears")
+
+
 # =============================================================================
 # COLLISION RECORDS CARRY THEIR CELLS
 # =============================================================================

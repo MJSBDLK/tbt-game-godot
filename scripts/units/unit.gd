@@ -772,9 +772,18 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 		return
 
 	var attacker_hits := DamageCalculator.calculate_attack_count(self, defender)
-	var defender_can_counter := DamageCalculator.can_counter_attack(defender, self)
+	# Only ELIGIBILITY (alive, usable damaging move) locks in up front. The
+	# range half is checked live before every counter, because displacement
+	# cuts both ways: a shove can deny a counter that was in range at planning,
+	# and a pull (Grav Hook) can GRANT one to a defender that started out of
+	# reach. `had_counter_range` remembers the planning-time verdict purely for
+	# the out-of-range callout — a melee defender plinked by an archer three
+	# tiles away just doesn't counter, silently, same as always.
+	var defender_counter_eligible := DamageCalculator.is_counter_eligible(defender)
+	var defender_had_counter_range := defender_counter_eligible \
+			and DamageCalculator.is_within_attack_range(defender, self, defender.assigned_move)
 	var defender_hits := 0
-	if defender_can_counter:
+	if defender_counter_eligible:
 		defender_hits = DamageCalculator.calculate_attack_count(defender, self)
 
 	# The attacker pays PP up front. The defender pays at counter time instead:
@@ -795,9 +804,10 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 		return
 
 	# === Counter 1: Defender ===
-	# Range re-checked at execution time, not just at planning — hit 1 may have
-	# displaced someone.
-	if defender_can_counter and not defender.is_defeated():
+	# Range checked at execution time, not planning — hit 1 may have displaced
+	# someone, in either direction: shoved out (counter denied) or pulled in
+	# (counter granted to a defender that started beyond reach).
+	if defender_counter_eligible and not defender.is_defeated():
 		if DamageCalculator.is_within_attack_range(defender, self, defender.assigned_move):
 			defender.assigned_move.consume_use()
 			defender_counter_paid = true
@@ -807,7 +817,7 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 				await _handle_defeat()
 				combat_completed.emit(self, defender)
 				return
-		elif not defender_denial_shown:
+		elif defender_had_counter_range and not defender_denial_shown:
 			defender_denial_shown = true
 			await defender._announce_out_of_range()
 
@@ -829,12 +839,16 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 		await defender._handle_defeat()
 
 	# === Bonus defender counters (2nd through Nth) ===
-	if defender_can_counter:
+	if defender_counter_eligible:
 		for i: int in range(1, defender_hits):
 			if is_defeated() or defender.is_defeated():
 				break
 			if not DamageCalculator.is_within_attack_range(defender, self, defender.assigned_move):
-				if not defender_denial_shown:
+				# Announce only when a counter was actually taken away — they
+				# had range at planning or already landed counter 1 (a pulled-
+				# in defender the bonus hits shoved back out again).
+				if (defender_had_counter_range or defender_counter_paid) \
+						and not defender_denial_shown:
 					defender_denial_shown = true
 					await defender._announce_out_of_range()
 				break
