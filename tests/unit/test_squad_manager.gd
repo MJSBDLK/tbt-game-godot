@@ -180,6 +180,78 @@ func test_fast_victory_banks_both_par_bands_into_the_pool() -> void:
 				"itemized lines kept for the result screen to render verbatim"))
 
 
+# =============================================================================
+# bEXP level pricing (price-tag model, 2026-08-03)
+# =============================================================================
+# Cost = BASE × level ÷ squad_max_level, rounded to COST_STEP, floor MIN.
+# Continuous — no threshold cliff — and the player only ever sees the price.
+
+const _ANCHOR_ID: String = "__test_bexp_anchor"
+const _SUBJECT_ID: String = "__test_bexp_subject"
+
+
+func _roster_pair(anchor_level: int, subject_level: int) -> CharacterData:
+	# The anchor dominates any realistic level in the default roster, making
+	# the squad-max term deterministic without emptying the real roster.
+	var anchor := CharacterData.new()
+	anchor.character_id = _ANCHOR_ID
+	anchor.level = anchor_level
+	SquadManager._roster_by_id[_ANCHOR_ID] = anchor
+	var subject := CharacterData.new()
+	subject.character_id = _SUBJECT_ID
+	subject.level = subject_level
+	SquadManager._roster_by_id[_SUBJECT_ID] = subject
+	return subject
+
+
+func _cleanup_roster_pair() -> void:
+	SquadManager._roster_by_id.erase(_ANCHOR_ID)
+	SquadManager._roster_by_id.erase(_SUBJECT_ID)
+
+
+func test_bexp_price_scales_with_level_relative_to_squad_max() -> void:
+	var subject := _roster_pair(100, 60)
+	assert_eq(SquadManager.bexp_level_cost(subject), 60,
+			"60% of the squad max pays 60% of base price")
+	var anchor: CharacterData = SquadManager._roster_by_id[_ANCHOR_ID]
+	assert_eq(SquadManager.bexp_level_cost(anchor), SquadManager.BEXP_BASE_LEVEL_COST,
+			"the squad's top unit always pays full price")
+	_cleanup_roster_pair()
+
+
+func test_bexp_price_rounds_to_clean_steps_and_floors() -> void:
+	var subject := _roster_pair(100, 33)
+	assert_eq(SquadManager.bexp_level_cost(subject), 35,
+			"33 rounds to the nearest clean 5 — a price tag, not arithmetic soup")
+	subject.level = 10
+	assert_eq(SquadManager.bexp_level_cost(subject), SquadManager.BEXP_MIN_LEVEL_COST,
+			"deep underlevel hits the floor — catching up is cheap, never free")
+	_cleanup_roster_pair()
+
+
+func test_buying_a_level_charges_the_price_and_levels_once() -> void:
+	_with_income_state_reset(func() -> void:
+		var subject := _roster_pair(100, 60)
+		SquadManager.bonus_xp_pool = 100
+		subject.experience = 40
+		assert_true(SquadManager.buy_bexp_level(subject), "pool 100 covers price 60")
+		assert_eq(SquadManager.bonus_xp_pool, 40, "exactly the price deducted")
+		assert_eq(subject.level, 61, "one whole level bought")
+		assert_eq(subject.experience, 40,
+				"partial combat XP untouched — 40/100 carries into the new level")
+		_cleanup_roster_pair())
+
+
+func test_buying_beyond_the_pool_is_refused() -> void:
+	_with_income_state_reset(func() -> void:
+		var subject := _roster_pair(100, 60)
+		SquadManager.bonus_xp_pool = 59
+		assert_false(SquadManager.buy_bexp_level(subject), "pool 59 can't cover price 60")
+		assert_eq(SquadManager.bonus_xp_pool, 59, "refused purchase deducts nothing")
+		assert_eq(subject.level, 60, "refused purchase levels nothing")
+		_cleanup_roster_pair())
+
+
 func test_defeat_banks_nothing_and_clears_the_award_lines() -> void:
 	_with_income_state_reset(func() -> void:
 		SquadManager.bonus_xp_pool = 40

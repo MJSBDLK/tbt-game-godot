@@ -27,12 +27,11 @@ extends Control
 signal closed
 
 
-## Per-click XP deposit when the player taps "+" on a character row.
-## Tunable from one spot — a larger grant feels generous on flush wins; a
-## smaller grant gives finer control but more clicks. Default sized so a
-## typical post-mission award (BONUS_XP_PER_VICTORY = 150) takes 3 clicks
-## to fully spend on one character.
-const GRANT_PER_CLICK: int = 50
+## SPEND MODEL (reworked 2026-08-03): whole levels bought at a price tag —
+## SquadManager.bexp_level_cost, which scales with the unit's level relative
+## to the squad's best. The player reads "LV UP  25" vs "LV UP  90" and the
+## catch-up incentive explains itself; the formula stays invisible. The old
+## pour-50-XP-per-click deposits are retired with spend_bonus_xp_on.
 
 ## Stats displayed in the capped-stat strip on each row. Order matches the
 ## character sheet (HP first, defensive stats last) so the visual layout
@@ -52,10 +51,11 @@ const _STAT_STRIP: Array = [
 # Per-row UI handles cached so we can refresh them when the pool or
 # experience changes without rebuilding the entire screen.
 # Keyed by character_id → Dictionary { level: Label, xp: Label, bar: ColorRect,
-# bar_bg: ColorRect, plus_button: Button }.
+# bar_bg: ColorRect, buy_button: Button }.
 var _rows: Dictionary = {}
 
 var _pool_label: Label = null
+var _income_label: Label = null
 var _continue_button: Button = null
 
 
@@ -82,6 +82,7 @@ func show_report(report: Array) -> void:
 
 	_rebuild_rows(report)
 	_refresh_pool_label()
+	_refresh_income_label()
 	visible = true
 
 
@@ -126,9 +127,19 @@ func _build_chrome() -> void:
 		_pool_label.add_theme_font_size_override("font_size", 8)
 	card.add_child(_pool_label)
 
-	# Rule explainer — surfaces the "exactly N growths per bEXP level"
-	# mechanic so players don't need to read a wiki to figure out why bEXP
-	# behaves differently from combat XP.
+	# Itemized income from the mission just finished (mirrors the result
+	# screen's bEXP section, compacted to one line). Empty when nothing was
+	# earned — the pool alone tells the carry-forward story then.
+	_income_label = Label.new()
+	_income_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if ui_manager != null:
+		_income_label.add_theme_font_override("font", ui_manager.font_5px)
+		_income_label.add_theme_font_size_override("font_size", 5)
+	_income_label.modulate = Color(1.0, 1.0, 1.0, 0.7)
+	card.add_child(_income_label)
+
+	# Rule explainers — surface the two mechanics players would otherwise
+	# learn from a wiki: the fixed-growth bEXP level, and the catch-up pricing.
 	var rule_label := Label.new()
 	rule_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	rule_label.text = "Each level grants exactly %d stat growths (capped stats excluded)" % \
@@ -138,6 +149,15 @@ func _build_chrome() -> void:
 		rule_label.add_theme_font_size_override("font_size", 5)
 	rule_label.modulate = Color(1.0, 1.0, 1.0, 0.7)
 	card.add_child(rule_label)
+
+	var pricing_label := Label.new()
+	pricing_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pricing_label.text = "Prices scale with level — catching up is cheap"
+	if ui_manager != null:
+		pricing_label.add_theme_font_override("font", ui_manager.font_5px)
+		pricing_label.add_theme_font_size_override("font_size", 5)
+	pricing_label.modulate = Color(1.0, 1.0, 1.0, 0.7)
+	card.add_child(pricing_label)
 
 	# Scrollable rows — handles rosters bigger than the card height.
 	var scroll := ScrollContainer.new()
@@ -289,14 +309,15 @@ func _build_row(parent: VBoxContainer, character: CharacterData) -> Dictionary:
 		strip.add_child(stat_label)
 		stat_labels.append(stat_label)
 
-	var plus_button := Button.new()
-	plus_button.text = "+%d" % GRANT_PER_CLICK
-	plus_button.custom_minimum_size = Vector2(36, 18)
+	# Price-tag button — text is set per-refresh since the price can move
+	# mid-screen (buying levels on the squad's top unit re-anchors everyone).
+	var buy_button := Button.new()
+	buy_button.custom_minimum_size = Vector2(64, 18)
 	if ui_manager != null:
-		plus_button.add_theme_font_override("font", ui_manager.font_8px)
-		plus_button.add_theme_font_size_override("font_size", 8)
-	plus_button.pressed.connect(_on_grant_pressed.bind(character.character_id))
-	row.add_child(plus_button)
+		buy_button.add_theme_font_override("font", ui_manager.font_8px)
+		buy_button.add_theme_font_size_override("font_size", 8)
+	buy_button.pressed.connect(_on_buy_pressed.bind(character.character_id))
+	row.add_child(buy_button)
 
 	var handles: Dictionary = {
 		"character": character,
@@ -304,7 +325,7 @@ func _build_row(parent: VBoxContainer, character: CharacterData) -> Dictionary:
 		"xp": xp_label,
 		"bar": bar_fill,
 		"bar_bg": bar_bg,
-		"plus_button": plus_button,
+		"buy_button": buy_button,
 		"stat_labels": stat_labels,
 	}
 	_refresh_row(handles)
@@ -329,9 +350,14 @@ func _refresh_row(handles: Dictionary) -> void:
 	var bar_bg: ColorRect = handles["bar_bg"] as ColorRect
 	var bar: ColorRect = handles["bar"] as ColorRect
 	bar.size.x = bar_bg.size.x * ratio
-	# Disable the + button only when the pool is dry. The unit can always
-	# absorb more XP (cascade level-ups handle the overflow).
-	(handles["plus_button"] as Button).disabled = SquadManager.bonus_xp_pool <= 0
+	# Price tag: the number IS the catch-up signal — cheap means underleveled.
+	# Disabled when the pool can't cover THIS unit's price (other, cheaper
+	# units may still be affordable).
+	var cost: int = SquadManager.bexp_level_cost(character)
+	var buy_button: Button = handles["buy_button"] as Button
+	buy_button.text = "LV UP %d" % cost
+	buy_button.disabled = SquadManager.bonus_xp_pool < cost
+	buy_button.tooltip_text = "Buy one level for %d bEXP (prices scale with level)" % cost
 	# Refresh the capped-stat strip — caps can change between refreshes
 	# when an allocation pushes a stat over the cap mid-screen.
 	var stat_labels: Array = handles.get("stat_labels", [])
@@ -352,6 +378,23 @@ func _refresh_pool_label() -> void:
 	_pool_label.text = "Pool: %d bEXP" % SquadManager.bonus_xp_pool
 
 
+## One-line mirror of the result screen's income section, so the player
+## still sees where the money came from while deciding how to spend it.
+func _refresh_income_label() -> void:
+	if _income_label == null:
+		return
+	var lines: Array[Dictionary] = SquadManager.last_mission_award_lines
+	if lines.is_empty():
+		_income_label.text = ""
+		_income_label.visible = false
+		return
+	var parts: Array[String] = []
+	for award: Dictionary in lines:
+		parts.append("%s +%d" % [str(award.get("label", "?")), int(award.get("amount", 0))])
+	_income_label.text = "Earned this mission:  %s" % "  ·  ".join(parts)
+	_income_label.visible = true
+
+
 func _on_pool_changed(_new_pool: int) -> void:
 	_refresh_pool_label()
 	for handles: Dictionary in _rows.values():
@@ -362,14 +405,14 @@ func _on_pool_changed(_new_pool: int) -> void:
 # INTERACTION
 # =============================================================================
 
-func _on_grant_pressed(character_id: String) -> void:
+func _on_buy_pressed(character_id: String) -> void:
 	var character: CharacterData = SquadManager.get_character_by_id(character_id)
 	if character == null:
 		return
-	# spend_bonus_xp_on emits bonus_xp_changed, which triggers _on_pool_changed
-	# above and refreshes every row's bar/buttons. The only thing we need to
-	# do here is request the deposit.
-	SquadManager.spend_bonus_xp_on(character, GRANT_PER_CLICK)
+	# buy_bexp_level emits bonus_xp_changed, which triggers _on_pool_changed
+	# above and refreshes every row's price tags and buttons — including
+	# re-anchored prices if this purchase raised the squad's max level.
+	SquadManager.buy_bexp_level(character)
 
 
 func _on_continue_pressed() -> void:

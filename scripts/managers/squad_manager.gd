@@ -247,26 +247,49 @@ func _on_battle_ended(is_victory: bool) -> void:
 	post_mission_report_ready.emit(report)
 
 
-## Pours `amount` from `bonus_xp_pool` into the character's experience and
-## cascades bEXP-style level-ups (exactly 3 growths each, weighted by growth
-## rate, capped stats excluded). Caps at the pool size; emits
-## `bonus_xp_changed` once. Returns the actual amount spent.
+# bEXP level pricing (locked 2026-08-03, RQD design session): a level costs
+# BASE × unit_level ÷ squad_max_level, rounded to a clean COST_STEP, floored.
+# The player only ever sees the resulting price tag — never the formula.
+# "Weaker units learn faster, in the field and in training": the combat-XP
+# differential is the field half, this is the training half.
+const BEXP_BASE_LEVEL_COST: int = 100
+const BEXP_MIN_LEVEL_COST: int = 25
+const BEXP_COST_STEP: int = 5
+
+
+## Price of one bEXP level for `character`, anchored to the active squad's
+## highest level. The squad's top unit always pays full BASE; everyone else
+## pays proportionally less, continuously — no threshold cliff to learn.
+func bexp_level_cost(character: CharacterData) -> int:
+	if character == null:
+		return BEXP_BASE_LEVEL_COST
+	var max_level: int = 1
+	for member: CharacterData in get_active_roster():
+		max_level = maxi(max_level, member.level)
+	var raw: float = float(BEXP_BASE_LEVEL_COST) * float(character.level) / float(max_level)
+	var stepped: int = int(roundf(raw / float(BEXP_COST_STEP))) * BEXP_COST_STEP
+	return maxi(BEXP_MIN_LEVEL_COST, stepped)
+
+
+## Buys one bEXP level at bexp_level_cost. Whole levels only — the price-tag
+## model replaced the old pour-raw-XP deposits (spend_bonus_xp_on, retired
+## 2026-08-03). Partial combat XP is untouched: a unit at 40/100 levels to
+## the next level still at 40/100.
 ##
 ## Deliberately does NOT route through CharacterData.grant_xp because that
 ## path uses the combat-XP level-up (random growth-rate rolls). RD treats
-## bEXP as a mechanically different XP source — same 100/level threshold,
-## different growth behavior.
-func spend_bonus_xp_on(character: CharacterData, amount: int) -> int:
-	if character == null or amount <= 0 or bonus_xp_pool <= 0:
-		return 0
-	var actual: int = mini(amount, bonus_xp_pool)
-	bonus_xp_pool -= actual
-	character.experience += actual
-	while character.experience >= 100:
-		character.experience -= 100
-		character.process_bexp_level_up()
+## bEXP as a mechanically different XP source: process_bexp_level_up grants
+## exactly BEXP_GROWTHS_PER_LEVEL growths, capped stats excluded.
+func buy_bexp_level(character: CharacterData) -> bool:
+	if character == null:
+		return false
+	var cost: int = bexp_level_cost(character)
+	if bonus_xp_pool < cost:
+		return false
+	bonus_xp_pool -= cost
+	character.process_bexp_level_up()
 	bonus_xp_changed.emit(bonus_xp_pool)
-	return actual
+	return true
 
 
 ## Snapshots growth_gains_*, runs LEVELS_PER_VICTORY level-up rolls, and returns
