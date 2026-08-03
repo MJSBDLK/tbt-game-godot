@@ -1,5 +1,33 @@
 ## [ ] Meeting 2026.06.28
 ### [ ] RQD
+
+- [x] bEXP gripe — **SHIPPED 2026-08-03 (rqd--post-battle-flow, 6 commits, suite 717/2453)**.
+	Key finding: combat XP already EXISTED (RD differential formula, flat 100/level —
+	your "keep it at 100 and scale gain" position was already a code comment) but was
+	INVISIBLE: no popup, no bar, silent level-ups. Shipped: (1) doctrine amendment in
+	mission_objectives.md — par-band bEXP income (Above par +150 / No dawdling gimme +75,
+	additive, displayed up front — the FERD sin was hiding it) + per-map objective award
+	lines via new MissionCatalog (data/missions/mission_manifest.json), flat 150 retired;
+	(2) chain reordered banner → RESULT SCREEN (new BattleResultPanel: turns vs par,
+	itemized income, kills/losses/injuries; placeholder text log deleted) → level-ups →
+	bEXP spend → conclude; (3) bEXP spend rework: whole levels bought at a PRICE TAG
+	(100 × level ÷ squad max, clean-rounded, floor 25 — catch-up reads as "LV UP 25" vs
+	"LV UP 90", formula invisible per your "simpler is better" call); (4) support casts
+	pay flat 10/cast (effect-gated by targeting), SURVIVAL XP pays first-engagement-per-
+	enemy (5 + level diff, clamp 1..15, dodge or tank — repeats teach nothing, so
+	stalling pays ~1 XP once then never); (5) visibility: batched gold "+N XP" callout
+	per combat, LEVEL UP! beat, XP row in the detail panel's class line; (6) the
+	level-up dings finally ring (generated chime, semitone staircase per +1).
+	All numbers are named dials. PLAYTEST: full 2-mission loop, then tune par values.
+	It looked like bEXP was the only way units gain XP. Original notes (kept for the design record):
+	This system will mostly carry over from Fire Emblem, but with some changes:
+	+ The main change is that units which didn't do damage should still earn a meaningful amount of XP. That said, I *do not* want to incentivize players putting them in harm's way with a healer for several turns, so we need to design around that.
+		- FERD (and possibly earlier entries I'm less familiar with) designed around this by offering more bEXP the quicker the player finishes levels. They also failed to tell the player this and I had to learn it from the wiki.
+	+ I'm waffling on how to handle asymptotic decay of XP earned by overeleveled units. The gut instinct was to derive XP earned from the enemies' stats or something like that, and have higher levels require more XP to level up. This does have some drawbacks though, as that system doesn't *really* disincentivize relying exclusively on powerful units.
+		- We need to bridge that gap of incentivizing fast play, taking calculated risks, while also giving weaker units something to do.
+	+ bEXP should not simply be shelled out per-unit - it goes into a pool, where the player can allocate it as he sees fit. This is actually an argument *against* higher EXP reqs for higher leveled units - keep it at 100/unit and scale EXP gain differently
+	+ I'd like to also incentivize not permanently benching any units. Maybe a separate system for dramatically underleveled units? We can definitely design maps in such a way that play to a variety of strengths, but this does not correct for underleveling.
+
 - [x] Shadows occasionally bugged (see bottom left)
   ![Blood Mage](image.png)
   ![Blood Mage 2](image-1.png) // This one isn't bugged. But blood mage doesn't seem to enjoy being in the bottom left corner for some reason
@@ -136,7 +164,7 @@ Who's damaged (for lack of a better term) - does this hit all units in its AoE, 
    icon→void-glyph swap, and whether detail-panel tablets need true desaturation.)
 - [x] How hard would it be to make a crater (terrain modifier) grant a defensive bonus against melee attacks and a penalty against ranged attacks? (Answer: easy — shipped 2026-07-06. New terrain keys `defenseMultiplierVsMelee`/`VsRanged` layer onto the base defense multiplier, keyed on the move's melee/ranged style (a point-blank Laser still counts as ranged). Crater: 1.2 vs melee, 0.85 vs ranged, Air exempt (hovering); the old flat 1.1 retired. NUMBERS ARE TUNING GUESSES. Any terrain can now opt into the split via JSON. Bonus fix: per-type "exempt" overrides (like Air's) never worked for mono-typed units — terrain_multiplier_for let the terrain default out-deviate an explicit neutral override. TERRAIN PREVIEW (2026-07-07): split terrains render the defense column as two stacked color-coded lines — "M1.2" / "R0.8" (combined base×style values) — with a tap-tooltip spelling it out; unsplit terrains keep the single cell, so only Crater pays the extra row height. M/R letters are placeholders for Lawrence's melee/ranged glyphs (added to Art Needed). Eyeball the two-line row height in game.)
 - [ ] intermission screens - interactive buttons must be obviously interactive - this was input received via playtesting. The intermission screens are getting a full redesign, but more broadly - what's the best way to differentiate interactible from non-interactible buttons? Remember, the visual design looks like a projection against glass. So how would an interactible vs non-interactible button look in this context?
-- [ ] bEXP screen
+- [x] bEXP screen — reworked 2026-08-03 (price-tag purchases; see "bEXP gripe" SHIPPED note at top)
 - [x] remove "*1" from character panel on the left when all statUps are allocated (verified 2026-07-06 — already implemented: `prep_screen._make_unspent_badge` returns null at 0 unspent, `_refresh_card_badge` rebuilds on `stats_changed`. If a stale ★N still shows in-game, grab a repro.)
 - [~] Give all characters at least 9 moves and 9 passives
 - [x] add level next to enemy (and friendly?) health bars
@@ -490,7 +518,12 @@ New sprites — faction needed:
 - [x] **1. 2-mission mini-campaign skeleton.** Campaign-state singleton holding `{current_mission_index, squad, start_level}`. Start screen with start-level picker (5/20/40/60) → "Begin Campaign" → mission 1 → between-mission flow → mission 2 → end-of-campaign result. Mission content can be the existing test maps for now.
 - [x] **2. Auto-leveling system.** Simulate growth rolls to target level for both player units and enemies. Used to set campaign **starting** state; subsequent levels come from actually fighting. Reuse Unity's CharacterData growth logic (`../tbt-game/Assets/Scripts/Units/CharacterData.cs`).
 - [ ] **3. Squad/prep + between-mission level-up screen** (user-flagged PRIORITY). Pick squad, equip moves (~330 already in bank), equip passives, distribute stat allocation points. Same screen handles both initial prep AND between-mission level-up display (XP gained, stat-up rolls, new moves/passives unlocked).
-- [ ] **4. Rebuild battle result overlay with proper routing.** Current overlay is placeholder. Mid-campaign → between-mission screen. End-of-campaign → start screen. Per-unit stats + objective/bEXP scope from [mission_objectives.md](mission_objectives.md) is V2 — V1 just needs correct routing + existing turns/units-lost/enemies-defeated.
+- [x] **4. Rebuild battle result overlay with proper routing.** SHIPPED 2026-08-03 as
+  BattleResultPanel (see "bEXP gripe" note at top): routing was already correct; V1 ships
+  turns-vs-par, itemized bEXP income, kills/losses, injuries. Remaining V2 scope = runtime
+  objective TRACKING (couriers/NPCs — award side is ready in MissionCatalog) + per-unit
+  combat stats. Legacy battle_result_overlay.tscn still dormant — delete when its slide-in
+  animation is either adopted or given up on.
 - [x] **5. Programmer art for 5 enemy types.** Without it every battle looks like ogre + ernesto. Lowest-effort variety win once #1–4 are working.
 
 **Notes:**
@@ -544,7 +577,8 @@ New sprites — faction needed:
 - [x] Passives "Maximum" and "Stellar" should have very narrow distribution - just Max at this point. (stripped from all 29 character JSONs except spaceman.json — both had been copy-pasted from a template into every character's basePoolPassives)
 - [x] When choosing a new recruit in the intermission screen, the portraits should display fullres line art if available (see unit detail panel for how this works) with a fallback to the sprites (latter bit is working). Root cause: bind_to_texture_rect was already promoting to HD identically across all panels, but most recruit-pool JSONs had no `lineartPath`/`lineartAtlases` set, so the HD path returned null and fell back to the pixel pipeline. Also: elf_pirate had a hi-res image (921×921) stored under `portraitPath` and was being NN-downscaled inside HUDViewport. Wired lineartPath/lineartAtlases for grasker, gravity_captain, ogre_squire, ogre, and elf_pirate. Remaining recruit-pool characters (desert_sniper, healer_*, plant_cultist, robot) have no line art assets yet — Lawrence-blocked.
 - [x] **Distortion shader toggle (HD portraits)**: VHS-tracking distortion (`hd_portrait_tracking.tres`) is applied to every HD line-art portrait unconditionally. Add a user-facing options toggle. (Done: new persisted [Settings autoload](../scripts/core/settings.gd) (`user://settings.cfg`) with `portrait_effects_enabled`. Options menu → "Portrait FX" On/Off row ([options_menu_panel.gd](../scripts/ui/panels/options_menu_panel.gd)). [HDPortraitSlot](../scripts/ui/hd_portrait_slot.gd) now gates effects on `not Settings.portrait_effects_enabled OR DebugConfig.debug_portrait_effects_disabled` — the dev left-click bypass stays as a session-only override; live re-apply via `Settings.changed`. **Zoom Mode now persists too** (same autoload, `integer_zoom_mode`; CameraController applies it on spawn). First persisted-settings infra in the project — audio/etc. can hang off the same autoload. 6 GUT tests in test_settings.gd + compile-guard in test_smoke.gd.)
-- [ ] bEXP GUI needs a complete rework - just prompt me to get this started.
+- [x] bEXP GUI needs a complete rework - just prompt me to get this started. (Prompted +
+  reworked 2026-08-03 — see "bEXP gripe" SHIPPED note at top of file.)
 - [x] Damage calculation feels... off. Let's audit the formulae and find out why. **Audit done 2026-06-02** ([damage-audit-2026-06-02.md](../data/design/damage-audit-2026-06-02.md)) — three structural issues with the old `(power × atk ÷ 5) - def` formula explained the symptoms. **RD damage formula ported 2026-06-03**: damage is now `(atk + might) - def`. Multi-hit reverted to original 2×/3×/4× ratio after playtest — kept intentionally as a "Brave weapon"-style power spike. Min-damage stays at 1; move base_powers untouched (deferred to playtest — moves currently feel a bit too strong but the scaling itself feels right).
 - [x] Capricious ability needs to apply to counterattacks too - it should equip a different move after every combat. (Not between counterattacks if it couterattacks more than once.) This means that it will use different moves if attacked repeatedly. **Fixed 2026-06-04**: new `_capricious_post_combat_reroll` helper in [unit.gd](../scripts/units/unit.gd) fires at the end of `execute_combat_sequence` for both combatants. Records the just-used move in `last_used_move_index`, then re-picks `assigned_move` from remaining usable moves excluding the last one. Multi-hit counters within a single combat keep using the same move (per design); the reroll happens once after the chain ends. If only one usable move remains, keeps current assignment — can't conjure variety from nothing.
 - [x] First aid - if used on self, in the combat preview panel, it shows as being used on a non-existent target. Should apply to self. Relatedly, if used on an ally, the target's health pips should be the color of that unit's faction. Currently they're red like the enemy, but if it's a friendly they should display as blue. **Fixed 2026-06-03**: self-cast now collapses the bottom half entirely (defender section + bottom HP pip hidden); the heal projection rides on the top bar instead. HP pip colors are applied dynamically per faction via a new `_apply_pip_faction_color` helper in [combat_preview_panel.gd](../scripts/ui/panels/combat_preview_panel.gd) (player/ally/neutral/enemy palette constants). The scene's static red-on-bottom default no longer leaks through for ally heals.
