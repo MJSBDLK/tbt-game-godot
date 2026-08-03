@@ -407,6 +407,13 @@ func take_pending_battle_restore() -> Dictionary:
 func apply_unit_state(unit: Unit, entry: Dictionary) -> void:
 	unit.can_act = bool(entry.get("can_act", true))
 	unit.can_move = bool(entry.get("can_move", true))
+	# The acted gray-out is applied by set_acted(), never derived from can_act —
+	# and resume_battle skips the phase upkeep that would repaint it. Without
+	# this, a mid-phase save restores expended units in fresh full color.
+	if unit.can_act:
+		unit._apply_active_modulate()
+	else:
+		unit._apply_acted_modulate()
 	unit.pending_crit = bool(entry.get("pending_crit", false))
 	unit.last_used_move_index = int(entry.get("last_used_move_index", -1))
 

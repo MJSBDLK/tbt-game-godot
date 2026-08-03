@@ -118,6 +118,23 @@ func test_unit_state_round_trips_through_json() -> void:
 		"void-lock slot indices survive JSON's float laundering")
 
 
+func test_restored_acted_latch_repaints_the_gray_out() -> void:
+	# Regression (RQD 2026-08-03 playtest): apply_unit_state restored the
+	# can_act latch but not the visual — set_acted is what paints the gray,
+	# and resume_battle skips the upkeep that would repaint it, so expended
+	# units came back from a load in fresh full color and read as ready.
+	var acted: Unit = _spawn_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 2, 2)
+	SaveManager.apply_unit_state(acted, {"can_act": false})
+	assert_eq(acted._sprite.modulate, GameColors.PLAYER_UNIT_ACTED,
+		"an expended unit comes back GRAYED, matching set_acted's paint")
+
+	var fresh: Unit = _spawn_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 3, 3)
+	fresh._sprite.modulate = GameColors.PLAYER_UNIT_ACTED  # stale gray
+	SaveManager.apply_unit_state(fresh, {"can_act": true})
+	assert_eq(fresh._sprite.modulate, Color.WHITE,
+		"a ready unit restores to full color even from a stale-gray sprite")
+
+
 func test_restored_hp_clamps_to_max() -> void:
 	var unit: Unit = _spawn_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 0, 0)
 	SaveManager.apply_unit_state(unit, {"current_hp": 9999})
