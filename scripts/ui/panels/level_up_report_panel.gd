@@ -236,6 +236,7 @@ func _build_chrome() -> void:
 ## sequence. Each character gets a full fresh render so per-character state
 ## (portrait, growth row labels) rebuilds from scratch.
 func _show_current_entry() -> void:
+	_dings_this_card = 0
 	var entry: Dictionary = _leveled_entries[_current_index]
 	var character_id: String = _resolve_character_id(entry.get("character_name", ""))
 	var character: CharacterData = SquadManager.get_character_by_id(character_id) if character_id != "" else null
@@ -431,18 +432,30 @@ func _schedule_statup_punch(delay_seconds: float) -> void:
 	)
 
 
-## Sound stub. Audio infrastructure doesn't exist yet (no AudioStreamPlayer
-## autoload, no SFX assets) — when it lands, swap this for a real call.
-## Per-stat differentiation is optional: a single "ding" works fine; a
-## distinct tone per stat is the polished version.
-##
-## To wire up later:
-##   var sfx: AudioStreamPlayer = SFXManager.get_oneshot()
-##   sfx.stream = preload("res://audio/level_up_ding.ogg")
-##   sfx.pitch_scale = _pitch_for_stat(stat_abbrev)  # optional ascending pitch
-##   sfx.play()
+const DING_STREAM_PATH: String = "res://audio/ui/ding_level_up.wav"
+# Each successive ding on a card rings one semitone higher — the ascending
+# staircase IS the dopamine (2^(1/12) per step). Reset per card so every
+# character's reveal starts from the root note.
+const DING_SEMITONE_RATIO: float = 1.059463
+
+var _dings_this_card: int = 0
+
+
+## The ding (wired 2026-08-03; sample from tools/godot/generate_ui_sfx.gd,
+## same placeholder-until-Lawrence deal as the UI blips). Fire-and-forget
+## player per ding, same pattern as InteractiveButton._play_sfx — reveals
+## stagger 120 ms apart, so overlapping ring-outs are intentional.
 func _play_ding(_stat_abbrev: String) -> void:
-	pass  # PLACEHOLDER — see docstring
+	if not is_inside_tree() or not ResourceLoader.exists(DING_STREAM_PATH):
+		return
+	var player := AudioStreamPlayer.new()
+	player.stream = load(DING_STREAM_PATH) as AudioStream
+	player.bus = &"SFX"
+	player.pitch_scale = pow(DING_SEMITONE_RATIO, _dings_this_card)
+	_dings_this_card += 1
+	player.finished.connect(player.queue_free)
+	add_child(player)
+	player.play()
 
 
 # =============================================================================

@@ -97,6 +97,28 @@ func test_result_panel_reports_empty_income_honestly() -> void:
 			"a defeat says the mission replays with no income")
 
 
+# =============================================================================
+# Level-up ding (chain step 2 — the celebration finally makes noise)
+# =============================================================================
+
+func test_ding_sample_exists_and_pitch_climbs_per_reveal() -> void:
+	assert_true(ResourceLoader.exists(LevelUpReportPanel.DING_STREAM_PATH),
+			"generated placeholder chime is on disk (tools/godot/generate_ui_sfx.gd)")
+	var panel: LevelUpReportPanel = (load("res://scenes/ui/panels/level_up_report_panel.tscn")
+			as PackedScene).instantiate() as LevelUpReportPanel
+	add_child_autofree(panel)
+	panel._play_ding("STR")
+	panel._play_ding("AGL")
+	var pitches: Array[float] = []
+	for child: Node in panel.get_children():
+		if child is AudioStreamPlayer:
+			pitches.append((child as AudioStreamPlayer).pitch_scale)
+	assert_eq(pitches.size(), 2, "one fire-and-forget player per ding")
+	assert_almost_eq(pitches[0], 1.0, 0.001, "first +1 rings the root note")
+	assert_almost_eq(pitches[1], LevelUpReportPanel.DING_SEMITONE_RATIO, 0.001,
+			"each successive +1 rings a semitone higher — the ascending staircase")
+
+
 func test_result_panel_continue_emits_closed_and_hides() -> void:
 	var panel := _fresh_result_panel()
 	watch_signals(panel)
