@@ -44,9 +44,11 @@
 ## Damage halves per hop (power >> hop, floored, minimum 1), no unit is struck
 ## twice by one chain, faction-blind (the damned don't discriminate). ELECTRIC
 ## types are immune to every hop, as are units matching entry.immune ("brave"
-## for Shriek). The next hop is chosen by exhaustive longest-path search
+## for Shriek). The path comes from an exhaustive longest-path search
 ## (_best_chain), so the chain never strands itself in a dead end while
 ## targets remain reachable — five units huddled together = five units hit.
+## Ties between equally long chains are broken by the SEEDED GameRng, so the
+## bolt is unpredictable in play but identical on a seeded reload.
 class_name ScheduledEffects
 extends RefCounted
 
@@ -184,24 +186,39 @@ static func _fire_chain_lightning(unit: Unit, entry: Dictionary) -> void:
 ## search — the chain must not strand itself in a dead end while targets
 ## remain reachable (RQD's clustering rule: five units huddled together = five
 ## units hit). Small by construction: depth ≤ 4 arcs, ≤ 8 candidates per hop.
-## Candidate order is deterministic (grid y, then x), so equal-length chains
-## resolve identically on every run and replay.
+## When several chains tie for longest, GameRng picks one (RQD 2026-08-03:
+## the path shouldn't be predictable) — the SEEDED die, so a seeded reload
+## replays the same bolt and saves stay deterministic. A forced outcome
+## (single longest chain) draws nothing, keeping the roll stream lean.
 static func _best_chain(origin: Unit, arc_budget: int, immune: String) -> Array[Unit]:
-	return _extend_chain([origin] as Array[Unit], arc_budget, immune)
+	var longest: Array = []  # every terminal chain tied at the max length
+	_gather_chains([origin] as Array[Unit], arc_budget, immune, longest)
+	if longest.size() == 1:
+		var only: Array[Unit] = longest[0]
+		return only
+	var picked: Array[Unit] = GameRng.pick_random(longest)
+	return picked
 
 
-static func _extend_chain(chain: Array[Unit], arcs_left: int, immune: String) -> Array[Unit]:
-	if arcs_left <= 0:
-		return chain
-	var best: Array[Unit] = chain
-	for candidate: Unit in _arc_candidates(chain.back(), chain, immune):
-		var extended: Array[Unit] = _extend_chain(
-				chain + ([candidate] as Array[Unit]), arcs_left - 1, immune)
-		if extended.size() > best.size():
-			best = extended
-			if best.size() == chain.size() + arcs_left:
-				break  # every remaining arc already lands — can't beat that
-	return best
+## DFS over every arc sequence, recording TERMINAL chains (budget spent or
+## nowhere left to jump) into `longest` — cleared whenever a longer one
+## appears, appended on ties. Prefixes never terminate early, so only true
+## maximal chains are candidates. Distinct orderings of the same units count
+## separately: they deal different damage, so they're different outcomes.
+static func _gather_chains(chain: Array[Unit], arcs_left: int, immune: String,
+		longest: Array) -> void:
+	var candidates: Array[Unit] = []
+	if arcs_left > 0:
+		candidates = _arc_candidates(chain.back(), chain, immune)
+	if candidates.is_empty():
+		if longest.is_empty() or chain.size() > (longest[0] as Array).size():
+			longest.clear()
+			longest.append(chain)
+		elif chain.size() == (longest[0] as Array).size():
+			longest.append(chain)
+		return
+	for candidate: Unit in candidates:
+		_gather_chains(chain + ([candidate] as Array[Unit]), arcs_left - 1, immune, longest)
 
 
 ## Legal next hops from `head`: live units on the 8 surrounding tiles

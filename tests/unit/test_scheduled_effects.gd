@@ -276,6 +276,63 @@ func test_brave_units_are_skipped_by_arcs() -> void:
 	assert_eq(brave.current_hp, 20, "the move's brave-immunity rides every arc")
 
 
+func test_tied_chains_pick_one_fork_not_both() -> void:
+	# A symmetric fork: budget 2 but only single-hop paths exist on each side,
+	# so the longest chains are [victim, left] and [victim, right] — GameRng
+	# picks ONE. Whichever it is, exactly one fork takes the arc.
+	_open_grid(0, 4, 0, 2)
+	var caster := _unit("shrieker", Enums.UnitFaction.ENEMY)
+	var victim := _unit("victim", Enums.UnitFaction.PLAYER)
+	var left := _unit("left", Enums.UnitFaction.PLAYER)
+	var right := _unit("right", Enums.UnitFaction.PLAYER)
+	_place(caster, 0, 2)  # Chebyshev 2 from everyone — never a link in the chain
+	_place(victim, 2, 0)
+	_place(left, 1, 0)
+	_place(right, 3, 0)
+	ScheduledEffects.schedule(caster, victim, MoveData.get_move("Shriek of the Damned"))
+
+	await ScheduledEffects.tick_faction_phase(Enums.UnitFaction.ENEMY,
+			[caster, victim, left, right])
+	assert_eq(victim.current_hp, 14, "the marked unit always takes the full 6")
+	var left_struck: bool = left.current_hp < 20
+	var right_struck: bool = right.current_hp < 20
+	assert_ne(left_struck, right_struck,
+		"exactly one fork is struck — the bolt picks a path, it doesn't split")
+	assert_eq(mini(left.current_hp, right.current_hp), 17,
+		"the struck fork takes arc-1 damage (3) — the second arc had nowhere to go")
+
+
+func test_tied_chains_replay_identically_under_the_seeded_die() -> void:
+	# Save-determinism contract: restore the SAME GameRng state, refire the
+	# same tied strike, get the same fork. (Seeded reloads replay the bolt.)
+	_open_grid(0, 4, 0, 2)
+	var caster := _unit("shrieker", Enums.UnitFaction.ENEMY)
+	var victim := _unit("victim", Enums.UnitFaction.PLAYER)
+	var left := _unit("left", Enums.UnitFaction.PLAYER)
+	var right := _unit("right", Enums.UnitFaction.PLAYER)
+	_place(caster, 0, 2)
+	_place(victim, 2, 0)
+	_place(left, 1, 0)
+	_place(right, 3, 0)
+	var shriek: Move = MoveData.get_move("Shriek of the Damned")
+	var dice: Dictionary = GameRng.capture_state()
+
+	ScheduledEffects.schedule(caster, victim, shriek)
+	await ScheduledEffects.tick_faction_phase(Enums.UnitFaction.ENEMY,
+			[caster, victim, left, right])
+	var left_struck_first_run: bool = left.current_hp < 20
+
+	victim.current_hp = 20
+	left.current_hp = 20
+	right.current_hp = 20
+	GameRng.restore_state(dice)
+	ScheduledEffects.schedule(caster, victim, shriek)
+	await ScheduledEffects.tick_faction_phase(Enums.UnitFaction.ENEMY,
+			[caster, victim, left, right])
+	assert_eq(left.current_hp < 20, left_struck_first_run,
+		"same dice state, same bolt — the tie-break replays identically")
+
+
 func test_double_shriek_arcs_deeper_instead_of_striking_twice() -> void:
 	_open_grid(0, 6, 0, 0)
 	var caster := _unit("shrieker", Enums.UnitFaction.ENEMY)

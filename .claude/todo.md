@@ -1,6 +1,8 @@
 ## [ ] Meeting 2026.06.28
 ### [ ] RQD
 - [ ] Shadows occasionally bugged (see bottom left)
+  ![Blood Mage](image.png)
+  - Delete these images once we've solved the problem
 - [ ] Save/Load causes expended (for the turn) units to appear not-grayed-out
 - [ ] Grav hook pulling an enemy unit into range should allow that unit to counterattack if pulled into range of its equipped attack
 - [x] Bug with chain lightning effect - this is somewhat unique from other afflictions in that its stacks don't persist - they should all execute immediately in sequence, depending on how many enemy units are in range.
@@ -26,8 +28,10 @@
     DEEPER chain, never two strikes** (the second entry finds no marker and fizzles). Arc beat
     0.15s/hop so the bolt visibly travels. DIALS (playtest): **arc reach = Chebyshev 1**
     ("touching, even at corners" — from your ArcLightning intuition; spread a full king-move
-    apart to break the chain), arcs faction-blind, Shriek marks at 2 stacks, equal-length
-    chains resolve by deterministic first-found (no RNG). Idea 2 shelved unneeded.
+    apart to break the chain), arcs faction-blind, Shriek marks at 2 stacks. Tied longest
+    chains: ALL are gathered and the **seeded GameRng picks one** (RQD follow-up same day:
+    unpredictable path in play, identical bolt on a seeded reload; forced outcomes draw no
+    roll, keeping the dice stream lean). Idea 2 shelved unneeded.
 
 - [x] move chip visual design
 	- [x] definitely want to keep "basic" move target schemes because it's useful to new players
