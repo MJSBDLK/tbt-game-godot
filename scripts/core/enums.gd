@@ -124,7 +124,7 @@ enum CharacterClass {
 	MAGE,
 	HEAVY,
 	GRUNT,
-	BLOOD_MAGE,
+	KEENER,   # Occult wailer — a keener is a professional funeral mourner
 	# Tier 2
 	JETPACK,
 	HARDCASE,
@@ -150,7 +150,7 @@ const CLASS_INFO: Dictionary = {
 	CharacterClass.MAGE:        { "tier": 1, "display_name": "Mage" },
 	CharacterClass.HEAVY:       { "tier": 1, "display_name": "Heavy" },
 	CharacterClass.GRUNT:       { "tier": 1, "display_name": "Grunt" },
-	CharacterClass.BLOOD_MAGE:  { "tier": 1, "display_name": "Blood Mage" },
+	CharacterClass.KEENER:      { "tier": 1, "display_name": "Keener" },
 	CharacterClass.JETPACK:     { "tier": 2, "display_name": "Jetpack" },
 	CharacterClass.HARDCASE:    { "tier": 2, "display_name": "Hardcase" },
 	CharacterClass.KNIGHT:      { "tier": 2, "display_name": "Knight" },

@@ -243,16 +243,21 @@ func test_spawned_unit_hands_the_feet_line_to_its_shadow() -> void:
 
 
 func test_atlas_character_hands_the_feet_line_to_its_shadow() -> void:
-	# The Blood Mage floating-smear bug (RQD 2026-08-03): atlas-path
-	# characters have no pivot sidecar, so _art_feet_drop stayed 0 and the
-	# whole cast pivoted at the WAIST — a smear floating at mid-body,
-	# glaring next to the pixel-identical (but sidecar'd) Occult whose
-	# shadow hugged the ground. The trim rect's bottom edge is the art
-	# bottom: frame 8 trims to y 17..59 on a 96 canvas → feet 12 below the
-	# node origin.
+	# The Keener floating-smear bug (RQD 2026-08-03, back when the character
+	# was "Blood Mage" riding spaceman atlas frame 8): atlas-path characters
+	# have no pivot sidecar, so _art_feet_drop stayed 0 and the whole cast
+	# pivoted at the WAIST — a smear floating at mid-body, glaring next to
+	# the pixel-identical (but sidecar'd) twin data file whose shadow hugged
+	# the ground. The trim rect's bottom edge is the art bottom: frame 8
+	# trims to y 17..59 on a 96 canvas → feet 12 below the node origin.
+	# No live character rides the atlas anymore — a synthetic CharacterData
+	# keeps the pipeline pinned for whatever placeholder rides it next.
+	var data := CharacterData.new()
+	data.sprite_sheet_path = "res://art/sprites/characters/spaceman_sprites.png"
+	data.sprite_atlas_path = "res://art/sprites/characters/spaceman_sprites.json"
+	data.sprite_frame_index = 8
 	var unit: Unit = (load("res://scenes/battle/unit.tscn") as PackedScene).instantiate() as Unit
-	unit.character_data = CharacterDataLoader.load_character(
-			"res://data/characters/blood_mage.json")
+	unit.character_data = data
 	unit.faction = Enums.UnitFaction.ENEMY
 	add_child_autofree(unit)
 	var tile: Tile = autofree(Tile.new())

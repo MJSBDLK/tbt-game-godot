@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dju0gd07r3x6n"
-path="res://.godot/imported/idle.png-14da6e423387abe64f4d3e91104ecd21.ctex"
+uid="uid://5dsj35nr8b0i"
+path="res://.godot/imported/shootside.png-faf893fc9552b32f2410669b9331edec.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/sprites/characters/occult/idle.png"
-dest_files=["res://.godot/imported/idle.png-14da6e423387abe64f4d3e91104ecd21.ctex"]
+source_file="res://art/sprites/characters/keener/shootside.png"
+dest_files=["res://.godot/imported/shootside.png-faf893fc9552b32f2410669b9331edec.ctex"]
 
 [params]
 

@@ -1,25 +1,25 @@
 {
-	"characterId": "occult",
-	"characterName": "Occult",
+	"characterId": "keener",
+	"characterName": "Keener",
 	"primaryType": "Occult",
 	"secondaryType": "None",
-	"currentClass": "Blood Mage",
+	"currentClass": "Keener",
 	"specialization": "None",
 	"sprite": {
-		"sheetPath": "res://art/sprites/characters/occult/idle.png",
+		"sheetPath": "res://art/sprites/characters/keener/idle.png",
 		"atlasPath": "",
 		"frameIndex": 0
 	},
 	"animations": {
 		"meleeside": {
-			"path": "res://art/sprites/characters/occult/meleeside.png",
+			"path": "res://art/sprites/characters/keener/meleeside.png",
 			"frames": 10,
 			"fps": 10,
 			"hit_frame": 5,
 			"use_when": { "direction": "horizontal", "range": 1 }
 		},
 		"shootside": {
-			"path": "res://art/sprites/characters/occult/shootside.png",
+			"path": "res://art/sprites/characters/keener/shootside.png",
 			"frames": 20,
 			"fps": 10,
 			"hit_frame": 10,
@@ -71,6 +71,7 @@
 		"Cavalier",
 		"Extendo",
 		"Protector",
-		"Reckless"
+		"Reckless",
+		"Zone Control"
 	]
 }

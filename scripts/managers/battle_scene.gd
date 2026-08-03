@@ -20,7 +20,6 @@ extends Node2D
 	"res://data/characters/bandit.json",
 	"res://data/characters/napdawg.json",
 	"res://data/characters/ogre.json",
-	"res://data/characters/blood_mage.json",
 	"res://data/characters/berzerker.json",
 	"res://data/characters/bugler_chivalric.json",
 	"res://data/characters/bugler_gentry.json",
@@ -33,7 +32,7 @@ extends Node2D
 	"res://data/characters/squash.json",
 	"res://data/characters/thumps.json",
 	"res://data/characters/traveller.json",
-	"res://data/characters/occult.json",
+	"res://data/characters/keener.json",
 ]
 
 var _unit_scene: PackedScene = preload("res://scenes/battle/unit.tscn")

@@ -2,7 +2,7 @@
 	"characterName": "Bandit",
 	"primaryType": "Gentry",
 	"secondaryType": "None",
-	"currentClass": "Bandit",
+	"currentClass": "Skulk",
 	"specialization": "None",
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/bandit/idle.png",
