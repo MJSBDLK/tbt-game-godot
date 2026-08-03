@@ -18,17 +18,31 @@ Binary "do it in N turns or game over" mechanics are banned. Every world-clock o
 
 ## bEXP Rules
 
-**bEXP is awarded exclusively for completing objectives — never for turn count, never for kills.**
+**bEXP is awarded for completing objectives and for coarse end-of-mission turn bands — never per-kill, never as a per-turn drain.**
 
-This sidesteps the FE Radiant Dawn trap where killing reinforcements felt like XP gain but was actually bEXP loss, because the player's in-moment incentive ("kill things → XP") directly opposed the meta incentive ("finish fast → bEXP").
+*(Amended 2026-08-03 by RQD — the original "never for turn count" rule is
+relaxed. The FE Radiant Dawn sin wasn't rewarding speed, it was HIDING the
+reward: players learned about speed-bEXP from the wiki. Coarse par bands,
+displayed up front, keep the incentive without the trap.)*
 
-Under the objective-only rule:
-- Normal combat XP from kills stays unconditional — grind reinforcements all you want, no bEXP penalty.
-- bEXP attaches to specific accomplishments: save the NPC, destroy the courier, grab the cache.
-- Ignoring objectives is valid play; it just doesn't earn bEXP. No punishment, only opportunity cost.
-- "Fast play" emerges naturally because objectives are time-pressured by the world, not because the player is racing a meta-clock.
+Income lines per mission:
+- **Above par** — finished at or under the map's `par_turns`: the larger bonus.
+- **No dawdling** — finished under the map's `dawdle_turns` (generous — roughly
+  2× par): the "gimme" bonus. Everyone playing normally gets this.
+- **Explicit objectives** — save the NPC, destroy the courier, grab the cache.
+  Typical values 100–250 each, 0–2 optional per mission.
 
-Each map defines its own objective → bEXP award table. Typical bEXP values: 100–250 per objective, with 1–3 objectives per mission.
+Rules that survive the amendment unchanged:
+- Normal combat XP from kills stays unconditional — grind reinforcements all
+  you want, no bEXP penalty. The RD trap (in-moment incentive opposing the
+  meta incentive) stays sidestepped because kills never subtract anything.
+- Par is **displayed before and during the mission** (mission info / objective
+  readout) — a fact the player can plan around, never a secret and never a
+  ticking HUD countdown.
+- Awards are granted once, at mission end, as itemized lines on the result
+  screen. No formula ever drains a pool as turns pass.
+- Ignoring objectives is valid play; it just doesn't earn bEXP. No punishment,
+  only opportunity cost.
 
 ## Objective Patterns (Catalogue)
 
@@ -84,11 +98,35 @@ Each map defines its own objective → bEXP award table. Typical bEXP values: 10
 
 ## Anti-Patterns (Do Not Implement)
 
-- Explicit turn counters on the HUD (e.g. "12 turns remaining").
+- Explicit turn counters on the HUD (e.g. "12 turns remaining"). Par shown as
+  a static fact in mission info is fine; a ticking countdown is not.
 - Mission-fail conditions tied purely to turn count.
-- bEXP formulas that subtract from a pool each turn.
+- bEXP formulas that subtract from a pool each turn. (End-of-mission par
+  BANDS are allowed per the 2026-08-03 amendment; continuous per-turn decay
+  is still banned.)
 - Objectives that vanish without a chase/escalation path.
 - Punishing kills or combat engagement in any form.
+- Hidden incentives. If speed pays, the player is told so before turn 1.
+
+## XP Economy (locked 2026-08-03, RQD design session)
+
+Combat XP and bEXP are one economy; the code is the source of truth
+([combat_xp_calculator.gd](../scripts/combat/combat_xp_calculator.gd) header),
+this is the doctrine:
+
+- **Combat XP**: RD differential formula, flat 100 XP/level. The differential
+  IS the rubber band — underleveled units level ~4× faster in the same
+  mission. Overleveled gains decay to the 1-XP floor.
+- **Support casts** (buff/cleanse) pay a flat heal-sized award, gated on the
+  cast having a meaningful effect. PP limits farming.
+- **Survival XP**: the FIRST time each enemy engages a unit per battle, the
+  defender earns a small level-diff-scaled award (dodge or tank — surviving
+  is the lesson). Repeat engagements from the same enemy pay nothing, so
+  stalling next to a harmless enemy pays ~1 XP once, then zero forever.
+- **bEXP spending**: pooled, player-allocated. A level costs
+  `100 × unit_level ÷ squad_max_level` (clean-rounded, floor 25) — the player
+  sees a price tag per unit, never the formula. Weaker units learn faster,
+  in the field and in training.
 
 ## Open Questions
 

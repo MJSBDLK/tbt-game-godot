@@ -149,3 +149,43 @@ func test_multi_battle_injury_counts_down_once_per_subsequent_battle() -> void:
 	SquadManager._on_battle_ended(false)
 	assert_eq(data.current_injuries[0].battles_remaining, 3,
 			"One tick per battle after the earning one")
+
+
+# =============================================================================
+# Battle-end bEXP income (flat 150 retired 2026-08-03)
+# =============================================================================
+# Income is itemized award lines from MissionCatalog (par bands + objectives),
+# summed into the pool. Outside a campaign the mission path is "" and the
+# catalog serves defaults — ad-hoc battles still pay.
+
+func _with_income_state_reset(callable: Callable) -> void:
+	var saved_pool: int = SquadManager.bonus_xp_pool
+	var saved_lines: Array[Dictionary] = SquadManager.last_mission_award_lines
+	var saved_turns: int = TurnManager.turn_count
+	callable.call()
+	SquadManager.bonus_xp_pool = saved_pool
+	SquadManager.last_mission_award_lines = saved_lines
+	TurnManager.turn_count = saved_turns
+
+
+func test_fast_victory_banks_both_par_bands_into_the_pool() -> void:
+	_with_income_state_reset(func() -> void:
+		SquadManager.bonus_xp_pool = 0
+		TurnManager.turn_count = 1  # under any par
+		SquadManager._on_battle_ended(true)
+		assert_eq(SquadManager.bonus_xp_pool,
+				MissionCatalog.NO_DAWDLING_BEXP + MissionCatalog.ABOVE_PAR_BEXP,
+				"victory income = sum of the itemized lines, not a flat grant")
+		assert_eq(SquadManager.last_mission_award_lines.size(), 2,
+				"itemized lines kept for the result screen to render verbatim"))
+
+
+func test_defeat_banks_nothing_and_clears_the_award_lines() -> void:
+	_with_income_state_reset(func() -> void:
+		SquadManager.bonus_xp_pool = 40
+		SquadManager.last_mission_award_lines = [{"label": "stale", "amount": 1}] as Array[Dictionary]
+		TurnManager.turn_count = 1
+		SquadManager._on_battle_ended(false)
+		assert_eq(SquadManager.bonus_xp_pool, 40, "defeat adds no income")
+		assert_eq(SquadManager.last_mission_award_lines.size(), 0,
+				"stale lines from the previous mission can't leak into this result screen"))

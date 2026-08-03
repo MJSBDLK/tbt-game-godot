@@ -42,16 +42,17 @@ signal bonus_xp_changed(new_pool: int)
 ## by pouring it into individual characters' regular `experience` field. Stays
 ## across missions; carries forward when the player skips the screen.
 ##
-## Per [[mission_objectives.md]] this should ultimately be awarded for
-## OBJECTIVES, not raw kills or turn count — the objective infrastructure
-## doesn't exist yet, so for now we grant a flat BONUS_XP_PER_VICTORY on win
-## as a placeholder that lets the bEXP UI exist and be playtested.
+## Income per [[mission_objectives.md]] (amended 2026-08-03): itemized award
+## lines from MissionCatalog — turn-par bands + completed objectives — summed
+## into the pool at battle end. The flat per-victory grant is retired.
 var bonus_xp_pool: int = 0
 
-## Placeholder award schedule pending the objective system. Tune in one spot
-## (here) once real objectives land — every consumer reads bonus_xp_pool, so
-## changing the award size doesn't ripple.
-const BONUS_XP_PER_VICTORY: int = 150
+## Itemized income from the most recent battle_ended, verbatim from
+## MissionCatalog.compute_award_lines ({label, amount} dicts). Transient
+## display data for the result + bEXP screens — deliberately NOT persisted;
+## a mid-battle save predates the awards and a post-mission save has already
+## banked them into bonus_xp_pool.
+var last_mission_award_lines: Array[Dictionary] = []
 
 
 # Default roster bootstrapped at game start.
@@ -230,11 +231,16 @@ func _on_battle_ended(is_victory: bool) -> void:
 			"is_victory": is_victory,
 		})
 
-	# Award bonus XP on victory. Objectives will eventually replace the flat
-	# award per [[mission_objectives.md]]; until then the alpha gets a constant
-	# per-mission grant so the bEXP screen has something to spend.
-	if is_victory:
-		bonus_xp_pool += BONUS_XP_PER_VICTORY
+	# Bank the mission's itemized bEXP income (par bands + objectives). The
+	# mission path can be empty outside a campaign (ad-hoc battle scene) —
+	# MissionCatalog serves defaults so those still pay out.
+	var mission_path: String = CampaignManager.get_current_mission_path()
+	last_mission_award_lines = MissionCatalog.compute_award_lines(
+			MissionCatalog.entry_for(mission_path),
+			TurnManager.turn_count, is_victory)
+	var income: int = MissionCatalog.total_of(last_mission_award_lines)
+	if income > 0:
+		bonus_xp_pool += income
 		bonus_xp_changed.emit(bonus_xp_pool)
 
 	DebugConfig.log_unit_init("SquadManager: battle_ended processed — active roster: %s" % [_roster_by_id.keys()])

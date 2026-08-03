@@ -1,0 +1,20 @@
+{
+  "res://scenes/battle/maps/test_map_01.tscn": {
+    "display_name": "Test Map 01",
+    "par_turns": 6,
+    "dawdle_turns": 12,
+    "objectives": []
+  },
+  "res://scenes/battle/maps/test_map_02.tscn": {
+    "display_name": "Test Map 02",
+    "par_turns": 6,
+    "dawdle_turns": 12,
+    "objectives": []
+  },
+  "res://scenes/battle/maps/test_map_03.tscn": {
+    "display_name": "Test Map 03",
+    "par_turns": 8,
+    "dawdle_turns": 16,
+    "objectives": []
+  }
+}
