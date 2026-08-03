@@ -11,15 +11,15 @@
 ##   XP"). This screen is where the player spends the accumulated pool to top
 ##   up under-leveled units between fights.
 ##
-## DATA CONTRACT — receives the same Array as PostMissionReportPanel via
+## DATA CONTRACT — receives the same Array as BattleResultPanel via
 ## show_report() so it can render alongside the survivors. The screen
 ## doesn't NEED the report (the active roster is the source of truth), but
 ## taking it as input keeps the UIManager chain consistent — every step in
 ## the post-mission flow accepts the same payload.
 ##
-## EMITS `closed` when the user clicks Continue — UIManager then chains the
-## PostMissionReportPanel so injuries/recovery still show. If the pool is
-## zero at entry time, the screen self-skips (emits closed immediately).
+## EMITS `closed` when the user clicks Continue — UIManager then finishes the
+## post-mission flow (state pop + campaign conclude). If the pool is zero at
+## entry time, the screen self-skips (emits closed immediately).
 class_name BonusXpPanel
 extends Control
 

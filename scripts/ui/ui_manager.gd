@@ -57,17 +57,20 @@ var _unit_detail_panel: UnitDetailPanel = null
 var _system_menu_panel: SystemMenuPanel = null
 var _options_menu_panel: OptionsMenuPanel = null
 var _save_browser_panel: SaveBrowserPanel = null
-var _post_mission_report_panel: PostMissionReportPanel = null
+var _battle_result_panel: BattleResultPanel = null
 var _level_up_report_panel: LevelUpReportPanel = null
 var _bonus_xp_panel: BonusXpPanel = null
-# Stashed between LevelUpReportPanel.closed → BonusXpPanel.show_report →
-# PostMissionReportPanel.show_report, since each screen accepts the same
-# payload but renders in sequence.
+# Stashed between BattleResultPanel.closed → LevelUpReportPanel.show_report →
+# BonusXpPanel.show_report, since each screen accepts the same payload but
+# renders in sequence.
 var _pending_post_mission_report: Array = []
 # Outcome recorded by show_battle_result (which _end_battle calls before
 # emitting battle_ended) so the banner played at the top of the post-mission
 # chain knows what to say.
 var _pending_result_is_victory: bool = true
+# Full stats payload from show_battle_result (turns, kills, losses, totals),
+# rendered by BattleResultPanel once the banner clears.
+var _pending_battle_stats: Dictionary = {}
 var _recruit_picker_panel: Node = null
 
 
@@ -276,14 +279,22 @@ func show_battle_result(is_victory: bool, turn_count: int, player_units_lost: in
 	hide_action_menu()
 	hide_combat_preview()
 	hide_unit_detail()
-	# Record the outcome for the banner. _end_battle calls this BEFORE emitting
-	# battle_ended, so the flag is always fresh when the post-mission chain
-	# (_on_post_mission_report_ready) reads it.
+	# Record the outcome + stats for the chain. _end_battle calls this BEFORE
+	# emitting battle_ended, so both are always fresh when the post-mission
+	# chain (_on_post_mission_report_ready) reads them.
 	_pending_result_is_victory = is_victory
+	_pending_battle_stats = {
+		"is_victory": is_victory,
+		"turn_count": turn_count,
+		"player_units_lost": player_units_lost,
+		"enemies_defeated": enemies_defeated,
+		"total_players": total_players,
+		"total_enemies": total_enemies,
+	}
 	# The legacy stats overlay is DELIBERATELY NOT shown. The post-mission
 	# chain suppresses it via hide_battle_result() in the same frame anyway
-	# (its Continue button has no listeners — it's dead UI pending the
-	# battle-result rebuild). Showing it after an awaited banner resurrected
+	# (its Continue button has no listeners — dead UI, superseded by
+	# BattleResultPanel). Showing it after an awaited banner resurrected
 	# it as an undismissable zombie underneath the bEXP screen (2026-07-07).
 
 
@@ -544,10 +555,16 @@ func _instantiate_overlays() -> void:
 		_overlay_layer.add_child(_unit_detail_panel)
 		_unit_detail_panel.closed.connect(_on_unit_detail_closed)
 
-	# Post-mission flow: LevelUpReportPanel → BonusXpPanel → PostMissionReportPanel.
+	# Post-mission flow: BattleResultPanel → LevelUpReportPanel → BonusXpPanel.
 	# Each step self-skips if its preconditions don't fire (no level-ups,
 	# zero bEXP pool, etc.), so the chain falls through naturally on defeat
 	# or for first-mission victories where there's nothing to celebrate.
+	var battle_result_scene := load("res://scenes/ui/panels/battle_result_panel.tscn")
+	if battle_result_scene != null:
+		_battle_result_panel = battle_result_scene.instantiate() as BattleResultPanel
+		_overlay_layer.add_child(_battle_result_panel)
+		_battle_result_panel.closed.connect(_on_battle_result_panel_closed)
+
 	var level_up_scene := load("res://scenes/ui/panels/level_up_report_panel.tscn")
 	if level_up_scene != null:
 		_level_up_report_panel = level_up_scene.instantiate() as LevelUpReportPanel
@@ -560,14 +577,9 @@ func _instantiate_overlays() -> void:
 		_overlay_layer.add_child(_bonus_xp_panel)
 		_bonus_xp_panel.closed.connect(_on_bonus_xp_closed)
 
-	var post_mission_scene := load("res://scenes/ui/panels/post_mission_report_panel.tscn")
-	if post_mission_scene != null:
-		_post_mission_report_panel = post_mission_scene.instantiate() as PostMissionReportPanel
-		_overlay_layer.add_child(_post_mission_report_panel)
-		_post_mission_report_panel.closed.connect(_on_post_mission_report_closed)
-		var squad_manager: Node = get_node_or_null("/root/SquadManager")
-		if squad_manager and squad_manager.has_signal("post_mission_report_ready"):
-			squad_manager.post_mission_report_ready.connect(_on_post_mission_report_ready)
+	var squad_manager: Node = get_node_or_null("/root/SquadManager")
+	if squad_manager and squad_manager.has_signal("post_mission_report_ready"):
+		squad_manager.post_mission_report_ready.connect(_on_post_mission_report_ready)
 
 	# Recruit picker panel (between-missions choice of N candidates)
 	var recruit_picker_scene := load("res://scenes/ui/panels/recruit_picker_panel.tscn")
@@ -576,16 +588,20 @@ func _instantiate_overlays() -> void:
 		_overlay_layer.add_child(_recruit_picker_panel)
 
 
-## Entry point for the post-mission flow. Chain:
+## Entry point for the post-mission flow. Chain (reordered 2026-08-03 —
+## results FIRST: the player learns what happened before being asked to
+## celebrate or spend):
 ##   battle_ended signal → _on_post_mission_report_ready (this)
-##     → LevelUpReportPanel.show_report() — celebrates leveled characters.
-##         Self-skips if no one leveled.
+##     → banner ("VICTORY"/"DEFEAT", no numbers) — awaited, blocks the chain
+##     → BattleResultPanel.show_result() — turns vs par, itemized bEXP
+##         income, kills/losses, injuries/permadeath.
+##     → _on_battle_result_panel_closed → LevelUpReportPanel.show_report() —
+##         celebrates leveled characters. Self-skips if no one leveled.
 ##     → _on_level_up_report_closed → BonusXpPanel.show_report() — spend
 ##         accumulated bEXP on individual characters' experience.
 ##         Self-skips if bonus_xp_pool == 0.
-##     → _on_bonus_xp_closed → PostMissionReportPanel.show_report() —
-##         renders injuries / recovery / permadeath. Emits `closed` when done.
-##     → _on_post_mission_report_closed → state pop, campaign advances.
+##     → _on_bonus_xp_closed → _finish_post_mission_flow() — state pop,
+##         campaign concludes (victory advances, defeat replays).
 func _on_post_mission_report_ready(report: Array) -> void:
 	# Suppress the legacy battle-result overlay so its Continue button doesn't
 	# compete with the post-mission panel (they share the same overlay layer).
@@ -615,10 +631,22 @@ func _on_post_mission_report_ready(report: Array) -> void:
 			else GameColors.ENEMY_UNIT
 	await show_phase_transition(
 			"VICTORY" if _pending_result_is_victory else "DEFEAT", banner_color)
+	if _battle_result_panel != null:
+		_battle_result_panel.show_result(_pending_battle_stats,
+				SquadManager.last_mission_award_lines, report)
+	else:
+		_show_level_up_report()
+
+
+func _on_battle_result_panel_closed() -> void:
+	_show_level_up_report()
+
+
+func _show_level_up_report() -> void:
 	if _level_up_report_panel != null:
 		# LevelUpReportPanel filters internally; if nobody leveled it emits
 		# `closed` immediately and the chain continues without delay.
-		_level_up_report_panel.show_report(report)
+		_level_up_report_panel.show_report(_pending_post_mission_report)
 	else:
 		_show_bonus_xp_panel()
 
@@ -629,7 +657,7 @@ func _on_level_up_report_closed() -> void:
 
 func _show_bonus_xp_panel() -> void:
 	if _bonus_xp_panel == null:
-		_show_post_mission_report()
+		_finish_post_mission_flow()
 		return
 	# BonusXpPanel.show_report self-skips when the pool is empty — no need
 	# to peek at SquadManager.bonus_xp_pool here.
@@ -637,21 +665,24 @@ func _show_bonus_xp_panel() -> void:
 
 
 func _on_bonus_xp_closed() -> void:
-	_show_post_mission_report()
+	_finish_post_mission_flow()
 
 
-func _show_post_mission_report() -> void:
-	if _post_mission_report_panel == null:
-		return
-	var report: Array = _pending_post_mission_report
+## End of the post-mission chain: release the input state and hand the
+## outcome to CampaignManager (victory advances, defeat replays — its call).
+## Absorbed from the retired PostMissionReportPanel, which used to own this.
+func _finish_post_mission_flow() -> void:
 	_pending_post_mission_report = []
-	_post_mission_report_panel.show_report(report)
-
-
-func _on_post_mission_report_closed() -> void:
 	var state_manager := get_node_or_null("/root/GameStateManager")
 	if state_manager != null and state_manager.current_state == Enums.InputState.POST_MISSION_REPORT:
 		state_manager.pop_state()
+	var campaign_manager: Node = get_node_or_null("/root/CampaignManager")
+	if campaign_manager != null and campaign_manager.is_active():
+		campaign_manager.conclude_mission(_pending_result_is_victory)
+	else:
+		# No active campaign (e.g. launched a map directly from the editor).
+		# Fall back to the start screen so the player can pick a campaign.
+		SceneRouter.change_scene_to("res://scenes/ui/start_screen.tscn")
 
 
 # =============================================================================

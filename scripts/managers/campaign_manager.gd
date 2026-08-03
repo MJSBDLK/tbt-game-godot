@@ -5,7 +5,7 @@
 ##
 ## Flow:
 ##   start_screen.gd           -> CampaignManager.start_campaign(level, missions, pool)
-##   post_mission_report_panel -> CampaignManager.conclude_mission(is_victory)
+##   UIManager (end of post-mission chain) -> CampaignManager.conclude_mission(is_victory)
 ##   conclude_mission(true)    -> advance_mission() -> recruit picker -> next scene
 ##                              | end_campaign() if no missions remain
 ##   conclude_mission(false)   -> _restart_current_mission() — replay the same
@@ -98,8 +98,8 @@ func start_campaign(start_level: int, mission_paths: Array[String],
 	SceneRouter.change_scene_to(PREP_SCREEN_PATH)
 
 
-## Entry point called by post_mission_report_panel after the player clicks
-## Continue. Routes on the battle outcome: a victory advances to the next
+## Entry point called by UIManager._finish_post_mission_flow at the end of
+## the post-mission chain. Routes on the battle outcome: a victory advances to the next
 ## mission; a defeat replays the current one (RESTART_MISSION_ON_LOSS) so the
 ## player retries with the roster — levels and injuries — they finished the loss
 ## holding. With the toggle off, a defeat advances like a victory (the old

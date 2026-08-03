@@ -7,12 +7,11 @@
 ## sound stubs) is a placeholder.
 ##
 ## Why this screen exists ([[project-level-up-screen]]):
-##   Level-ups are the long-term retention hook. The PostMissionReportPanel is
-##   a text dump — useful for verifying the loop works, but it dumps level-ups
-##   alongside injuries with no celebration. This screen separates the dopamine
-##   moment from the consequence moment.
+##   Level-ups are the long-term retention hook. Mission-scoped facts and
+##   consequences (turns, income, injuries) live on BattleResultPanel; this
+##   screen is the separated dopamine moment for character growth.
 ##
-## DATA CONTRACT — receives the same Array as PostMissionReportPanel via
+## DATA CONTRACT — receives the same Array as BattleResultPanel via
 ## show_report(). Each entry is a Dictionary with these fields (set by
 ## SquadManager._on_battle_ended). The screen only renders entries where
 ## `level_after > level_before`; everyone else is skipped:
@@ -30,10 +29,11 @@
 ##   4. Stat-up badge punches in (if stat_ups_gained > 0)
 ##   5. "Next" button becomes interactive
 ##
-## EMITS `closed` when the user clicks past the last leveled character — UIManager
-## then chains the existing PostMissionReportPanel so injuries/recovery still
-## show. If no one leveled (defeat, or victory where every survivor whiffed
-## growths AND was at no stat-up milestone), UIManager skips this screen.
+## EMITS `closed` when the user clicks past the last leveled character —
+## UIManager then chains BonusXpPanel (injuries already showed on the result
+## screen before this one). If no one leveled (defeat, or victory where every
+## survivor whiffed growths AND was at no stat-up milestone), UIManager skips
+## this screen.
 class_name LevelUpReportPanel
 extends Control
 

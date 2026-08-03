@@ -1,6 +1,6 @@
-[gd_scene format=3 uid="uid://cpkrokiomuw0q"]
+[gd_scene format=3 uid="uid://c1vbattleresult"]
 
-[ext_resource type="Script" path="res://scripts/ui/panels/post_mission_report_panel.gd" id="1_script"]
+[ext_resource type="Script" path="res://scripts/ui/panels/battle_result_panel.gd" id="1_script"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
 bg_color = Color(0.08, 0.08, 0.1, 0.95)
@@ -10,7 +10,7 @@ border_width_right = 2
 border_width_bottom = 2
 border_color = Color(0.4, 0.4, 0.5, 1)
 
-[node name="PostMissionReportPanel" type="Control"]
+[node name="BattleResultPanel" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -38,7 +38,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Panel" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(420, 280)
+custom_minimum_size = Vector2(440, 280)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_bg")
 
@@ -53,9 +53,9 @@ theme_override_constants/margin_bottom = 16
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="ReportLabel" type="RichTextLabel" parent="CenterContainer/Panel/MarginContainer/VBox"]
+[node name="ResultLabel" type="RichTextLabel" parent="CenterContainer/Panel/MarginContainer/VBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(380, 200)
+custom_minimum_size = Vector2(400, 200)
 layout_mode = 2
 size_flags_vertical = 3
 bbcode_enabled = true
