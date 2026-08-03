@@ -821,8 +821,8 @@
 				"effect": "chain_lightning_strike",
 				"delay": 1,
 				"marker": "Chain_Lightning",
-				"power": 6,
-				"splashPct": 50
+				"stacks": 2,
+				"power": 6
 			}
 		}
 	}

@@ -121,12 +121,13 @@ static func _parse_move_entry(move_name: String, data: Dictionary) -> Move:
 			# param, so new knobs don't need a parser change.
 			var params: Dictionary = {}
 			for key: Variant in scheduled_data.keys():
-				if String(key) not in ["effect", "delay", "marker"]:
+				if String(key) not in ["effect", "delay", "marker", "stacks"]:
 					params[String(key)] = scheduled_data[key]
 			move.scheduled_effect = {
 				"effect": String(scheduled_data.get("effect", "")),
 				"delay": maxi(1, int(scheduled_data.get("delay", 1))),
 				"marker": String(scheduled_data.get("marker", "")).to_upper(),
+				"stacks": int(scheduled_data.get("stacks", 0)),
 				"params": params,
 			}
 

@@ -19,6 +19,8 @@ static func evaluate(predicate: String, unit: Node2D) -> bool:
 			return is_brave(unit)
 		"not_brave":
 			return not is_brave(unit)
+		"electric":
+			return is_electric(unit)
 		_:
 			push_warning("CombatPredicates: unknown predicate '%s'" % predicate)
 			return false
@@ -43,3 +45,16 @@ static func is_brave(unit: Node2D) -> bool:
 		if handler.grants_bravery():
 			return true
 	return false
+
+
+## Lightning doesn't bother the already-charged: ELECTRIC on EITHER effective
+## type slot makes the unit immune to every hop of a chain-lightning strike
+## (ScheduledEffects skips them as arc candidates; RQD 2026-08-03).
+static func is_electric(unit: Node2D) -> bool:
+	if unit == null:
+		return false
+	var data: Variant = unit.get("character_data")
+	if data == null:
+		return false
+	return data.effective_primary_type() == Enums.ElementalType.ELECTRIC \
+			or data.effective_secondary_type() == Enums.ElementalType.ELECTRIC

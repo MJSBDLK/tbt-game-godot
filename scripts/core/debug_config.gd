@@ -30,8 +30,8 @@ var testing_enemy_ghost: bool = false  # Grant every enemy the Ghost passive (pa
 var testing_hypoesthesia: bool = false  # Give every player unit a Minor Hypoesthesia injury on spawn (censors HP bar above 50%)
 var testing_hypoesthesia_major: bool = false  # Use Major severity instead of Minor (censor always on unless HP=0)
 var testing_random_hp_on_spawn: bool = false  # Spawn every player unit at 15-100% HP — useful for testing heals
-var testing_displacement_moves: bool = true  # Fill every player unit's moves with the displacement test kit (Unit.DEBUG_DISPLACEMENT_KIT, rotating 4-move windows) — eyeball Phase 3 shoves/pulls/spins/swaps
-var testing_phase4_moves: bool = false  # Fill every player unit's moves with the Phase 4 kit (Unit.DEBUG_PHASE4_KIT: Roar/Shriek/Steady/First Aid + the revived self-buffs) — eyeball conditional afflictions, delayed strikes, self-casts. Wins over the displacement kit if both are on.
+var testing_displacement_moves: bool = false  # Fill every player unit's moves with the displacement test kit (Unit.DEBUG_DISPLACEMENT_KIT, rotating 4-move windows) — eyeball Phase 3 shoves/pulls/spins/swaps
+var testing_phase4_moves: bool = true  # Fill every player unit's moves with the Phase 4 kit (Unit.DEBUG_PHASE4_KIT: Roar/Shriek/Steady/First Aid + the revived self-buffs) — eyeball conditional afflictions, delayed strikes, self-casts. Wins over the displacement kit if both are on.
 var debug_menu_badges: bool = true  # Etch each menu's class initials into its border (top-right, PanelBorderOverlay) — themed serial-tag so bug reports can name the misbehaving menu; looks intentional in screenshots. Flip false to hide. (RQD 2026-07-31)
 var unit_cast_shadows: bool = true  # Generated ground shadows under units (UnitShadow, sheared live frame). Flip false to eyeball the board without them. (RQD 2026-07-31)
 

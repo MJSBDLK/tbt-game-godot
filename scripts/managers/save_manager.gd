@@ -457,6 +457,7 @@ static func _scheduled_from_dict(entry: Dictionary) -> Dictionary:
 		"turns_remaining": int(entry.get("turns_remaining", 1)),
 		"effect": str(entry.get("effect", "")),
 		"marker": str(entry.get("marker", "")),
+		"stacks": int(entry.get("stacks", 1)),
 		"immune": str(entry.get("immune", "")),
 		"params": (entry.get("params", {}) as Dictionary).duplicate(true),
 		"source_name": str(entry.get("source_name", "")),

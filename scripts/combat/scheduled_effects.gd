@@ -9,9 +9,11 @@
 ##     "turns_remaining": int,
 ##     "effect": String,        # handler name, e.g. "chain_lightning_strike"
 ##     "marker": String,        # the telegraph status (UPPER), "" = none
-##     "immune": String,        # CombatPredicates name splash victims are checked
+##     "stacks": int,           # arc budget fallback for MARKERLESS entries;
+##                              #   marked entries read the marker's live stacks
+##     "immune": String,        # CombatPredicates name arc victims are checked
 ##                              #   against (primary victims were filtered at cast)
-##     "params": Dictionary,    # handler knobs (power, splashPct, ...)
+##     "params": Dictionary,    # handler knobs (power, ...)
 ##     "source_name": String }  # caster's name at cast time, for logs/callouts
 ##
 ## TICK CLOCK: entries tick at the start of the CASTER's faction phase
@@ -26,16 +28,25 @@
 ## the entry fizzles silently — cleansing the mark IS the counterplay. The
 ## marker also occupies the victim's one debuff slot, so an already-afflicted
 ## unit can't be marked at all (schedule() returns false and queues nothing).
+## Re-marking an already-marked unit RESTACKS the marker instead of queuing a
+## working second entry (the extra entry finds no marker and fizzles) — so a
+## double Shriek arcs DEEPER, it doesn't strike twice.
 ##
 ## SAVES: entries are plain data — SaveManager serializes the queue per unit
 ## verbatim and re-coerces ints on restore. No live references anywhere.
 ##
-## Handlers: chain_lightning_strike — flat params.power damage to the marked
-## unit (raw, like DoT ticks — telegraphed damage should be readable, not
-## stat-mitigated), then splashPct% (rounded up) to each orthogonally adjacent
-## unit regardless of faction — clustering is the risk, spreading out is the
-## counterplay. Splash skips units matching entry.immune ("brave" for Shriek:
-## the brave are passed over entirely, mark and splash both).
+## Handlers: chain_lightning_strike — the RQD 2026-08-03 chain design. The
+## marked unit takes flat params.power (raw, like DoT ticks — telegraphed
+## damage should be readable, not stat-mitigated), then the bolt ARCS: one arc
+## per marker stack (max 4 = a 5-target chain), each hop to a unit within
+## Chebyshev 1 of the last one struck ("touching, even at corners" — the
+## clustering intuition; spread a full king-move apart to break the chain).
+## Damage halves per hop (power >> hop, floored, minimum 1), no unit is struck
+## twice by one chain, faction-blind (the damned don't discriminate). ELECTRIC
+## types are immune to every hop, as are units matching entry.immune ("brave"
+## for Shriek). The next hop is chosen by exhaustive longest-path search
+## (_best_chain), so the chain never strands itself in a dead end while
+## targets remain reachable — five units huddled together = five units hit.
 class_name ScheduledEffects
 extends RefCounted
 
@@ -46,6 +57,10 @@ const KNOWN_EFFECTS: PackedStringArray = [EFFECT_CHAIN_LIGHTNING]
 ## Read beat between the strike callout and the damage, mirroring the
 ## CORRUPTION / OUT OF RANGE convention: name the cause, then show the effect.
 const CALLOUT_READ_SECONDS := 0.4
+
+## Beat between chain hops so the bolt visibly TRAVELS instead of the whole
+## chain resolving as one simultaneous splash.
+const ARC_HOP_SECONDS := 0.15
 
 
 ## Queue `move`'s scheduled effect from `caster` onto `target`. Returns true if
@@ -61,11 +76,16 @@ static func schedule(caster: Node2D, target: Node2D, move: Move) -> bool:
 		push_warning("ScheduledEffects: move '%s' schedules unknown effect '%s'" % [
 			move.move_name, effect_name])
 		return false
+	# Effect-specific immunity: lightning can't take hold on the already-
+	# charged, so an ELECTRIC unit is never marked — not just skipped by arcs.
+	if effect_name == EFFECT_CHAIN_LIGHTNING and CombatPredicates.is_electric(target):
+		return false
 
 	var marker: String = String(spec.get("marker", ""))
 	if not marker.is_empty():
 		var marked: bool = StatusEffectSystem.apply_status_effect_by_name(
-			caster, target, marker, 0, false, move.element_type, move.damage_type)
+			caster, target, marker, int(spec.get("stacks", 0)), false,
+			move.element_type, move.damage_type)
 		if not marked:
 			return false
 
@@ -79,6 +99,7 @@ static func schedule(caster: Node2D, target: Node2D, move: Move) -> bool:
 		"turns_remaining": int(spec.get("delay", 1)),
 		"effect": effect_name,
 		"marker": marker,
+		"stacks": maxi(1, int(spec.get("stacks", 1))),
 		"immune": move.immune_predicate,
 		"params": (spec.get("params", {}) as Dictionary).duplicate(true),
 		"source_name": String(caster.get("unit_name")) if caster != null else "",
@@ -119,6 +140,9 @@ static func _fire(unit: Unit, entry: Dictionary) -> void:
 static func _fire_chain_lightning(unit: Unit, entry: Dictionary) -> void:
 	var marker: String = String(entry.get("marker", ""))
 	var source_element := Enums.ElementalType.NONE
+	# One arc per marker stack — a restacked mark arcs deeper. Markerless
+	# entries fall back to the budget captured at schedule time.
+	var arc_budget: int = int(entry.get("stacks", 1))
 	if not marker.is_empty():
 		var marker_effect: StatusEffect = _find_status(unit, marker)
 		if marker_effect == null:
@@ -127,33 +151,84 @@ static func _fire_chain_lightning(unit: Unit, entry: Dictionary) -> void:
 				entry.get("effect"), unit.unit_name])
 			return
 		source_element = marker_effect.source_element
+		arc_budget = maxi(1, marker_effect.stacks)
 		StatusEffectSystem.remove_status_effect(unit, marker)
 
 	var power: int = int(entry.get("params", {}).get("power", 4))
-	var splash_pct: float = float(entry.get("params", {}).get("splashPct", 50.0))
 
 	unit.spawn_text_callout("CHAIN LIGHTNING", GameColors.TEXT_DANGER)
 	if unit.is_inside_tree():
 		await unit.get_tree().create_timer(CALLOUT_READ_SECONDS).timeout
 
-	# Gather splash victims BEFORE any damage lands so a defeat mid-resolution
-	# can't shift who was "adjacent at strike time."
-	var splash_victims: Array[Unit] = _adjacent_units(unit, String(entry.get("immune", "")))
-	var struck: Array[Unit] = [unit]
-	_strike(unit, unit, power, source_element)
+	# Resolve the whole path BEFORE any damage lands, so a mid-chain defeat
+	# can't shift who was reachable at strike time. Damage halves per hop
+	# (bit-shift = floor-divide by 2^hop), never below 1.
+	var chain: Array[Unit] = _best_chain(unit, arc_budget, String(entry.get("immune", "")))
+	for hop: int in range(chain.size()):
+		var victim: Unit = chain[hop]
+		var damage: int = power if hop == 0 else maxi(1, power >> hop)
+		_strike(unit, victim, damage, source_element)
+		if hop < chain.size() - 1 and unit.is_inside_tree():
+			await unit.get_tree().create_timer(ARC_HOP_SECONDS).timeout
 
-	var splash_damage: int = int(ceilf(float(power) * splash_pct / 100.0))
-	if splash_damage > 0:
-		for victim: Unit in splash_victims:
-			_strike(unit, victim, splash_damage, source_element)
-			struck.append(victim)
-
-	# Defeats resolve after the whole strike so the splash reads as one event.
+	# Defeats resolve after the whole chain so it reads as one event.
 	# _handle_defeat self-guards against double-play (same contract the
 	# displacement executor relies on for collateral kills).
-	for victim: Unit in struck:
+	for victim: Unit in chain:
 		if victim.is_defeated() and victim.has_method("_handle_defeat"):
 			await victim._handle_defeat()
+
+
+## The arc path: `origin` first, then up to `arc_budget` hops, each to a unit
+## within Chebyshev 1 of the previous one struck. Exhaustive longest-path
+## search — the chain must not strand itself in a dead end while targets
+## remain reachable (RQD's clustering rule: five units huddled together = five
+## units hit). Small by construction: depth ≤ 4 arcs, ≤ 8 candidates per hop.
+## Candidate order is deterministic (grid y, then x), so equal-length chains
+## resolve identically on every run and replay.
+static func _best_chain(origin: Unit, arc_budget: int, immune: String) -> Array[Unit]:
+	return _extend_chain([origin] as Array[Unit], arc_budget, immune)
+
+
+static func _extend_chain(chain: Array[Unit], arcs_left: int, immune: String) -> Array[Unit]:
+	if arcs_left <= 0:
+		return chain
+	var best: Array[Unit] = chain
+	for candidate: Unit in _arc_candidates(chain.back(), chain, immune):
+		var extended: Array[Unit] = _extend_chain(
+				chain + ([candidate] as Array[Unit]), arcs_left - 1, immune)
+		if extended.size() > best.size():
+			best = extended
+			if best.size() == chain.size() + arcs_left:
+				break  # every remaining arc already lands — can't beat that
+	return best
+
+
+## Legal next hops from `head`: live units on the 8 surrounding tiles
+## ("touching, even at corners"), minus anyone already struck this chain,
+## ELECTRIC types (immune to every hop), and units matching the move-wide
+## immune predicate (Shriek's brave). Faction-blind on purpose — see header.
+static func _arc_candidates(head: Unit, struck: Array[Unit], immune: String) -> Array[Unit]:
+	var candidates: Array[Unit] = []
+	if head.current_tile == null:
+		return candidates
+	for dy: int in range(-1, 2):
+		for dx: int in range(-1, 2):
+			if dx == 0 and dy == 0:
+				continue
+			var tile: Tile = GridManager.get_tile(
+					head.current_tile.grid_x + dx, head.current_tile.grid_y + dy)
+			if tile == null or tile.current_unit == null or not tile.current_unit is Unit:
+				continue
+			var neighbor := tile.current_unit as Unit
+			if neighbor.is_defeated() or neighbor in struck:
+				continue
+			if CombatPredicates.is_electric(neighbor):
+				continue
+			if not immune.is_empty() and CombatPredicates.evaluate(immune, neighbor):
+				continue
+			candidates.append(neighbor)
+	return candidates
 
 
 static func _strike(popup_host: Unit, victim: Unit, damage: int, element: Enums.ElementalType) -> void:
@@ -164,26 +239,6 @@ static func _strike(popup_host: Unit, victim: Unit, damage: int, element: Enums.
 	})
 	VisualFeedbackManager.apply_hit_flash(victim, 0.4)
 	popup_host._spawn_damage_popup(victim, damage, "", 1.0)
-
-
-## Orthogonally adjacent (Manhattan 1) live units around `unit`, skipping any
-## that match the `immune` predicate. Faction-blind on purpose — see header.
-static func _adjacent_units(unit: Unit, immune: String) -> Array[Unit]:
-	var adjacent: Array[Unit] = []
-	if unit.current_tile == null:
-		return adjacent
-	for offset: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
-		var tile: Tile = GridManager.get_tile(
-			unit.current_tile.grid_x + offset.x, unit.current_tile.grid_y + offset.y)
-		if tile == null or tile.current_unit == null or not tile.current_unit is Unit:
-			continue
-		var neighbor := tile.current_unit as Unit
-		if neighbor.is_defeated():
-			continue
-		if not immune.is_empty() and CombatPredicates.evaluate(immune, neighbor):
-			continue
-		adjacent.append(neighbor)
-	return adjacent
 
 
 static func _find_status(unit: Unit, effect_type_name: String) -> StatusEffect:

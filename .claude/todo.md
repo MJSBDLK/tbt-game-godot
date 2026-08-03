@@ -1,5 +1,34 @@
 ## [ ] Meeting 2026.06.28
 ### [ ] RQD
+- [ ] Shadows occasionally bugged (see bottom left)
+- [ ] Save/Load causes expended (for the turn) units to appear not-grayed-out
+- [ ] Grav hook pulling an enemy unit into range should allow that unit to counterattack if pulled into range of its equipped attack
+- [x] Bug with chain lightning effect - this is somewhat unique from other afflictions in that its stacks don't persist - they should all execute immediately in sequence, depending on how many enemy units are in range.
+  - Chain Lightning 1 -> target receives 100% damage, arcs to second target, receives 50% damage
+  - Chain Lightning 2 -> target receives 100% damage, arcs to second target, receives 50% damage, arcs to third target, received 25% damage. Can't hit the same target twice.
+  - Chain Lightning 3 -> you can guess this
+  - Chain Lightning 4 (max) -> target receives 100% damage, arcs to second target, receives 50% damage, arcs to third target, received 25% damage, arcs to 4th target, receives 12.5% damage, arcs to 5th target, receives 6.25% damage. Can't hit the same target twice.
+  - damage rounds down to a minimum of 1
+  - if at any point there are no more targets in range, the effect ends.
+  - electric types are immune
+  - we probably want an algorithm which selects next target in such a way that the effect can't jump to targets which prematurely end the effect, e.g. if there are 5+ units clustered together, we want the effect to hit at least 5 targets - if it jumps in such a way that no more targets are in range of the effect, yet we haven't expended all the stacks, we want to avoid that.
+    - writing this out has made me think "maybe we want to program it differently"
+      - ALTERNATIVE IDEA: ArcLightning hits orthogonal units for 50%, Diagonals for 25%, rounded down, then repeats (but can't hit the same target twice)
+  - **SHIPPED 2026-08-03 — idea 1, exactly as specced** (rqd--phase4-conditional-effects, suite 673/2218):
+    the "hard part" wasn't — chains are ≤4 arcs through ≤8 neighbors per hop, so
+    [ScheduledEffects._best_chain](../scripts/combat/scheduled_effects.gd) does an EXHAUSTIVE
+    longest-path search: the bolt never strands itself in a dead end while targets remain
+    reachable (regression-pinned: a dead-end unit that sorts first in candidate order is passed
+    over for the longer thread). Stacks = arc count (marker max 4 → 5-target chain), damage
+    `power >> hop` floored min 1 (6 → 3 → 1 → 1 → 1), no unit struck twice per chain, ELECTRIC
+    (either effective type slot) immune to every hop AND can't be marked at all, brave-immunity
+    rides every arc for Shriek. Emergent rule kept: **double Shriek restacks the mark → one
+    DEEPER chain, never two strikes** (the second entry finds no marker and fizzles). Arc beat
+    0.15s/hop so the bolt visibly travels. DIALS (playtest): **arc reach = Chebyshev 1**
+    ("touching, even at corners" — from your ArcLightning intuition; spread a full king-move
+    apart to break the chain), arcs faction-blind, Shriek marks at 2 stacks, equal-length
+    chains resolve by deterministic first-found (no RNG). Idea 2 shelved unneeded.
+
 - [x] move chip visual design
 	- [x] definitely want to keep "basic" move target schemes because it's useful to new players
 	- [x] add tooltips with move details (basically the same as expanding the detail panel, perhaps with explanations) - major design decision made re: tooltips, see below — SHIPPED (hold-to-peek MoveTooltip)
@@ -287,9 +316,11 @@ self-cast layer nobody knew was missing. Suite 667/2195 green.
   CHALLENGED, everyone else → SHOCKED. Pooled: berzerker (front), ogre (behind Bounce Out).
 - [x] Author **Shriek of the Damned** — Support/Occult, self, AoE 5, `aoeAffects: all`
   (the damned don't discriminate — the caster's own side gets marked too), brave-immune,
-  delay-1 chain-lightning strike: flat 6 to the marked, ceil-half splash to orthogonal
-  neighbors of ANY faction (spreading out is the counterplay), brave spared from splash
-  too. Pooled: occult, blood_mage. PP 3 (usagesOffset).
+  delay-1 chain-lightning strike. **REDESIGNED 2026-08-03 to RQD's chain spec** (see the
+  Meeting 2026.06.28 chain-lightning entry): marks carry 2 stacks = 2 arcs; on strike day
+  the bolt hits the marked unit for 6 then ARCS Chebyshev-1 hop to hop, halving (floor,
+  min 1), no revisits, electric-immune, longest-path threading so clusters get fully
+  swept. Spreading out or cleansing is the counterplay. Pooled: occult, blood_mage. PP 3.
 - [x] **CHALLENGED has teeth now** (was a config with zero consumers): StatusEffect gains
   `source_unit` (stamped at apply, re-pointed on restack — last roar wins; saved as grid
   cell, re-resolved post-restore via SaveManager.resolve_status_sources); EnemyAI target
@@ -305,9 +336,10 @@ self-cast layer nobody knew was missing. Suite 667/2195 green.
 - Tests: test_phase4_conditional (10), test_scheduled_effects (8), test_challenged_aggro (5).
   Bundled hardening: `_host_popup` survives out-of-tree units (returns hosted/not),
   `_handle_defeat` fade skips treeless units.
-- **TUNING GUESSES (playtest):** Shriek strike 6 / splash 50% / AoE 5 / PP 3; Roar AoE 2 /
-  PP 8; CHALLENGED = hard target lock for its 3-turn tick-down; Chain-Lightning splash is
-  faction-blind; support casts award no XP; Steady's existence + its cleanse list.
+- **TUNING GUESSES (playtest):** Shriek strike 6 / 2-stack marks / AoE 5 / PP 3; Roar AoE 2 /
+  PP 8; CHALLENGED = hard target lock for its 3-turn tick-down; chain arcs are
+  faction-blind with Chebyshev-1 reach; support casts award no XP; Steady's existence +
+  its cleanse list.
 - **STILL OPEN:** in-game eyeball (callout pacing on strike day, mark icon legibility,
   flourish pulse); SHOCKED's "may skip turn" clause remains unimplemented (pre-existing);
   Stampede/Razor Wing charge authoring still parked under Phase 3's [~].

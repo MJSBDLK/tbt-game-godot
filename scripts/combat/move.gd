@@ -105,7 +105,9 @@ var current_uses: int = 0
 #                              #   `delay` of their own turns to react)
 #     "marker": String (UPPER),# status stamped on the victim as the visible
 #                              #   telegraph; cleansing it DEFUSES the strike
-#     "params": Dictionary }   # handler-specific knobs (power, splashPct, ...)
+#     "stacks": int,           # marker stacks (0 = config default). For chain
+#                              #   lightning: stacks = arc count — the whole dial
+#     "params": Dictionary }   # handler-specific knobs (power, ...)
 # Empty dict = nothing scheduled. Applied by ScheduleEffectHandler in the
 # pipeline; ticked + fired by ScheduledEffects. (Shriek of the Damned.)
 @export var scheduled_effect: Dictionary = {}

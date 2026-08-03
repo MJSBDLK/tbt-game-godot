@@ -75,6 +75,7 @@ func test_shriek_parses_its_scheduled_schema() -> void:
 	assert_eq(shriek.scheduled_effect.get("effect"), "chain_lightning_strike")
 	assert_eq(shriek.scheduled_effect.get("delay"), 1)
 	assert_eq(shriek.scheduled_effect.get("marker"), "CHAIN_LIGHTNING")
+	assert_eq(shriek.scheduled_effect.get("stacks"), 2, "Shriek marks arc twice")
 	assert_eq(int(shriek.scheduled_effect.get("params", {}).get("power", 0)), 6)
 
 
@@ -154,26 +155,154 @@ func test_cleansing_the_mark_defuses_the_strike() -> void:
 	assert_eq(victim.scheduled_effects.size(), 0, "the dud entry is discarded, not re-armed")
 
 
-func test_splash_zaps_neighbors_but_spares_the_brave_and_the_distant() -> void:
-	_open_grid(0, 4, 0, 1)
+# =============================================================================
+# THE CHAIN (RQD 2026-08-03 design: stacks = arcs, halving damage, no revisits,
+# electric immune, longest-path threading)
+# =============================================================================
+
+func test_chain_arcs_halve_and_stop_at_the_budget() -> void:
+	_open_grid(0, 5, 0, 0)
 	var caster := _unit("shrieker", Enums.UnitFaction.ENEMY)
 	var victim := _unit("victim", Enums.UnitFaction.PLAYER)
-	var neighbor := _unit("neighbor", Enums.UnitFaction.PLAYER)
-	var brave_neighbor := _unit("brave", Enums.UnitFaction.PLAYER, Enums.ElementalType.CHIVALRIC)
-	var bystander := _unit("bystander", Enums.UnitFaction.PLAYER)
-	_place(caster, 0, 1)
+	var first_arc := _unit("first arc", Enums.UnitFaction.PLAYER)
+	var second_arc := _unit("second arc", Enums.UnitFaction.PLAYER)
+	var beyond := _unit("beyond", Enums.UnitFaction.PLAYER)
+	_place(caster, 0, 0)      # Chebyshev 2 from the victim — out of arc reach
 	_place(victim, 2, 0)
-	_place(neighbor, 1, 0)        # orthogonal — splashed
-	_place(brave_neighbor, 3, 0)  # orthogonal but brave — spared
-	_place(bystander, 4, 0)       # distance 2 — untouched
+	_place(first_arc, 3, 0)
+	_place(second_arc, 4, 0)
+	_place(beyond, 5, 0)
 	ScheduledEffects.schedule(caster, victim, MoveData.get_move("Shriek of the Damned"))
 
 	await ScheduledEffects.tick_faction_phase(Enums.UnitFaction.ENEMY,
-			[caster, victim, neighbor, brave_neighbor, bystander])
+			[caster, victim, first_arc, second_arc, beyond])
 	assert_eq(victim.current_hp, 14, "the marked unit takes the full 6")
-	assert_eq(neighbor.current_hp, 17, "adjacency costs half, rounded up (3)")
-	assert_eq(brave_neighbor.current_hp, 20, "brave-immunity covers the splash too")
-	assert_eq(bystander.current_hp, 20, "two tiles away is out of the arc")
+	assert_eq(first_arc.current_hp, 17, "arc 1 takes half (3)")
+	assert_eq(second_arc.current_hp, 19, "arc 2 takes a quarter, floored (1)")
+	assert_eq(beyond.current_hp, 20, "two stacks = two arcs — the budget is spent")
+	assert_eq(caster.current_hp, 20, "nobody was in reach of the shrieker")
+
+
+func test_chain_never_strikes_the_same_unit_twice() -> void:
+	_open_grid(0, 3, 0, 0)
+	var caster := _unit("shrieker", Enums.UnitFaction.ENEMY)
+	var victim := _unit("victim", Enums.UnitFaction.PLAYER)
+	var only_neighbor := _unit("only neighbor", Enums.UnitFaction.PLAYER)
+	_place(caster, 0, 0)
+	_place(victim, 2, 0)
+	_place(only_neighbor, 3, 0)
+	ScheduledEffects.schedule(caster, victim, MoveData.get_move("Shriek of the Damned"))
+
+	await ScheduledEffects.tick_faction_phase(Enums.UnitFaction.ENEMY,
+			[caster, victim, only_neighbor])
+	assert_eq(victim.current_hp, 14, "no ping-pong back onto the origin")
+	assert_eq(only_neighbor.current_hp, 17, "one arc, one hit — the second arc finds nobody new")
+
+
+func test_chain_threads_the_cluster_instead_of_dying_in_a_dead_end() -> void:
+	# The RQD clustering rule: (1,0) is a dead end (its only neighbor is the
+	# victim), and it sorts FIRST in candidate order — a greedy chain would
+	# jump there and strand its second arc. The longest-path search must
+	# thread (3,0) → (4,0) instead.
+	_open_grid(0, 4, 0, 2)
+	var caster := _unit("shrieker", Enums.UnitFaction.ENEMY)
+	var victim := _unit("victim", Enums.UnitFaction.PLAYER)
+	var dead_end := _unit("dead end", Enums.UnitFaction.PLAYER)
+	var through := _unit("through", Enums.UnitFaction.PLAYER)
+	var far_link := _unit("far link", Enums.UnitFaction.PLAYER)
+	_place(caster, 0, 2)
+	_place(victim, 2, 0)
+	_place(dead_end, 1, 0)
+	_place(through, 3, 0)
+	_place(far_link, 4, 0)
+	ScheduledEffects.schedule(caster, victim, MoveData.get_move("Shriek of the Damned"))
+
+	await ScheduledEffects.tick_faction_phase(Enums.UnitFaction.ENEMY,
+			[caster, victim, dead_end, through, far_link])
+	assert_eq(victim.current_hp, 14, "origin takes the full 6")
+	assert_eq(dead_end.current_hp, 20, "the dead end is passed over for the longer path")
+	assert_eq(through.current_hp, 17, "arc 1 threads the cluster (3)")
+	assert_eq(far_link.current_hp, 19, "arc 2 reaches the far link (1)")
+
+
+func test_diagonals_are_within_arc_reach() -> void:
+	_open_grid(0, 3, 0, 1)
+	var caster := _unit("shrieker", Enums.UnitFaction.ENEMY)
+	var victim := _unit("victim", Enums.UnitFaction.PLAYER)
+	var diagonal := _unit("diagonal", Enums.UnitFaction.PLAYER)
+	_place(caster, 0, 0)
+	_place(victim, 2, 0)
+	_place(diagonal, 3, 1)
+	ScheduledEffects.schedule(caster, victim, MoveData.get_move("Shriek of the Damned"))
+
+	await ScheduledEffects.tick_faction_phase(Enums.UnitFaction.ENEMY,
+			[caster, victim, diagonal])
+	assert_eq(diagonal.current_hp, 17, "touching at the corner is touching — the bolt jumps")
+
+
+func test_electric_units_break_the_circuit_and_cannot_be_marked() -> void:
+	_open_grid(0, 4, 0, 0)
+	var caster := _unit("shrieker", Enums.UnitFaction.ENEMY)
+	var victim := _unit("victim", Enums.UnitFaction.PLAYER)
+	var charged := _unit("charged", Enums.UnitFaction.PLAYER, Enums.ElementalType.ELECTRIC)
+	var behind := _unit("behind", Enums.UnitFaction.PLAYER)
+	_place(caster, 0, 0)
+	_place(victim, 2, 0)
+	_place(charged, 3, 0)
+	_place(behind, 4, 0)
+	var shriek: Move = MoveData.get_move("Shriek of the Damned")
+	assert_false(ScheduledEffects.schedule(caster, charged, shriek),
+		"lightning can't take hold on the already-charged — no mark, no entry")
+	ScheduledEffects.schedule(caster, victim, shriek)
+
+	await ScheduledEffects.tick_faction_phase(Enums.UnitFaction.ENEMY,
+			[caster, victim, charged, behind])
+	assert_eq(victim.current_hp, 14, "the marked unit still takes its 6")
+	assert_eq(charged.current_hp, 20, "electric types are immune to every hop")
+	assert_eq(behind.current_hp, 20, "…and the broken circuit can't reach past them")
+
+
+func test_brave_units_are_skipped_by_arcs() -> void:
+	_open_grid(0, 4, 0, 0)
+	var caster := _unit("shrieker", Enums.UnitFaction.ENEMY)
+	var victim := _unit("victim", Enums.UnitFaction.PLAYER)
+	var brave := _unit("brave", Enums.UnitFaction.PLAYER, Enums.ElementalType.CHIVALRIC)
+	_place(caster, 0, 0)
+	_place(victim, 2, 0)
+	_place(brave, 3, 0)
+	ScheduledEffects.schedule(caster, victim, MoveData.get_move("Shriek of the Damned"))
+
+	await ScheduledEffects.tick_faction_phase(Enums.UnitFaction.ENEMY, [caster, victim, brave])
+	assert_eq(brave.current_hp, 20, "the move's brave-immunity rides every arc")
+
+
+func test_double_shriek_arcs_deeper_instead_of_striking_twice() -> void:
+	_open_grid(0, 6, 0, 0)
+	var caster := _unit("shrieker", Enums.UnitFaction.ENEMY)
+	var victim := _unit("victim", Enums.UnitFaction.PLAYER)
+	var chain_units: Array[Unit] = []
+	_place(caster, 0, 0)
+	_place(victim, 2, 0)
+	for i: int in range(4):
+		var link := _unit("link %d" % i, Enums.UnitFaction.PLAYER)
+		_place(link, 3 + i, 0)
+		chain_units.append(link)
+	var shriek: Move = MoveData.get_move("Shriek of the Damned")
+	ScheduledEffects.schedule(caster, victim, shriek)
+	ScheduledEffects.schedule(caster, victim, shriek)
+	assert_eq(_stacks(victim, "CHAIN_LIGHTNING"), 4, "re-marking restacks (2+2, capped at 4)")
+	assert_eq(victim.scheduled_effects.size(), 2, "both entries queue…")
+
+	var all_units: Array[Unit] = [caster, victim]
+	all_units.append_array(chain_units)
+	await ScheduledEffects.tick_faction_phase(Enums.UnitFaction.ENEMY, all_units)
+	assert_eq(victim.current_hp, 14,
+		"…but only ONE strike lands (the second finds no marker) — at the deeper budget")
+	assert_eq(chain_units[0].current_hp, 17, "arc 1: half (3)")
+	assert_eq(chain_units[1].current_hp, 19, "arc 2: quarter, floored (1)")
+	assert_eq(chain_units[2].current_hp, 19, "arc 3: floored to the minimum (1)")
+	assert_eq(chain_units[3].current_hp, 19, "arc 4: still minimum 1 — four stacks, five targets")
+	assert_eq(victim.scheduled_effects.size(), 0, "both entries consumed")
 
 
 func test_strike_can_finish_a_wounded_unit() -> void:
@@ -212,4 +341,5 @@ func test_scheduled_queue_survives_the_save_round_trip() -> void:
 	assert_eq(pending.get("faction"), int(Enums.UnitFaction.ENEMY), "faction re-coerced to int")
 	assert_eq(pending.get("turns_remaining"), 1, "turns re-coerced to int")
 	assert_eq(pending.get("marker"), "CHAIN_LIGHTNING")
-	assert_eq(_stacks(restored, "CHAIN_LIGHTNING"), 1, "the visible mark restored with it")
+	assert_eq(pending.get("stacks"), 2, "the arc budget re-coerced to int")
+	assert_eq(_stacks(restored, "CHAIN_LIGHTNING"), 2, "the visible mark restored, stacks intact")

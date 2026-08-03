@@ -247,8 +247,8 @@ static func get_default_configs() -> Dictionary:
 	chain_lightning.effect_type = "CHAIN_LIGHTNING"
 	chain_lightning.category = Enums.EffectCategory.DEBUFF
 	chain_lightning.abbrev_name = "Chain L."
-	chain_lightning.description = "Marked for a lightning strike. Splashes adjacent units. Cleanse to defuse."
-	chain_lightning.max_stacks = 1
+	chain_lightning.description = "Marked for a lightning strike that arcs — one extra arc per stack. Cleanse to defuse."
+	chain_lightning.max_stacks = 4
 	chain_lightning.default_apply_stacks = 1
 	# The mark is a scheduled-strike telegraph (Shriek of the Damned), NOT a
 	# per-turn ticker — it must survive the victim's own turn start so the
