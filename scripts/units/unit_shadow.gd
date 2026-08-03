@@ -100,8 +100,9 @@ const SHADOW_OFFSET_Y: float = -2
 ## Sizing: measured ONCE from the idle frame at spawn (measure_stance_radius,
 ## injected by Unit as blob_radius) — a feet-band percentile width, NOT the
 ## sprite's widest points, and constant across every animation frame so the
-## blob never breathes mid-attack. Atlas-path placeholders (no readable
-## measurement) get radius 0 → no blob. Escape hatch: the character JSON's
+## blob never breathes mid-attack. Atlas-path characters measure through
+## AtlasTexture.get_image() (region readback works in Godot 4.7 — the Blood
+## Mage's cast proved it). Escape hatch: the character JSON's
 ## `sprite.shadowBlobRadius` (CharacterData.shadow_blob_radius; 0 = casts no
 ## blob) is BUILT and wired but deliberately unused in authoring — a fixed
 ## authored radius fights animated clips, so it's only safe for characters

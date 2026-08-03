@@ -1,8 +1,22 @@
 ## [ ] Meeting 2026.06.28
 ### [ ] RQD
-- [ ] Shadows occasionally bugged (see bottom left)
+- [x] Shadows occasionally bugged (see bottom left)
   ![Blood Mage](image.png)
+  ![Blood Mage 2](image-1.png) // This one isn't bugged. But blood mage doesn't seem to enjoy being in the bottom left corner for some reason
+  ![Blood Mage 3](image-2.png) // Bugged again! Not in the bottom left corner, but in the bottom left quadrant. I wonder why this unit specifically has bugged shadows.
+  ![Blood Mage 4](image-3.png) // two blood mages in this screenshot - the one in the bottom left is *not* bugged, but the one in the center of the map *is*.
   - Delete these images once we've solved the problem
+  - **FIXED 2026-08-03, pending eyeball verify** — not intermittent, and not position-related:
+    the "two blood mages" are TWO DIFFERENT CHARACTERS wearing pixel-identical art. **Occult**
+    (occult/idle.png + pivot sidecar → feet_drop 14) always cast correctly from the boots;
+    **Blood Mage** (spaceman atlas frame 8, no sidecar) always cast from the WAIST — the atlas
+    branch of `_load_character_sprite` never set `_art_feet_drop`, so the smear floated at
+    mid-body (glaring over flat water/starfield, camouflaged on busy sand). Fix: the Aseprite
+    trim rect IS the art bounds — feet line = `trim_offset.y + frame_height/2` (frame 8 → 12px),
+    fixing every atlas-path character (spaceman roster included). Bonus: SpriteAtlasLoader now
+    caches AtlasTextures per frame, so UnitShadow's RID-keyed projection cache stops re-
+    rasterizing (and growing) after every attack-clip restore. Pinned in test_unit_shadow.gd
+    (atlas spawn chain + shared-instance cache). Delete the four images once verified in-game.
 - [ ] Save/Load causes expended (for the turn) units to appear not-grayed-out
 - [ ] Grav hook pulling an enemy unit into range should allow that unit to counterattack if pulled into range of its equipped attack
 - [x] Bug with chain lightning effect - this is somewhat unique from other afflictions in that its stacks don't persist - they should all execute immediately in sequence, depending on how many enemy units are in range.

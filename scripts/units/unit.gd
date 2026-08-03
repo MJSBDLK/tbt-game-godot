@@ -1604,6 +1604,15 @@ func _load_character_sprite() -> void:
 		character_data.sprite_frame_index)
 	_sprite.offset = trim_offset
 
+	# Feet line for the cast shadow. Atlas frames carry no pivot sidecar, but
+	# Aseprite's trim rect IS the art bounds — its bottom edge is the lowest
+	# opaque row, sitting trim_offset.y + frame_height/2 below the node
+	# origin. Same gap the sidecar's art_bounds.bottom − pivot.y yields for
+	# per-character exports. Without this every atlas character cast from the
+	# waist — the Blood Mage's floating mid-body smear (RQD 2026-08-03),
+	# glaring next to the pixel-identical (but sidecar'd) Occult.
+	_art_feet_drop = maxf(0.0, trim_offset.y + atlas_texture.get_height() / 2.0)
+
 
 ## Resolve the Sprite2D.offset for an atlas-less PNG. Reads a sidecar JSON
 ## (same path with .json extension) emitted by the Aseprite tag exporter when

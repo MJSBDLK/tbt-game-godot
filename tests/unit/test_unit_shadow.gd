@@ -242,6 +242,49 @@ func test_spawned_unit_hands_the_feet_line_to_its_shadow() -> void:
 			"The idle stance measurement reaches the shadow at spawn.")
 
 
+func test_atlas_character_hands_the_feet_line_to_its_shadow() -> void:
+	# The Blood Mage floating-smear bug (RQD 2026-08-03): atlas-path
+	# characters have no pivot sidecar, so _art_feet_drop stayed 0 and the
+	# whole cast pivoted at the WAIST — a smear floating at mid-body,
+	# glaring next to the pixel-identical (but sidecar'd) Occult whose
+	# shadow hugged the ground. The trim rect's bottom edge is the art
+	# bottom: frame 8 trims to y 17..59 on a 96 canvas → feet 12 below the
+	# node origin.
+	var unit: Unit = (load("res://scenes/battle/unit.tscn") as PackedScene).instantiate() as Unit
+	unit.character_data = CharacterDataLoader.load_character(
+			"res://data/characters/blood_mage.json")
+	unit.faction = Enums.UnitFaction.ENEMY
+	add_child_autofree(unit)
+	var tile: Tile = autofree(Tile.new())
+	unit.initialize(tile)
+
+	assert_eq(unit._art_feet_drop, 12.0,
+			"Trim bottom (17 + 43) − canvas center 48 = 12.")
+	assert_not_null(unit._shadow, "The scene unit spawns its shadow in _ready.")
+	assert_eq(unit._shadow.feet_drop, 12.0,
+			"initialize() hands the atlas feet line to the shadow.")
+	unit._shadow.sync_to_source()
+	assert_not_null(unit._shadow._projection,
+			"AtlasTexture frames read back and cast (Godot 4.7).")
+	assert_gt(unit._shadow.blob_radius, 0.0,
+			"The stance measurement reads through the AtlasTexture too.")
+
+
+func test_atlas_frame_textures_are_shared_instances() -> void:
+	# UnitShadow's static projection cache keys on the texture RID. A fresh
+	# AtlasTexture per load (every _restore_idle_sprite after an attack)
+	# meant a new RID → cache miss → re-rasterize + unbounded cache growth.
+	var first := SpriteAtlasLoader.get_frame_texture(
+			"res://art/sprites/characters/spaceman_sprites.png",
+			"res://art/sprites/characters/spaceman_sprites.json", 8)
+	var second := SpriteAtlasLoader.get_frame_texture(
+			"res://art/sprites/characters/spaceman_sprites.png",
+			"res://art/sprites/characters/spaceman_sprites.json", 8)
+	assert_not_null(first)
+	assert_true(first == second,
+			"Repeat loads of the same frame return the SAME AtlasTexture.")
+
+
 func test_character_json_override_beats_the_measurement() -> void:
 	# The escape hatch: an authored sprite.shadowBlobRadius wins verbatim,
 	# and an explicit 0 means "casts no blob" — distinct from unset (-1).

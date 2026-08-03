@@ -17,10 +17,22 @@ static var _atlas_cache: Dictionary = {}
 ## Cached spritesheet textures: { sheet_path: Texture2D }
 static var _texture_cache: Dictionary = {}
 
+## Cached per-frame AtlasTextures: { "sheet|atlas|index": AtlasTexture }.
+## Callers treat these as immutable (Sprite2D.texture, portrait region
+## reads). Sharing one instance keeps the RID stable, which UnitShadow's
+## static projection cache keys on — a fresh AtlasTexture per load meant
+## every attack-clip restore re-rasterized the shadow and grew the cache.
+static var _frame_texture_cache: Dictionary = {}
+
 
 ## Get an AtlasTexture for a specific frame index from an Aseprite spritesheet.
-## Returns null if the atlas or frame cannot be loaded.
+## Returns null if the atlas or frame cannot be loaded. Cached — repeat calls
+## return the SAME instance; do not mutate it.
 static func get_frame_texture(sheet_path: String, atlas_path: String, frame_index: int) -> AtlasTexture:
+	var cache_key := "%s|%s|%d" % [sheet_path, atlas_path, frame_index]
+	if _frame_texture_cache.has(cache_key):
+		return _frame_texture_cache[cache_key]
+
 	var frames := _get_or_load_atlas(atlas_path)
 	if frames.is_empty():
 		return null
@@ -38,6 +50,7 @@ static func get_frame_texture(sheet_path: String, atlas_path: String, frame_inde
 	var atlas_texture := AtlasTexture.new()
 	atlas_texture.atlas = sheet_texture
 	atlas_texture.region = frame_data["region"]
+	_frame_texture_cache[cache_key] = atlas_texture
 	return atlas_texture
 
 
