@@ -112,6 +112,13 @@ var scheduled_effects: Array[Dictionary] = []
 # -10% per use after). Counts every move use, attack or support.
 var attacks_this_turn: int = 0
 
+# Enemies whose engagement already paid this unit survival XP, keyed by
+# attacker instance id (see _award_survival_xp). Per-battle by construction:
+# units are freshly instantiated each battle scene load. (A mid-battle
+# save/load rebuilds units and forgets these — an accepted leniency, the
+# re-earn is a few XP.)
+var _survival_xp_sources: Dictionary = {}
+
 # Set by take_damage when the killing blow lands. Used by InjurySystem to
 # pick the right injury when the unit_defeated handler runs.
 # Shape: { "element": Enums.ElementalType, "damage_type": Enums.DamageType, "name": String }
@@ -768,6 +775,15 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 		else:
 			await _play_support_cast_flourish(attacker_move)
 		await _execute_area_applications(defender, attacker_move)
+		# Non-heal support casts pay flat XP once per CAST (a 5-victim Roar is
+		# one cast, not five awards). Heals award inside _execute_heal_hit —
+		# skipping them here prevents a double grant. No meaningful-effect
+		# check needed at this point: has_meaningful_effect_on gates targeting
+		# (chip greyed, tile invalid), so a cast that executed is a cast that
+		# mattered — and re-checking NOW would wrongly fail, since the buff has
+		# already landed and the target reads as "already buffed."
+		if not attacker_move.heals:
+			_award_support_xp(attacker_move)
 		combat_completed.emit(self, defender)
 		return
 
@@ -860,6 +876,11 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 
 	if is_defeated():
 		await _handle_defeat()
+
+	# Survival XP: the defender lived through an enemy's offensive engagement
+	# (tank or dodge — the sequence ran either way). First engagement from
+	# THIS attacker only; repeats are tracked per battle on the defender.
+	defender._award_survival_xp(self)
 
 	# Capricious: each combatant who has the passive re-rolls their assigned_move
 	# for next combat. Within THIS combat the move was locked in (so a multi-hit
@@ -1148,6 +1169,43 @@ func _award_heal_xp(target: Unit, amount: int) -> void:
 		return
 	var target_data: CharacterData = target.character_data if target != null else null
 	var xp: int = CombatXpCalculator.compute_heal_xp(character_data, target_data)
+	var levels_gained: int = character_data.grant_xp(xp)
+	if levels_gained > 0:
+		_update_level_label()
+		_update_health_bar()
+
+
+## Support-cast XP grant (buffs, cleanses, shouts — the non-heal friendly
+## casts that used to pay nothing). Once per cast; called from the friendly
+## branch of execute_combat_sequence.
+func _award_support_xp(move: Move) -> void:
+	if faction != Enums.UnitFaction.PLAYER or character_data == null:
+		return
+	var xp: int = CombatXpCalculator.compute_support_xp(character_data, move)
+	var levels_gained: int = character_data.grant_xp(xp)
+	if levels_gained > 0:
+		_update_level_label()
+		_update_health_bar()
+
+
+## Survival XP: awarded to a player unit that lived through an enemy's
+## offensive combat sequence — tanked or dodged, surviving is the lesson.
+## Pays only on the FIRST engagement from each attacker per battle, so
+## stalling next to a harmless enemy pays ~1 XP once and then never again
+## (the doctrine's north star: don't incentivize stalling).
+func _award_survival_xp(attacker: Unit) -> void:
+	if faction != Enums.UnitFaction.PLAYER or character_data == null:
+		return
+	if attacker == null or attacker.faction != Enums.UnitFaction.ENEMY:
+		return
+	if is_defeated():
+		return
+	var source_id: int = attacker.get_instance_id()
+	if _survival_xp_sources.has(source_id):
+		return
+	_survival_xp_sources[source_id] = true
+	var xp: int = CombatXpCalculator.compute_survival_xp(
+			character_data, attacker.character_data)
 	var levels_gained: int = character_data.grant_xp(xp)
 	if levels_gained > 0:
 		_update_level_label()
