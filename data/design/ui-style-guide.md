@@ -57,6 +57,33 @@ via the colors demo scene (F6).
 - All HUD panels (unit preview, terrain preview, combat preview, action menu) use the
   same bg unless explicitly overridden.
 
+### Semantic colors — **LOCK (RQD 2026-08-03)**
+
+The four-voice set, in `GameColors` (`TEXT_SUCCESS` / `TEXT_DANGER` /
+`TEXT_INFO` / `TEXT_WARNING` + `_GLOW` pairs):
+
+| Role    | Fill                      | Glow            |
+|---------|---------------------------|-----------------|
+| Success | Green 6                   | Green 3         |
+| Danger  | Red 5                     | Red 2           |
+| Info    | YellowOrange 7 `#f5cd65`  | YellowOrange 4  |
+| Warning | YellowOrange 6 `#e2ad37`  | Red 4           |
+
+- **Info is deliberately yellow, not blue** — azure + gold is the house harmony
+  ("that yellow paired with azure just reads so damned well" — RQD).
+- **Three golds, told apart by halo temperature**: secondary (Magenta 4, violet),
+  info (own-ramp, warm), warning (Red 4, hot). The glow pairing is the semantic
+  differentiator; fills sit one ramp step apart as belt-and-suspenders.
+- **Status text IS the warning voice** — it inherits warning's pairing (fill
+  shifts YO 7 → YO 6). Migration of loose usages onto the four names rides the
+  screen-by-screen intermission ports, not a big-bang sweep.
+- **Family collisions are venue-disambiguated** (same doctrine as danger-red vs
+  enemy-red): the warm family also serves ally faction and the HERALDIC element —
+  element color lives on chips/glyphs/move identity, semantic color in UI text.
+- **Callout-venue rule**: warm gold floating over the board means a MOVE NAME.
+  Semantic warnings floating over units use the danger pair or white — never the
+  warning gold, so a Heraldic move announcement can't be misread as a warning.
+
 ---
 
 ## 3. Typography
@@ -501,6 +528,28 @@ Lawrence's.
 - All motion is stepped/quantized to game pixels or discrete shades — nothing glides.
 - Marquee = perimeter-distance shader (or dashed Line2D loop); backlight = StyleBox
   bg-color tween quantized to 4 steps.
+
+### Menus venue — **LOCK (RQD 2026-08-03, main-menu redesign)**
+
+Full-screen menu screens (main menu; the intermission screens as they're
+redesigned) may drop the lit-border box for **free-floating glow-text entries**
+(`MainMenuEntry`). Defensible bend of the lit-border contract: on such a screen
+everything is pressable, and both marks that matter still render —
+
+- **Corner ticks = "you are here"** on the aimed entry (hover under the pointer
+  model, focus under the cursor model — `InteractiveButton.bracket_tick_rects`
+  is still the one geometry source).
+- **One aim, one model**: the last-used input model owns the mark
+  (`InputSource`); the other model's mark doesn't render, so mouse and
+  controller can never mark two entries at once (the Black Mesa menu bug).
+  First nav press SUMMONS the cursor at the hovered entry (or the default
+  action), and only steps on the next press.
+- **CTA yield rule (applies in every venue)**: converging rings mark the
+  DEFAULT action, not the player's position. They vanish while aim rests on
+  any other item and return when aim comes home or goes idle.
+- Two-line entries carry context ("Mission 1, Turn 2") in the semantic INFO
+  voice on the second line.
+- **No subtitle under a title lockup — ever** (RQD doctrine, any title context).
 
 ---
 

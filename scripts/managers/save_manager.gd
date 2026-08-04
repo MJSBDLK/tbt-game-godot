@@ -158,9 +158,36 @@ func write_autosave(kind: String, snapshot: Dictionary) -> String:
 	var path: String = _pick_ring_slot(kind)
 	if not write_save_file(path, snapshot):
 		return ""
+	_capture_screenshot(screenshot_path_for(path))
 	save_written.emit(kind, path)
 	DebugConfig.log_unit_init("SaveManager: %s autosave → %s" % [kind, path])
 	return path
+
+
+## Sibling screenshot for a save file: same basename, .png. The main menu's
+## save-aware backdrop ("Black Mesa mode" — MenuStageBackdrop) shows the
+## newest save's frame; ring-slot reuse overwrites the sibling too, so stale
+## screenshots self-heal.
+func screenshot_path_for(save_path: String) -> String:
+	return save_path.get_basename() + ".png"
+
+
+## Grabs the composed frame (world + HUD) at save time, downscaled to the
+## 640×360 reference so backdrop files stay small and consistent across
+## window sizes. Headless runs (GUT, CI) have no frame to grab — skip
+## silently so tests stay fast. Best-effort: a failed capture never fails
+## the save.
+func _capture_screenshot(path: String) -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	var viewport := get_viewport()
+	if viewport == null:
+		return
+	var image: Image = viewport.get_texture().get_image()
+	if image == null or image.is_empty():
+		return
+	image.resize(640, 360, Image.INTERPOLATE_BILINEAR)
+	image.save_png(path)
 
 
 ## Atomic write: tmp file → rotate previous to .bak → rename tmp into place.

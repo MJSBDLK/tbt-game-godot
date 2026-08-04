@@ -200,6 +200,21 @@ static var TEXT_DANGER: Color:
 	get: return GameColorPalette.get_color("Red", 5)
 static var TEXT_DANGER_GLOW: Color:
 	get: return GameColorPalette.get_color("Red", 2)
+# Semantic INFO/WARNING — locked with SUCCESS/DANGER as the four-voice set
+# (RQD 2026-08-03, main-menu design session; ui-style-guide §2 "Semantic
+# colors"). Info is DELIBERATELY yellow, not blue: azure + gold is the house
+# harmony. Three golds share the warm family and are told apart by halo
+# temperature — SECONDARY wears Magenta 4 (violet), INFO wears its own ramp
+# (warm, quiet), WARNING wears Red 4 (hot — inherits the status-text
+# pairing; status text itself migrates onto TEXT_WARNING screen by screen).
+static var TEXT_INFO: Color:
+	get: return GameColorPalette.get_color("YellowOrange", 7)  # #f5cd65 banana gold
+static var TEXT_INFO_GLOW: Color:
+	get: return GameColorPalette.get_color("YellowOrange", 4)
+static var TEXT_WARNING: Color:
+	get: return GameColorPalette.get_color("YellowOrange", 6)  # #e2ad37 marigold
+static var TEXT_WARNING_GLOW: Color:
+	get: return GameColorPalette.get_color("Red", 4)
 
 
 # =============================================================================

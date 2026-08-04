@@ -1,6 +1,21 @@
-## Minimal start screen: pick a campaign start level and click Begin.
-## MVP scope — unstyled, programmatic UI build. Lawrence will redesign once the
-## campaign loop works end-to-end.
+## The METASTABLE main menu — first screen of the intermission redesign
+## (RQD 2026-08-03 mockup arc; see the design record in ui-style-guide §2
+## "Semantic colors" + §14 "Menus venue").
+##
+## Locked decisions this screen embodies:
+##  - "Same stage, two roles": this menu and the between-mission screens are
+##    separate screens sharing MenuStageBackdrop (save-aware "Black Mesa"
+##    backdrop: newest save's screenshot, ship interior on fresh install).
+##  - Bare-text chrome: free-floating MainMenuEntry rows, left-justified
+##    column, no panel plate. Corner ticks = you are here; converging rings
+##    = the default action, WITH the yield rule (_update_cta_yield).
+##  - The CTA follows the default action: Continue on top when saves exist,
+##    New Campaign otherwise (Continue/Load hidden entirely with no saves).
+##  - Continue is two-line: "Continue" + the save label in the INFO voice.
+##  - No subtitle, ever. The title text is the slot the eventual logo art
+##    drops into. "Metastable" is a WORKING title — repo stays tbt-game.
+##  - Start-level select is parked: visible but locked (padlock + tooltip),
+##    so axing it later is a deletion, not a redesign.
 class_name StartScreen
 extends Control
 
@@ -30,125 +45,195 @@ const RECRUIT_POOL: Array[String] = [
 ]
 const START_LEVEL_OPTIONS: Array[int] = [5, 20, 40, 60]
 
+const GAME_TITLE: String = "METASTABLE"
+const COLUMN_LEFT_MARGIN: int = 28
+const TITLE_GAP: int = 18
+const ENTRY_GAP: int = 4
 
 var _selected_level: int = 5
-var _level_buttons: Array[Button] = []
-var _begin_button: Button = null
 var _save_browser: SaveBrowserPanel = null
+
+var _menu_entries: Array[MainMenuEntry] = []
+var _cta_entry: MainMenuEntry = null
+var _continue_entry: MainMenuEntry = null
+var _new_campaign_entry: MainMenuEntry = null
+var _load_entry: MainMenuEntry = null
 
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	get_window().title = "Metastable"
 	_build_content()
 
 
+func _process(_delta: float) -> void:
+	_update_cta_yield()
+
+
 func _build_content() -> void:
-	var ui_manager: Node = UIManager
+	add_child(MenuStageBackdrop.new())
 
-	var background := ColorRect.new()
-	background.set_anchors_preset(Control.PRESET_FULL_RECT)
-	background.color = Color(0.08, 0.08, 0.12, 1.0)
-	add_child(background)
+	var column_margin := MarginContainer.new()
+	column_margin.set_anchors_preset(Control.PRESET_LEFT_WIDE)
+	column_margin.add_theme_constant_override("margin_left", COLUMN_LEFT_MARGIN)
+	add_child(column_margin)
 
-	var center := VBoxContainer.new()
-	center.set_anchors_preset(Control.PRESET_CENTER)
-	center.anchor_left = 0.2
-	center.anchor_right = 0.8
-	center.anchor_top = 0.25
-	center.anchor_bottom = 0.75
-	center.alignment = BoxContainer.ALIGNMENT_CENTER
-	center.add_theme_constant_override("separation", 10)
-	add_child(center)
+	var column := VBoxContainer.new()
+	column.alignment = BoxContainer.ALIGNMENT_CENTER
+	column.add_theme_constant_override("separation", ENTRY_GAP)
+	column_margin.add_child(column)
 
-	var title := Label.new()
-	title.text = "TBT GAME"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	if ui_manager != null:
-		title.add_theme_font_override("font", ui_manager.font_11px)
-		title.add_theme_font_size_override("font_size", 11)
-	center.add_child(title)
+	# The lockup: logo alone, air below (no-subtitle doctrine). 22px = the
+	# 11px pixel font at a crisp 2× integer.
+	var title := GlowLabel.new()
+	title.text = GAME_TITLE
+	title.material = MainMenuEntry.GLOW_MATERIAL.duplicate()
+	title.glow_color = GameColors.TEXT_PRIMARY_GLOW
+	if UIManager.font_11px != null:
+		title.add_theme_font_override("font", UIManager.font_11px)
+	title.add_theme_font_size_override("font_size", 22)
+	title.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
+	column.add_child(title)
+	var title_gap := Control.new()
+	title_gap.custom_minimum_size = Vector2(0, TITLE_GAP)
+	column.add_child(title_gap)
 
-	var subtitle := Label.new()
-	subtitle.text = "Start level (disabled — using fixed character levels)"
-	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	if ui_manager != null:
-		subtitle.add_theme_font_override("font", ui_manager.font_8px)
-		subtitle.add_theme_font_size_override("font_size", 8)
-	center.add_child(subtitle)
-
-	var level_row := HBoxContainer.new()
-	level_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	level_row.add_theme_constant_override("separation", 4)
-	center.add_child(level_row)
-
-	# Buttons are disabled until the move/passive pools are deep enough to
-	# support varied start levels. For now CampaignManager uses per-character
-	# fixed levels (CHARACTER_START_LEVELS). Flip `button.disabled = false`
-	# below to re-enable; the press handler is still connected.
-	for level: int in START_LEVEL_OPTIONS:
-		var button := Button.new()
-		button.text = str(level)
-		button.custom_minimum_size = Vector2(32, 18)
-		button.toggle_mode = true
-		button.disabled = true
-		button.pressed.connect(_on_level_button_pressed.bind(level, button))
-		level_row.add_child(button)
-		_level_buttons.append(button)
-
-	var spacer := Control.new()
-	spacer.custom_minimum_size = Vector2(0, 8)
-	center.add_child(spacer)
-
-	_begin_button = Button.new()
-	_begin_button.text = "Begin Campaign"
-	_begin_button.custom_minimum_size = Vector2(120, 22)
-	_begin_button.pressed.connect(_on_begin_pressed)
-	var begin_wrap := HBoxContainer.new()
-	begin_wrap.alignment = BoxContainer.ALIGNMENT_CENTER
-	begin_wrap.add_child(_begin_button)
-	center.add_child(begin_wrap)
-
-	_build_continue_button(center, ui_manager)
-
-
-## "Continue" resumes the NEWEST save across all rings; "Load Game" beside it
-## opens the full save browser (every slot, yellow/blue/manual identity).
-## Continue's text carries the save's label and slot color. Both hidden when
-## no saves exist — dead buttons on a fresh install are noise.
-func _build_continue_button(center: VBoxContainer, ui_manager: Node) -> void:
+	# Menu entries — CTA follows the default action: Continue when saves
+	# exist (on top), New Campaign on a fresh install. Continue/Load hidden
+	# entirely with no saves: dead buttons on a fresh install are noise.
 	var saves: Array[Dictionary] = SaveManager.list_saves()
-	if saves.is_empty():
+	if not saves.is_empty():
+		var newest: Dictionary = saves[0]
+		_continue_entry = _add_entry(column, "Continue",
+				str(newest.get("label", "saved game")),
+				_on_continue_pressed.bind(str(newest.get("path", ""))))
+	_new_campaign_entry = _add_entry(column, "New Campaign", "", _on_begin_pressed)
+	if not saves.is_empty():
+		_load_entry = _add_entry(column, "Load Game", "", _on_load_pressed)
+	_add_entry(column, "Options", "", UIManager.show_options_menu)
+	_add_entry(column, "Quit", "", _on_quit_pressed)
+
+	_cta_entry = _continue_entry if _continue_entry != null else _new_campaign_entry
+	_cta_entry.call_to_action = true
+	_wire_focus_chain()
+
+	column.add_child(_build_locked_level_row())
+
+	# Cursor-driven arrivals get the cursor on the default action; pointer
+	# arrivals open quiet (InputSource doctrine — first nav press summons).
+	if InputSource.is_cursor_driven():
+		_cta_entry.grab_focus.call_deferred()
+
+
+func _add_entry(column: VBoxContainer, entry_text: String, entry_sub: String,
+		handler: Callable) -> MainMenuEntry:
+	var entry := MainMenuEntry.new()
+	entry.text = entry_text
+	entry.sub_text = entry_sub
+	entry.pressed.connect(handler)
+	entry.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	column.add_child(entry)
+	_menu_entries.append(entry)
+	return entry
+
+
+func _wire_focus_chain() -> void:
+	for i: int in _menu_entries.size():
+		var entry := _menu_entries[i]
+		var up := _menu_entries[(i - 1 + _menu_entries.size()) % _menu_entries.size()]
+		var down := _menu_entries[(i + 1) % _menu_entries.size()]
+		entry.focus_neighbor_top = entry.get_path_to(up)
+		entry.focus_neighbor_bottom = entry.get_path_to(down)
+		entry.focus_next = entry.get_path_to(down)
+		entry.focus_previous = entry.get_path_to(up)
+
+
+## CTA YIELD (§14): the rings mark the DEFAULT action, not the player's
+## position — they vanish while aim (hover under the pointer model, focus
+## under the cursor model) rests on any OTHER entry, and return when aim
+## comes home or goes idle. Sampled per frame: model flips have no signal,
+## and sampling at draw time is the no-flicker way.
+func _update_cta_yield() -> void:
+	if _cta_entry == null:
 		return
-	var newest: Dictionary = saves[0]
+	var aimed: MainMenuEntry = null
+	for entry: MainMenuEntry in _menu_entries:
+		if entry.is_aimed():
+			aimed = entry
+			break
+	_cta_entry.cta_suppressed = aimed != null and aimed != _cta_entry
 
-	var continue_button := Button.new()
-	continue_button.text = "Continue — %s" % str(newest.get("label", "saved game"))
-	continue_button.custom_minimum_size = Vector2(120, 22)
-	if ui_manager != null:
-		continue_button.add_theme_font_override("font", ui_manager.font_8px)
-		continue_button.add_theme_font_size_override("font_size", 8)
-	var kind_color: Color = GameColors.SAVE_AUTO_BATTLE \
-			if str(newest.get("kind", "")) == SaveManager.KIND_AUTO_BATTLE \
-			else GameColors.SAVE_AUTO_TURN
-	continue_button.add_theme_color_override("font_color", kind_color)
-	continue_button.add_theme_color_override("font_hover_color", kind_color)
-	continue_button.pressed.connect(_on_continue_pressed.bind(str(newest.get("path", ""))))
 
-	var load_button := Button.new()
-	load_button.text = "Load Game"
-	load_button.custom_minimum_size = Vector2(0, 22)
-	if ui_manager != null:
-		load_button.add_theme_font_override("font", ui_manager.font_8px)
-		load_button.add_theme_font_size_override("font_size", 8)
-	load_button.pressed.connect(_on_load_pressed)
+## First nav press with nothing focused SUMMONS the cursor — at the hovered
+## entry if the pointer was resting on one, else at the default action.
+## (InputSource has already flipped to cursor model by the time this runs,
+## so we read the raw hover flag, not is_aimed.)
+func _unhandled_input(event: InputEvent) -> void:
+	if not InputSource.is_navigation_press(event):
+		return
+	for entry: MainMenuEntry in _menu_entries:
+		if entry.has_focus():
+			return
+	var summon_target: MainMenuEntry = _cta_entry
+	for entry: MainMenuEntry in _menu_entries:
+		if entry._hovered:
+			summon_target = entry
+			break
+	summon_target.grab_focus()
+	get_viewport().set_input_as_handled()
 
-	var continue_wrap := HBoxContainer.new()
-	continue_wrap.alignment = BoxContainer.ALIGNMENT_CENTER
-	continue_wrap.add_theme_constant_override("separation", 6)
-	continue_wrap.add_child(continue_button)
-	continue_wrap.add_child(load_button)
-	center.add_child(continue_wrap)
 
+## Parked start-level select: visible but locked, so the feature's status is
+## obvious and axing it later is a deletion. Padlock is programmer art —
+## replace with a 6×6 icon when one exists.
+func _build_locked_level_row() -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 5)
+	row.tooltip_text = "Coming soon — start-level select is still under construction"
+	row.mouse_filter = Control.MOUSE_FILTER_STOP
+	row.add_child(_make_padlock())
+
+	var label := GlowLabel.new()
+	var levels: Array[String] = []
+	for level: int in START_LEVEL_OPTIONS:
+		levels.append(str(level))
+	label.text = "START LV  %s" % " · ".join(levels)
+	label.material = MainMenuEntry.GLOW_MATERIAL.duplicate()
+	label.glow_color = Color.TRANSPARENT
+	if UIManager.font_8px != null:
+		label.add_theme_font_override("font", UIManager.font_8px)
+	label.add_theme_font_size_override("font_size", 8)
+	label.add_theme_color_override("font_color", GameColors.INTERACTIVE_TEXT_DISABLED)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(label)
+
+	var wrapper := MarginContainer.new()
+	wrapper.add_theme_constant_override("margin_top", 12)
+	wrapper.add_theme_constant_override("margin_left", 6)
+	wrapper.add_child(row)
+	return wrapper
+
+
+func _make_padlock() -> Control:
+	var icon := _PadlockIcon.new()
+	icon.custom_minimum_size = Vector2(8, 9)
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	return icon
+
+
+class _PadlockIcon extends Control:
+	func _draw() -> void:
+		var ink := GameColors.INTERACTIVE_TEXT_DISABLED
+		draw_rect(Rect2(1, 4, 6, 5), ink, true)   # body
+		draw_rect(Rect2(2, 1, 1, 3), ink, true)   # shackle left
+		draw_rect(Rect2(5, 1, 1, 3), ink, true)   # shackle right
+		draw_rect(Rect2(3, 0, 2, 1), ink, true)   # shackle top
+
+
+# =============================================================================
+# HANDLERS (campaign wiring unchanged from the pre-redesign screen)
+# =============================================================================
 
 func _on_continue_pressed(save_path: String) -> void:
 	if not SaveManager.load_save_and_continue(save_path):
@@ -174,14 +259,8 @@ func _on_browser_save_chosen(path: String) -> void:
 		_save_browser.show_panel()
 
 
-func _on_level_button_pressed(level: int, source_button: Button) -> void:
-	_select_level(level, source_button)
-
-
-func _select_level(level: int, source_button: Button) -> void:
-	_selected_level = level
-	for button: Button in _level_buttons:
-		button.button_pressed = (button == source_button)
+func _on_quit_pressed() -> void:
+	get_tree().quit()
 
 
 func _on_begin_pressed() -> void:
