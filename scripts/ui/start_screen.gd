@@ -14,8 +14,9 @@
 ##  - Continue is two-line: "Continue" + the save label in the INFO voice.
 ##  - No subtitle, ever. The title text is the slot the eventual logo art
 ##    drops into. "Metastable" is a WORKING title — repo stays tbt-game.
-##  - Start-level select is parked: visible but locked (padlock + tooltip),
-##    so axing it later is a deletion, not a redesign.
+##  - Start-level select AXED from the menu (RQD 2026-08-03 round 8) — the
+##    feature itself is still undecided, but it has no UI presence; if it
+##    returns it comes back as a designed row, not a locked stub.
 class_name StartScreen
 extends Control
 
@@ -43,8 +44,6 @@ const RECRUIT_POOL: Array[String] = [
 	"res://data/characters/plant_cultist.json",
 	"res://data/characters/robot.json",
 ]
-const START_LEVEL_OPTIONS: Array[int] = [5, 20, 40, 60]
-
 const GAME_TITLE: String = "METASTABLE"
 const COLUMN_LEFT_MARGIN: int = 28
 const TITLE_GAP: int = 18
@@ -117,8 +116,6 @@ func _build_content() -> void:
 	_cta_entry.call_to_action = true
 	_wire_focus_chain()
 
-	column.add_child(_build_locked_level_row())
-
 	# Cursor-driven arrivals get the cursor on the default action; pointer
 	# arrivals open quiet (InputSource doctrine — first nav press summons).
 	if InputSource.is_cursor_driven():
@@ -181,54 +178,6 @@ func _unhandled_input(event: InputEvent) -> void:
 			break
 	summon_target.grab_focus()
 	get_viewport().set_input_as_handled()
-
-
-## Parked start-level select: visible but locked, so the feature's status is
-## obvious and axing it later is a deletion. Padlock is programmer art —
-## replace with a 6×6 icon when one exists.
-func _build_locked_level_row() -> Control:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 5)
-	row.tooltip_text = "Coming soon — start-level select is still under construction"
-	row.mouse_filter = Control.MOUSE_FILTER_STOP
-	row.add_child(_make_padlock())
-
-	var label := GlowLabel.new()
-	var levels: Array[String] = []
-	for level: int in START_LEVEL_OPTIONS:
-		levels.append(str(level))
-	label.text = "START LV  %s" % " · ".join(levels)
-	label.material = MainMenuEntry.GLOW_MATERIAL.duplicate()
-	label.glow_color = Color.TRANSPARENT
-	if UIManager.font_8px != null:
-		label.add_theme_font_override("font", UIManager.font_8px)
-	label.add_theme_font_size_override("font_size", 8)
-	label.add_theme_color_override("font_color", GameColors.INTERACTIVE_TEXT_DISABLED)
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(label)
-
-	var wrapper := MarginContainer.new()
-	wrapper.add_theme_constant_override("margin_top", 12)
-	wrapper.add_theme_constant_override("margin_left", 6)
-	wrapper.add_child(row)
-	return wrapper
-
-
-func _make_padlock() -> Control:
-	var icon := _PadlockIcon.new()
-	icon.custom_minimum_size = Vector2(8, 9)
-	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	return icon
-
-
-class _PadlockIcon extends Control:
-	func _draw() -> void:
-		var ink := GameColors.INTERACTIVE_TEXT_DISABLED
-		draw_rect(Rect2(1, 4, 6, 5), ink, true)   # body
-		draw_rect(Rect2(2, 1, 1, 3), ink, true)   # shackle left
-		draw_rect(Rect2(5, 1, 1, 3), ink, true)   # shackle right
-		draw_rect(Rect2(3, 0, 2, 1), ink, true)   # shackle top
 
 
 # =============================================================================

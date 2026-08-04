@@ -157,8 +157,17 @@ func test_screenshot_path_is_the_save_sibling() -> void:
 			"ring-slot reuse overwrites the sibling too — stale shots self-heal")
 
 
-func test_backdrop_falls_back_to_placeholder_interior_without_saves() -> void:
+func test_backdrop_final_fallback_is_flat_glass() -> void:
+	# Resolution order: save screenshot → Lawrence's art file → flat glass.
+	# With no saves, the stage shows the art if it has landed, else the bare
+	# eggshell base — either way, never a programmer-art placeholder.
 	var backdrop := MenuStageBackdrop.new()
 	add_child_autofree(backdrop)
-	assert_not_null(backdrop._backdrop.texture,
-			"fresh install: generated ship-interior placeholder, never a blank stage")
+	if ResourceLoader.exists(MenuStageBackdrop.SHIP_INTERIOR_PATH):
+		assert_not_null(backdrop._backdrop.texture, "Lawrence's art landed — stage wears it")
+	else:
+		assert_null(backdrop._backdrop.texture,
+				"no screenshot, no art file: no texture at all")
+	assert_eq(backdrop._base.color,
+			GameColors.with_alpha(GameColors.HUD_PANEL_BACKGROUND, 1.0),
+			"the stage floor is always the glass color — dark eggshell, opaque")

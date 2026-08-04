@@ -1,15 +1,14 @@
 ## The shared intermission STAGE — locked identity (RQD 2026-08-03): the main
 ## menu and the between-mission screens are separate screens wearing the same
 ## backdrop + glass chrome, and the backdrop is SAVE-AWARE ("Black Mesa
-## mode"): with save data, it shows the newest save's screenshot (captured by
-## SaveManager at save time); on a fresh install it falls back to the ship
-## interior. Dim + hint-strength vignette ride on top so free-floating menu
-## text stays legible over any scene.
-##
-## Lawrence is painting the real 640×360 ship interior (more scenes per plot
-## later) — drop it at SHIP_INTERIOR_PATH and the code-generated placeholder
-## retires itself. Never block on the art: everything here degrades to flat
-## dark.
+## mode"). Resolution order (RQD 2026-08-03, round 8):
+##   1. newest save's screenshot (captured by SaveManager at save time)
+##   2. Lawrence's reference-res fullscreen art at SHIP_INTERIOR_PATH
+##      (not painted yet — drops in with zero code changes)
+##   3. flat glass — the dark-eggshell HUD panel color. No programmer-art
+##      placeholder: an honest flat beats a crude scene.
+## Dim + hint-strength vignette ride on top so free-floating menu text stays
+## legible over any backdrop.
 class_name MenuStageBackdrop
 extends Control
 
@@ -20,17 +19,20 @@ const DIM_COLOR: Color = Color(0.016, 0.02, 0.031, 0.35)
 const VIGNETTE_STRENGTH: float = 0.58
 
 var _backdrop: TextureRect = null
+var _base: ColorRect = null
 
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	var base := ColorRect.new()
-	base.set_anchors_preset(Control.PRESET_FULL_RECT)
-	base.color = Color(0.039, 0.043, 0.063)
-	base.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(base)
+	# The absolute last fallback: opaque dark eggshell (the glass color the
+	# whole HUD is built from). Visible only when no screenshot and no art.
+	_base = ColorRect.new()
+	_base.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_base.color = GameColors.with_alpha(GameColors.HUD_PANEL_BACKGROUND, 1.0)
+	_base.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_base)
 
 	_backdrop = TextureRect.new()
 	_backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -57,9 +59,7 @@ func _ready() -> void:
 	refresh()
 
 
-## Re-resolves what the stage shows: newest save's screenshot if one exists
-## on disk, else the ship interior (Lawrence's file, or the generated
-## placeholder until it lands).
+## Re-resolves what the stage shows per the resolution order in the header.
 func refresh() -> void:
 	var screenshot := _newest_save_screenshot()
 	if screenshot != null:
@@ -68,7 +68,7 @@ func refresh() -> void:
 	if ResourceLoader.exists(SHIP_INTERIOR_PATH):
 		_backdrop.texture = load(SHIP_INTERIOR_PATH) as Texture2D
 		return
-	_backdrop.texture = _generate_placeholder_interior()
+	_backdrop.texture = null  # flat eggshell base shows through
 
 
 func _newest_save_screenshot() -> Texture2D:
@@ -103,37 +103,3 @@ func _make_vignette_texture() -> Texture2D:
 	return texture
 
 
-## Crude programmer-art ship interior (320×180, NEAREST-upscaled): back wall
-## with seams, floor, a starfield viewport, two consoles. Deliberately
-## blocky — it exists so the glass-over-scene layering can be judged before
-## the real art lands, exactly like the HTML mockup's canvas stand-in.
-func _generate_placeholder_interior() -> Texture2D:
-	var image := Image.create(320, 180, false, Image.FORMAT_RGB8)
-	image.fill(Color8(20, 23, 33))                                     # back wall
-	for x: int in range(16, 320, 38):                                  # wall seams
-		image.fill_rect(Rect2i(x, 0, 2, 128), Color8(15, 17, 24))
-	image.fill_rect(Rect2i(0, 128, 320, 52), Color8(25, 28, 38))       # floor
-	for y: int in range(134, 180, 9):
-		image.fill_rect(Rect2i(0, y, 320, 1), Color8(18, 20, 28))
-	image.fill_rect(Rect2i(0, 124, 320, 4), Color8(35, 39, 51))        # skirting
-
-	image.fill_rect(Rect2i(84, 20, 158, 78), Color8(42, 47, 61))       # window frame
-	image.fill_rect(Rect2i(88, 24, 150, 70), Color8(5, 6, 12))         # space
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 1234                                                    # stars don't reshuffle
-	for _i: int in 60:
-		var star_x: int = 88 + rng.randi_range(0, 149)
-		var star_y: int = 24 + rng.randi_range(0, 69)
-		var brightness: float = rng.randf_range(0.35, 1.0)
-		image.set_pixel(star_x, star_y, Color(0.86, 0.95, 1.0) * brightness)
-	image.fill_rect(Rect2i(160, 24, 3, 70), Color8(42, 47, 61))        # mullion
-
-	for base_x: Array in [[10], [258]]:                                # consoles
-		var bx: int = base_x[0]
-		image.fill_rect(Rect2i(bx, 96, 52, 32), Color8(29, 32, 41))
-		image.fill_rect(Rect2i(bx, 92, 52, 5), Color8(37, 42, 54))
-		image.fill_rect(Rect2i(bx + 6, 102, 3, 2), Color8(76, 140, 187))
-		image.fill_rect(Rect2i(bx + 14, 102, 3, 2), Color8(192, 68, 46))
-		image.fill_rect(Rect2i(bx + 22, 102, 2, 2), Color8(231, 193, 75))
-		image.fill_rect(Rect2i(bx + 4, 110, 44, 12), Color8(16, 18, 26))
-	return ImageTexture.create_from_image(image)
