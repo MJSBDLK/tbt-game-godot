@@ -7,9 +7,11 @@
 ##    separate screens sharing MenuStageBackdrop (save-aware "Black Mesa"
 ##    backdrop: newest save's screenshot, ship interior on fresh install).
 ##  - Bare-text chrome: free-floating MainMenuEntry rows, left-justified
-##    column, no panel plate. Corner ticks = you are here; converging rings
-##    = the default action, WITH the yield rule (_update_cta_yield).
-##  - The CTA follows the default action: Continue on top when saves exist,
+##    column, no panel plate. Corner ticks = you are here; the DEFAULT
+##    action wears the lit-border box (converging rings were tried and
+##    retired — round 9: the yield rule made them flicker on every mouse
+##    pass through inter-entry dead space).
+##  - The default follows the save state: Continue on top when saves exist,
 ##    New Campaign otherwise (Continue/Load hidden entirely with no saves).
 ##  - Continue is two-line: "Continue" + the save label in the INFO voice.
 ##  - No subtitle, ever. The title text is the slot the eventual logo art
@@ -53,7 +55,7 @@ var _selected_level: int = 5
 var _save_browser: SaveBrowserPanel = null
 
 var _menu_entries: Array[MainMenuEntry] = []
-var _cta_entry: MainMenuEntry = null
+var _default_entry: MainMenuEntry = null
 var _continue_entry: MainMenuEntry = null
 var _new_campaign_entry: MainMenuEntry = null
 var _load_entry: MainMenuEntry = null
@@ -63,10 +65,6 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	get_window().title = "Metastable"
 	_build_content()
-
-
-func _process(_delta: float) -> void:
-	_update_cta_yield()
 
 
 func _build_content() -> void:
@@ -97,7 +95,7 @@ func _build_content() -> void:
 	title_gap.custom_minimum_size = Vector2(0, TITLE_GAP)
 	column.add_child(title_gap)
 
-	# Menu entries — CTA follows the default action: Continue when saves
+	# Menu entries — the default action follows the save state: Continue when saves
 	# exist (on top), New Campaign on a fresh install. Continue/Load hidden
 	# entirely with no saves: dead buttons on a fresh install are noise.
 	var saves: Array[Dictionary] = SaveManager.list_saves()
@@ -112,14 +110,14 @@ func _build_content() -> void:
 	_add_entry(column, "Options", "", UIManager.show_options_menu)
 	_add_entry(column, "Quit", "", _on_quit_pressed)
 
-	_cta_entry = _continue_entry if _continue_entry != null else _new_campaign_entry
-	_cta_entry.call_to_action = true
+	_default_entry = _continue_entry if _continue_entry != null else _new_campaign_entry
+	_default_entry.is_default_action = true
 	_wire_focus_chain()
 
 	# Cursor-driven arrivals get the cursor on the default action; pointer
 	# arrivals open quiet (InputSource doctrine — first nav press summons).
 	if InputSource.is_cursor_driven():
-		_cta_entry.grab_focus.call_deferred()
+		_default_entry.grab_focus.call_deferred()
 
 
 func _add_entry(column: VBoxContainer, entry_text: String, entry_sub: String,
@@ -145,22 +143,6 @@ func _wire_focus_chain() -> void:
 		entry.focus_previous = entry.get_path_to(up)
 
 
-## CTA YIELD (§14): the rings mark the DEFAULT action, not the player's
-## position — they vanish while aim (hover under the pointer model, focus
-## under the cursor model) rests on any OTHER entry, and return when aim
-## comes home or goes idle. Sampled per frame: model flips have no signal,
-## and sampling at draw time is the no-flicker way.
-func _update_cta_yield() -> void:
-	if _cta_entry == null:
-		return
-	var aimed: MainMenuEntry = null
-	for entry: MainMenuEntry in _menu_entries:
-		if entry.is_aimed():
-			aimed = entry
-			break
-	_cta_entry.cta_suppressed = aimed != null and aimed != _cta_entry
-
-
 ## First nav press with nothing focused SUMMONS the cursor — at the hovered
 ## entry if the pointer was resting on one, else at the default action.
 ## (InputSource has already flipped to cursor model by the time this runs,
@@ -171,7 +153,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	for entry: MainMenuEntry in _menu_entries:
 		if entry.has_focus():
 			return
-	var summon_target: MainMenuEntry = _cta_entry
+	var summon_target: MainMenuEntry = _default_entry
 	for entry: MainMenuEntry in _menu_entries:
 		if entry._hovered:
 			summon_target = entry

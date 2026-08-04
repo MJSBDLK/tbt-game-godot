@@ -1,5 +1,12 @@
 ## [ ] Meeting 2026.06.28
 ### [ ] RQD
+- [x] Main menu = scrolling your mouse between the buttons renders and unrenders the CTA because of the non-button space underneath. I'm thinking we just remove the CTA effect and use a different semantic element for the continue button.
+  - **FIXED 2026-08-03 (rqd--main-menu round 9)**: rings retired from the menu venue — the
+    yield rule was structurally flicker-prone (any vertical mouse path crosses inter-entry
+    dead space). The default action now wears the LIT-BORDER BOX (primary-among-text-buttons,
+    §14's own "pressable" mark; border steps idle→focus when aimed). Rings remain the CTA
+    mark in non-menu venues (End Turn), where nothing yields. ui-style-guide §14 updated;
+    pinned in test_main_menu.gd (exactly one primary, follows save state).
 
 - [x] bEXP gripe — **SHIPPED 2026-08-03 (rqd--post-battle-flow, 6 commits, suite 717/2453)**.
 	Key finding: combat XP already EXISTED (RD differential formula, flat 100/level —

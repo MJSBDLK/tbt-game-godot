@@ -9,10 +9,12 @@
 ##    model and FOCUS only under the cursor model (InputSource.last_kind),
 ##    so the two inputs can never mark different entries at once — the
 ##    two-cursors bug Black Mesa has shipped since 2020.
-##  - CONVERGING CTA RINGS ("do this") — drawn when `call_to_action` is on
-##    AND no other entry holds the aim. The YIELD rule lives in the owning
-##    screen (StartScreen._update_cta_yield): rings mark the DEFAULT action,
-##    not the player's position, so they vanish while aim rests elsewhere.
+##  - THE LIT BORDER ("the default action") — `is_default_action` dresses
+##    this one entry as a bordered primary button among bare-text entries.
+##    Static on purpose: the converging CTA rings were tried here first and
+##    RETIRED (RQD round 9) — the yield rule made them flicker on every
+##    mouse pass through the dead space between entries. The border is
+##    §14's own "pressable" mark doing double duty as "most pressable."
 ##
 ## Optional `sub_text` renders in the semantic INFO voice (banana gold) —
 ## Continue wears "Mission N, Turn N" there. `inert` styles the entry as
@@ -29,24 +31,16 @@ const GLOW_MATERIAL: ShaderMaterial = preload("res://resources/hud_glow.tres")
 const PRESS_FLASH_MS: int = 120
 const TICK_INSET_PIXELS: float = 2.0
 const TICK_ARM_PIXELS: float = 4.0
-# Motion-off CTA fallback: no border exists to park bright (InteractiveButton's
-# trick), so a single static ring holds the "do this" mark instead.
-const STATIC_RING_INSET: int = 3
-const STATIC_RING_ALPHA: float = 0.4
 
 var text: String = ""
 var sub_text: String = ""
 var inert: bool = false
 
-var call_to_action: bool = false:
+## The one primary action on the screen: wears the lit-border box. Aiming at
+## it brightens the border (same idle→focus step as InteractiveButton).
+var is_default_action: bool = false:
 	set(value):
-		call_to_action = value
-		queue_redraw()
-## Driven by the owning screen's yield pass — true while aim rests on a
-## DIFFERENT entry (see StartScreen._update_cta_yield).
-var cta_suppressed: bool = false:
-	set(value):
-		cta_suppressed = value
+		is_default_action = value
 		queue_redraw()
 
 var _hovered: bool = false
@@ -86,10 +80,10 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	# Cheap per-frame redraw while animated marks are live: the rings loop,
-	# and the aim mark must follow InputSource model flips (which have no
-	# signal — sampling in _draw each frame is the no-flicker way).
-	if (call_to_action and not cta_suppressed) or is_aimed():
+	# Cheap per-frame redraw while the aim mark is live — it must follow
+	# InputSource model flips, which have no signal; sampling in _draw each
+	# frame is the no-flicker way.
+	if is_aimed() or is_default_action:
 		queue_redraw()
 
 
@@ -131,38 +125,18 @@ func _press() -> void:
 
 func _draw() -> void:
 	var rect := Rect2(Vector2.ZERO, size)
+	if is_default_action and not inert:
+		draw_rect(rect, GameColors.ACTION_BUTTON_BG_NORMAL, true)
+		var border_color := GameColors.INTERACTIVE_BORDER_FOCUS if is_aimed() \
+				else GameColors.INTERACTIVE_BORDER_IDLE
+		draw_rect(Rect2(rect.position + Vector2(0.5, 0.5), rect.size - Vector2.ONE),
+				border_color, false, 1.0)
 	if is_aimed():
 		for tick: Rect2 in InteractiveButton.bracket_tick_rects(
 				rect, TICK_INSET_PIXELS, TICK_ARM_PIXELS):
 			draw_rect(tick, GameColors.INTERACTIVE_BRACKET, true)
-	if call_to_action and not cta_suppressed and not inert:
-		_draw_cta_rings(rect)
 	if Time.get_ticks_msec() - _press_flash_started_ms < PRESS_FLASH_MS:
 		draw_rect(rect, Color(1, 1, 1, 0.12), true)
-
-
-func _draw_cta_rings(rect: Rect2) -> void:
-	if not Settings.ui_motion_enabled:
-		var inset := STATIC_RING_INSET
-		var ring := Rect2(rect.position - Vector2(inset, inset),
-				rect.size + Vector2(inset * 2, inset * 2))
-		var parked := GameColors.CALL_TO_ACTION_BRIGHT
-		parked.a = STATIC_RING_ALPHA
-		draw_rect(Rect2(ring.position + Vector2(0.5, 0.5), ring.size - Vector2.ONE),
-				parked, false, 1.0)
-		return
-	# Two waves half a cycle apart — same math as InteractiveButton's rings,
-	# via the shared statics, so the two venues can't drift.
-	for stagger: float in [0.0, 0.5]:
-		var phase: float = fmod(float(Time.get_ticks_msec()) / 1000.0
-				/ InteractiveButton.CTA_WAVE_SECONDS + stagger, 1.0)
-		var inset: int = InteractiveButton.cta_ring_inset_at(phase)
-		var color := GameColors.CALL_TO_ACTION_BRIGHT
-		color.a = lerpf(0.2, 0.9, phase)
-		var ring := Rect2(rect.position - Vector2(inset, inset),
-				rect.size + Vector2(inset * 2, inset * 2))
-		draw_rect(Rect2(ring.position + Vector2(0.5, 0.5), ring.size - Vector2.ONE),
-				color, false, 1.0)
 
 
 func _make_glow_label(label_text: String, font: FontFile, font_size: int,

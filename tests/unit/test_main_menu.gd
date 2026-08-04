@@ -89,45 +89,28 @@ func test_semantic_color_set_is_locked_to_the_palette() -> void:
 # MENU ORDER + CTA-FOLLOWS-DEFAULT
 # =============================================================================
 
-func test_fresh_install_menu_has_no_continue_and_new_campaign_takes_the_cta() -> void:
+func test_fresh_install_menu_has_no_continue_and_new_campaign_is_default() -> void:
 	var screen := _spawn_menu()
 	assert_eq(_entry_texts(screen), ["New Campaign", "Options", "Quit"],
 			"no saves: Continue/Load hidden entirely — dead buttons are noise")
-	assert_eq(screen._cta_entry, screen._new_campaign_entry,
-			"the default action inherits the rings on a fresh install")
-	assert_true(screen._new_campaign_entry.call_to_action)
+	assert_eq(screen._default_entry, screen._new_campaign_entry,
+			"the default action's lit border lands on New Campaign on a fresh install")
+	assert_true(screen._new_campaign_entry.is_default_action)
 
 
-func test_saves_put_continue_on_top_wearing_the_cta_and_its_label() -> void:
+func test_saves_put_continue_on_top_as_the_default_with_its_label() -> void:
 	_write_fake_save("Mission 1, Turn 2")
 	var screen := _spawn_menu()
 	assert_eq(_entry_texts(screen),
 			["Continue", "New Campaign", "Load Game", "Options", "Quit"],
 			"returning player: Continue first, Load available")
-	assert_eq(screen._cta_entry, screen._continue_entry,
-			"Continue is the default action when a save exists")
+	assert_eq(screen._default_entry, screen._continue_entry,
+			"Continue wears the lit border when a save exists")
+	assert_true(screen._continue_entry.is_default_action)
+	assert_false(screen._new_campaign_entry.is_default_action,
+			"exactly one primary — the border is scarce like the CTA was")
 	assert_eq(screen._continue_entry.sub_text, "Mission 1, Turn 2",
 			"the save label rides line 2 in the INFO voice")
-
-
-# =============================================================================
-# CTA YIELD — rings mark the default, not the player's position
-# =============================================================================
-
-func test_cta_yields_while_focus_rests_elsewhere_and_returns_home() -> void:
-	_write_fake_save("Mission 1, Turn 2")
-	var screen := _spawn_menu()
-	InputSource.last_kind = InputSource.Kind.CURSOR
-
-	screen._new_campaign_entry.grab_focus()
-	screen._update_cta_yield()
-	assert_true(screen._continue_entry.cta_suppressed,
-			"aim on another entry: the rings vanish")
-
-	screen._continue_entry.grab_focus()
-	screen._update_cta_yield()
-	assert_false(screen._continue_entry.cta_suppressed,
-			"aim back on the default: the rings return")
 
 
 func test_one_aim_one_model_hover_only_counts_under_the_pointer_model() -> void:

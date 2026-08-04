@@ -544,9 +544,12 @@ everything is pressable, and both marks that matter still render —
   controller can never mark two entries at once (the Black Mesa menu bug).
   First nav press SUMMONS the cursor at the hovered entry (or the default
   action), and only steps on the next press.
-- **CTA yield rule (applies in every venue)**: converging rings mark the
-  DEFAULT action, not the player's position. They vanish while aim rests on
-  any other item and return when aim comes home or goes idle.
+- **The default action wears the lit-border box** — one bordered primary
+  among bare-text entries (`is_default_action`; border steps idle→focus
+  when aimed, same ramp as InteractiveButton). Converging rings were tried
+  here first and RETIRED (RQD round 9): a "rings yield to aim" rule
+  flickered on every mouse pass through inter-entry dead space. Rings
+  remain the CTA mark in non-menu venues (End Turn), where nothing yields.
 - Two-line entries carry context ("Mission 1, Turn 2") in the semantic INFO
   voice on the second line.
 - **No subtitle under a title lockup — ever** (RQD doctrine, any title context).
