@@ -1,4 +1,4 @@
-## The METASTABLE main menu — first screen of the intermission redesign
+## The ATTITUDE CONTROL main menu — first screen of the intermission redesign
 ## (RQD 2026-08-03 mockup arc; see the design record in ui-style-guide §2
 ## "Semantic colors" + §14 "Menus venue").
 ##
@@ -15,7 +15,7 @@
 ##    New Campaign otherwise (Continue/Load hidden entirely with no saves).
 ##  - Continue is two-line: "Continue" + the save label in the INFO voice.
 ##  - No subtitle, ever. The title text is the slot the eventual logo art
-##    drops into. "Metastable" is a WORKING title — repo stays tbt-game.
+##    drops into. "Attitude Control" is a WORKING title — repo stays tbt-game.
 ##  - Start-level select AXED from the menu (RQD 2026-08-03 round 8) — the
 ##    feature itself is still undecided, but it has no UI presence; if it
 ##    returns it comes back as a designed row, not a locked stub.
@@ -46,7 +46,7 @@ const RECRUIT_POOL: Array[String] = [
 	"res://data/characters/plant_cultist.json",
 	"res://data/characters/robot.json",
 ]
-const GAME_TITLE: String = "METASTABLE"
+const GAME_TITLE: String = "ATTITUDE CONTROL"
 const COLUMN_LEFT_MARGIN: int = 28
 const TITLE_GAP: int = 18
 const ENTRY_GAP: int = 4
@@ -63,7 +63,7 @@ var _load_entry: MainMenuEntry = null
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	get_window().title = "Metastable"
+	get_window().title = "Attitude Control"
 	_build_content()
 
 

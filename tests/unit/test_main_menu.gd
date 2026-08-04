@@ -1,8 +1,8 @@
-## The Metastable main menu port (intermission redesign, screen 1) + the
+## The Attitude Control main menu port (intermission redesign, screen 1) + the
 ## semantic color lock. Pins: the four-voice color set and its halo-
-## temperature doctrine, the CTA-follows-default ordering, the two-line
-## Continue, the CTA yield rule, and the screenshot-path derivation for the
-## save-aware backdrop.
+## temperature doctrine, the default-action ordering and lit-border scarcity,
+## the two-line Continue, one-aim-one-model, and the screenshot-path
+## derivation for the save-aware backdrop.
 extends GutTest
 
 
