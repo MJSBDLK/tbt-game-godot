@@ -114,9 +114,13 @@ Combat XP and bEXP are one economy; the code is the source of truth
 ([combat_xp_calculator.gd](../scripts/combat/combat_xp_calculator.gd) header),
 this is the doctrine:
 
-- **Combat XP**: RD differential formula, flat 100 XP/level. The differential
-  IS the rubber band — underleveled units level ~4× faster in the same
-  mission. Overleveled gains decay to the 1-XP floor.
+- **Combat XP**: flat 100 XP/level; the award scales off the level gap and IS the
+  rubber band. **Formula changing 2026-08-05** from the RD difference model to
+  exponential decay — `base × 2^((their_level − your_level) / k)`, starting at
+  base 80 / k 15, floor 1, no ceiling. Marked PROVISIONAL: the shape is settled,
+  the numbers are a starting position. Rationale, the three-family comparison, and
+  the pacing target (~20 levels per 10 missions for every unit) live in
+  [class-and-promotion.md](../data/design/class-and-promotion.md) §4.
 - **Support casts** (buff/cleanse) pay a flat heal-sized award, gated on the
   cast having a meaningful effect. PP limits farming.
 - **Survival XP**: the FIRST time each enemy engages a unit per battle, the

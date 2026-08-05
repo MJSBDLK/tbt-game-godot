@@ -11,8 +11,9 @@ paths" language, "Retention on Reclass," and the `Class Level 2/3: choose +10% /
 −10%` specialization model, which describes a different promotion design than the
 one below. Those sections should be pruned when this lands.
 
-Markers: **[DECIDED]** RQD call · **[RECOMMENDED]** proposal awaiting RQD ·
-**[OPEN]** genuinely undecided.
+Markers: **[DECIDED]** RQD call · **[PROVISIONAL]** adopted as the working
+answer, expected to move once it's been played · **[RECOMMENDED]** proposal
+awaiting RQD · **[OPEN]** genuinely undecided.
 
 ---
 
@@ -111,7 +112,7 @@ Doctrine lives in [.claude/mission_objectives.md](../../.claude/mission_objectiv
 Flat, at every level, in every tier. Catch-up comes from scaling **XP gain**, never
 the XP requirement and never a purchase price.
 
-### [RECOMMENDED] Delete `TIER_LEVEL_BOOST`
+### [DECIDED] Delete `TIER_LEVEL_BOOST`
 
 [CombatXpCalculator](../../scripts/combat/combat_xp_calculator.gd) currently
 computes `internal_level = level + (tier − 1) × 20` and keys the differential off
@@ -152,26 +153,101 @@ explicitly rejects ("the FERD sin was hiding it").
 
 Keeping XP keyed purely to level makes promotion a **pure build decision**.
 
-### [RECOMMENDED] No separate diminishing-returns system
+### [DECIDED] No separate diminishing-returns system
 
-The continuous scale already produces smooth diminishing returns through the
-differential, with no thresholds and nothing to teach:
+A tier-based XP requirement (the "tier 2 needs 150 XP" idea) is **rejected** —
+inelegant, and unnecessary because the award formula already decays. Diminishing
+returns live in XP *gain*, and nowhere else.
 
-| Attacker vs a Lv 20 enemy | Kill XP |
-|---|---|
-| Lv 10 | 40 |
-| Lv 20 | 30 |
-| Lv 30 | 20 |
-| Lv 40 | 10 |
-| Lv 50 | 1 (floor) |
+### [PROVISIONAL] The award formula and its dials
 
-It also yields a **soft level cap for free**: flat 100 XP/level plus awards
-decaying to the `MIN_XP` floor means a far-overleveled unit needs ~100 actions per
-level and effectively stops climbing. The wall's position is tunable via `MIN_XP`,
-`BASE_HIT_XP`, and `KILL_BONUS` — no new system required.
+> **Locked in as the working answer 2026-08-05. The proof is in the playtest** —
+> every number below is a named dial expected to move, `k` most of all. What's
+> settled is the *shape*; the values are a starting position, not a result.
 
-A tier-based XP requirement (the "tier 2 needs 150 XP" idea) was considered and
-**rejected** as inelegant and unnecessary given the above.
+**The formula, in plain words:** start from a base award, then double it for every
+`k` levels the enemy is above you — or halve it for every `k` levels you're above
+them.
+
+```
+xp = base × 2 ^ ((their_level − your_level) / k)
+```
+
+| Dial | Starting value | Meaning |
+|---|---|---|
+| `base` (kill) | 80 | An even fight pays this |
+| `base` (hit, no kill) | ~27 | Same ratio to the kill award as today's 10 : 30 |
+| `k` | 15 | Levels of gap that double (or halve) the award |
+| floor | 1 | "You did something" |
+| ceiling | none | Naturally bounded — see below |
+
+**Why exponential and not the difference formula it replaces.** Three families
+were compared (difference `base + their_lv − your_lv`, ratio
+`base × their_lv ÷ your_lv`, and exponential). All three pay the base for an even
+fight at any level, so none of them differ on on-level pacing. They differ
+entirely in off-level behavior:
+
+- **Difference** decays linearly and floors hard — a great wall against
+  overlevelling, but it structurally *cannot* jackpot. Its natural maximum is 89
+  XP for the single most extreme kill in the game, under one level.
+- **Ratio** jackpots absurdly (a Lv 1 killing a Lv 60 earns 18 levels) and never
+  stalls — an overlevelled unit still gains a level every ~10 kills forever,
+  deleting the soft cap.
+- **Exponential** does both: a tunable jackpot, and true asymptotic decay.
+
+**The deciding argument was the funnel** (§5). At squad mean 25 with base 80:
+
+| Your level | Difference | **Exponential k=15** |
+|---:|---:|---:|
+| 10 (rookie) | 95 | **160** |
+| 25 (on par) | 80 | 80 |
+| 40 (carry) | 65 | **40** |
+
+A rookie is riskier to field, gets fewer kills, and may take an injury. The
+difference formula's **1.5× premium doesn't cover that**; exponential's **4×**
+does, and the player works it out in one mission without being told. RQD's
+requirement was that bringing underlevelled units should be the *fun* way to play,
+not a nudged one — that requires the steeper curve.
+
+**No ceiling is safe here.** Because levels stop at 60, the formula is bounded by
+the level range itself: the most extreme kill possible (Lv 1 kills Lv 60) tops out
+around 1200 XP. An arbitrary clamp like `[1, 1000]` would be a fake limit doing
+nothing the range doesn't already do. `MAX_XP = 100` should go — under the old
+difference formula it never bound anyway (natural max 89).
+
+### [PROVISIONAL] Pacing target
+
+**~20 levels per 10 missions, for *every* unit in the squad** — conditional on the
+player using bEXP well and bringing underlevelled units. That's the *skilled*
+pace, not the floor; the gap between naive and skilled play is where the funnel
+lives.
+
+Two consequences fall out of it:
+
+- **The campaign is ~30 missions** to traverse Lv 1 → 60 at 2 levels/mission. The
+  tier bands land near missions 10 and 20 — roughly one tier per act. The pace
+  target and the level bands (§1) were set independently and happen to agree.
+- **The income split.** At 8 deployed and 12 enemies (~1.5 kills/unit), base 80
+  yields ~1.5 levels/mission from combat, leaving ~0.5 levels for bEXP to close —
+  about **400 pooled bEXP per mission**, roughly 2× current income. That makes
+  bEXP about a quarter of progression: enough that ignoring it visibly costs you,
+  without making combat feel unrewarding.
+
+### What the playtest has to answer
+
+The values above are guesses with arithmetic behind them, not measurements. Watch:
+
+- **Actual levels/unit/mission** vs the 2.0 target — the whole model rests on
+  ~1.5 kills per deployed unit, which is an estimate.
+- **Does the funnel actually pull?** Do players bring rookies without being told?
+  If not, `k` comes down (steeper premium).
+- **Does the carry stall too hard?** k=15 means a Lv 40 unit at squad mean 25
+  earns half the base. If that reads as punishment rather than diminishing
+  returns, `k` goes up.
+- **Is the jackpot fun or silly?** A Lv 1 landing a boss kill gains ~4.5 levels at
+  k=15. Watch whether that feels like a triumph or an exploit.
+- **bEXP's share** — if 400/mission feels like the pool is doing the work, shift
+  income back toward combat by raising `base`.
 
 ---
 
@@ -192,12 +268,30 @@ What actually breaks a supersquad is **being unable to field the same eight**, o
 | Lever | Status | Mechanism |
 |---|---|---|
 | Injury attrition | shipped | Injuries persist, occupy slots, recover over N battles; overflow is permadeath. Running the same squad forces bench time. |
-| Differential XP gain | shipped | Underleveled units earn multiples of what the carry earns. |
+| Level-gap XP scaling | shipped (formula changing, §4) | Underlevelled units earn multiples of what the carry earns — 4× at the k=15 starting value. |
 | **Class + type diversity** | **unbuilt** | Classes carry typings and passives; eight identical juggernauts have coverage holes a composed six doesn't. |
 
 The third is the real answer, because it makes narrow squads **lose fights**
 rather than merely level slowly — and it turns the counter into encounter and map
 design rather than spreadsheet friction.
+
+### Enemy levels scale to the whole roster, not the deployed squad
+
+`CampaignManager.pick_enemy_level` draws a Gaussian centered on the mean level of
+`SquadManager.get_active_roster()` — **every roster member, benched or not**.
+
+This turns out to help the funnel, and it's worth not "fixing" by accident.
+Benching rookies doesn't raise enemy levels, because they still drag the mean
+down. So a player who hoards low-level units and fields only carries faces
+low-level enemies *and* earns almost nothing from them (a Lv 40 carry against Lv
+15 enemies is deep in the decay). The only way to convert a low squad mean into
+progression is to deploy the units who benefit from it. Switching this to
+deployed-squad mean would invert the incentive — benching would raise enemy levels
+and pay the carry *more*.
+
+**[OPEN]** Mild exploit: hoarding unlevelled recruits suppresses enemy levels
+campaign-wide, trading progression for easy maps. Self-limiting, but worth
+watching in playtest.
 
 **[OPEN]** Injury tuning is the dial that decides how much rotation pressure
 actually exists. Rare injuries or short recoveries mean weak pressure. Measurable

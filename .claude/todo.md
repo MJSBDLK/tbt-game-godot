@@ -43,14 +43,28 @@ everything else, roughly by how soon it matters.
     `SquadManager.bexp_level_cost` + its three constants, charge a flat 100 in
     `buy_bexp_level`, rewrite the BonusXpPanel "SPEND MODEL" header note.
 
-  - [ ] **Delete `TIER_LEVEL_BOOST`** ([combat_xp_calculator.gd](../scripts/combat/combat_xp_calculator.gd)).
-    `internal_level = level + (tier−1)×20` is a normalization device for FE's
-    reset-on-promotion; our level scale is continuous 1–60, so it double-counts
-    and would crater kill XP by 70% at levels 21 and 41. **Dormant today** (tier
-    is stubbed at 1 everywhere) so it's safe to remove any time — but it MUST go
-    before tier is ever derived from level. Prune the stale intent comment at
-    `character_data.gd:30` too. Rationale in
-    [class-and-promotion.md](../data/design/class-and-promotion.md) §4.
+  - [ ] **Rework CombatXpCalculator** — decided 2026-08-05, values PROVISIONAL
+    ([class-and-promotion.md](../data/design/class-and-promotion.md) §4 has the
+    rationale and the three-family comparison).
+    - [ ] **Delete `TIER_LEVEL_BOOST`** and the `_internal_level()` indirection.
+      It's a normalization device for FE's reset-on-promotion; our scale is
+      continuous 1–60, so it double-counts and would crater kill XP 70% at levels
+      21 and 41. Dormant today (tier stubbed at 1) but MUST go before tier is ever
+      derived from level. Prune the stale comment at `character_data.gd:30` too.
+    - [ ] **Swap difference → exponential decay:**
+      `xp = base × 2^((their_level − your_level) / k)`. Difference can't jackpot
+      (natural max 89 XP); ratio never stalls. Exponential does both, and gives
+      the underlevelled a **4× premium instead of 1.5×** — which is what makes
+      bringing rookies attractive without nudging.
+    - [ ] Starting dials: **base 80** kill / ~27 hit, **k 15**, floor 1,
+      **no ceiling** (`MAX_XP` retires — the 1–60 range bounds it naturally at
+      ~1200). Every one is a playtest dial; `k` is expected to move most.
+    - [ ] Pacing target to verify: **~2 levels/unit/mission** for the whole squad
+      when the player uses bEXP and fields underlevelled units. Implies a
+      ~30-mission campaign for Lv 1→60. Rests on an estimate of ~1.5 kills per
+      deployed unit — **measure this first**, the whole model hangs off it.
+    - [ ] bEXP income to ~400 pooled/mission (≈2× current) so it closes the last
+      ~0.5 levels/mission.
 
 
 - [ ] **Battle result V2.** V1 shipped (BattleResultPanel: turns-vs-par, itemized
