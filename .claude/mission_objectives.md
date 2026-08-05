@@ -123,10 +123,46 @@ this is the doctrine:
   defender earns a small level-diff-scaled award (dodge or tank — surviving
   is the lesson). Repeat engagements from the same enemy pay nothing, so
   stalling next to a harmless enemy pays ~1 XP once, then zero forever.
-- **bEXP spending**: pooled, player-allocated. A level costs
-  `100 × unit_level ÷ squad_max_level` (clean-rounded, floor 25) — the player
-  sees a price tag per unit, never the formula. Weaker units learn faster,
-  in the field and in training.
+- **bEXP spending**: pooled, player-allocated, **flat — 100 bEXP buys one level
+  for anyone** (amended 2026-08-05, see below).
+
+### Amendment 2026-08-05 — bEXP is a flat pool
+
+The clause above previously read: *"A level costs `100 × unit_level ÷
+squad_max_level` (clean-rounded, floor 25) — the player sees a price tag per
+unit, never the formula."* That was recorded here as locked on 2026-08-03; RQD
+reports it was explored but never ratified, and on review it contradicts the
+position it was meant to implement.
+
+**Why it's wrong.** RQD's original note argued *against* higher XP requirements
+for higher-level units — "keep it at 100/unit and scale EXP gain differently."
+A scaled bEXP price re-introduces exactly that, denominated in bEXP instead of
+XP: the carry needs 90 per level where a rookie needs 25. Same rule, different
+currency. It also hides a formula from the player, which is the FERD sin this
+economy was written to avoid.
+
+**The corrected doctrine:**
+
+- **A level costs 100 XP, flat**, at every level and in every tier.
+- **bEXP is a simple pool of spendable XP.** 100 bEXP = one level, for anyone.
+- **All catch-up lives in XP *gain*** — the RD differential formula — never in
+  the requirement and never in a purchase price.
+- **Class/build choice never affects XP rate.** See
+  [class-and-promotion.md](../data/design/class-and-promotion.md) §4.
+
+**Why flat bEXP doesn't create a supersquad.** The concern: since the
+differential decays an overleveled unit's combat gains to the floor, bEXP becomes
+their only growth path, so a player would pour it there and widen the spread.
+That assumes concentration is the winning play. It isn't — injury attrition
+forces rotation, so a deep competent bench is required, and bEXP is the budget
+for raising it. Flat pricing makes that legible: *"three levels, that's 300, I
+have 450."* The anti-supersquad work is done by class/type diversity and injury
+attrition, not by XP math ([class-and-promotion.md](../data/design/class-and-promotion.md) §5).
+
+**Code consequences (not yet applied):** delete `SquadManager.bexp_level_cost`
+and its `BEXP_BASE_LEVEL_COST` / `BEXP_MIN_LEVEL_COST` / `BEXP_COST_STEP`
+constants; `buy_bexp_level` charges a flat 100. The BonusXpPanel header's "SPEND
+MODEL (reworked 2026-08-03)" note needs rewriting to match.
 
 ## Open Questions
 
