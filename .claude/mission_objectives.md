@@ -139,4 +139,4 @@ this is the doctrine:
 ## Related Docs
 
 - [alpha.md](alpha.md) — Alpha milestone scope
-- [todo.md](todo.md) — battle_result_overlay entry pulls from this doc's objective model
+- [todo.md](todo.md) — §1 "Battle result V2" pulls from this doc's objective model

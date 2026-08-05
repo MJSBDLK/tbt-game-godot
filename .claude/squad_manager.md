@@ -230,7 +230,7 @@ Remaining design unknowns are mostly inside [equipment_picker.md](equipment_pick
 ## Related
 
 - [alpha.md](alpha.md) — Alpha milestone scope
-- [todo.md](todo.md) — alpha item #3 references this doc
+- [todo.md](todo.md) — §1 "Squad / prep + between-mission level-up screen" references this doc
 - [mission_objectives.md](mission_objectives.md) — bEXP economy that grants the bonus XP feature
 - [equipment_picker.md](equipment_picker.md) — move/passive swap UX (§4)
 - Existing impl: [prep_screen.gd](../scripts/ui/prep_screen.gd), [campaign_manager.gd](../scripts/managers/campaign_manager.gd)

@@ -76,7 +76,7 @@ Legacy stragglers that don't follow this (`.js` files, `grasker-portrait.png`,
 - [ ] `portraitPath`, `lineartPath`, `lineartAtlases.portrait`
 
 **Wiring**
-- [ ] Faction decided (see the faction table in todo.md, Meeting 20260531)
+- [ ] Faction decided (see the faction table in `.claude/todo-archive.md`, Meeting 20260531)
 - [ ] Added to `RECRUIT_POOL` (player) or `enemy_spawn_pool` (enemy)
       — ally/neutral spawn infra doesn't exist yet (post-alpha)
 

@@ -1,5 +1,5 @@
 ## Maps passive names to their CombatEffect handlers. Passives ARE CombatEffect
-## handlers (see .claude/todo.md "Combat Effect Pipeline" Phase 2) — the same
+## handlers (see .claude/todo-archive.md "Combat Effect Pipeline" Phase 2) — the same
 ## type the move/affliction effects use, so a unit's passives can be gathered
 ## into the per-hit combat pipeline alongside the move's own effects.
 ##

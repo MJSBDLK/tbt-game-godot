@@ -11,7 +11,7 @@
 ## Usage is via the static toggle — drop it onto any chip Control:
 ##     VoidLockOverlay.set_locked(chip, unit.is_passive_index_locked(i))
 ## It is idempotent and self-cleaning, so callers just push the current lock state
-## every refresh. See .claude/todo.md "void FX shader / + desaturate + shadow @ 50%".
+## every refresh. See .claude/todo-archive.md "void FX shader / + desaturate + shadow @ 50%".
 class_name VoidLockOverlay
 extends ColorRect
 
