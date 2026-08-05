@@ -29,6 +29,28 @@ everything else, roughly by how soon it matters.
   - [ ] For the bEXP allocation system, I think we should have buttons:
     [-10][-1][+1][+10][99][100]
     May want +/- 5 in there. Probably not to start. What do you think?
+    Need a clear pool total to see what we're spending from
+    - **Unblocked 2026-08-05.** These buttons need a flat pool to act on, and
+      that's now the doctrine (below). Once `bexp_level_cost` is gone, they
+      spend from a flat pool at 100/level and the pool total is the readout.
+      ±5 agreed as probably-not-to-start.
+
+  - [ ] **Flatten bEXP to a simple pool** — doctrine amended 2026-08-05
+    ([mission_objectives.md](mission_objectives.md) "XP Economy"). The shipped
+    price-tag model (`100 × level ÷ squad_max`, floor 25) re-introduced
+    "higher level = harder to level" in bEXP currency, which RQD had explicitly
+    argued against; it was recorded as locked but never ratified. Delete
+    `SquadManager.bexp_level_cost` + its three constants, charge a flat 100 in
+    `buy_bexp_level`, rewrite the BonusXpPanel "SPEND MODEL" header note.
+
+  - [ ] **Delete `TIER_LEVEL_BOOST`** ([combat_xp_calculator.gd](../scripts/combat/combat_xp_calculator.gd)).
+    `internal_level = level + (tier−1)×20` is a normalization device for FE's
+    reset-on-promotion; our level scale is continuous 1–60, so it double-counts
+    and would crater kill XP by 70% at levels 21 and 41. **Dormant today** (tier
+    is stubbed at 1 everywhere) so it's safe to remove any time — but it MUST go
+    before tier is ever derived from level. Prune the stale intent comment at
+    `character_data.gd:30` too. Rationale in
+    [class-and-promotion.md](../data/design/class-and-promotion.md) §4.
 
 
 - [ ] **Battle result V2.** V1 shipped (BattleResultPanel: turns-vs-par, itemized
@@ -122,7 +144,7 @@ features.
 - [ ] **Crit feedback.** "CRIT!" popup + hit flash are wired; not headless-testable.
 - [ ] **Save system leftovers.** Yellow 7 / Azure 7 ramp-step eyeball; mid-battle
   browser-load scene-swap (the one path headless can't cover); Steam Deck path
-  check; save-browser
+  check; KIND_MANUAL slot management polish (overwrite/delete); save-browser
   visual pass (functionality-first scaffold, Lawrence styling later).
 - [ ] **Controller peek button.** `tooltip_peek` is mapped to BOTH Back and R3 —
   playtest and cull one.
@@ -256,14 +278,12 @@ independent of the intermission redesign.**
   never saves. So nothing is written between the last turn of mission N and turn 1
   of mission N+1 — quit from the intermission and "Continue" should rewind into
   the battle you *already finished*, discarding every StatUp, move swap, and bEXP
-  purchase. **Fix (RQD 2026-08-04): a fourth ring for BASE autosaves**, separate
-  from the two battlefield rings, 4 slots, same rotation — base and battlefield
-  shouldn't evict each other. Trigger = entering the intermission (leaving is
-  already covered by the next mission's turn-1 write). `build_snapshot()` already
-  takes `battle` as optional, so this is a trigger + a ring, not new machinery;
-  remember to add the kind to `list_saves()`'s hardcoded ring array, and it needs
-  a fourth browser color (Lawrence). **Wants an in-game repro first** — this reads
-  from the code path, unconfirmed.
+  purchase. **Fix: autosave on ENTERING the intermission** (leaving is already
+  covered by the next mission's turn-1 write). `build_snapshot()` already takes
+  `battle` as optional, so this is a trigger, not new machinery. Open sub-call:
+  which ring — recommendation is to widen the existing blue ring from
+  "battle-start" to "mission boundary" rather than mint a fourth color.
+  **Wants an in-game repro first** — this reads from the code path, unconfirmed.
 
 - [ ] **The 5th manual save silently destroys the 1st.** `write_manual_save()`
   routes through `_pick_ring_slot` ("first empty wins, else overwrite oldest"), so
@@ -344,6 +364,26 @@ Each of these is blocked on a decision, not on work.
 ---
 
 ## 8. Not started
+
+- [ ] **CLASS & PROMOTION SYSTEM** — design doc written 2026-08-05
+  ([class-and-promotion.md](../data/design/class-and-promotion.md)), nothing
+  implemented. **This is the largest unscoped commitment in the project**, and by
+  RQD's own framing it's load-bearing twice over: it's the progression spine
+  (promotion at levels 21 and 41 is the biggest choice moment in the loop) *and*
+  it's the actual answer to the supersquad problem, since class-carried typings
+  and passives are what make a narrow squad lose fights.
+  - Today it is **enum-only**: 15 tier-1 classes, 3 tier-2, 3 tier-3. No class
+    data, no `data/classes/`, no `CLASS_INFO` table, no promotion trigger, no
+    class-choice screen.
+  - **Content scope: ~30–45 classes** to author if each base class gets 2–3
+    promotion options — each needing stat mods, granted passives, typing,
+    growths, caps, a name, and eventually art. The obvious lever if that's too
+    many is shared promotion pools across base classes (open question in the doc).
+  - **Not alpha-blocking**: alpha units start at levels 1/5/11 over two missions,
+    so nobody reaches 21. But it should be scoped before it surprises us.
+  - Open questions live in the doc §6 — reclassing, stat caps, whether enemies
+    promote, and how the UI communicates a class that's worse on paper but better
+    in play.
 
 - [ ] **Generated displacement diagrams.** A schematic renderer drawing an
   Into-the-Breach-style vignette straight from the declarative displace params:
