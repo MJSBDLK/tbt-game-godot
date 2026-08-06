@@ -67,6 +67,28 @@ see the mockup and §6. These three are the remainder.)*
       gets away with it by not simulating growths at all). Design that before
       building the row.
 
+  - [x] **Class-based stat caps + the shared cap bar** — DONE 2026-08-06.
+    [ClassStatCaps](../scripts/units/class_stat_caps.gd) holds all 21 classes ×
+    8 stats plus the global (tier-3) ceiling every bar is scaled against;
+    `get_stat_cap()` reads the unit's class. One shared
+    [StatCapBar](../scripts/ui/components/stat_cap_bar.gd) draws track + fill +
+    bonus and is used by CharacterSheetPanel, UnitDetailPanel and
+    EquipmentPicker — it replaced two near-identical hand-rolled bar
+    implementations that both scaled against a flat `STAT_DISPLAY_MAX = 60`
+    matching no real ceiling, and added the first cap awareness EquipmentPicker
+    has ever had.
+    - **Live balance change, not just UI:** the old flat caps were unreachable,
+      so `is_at_stat_cap()` was permanently false. Class caps bind, which turns
+      on growth-roll skipping, bEXP growth concentration, and gives promotion a
+      purpose. Cap *numbers* are PROVISIONAL — tests assert the tier ladder and
+      archetype shape, never individual values.
+    - [ ] **Playtest the low caps.** A Mage starts DEF 5 against a cap of 9 —
+      four growth points and its DEF is done, plausibly by level 10. Intended
+      shape, but the likeliest thing to feel bad first.
+    - [ ] CharacterSheetPanel's HP bar still fills against `get_stat_cap` alone
+      (now class-correct) without showing the class-vs-global track. Convert it
+      to StatCapBar for consistency, or decide HP reads better as a plain bar.
+
   - [ ] **bEXP income to ~400 pooled/mission** (≈2× current) so it closes the
     last ~0.5 levels/mission the combat award doesn't. Sized against the pacing
     target below; do it after that's measured, not before.

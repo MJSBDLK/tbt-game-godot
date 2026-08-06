@@ -30,9 +30,10 @@ const STAT_NODE_MAP: Dictionary = {
 
 const _HYPOESTHESIA_STATIC_MATERIAL: ShaderMaterial = preload("res://resources/injury_static.tres")
 
-const STAT_DISPLAY_MAX: float = 60.0
+# STAT_DISPLAY_MAX (60.0) and STAT_BAR_MIN_WIDTH (3.0) retired 2026-08-06 —
+# StatCapBar scales against ClassStatCaps.GLOBAL instead, so a full bar means
+# the game's maximum rather than an arbitrary 60.
 const STAT_BAR_MAX_WIDTH: float = 44.0
-const STAT_BAR_MIN_WIDTH: float = 3.0
 
 var _character_data: CharacterData = null
 var _unit: Variant = null  # Unit reference for current_hp and status effects
@@ -51,7 +52,7 @@ var _hp_bar_background: ColorRect = null
 var _hp_label: Label = null
 var _hp_max_label: Label = null  # Reuses StatModifier node to show "/max_hp"
 var _hp_censor: StaticCensorOverlay = null
-var _stat_rows: Dictionary = {}  # display_key -> { bar_base, bar_bonus, bar_bg, value_label, modifier_label, name_label }
+var _stat_rows: Dictionary = {}  # display_key -> { cap_bar, bar_bg, value_label, modifier_label, name_label }
 
 # Center column tablets
 var _move_chips: Array[MoveChipButton] = []
@@ -238,13 +239,25 @@ func _cache_node_references() -> void:
 		var stat_container: Control = stats_container.get_node(container_name)
 		var hbox: HBoxContainer = stat_container.get_node("HBoxContainer")
 		var bar_container: Control = hbox.get_node("StatBarContainer")
+		# The scene ships StatBar/StatBonusBar ColorRects that this panel used
+		# to size by hand. Hide them and lay a StatCapBar over the same slot —
+		# same rendering as CharacterSheetPanel, from one implementation.
+		var scene_base: ColorRect = bar_container.get_node("StatBar")
+		var scene_bonus: ColorRect = bar_container.get_node("StatBonusBar")
+		scene_base.visible = false
+		scene_bonus.visible = false
+
+		var cap_bar := StatCapBar.new(STAT_DISPLAY_MAP[display_key], int(scene_base.size.y))
+		cap_bar.position = scene_base.position
+		cap_bar.size = Vector2(STAT_BAR_MAX_WIDTH, scene_base.size.y)
+		bar_container.add_child(cap_bar)
+
 		_stat_rows[display_key] = {
 			"name_label": _find_label_in_node(hbox.get_node("MarginContainer")),
 			"value_label": _find_label_in_node(hbox.get_node("StatValue")),
 			"modifier_label": _find_label_in_node(hbox.get_node("StatModifier")),
 			"bar_bg": bar_container.get_node("StatBarBackground"),
-			"bar_base": bar_container.get_node("StatBar"),
-			"bar_bonus": bar_container.get_node("StatBonusBar"),
+			"cap_bar": cap_bar,
 		}
 
 	# Center column — move chips. The scene's MovePanel tablets are replaced
@@ -688,28 +701,15 @@ func _update_stats() -> void:
 			if name_label:
 				_reset_label_color(name_label)
 
-		# Base bar width
-		var base_pixels: int = 0
-		if base_value > 0:
-			base_pixels = maxi(roundi(base_value / STAT_DISPLAY_MAX * STAT_BAR_MAX_WIDTH), int(STAT_BAR_MIN_WIDTH))
-
-		var bar_base: ColorRect = row["bar_base"]
-		if bar_base:
-			bar_base.size.x = base_pixels
-			bar_base.color = GameColors.TEXT_SUCCESS if at_cap else GameColors.PLAYER_UNIT
-			bar_base.visible = base_pixels > 0
-
-		# Bonus bar
-		var bonus_pixels: int = 0
-		if bonus_value > 0:
-			bonus_pixels = maxi(roundi(bonus_value / STAT_DISPLAY_MAX * STAT_BAR_MAX_WIDTH), int(STAT_BAR_MIN_WIDTH))
-
-		var bar_bonus: ColorRect = row["bar_bonus"]
-		if bar_bonus:
-			var overlap: int = 1 if base_pixels > 0 else 0
-			bar_bonus.position.x = base_pixels - overlap
-			bar_bonus.size.x = bonus_pixels
-			bar_bonus.visible = bonus_pixels > 0
+		# Track, fill, bonus and the at-cap colour all come from the shared
+		# StatCapBar now (2026-08-06). The scene's StatBar/StatBonusBar
+		# ColorRects are hidden rather than deleted so the .tscn keeps working
+		# if this ever gets reverted; the sizing math they used lived here in
+		# a near-identical copy of CharacterSheetPanel's, scaled against a flat
+		# STAT_DISPLAY_MAX = 60 that matched no real ceiling.
+		var cap_bar: StatCapBar = row.get("cap_bar")
+		if cap_bar:
+			cap_bar.set_stat(_character_data, stat_name)
 
 
 func _update_move_tablets() -> void:

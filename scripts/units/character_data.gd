@@ -294,23 +294,11 @@ func has_maximum_protection() -> bool:
 
 
 # =============================================================================
-# STAT CAPS (default values — will be class-based via CLASS_INFO later)
+# STAT CAPS — now class-based, see [ClassStatCaps]
 # =============================================================================
-
-## 2:1 HP-to-other-stat ratio: HP /20
-## and every other stat /10
-## both top out at 5px
-## these are the practical cap a maxed-late-game unit might pull off.
-const DEFAULT_STAT_CAPS: Dictionary = {
-	"max_hp": 100,
-	"strength": 50,
-	"special": 50,
-	"skill": 50,
-	"agility": 50,
-	"athleticism": 50,
-	"defense": 50,
-	"resistance": 50,
-}
+# The flat DEFAULT_STAT_CAPS table that used to live here (HP 100, everything
+# else 50) became ClassStatCaps.GLOBAL: the tier-3 ceiling nobody exceeds and
+# every bar is scaled against. Per-class ceilings sit under it.
 
 
 # =============================================================================
@@ -371,8 +359,18 @@ func _get_status_modifier(stat_name: String) -> int:
 	return 0
 
 
+## This unit's ceiling for `stat_name`, from its class. Growth rolls and bEXP
+## growths respect it; allocated StatUps deliberately do not (see
+## is_at_stat_cap).
 func get_stat_cap(stat_name: String) -> int:
-	return DEFAULT_STAT_CAPS.get(stat_name, 20)
+	return ClassStatCaps.for_class(current_class, stat_name)
+
+
+## The fixed game-wide ceiling for `stat_name`, independent of class. Used to
+## SCALE cap bars: drawing every unit's track against the same maximum is what
+## makes bar lengths comparable between two units of different classes.
+func get_global_stat_cap(stat_name: String) -> int:
+	return ClassStatCaps.global_cap(stat_name)
 
 
 func get_base_plus_growth(stat_name: String) -> int:

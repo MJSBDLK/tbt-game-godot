@@ -12,8 +12,10 @@ const SHEET_HEIGHT: int = 360
 const PORTRAIT_SIZE: int = 96
 const STAT_BAR_MAX_WIDTH: int = 44
 const STAT_BAR_HEIGHT: int = 4
-const STAT_DISPLAY_MAX: float = 60.0  # All bars scale relative to this
-const STAT_BAR_MIN_WIDTH: int = 3     # Minimum width for glow to render
+# STAT_DISPLAY_MAX (60.0) and STAT_BAR_MIN_WIDTH (3) retired 2026-08-06 with
+# the hand-rolled bars. Bars now scale against ClassStatCaps.GLOBAL via
+# StatCapBar, so a full bar means "the game's maximum for this stat" instead of
+# an arbitrary 60 that matched no ceiling anywhere.
 const STAT_LABEL_WIDTH: int = 28
 const STAT_VALUE_WIDTH: int = 42
 
@@ -44,7 +46,7 @@ var _hp_bar_background: ColorRect = null
 var _hp_bar_fill: ColorRect = null
 var _hp_label: Label = null
 
-# Stats — each entry: { "name_label": Label, "value_label": Label, "bar_bg": ColorRect, "bar_base": ColorRect, "bar_bonus": ColorRect }
+# Stats — each entry: { "name_label": Label, "value_label": Label, "bar_bg": ColorRect, "cap_bar": StatCapBar }
 var _stat_rows: Dictionary = {}
 var _constitution_label: Label = null
 var _carry_label: Label = null
@@ -184,30 +186,12 @@ func _update_stats(data: CharacterData) -> void:
 			value_label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
 			name_label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
 
-		# Base bar width (clamped to min 3px for glow, 0 if stat is 0)
-		var base_pixels: int = 0
-		if base_value > 0:
-			base_pixels = maxi(roundi(base_value / STAT_DISPLAY_MAX * STAT_BAR_MAX_WIDTH), STAT_BAR_MIN_WIDTH)
-
-		# Bonus bar width (clamped to min 3px for glow, 0 if bonus is 0)
-		var bonus_pixels: int = 0
-		if bonus_value > 0:
-			bonus_pixels = maxi(roundi(bonus_value / STAT_DISPLAY_MAX * STAT_BAR_MAX_WIDTH), STAT_BAR_MIN_WIDTH)
-
-		# Base bar
-		var bar_base: ColorRect = row["bar_base"]
-		bar_base.size.x = base_pixels
-		bar_base.color = GameColors.TEXT_SUCCESS if at_cap else GameColors.PLAYER_UNIT
-		bar_base.visible = base_pixels > 0
-
-		# Bonus bar — shift 1px left to overlap with base bar's glow edge,
-		# avoiding a visible gap between glow effects. Skip overlap if base
-		# is 0 since there's no base glow to connect to.
-		var bar_bonus: ColorRect = row["bar_bonus"]
-		var overlap: int = 1 if base_pixels > 0 else 0
-		bar_bonus.position.x = base_pixels - overlap
-		bar_bonus.size.x = bonus_pixels
-		bar_bonus.visible = bonus_pixels > 0
+		# The bar owns its own geometry now — track, fill, bonus and the at-cap
+		# colour all come from StatCapBar, which reads the same
+		# is_at_stat_cap() the label colouring above uses. That shared rule is
+		# the point: label and bar can no longer disagree about being capped.
+		var cap_bar: StatCapBar = row["cap_bar"]
+		cap_bar.set_stat(data, stat_name)
 
 	_constitution_label.text = "CON  %d" % data.constitution
 	_carry_label.text = "CAR  %d" % data.carry
@@ -431,7 +415,10 @@ func _build_stat_row(display_key: String, ui_manager: Node, parent: VBoxContaine
 	name_label.custom_minimum_size.x = STAT_LABEL_WIDTH
 	row.add_child(name_label)
 
-	# Bar container
+	# Bar container. Holds a dark backing plus the shared StatCapBar, which
+	# draws class-cap track, grown fill and bonus segment in one pass — this
+	# panel used to hand-roll two ColorRects scaled against a flat
+	# STAT_DISPLAY_MAX = 60 that matched no real ceiling.
 	var bar_container := Control.new()
 	bar_container.custom_minimum_size = Vector2(STAT_BAR_MAX_WIDTH, STAT_BAR_HEIGHT + 4)
 	bar_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -446,22 +433,10 @@ func _build_stat_row(display_key: String, ui_manager: Node, parent: VBoxContaine
 	bar_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bar_container.add_child(bar_background)
 
-	# Bonus bar renders behind the base bar
-	var bar_bonus := ColorRect.new()
-	bar_bonus.color = GameColors.TEXT_SECONDARY
-	bar_bonus.size = Vector2(0, STAT_BAR_HEIGHT)
-	bar_bonus.position = Vector2(0, bar_y)
-	bar_bonus.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bar_bonus.visible = false
-	bar_container.add_child(bar_bonus)
-
-	# Base bar renders on top
-	var bar_base := ColorRect.new()
-	bar_base.color = GameColors.PLAYER_UNIT
-	bar_base.size = Vector2(0, STAT_BAR_HEIGHT)
-	bar_base.position = Vector2(0, bar_y)
-	bar_base.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bar_container.add_child(bar_base)
+	var cap_bar := StatCapBar.new(STAT_DISPLAY_MAP[display_key], STAT_BAR_HEIGHT)
+	cap_bar.size = Vector2(STAT_BAR_MAX_WIDTH, STAT_BAR_HEIGHT)
+	cap_bar.position = Vector2(0, bar_y)
+	bar_container.add_child(cap_bar)
 
 	# Value + modifier label (fixed width)
 	var value_label := _create_small_label(ui_manager)
@@ -472,8 +447,7 @@ func _build_stat_row(display_key: String, ui_manager: Node, parent: VBoxContaine
 		"name_label": name_label,
 		"value_label": value_label,
 		"bar_bg": bar_background,
-		"bar_base": bar_base,
-		"bar_bonus": bar_bonus,
+		"cap_bar": cap_bar,
 	}
 
 

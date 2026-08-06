@@ -39,6 +39,13 @@ const _STAT_ROWS: Array = [
 	{"name": "resistance",  "label": "RES"},
 ]
 
+# Cap bar geometry for the stat rows. 3px tall rather than the 1px used in the
+# read-only panels: this is the screen where you're actively pushing the bar,
+# so the segment you just bought has to be visible while your eye is on the
+# [+] button. Width is a minimum — the row's spacer lets it stretch.
+const STAT_CAP_BAR_WIDTH: int = 40
+const STAT_CAP_BAR_HEIGHT: int = 3
+
 
 ## Emitted when the user dismisses the picker via the close button. Prep
 ## screen listens for this to re-expand the roster strip and clear selection.
@@ -1052,6 +1059,25 @@ func _make_stat_row(stat_name: String, abbrev: String, points_remaining: int) ->
 		plus_button.add_theme_font_size_override("font_size", 8)
 	plus_button.pressed.connect(_on_stat_increment.bind(stat_name))
 	row.add_child(plus_button)
+
+	# Cap bar, same component the character sheet and unit detail panel use.
+	# This screen is where caps actually change a decision — it's where you
+	# spend StatUps — and it was the one surface with no cap awareness at all.
+	# The bonus segment is what makes it worth the pixels here: press [+] and
+	# you watch the accent segment push out past the class ceiling, which is
+	# the "StatUps may exceed the cap" rule demonstrating itself.
+	var cap_bar := StatCapBar.new(stat_name, STAT_CAP_BAR_HEIGHT)
+	cap_bar.custom_minimum_size = Vector2(STAT_CAP_BAR_WIDTH, STAT_CAP_BAR_HEIGHT)
+	cap_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	cap_bar.set_character(_character_data)
+	cap_bar.tooltip_text = "%s %d of %d %s cap · game max %d" % [
+		abbrev,
+		_character_data.get_base_plus_growth(stat_name),
+		_character_data.get_stat_cap(stat_name),
+		Enums.get_class_display_name(_character_data.current_class),
+		_character_data.get_global_stat_cap(stat_name),
+	]
+	row.add_child(cap_bar)
 
 	# Disabled buttons swallow clicks silently — gui_input still fires on them,
 	# so a press on a greyed +/- red-flashes the info that explains WHY it's

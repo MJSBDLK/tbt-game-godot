@@ -82,13 +82,41 @@ Enum only. [Enums.CharacterClass](../../scripts/core/enums.gd):
 - **Tier 2 (3):** Jetpack, Hardcase, Knight
 - **Tier 3 (3):** EVA, Topdog, Void Knight
 
-Absent: class data of any kind (no `data/classes/`), the `CLASS_INFO` table that
-[character_data.gd:295](../../scripts/units/character_data.gd#L295) already
-gestures at for stat caps, any promotion trigger or eligibility check, and the
+**Stat caps are class-based as of 2026-08-06** —
+[ClassStatCaps](../../scripts/units/class_stat_caps.gd), all 21 classes × 8
+stats. That's the first real class *data* in the project; everything else below
+is still absent. All 32 character JSONs already carry a `currentClass` and the
+loader parses it, so caps resolved per-unit the moment the table landed.
+
+Still absent: any other class data (no granted passives, typing, growth mods, or
+`data/classes/`), any promotion trigger or eligibility check, and the
 class-choice screen.
 
 `CharacterData.tier` exists as a stored `@export` defaulting to 1, and is
 currently stubbed at 1 for every character.
+
+### The caps now BIND, and that is a live balance change
+
+Worth stating loudly because it is easy to miss: the old flat table (HP 100,
+everything else 50) was **unreachable** — no unit could ever hit it, so
+`is_at_stat_cap()` was permanently false and every cap-aware code path was
+dormant. Class caps are reachable by design, which turns three dormant systems
+on at once:
+
+- **Growth rolls now skip capped stats** ([character_data.gd
+  `process_level_up`](../../scripts/units/character_data.gd)) — a levelled unit
+  can now roll "nothing" on a maxed stat.
+- **bEXP growths now concentrate.** `process_bexp_level_up` draws its 3 growths
+  from uncapped stats only, so a unit with maxed stats gets *better* value per
+  bEXP level. This is the "feel smart" play from §4 finally having something to
+  act on.
+- **Promotion acquires a purpose.** A tier-1 Mage caps DEF at 9; the only way
+  past it is the next tier.
+
+**The sharpest edge to watch:** low caps bind *early*. A Mage starts at DEF 5
+against a cap of 9, so four growth points end its DEF progression — plausibly
+around level 10, halfway through tier 1. That is the intended shape (mages are
+meant to stay papery) but it is the number most likely to feel bad first.
 
 ### Content scope, stated plainly
 
