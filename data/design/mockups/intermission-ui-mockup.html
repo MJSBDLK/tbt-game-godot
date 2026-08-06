@@ -558,11 +558,6 @@
   .bx-hint { color: #8a8578; font-size: 8px; margin-top: 4px; }
   /* Flavor last, quiet — it's the line you read once and never again. */
   .mu-detail p.flavor { color: #6d6f6d; margin: 6px 0 0; }
-  /* Original stat, dim, ahead of the current one: 20+ 22 */
-  .stat .basev {
-    color: #6d6f6d; font-variant-numeric: tabular-nums;
-    width: 17px; text-align: right; flex: none;
-  }
   /* StatUp pool under the stats — the same + mark as the row tally, so the
      pool and the spend read as one currency. */
   .mu-points .pool-pips { display: inline-flex; gap: 1px; margin-left: 3px; vertical-align: middle; }
@@ -1038,13 +1033,13 @@
 
         <section>
           <h2>StatUp tally — pick one</h2>
-          <label class="opt"><input type="radio" name="pip" value="dots" checked>
-            <b>Stacked dots</b>
-            <span class="why">Two rows deep, so ten StatUps cost 14px of width instead of 40. Reads as a quantity mark, not a word. Ma'am's SKL has three, Max's STR has two.</span>
-          </label>
-          <label class="opt"><input type="radio" name="pip" value="chars">
+          <label class="opt"><input type="radio" name="pip" value="chars" checked>
             <b>Run of +</b>
-            <span class="why">Literally <code>++</code> as you spec'd it. Clearer at a glance; needs a cutoff (<code>++++…</code>) once a stat is deep.</span>
+            <span class="why">Literally <code>22+</code> / <code>24++</code> as you drew it. <b>Now the default</b> — no cutoff needed, because <code>PER_STAT_CAP</code> is 4, so the run can never exceed <code>++++</code>.</span>
+          </label>
+          <label class="opt"><input type="radio" name="pip" value="dots">
+            <b>Stacked dots</b>
+            <span class="why">Two rows deep. Kept for comparison, but its reason for existing is gone: the "ten StatUps cost 14px instead of 40" worry assumed one stat could hold ten. Ten is the <i>pool</i>; a single stat caps at four.</span>
           </label>
         </section>
 
@@ -1137,17 +1132,14 @@
           </label>
         </section>
 
-        <section>
-          <h2>Stat row — Lawrence 2026-08-05, "workshop this"</h2>
-          <label class="opt"><input type="radio" name="statrow" value="base" checked>
-            <b>Original + new</b>
-            <span class="why"><code>HP [−] 20+ 22 [+]</code>. Base dim, current lit. <b>This subsumes the pip tally</b> — base and current differ by exactly the StatUps allocated, so the count is already on screen and doesn't need its own mark.</span>
-          </label>
-          <label class="opt"><input type="radio" name="statrow" value="tally">
-            <b>Current + tally</b>
-            <span class="why"><code>HP [−] 22 ·· [+]</code>. Round 13's version, kept for comparison — the pip-style radio on tab 2b still switches dots vs <code>+</code> characters.</span>
-          </label>
-          <p class="why" style="margin-top:6px">The second number costs width in a row that measured <b>77px of 97</b>. Base is capped at 2 digits + the <code>+</code> mark; a 3-digit HP would need a re-measure.</p>
+        <section class="notes">
+          <b>Stat row — corrected to RQD's spec, and it caught two bugs</b>
+          <ul>
+            <li><b>The number is the effective stat; the pips ride it as a suffix.</b> <code>20</code> → <code>22+</code> → <code>24++</code>. No original stat shown — the pips already say how much of the number you bought, so a base value would be redundant width. (My <code>20+ 22</code> was the wrong read; this is the corrected one.)</li>
+            <li><b>Your 20 → 22 → 24 is HP, and the mockup had it wrong.</b> <code>StatAllocation.HP_FLAT_PER_POINT = 2</code> — HP realises each point as <b>+2</b>, every other stat as +1. The mockup was giving every stat +1, quietly under-selling HP by half. Fixed: press <code>[+]</code> on HP versus STR and watch them move differently.</li>
+            <li><b>And "4 pips to spend" is a real rule I'd missed.</b> <code>PER_STAT_CAP = 4</code> — at most four points into any ONE stat, against a pool of ~10 at L60. The mockup let you dump everything into one stat. Now <code>[+]</code> goes inert at four with the reason in its tooltip.</li>
+            <li><b>Which retires a width worry.</b> Round 13 stacked the dots two rows deep so "ten StatUps cost 14px instead of 40" — but a single stat can only ever hold <b>four</b>. Ten was always the <i>pool</i>, never one row. Plain <code>+</code> characters fit fine at four, so the tally can read exactly as you drew it; the dots/chars radio still switches them.</li>
+          </ul>
         </section>
 
         <section>
@@ -1464,6 +1456,22 @@
     ['RES', 'res', 'Resistance. Cuts special damage taken.'],
   ];
   const STAT_CAP = 25;
+
+  // ---- StatUp allocation (RQD spec 2026-08-05) ----
+  // Each pip is +10% of the unit's level_stat (base + growth), NOT compounding
+  // and NOT of the running total — 4 pips is a flat +40% of the same number.
+  // Rounding happens ONCE on the final total so the curve stays monotonic.
+  //
+  // NOTE: the engine does NOT do this yet. stat_allocation.gd ships
+  // MODE = FLAT (+1 per point, HP +2) with PCT_PER_POINT = 0.0625, so its
+  // percentage branch would give +25% at 4 points, not +40%. This mockup is
+  // the spec; the engine needs the mode flip and the constant.
+  const PER_STAT_CAP = 4;
+  const PCT_PER_POINT = 0.10;
+  const statDelta = (u, key) => Math.round(u.lvlStat[key] * PCT_PER_POINT * (u.al[key] || 0));
+  function recalcStats(u) {
+    STATS.forEach(([, k]) => { u[k] = u.lvlStat[k] + statDelta(u, k); });
+  }
   // Real entries from InjuryDatabase — id, real copy, real stat, real 10-25% band.
   const INJURIES = {
     'Contusion': {ic:'contusion', s:'ATH',
@@ -1500,7 +1508,7 @@
   let sel = {kind:'none'};       // which slot on the sheet is open
   let bankPick = null;           // highlighted bank entry
   let pool = 340;
-  let pipStyle = 'dots';         // StatUp tally: stacked dots vs a run of '+'
+  let pipStyle = 'chars';         // StatUp tally: stacked dots vs a run of '+'
   const workStage = document.getElementById('stageWork');
 
   const unit = () => UNITS.find(u => u.id === selId);
@@ -1517,6 +1525,12 @@
   // a session baseline (lv0/xp0) plus `poured`, and level/xp are derived —
   // so [−] can always walk you back, even across a level boundary.
   const XP_PER_LEVEL = 100;
+  // Capture level_stat (the listed value) and apply any pre-allocated pips.
+  UNITS.forEach(u => {
+    u.lvlStat = {};
+    STATS.forEach(([, k]) => { u.lvlStat[k] = u[k]; });
+  });
+  UNITS.forEach(recalcStats);
   UNITS.forEach(u => { u.lv0 = u.lv; u.xp0 = u.xp; u.poured = 0; });
   const bankedXp = u => u.lv0 * XP_PER_LEVEL + u.xp0 + u.poured;
   function reflow(u) {                      // derive lv/xp from the bank
@@ -1545,7 +1559,6 @@
   //              what they DO ("finish this level", "empty the pool in here")
   //              rather than how much they cost.
   let bexpBtnStyle = 'amounts';
-  let statRowStyle = 'base';   // 'base' = 20+ 22 · 'tally' = 22 ++
 
   // [99] is "fill to 99/100 and STOP" — not a raw +99, which would overshoot
   // from any non-empty bar. It exists because bEXP and combat level-ups are
@@ -1683,30 +1696,29 @@
     // HP  [−]  24 ++  [+]  — label, decrement, value, StatUp tally, increment.
     // The tally is what you've already poured in, so the row shows both the
     // number and how much of it you bought.
-    // Lawrence 2026-08-05: show the ORIGINAL stat next to the new one —
-    // `[−] 20+ 22 [+]`. Note this SUBSUMES the pip tally: base and current
-    // differ by exactly the StatUps allocated, so the count is readable
-    // without a separate mark. The tally radio still switches the fallback
-    // for comparison, but `base+` is the default now. Marked workshop — the
-    // second number costs width in a row that measured 77px of 97.
+    // RQD 2026-08-05: the number IS the effective stat, and the pips ride it
+    // as a suffix — 20 · 22+ · 24++. No original stat: the pips already say
+    // how much of the number you bought, so showing base too is redundant
+    // width. (My earlier `20+ 22` was the wrong read of the note.)
+    //
+    // Math matches StatAllocation: HP_FLAT_PER_POINT = 2, every other stat
+    // +1 per point, and PER_STAT_CAP = 4 points into any one stat.
     const statCells = STATS.map(([lbl, key]) => {
       const spent = u.al[key] || 0;
-      const base = u[key] - spent;
-      const canAdd = u.star > 0 && u[key] < STAT_CAP;
-      const readout = statRowStyle === 'base'
-        ? `<span class="basev" title="${spent ? base + ' base, +' + spent + ' allocated' : 'nothing allocated'}"
-             >${base}${spent ? '+' : '&nbsp;'}</span><span class="v">${u[key]}</span>`
-        : `<span class="v">${u[key]}</span><span class="pips ${pipStyle === 'dots' ? '' : 'chars'}">${
-            pipStyle === 'dots'
-              ? `<span class="pipdots" title="${spent} StatUp invested">${'<i></i>'.repeat(spent)}</span>`
-              : `${'+'.repeat(Math.min(spent, 4))}${spent > 4 ? '…' : ''}`}</span>`;
+      const atPointCap = spent >= PER_STAT_CAP;
+      const canAdd = u.star > 0 && !atPointCap && u[key] < STAT_CAP;
+      const tally = pipStyle === 'dots'
+        ? `<span class="pipdots" title="${spent} StatUp invested">${'<i></i>'.repeat(spent)}</span>`
+        : '+'.repeat(spent);
       return `<div class="slot stat ${sel.kind === 'stat' && sel.key === key ? 'sel' : ''}" data-stat="${key}">
          <span class="k">${lbl}</span>
          <button class="sbtn ${spent ? '' : 'inert'}" data-minus="${key}"
-           title="${spent ? 'refund a StatUp' : 'nothing allocated here'}">−</button>
-         ${readout}
+           title="${spent ? `refund a StatUp (−10% ${lbl})` : 'nothing allocated here'}">−</button>
+         <span class="v">${u[key]}</span><span class="pips ${pipStyle === 'dots' ? '' : 'chars'}">${tally}</span>
          <button class="sbtn ${canAdd ? '' : 'inert'}" data-plus="${key}"
-           title="${canAdd ? 'spend a StatUp' : (u[key] >= STAT_CAP ? 'at cap' : 'no StatUp to spend')}">+</button>
+           title="${canAdd ? `spend a StatUp (+10% ${lbl}, ${PER_STAT_CAP} max)`
+             : (atPointCap ? `${PER_STAT_CAP} points is the per-stat cap`
+             : (u[key] >= STAT_CAP ? 'at stat cap' : 'no StatUp to spend'))}">+</button>
        </div>`;
     }).join('');
 
@@ -1768,15 +1780,18 @@
     // +/- live on the row itself, so allocating never requires the workbench.
     sheet.querySelectorAll('[data-plus]').forEach(el => el.addEventListener('click', ev => {
       ev.stopPropagation();
+      // Points are the state; the stat is derived. Rounding therefore happens
+      // once on the final total, never per-press — the difference matters:
+      // four presses of round(12 * 0.10) would give +4, not round(12 * 0.40) = +5.
       const k = el.dataset.plus;
-      if (u.star <= 0 || u[k] >= STAT_CAP) return;
-      u[k]++; u.al[k] = (u.al[k] || 0) + 1; u.star--; dirty = true; renderAll();
+      if (u.star <= 0 || (u.al[k] || 0) >= PER_STAT_CAP || u[k] >= STAT_CAP) return;
+      u.al[k] = (u.al[k] || 0) + 1; u.star--; recalcStats(u); dirty = true; renderAll();
     }));
     sheet.querySelectorAll('[data-minus]').forEach(el => el.addEventListener('click', ev => {
       ev.stopPropagation();
       const k = el.dataset.minus;
       if (!u.al[k]) return;
-      u[k]--; u.al[k]--; u.star++; dirty = true; renderAll();
+      u.al[k]--; u.star++; recalcStats(u); dirty = true; renderAll();
     }));
     sheet.querySelectorAll('[data-level]').forEach(el => el.addEventListener('click',
       () => pick({kind:'level'})));
@@ -2074,8 +2089,6 @@
 
   document.querySelectorAll('input[name=bexpbtn]').forEach(r =>
     r.addEventListener('change', () => { bexpBtnStyle = r.value; renderAll(); }));
-  document.querySelectorAll('input[name=statrow]').forEach(r =>
-    r.addEventListener('change', () => { statRowStyle = r.value; renderAll(); }));
 
   document.querySelectorAll('input[name=work]').forEach(r =>
     r.addEventListener('change', () => {

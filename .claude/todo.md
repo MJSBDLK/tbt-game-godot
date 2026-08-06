@@ -61,6 +61,17 @@ see the mockup and §6. These three are the remainder.)*
       spend from a flat pool at 100/level and the pool total is the readout.
       ±5 agreed as probably-not-to-start.
 
+  - [ ] **Revamp StatAllocation to percentage** — spec restated by RQD
+    2026-08-05, engine disagrees. Each pip = **+10%** of `level_stat`, 4 pips max
+    per stat (**+40%**), 10 pips at L60. Code ships `MODE = Mode.FLAT` with
+    `PCT_PER_POINT = 0.0625`, so its percentage branch would give +25%, not +40%.
+    Fix = flip `MODE` to `PERCENTAGE` + `PCT_PER_POINT` 0.0625 → 0.10. **Not a
+    no-op** — FLAT gives every stat +1/point (HP +2), so every allocated stat
+    changes; saves store points not values, so they re-derive fine. Round ONCE on
+    the total (`round(7×0.40)=3` vs `4×round(7×0.10)=4`). Marked
+    playtest-provisional. Rationale + the DEF/RES concern in
+    [class-and-promotion.md](../data/design/class-and-promotion.md) §7.
+
   - [ ] **Flatten bEXP to a simple pool** — doctrine amended 2026-08-05
     ([mission_objectives.md](mission_objectives.md) "XP Economy"). The shipped
     price-tag model (`100 × level ÷ squad_max`, floor 25) re-introduced

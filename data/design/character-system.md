@@ -101,7 +101,13 @@ Final Stat = Base Stat + Growth Gains + Allocated Stat Ups + Bond Bonuses + Pass
 ### Progression Mechanics
 - **Growth Rates**: Percentage chance for each stat to increase on level up
 - **Growth Gains**: Actual increases gained from level up RNG
-- **Allocated Stat Ups**: Player-distributed points between missions
+- **Allocated Stat Ups**: Player-distributed points between missions. **Each pip
+  is +10% of the stat's `level_stat` (base + growth), capped at 4 pips per stat
+  for a maximum of +40%; a L60 unit has 10 pips total** (RQD 2026-08-05).
+  Percentage rather than flat *on purpose* — see
+  [class-and-promotion.md](class-and-promotion.md) §7 for the reasoning and the
+  known balance concern. **The engine does not implement this yet**:
+  `stat_allocation.gd` ships `MODE = FLAT` with `PCT_PER_POINT = 0.0625`.
 - **Stat Caps**: Class-based maximum values to prevent infinite scaling
 
 ---

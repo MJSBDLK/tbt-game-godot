@@ -303,6 +303,72 @@ math, and it generates narrative.
 
 ---
 
+## 7. StatUp allocation
+
+**[PROVISIONAL — RQD 2026-08-05, "needs playtesting, not set in stone"]**
+
+- **Each pip is +10%** of the stat's `level_stat` (base + growth).
+- **4 pips maximum per stat** → **+40%** ceiling on any one stat.
+- **10 pips total at L60** (one every 6th level).
+- Percentage is computed against `level_stat`, **not** the running total, and
+  **rounded once on the final sum**. That matters: `round(7 × 0.40) = 3` but
+  `4 × round(7 × 0.10) = 4`, so per-press rounding would silently inflate every
+  low stat. Points are the stored state; the displayed stat is derived.
+
+### The engine does not do this yet
+
+[stat_allocation.gd](../../scripts/units/stat_allocation.gd) ships:
+
+| | Spec | Code |
+|---|---|---|
+| Mode | percentage | `MODE = Mode.FLAT` — the percentage branch exists but is off |
+| Per pip | +10% | `PCT_PER_POINT = 0.0625` (6.25%) |
+| Max per stat | +40% | +25% |
+| Per-stat cap | 4 | `PER_STAT_CAP = 4` ✓ |
+| Pool at L60 | 10 | `POOL_AT_MAX_LEVEL = 10` ✓ |
+
+The revamp is a mode flip plus one constant, but it is **not** a no-op: FLAT
+gives every stat +1 per point (HP +2 via `HP_FLAT_PER_POINT`), so switching
+changes every unit's allocated stats. Existing saves store *points*, not the
+derived values, so they re-derive correctly — that's the payoff of the
+serialize-facts-not-objects rule.
+
+### Why percentage, and the concern that comes with it
+
+RQD's worry: **most characters will want to dump pips into DEF and RES.**
+Percentage was chosen partly to blunt that, and it does — but it's worth being
+precise about *how*, because it isn't the obvious way.
+
+Percentage doesn't make DEF less attractive. It makes DEF **scale with the unit
+already investing in it**:
+
+| Unit | DEF | +40% | flat +4 would give |
+|---|---:|---:|---:|
+| glass cannon | 3 | **4** (+1) | 7 (+4) |
+| mid | 8 | **11** (+3) | 12 (+4) |
+| tank | 20 | **28** (+8) | 24 (+4) |
+
+Under flat, four pips would **more than double** a glass cannon's DEF — every
+unit could buy their way out of being fragile, and archetypes collapse toward the
+middle. Percentage preserves the spread: the tank gets tankier, the mage stays
+made of paper. **That's the real win, and it's an identity argument rather than a
+balance one.**
+
+The dumping concern therefore survives — percentage doesn't stop a *tank* from
+maxing DEF, it makes it better. Two things to watch in playtest:
+
+- **DEF/RES vs the damage formula.** Damage is `(atk + might) − def`, so DEF
+  subtracts linearly and every point is permanently worth one damage on every
+  incoming hit. Offense competes for the same pips but only pays when attacking.
+- **ATH may quietly beat both.** Multi-hit is a **ratio cliff** — 2×/3×/4× the
+  defender's ATH gives 2/3/4 hits
+  ([damage_calculator.gd](../../scripts/combat/damage_calculator.gd)
+  `calculate_attack_count`). +40% ATH is worth nothing most of the time and
+  *doubles your damage* when it tips you over 2.0×. A threshold that steep tends
+  to dominate allocation advice once players find it.
+
+Kept as-is for now per RQD; both are tuning questions, not design ones.
+
 ## 6. Open questions
 
 - **Promotion sets** — per base class, or shared pools? (§3; drives the 30–45
