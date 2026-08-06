@@ -1200,6 +1200,17 @@
         </section>
 
         <section class="notes">
+          <b>Round 17 — the bank column earns its space (and this changes the 2b/2c call)</b>
+          <ul>
+            <li><b>You were right, it did nothing.</b> Name / level / poured, repeating what the sheet already said, under a header ("ALL FLAT, 100 A LEVEL") left over from when prices varied per unit and there was something to compare. It answered no question you'd actually ask.</li>
+            <li><b>It's now the control, not a readout.</b> Same row component as 2c — portrait, level, XP bar, poured — and <b>clicking a name switches the sheet to that unit</b>. Allocating bEXP is a <i>comparison</i> task, and 2b making you click through the rail one unit at a time was the main thing 2c had going for it. This is the honest test of whether that's still true.</li>
+            <li><b>Sorted level-ascending, in both tabs.</b> With the price tag gone this sort is the <i>only</i> thing left pointing at who the catch-up is for — it went from a convenience to the screen's actual argument.</li>
+            <li><b>Benched units are in the list now, dimmed</b> — Robot (Lv 3) and the Goblin (Lv 2) are the two lowest-level people in the game, and the old list hid both. A "who needs it" panel that omits exactly who needs it is the same uselessness in a new coat, and raising the bench is what bEXP is <i>for</i>. <b>Veto this if bEXP is meant to be a deployed-only reward</b> — it's a real design call, not a layout tweak.</li>
+            <li><b>Both tabs now share one roster and one row component</b>, so 2b and 2c differ in <i>layout only</i>. If they differed in content too, pressing them against each other wouldn't tell you anything.</li>
+          </ul>
+        </section>
+
+        <section class="notes">
           <b>Round 16 — the XP row says XP, and uncommitted things pulse</b>
           <ul>
             <li><b>The XP row shows <code>40/100</code>, not <code>+poured</code>.</b> It was reporting a transaction where a state belongs — and when nothing had been poured it read <code>—</code>, so the row was blank exactly when you most wanted to know where the unit stood.</li>
@@ -1721,6 +1732,37 @@
     </div>`;
   }
 
+  // ---- the bEXP squad list, shared by 2b's bank column and 2c's main list ----
+  // One component in both places on purpose: if the same list can do the job
+  // inside Manage Units, 2c has to justify itself on something other than
+  // "you can see everyone at once."
+  //
+  // Sorted LEVEL-ASCENDING. With the price tag retired this sort is the only
+  // thing left pointing at who the catch-up is for, which promotes it from a
+  // convenience to the screen's actual argument. `ord` breaks ties so the list
+  // doesn't reshuffle under your cursor when two units share a level.
+  //
+  // Includes BENCHED units, dimmed. A "who needs it" list that hides the two
+  // lowest-level people in the game is the same uselessness in a new coat —
+  // and the bench is precisely who bEXP exists to raise. RQD: veto this if
+  // bEXP is meant to be a deployed-only reward.
+  const bexpRoster = () => [...UNITS].sort((a, b) => a.lv - b.lv || a.ord - b.ord);
+
+  function bexpRow(x, selected, hook) {
+    const g = levelsGained(x);
+    const un = x.poured ? 'uncommitted' : '';
+    return `<div class="bx-row ${selected ? 'sel' : ''}" data-${hook}="${x.id}"
+        style="${x.dep ? '' : 'opacity:0.55'}"
+        title="${pourTip(x)}${x.dep ? '' : ' · benched'}">
+      <span class="por" style="background:${x.c}">${x.nm[0]}</span>
+      <span class="nm">${esc(x.nm)}</span>
+      <span class="lv ${un}">Lv ${g ? `<b>${x.lv}</b>` : x.lv}</span>
+      <span class="bar"><i class="${un}" style="width:${x.xp}%"></i></span>
+      <span class="amt ${un}" style="${x.poured ? '' : 'color:#4d5561'}"
+        >${x.poured ? '+' + x.poured : '·'}</span>
+    </div>`;
+  }
+
   function wireBexpButtons(root, u) {
     root.querySelectorAll('[data-pour]').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -2078,17 +2120,20 @@
           >Lv ${u.lv0}${gained ? ' → ' + u.lv : ''} · ${u.xp}/100 XP</div>
         <div class="bx-alloc" title="${pourTip(u)}">${bexpButtons(u)}</div>
         <p class="flavor">100 buys a level for anyone.</p>`;
+      // This column used to be a dead readout — name, level, poured — repeating
+      // what the sheet already said and answering no question you'd actually
+      // ask. Its header ("ALL FLAT, 100 A LEVEL") was a leftover from when
+      // prices varied per unit and there was something to compare.
+      //
+      // Now it's the CONTROL: 2c's row component verbatim, click to switch.
+      // Allocating bEXP is a COMPARISON task — "who needs it most?" — and 2b's
+      // one-unit-at-a-time sheet was the reason 2c looked necessary. Making
+      // this list do the comparing is the honest test of whether it still is.
       bank.innerHTML = `<div style="padding:5px">
-        <div class="mu-sec" style="padding:0 0 2px">SQUAD — ALL FLAT, 100 A LEVEL</div>
-        ${UNITS.filter(x => x.dep).sort((a, b) => a.lv - b.lv).map(x => {
-          const g = levelsGained(x);
-          return `<div style="display:flex;gap:5px;padding:1px 0;${x.id === u.id ? 'color:var(--azure-9)' : 'color:#8a8578'}">
-             <span style="flex:1">${esc(x.nm)}</span>
-             <span>Lv ${x.lv}</span>
-             <span style="width:34px;text-align:right;font-variant-numeric:tabular-nums;color:${
-               g ? 'var(--sem-success)' : (x.poured ? 'var(--sem-info)' : '#4d5561')}">${
-               x.poured ? '+' + x.poured : '·'}</span>
-           </div>`; }).join('')}</div>`;
+        <div class="mu-sec" style="padding:0 0 3px">WHO NEEDS IT · CLICK TO SWITCH</div>
+        ${bexpRoster().map(x => bexpRow(x, x.id === u.id, 'jump')).join('')}</div>`;
+      bank.querySelectorAll('[data-jump]').forEach(el =>
+        el.addEventListener('click', () => { selId = el.dataset.jump; renderAll(); }));
       wireBexpButtons(detail, u);
 
     } else if (sel.kind === 'injury') {
@@ -2190,27 +2235,16 @@
   function renderBexp() {
     const rows = document.getElementById('bxRows');
     if (!rows) return;
-    const deployed = UNITS.filter(u => u.dep);
-    if (!bxSel || !deployed.some(u => u.id === bxSel)) bxSel = deployed[0] && deployed[0].id;
-    rows.innerHTML = deployed.map(u => {
-      const g = levelsGained(u);
-      // Level, bar and amount are all derived from `poured`, so all three carry
-      // the uncommitted mark together — marking only one would imply the others
-      // were already banked.
-      const un = u.poured ? 'uncommitted' : '';
-      return `<div class="bx-row ${u.id === bxSel ? 'sel' : ''}" data-bx="${u.id}" title="${pourTip(u)}">
-        <span class="por" style="background:${u.c}">${u.nm[0]}</span>
-        <span class="nm">${esc(u.nm)}</span>
-        <span class="lv ${un}">Lv ${g ? `<b>${u.lv}</b>` : u.lv}</span>
-        <span class="bar"><i class="${un}" style="width:${u.xp}%"></i></span>
-        <span class="amt ${un}" style="${u.poured ? '' : 'color:#4d5561'}"
-          >${u.poured ? '+' + u.poured : '·'}</span>
-      </div>`;
-    }).join('');
+    // Same roster and same row component as 2b's bank column, so the two tabs
+    // differ in LAYOUT only — which is the whole point of running them side by
+    // side. If they also differed in content, the comparison would be rigged.
+    const roster = bexpRoster();
+    if (!bxSel || !roster.some(u => u.id === bxSel)) bxSel = roster[0] && roster[0].id;
+    rows.innerHTML = roster.map(x => bexpRow(x, x.id === bxSel, 'bx')).join('');
     rows.querySelectorAll('[data-bx]').forEach(el =>
       el.addEventListener('click', () => { bxSel = el.dataset.bx; renderBexp(); }));
 
-    const u = deployed.find(x => x.id === bxSel);
+    const u = roster.find(x => x.id === bxSel);
     const foot = document.getElementById('bxHint');
     if (u) {
       // The selected unit's controls live in the footer so the row list stays
@@ -2223,7 +2257,7 @@
         btn.addEventListener('click', () => {
           if (pour(u, parseInt(btn.dataset.pour, 10))) renderAll();
         }));
-    } else foot.textContent = 'nobody deployed';
+    } else foot.textContent = 'no units';
     setPool('bxPool');
   }
 
