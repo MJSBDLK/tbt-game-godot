@@ -245,10 +245,6 @@
   /* semantic swatches in the rail */
   .sem { flex: 0 0 auto; width: 14px; height: 14px; border-radius: 2px; position: relative; top: 2px; }
 
-    35%  { opacity: 0.55; }
-    100% { transform: scale(1.0, 1.0); opacity: 0; }
-  }
-
   /* The default action wears the LIT-BORDER BOX (round 9 — rings retired
      from the menu venue: the yield rule flickered on every mouse pass
      through inter-entry dead space). Default follows the save state:
@@ -474,7 +470,7 @@
     position: relative;
   }
   .mu-xp .bar i { position: absolute; inset: 0 auto 0 0; background: var(--sem-info); display: block; }
-  .mu-xp .price { color: var(--sem-info); font-size: 8px; }
+  .mu-xp .price { color: var(--sem-info); font-size: 8px; font-variant-numeric: tabular-nums; }
   .mu-points { padding: 2px 5px 0; font-size: 8px; color: var(--sem-info); flex: 0 0 auto; }
   .movegrid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 4px; padding: 0 4px; flex: 0 0 auto; }
   .slot .tag { color: #8a8578; font-size: 8px; }
@@ -521,11 +517,8 @@
   }
   .mu-detail .meta { font-size: 8px; color: #8a8578; margin-bottom: 4px; letter-spacing: 0.06em; }
   .mu-detail p { font-size: 8px; line-height: 1.55; color: #b6bec7; }
-  .mu-detail .big {
-    font-size: 12px; color: var(--sem-info); text-shadow: 0 0 5px var(--sem-info-glow);
-    font-variant-numeric: tabular-nums;
-  }
-  .mu-detail .arrow { color: #8a8578; }
+  /* `.big` / `.arrow` retired 2026-08-06 with the "N poured · N left" readout
+     they existed for — the numbers moved to a tooltip. */
   .wbbtn {
     font: inherit; font-size: 9px; letter-spacing: 0.06em; margin-top: 5px;
     color: var(--azure-9); text-shadow: 0 0 4px var(--azure-5);
@@ -543,19 +536,40 @@
      Inert = the press would do nothing (pool empty / nothing to refund),
      which is a fact, not a disabled state. */
   .bx-alloc { margin-top: 3px; }
-  .bx-readout { display: flex; align-items: baseline; gap: 6px; }
   .bx-btns { display: flex; gap: 2px; margin-top: 4px; flex-wrap: wrap; }
   .bxb {
     font: inherit; font-size: 8px; letter-spacing: 0;
     color: var(--azure-9); text-shadow: 0 0 4px var(--azure-5);
     background: rgba(24, 26, 24, 0.9); border: 1px solid var(--azure-5);
-    padding: 1px 4px; min-width: 20px; cursor: pointer;
+    /* 2px top / 1px bottom, not a symmetric 1px: UP8's digits hang from the
+       cap line with no internal leading, so even padding optically sits them
+       against the top border. RQD eyeball 2026-08-06. */
+    padding: 2px 4px 1px; min-width: 20px; cursor: pointer;
     font-variant-numeric: tabular-nums;
   }
   .bxb:hover { background: rgba(46, 66, 84, 0.95); border-color: var(--azure-9); }
   .bxb.inert { border-color: #3a3a36; color: #6d6f6d; text-shadow: none; cursor: default; }
   .bxb.inert:hover { background: rgba(24, 26, 24, 0.9); border-color: #3a3a36; }
-  .bx-hint { color: #8a8578; font-size: 8px; margin-top: 4px; }
+
+  /* ---------- uncommitted preview ----------
+     Every number derived from poured bEXP is a PREVIEW — Cancel takes it all
+     back. So the screen shows the value it WILL be, and marks it as not yet
+     real. Level, XP number, XP bar and the pool all carry it, because they
+     all move together and marking only some would imply the others are banked.
+
+     Two marks, not one. The gold tint is the load-bearing signal and is always
+     on; the pulse is emphasis layered over it. That split is deliberate — this
+     project ships a ui_motion_enabled setting, and a state that exists ONLY as
+     an animation vanishes for anyone who turns motion off.
+
+     Selector is `.stage .uncommitted` rather than a bare class on purpose:
+     it has to out-specify the greys these elements already carry
+     (.mu-detail .meta, .bx-row .lv), which are two-part selectors declared
+     earlier. `.bx-row .lv b` stays green — a gained level is its own signal,
+     and it inherits the parent's pulse either way. */
+  @keyframes uncommitted-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .stage .uncommitted { color: var(--sem-info); }
+  .stage.motion-on .uncommitted { animation: uncommitted-pulse 1.15s ease-in-out infinite; }
   /* Flavor last, quiet — it's the line you read once and never again. */
   .mu-detail p.flavor { color: #6d6f6d; margin: 6px 0 0; }
   /* StatUp pool under the stats — the same + mark as the row tally, so the
@@ -736,6 +750,8 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
+    /* The gold tint carries the meaning on its own — see .uncommitted. */
+    .stage.motion-on .uncommitted { animation: none; }
   }
 </style>
 
@@ -1180,6 +1196,18 @@
             <li><b>The price tag is gone.</b> Both screens now run the flat pool: <b>100 bEXP = one level, for anyone</b>. The old <code>100 × level ÷ squad_max</code> price (which this mockup used to render on the XP row) is retired — it re-introduced "higher level costs more" in bEXP currency, which is the thing you'd argued against. Catch-up lives in XP <i>gain</i> now.</li>
             <li><b>Pouring is refundable.</b> Each unit keeps a session baseline plus a <code>poured</code> total, and level/XP are derived from it — so <code>[−]</code> always walks you back, even across a level boundary. Same shape as the StatUp <code>[−]</code> already on the stat rows, which is the point: one interaction idiom for both resources.</li>
             <li><b>The pool is shared and live across both tabs.</b> Pour in 2c, switch to 2b, and the top-bar pool and the XP rows already agree. That's not a mockup trick — it's the same state object, which is what the engine would do too.</li>
+          </ul>
+        </section>
+
+        <section class="notes">
+          <b>Round 16 — the XP row says XP, and uncommitted things pulse</b>
+          <ul>
+            <li><b>The XP row shows <code>40/100</code>, not <code>+poured</code>.</b> It was reporting a transaction where a state belongs — and when nothing had been poured it read <code>—</code>, so the row was blank exactly when you most wanted to know where the unit stood.</li>
+            <li><b>Uncommitted = gold + pulsing.</b> Level, XP number, XP bar, the per-unit amount in 2c, and the bank all carry it, because they all move off the same <code>poured</code> number — marking only some would imply the others were already banked.</li>
+            <li><b>Two marks, not one, and that's deliberate.</b> The gold tint is always on; the pulse is emphasis on top. This project ships a <code>ui_motion_enabled</code> setting, and a state that exists ONLY as an animation disappears for anyone who turns motion off. Same reason the reduced-motion query kills the pulse and keeps the tint.</li>
+            <li><b>"N poured · N left · N to the next level" is gone to tooltips.</b> You were right that it's fluff — the screen already says the important half without words. The bar and the level show what you're <i>about</i> to have, and the pulse says it isn't banked. The arithmetic is a footnote you go looking for, not a headline.</li>
+            <li><b>Pour buttons: <code>2px 4px 1px</code>, not a symmetric <code>1px 4px</code>.</b> UP8's digits hang from the cap line with no internal leading, so even padding optically parks them against the top border.</li>
+            <li><b>Found while in there:</b> an orphaned <code>@keyframes</code> tail (three lines of stops with no header) had been sitting in the stylesheet since some earlier round. Invalid CSS, silently discarded by the browser, which is why it survived. Deleted.</li>
           </ul>
         </section>
 
@@ -1634,6 +1662,21 @@
   }
   const toNextLevel = u => XP_PER_LEVEL - u.xp;      // cost to finish this level
   const levelsGained = u => u.lv - u.lv0;
+  const anyPoured = () => UNITS.some(u => u.poured !== 0);
+
+  // Everything the on-screen "N poured · N left · N to the next level" readout
+  // used to say, moved into a tooltip (RQD 2026-08-06). Those numbers matter
+  // exactly when you go looking for them and are noise the rest of the time —
+  // and the screen already communicates the important half without words: the
+  // XP bar and level show what you're ABOUT to have, pulsing to say it isn't
+  // banked yet. The arithmetic is the footnote, not the headline.
+  function pourTip(u) {
+    const parts = [];
+    if (levelsGained(u)) parts.push(`Lv ${u.lv0} → ${u.lv}`);
+    if (u.poured) parts.push(`${u.poured} bEXP poured, not yet committed`);
+    parts.push(`${u.xp}/100 XP`, `${toNextLevel(u)} to the next level`, `${pool} left in the pool`);
+    return parts.join(' · ');
+  }
 
   // Two readings of RQD's [-10][-1][+1][+10][99][100] sketch. Both are live —
   // the radio in the notes column switches them, so the choice can be made by
@@ -1839,16 +1882,14 @@
         <span class="por" style="background:${u.c}">${u.nm[0]}</span>
         <span class="who">
           <span class="nm">${esc(u.nm)}</span>
-          <span class="sub">${u.cls} · Lv ${u.lv}</span>
+          <span class="sub">${u.cls} · Lv <span class="${gained ? 'uncommitted' : ''}">${u.lv}</span></span>
           <span class="sub">Simple / —</span>
         </span>
       </div>
-      <div class="slot mu-xp ${on('level')}" data-level="1">
+      <div class="slot mu-xp ${on('level')}" data-level="1" title="${pourTip(u)}">
         <span class="k" style="color:#8a8578">XP</span>
-        <span class="bar"><i style="width:${u.xp}%"></i></span>
-        <span class="price" style="${gained ? '' : 'color:#6d6f6d;text-shadow:none'}"
-          title="${gained ? gained + ' level(s) bought with bEXP' : 'bEXP poured into this unit'}"
-          >${u.poured ? '+' + u.poured : '—'}</span>
+        <span class="bar"><i class="${u.poured ? 'uncommitted' : ''}" style="width:${u.xp}%"></i></span>
+        <span class="price ${u.poured ? 'uncommitted' : ''}">${u.xp}/100</span>
       </div>
       <div class="mu-sec">STATS</div>
       <div class="statlist">${statCells}</div>
@@ -2029,18 +2070,13 @@
       head.textContent = 'BONUS EXP';
       // Controls first, flavor last (Lawrence 2026-08-05): the thing you came
       // here to press shouldn't sit below a paragraph you've already read.
+      // The meta line IS the preview: it shows what committing would leave you
+      // with, pulsing while that's still refundable. No readout, no hint line —
+      // both went to the tooltip.
       detail.innerHTML = `<h4>${esc(u.nm)}</h4>
-        <div class="meta">Lv ${u.lv0}${gained ? ' → ' + u.lv : ''} · ${u.xp}/100 XP</div>
-        <div class="bx-alloc">
-          <div class="bx-readout">
-            <span class="big">${u.poured}</span>
-            <span class="arrow">poured · ${pool} left</span>
-          </div>
-          ${bexpButtons(u)}
-          <div class="bx-hint">${gained
-            ? `<b style="color:var(--sem-success)">+${gained} level${gained > 1 ? 's' : ''}</b> · ${toNextLevel(u)} to the next`
-            : `${toNextLevel(u)} to the next level`}</div>
-        </div>
+        <div class="meta ${u.poured ? 'uncommitted' : ''}" title="${pourTip(u)}"
+          >Lv ${u.lv0}${gained ? ' → ' + u.lv : ''} · ${u.xp}/100 XP</div>
+        <div class="bx-alloc" title="${pourTip(u)}">${bexpButtons(u)}</div>
         <p class="flavor">100 buys a level for anyone.</p>`;
       bank.innerHTML = `<div style="padding:5px">
         <div class="mu-sec" style="padding:0 0 2px">SQUAD — ALL FLAT, 100 A LEVEL</div>
@@ -2158,12 +2194,16 @@
     if (!bxSel || !deployed.some(u => u.id === bxSel)) bxSel = deployed[0] && deployed[0].id;
     rows.innerHTML = deployed.map(u => {
       const g = levelsGained(u);
-      return `<div class="bx-row ${u.id === bxSel ? 'sel' : ''}" data-bx="${u.id}">
+      // Level, bar and amount are all derived from `poured`, so all three carry
+      // the uncommitted mark together — marking only one would imply the others
+      // were already banked.
+      const un = u.poured ? 'uncommitted' : '';
+      return `<div class="bx-row ${u.id === bxSel ? 'sel' : ''}" data-bx="${u.id}" title="${pourTip(u)}">
         <span class="por" style="background:${u.c}">${u.nm[0]}</span>
         <span class="nm">${esc(u.nm)}</span>
-        <span class="lv">Lv ${g ? `<b>${u.lv}</b>` : u.lv}</span>
-        <span class="bar"><i style="width:${u.xp}%"></i></span>
-        <span class="amt" style="color:${g ? 'var(--sem-success)' : (u.poured ? 'var(--sem-info)' : '#4d5561')}"
+        <span class="lv ${un}">Lv ${g ? `<b>${u.lv}</b>` : u.lv}</span>
+        <span class="bar"><i class="${un}" style="width:${u.xp}%"></i></span>
+        <span class="amt ${un}" style="${u.poured ? '' : 'color:#4d5561'}"
           >${u.poured ? '+' + u.poured : '·'}</span>
       </div>`;
     }).join('');
@@ -2175,19 +2215,34 @@
     if (u) {
       // The selected unit's controls live in the footer so the row list stays
       // scannable — 8 rows of buttons would out-shout the bars.
+      // "N to next" dropped from the footer — it's in the row's tooltip, and
+      // the footer's job is the controls, not a running commentary.
       foot.innerHTML = `<b style="color:var(--page-text)">${esc(u.nm)}</b>
-        &nbsp;${toNextLevel(u)} to next &nbsp;${bexpButtons(u)}`;
+        &nbsp;<span title="${pourTip(u)}">${bexpButtons(u)}</span>`;
       foot.querySelectorAll('[data-pour]').forEach(btn =>
         btn.addEventListener('click', () => {
           if (pour(u, parseInt(btn.dataset.pour, 10))) renderAll();
         }));
     } else foot.textContent = 'nobody deployed';
-    document.getElementById('bxPool').textContent = pool;
+    setPool('bxPool');
+  }
+
+  // The bank is spending uncommitted money too, so it pulses on the same rule
+  // as everything else — the pool and the unit are two ends of one transfer,
+  // and a still bank next to a pulsing unit would read as "the pool is real,
+  // the level isn't."
+  function setPool(id) {
+    const el = document.getElementById(id);
+    el.textContent = pool;
+    el.classList.toggle('uncommitted', anyPoured());
+    el.title = anyPoured()
+      ? `${pool} bEXP left · ${UNITS.reduce((n, u) => n + u.poured, 0)} poured out but not committed`
+      : `${pool} bEXP available`;
   }
 
   function renderAll() {
     renderRail(); renderSheet(); renderWork();
-    document.getElementById('muPool').textContent = pool;
+    setPool('muPool');
     renderHub(); renderBexp();
     requestAnimationFrame(drawTrace);   // after layout settles
   }
