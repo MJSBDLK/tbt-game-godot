@@ -16,27 +16,93 @@ func _data(level: int) -> CharacterData:
 
 
 # =============================================================================
-# HIT FORMULA (RD differential — the field rubber band)
+# HIT FORMULA (exponential decay — the field rubber band)
 # =============================================================================
+# xp = base * 2 ^ ((their_level - your_level) / K), floored at MIN_XP.
+# These assert the SHAPE, not the dials — every constant below is provisional
+# and expected to move in playtest, so tests read them from the calculator
+# rather than hardcoding numbers that would turn every tuning pass into a
+# test-fixing pass.
 
-func test_hit_xp_scales_with_level_differential() -> void:
-	assert_eq(CombatXpCalculator.compute_combat_xp(_data(5), _data(15), false), 20,
-			"underleveled attacker earns base + diff (10 + 10)")
-	assert_eq(CombatXpCalculator.compute_combat_xp(_data(15), _data(15), false), 10,
-			"even match earns base")
-	assert_eq(CombatXpCalculator.compute_combat_xp(_data(20), _data(15), false), 5,
-			"overleveled attacker earns base - diff")
+func test_an_even_fight_pays_exactly_the_base() -> void:
+	assert_eq(CombatXpCalculator.compute_combat_xp(_data(15), _data(15), true),
+			CombatXpCalculator.KILL_BASE_XP,
+			"on-level kill pays the kill base — true at every level, which is what")
+	assert_eq(CombatXpCalculator.compute_combat_xp(_data(50), _data(50), true),
+			CombatXpCalculator.KILL_BASE_XP,
+			"makes on-level pacing independent of where you are on the curve")
+	assert_eq(CombatXpCalculator.compute_combat_xp(_data(15), _data(15), false),
+			CombatXpCalculator.HIT_BASE_XP,
+			"a chip hit pays the hit base")
 
 
-func test_overleveled_gains_decay_to_the_floor_never_zero() -> void:
-	assert_eq(CombatXpCalculator.compute_combat_xp(_data(40), _data(5), false),
-			CombatXpCalculator.MIN_XP,
-			"the carry one-shotting scrubs earns the you-did-something floor")
+func test_the_gap_that_doubles_actually_doubles() -> void:
+	# The defining property of the formula. One K of gap up = 2x, one K down =
+	# half. If someone swaps the exponential back for a difference or a ratio,
+	# this is the test that catches it.
+	var gap: int = int(CombatXpCalculator.LEVEL_GAP_TO_DOUBLE)
+	var even: int = CombatXpCalculator.compute_combat_xp(_data(30), _data(30), true)
+	assert_eq(CombatXpCalculator.compute_combat_xp(_data(30 - gap), _data(30), true),
+			even * 2,
+			"a rookie K levels down earns double")
+	assert_eq(CombatXpCalculator.compute_combat_xp(_data(30 + gap), _data(30), true),
+			even / 2,
+			"the carry K levels up earns half")
 
 
-func test_kill_bonus_stacks_on_the_differential() -> void:
-	assert_eq(CombatXpCalculator.compute_combat_xp(_data(5), _data(15), true), 40,
-			"kill adds +20 on top of base + diff")
+func test_the_rookie_premium_is_the_funnel() -> void:
+	# The argument that chose exponential over the difference formula it
+	# replaced: at squad mean 25, the spread between rookie and carry has to be
+	# wide enough to pay for a rookie's real cost — fewer kills, injury risk.
+	# The difference formula only managed 1.5x. Assert the multiple, not the
+	# XP values, so tuning K keeps this honest without rewriting it.
+	var rookie: int = CombatXpCalculator.compute_combat_xp(_data(10), _data(25), true)
+	var carry: int = CombatXpCalculator.compute_combat_xp(_data(40), _data(25), true)
+	assert_gt(float(rookie) / float(carry), 3.0,
+			"a 15-down rookie earns >3x a 15-up carry from the same enemy")
+
+
+func test_overleveled_gains_decay_hard_but_never_to_zero() -> void:
+	# Note the floor is DECORATIVE at K=15: the steepest decay the level range
+	# allows (Lv 60 farming Lv 1) still pays 5 on a kill, never reaching MIN_XP.
+	# So "the carry stalls" means ~20 kills a level, not zero — real diminishing
+	# returns, not a wall. If a K change ever makes MIN_XP bind, that's a signal
+	# the curve got steep enough to feel like punishment.
+	var worst_kill: int = CombatXpCalculator.compute_combat_xp(_data(60), _data(1), true)
+	var even_kill: int = CombatXpCalculator.compute_combat_xp(_data(60), _data(60), true)
+	assert_gte(worst_kill, CombatXpCalculator.MIN_XP,
+			"every action pays something — the you-did-something floor holds")
+	assert_lt(float(worst_kill) / float(even_kill), 0.1,
+			"but farming scrubs pays under a tenth of a fair fight")
+
+
+func test_a_kill_outpays_a_chip_hit_at_the_same_gap() -> void:
+	assert_gt(CombatXpCalculator.compute_combat_xp(_data(5), _data(15), true),
+			CombatXpCalculator.compute_combat_xp(_data(5), _data(15), false),
+			"the same decay applies to both bases, so a kill always wins")
+
+
+func test_the_jackpot_is_bounded_by_the_level_range_alone() -> void:
+	# MAX_XP was retired on the grounds that 1-60 bounds the formula on its
+	# own. This pins the most extreme kill in the game so a future K change
+	# can't quietly turn one boss kill into a full 60-level unit.
+	var jackpot: int = CombatXpCalculator.compute_combat_xp(_data(1), _data(60), true)
+	assert_lt(jackpot, 6000, "the biggest possible kill is under 60 levels' worth")
+	assert_gt(jackpot, 100, "but it is still a jackpot — more than one level")
+
+
+func test_tier_never_touches_the_award() -> void:
+	# TIER_LEVEL_BOOST was deleted because our levels are continuous 1-60 with
+	# no reset on promotion; the FE-style internal-level term would have cut
+	# kill XP ~70% at levels 21 and 41. Class choice is a build decision, never
+	# a leveling one — so tier must stay out of this math permanently.
+	var low_tier: CharacterData = _data(25)
+	low_tier.tier = 1
+	var high_tier: CharacterData = _data(25)
+	high_tier.tier = 3
+	assert_eq(CombatXpCalculator.compute_combat_xp(high_tier, _data(25), true),
+			CombatXpCalculator.compute_combat_xp(low_tier, _data(25), true),
+			"promoting must not change what a unit earns from the same enemy")
 
 
 # =============================================================================

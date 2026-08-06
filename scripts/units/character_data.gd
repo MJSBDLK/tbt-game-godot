@@ -26,10 +26,12 @@ extends Resource
 @export var experience: int = 0
 
 # Class tier — 1 = base class, 2 = first promotion, 3 = second promotion.
-# Used by CombatXpCalculator to compute the RD-style "internal level"
-# (level + (tier-1) * 20) so promoting effectively bumps your XP cost and
-# higher-tier units earn less from low-tier opponents. Promotion mechanics
-# aren't implemented yet; all roster JSONs leave this at 1 until they are.
+# Intended to be DERIVED from level once promotion exists (1-20 / 21-40 /
+# 41-60), not tracked independently. Deliberately absent from the XP formula:
+# tier must never affect XP rate, or class choice becomes a leveling decision
+# instead of a build decision. See CombatXpCalculator's header for the version
+# of this that got deleted and why. Promotion mechanics aren't implemented yet;
+# all roster JSONs leave this at 1 until they are.
 @export var tier: int = 1
 
 # Portrait (high-res concept art crop)

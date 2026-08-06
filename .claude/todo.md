@@ -56,52 +56,50 @@ see the mockup and §6. These three are the remainder.)*
     [-10][-1][+1][+10][99][100]
     May want +/- 5 in there. Probably not to start. What do you think?
     Need a clear pool total to see what we're spending from
-    - **Unblocked 2026-08-05.** These buttons need a flat pool to act on, and
-      that's now the doctrine (below). Once `bexp_level_cost` is gone, they
-      spend from a flat pool at 100/level and the pool total is the readout.
-      ±5 agreed as probably-not-to-start.
+    - **Unblocked 2026-08-05, engine ready 2026-08-06.** The pool is flat now,
+      so the buttons have something coherent to act on and the pool total is
+      the readout. ±5 agreed as probably-not-to-start.
+    - **Blocker found on implementation:** the `[-1]` / `[-10]` refunds can't
+      wire straight through to `SquadManager.buy_bexp_level` — that commits
+      immediately and irreversibly, because the growth rolls happen inside it.
+      Refundable pouring needs a **staging layer** holding uncommitted XP until
+      the player confirms (which is what the mockup's `u.poured` models — it
+      gets away with it by not simulating growths at all). Design that before
+      building the row.
 
-  - [ ] **Revamp StatAllocation to percentage** — spec restated by RQD
-    2026-08-05, engine disagrees. Each pip = **+10%** of `level_stat`, 4 pips max
-    per stat (**+40%**), 10 pips at L60. Code ships `MODE = Mode.FLAT` with
-    `PCT_PER_POINT = 0.0625`, so its percentage branch would give +25%, not +40%.
-    Fix = flip `MODE` to `PERCENTAGE` + `PCT_PER_POINT` 0.0625 → 0.10. **Not a
-    no-op** — FLAT gives every stat +1/point (HP +2), so every allocated stat
-    changes; saves store points not values, so they re-derive fine. Round ONCE on
-    the total (`round(7×0.40)=3` vs `4×round(7×0.10)=4`). Marked
-    playtest-provisional. Rationale + the DEF/RES concern in
-    [class-and-promotion.md](../data/design/class-and-promotion.md) §7.
+  - [ ] **bEXP income to ~400 pooled/mission** (≈2× current) so it closes the
+    last ~0.5 levels/mission the combat award doesn't. Sized against the pacing
+    target below; do it after that's measured, not before.
 
-  - [ ] **Flatten bEXP to a simple pool** — doctrine amended 2026-08-05
-    ([mission_objectives.md](mission_objectives.md) "XP Economy"). The shipped
-    price-tag model (`100 × level ÷ squad_max`, floor 25) re-introduced
-    "higher level = harder to level" in bEXP currency, which RQD had explicitly
-    argued against; it was recorded as locked but never ratified. Delete
-    `SquadManager.bexp_level_cost` + its three constants, charge a flat 100 in
-    `buy_bexp_level`, rewrite the BonusXpPanel "SPEND MODEL" header note.
+  - [ ] **Verify the pacing target in play: ~2 levels/unit/mission** for the
+    whole squad when the player uses bEXP and fields underlevelled units.
+    Implies a ~30-mission campaign for Lv 1→60. Rests on an estimate of **~1.5
+    kills per deployed unit — measure this first**, the whole model hangs off it.
+    Everything else in the XP economy is now built and tuned to this guess.
 
-  - [ ] **Rework CombatXpCalculator** — decided 2026-08-05, values PROVISIONAL
-    ([class-and-promotion.md](../data/design/class-and-promotion.md) §4 has the
-    rationale and the three-family comparison).
-    - [ ] **Delete `TIER_LEVEL_BOOST`** and the `_internal_level()` indirection.
-      It's a normalization device for FE's reset-on-promotion; our scale is
-      continuous 1–60, so it double-counts and would crater kill XP 70% at levels
-      21 and 41. Dormant today (tier stubbed at 1) but MUST go before tier is ever
-      derived from level. Prune the stale comment at `character_data.gd:30` too.
-    - [ ] **Swap difference → exponential decay:**
-      `xp = base × 2^((their_level − your_level) / k)`. Difference can't jackpot
-      (natural max 89 XP); ratio never stalls. Exponential does both, and gives
-      the underlevelled a **4× premium instead of 1.5×** — which is what makes
-      bringing rookies attractive without nudging.
-    - [ ] Starting dials: **base 80** kill / ~27 hit, **k 15**, floor 1,
-      **no ceiling** (`MAX_XP` retires — the 1–60 range bounds it naturally at
-      ~1200). Every one is a playtest dial; `k` is expected to move most.
-    - [ ] Pacing target to verify: **~2 levels/unit/mission** for the whole squad
-      when the player uses bEXP and fields underlevelled units. Implies a
-      ~30-mission campaign for Lv 1→60. Rests on an estimate of ~1.5 kills per
-      deployed unit — **measure this first**, the whole model hangs off it.
-    - [ ] bEXP income to ~400 pooled/mission (≈2× current) so it closes the last
-      ~0.5 levels/mission.
+  - [x] **Revamp StatAllocation to percentage** — DONE 2026-08-06. `MODE` →
+    `PERCENTAGE`, `PCT_PER_POINT` 0.0625 → 0.10 (so 4 pips = +40%, as spec'd).
+    Also removed the `max_hp` flat carve-out, which had survived into PERCENTAGE
+    mode and would have reintroduced exactly the archetype-flattening the mode
+    exists to prevent. Added `tests/unit/test_stat_allocation.gd` (first coverage
+    this file has ever had) and a runtime assert on the per-stat cap — it was
+    enforced only in `equipment_picker`, nothing in the data model.
+
+  - [x] **Flatten bEXP to a simple pool** — DONE 2026-08-06. `bexp_level_cost`
+    and its three constants replaced by `BEXP_LEVEL_COST = 100`. BonusXpPanel
+    header note and buy-button tooltip rewritten.
+
+  - [x] **Rework CombatXpCalculator** — DONE 2026-08-06, values PROVISIONAL
+    ([class-and-promotion.md](../data/design/class-and-promotion.md) §4).
+    `TIER_LEVEL_BOOST` + `_internal_level()` deleted, `MAX_XP` retired, awards on
+    `base × 2^(gap/15)` with `HIT_BASE_XP = 27` / `KILL_BASE_XP = 80`. Survival XP
+    deliberately left on the difference formula (being attacked isn't a choice, so
+    the funnel argument doesn't reach it). Tests assert shape, not dials.
+    - **Found on implementation:** `MIN_XP` is unreachable at k=15 — the steepest
+      legal decay (Lv 60 farming Lv 1) still pays 5 on a kill. The floor is a
+      safety rail, not a live rule, and "the carry stalls" means ~20 kills/level
+      rather than zero. If a future `k` makes it bind, that's the signal the
+      curve got steep enough to feel like punishment.
 
 
 - [ ] **Battle result V2.** V1 shipped (BattleResultPanel: turns-vs-par, itemized

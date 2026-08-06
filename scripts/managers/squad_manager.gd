@@ -247,46 +247,41 @@ func _on_battle_ended(is_victory: bool) -> void:
 	post_mission_report_ready.emit(report)
 
 
-# bEXP level pricing (locked 2026-08-03, RQD design session): a level costs
-# BASE × unit_level ÷ squad_max_level, rounded to a clean COST_STEP, floored.
-# The player only ever sees the resulting price tag — never the formula.
-# "Weaker units learn faster, in the field and in training": the combat-XP
-# differential is the field half, this is the training half.
-const BEXP_BASE_LEVEL_COST: int = 100
-const BEXP_MIN_LEVEL_COST: int = 25
-const BEXP_COST_STEP: int = 5
+# bEXP is a FLAT POOL, not a currency with prices (doctrine amended
+# 2026-08-05 — see [.claude/mission_objectives.md] "XP Economy").
+#
+# The retired model charged BASE * unit_level / squad_max_level, so a high-level
+# unit paid more per level. That is "higher level = harder to level" wearing a
+# different hat, and it's the exact thing RQD argued against for combat XP. It
+# had been recorded as locked but was never actually ratified.
+#
+# Catch-up belongs in the combat award (CombatXpCalculator's exponential), full
+# stop. One rubber band, in one place, that the player can actually observe. A
+# second one hidden in a shop price is a rule you can't see and can't learn.
+const BEXP_LEVEL_COST: int = 100
 
 
-## Price of one bEXP level for `character`, anchored to the active squad's
-## highest level. The squad's top unit always pays full BASE; everyone else
-## pays proportionally less, continuously — no threshold cliff to learn.
-func bexp_level_cost(character: CharacterData) -> int:
-	if character == null:
-		return BEXP_BASE_LEVEL_COST
-	var max_level: int = 1
-	for member: CharacterData in get_active_roster():
-		max_level = maxi(max_level, member.level)
-	var raw: float = float(BEXP_BASE_LEVEL_COST) * float(character.level) / float(max_level)
-	var stepped: int = int(roundf(raw / float(BEXP_COST_STEP))) * BEXP_COST_STEP
-	return maxi(BEXP_MIN_LEVEL_COST, stepped)
-
-
-## Buys one bEXP level at bexp_level_cost. Whole levels only — the price-tag
-## model replaced the old pour-raw-XP deposits (spend_bonus_xp_on, retired
-## 2026-08-03). Partial combat XP is untouched: a unit at 40/100 levels to
-## the next level still at 40/100.
+## Buys one bEXP level. A level costs BEXP_LEVEL_COST regardless of who is
+## buying or how high they are — same 100 XP a level costs in the field.
+## Partial combat XP is untouched: a unit at 40/100 levels and is still at
+## 40/100 in the new level.
 ##
-## Deliberately does NOT route through CharacterData.grant_xp because that
-## path uses the combat-XP level-up (random growth-rate rolls). RD treats
-## bEXP as a mechanically different XP source: process_bexp_level_up grants
+## Deliberately does NOT route through CharacterData.grant_xp, because that
+## path uses the combat level-up (rolls every stat against its growth rate).
+## bEXP is a mechanically different XP source: process_bexp_level_up grants
 ## exactly BEXP_GROWTHS_PER_LEVEL growths, capped stats excluded.
+##
+## NOTE for the bEXP screen: this commits immediately and irreversibly — the
+## growth rolls happen inside it. The mockup's refundable pouring (the [-1] and
+## [-10] buttons) therefore needs a staging layer on top of this, holding
+## uncommitted XP until the player confirms. Don't wire those buttons straight
+## through to here.
 func buy_bexp_level(character: CharacterData) -> bool:
 	if character == null:
 		return false
-	var cost: int = bexp_level_cost(character)
-	if bonus_xp_pool < cost:
+	if bonus_xp_pool < BEXP_LEVEL_COST:
 		return false
-	bonus_xp_pool -= cost
+	bonus_xp_pool -= BEXP_LEVEL_COST
 	character.process_bexp_level_up()
 	bonus_xp_changed.emit(bonus_xp_pool)
 	return true

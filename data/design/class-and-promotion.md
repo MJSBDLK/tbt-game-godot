@@ -215,6 +215,33 @@ around 1200 XP. An arbitrary clamp like `[1, 1000]` would be a fake limit doing
 nothing the range doesn't already do. `MAX_XP = 100` should go — under the old
 difference formula it never bound anyway (natural max 89).
 
+**The floor turns out to be decorative too** (found on implementation,
+2026-08-06). At `k = 15` the steepest decay the level range permits — a Lv 60
+farming Lv 1 — still pays **5 XP** on a kill and 2 on a chip hit. `MIN_XP = 1` is
+never reached by any legal matchup; it's a safety rail, not a live rule.
+
+That's worth knowing because it reframes what "the carry stalls" means: not zero,
+but **~20 kills per level** at the extreme. Real diminishing returns rather than a
+wall — which is the softer of the two readings and probably the right one. If a
+future `k` ever makes `MIN_XP` actually bind, that is the signal the curve got
+steep enough to read as punishment.
+
+### Shipped 2026-08-06
+
+Everything marked DECIDED above is now in the code: `TIER_LEVEL_BOOST` and
+`_internal_level()` deleted, `MAX_XP` retired, hit/kill awards on
+`base × 2^(gap/15)` with `HIT_BASE_XP = 27` / `KILL_BASE_XP = 80`, and bEXP
+flattened to `BEXP_LEVEL_COST = 100`. Pinned by `tests/unit/test_combat_xp.gd`,
+which asserts the *shape* (an even fight pays base at any level; one `k` of gap
+doubles or halves; the rookie premium clears 3×; tier can't move the award) rather
+than the dial values — so a tuning pass doesn't become a test-fixing pass.
+
+**Survival XP deliberately stayed on the difference formula.** The exponential
+exists to make player *choices* pay — field the rookie, pick that target — and
+being attacked is not a choice, so the funnel argument doesn't reach it. Combined
+with its cap at 3× base, the award is too small and too tightly bounded for the
+family to matter. Recorded here so it doesn't read as an oversight later.
+
 ### [PROVISIONAL] Pacing target
 
 **~20 levels per 10 missions, for *every* unit in the squad** — conditional on the

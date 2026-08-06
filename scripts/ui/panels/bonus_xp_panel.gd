@@ -27,11 +27,14 @@ extends Control
 signal closed
 
 
-## SPEND MODEL (reworked 2026-08-03): whole levels bought at a price tag —
-## SquadManager.bexp_level_cost, which scales with the unit's level relative
-## to the squad's best. The player reads "LV UP  25" vs "LV UP  90" and the
-## catch-up incentive explains itself; the formula stays invisible. The old
-## pour-50-XP-per-click deposits are retired with spend_bonus_xp_on.
+## SPEND MODEL (flattened 2026-08-05): a level costs a flat 100 bEXP for
+## everyone, forever — SquadManager.BEXP_LEVEL_COST. There is no price tag to
+## read and no scaling to reverse-engineer; the pool total IS the readout, and
+## "pool / 100" is how many levels you can hand out.
+##
+## The previous level-scaled price was removed on purpose. Catch-up lives
+## entirely in the combat award now, so a second rubber band here would be a
+## rule the player can't see. See SquadManager's BEXP_LEVEL_COST comment.
 
 ## Stats displayed in the capped-stat strip on each row. Order matches the
 ## character sheet (HP first, defensive stats last) so the visual layout
@@ -350,14 +353,13 @@ func _refresh_row(handles: Dictionary) -> void:
 	var bar_bg: ColorRect = handles["bar_bg"] as ColorRect
 	var bar: ColorRect = handles["bar"] as ColorRect
 	bar.size.x = bar_bg.size.x * ratio
-	# Price tag: the number IS the catch-up signal — cheap means underleveled.
-	# Disabled when the pool can't cover THIS unit's price (other, cheaper
-	# units may still be affordable).
-	var cost: int = SquadManager.bexp_level_cost(character)
+	# Flat cost for every unit, so affordability is a property of the pool, not
+	# of the row — every button on screen enables and disables together.
+	var cost: int = SquadManager.BEXP_LEVEL_COST
 	var buy_button: Button = handles["buy_button"] as Button
 	buy_button.text = "LV UP %d" % cost
 	buy_button.disabled = SquadManager.bonus_xp_pool < cost
-	buy_button.tooltip_text = "Buy one level for %d bEXP (prices scale with level)" % cost
+	buy_button.tooltip_text = "Buy one level for %d bEXP — the same for every unit" % cost
 	# Refresh the capped-stat strip — caps can change between refreshes
 	# when an allocation pushes a stat over the cap mid-screen.
 	var stat_labels: Array = handles.get("stat_labels", [])
