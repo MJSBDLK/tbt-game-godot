@@ -13,13 +13,31 @@ everything else, roughly by how soon it matters.
 
 ---
 
-## bEXP screen
-- [ ] flavor text goes at the bottom
-- [ ] keep explanations concise
-- [ ] there should be a [99] button
-- [ ] instead of "2 StatUp to spend" use the same symbol in a pool beneath the stats: StatUps: [ + + ] ... up to [ + + + + + + + + + + ]
-- [ ] include the new stat as well as the original stat, eg.
-  [-] 20+ 22 [+] (workshop this)
+## Lawrence meeting 2026-08-05 — shadow system
+
+*(bEXP screen notes and the displacement items from this meeting are DONE —
+see the mockup and §6. These three are the remainder.)*
+
+- [ ] **Shadow system should accommodate `SMOOSH_X` above 1.0.** The drop shadow
+  probably shouldn't distort on the X axis at all — a cast shadow stretches along
+  its throw direction, and X-squash reads as the sprite being squeezed rather
+  than the light moving. Currently `SMOOSH_X` is locked at 1.0 by RQD eyeball,
+  so this is about making >1.0 *possible* and deciding whether X should be a
+  dial at all.
+- [ ] **Try the dynamic shadow system on terrain modifiers and decorations.**
+  When flipped on, suppress the hand-drawn shadows those sprites ship with —
+  the export pipeline already masks shadow pixels under the object's own
+  silhouette, so the two systems would otherwise double up. Experiment first;
+  this could look wrong or could retire a whole authoring step.
+- [ ] **`unit_cast_shadows` out of debug vars, made the default.** Already
+  defaults true in `DebugConfig`, so nothing changes functionally — the ask is
+  that it stop being a *dev* flag. Two ways: delete it and rely on the
+  per-character override (`sprite.shadowBlobRadius`, 0 = no blob), or move it to
+  `Settings` beside `portrait_effects_enabled` / `ui_motion_enabled`.
+  **Recommend Settings** — it's a shipped visual feature with a real CPU
+  rasterizer cost, which is exactly the kind of thing a Steam Deck player may
+  want to turn off. Small, but it needs an Options row + persistence + a test,
+  so it's grouped here rather than done inline.
 
 ## 1. Alpha blockers
 
@@ -289,6 +307,21 @@ foundation shipped. What's left is **deliberate deferral, not loose ends**:
 ---
 
 ## 6. Bugs
+
+- [x] **Displacement arrows rendered under terrain modifiers and units**
+  (Lawrence 2026-08-05) — **FIXED same day.** Root cause worth remembering: board
+  z is `(99 − row) × 10 + layer`, spanning 0..998, so the **row term dominates**
+  and the 0–8 layer enum only orders *within* a row. The renderer used a flat
+  `z_index = 2`, commented "one slot above the move-range paint, still under
+  units" — reasoning in layer-enum terms while setting an absolute z. That
+  cleared only the back row's floor tiles; everything in front buried it. Now
+  1000, above the board max (998) and the flat vignette (4), because a targeting
+  preview has to be legible over whatever it crosses. Ghosts ride the same node
+  deliberately. Pinned by three tests in test_displacement_preview.gd that assert
+  the *invariant* (outranks any board z, outranks a front-row unit) rather than
+  the magic number.
+- [x] **Displacement arrows too thin** — `ARROW_WIDTH` 1.0 → 2.0, guarded by a
+  test so it can't silently revert.
 
 **Two save-loss defects, both decided 2026-08-04 — design in
 [intermission.md](intermission.md) §2c/§2d. These are live in the current build,

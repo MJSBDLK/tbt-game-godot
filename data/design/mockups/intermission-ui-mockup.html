@@ -556,6 +556,20 @@
   .bxb.inert { border-color: #3a3a36; color: #6d6f6d; text-shadow: none; cursor: default; }
   .bxb.inert:hover { background: rgba(24, 26, 24, 0.9); border-color: #3a3a36; }
   .bx-hint { color: #8a8578; font-size: 8px; margin-top: 4px; }
+  /* Flavor last, quiet — it's the line you read once and never again. */
+  .mu-detail p.flavor { color: #6d6f6d; margin: 6px 0 0; }
+  /* Original stat, dim, ahead of the current one: 20+ 22 */
+  .stat .basev {
+    color: #6d6f6d; font-variant-numeric: tabular-nums;
+    width: 17px; text-align: right; flex: none;
+  }
+  /* StatUp pool under the stats — the same + mark as the row tally, so the
+     pool and the spend read as one currency. */
+  .mu-points .pool-pips { display: inline-flex; gap: 1px; margin-left: 3px; vertical-align: middle; }
+  .mu-points .pool-pips i {
+    width: 2px; height: 5px; background: var(--sem-info); display: block;
+    box-shadow: 0 0 3px var(--sem-info-glow);
+  }
 
   /* ---------- bEXP as its own screen (variant B) ---------- */
   .bx { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 8px 10px; }
@@ -1124,6 +1138,19 @@
         </section>
 
         <section>
+          <h2>Stat row — Lawrence 2026-08-05, "workshop this"</h2>
+          <label class="opt"><input type="radio" name="statrow" value="base" checked>
+            <b>Original + new</b>
+            <span class="why"><code>HP [−] 20+ 22 [+]</code>. Base dim, current lit. <b>This subsumes the pip tally</b> — base and current differ by exactly the StatUps allocated, so the count is already on screen and doesn't need its own mark.</span>
+          </label>
+          <label class="opt"><input type="radio" name="statrow" value="tally">
+            <b>Current + tally</b>
+            <span class="why"><code>HP [−] 22 ·· [+]</code>. Round 13's version, kept for comparison — the pip-style radio on tab 2b still switches dots vs <code>+</code> characters.</span>
+          </label>
+          <p class="why" style="margin-top:6px">The second number costs width in a row that measured <b>77px of 97</b>. Base is capped at 2 digits + the <code>+</code> mark; a 3-digit HP would need a re-measure.</p>
+        </section>
+
+        <section>
           <h2>Button set — press both, pick one</h2>
           <label class="opt"><input type="radio" name="bexpbtn" value="amounts" checked>
             <b>Symmetric amounts</b>
@@ -1518,21 +1545,38 @@
   //              what they DO ("finish this level", "empty the pool in here")
   //              rather than how much they cost.
   let bexpBtnStyle = 'amounts';
+  let statRowStyle = 'base';   // 'base' = 20+ 22 · 'tally' = 22 ++
+
+  // [99] is "fill to 99/100 and STOP" — not a raw +99, which would overshoot
+  // from any non-empty bar. It exists because bEXP and combat level-ups are
+  // mechanically different: process_bexp_level_up grants exactly
+  // BEXP_GROWTHS_PER_LEVEL (3) growths, while a combat level rolls every stat
+  // against its own growth rate. So parking a high-growth unit at 99 and
+  // letting one kill finish it converts a fixed-3 level into a full-roll one.
+  // That's a real edge, which is what makes the button worth a slot.
+  const toBrink = u => Math.max(0, (XP_PER_LEVEL - 1) - u.xp);
 
   function bexpButtons(u) {
     const b = (amt, label, title, on) =>
       `<button class="bxb ${on ? '' : 'inert'}" data-pour="${amt}" title="${title}">${label}</button>`;
+    const brink = toBrink(u);
+    const brinkBtn = b(brink, '99',
+      brink ? `pour ${brink} — stops at 99/100 so a kill takes the level (full growth rolls, not bEXP's fixed 3)`
+            : 'already at the brink', brink > 0 && pool >= brink);
     if (bexpBtnStyle === 'amounts') {
       return `<div class="bx-btns">
         ${[-100, -10, -1].map(a => b(a, String(a), `refund ${-a}`, u.poured >= -a)).join('')}
-        ${[1, 10, 100].map(a => b(a, '+' + a, `pour ${a}`, pool >= a)).join('')}
+        ${[1, 10].map(a => b(a, '+' + a, `pour ${a}`, pool >= a)).join('')}
+        ${brinkBtn}
+        ${b(100, '+100', 'pour 100 — one full level', pool >= 100)}
       </div>`;
     }
     const need = toNextLevel(u);
     return `<div class="bx-btns">
       ${[-10, -1].map(a => b(a, String(a), `refund ${-a}`, u.poured >= -a)).join('')}
       ${[1, 10].map(a => b(a, '+' + a, `pour ${a}`, pool >= a)).join('')}
-      ${b(need, 'LEVEL', `${need} — finish this level`, pool >= need)}
+      ${brinkBtn}
+      ${b(need, 'LEVEL', `${need} — finish this level now (bEXP grants a fixed 3 growths)`, pool >= need)}
       ${b(pool, 'MAX', `pour all ${pool}`, pool > 0)}
     </div>`;
   }
@@ -1639,18 +1683,28 @@
     // HP  [−]  24 ++  [+]  — label, decrement, value, StatUp tally, increment.
     // The tally is what you've already poured in, so the row shows both the
     // number and how much of it you bought.
+    // Lawrence 2026-08-05: show the ORIGINAL stat next to the new one —
+    // `[−] 20+ 22 [+]`. Note this SUBSUMES the pip tally: base and current
+    // differ by exactly the StatUps allocated, so the count is readable
+    // without a separate mark. The tally radio still switches the fallback
+    // for comparison, but `base+` is the default now. Marked workshop — the
+    // second number costs width in a row that measured 77px of 97.
     const statCells = STATS.map(([lbl, key]) => {
       const spent = u.al[key] || 0;
-      const tally = pipStyle === 'dots'
-        ? `<span class="pipdots" title="${spent} StatUp invested">${'<i></i>'.repeat(spent)}</span>`
-        : `${'+'.repeat(Math.min(spent, 4))}${spent > 4 ? '…' : ''}`;
+      const base = u[key] - spent;
       const canAdd = u.star > 0 && u[key] < STAT_CAP;
+      const readout = statRowStyle === 'base'
+        ? `<span class="basev" title="${spent ? base + ' base, +' + spent + ' allocated' : 'nothing allocated'}"
+             >${base}${spent ? '+' : '&nbsp;'}</span><span class="v">${u[key]}</span>`
+        : `<span class="v">${u[key]}</span><span class="pips ${pipStyle === 'dots' ? '' : 'chars'}">${
+            pipStyle === 'dots'
+              ? `<span class="pipdots" title="${spent} StatUp invested">${'<i></i>'.repeat(spent)}</span>`
+              : `${'+'.repeat(Math.min(spent, 4))}${spent > 4 ? '…' : ''}`}</span>`;
       return `<div class="slot stat ${sel.kind === 'stat' && sel.key === key ? 'sel' : ''}" data-stat="${key}">
          <span class="k">${lbl}</span>
          <button class="sbtn ${spent ? '' : 'inert'}" data-minus="${key}"
            title="${spent ? 'refund a StatUp' : 'nothing allocated here'}">−</button>
-         <span class="v">${u[key]}</span>
-         <span class="pips ${pipStyle === 'dots' ? '' : 'chars'}">${tally}</span>
+         ${readout}
          <button class="sbtn ${canAdd ? '' : 'inert'}" data-plus="${key}"
            title="${canAdd ? 'spend a StatUp' : (u[key] >= STAT_CAP ? 'at cap' : 'no StatUp to spend')}">+</button>
        </div>`;
@@ -1691,7 +1745,10 @@
       </div>
       <div class="mu-sec">STATS</div>
       <div class="statlist">${statCells}</div>
-      <div class="mu-points">${u.star ? `${u.star} StatUp to spend` : '&nbsp;'}</div>
+      <div class="mu-points">${u.star
+        ? `<span class="k">StatUps</span><span class="pool-pips" title="${u.star} unspent"
+             >${'<i></i>'.repeat(Math.min(u.star, 10))}</span>${u.star > 10 ? '…' : ''}`
+        : '&nbsp;'}</div>
       <div class="mu-sec">MOVES</div>
       <div class="movegrid">${moveCells}</div>
       <div class="mu-sec">PASSIVES</div>
@@ -1850,20 +1907,21 @@
     } else if (sel.kind === 'level') {
       const gained = levelsGained(u);
       head.textContent = 'BONUS EXP';
+      // Controls first, flavor last (Lawrence 2026-08-05): the thing you came
+      // here to press shouldn't sit below a paragraph you've already read.
       detail.innerHTML = `<h4>${esc(u.nm)}</h4>
         <div class="meta">Lv ${u.lv0}${gained ? ' → ' + u.lv : ''} · ${u.xp}/100 XP</div>
-        <p>Bonus EXP is earned by the squad, not the unit. 100 buys a level for
-           anyone — spend it wherever it does the most good.</p>
         <div class="bx-alloc">
           <div class="bx-readout">
             <span class="big">${u.poured}</span>
-            <span class="arrow">poured · ${pool} left in pool</span>
+            <span class="arrow">poured · ${pool} left</span>
           </div>
           ${bexpButtons(u)}
           <div class="bx-hint">${gained
             ? `<b style="color:var(--sem-success)">+${gained} level${gained > 1 ? 's' : ''}</b> · ${toNextLevel(u)} to the next`
-            : `${toNextLevel(u)} more finishes this level`}</div>
-        </div>`;
+            : `${toNextLevel(u)} to the next level`}</div>
+        </div>
+        <p class="flavor">100 buys a level for anyone.</p>`;
       bank.innerHTML = `<div style="padding:5px">
         <div class="mu-sec" style="padding:0 0 2px">SQUAD — ALL FLAT, 100 A LEVEL</div>
         ${UNITS.filter(x => x.dep).sort((a, b) => a.lv - b.lv).map(x => {
@@ -2016,6 +2074,8 @@
 
   document.querySelectorAll('input[name=bexpbtn]').forEach(r =>
     r.addEventListener('change', () => { bexpBtnStyle = r.value; renderAll(); }));
+  document.querySelectorAll('input[name=statrow]').forEach(r =>
+    r.addEventListener('change', () => { statRowStyle = r.value; renderAll(); }));
 
   document.querySelectorAll('input[name=work]').forEach(r =>
     r.addEventListener('change', () => {
