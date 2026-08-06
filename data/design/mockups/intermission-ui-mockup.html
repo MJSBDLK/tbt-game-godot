@@ -537,6 +537,66 @@
   .wbbtn.inert:hover { background: rgba(24, 26, 24, 0.9); border-color: #3a3a36; }
   .allocrow { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
 
+  /* ---------- bEXP pour controls ----------
+     Buttons are 8px type in a 5px-tall row of boxes: the same lit-border
+     "pressable" mark as everything else (ui-style-guide §14), just small.
+     Inert = the press would do nothing (pool empty / nothing to refund),
+     which is a fact, not a disabled state. */
+  .bx-alloc { margin-top: 3px; }
+  .bx-readout { display: flex; align-items: baseline; gap: 6px; }
+  .bx-btns { display: flex; gap: 2px; margin-top: 4px; flex-wrap: wrap; }
+  .bxb {
+    font: inherit; font-size: 8px; letter-spacing: 0;
+    color: var(--azure-9); text-shadow: 0 0 4px var(--azure-5);
+    background: rgba(24, 26, 24, 0.9); border: 1px solid var(--azure-5);
+    padding: 1px 4px; min-width: 20px; cursor: pointer;
+    font-variant-numeric: tabular-nums;
+  }
+  .bxb:hover { background: rgba(46, 66, 84, 0.95); border-color: var(--azure-9); }
+  .bxb.inert { border-color: #3a3a36; color: #6d6f6d; text-shadow: none; cursor: default; }
+  .bxb.inert:hover { background: rgba(24, 26, 24, 0.9); border-color: #3a3a36; }
+  .bx-hint { color: #8a8578; font-size: 8px; margin-top: 4px; }
+
+  /* ---------- bEXP as its own screen (variant B) ---------- */
+  .bx { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 8px 10px; }
+  .bx-top {
+    display: flex; align-items: baseline; gap: 8px; padding-bottom: 5px;
+    border-bottom: 1px solid #2b2f38; margin-bottom: 5px;
+  }
+  .bx-top .k { font-size: 5px; letter-spacing: 0.08em; color: #8a8578; }
+  .bx-top .pool {
+    font-size: 16px; color: var(--sem-info); text-shadow: 0 0 6px var(--sem-info-glow);
+    font-variant-numeric: tabular-nums;
+  }
+  .bx-top .spacer { flex: 1; }
+  .bx-rows { flex: 1; overflow: auto; display: flex; flex-direction: column; gap: 1px; }
+  .bx-row {
+    display: flex; align-items: center; gap: 5px; padding: 2px 3px;
+    border: 1px solid transparent;
+  }
+  .bx-row.sel { border-color: var(--azure-5); background: rgba(46, 66, 84, 0.35); }
+  .bx-row .por {
+    width: 16px; height: 16px; display: grid; place-items: center;
+    font-size: 8px; color: #14150f; flex: none;
+  }
+  .bx-row .nm { width: 74px; flex: none; overflow: hidden; white-space: nowrap; }
+  .bx-row .lv { width: 42px; flex: none; color: #8a8578; font-variant-numeric: tabular-nums; }
+  .bx-row .lv b { color: var(--sem-success); text-shadow: 0 0 4px var(--sem-success-glow); }
+  .bx-row .bar {
+    flex: 1; height: 5px; background: #23261f; position: relative;
+    border: 1px solid #33372c; min-width: 40px;
+  }
+  .bx-row .bar i { position: absolute; inset: 0 auto 0 0; background: var(--sem-info); display: block; }
+  .bx-row .amt {
+    width: 30px; flex: none; text-align: right; font-size: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+  .bx-foot {
+    display: flex; align-items: center; gap: 6px; padding-top: 5px;
+    border-top: 1px solid #2b2f38; margin-top: 5px;
+  }
+  .bx-foot .spacer { flex: 1; }
+
   /* ==================================================================
      PIXEL-HONEST TYPOGRAPHY
      The engine's own fonts at the engine's own sizes, so this mockup
@@ -665,6 +725,8 @@
       <span class="n">2a</span>Intermission Hub</button>
     <button class="tab" role="tab" aria-selected="false" data-screen="screen-work">
       <span class="n">2b</span>Manage Units</button>
+    <button class="tab" role="tab" aria-selected="false" data-screen="screen-bexp">
+      <span class="n">2c</span>bEXP — own screen?</button>
   </div>
 
   <div class="screen active" id="screen-menu">
@@ -1016,6 +1078,83 @@
       </div>
     </div>
   </div><!-- /screen-work -->
+
+  <div class="screen" id="screen-bexp">
+    <div class="grid">
+      <div>
+        <div class="stage-frame">
+          <div class="stage-fit">
+            <div class="stage layout-work motion-on" id="stageBexp">
+              <canvas id="shipBexp" width="320" height="180"></canvas>
+              <div class="backdrop-dim"></div>
+              <div class="bx">
+                <div class="bx-top">
+                  <span class="back" id="bxBack">◀ Intermission</span>
+                  <span class="spacer"></span>
+                  <span class="k">BONUS EXP</span>
+                  <span class="pool" id="bxPool">340</span>
+                </div>
+                <div class="bx-rows" id="bxRows"></div>
+                <div class="bx-foot">
+                  <span id="bxHint" style="color:#8a8578;font-size:8px"></span>
+                  <span class="spacer"></span>
+                  <button class="wbbtn" id="bxDone" style="margin-top:0">Done</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="stage-caption">
+            <span>Live: click a row to select it, then the buttons. Same pool and same units as 2b — pour here, then look at 2b.</span>
+            <span>640 × 360 · real engine fonts</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="rail">
+        <section>
+          <h2>The actual decision</h2>
+          <label class="opt"><input type="radio" name="bexpwhere" value="in" checked>
+            <b>Inside Manage Units (2b)</b>
+            <span class="why">The hub's "Allocate Bonus EXP" is a deep link: it opens 2b with the XP row preselected and the rail sorted level-ascending. bEXP is one more thing a slot does, alongside moves, passives and StatUps.</span>
+          </label>
+          <label class="opt"><input type="radio" name="bexpwhere" value="own">
+            <b>Its own screen (2c)</b>
+            <span class="why">A dedicated allocation pass over the whole squad. One job, one screen, everything visible at once — no rail, no workbench, no selecting a unit before you can see its bar.</span>
+          </label>
+        </section>
+
+        <section>
+          <h2>Button set — press both, pick one</h2>
+          <label class="opt"><input type="radio" name="bexpbtn" value="amounts" checked>
+            <b>Symmetric amounts</b>
+            <span class="why"><code>−100 −10 −1 +1 +10 +100</code>. Pure quantities; 100 happens to be a level. Predictable, but the player does the arithmetic to reach a level boundary.</span>
+          </label>
+          <label class="opt"><input type="radio" name="bexpbtn" value="semantic">
+            <b>Fine control + named jumps</b>
+            <span class="why"><code>−10 −1 +1 +10 LEVEL MAX</code>. LEVEL pours exactly what finishes the current level; MAX empties the pool into this unit. Buttons say what they <i>do</i>, not what they cost.</span>
+          </label>
+        </section>
+
+        <section class="notes">
+          <b>What changed under both of these</b>
+          <ul>
+            <li><b>The price tag is gone.</b> Both screens now run the flat pool: <b>100 bEXP = one level, for anyone</b>. The old <code>100 × level ÷ squad_max</code> price (which this mockup used to render on the XP row) is retired — it re-introduced "higher level costs more" in bEXP currency, which is the thing you'd argued against. Catch-up lives in XP <i>gain</i> now.</li>
+            <li><b>Pouring is refundable.</b> Each unit keeps a session baseline plus a <code>poured</code> total, and level/XP are derived from it — so <code>[−]</code> always walks you back, even across a level boundary. Same shape as the StatUp <code>[−]</code> already on the stat rows, which is the point: one interaction idiom for both resources.</li>
+            <li><b>The pool is shared and live across both tabs.</b> Pour in 2c, switch to 2b, and the top-bar pool and the XP rows already agree. That's not a mockup trick — it's the same state object, which is what the engine would do too.</li>
+          </ul>
+        </section>
+
+        <section class="notes">
+          <b>What I'd watch when you press them</b>
+          <ul>
+            <li><b>2c shows the whole squad at once; 2b shows one unit at a time.</b> That's the real difference, and it's the thing bEXP might actually need — allocation is a <i>comparison</i> task ("who needs it most?"), and 2b makes you click through units to compare. 2b's bank column tries to close that gap with the squad list, but it's a readout, not a control.</li>
+            <li><b>Against that: 2c is a screen that does one thing</b>, and it's the second screen in a row the player walks through after a mission. If the hub already deep-links into 2b, 2c is an extra stop that exists only because the layout was convenient.</li>
+            <li>Watch whether you ever want to <i>see a unit's moves while deciding</i>. If yes, 2b wins outright — it has the sheet right there. If bEXP decisions are made purely on level and role, 2c's density wins.</li>
+          </ul>
+        </section>
+      </div>
+    </div>
+  </div><!-- /screen-bexp -->
 </div>
 
 <script>
@@ -1207,6 +1346,7 @@
   // ---- hub ----
   const cxHub = document.getElementById('shipHub').getContext('2d');
   const cxWork = document.getElementById('shipWork').getContext('2d');
+  const cxBexp = document.getElementById('shipBexp').getContext('2d');
   // Unsaved-changes latch: the Save Game entry settles into "Game saved!" and
   // goes unlit until the player touches something. Success voice says it
   // worked; the unlit border says there's nothing to press.
@@ -1339,8 +1479,71 @@
   const unit = () => UNITS.find(u => u.id === selId);
   const deployedCount = () => UNITS.filter(u => u.dep).length;
   const squadMaxLevel = () => Math.max(...UNITS.filter(u => u.dep).map(u => u.lv), 1);
-  // SquadManager.bexp_level_cost: 100 x level / squad max, stepped to 5, floor 25
-  const bexpPrice = u => Math.max(25, Math.round(100 * u.lv / squadMaxLevel() / 5) * 5);
+
+  // ---- bEXP: a flat pool of spendable XP (doctrine amended 2026-08-05) ----
+  // 100 bEXP = one level, for anyone. The old price tag
+  // (100 x level / squad_max, floor 25) is retired: it re-introduced
+  // "higher level = harder to level" in bEXP currency, which is the thing
+  // RQD argued against. Catch-up lives in XP GAIN, never in a price.
+  //
+  // Pouring is fully refundable while you're on the screen. Each unit keeps
+  // a session baseline (lv0/xp0) plus `poured`, and level/xp are derived —
+  // so [−] can always walk you back, even across a level boundary.
+  const XP_PER_LEVEL = 100;
+  UNITS.forEach(u => { u.lv0 = u.lv; u.xp0 = u.xp; u.poured = 0; });
+  const bankedXp = u => u.lv0 * XP_PER_LEVEL + u.xp0 + u.poured;
+  function reflow(u) {                      // derive lv/xp from the bank
+    const t = bankedXp(u);
+    u.lv = Math.floor(t / XP_PER_LEVEL);
+    u.xp = t % XP_PER_LEVEL;
+  }
+  // Move `amt` bEXP into (or out of) a unit. Clamped by the pool on the way
+  // in and by what's been poured on the way out — you can never refund XP
+  // the unit brought with it.
+  function pour(u, amt) {
+    if (amt > 0) amt = Math.min(amt, pool);
+    else amt = -Math.min(-amt, u.poured);
+    if (!amt) return false;
+    u.poured += amt; pool -= amt; reflow(u); dirty = true;
+    return true;
+  }
+  const toNextLevel = u => XP_PER_LEVEL - u.xp;      // cost to finish this level
+  const levelsGained = u => u.lv - u.lv0;
+
+  // Two readings of RQD's [-10][-1][+1][+10][99][100] sketch. Both are live —
+  // the radio in the notes column switches them, so the choice can be made by
+  // pressing them rather than by reading about them.
+  //   amounts  — symmetric bEXP quantities. 100 happens to be a level.
+  //   semantic — fine control for topping off, plus two named jumps that say
+  //              what they DO ("finish this level", "empty the pool in here")
+  //              rather than how much they cost.
+  let bexpBtnStyle = 'amounts';
+
+  function bexpButtons(u) {
+    const b = (amt, label, title, on) =>
+      `<button class="bxb ${on ? '' : 'inert'}" data-pour="${amt}" title="${title}">${label}</button>`;
+    if (bexpBtnStyle === 'amounts') {
+      return `<div class="bx-btns">
+        ${[-100, -10, -1].map(a => b(a, String(a), `refund ${-a}`, u.poured >= -a)).join('')}
+        ${[1, 10, 100].map(a => b(a, '+' + a, `pour ${a}`, pool >= a)).join('')}
+      </div>`;
+    }
+    const need = toNextLevel(u);
+    return `<div class="bx-btns">
+      ${[-10, -1].map(a => b(a, String(a), `refund ${-a}`, u.poured >= -a)).join('')}
+      ${[1, 10].map(a => b(a, '+' + a, `pour ${a}`, pool >= a)).join('')}
+      ${b(need, 'LEVEL', `${need} — finish this level`, pool >= need)}
+      ${b(pool, 'MAX', `pour all ${pool}`, pool > 0)}
+    </div>`;
+  }
+
+  function wireBexpButtons(root, u) {
+    root.querySelectorAll('[data-pour]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (pour(u, parseInt(btn.dataset.pour, 10))) renderAll();
+      });
+    });
+  }
   const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
   // Real 10x10 art, embedded above. If an icon is missing the slot still
   // reserves its 10px, so the layout never lies about the space it needs.
@@ -1431,8 +1634,7 @@
   function renderSheet() {
     const u = unit();
     const on = (k, extra) => (sel.kind === k && (!extra || extra())) ? 'sel' : '';
-    const price = bexpPrice(u);
-    const canBuy = pool >= price;
+    const gained = levelsGained(u);
 
     // HP  [−]  24 ++  [+]  — label, decrement, value, StatUp tally, increment.
     // The tally is what you've already poured in, so the row shows both the
@@ -1483,8 +1685,9 @@
       <div class="slot mu-xp ${on('level')}" data-level="1">
         <span class="k" style="color:#8a8578">XP</span>
         <span class="bar"><i style="width:${u.xp}%"></i></span>
-        <span class="price" style="${canBuy ? '' : 'color:#6d6f6d;text-shadow:none'}"
-          title="bEXP price of the next level">${price}</span>
+        <span class="price" style="${gained ? '' : 'color:#6d6f6d;text-shadow:none'}"
+          title="${gained ? gained + ' level(s) bought with bEXP' : 'bEXP poured into this unit'}"
+          >${u.poured ? '+' + u.poured : '—'}</span>
       </div>
       <div class="mu-sec">STATS</div>
       <div class="statlist">${statCells}</div>
@@ -1645,29 +1848,34 @@
              <span style="font-variant-numeric:tabular-nums">${x[key]}</span></div>`).join('')}</div>`;
 
     } else if (sel.kind === 'level') {
-      const price = bexpPrice(u);
-      const canBuy = pool >= price;
+      const gained = levelsGained(u);
       head.textContent = 'BONUS EXP';
       detail.innerHTML = `<h4>${esc(u.nm)}</h4>
-        <div class="meta">Lv ${u.lv} → ${u.lv + 1}</div>
-        <p>Bonus EXP is earned by the squad, not the unit. Spend it wherever it
-           does the most good.</p>
-        <div class="allocrow"><span class="big">${price}</span>
-          <span class="arrow">of ${pool} banked</span>
-          <button class="wbbtn ${canBuy ? '' : 'inert'}" data-buy="1"
-            style="margin-top:0">Buy the level</button></div>`;
+        <div class="meta">Lv ${u.lv0}${gained ? ' → ' + u.lv : ''} · ${u.xp}/100 XP</div>
+        <p>Bonus EXP is earned by the squad, not the unit. 100 buys a level for
+           anyone — spend it wherever it does the most good.</p>
+        <div class="bx-alloc">
+          <div class="bx-readout">
+            <span class="big">${u.poured}</span>
+            <span class="arrow">poured · ${pool} left in pool</span>
+          </div>
+          ${bexpButtons(u)}
+          <div class="bx-hint">${gained
+            ? `<b style="color:var(--sem-success)">+${gained} level${gained > 1 ? 's' : ''}</b> · ${toNextLevel(u)} to the next`
+            : `${toNextLevel(u)} more finishes this level`}</div>
+        </div>`;
       bank.innerHTML = `<div style="padding:5px">
-        <div class="mu-sec" style="padding:0 0 2px">PRICE ACROSS THE SQUAD</div>
-        ${UNITS.filter(x => x.dep).sort((a, b) => a.lv - b.lv).map(x =>
-          `<div style="display:flex;gap:5px;padding:1px 0;${x.id === u.id ? 'color:var(--azure-9)' : 'color:#8a8578'}">
-             <span style="flex:1">${esc(x.nm)}</span><span>Lv ${x.lv}</span>
-             <span style="width:22px;text-align:right;font-variant-numeric:tabular-nums;color:${
-               pool >= bexpPrice(x) ? 'var(--sem-info)' : '#6d6f6d'}">${bexpPrice(x)}</span>
-           </div>`).join('')}</div>`;
-      const buy = detail.querySelector('[data-buy]');
-      if (canBuy) buy.addEventListener('click', () => {
-        pool -= price; u.lv++; u.star++; dirty = true; renderAll();
-      });
+        <div class="mu-sec" style="padding:0 0 2px">SQUAD — ALL FLAT, 100 A LEVEL</div>
+        ${UNITS.filter(x => x.dep).sort((a, b) => a.lv - b.lv).map(x => {
+          const g = levelsGained(x);
+          return `<div style="display:flex;gap:5px;padding:1px 0;${x.id === u.id ? 'color:var(--azure-9)' : 'color:#8a8578'}">
+             <span style="flex:1">${esc(x.nm)}</span>
+             <span>Lv ${x.lv}</span>
+             <span style="width:34px;text-align:right;font-variant-numeric:tabular-nums;color:${
+               g ? 'var(--sem-success)' : (x.poured ? 'var(--sem-info)' : '#4d5561')}">${
+               x.poured ? '+' + x.poured : '·'}</span>
+           </div>`; }).join('')}</div>`;
+      wireBexpButtons(detail, u);
 
     } else if (sel.kind === 'injury') {
       const inj = INJURIES[sel.name];
@@ -1761,12 +1969,53 @@
     }
   }
 
+  // ---- screen 2c: bEXP on its own ----
+  // Deliberately the same UNITS/pool objects as 2b, so switching tabs shows
+  // one state from two shapes. That IS the comparison.
+  let bxSel = null;
+  function renderBexp() {
+    const rows = document.getElementById('bxRows');
+    if (!rows) return;
+    const deployed = UNITS.filter(u => u.dep);
+    if (!bxSel || !deployed.some(u => u.id === bxSel)) bxSel = deployed[0] && deployed[0].id;
+    rows.innerHTML = deployed.map(u => {
+      const g = levelsGained(u);
+      return `<div class="bx-row ${u.id === bxSel ? 'sel' : ''}" data-bx="${u.id}">
+        <span class="por" style="background:${u.c}">${u.nm[0]}</span>
+        <span class="nm">${esc(u.nm)}</span>
+        <span class="lv">Lv ${g ? `<b>${u.lv}</b>` : u.lv}</span>
+        <span class="bar"><i style="width:${u.xp}%"></i></span>
+        <span class="amt" style="color:${g ? 'var(--sem-success)' : (u.poured ? 'var(--sem-info)' : '#4d5561')}"
+          >${u.poured ? '+' + u.poured : '·'}</span>
+      </div>`;
+    }).join('');
+    rows.querySelectorAll('[data-bx]').forEach(el =>
+      el.addEventListener('click', () => { bxSel = el.dataset.bx; renderBexp(); }));
+
+    const u = deployed.find(x => x.id === bxSel);
+    const foot = document.getElementById('bxHint');
+    if (u) {
+      // The selected unit's controls live in the footer so the row list stays
+      // scannable — 8 rows of buttons would out-shout the bars.
+      foot.innerHTML = `<b style="color:var(--page-text)">${esc(u.nm)}</b>
+        &nbsp;${toNextLevel(u)} to next &nbsp;${bexpButtons(u)}`;
+      foot.querySelectorAll('[data-pour]').forEach(btn =>
+        btn.addEventListener('click', () => {
+          if (pour(u, parseInt(btn.dataset.pour, 10))) renderAll();
+        }));
+    } else foot.textContent = 'nobody deployed';
+    document.getElementById('bxPool').textContent = pool;
+  }
+
   function renderAll() {
     renderRail(); renderSheet(); renderWork();
     document.getElementById('muPool').textContent = pool;
-    renderHub();
+    renderHub(); renderBexp();
     requestAnimationFrame(drawTrace);   // after layout settles
   }
+
+  document.querySelectorAll('input[name=bexpbtn]').forEach(r =>
+    r.addEventListener('change', () => { bexpBtnStyle = r.value; renderAll(); }));
 
   document.querySelectorAll('input[name=work]').forEach(r =>
     r.addEventListener('change', () => {
@@ -1822,6 +2071,7 @@
     else paintShip(cx, time);
     paintShip(cxHub, time);
     paintShip(cxWork, time);
+    paintShip(cxBexp, time);
     requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);

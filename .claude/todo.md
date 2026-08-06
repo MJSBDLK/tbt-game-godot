@@ -13,6 +13,14 @@ everything else, roughly by how soon it matters.
 
 ---
 
+## bEXP screen
+- [ ] flavor text goes at the bottom
+- [ ] keep explanations concise
+- [ ] there should be a [99] button
+- [ ] instead of "2 StatUp to spend" use the same symbol in a pool beneath the stats: StatUps: [ + + ] ... up to [ + + + + + + + + + + ]
+- [ ] include the new stat as well as the original stat, eg.
+  [-] 20+ 22 [+] (workshop this)
+
 ## 1. Alpha blockers
 
 - [ ] **Squad / prep + between-mission level-up screen.** *(The single biggest
