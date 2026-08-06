@@ -674,6 +674,26 @@
     color: var(--sem-info); text-shadow: 0 0 4px var(--sem-info-glow); overflow: hidden;
   }
 
+  /* ---------- cap bar: how close this stat is to its class ceiling ----------
+     Rides the row's bottom pixel via absolute positioning, so eight of these
+     cost ZERO vertical space — the stat block stays exactly as tall as it was.
+     1px matches StatFingerprint's existing bar vocabulary.
+
+       track (b)  dim   0 .. class_cap / GLOBAL_MAX   — headroom this class has
+       fill  (i)  lit   0 .. level_stat / GLOBAL_MAX  — where the unit is now
+
+     Nothing is drawn past the class cap, so the track ENDING is what reads as
+     "this is as far as this class goes." */
+  .stat { position: relative; }
+  .stat .capbar { position: absolute; left: 2px; right: 2px; bottom: 0; height: 1px; }
+  .stat .capbar b, .stat .capbar i { position: absolute; left: 0; top: 0; height: 1px; display: block; }
+  .stat .capbar b { background: #3a3831; }
+  .stat .capbar i { background: var(--azure-7); }
+  /* At the ceiling the whole row says so — number and bar together, because a
+     colored number alone is easy to miss in a block of eight. */
+  .stat.capped .capbar i { background: var(--sem-success); }
+  .stat.capped .v { color: var(--sem-success); text-shadow: 0 0 4px var(--sem-success-glow); }
+
   /* ---------- PCB trace: slot → workbench, cursor model only ---------- */
   .mu-trace { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
   .mu-trace path { fill: none; stroke: var(--azure-5); stroke-width: 1; }
@@ -1164,6 +1184,20 @@
         </section>
 
         <section class="notes">
+          <b>Round 15 — stat caps on the sheet</b>
+          <ul>
+            <li><b>One bar, two facts.</b> Track length = class cap ÷ game max. Fill = level_stat, on that same global scale. Your example renders exactly: cap 15 of a 20 max at stat 12 is a track 75% long, filled 80% of itself. The side effect is the good part — because every track uses the <i>same</i> global scale, filled pixels are directly comparable across units, while track length separately says how much headroom each one has. No second widget needed.</li>
+            <li><b>It costs zero vertical space.</b> The bar is 1px, absolutely positioned on the row's bottom pixel, so eight of them don't push the stat block taller. Matches <code>StatFingerprint</code>'s existing 1px vocabulary rather than inventing a second bar idiom.</li>
+            <li><b>Capped reads on the number AND the bar</b> — both go <code>--sem-success</code>. A colored number alone is easy to miss in a block of eight, and the bar is what you're scanning anyway.</li>
+            <li><b>StatUps exceed the cap and don't fill the bar</b>, as specified — and the engine already agrees. <code>is_at_stat_cap()</code> reads <code>get_base_plus_growth()</code>, so allocated points were never counted. The <code>[+]</code> stat-cap gate the mockup used to have was wrong; it's gone.</li>
+            <li><b>Ma'am's SKL is the case worth clicking.</b> Lv 11 Skulk, SKL capped at 17, three StatUps already in it — so the row reads <code>22+++</code> <i>in green</i> while the bar sits full at 17. That's your two rules colliding in one row, and I think it reads right: green says "this is as far as growth goes," the pips say "and here's what I bought on top."</li>
+            <li><b>Robot is the other case.</b> Automaton caps AGL and SPC at <b>4</b> — hit at level 3, not progress but a class limit. Two green stubs 8% of the width, and the <i>stub length</i> is the message. That's the mechanic paying out: <code>process_bexp_level_up()</code> draws its 3 growths from uncapped stats only, so Robot's bEXP levels concentrate into 6 stats instead of 8. Exactly the "feel smart" play, and ignorable if you don't care.</li>
+            <li><b>Most bars are mostly empty, on purpose.</b> Every unit here is tier 1, and the global max is the <i>tier-3</i> ceiling — so a tier-1 track is roughly a third of the width. It reads as "you are early in a long climb," and it makes promotion legible as the thing that buys you the rest of the bar. If that ends up feeling discouraging rather than motivating, the fix is scaling the track to the <i>current tier's</i> ceiling instead, and losing cross-tier comparability.</li>
+            <li><b>One wrinkle worth knowing:</b> percentage StatUps interact badly with <i>low</i> caps. +10% of a stat of 4 rounds to 0, so "StatUps can exceed the cap" is nearly meaningless on the stats where you'd most want it. It works fine on big stats. Not proposing a fix — flagging that the rule pays out unevenly.</li>
+          </ul>
+        </section>
+
+        <section class="notes">
           <b>What I'd watch when you press them</b>
           <ul>
             <li><b>2c shows the whole squad at once; 2b shows one unit at a time.</b> That's the real difference, and it's the thing bEXP might actually need — allocation is a <i>comparison</i> task ("who needs it most?"), and 2b makes you click through units to compare. 2b's bank column tries to close that gap with the squad list, but it's a readout, not a control.</li>
@@ -1455,7 +1489,57 @@
     ['SKL', 'skl', 'Skill. Accuracy — each point adds about 1.5% to your hit chance.'],
     ['RES', 'res', 'Resistance. Cuts special damage taken.'],
   ];
-  const STAT_CAP = 25;
+  // ---- Stat caps (RQD spec 2026-08-06) ----
+  // TWO ceilings, and one bar draws both:
+  //   GLOBAL_MAX  the highest any unit in the game could reach. Sets the bar's
+  //               FULL width — identical on every row of every unit.
+  //   CLASS_CAPS  this class's ceiling. Sets the TRACK length: a class capped
+  //               at 60% of global draws a track 60% as long.
+  // Fill runs 0 -> level_stat inside that track.
+  //
+  // RQD's example: cap 15, game max 20, stat 12 -> a bar 75% of full length,
+  // filled 80% of itself. Note the useful side effect that falls out of it —
+  // because the track is scaled to the SAME global max everywhere, the filled
+  // pixels are always proportional to the raw stat. So two units side by side
+  // are directly comparable on fill length, while the track length tells you
+  // separately how much headroom each one has left. One bar, two facts, no
+  // extra ink.
+  //
+  // StatUps are EXCLUDED from the fill. They can push the number past the cap
+  // and the bar deliberately doesn't follow. This matches the engine, where
+  // is_at_stat_cap() reads get_base_plus_growth() — base + growth, never the
+  // allocated total.
+  const GLOBAL_MAX = {hp:100, str:50, spc:50, skl:50, agl:50, ath:50, def:50, res:50};
+
+  // TIER-1 class caps. Every unit on this screen is tier 1, so these sit well
+  // under GLOBAL_MAX (which is the tier-3 ceiling) — most bars are a short
+  // track with a lot of empty space after it, and that reads correctly: you
+  // are early in a long climb, and promotion is what buys the rest of the bar.
+  //
+  // Tuned so a tier-1 unit BUMPS these around level 20. A cap you can actually
+  // hit is the whole point of drawing them, and it's what makes bEXP
+  // situationally smart: process_bexp_level_up() draws its 3 growths from
+  // UNCAPPED stats only, so the more of your stats are maxed, the more
+  // concentrated each bEXP level becomes.
+  //
+  // Three demo cases, deliberately at different scales:
+  //   Ma'am   SKL 17/17 — a Lv 11 Skulk has maxed her defining stat. Normal-
+  //                       width track, fully green. This is the common case.
+  //   Robot   AGL & SPC 4/4 — hard class limits, not progress. Tiny green
+  //                       stubs, and the stub length IS the message.
+  //   Goblin  STR 4/6 — a Medic nearly at a ceiling she'd never want anyway.
+  const CLASS_CAPS = {
+    'Spaceman':  {hp:44, str:16, spc:13, skl:15, agl:15, ath:13, def:14, res:12},
+    'Skulk':     {hp:40, str:12, spc:13, skl:17, agl:16, ath:13, def:10, res:12},
+    'Engineer':  {hp:46, str:16, spc:10, skl:15, agl:10, ath:12, def:18, res: 9},
+    'Pirate':    {hp:42, str:16, spc:10, skl:16, agl:16, ath:15, def:11, res:10},
+    'Automaton': {hp:50, str:15, spc: 4, skl:11, agl: 4, ath: 9, def:22, res:15},
+    'Medic':     {hp:34, str: 6, spc:19, skl:14, agl:13, ath:10, def: 9, res:18},
+  };
+  const capOf = (u, key) => CLASS_CAPS[u.cls][key];
+  // Cap check reads lvlStat, NOT the displayed number — StatUps don't count.
+  const atCap = (u, key) => u.lvlStat[key] >= capOf(u, key);
+  const cappedCount = u => STATS.filter(([, k]) => atCap(u, k)).length;
 
   // ---- StatUp allocation (RQD spec 2026-08-05) ----
   // Each pip is +10% of the unit's level_stat (base + growth), NOT compounding
@@ -1706,19 +1790,30 @@
     const statCells = STATS.map(([lbl, key]) => {
       const spent = u.al[key] || 0;
       const atPointCap = spent >= PER_STAT_CAP;
-      const canAdd = u.star > 0 && !atPointCap && u[key] < STAT_CAP;
+      // NOT gated on the stat cap: StatUps are allowed to push a stat past its
+      // class ceiling. That's the rule, and it's what the engine already does —
+      // is_at_stat_cap() never sees allocated points.
+      const canAdd = u.star > 0 && !atPointCap;
       const tally = pipStyle === 'dots'
         ? `<span class="pipdots" title="${spent} StatUp invested">${'<i></i>'.repeat(spent)}</span>`
         : '+'.repeat(spent);
-      return `<div class="slot stat ${sel.kind === 'stat' && sel.key === key ? 'sel' : ''}" data-stat="${key}">
+      const cap = capOf(u, key), gmax = GLOBAL_MAX[key], raw = u.lvlStat[key];
+      const capped = raw >= cap;
+      const trackPct = Math.min(100, cap / gmax * 100);
+      const fillPct = Math.min(trackPct, raw / gmax * 100);
+      const barTitle = capped
+        ? `${lbl} is at the ${u.cls} cap of ${cap} — growths skip it, so bEXP levels concentrate elsewhere`
+        : `${raw} of ${cap} (${u.cls} cap) · game max ${gmax}`;
+      return `<div class="slot stat ${capped ? 'capped' : ''} ${
+             sel.kind === 'stat' && sel.key === key ? 'sel' : ''}" data-stat="${key}">
          <span class="k">${lbl}</span>
          <button class="sbtn ${spent ? '' : 'inert'}" data-minus="${key}"
            title="${spent ? `refund a StatUp (−10% ${lbl})` : 'nothing allocated here'}">−</button>
          <span class="v">${u[key]}</span><span class="pips ${pipStyle === 'dots' ? '' : 'chars'}">${tally}</span>
          <button class="sbtn ${canAdd ? '' : 'inert'}" data-plus="${key}"
            title="${canAdd ? `spend a StatUp (+10% ${lbl}, ${PER_STAT_CAP} max)`
-             : (atPointCap ? `${PER_STAT_CAP} points is the per-stat cap`
-             : (u[key] >= STAT_CAP ? 'at stat cap' : 'no StatUp to spend'))}">+</button>
+             : (atPointCap ? `${PER_STAT_CAP} points is the per-stat cap` : 'no StatUp to spend')}">+</button>
+         <span class="capbar" title="${barTitle}"><b style="width:${trackPct}%"></b><i style="width:${fillPct}%"></i></span>
        </div>`;
     }).join('');
 
@@ -1784,7 +1879,8 @@
       // once on the final total, never per-press — the difference matters:
       // four presses of round(12 * 0.10) would give +4, not round(12 * 0.40) = +5.
       const k = el.dataset.plus;
-      if (u.star <= 0 || (u.al[k] || 0) >= PER_STAT_CAP || u[k] >= STAT_CAP) return;
+      // No stat-cap gate — StatUps may exceed the class ceiling by design.
+      if (u.star <= 0 || (u.al[k] || 0) >= PER_STAT_CAP) return;
       u.al[k] = (u.al[k] || 0) + 1; u.star--; recalcStats(u); dirty = true; renderAll();
     }));
     sheet.querySelectorAll('[data-minus]').forEach(el => el.addEventListener('click', ev => {
@@ -1907,10 +2003,19 @@
       head.textContent = `STAT — ${lbl}`;
       // The +/- live on the sheet row, so this panel is pure meaning: what the
       // stat does, where it stands, what you've already poured in.
+      // The cap line is the one place with room to spell out all three numbers
+      // the bar encodes, plus the bEXP consequence of being capped.
+      const cap = capOf(u, key), raw = u.lvlStat[key];
       detail.innerHTML = `<h4>${lbl}</h4>
-        <div class="meta">${u[key]} of ${STAT_CAP} cap${
+        <div class="meta">${raw} of ${cap} ${u.cls} cap · game max ${GLOBAL_MAX[key]}${
           spent ? ` · ${spent} StatUp invested` : ''}</div>
-        <p>${esc(blurb)}</p>`;
+        <p>${esc(blurb)}</p>
+        ${raw >= cap
+          ? `<p style="color:var(--sem-success)">At the class ceiling. Level-ups
+             can't raise it, so bEXP growths concentrate into this unit's
+             remaining ${8 - cappedCount(u)} open stats. StatUps still work —
+             they're allowed past the cap.</p>`
+          : ''}`;
       bank.innerHTML = `<div style="padding:5px">
         <div class="mu-sec" style="padding:0 0 2px">ACROSS THE SQUAD</div>
         ${UNITS.filter(x => x.dep).sort((a, b) => b[key] - a[key]).map(x =>
