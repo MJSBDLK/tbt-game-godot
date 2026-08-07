@@ -47,9 +47,13 @@ extends Control
 const DEFAULT_HEIGHT_PX: int = 1
 
 ## Unfilled remainder of the class's allowance. Dim enough to read as "not yet"
-## rather than as a second value.
+## rather than as a second value — but NOT dimmer than the panel it sits on.
+## This was Straw2 2 (#2e2719) against a HUD panel of #302d27, a difference of
+## about three values, which made the track invisible and the whole two-level
+## reading collapse into a single stub. Straw2 4 clears the panel while staying
+## well under the fill.
 static var COLOR_TRACK: Color:
-	get: return GameColorPalette.get_color("Straw2", 2)
+	get: return GameColorPalette.get_color("Straw2", 4)
 static var COLOR_FILL: Color:
 	get: return GameColorPalette.get_color("Azure", 7)
 static var COLOR_AT_CAP: Color:

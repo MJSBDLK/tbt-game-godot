@@ -11,8 +11,10 @@
     --panel-bg: rgba(48, 45, 39, 0.85);      /* #302d27 @85% — HUD_PANEL_BACKGROUND */
     --panel-bg-heavy: rgba(48, 45, 39, 0.70);
     --azure-9: #dbf3ff;  /* primary text */
+    --azure-7: #93d1f5;  /* cap-bar fill — real Azure 7, was referenced before it existed */
     --azure-5: #4c8cbb;  /* primary glow */
     --azure-3: #2b5a80;
+    --straw2-4: #665639; /* cap-bar track — must out-contrast --panel-bg #302d27 */
     --yo-7: #f5cd65;     /* secondary text (YellowOrange) */
     --magenta-4: #7e4a7e;
     --save-yellow: #e7c14b;
@@ -662,13 +664,19 @@
   .fchip .ic { opacity: 0.45; }
   .fchip.on .ic { opacity: 1; }
 
-  /* ---------- stat rows: HP  [−]  24 ··  [+] ----------
-     Nothing stretches. The tally slot is fixed at exactly the width the
-     stacked pips need, so [+] sits right where the number ends instead of
-     being flung at the far wall by a flex:1. The row lands at ~72px, which
-     is what lets the block go back to two columns of four. */
+  /* ---------- stat rows: HP ▬▬▬━━━━━ [−] 24 ·· [+] ----------
+     ONE column, eight rows (2026-08-07). It was two columns of four, which
+     was right when the row was only text — but a Radiant Dawn–style gauge
+     needs length to say anything, and a 98px column left it 18px. Full width
+     gives the bar ~120px, so a class cap at 18% of global reads as a stub
+     instead of as two pixels.
+     Costs ~52px of sheet height; the sheet had it. Revert = one value here.
+
+     Everything except the bar is fixed-width, so the bar absorbs the slack
+     and every row's track starts and ends at the same x — which is what
+     makes the lengths comparable down the column. */
   .statlist {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 0 4px;
+    display: grid; grid-template-columns: 1fr; gap: 0;
     padding: 0 5px; flex: 0 0 auto;
   }
   .stat { display: flex; align-items: center; gap: 3px; padding: 1px 2px; }
@@ -691,17 +699,34 @@
   /* ---------- cap bar: how close this stat is to its class ceiling ----------
      Rides the row's bottom pixel via absolute positioning, so eight of these
      cost ZERO vertical space — the stat block stays exactly as tall as it was.
-     1px matches StatFingerprint's existing bar vocabulary.
+     Laid out the Radiant Dawn way (RQD 2026-08-07), which is also what the
+     Unit Detail Panel already does: the bar is a MEMBER OF THE ROW, sitting
+     between the label and the number, and it flexes to eat whatever width the
+     fixed elements leave. The first attempt made it a 1px rule absolutely
+     positioned along the row's bottom edge — cheap in vertical space and
+     completely wrong to look at. It read as an underline, not a gauge.
 
        track (b)  dim   0 .. class_cap / GLOBAL_MAX   — headroom this class has
        fill  (i)  lit   0 .. level_stat / GLOBAL_MAX  — where the unit is now
 
      Nothing is drawn past the class cap, so the track ENDING is what reads as
-     "this is as far as this class goes." */
-  .stat { position: relative; }
-  .stat .capbar { position: absolute; left: 2px; right: 2px; bottom: 0; height: 1px; }
-  .stat .capbar b, .stat .capbar i { position: absolute; left: 0; top: 0; height: 1px; display: block; }
-  .stat .capbar b { background: #3a3831; }
+     "this is as far as this class goes." In RD that's the whole trick: the
+     dark line is short on a stat your class can't grow. */
+  .stat .capbar {
+    flex: 1 1 auto; min-width: 14px; height: 3px; position: relative;
+    align-self: center;
+  }
+     TWO BUGS lived here until 2026-08-07, and together they made the bar look
+     like a single element:
+       1. the fill referenced var(--azure-7), which this file never defined —
+          an undefined custom property makes the declaration invalid at
+          computed-value time, so the fill rendered with NO background at all;
+       2. the track was #3a3831 against a --panel-bg of #302d27, a difference
+          of about three values. Invisible even if the fill had worked.
+     So the only thing on screen was a dark stub. Both colours are now real
+     palette entries picked to contrast with the panel AND each other. */
+  .stat .capbar b, .stat .capbar i { position: absolute; left: 0; top: 0; height: 3px; display: block; }
+  .stat .capbar b { background: var(--straw2-4); }
   .stat .capbar i { background: var(--azure-7); }
   /* StatUps, in the same accent the pips use — one colour for one currency. */
   .stat .capbar i.bn { background: var(--sem-info); }
@@ -1198,6 +1223,19 @@
             <li><b>The price tag is gone.</b> Both screens now run the flat pool: <b>100 bEXP = one level, for anyone</b>. The old <code>100 × level ÷ squad_max</code> price (which this mockup used to render on the XP row) is retired — it re-introduced "higher level costs more" in bEXP currency, which is the thing you'd argued against. Catch-up lives in XP <i>gain</i> now.</li>
             <li><b>Pouring is refundable.</b> Each unit keeps a session baseline plus a <code>poured</code> total, and level/XP are derived from it — so <code>[−]</code> always walks you back, even across a level boundary. Same shape as the StatUp <code>[−]</code> already on the stat rows, which is the point: one interaction idiom for both resources.</li>
             <li><b>The pool is shared and live across both tabs.</b> Pour in 2c, switch to 2b, and the top-bar pool and the XP rows already agree. That's not a mockup trick — it's the same state object, which is what the engine would do too.</li>
+          </ul>
+        </section>
+
+        <section class="notes">
+          <b>Round 19 — the cap bar, formatted like Radiant Dawn</b>
+          <ul>
+            <li><b>The fill was never rendering.</b> Not a styling opinion — a bug. It referenced <code>var(--azure-7)</code>, which this file never defined, and an undefined custom property makes the declaration invalid at computed-value time, so the fill drew with <i>no background at all</i>. You were looking at the track alone. That's why it read as one element instead of two.</li>
+            <li><b>And the track was invisible anyway.</b> <code>#3a3831</code> against a panel of <code>#302d27</code> — about three values apart. Both colours are real palette entries now, picked to separate from the panel <i>and</i> from each other: panel luma 21 → track 87 → fill 198.</li>
+            <li><b>Same bug in the engine, different cause.</b> <code>StatCapBar.COLOR_TRACK</code> was Straw2 2 (<code>#2e2719</code>) against a HUD panel of <code>#171512</code>. Visible, but barely. Moved to Straw2 4.</li>
+            <li><b>Laid out the RD way: LABEL → GAUGE → NUMBER</b>, then the controls. It had been a 1px rule absolutely positioned along the row's bottom edge, which cost no vertical space and read as an underline rather than a gauge — and put the bar nowhere near the number it describes.</li>
+            <li><b>The stat block is one column now.</b> A gauge needs length to say anything, and two columns of four left it 18px. Full width gives ~120px, so a Mage's DEF ceiling at 18% of global reads as a stub instead of two pixels. Costs about 52px of sheet height, which the sheet had. One CSS value reverts it.</li>
+            <li><b>Worth clicking: Ma'am's SKL.</b> 17 grown against a cap of 20, three StatUps on top — the blue fill stops at the ceiling and the gold segment runs <i>past the end of the track</i>. That's the rule made visible, and it was impossible to see while the fill was transparent.</li>
+            <li><b>Also fixed:</b> the generated markup was emitting <code>width:4.0000000000000036%</code>. Rounded now — and it was a fair tell that nobody had read the output.</li>
           </ul>
         </section>
 
@@ -1923,20 +1961,27 @@
       // which is the "StatUps may exceed the cap" rule demonstrating itself
       // rather than being explained.
       const bonusPct = Math.max(0, Math.min(100, u[key] / gmax * 100) - fillPct);
+      // Round before it reaches the markup — raw float math was emitting
+      // width:4.0000000000000036%, which is both ugly to read and a tell that
+      // nobody had looked at the generated HTML.
+      const pct = n => Math.round(n * 10) / 10;
       const barTitle = capped
         ? `${lbl} is at the ${u.cls} cap of ${cap} — growths skip it, so bEXP levels concentrate elsewhere`
         : `${raw} of ${cap} (${u.cls} cap) · game max ${gmax}`;
+      // Radiant Dawn order: LABEL, GAUGE, NUMBER — then the controls. The bar
+      // used to be tacked on after [+] as an absolutely-positioned underline,
+      // which put the gauge nowhere near the number it describes.
       return `<div class="slot stat ${capped ? 'capped' : ''} ${
              sel.kind === 'stat' && sel.key === key ? 'sel' : ''}" data-stat="${key}">
          <span class="k">${lbl}</span>
+         <span class="capbar" title="${barTitle}"><b style="width:${pct(trackPct)}%"></b><i style="width:${pct(fillPct)}%"></i>${
+           bonusPct > 0 ? `<i class="bn" style="left:${pct(fillPct)}%;width:${pct(bonusPct)}%"></i>` : ''}</span>
+         <span class="v">${u[key]}</span><span class="pips ${pipStyle === 'dots' ? '' : 'chars'}">${tally}</span>
          <button class="sbtn ${spent ? '' : 'inert'}" data-minus="${key}"
            title="${spent ? `refund a StatUp (−10% ${lbl})` : 'nothing allocated here'}">−</button>
-         <span class="v">${u[key]}</span><span class="pips ${pipStyle === 'dots' ? '' : 'chars'}">${tally}</span>
          <button class="sbtn ${canAdd ? '' : 'inert'}" data-plus="${key}"
            title="${canAdd ? `spend a StatUp (+10% ${lbl}, ${PER_STAT_CAP} max)`
              : (atPointCap ? `${PER_STAT_CAP} points is the per-stat cap` : 'no StatUp to spend')}">+</button>
-         <span class="capbar" title="${barTitle}"><b style="width:${trackPct}%"></b><i style="width:${fillPct}%"></i>${
-           bonusPct > 0 ? `<i class="bn" style="left:${fillPct}%;width:${bonusPct}%"></i>` : ''}</span>
        </div>`;
     }).join('');
 

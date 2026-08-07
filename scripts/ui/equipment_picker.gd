@@ -1078,6 +1078,11 @@ func _make_stat_row(stat_name: String, abbrev: String, points_remaining: int) ->
 		_character_data.get_global_stat_cap(stat_name),
 	]
 	row.add_child(cap_bar)
+	# Radiant Dawn order: LABEL, GAUGE, NUMBER, then the controls. Built last
+	# because the tooltip reads state the earlier locals computed, then moved
+	# into position — appending it after [+] put the gauge nowhere near the
+	# number it describes.
+	row.move_child(cap_bar, 1)
 
 	# Disabled buttons swallow clicks silently — gui_input still fires on them,
 	# so a press on a greyed +/- red-flashes the info that explains WHY it's
