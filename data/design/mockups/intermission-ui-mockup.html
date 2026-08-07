@@ -703,6 +703,8 @@
   .stat .capbar b, .stat .capbar i { position: absolute; left: 0; top: 0; height: 1px; display: block; }
   .stat .capbar b { background: #3a3831; }
   .stat .capbar i { background: var(--azure-7); }
+  /* StatUps, in the same accent the pips use — one colour for one currency. */
+  .stat .capbar i.bn { background: var(--sem-info); }
   /* At the ceiling the whole row says so — number and bar together, because a
      colored number alone is easy to miss in a block of eight. */
   .stat.capped .capbar i { background: var(--sem-success); }
@@ -1200,6 +1202,17 @@
         </section>
 
         <section class="notes">
+          <b>Round 18 — this preview now renders the engine's real numbers</b>
+          <ul>
+            <li><b>Caps shipped, so the mockup stopped guessing.</b> <code>ClassStatCaps</code> is live in the build — all 21 classes × 8 stats, plus the fixed global ceiling. The table here is <i>generated from that file</i>, not retyped. A preview that predicts different numbers than the build is worse than no preview.</li>
+            <li><b>Two of this mockup's classes didn't exist.</b> The hand-invented table had an <code>Automaton</code> and a <code>Medic</code>; <code>Enums.CharacterClass</code> has neither. Robot is a <b>Heavy</b> now and the Healer Goblin is a <b>Mage</b> — which is exactly the drift that made mirroring worth doing.</li>
+            <li><b>The StatUp segment is on the bar now</b>, matching <code>StatCapBar</code>. Press <code>[+]</code> on a capped stat and the gold segment pushes out <i>past the end of its own track</i>. That's the "StatUps may exceed the cap" rule demonstrating itself instead of being explained in a tooltip.</li>
+            <li><b>Click the Goblin's DEF.</b> A Mage's DEF ceiling is <b>9</b> — the track is a stub at full health. That's the real shipped number and the balance edge I'd watch first: she starts at 4, so roughly five growth points and her DEF is finished for the whole of tier 1. Intended (mages stay papery), but it's the one most likely to feel bad.</li>
+            <li><b>Only Robot is at a cap, and he's staged there.</b> With the real table nobody at Lv 2–11 organically reaches a ceiling, so his AGL and SPC were set to Heavy's actual caps to make the state visible. Everyone else's stats are untouched — five units nowhere near a ceiling is the honest picture for a tier-1 squad this early.</li>
+          </ul>
+        </section>
+
+        <section class="notes">
           <b>Round 17 — the bank column earns its space (and this changes the 2b/2c call)</b>
           <ul>
             <li><b>You were right, it did nothing.</b> Name / level / poured, repeating what the sheet already said, under a header ("ALL FLAT, 100 A LEVEL") left over from when prices varied per unit and there was something to compare. It answered no question you'd actually ask.</li>
@@ -1229,9 +1242,9 @@
             <li><b>It costs zero vertical space.</b> The bar is 1px, absolutely positioned on the row's bottom pixel, so eight of them don't push the stat block taller. Matches <code>StatFingerprint</code>'s existing 1px vocabulary rather than inventing a second bar idiom.</li>
             <li><b>Capped reads on the number AND the bar</b> — both go <code>--sem-success</code>. A colored number alone is easy to miss in a block of eight, and the bar is what you're scanning anyway.</li>
             <li><b>StatUps exceed the cap and don't fill the bar</b>, as specified — and the engine already agrees. <code>is_at_stat_cap()</code> reads <code>get_base_plus_growth()</code>, so allocated points were never counted. The <code>[+]</code> stat-cap gate the mockup used to have was wrong; it's gone.</li>
-            <li><b>Ma'am's SKL is the case worth clicking.</b> Lv 11 Skulk, SKL capped at 17, three StatUps already in it — so the row reads <code>22+++</code> <i>in green</i> while the bar sits full at 17. That's your two rules colliding in one row, and I think it reads right: green says "this is as far as growth goes," the pips say "and here's what I bought on top."</li>
-            <li><b>Robot is the other case.</b> Automaton caps AGL and SPC at <b>4</b> — hit at level 3, not progress but a class limit. Two green stubs 8% of the width, and the <i>stub length</i> is the message. That's the mechanic paying out: <code>process_bexp_level_up()</code> draws its 3 growths from uncapped stats only, so Robot's bEXP levels concentrate into 6 stats instead of 8. Exactly the "feel smart" play, and ignorable if you don't care.</li>
-            <li><b>Most bars are mostly empty, on purpose.</b> Every unit here is tier 1, and the global max is the <i>tier-3</i> ceiling — so a tier-1 track is roughly a third of the width. It reads as "you are early in a long climb," and it makes promotion legible as the thing that buys you the rest of the bar. If that ends up feeling discouraging rather than motivating, the fix is scaling the track to the <i>current tier's</i> ceiling instead, and losing cross-tier comparability.</li>
+            <li><b>Ma'am's SKL is the case worth clicking.</b> Lv 11 Skulk, SKL 17 against the real cap of 20, three StatUps already in it — the fill sits at 85% of its track and the gold StatUp segment rides past it. Both rules in one row: growth stops at the ceiling, purchases don't.</li>
+            <li><b>Robot is the at-cap case.</b> A Heavy's AGL and SPC ceilings are <b>8</b> and <b>9</b> — the lowest in the tier-1 table, because that's what makes a Heavy heavy. Two green stubs, and the <i>stub length</i> is the message. It's also the mechanic paying out: <code>process_bexp_level_up()</code> draws its 3 growths from uncapped stats only, so Robot's bEXP levels concentrate into 6 stats instead of 8.</li>
+            <li><b>Most bars are mostly empty, on purpose.</b> Every unit here is tier 1, and the global max is the <i>tier-3</i> ceiling — so a tier-1 track runs about a third of the width. It reads as "early in a long climb," and makes promotion legible as the thing that buys the rest of the bar. If it feels discouraging rather than motivating in play, the fix is scaling the track to the current tier's ceiling and losing cross-tier comparability.</li>
             <li><b>One wrinkle worth knowing:</b> percentage StatUps interact badly with <i>low</i> caps. +10% of a stat of 4 rounds to 0, so "StatUps can exceed the cap" is nearly meaningless on the stats where you'd most want it. It works fine on big stats. Not proposing a fix — flagging that the rule pays out unevenly.</li>
           </ul>
         </section>
@@ -1550,30 +1563,40 @@
   // allocated total.
   const GLOBAL_MAX = {hp:100, str:50, spc:50, skl:50, agl:50, ath:50, def:50, res:50};
 
-  // TIER-1 class caps. Every unit on this screen is tier 1, so these sit well
-  // under GLOBAL_MAX (which is the tier-3 ceiling) — most bars are a short
-  // track with a lot of empty space after it, and that reads correctly: you
-  // are early in a long climb, and promotion is what buys the rest of the bar.
+  // MIRRORED VERBATIM FROM THE ENGINE — scripts/units/class_stat_caps.gd,
+  // ClassStatCaps.BY_CLASS, all 21 classes. Generated from that file rather
+  // than retyped, because the earlier hand-invented version of this table had
+  // already drifted: it carried two classes ('Automaton', 'Medic') that don't
+  // exist in Enums.CharacterClass at all. If the engine table moves,
+  // regenerate this one; a preview that predicts different numbers than the
+  // build is worse than no preview.
   //
-  // Tuned so a tier-1 unit BUMPS these around level 20. A cap you can actually
-  // hit is the whole point of drawing them, and it's what makes bEXP
-  // situationally smart: process_bexp_level_up() draws its 3 growths from
-  // UNCAPPED stats only, so the more of your stats are maxed, the more
-  // concentrated each bEXP level becomes.
-  //
-  // Three demo cases, deliberately at different scales:
-  //   Ma'am   SKL 17/17 — a Lv 11 Skulk has maxed her defining stat. Normal-
-  //                       width track, fully green. This is the common case.
-  //   Robot   AGL & SPC 4/4 — hard class limits, not progress. Tiny green
-  //                       stubs, and the stub length IS the message.
-  //   Goblin  STR 4/6 — a Medic nearly at a ceiling she'd never want anyway.
+  // Tier 1 caps sit well under GLOBAL_MAX (the tier-3 ceiling), so most bars
+  // here are a short track with a lot of empty space after them. That reads
+  // correctly: every unit on this screen is tier 1, early in a long climb,
+  // and promotion is what buys the rest of the bar.
   const CLASS_CAPS = {
-    'Spaceman':  {hp:44, str:16, spc:13, skl:15, agl:15, ath:13, def:14, res:12},
-    'Skulk':     {hp:40, str:12, spc:13, skl:17, agl:16, ath:13, def:10, res:12},
-    'Engineer':  {hp:46, str:16, spc:10, skl:15, agl:10, ath:12, def:18, res: 9},
-    'Pirate':    {hp:42, str:16, spc:10, skl:16, agl:16, ath:15, def:11, res:10},
-    'Automaton': {hp:50, str:15, spc: 4, skl:11, agl: 4, ath: 9, def:22, res:15},
-    'Medic':     {hp:34, str: 6, spc:19, skl:14, agl:13, ath:10, def: 9, res:18},
+    'Spaceman':     {hp: 44, str: 18, spc: 15, skl: 17, agl: 17, ath: 15, def: 16, res: 14},  // tier 1
+    'Mercenary':    {hp: 44, str: 20, spc: 11, skl: 19, agl: 15, ath: 14, def: 17, res: 11},  // tier 1
+    'Squire':       {hp: 42, str: 16, spc: 12, skl: 15, agl: 14, ath: 13, def: 18, res: 12},  // tier 1
+    'Noble':        {hp: 42, str: 17, spc: 16, skl: 18, agl: 16, ath: 14, def: 15, res: 17},  // tier 1
+    'Engineer':     {hp: 46, str: 18, spc: 11, skl: 17, agl: 11, ath: 13, def: 19, res: 10},  // tier 1
+    'Pirate':       {hp: 42, str: 19, spc: 10, skl: 16, agl: 18, ath: 17, def: 12, res: 10},  // tier 1
+    'Fighter':      {hp: 46, str: 22, spc:  9, skl: 15, agl: 14, ath: 16, def: 13, res:  9},  // tier 1
+    'Enigma':       {hp: 36, str: 10, spc: 21, skl: 16, agl: 15, ath: 12, def: 10, res: 20},  // tier 1
+    'Skulk':        {hp: 38, str: 13, spc: 13, skl: 20, agl: 20, ath: 16, def: 11, res: 13},  // tier 1
+    'Duelist':      {hp: 38, str: 15, spc: 12, skl: 22, agl: 19, ath: 15, def: 11, res: 12},  // tier 1
+    'Mage':         {hp: 34, str:  9, spc: 23, skl: 17, agl: 14, ath: 11, def:  9, res: 19},  // tier 1
+    'Heavy':        {hp: 48, str: 19, spc:  9, skl: 12, agl:  8, ath: 10, def: 22, res: 13},  // tier 1
+    'Grunt':        {hp: 38, str: 15, spc: 10, skl: 13, agl: 12, ath: 12, def: 13, res: 10},  // tier 1
+    'Keener':       {hp: 36, str: 10, spc: 20, skl: 15, agl: 14, ath: 12, def: 10, res: 22},  // tier 1
+    'Bandit':       {hp: 46, str: 21, spc:  9, skl: 12, agl: 14, ath: 16, def: 14, res:  8},  // tier 1
+    'Jetpack':      {hp: 60, str: 27, spc: 20, skl: 28, agl: 32, ath: 30, def: 20, res: 20},  // tier 2
+    'Hardcase':     {hp: 68, str: 31, spc: 16, skl: 24, agl: 20, ath: 22, def: 32, res: 20},  // tier 2
+    'Knight':       {hp: 66, str: 29, spc: 18, skl: 25, agl: 19, ath: 20, def: 34, res: 24},  // tier 2
+    'EVA':          {hp: 92, str: 44, spc: 30, skl: 40, agl: 38, ath: 40, def: 42, res: 32},  // tier 3
+    'Topdog':       {hp: 88, str: 42, spc: 38, skl: 44, agl: 42, ath: 38, def: 38, res: 38},  // tier 3
+    'Void Knight':  {hp: 90, str: 36, spc: 46, skl: 38, agl: 32, ath: 32, def: 40, res: 48},  // tier 3
   };
   const capOf = (u, key) => CLASS_CAPS[u.cls][key];
   // Cap check reads lvlStat, NOT the displayed number — StatUps don't count.
@@ -1585,10 +1608,10 @@
   // and NOT of the running total — 4 pips is a flat +40% of the same number.
   // Rounding happens ONCE on the final total so the curve stays monotonic.
   //
-  // NOTE: the engine does NOT do this yet. stat_allocation.gd ships
-  // MODE = FLAT (+1 per point, HP +2) with PCT_PER_POINT = 0.0625, so its
-  // percentage branch would give +25% at 4 points, not +40%. This mockup is
-  // the spec; the engine needs the mode flip and the constant.
+  // SHIPPED 2026-08-06. stat_allocation.gd now runs MODE = PERCENTAGE with
+  // PCT_PER_POINT = 0.10, so the engine and this preview agree. (It used to
+  // ship MODE = FLAT at 0.0625, whose percentage branch would have given +25%
+  // at 4 points rather than +40% — this mockup was the spec that caught it.)
   const PER_STAT_CAP = 4;
   const PCT_PER_POINT = 0.10;
   const statDelta = (u, key) => Math.round(u.lvlStat[key] * PCT_PER_POINT * (u.al[key] || 0));
@@ -1619,10 +1642,18 @@
     {id:'elf', ord:4, nm:'Elf Pirate', cls:'Pirate', c:'#7fae6a', lv:5, dep:true, star:0, xp:55,
      hp:26,str:10,spc:6,skl:12,agl:13,ath:10,def:5,res:6, al:{},
      moves:['Cutlass','Sidearm','Cyclone','Feint'], pas:['Impetuous',null], inj:[]},
-    {id:'robot', ord:5, nm:'Robot', cls:'Automaton', c:'#6d9fd4', lv:3, dep:false, star:0, xp:10,
-     hp:31,str:9,spc:4,skl:7,agl:4,ath:6,def:13,res:9, al:{},
+    // Heavy, not the invented 'Automaton'. AGL and SPC are STAGED to sit
+    // exactly on Heavy's real caps (8 and 9) so the at-cap state is visible
+    // on this screen — at Lv 3 nobody would organically be there. Everyone
+    // else's stats are untouched, and none of them are near a ceiling, which
+    // is the honest picture for a tier-1 squad this early.
+    {id:'robot', ord:5, nm:'Robot', cls:'Heavy', c:'#6d9fd4', lv:3, dep:false, star:0, xp:10,
+     hp:31,str:9,spc:9,skl:7,agl:8,ath:6,def:13,res:9, al:{},
      moves:['Klunk','Megaton Punch','Bonk','Lance'], pas:['Maximum',null], inj:[]},
-    {id:'goblin', ord:6, nm:'Healer Goblin', cls:'Medic', c:'#8f7fb8', lv:2, dep:false, star:0, xp:80,
+    // Mage, not the invented 'Medic'. Worth clicking: a Mage's DEF ceiling is
+    // NINE, so her DEF track is a stub even at full health — that's the
+    // engine's real number and the balance edge most likely to bite.
+    {id:'goblin', ord:6, nm:'Healer Goblin', cls:'Mage', c:'#8f7fb8', lv:2, dep:false, star:0, xp:80,
      hp:19,str:4,spc:11,skl:9,agl:8,ath:5,def:4,res:12, al:{},
      moves:['Poultice','Salve','Bonk','Compressed Air'], pas:['Glib',null], inj:['Frostbite']},
   ];
@@ -1886,6 +1917,12 @@
       const capped = raw >= cap;
       const trackPct = Math.min(100, cap / gmax * 100);
       const fillPct = Math.min(trackPct, raw / gmax * 100);
+      // Bonus segment, matching StatCapBar: rides past the fill and is clamped
+      // only by the GLOBAL ceiling, never by the class cap. Press [+] on a
+      // capped stat and you watch it push out past the end of its own track —
+      // which is the "StatUps may exceed the cap" rule demonstrating itself
+      // rather than being explained.
+      const bonusPct = Math.max(0, Math.min(100, u[key] / gmax * 100) - fillPct);
       const barTitle = capped
         ? `${lbl} is at the ${u.cls} cap of ${cap} — growths skip it, so bEXP levels concentrate elsewhere`
         : `${raw} of ${cap} (${u.cls} cap) · game max ${gmax}`;
@@ -1898,7 +1935,8 @@
          <button class="sbtn ${canAdd ? '' : 'inert'}" data-plus="${key}"
            title="${canAdd ? `spend a StatUp (+10% ${lbl}, ${PER_STAT_CAP} max)`
              : (atPointCap ? `${PER_STAT_CAP} points is the per-stat cap` : 'no StatUp to spend')}">+</button>
-         <span class="capbar" title="${barTitle}"><b style="width:${trackPct}%"></b><i style="width:${fillPct}%"></i></span>
+         <span class="capbar" title="${barTitle}"><b style="width:${trackPct}%"></b><i style="width:${fillPct}%"></i>${
+           bonusPct > 0 ? `<i class="bn" style="left:${fillPct}%;width:${bonusPct}%"></i>` : ''}</span>
        </div>`;
     }).join('');
 
