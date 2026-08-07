@@ -49,4 +49,19 @@ fi
 # Success — emit a tight one-line summary
 SUMMARY=$(grep -E "Passing Tests|Asserts|Time " "$LOG" | tr '\n' ' ' | sed 's/  */ /g')
 echo "[pre-commit] OK. $SUMMARY"
+
+# Design mockups are HTML, so GUT can't see them — and a malformed stylesheet
+# there fails SILENTLY: the browser drops the bad rule and renders a page that
+# looks plausible. Twice now an unopened /* comment swallowed the following
+# selector and made a whole widget invisible, while brace counts stayed
+# balanced. This validator checks SELECTORS and custom properties, which is
+# what actually breaks. Same soft-fail policy as the tests above.
+for mockup in $(git diff --cached --name-only --diff-filter=ACM | grep '^data/design/mockups/.*\.html$'); do
+	[ -f "$mockup" ] || continue
+	if ! python3 tools/validate_mockup_css.py "$mockup"; then
+		echo "[pre-commit] !!! $mockup has malformed CSS (see above)."
+		echo "[pre-commit] Soft-fail mode: commit will proceed."
+	fi
+done
+
 exit 0

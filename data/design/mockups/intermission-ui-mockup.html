@@ -697,8 +697,6 @@
   }
 
   /* ---------- cap bar: how close this stat is to its class ceiling ----------
-     Rides the row's bottom pixel via absolute positioning, so eight of these
-     cost ZERO vertical space — the stat block stays exactly as tall as it was.
      Laid out the Radiant Dawn way (RQD 2026-08-07), which is also what the
      Unit Detail Panel already does: the bar is a MEMBER OF THE ROW, sitting
      between the label and the number, and it flexes to eat whatever width the
@@ -716,15 +714,19 @@
     flex: 1 1 auto; min-width: 14px; height: 3px; position: relative;
     align-self: center;
   }
-     TWO BUGS lived here until 2026-08-07, and together they made the bar look
-     like a single element:
-       1. the fill referenced var(--azure-7), which this file never defined —
-          an undefined custom property makes the declaration invalid at
-          computed-value time, so the fill rendered with NO background at all;
-       2. the track was #3a3831 against a --panel-bg of #302d27, a difference
-          of about three values. Invisible even if the fill had worked.
-     So the only thing on screen was a dark stub. Both colours are now real
-     palette entries picked to contrast with the panel AND each other. */
+  /* THREE bugs kept this bar off the screen; all fixed 2026-08-07.
+       1. An UNOPENED COMMENT sat right here — prose with no leading slash-star.
+          CSS swallowed it plus the next selector as one garbage rule, so the
+          declaration below never applied and b/i stayed zero-height inline
+          elements. Braces and comment-terminators were balanced the whole
+          time, which is why counting them proved nothing.
+       2. The fill referenced var(--azure-7), which this file never defined.
+          An undefined custom property makes the declaration invalid at
+          computed-value time, so the fill drew with no background at all.
+       3. The track was #3a3831 against a --panel-bg of #302d27 — about three
+          values apart, invisible even had the rest worked.
+     Colours are real palette entries now, separated from the panel and from
+     each other: panel luma 21, track 87, fill 198. */
   .stat .capbar b, .stat .capbar i { position: absolute; left: 0; top: 0; height: 3px; display: block; }
   .stat .capbar b { background: var(--straw2-4); }
   .stat .capbar i { background: var(--azure-7); }
@@ -1229,8 +1231,10 @@
         <section class="notes">
           <b>Round 19 — the cap bar, formatted like Radiant Dawn</b>
           <ul>
-            <li><b>The fill was never rendering.</b> Not a styling opinion — a bug. It referenced <code>var(--azure-7)</code>, which this file never defined, and an undefined custom property makes the declaration invalid at computed-value time, so the fill drew with <i>no background at all</i>. You were looking at the track alone. That's why it read as one element instead of two.</li>
-            <li><b>And the track was invisible anyway.</b> <code>#3a3831</code> against a panel of <code>#302d27</code> — about three values apart. Both colours are real palette entries now, picked to separate from the panel <i>and</i> from each other: panel luma 21 → track 87 → fill 198.</li>
+            <li><b>An unopened comment ate the rule.</b> The reason nothing showed even after the first fix: a block of prose with no leading <code>/*</code> sat in the stylesheet, so CSS parsed it <i>plus the following selector</i> as one garbage rule and dropped it. That rule was the one giving the track and fill their <code>position:absolute</code> and <code>height</code> — without it they were zero-height inline elements. The DOM was correct the whole time, which is exactly why it was confusing.</li>
+            <li><b>The fill also referenced a colour that didn't exist.</b> <code>var(--azure-7)</code> is never defined in this file, and an undefined custom property makes the declaration invalid at computed-value time — so the fill had no background either way.</li>
+            <li><b>And the track was invisible on its own merits.</b> <code>#3a3831</code> against a panel of <code>#302d27</code> — about three values apart. Colours are real palette entries now, separated from the panel <i>and</i> each other: panel luma 21 → track 87 → fill 198.</li>
+            <li><b>There's a validator now</b> (<code>tools/validate_mockup_css.py</code>, wired into pre-commit). Brace and comment counting passed through both of these — the braces really were balanced. It checks <i>selectors</i> and custom properties instead, which is what actually broke. Verified by running it against the commit that shipped broken: it fails.</li>
             <li><b>Same bug in the engine, different cause.</b> <code>StatCapBar.COLOR_TRACK</code> was Straw2 2 (<code>#2e2719</code>) against a HUD panel of <code>#171512</code>. Visible, but barely. Moved to Straw2 4.</li>
             <li><b>Laid out the RD way: LABEL → GAUGE → NUMBER</b>, then the controls. It had been a 1px rule absolutely positioned along the row's bottom edge, which cost no vertical space and read as an underline rather than a gauge — and put the bar nowhere near the number it describes.</li>
             <li><b>The stat block is one column now.</b> A gauge needs length to say anything, and two columns of four left it 18px. Full width gives ~120px, so a Mage's DEF ceiling at 18% of global reads as a stub instead of two pixels. Costs about 52px of sheet height, which the sheet had. One CSS value reverts it.</li>
