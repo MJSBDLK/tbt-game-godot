@@ -11,6 +11,18 @@ everything else, roughly by how soon it matters.
 **Status markers:** `[ ]` not started · `[~]` partially done, detail inline ·
 `[?]` status unknown, needs a look.
 
+## Live links
+
+- **Intermission UI mockup** — <https://claude.ai/code/artifact/c4001371-950b-4d7e-8dc2-6fd619f787bb>
+  Screens 1–2 of 7, interactive. Source of truth is
+  [data/design/mockups/intermission-ui-mockup.html](../data/design/mockups/intermission-ui-mockup.html)
+  in this repo; the URL is a republish of that file, so **edit the file and
+  republish to the same URL** rather than starting a new artifact. Design
+  rationale per round lives in the notes column of the page itself.
+  - Still undecided in there: **2b vs 2c** (bEXP inside Manage Units vs its own
+    screen), the **button set** (symmetric amounts vs named jumps), and whether
+    **bEXP should reach benched units**.
+
 ---
 
 ## Lawrence meeting 2026-08-05 — shadow system
