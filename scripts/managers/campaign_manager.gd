@@ -27,7 +27,12 @@ signal campaign_ended()
 
 
 const START_SCREEN_PATH: String = "res://scenes/ui/start_screen.tscn"
-const PREP_SCREEN_PATH: String = "res://scenes/ui/prep_screen.tscn"
+## Every mission boundary lands on the intermission HUB (2026-08-07), not
+## straight into the squad editor. The hub is the quiet beat between the battle
+## and the spreadsheet, and it owns Save / Options / Begin Mission; Manage Units
+## is one entry inside it. The old prep screen is still what that entry opens —
+## see IntermissionHub.MANAGE_UNITS_PATH — until slice 3 of the port replaces it.
+const INTERMISSION_PATH: String = "res://scenes/ui/intermission_hub.tscn"
 const CAMPAIGN_COMPLETE_SCREEN_PATH: String = "res://scenes/ui/campaign_complete_screen.tscn"
 const RECRUIT_OFFER_COUNT: int = 3
 
@@ -95,7 +100,7 @@ func start_campaign(start_level: int, mission_paths: Array[String],
 	campaign_started.emit(_start_level, _mission_paths)
 	DebugConfig.log_unit_init("CampaignManager: Started campaign — level %d, %d missions, %d in recruit pool" % [
 		_start_level, _mission_paths.size(), _recruit_pool.size()])
-	SceneRouter.change_scene_to(PREP_SCREEN_PATH)
+	SceneRouter.change_scene_to(INTERMISSION_PATH)
 
 
 ## Entry point called by UIManager._finish_post_mission_flow at the end of
@@ -150,7 +155,7 @@ func advance_mission() -> void:
 	mission_advanced.emit(_current_mission_index)
 	DebugConfig.log_unit_init("CampaignManager: Advancing to mission %d/%d (via prep screen)" % [
 		_current_mission_index + 1, _mission_paths.size()])
-	SceneRouter.change_scene_to(PREP_SCREEN_PATH)
+	SceneRouter.change_scene_to(INTERMISSION_PATH)
 
 
 ## The defeat branch of conclude_mission. Replays the current mission without
@@ -164,7 +169,7 @@ func _restart_current_mission() -> void:
 	mission_restarted.emit(_current_mission_index)
 	DebugConfig.log_unit_init("CampaignManager: Replaying mission %d/%d after defeat" % [
 		_current_mission_index + 1, _mission_paths.size()])
-	SceneRouter.change_scene_to(PREP_SCREEN_PATH)
+	SceneRouter.change_scene_to(INTERMISSION_PATH)
 
 
 ## Records which roster members the player has chosen to deploy in the next

@@ -315,7 +315,7 @@ func load_save_and_continue(path: String) -> bool:
 		return true
 
 	if CampaignManager.is_active():
-		SceneRouter.change_scene_to(CampaignManager.PREP_SCREEN_PATH)
+		SceneRouter.change_scene_to(CampaignManager.INTERMISSION_PATH)
 	else:
 		SceneRouter.change_scene_to(CampaignManager.START_SCREEN_PATH)
 	return true
