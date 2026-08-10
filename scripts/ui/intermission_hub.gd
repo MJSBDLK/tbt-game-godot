@@ -52,6 +52,7 @@ var _menu_entries: Array[MainMenuEntry] = []
 var _default_entry: MainMenuEntry = null
 var _manage_entry: MainMenuEntry = null
 var _bexp_entry: MainMenuEntry = null
+var _briefing_entry: MainMenuEntry = null
 var _save_entry: MainMenuEntry = null
 
 ## Save Game arrives ARMED. Verified 2026-08-04 and still true: autosaves are
@@ -132,11 +133,13 @@ func _unspent_statups() -> int:
 	return total
 
 
+## Reads the BRIEFING list, not the award list — a map that declares no
+## objectives still has one to show ("Eliminate the enemy"), so this never
+## returns 0 for a live mission.
 func _objective_count() -> int:
 	if not CampaignManager.is_active():
 		return 0
-	var entry: Dictionary = MissionCatalog.entry_for(CampaignManager.get_current_mission_path())
-	return (entry.get("objectives", []) as Array).size()
+	return MissionCatalog.briefing_objectives(CampaignManager.get_current_mission_path()).size()
 
 
 # =============================================================================
@@ -174,8 +177,13 @@ func _build_content() -> void:
 	# Task order, top to bottom — then the system tail behind a gap.
 	_manage_entry = _add_entry(column, "Manage Units", "", _on_manage_pressed)
 	_bexp_entry = _add_entry(column, "Allocate Bonus EXP", "", _on_bexp_pressed)
-	_add_entry(column, "Mission Briefing", briefing_sub_line(_objective_count()),
-			_on_briefing_pressed)
+	# INERT until §5 is built. It previously opened Manage Units, which is a
+	# worse failure than a dead entry: a button that silently goes somewhere
+	# else teaches the player the labels can't be trusted. Its sub-line still
+	# reports the real objective count, so the row is informative while unbuilt.
+	_briefing_entry = _add_entry(column, "Mission Briefing",
+			briefing_sub_line(_objective_count()), _on_briefing_pressed)
+	_briefing_entry.inert = true
 	_default_entry = _add_entry(column, "Begin Mission", "", _on_begin_pressed)
 	_default_entry.is_default_action = true
 
@@ -239,9 +247,9 @@ func _refresh_entries() -> void:
 		var pool: int = SquadManager.bonus_xp_pool
 		_set_sub_text(_bexp_entry, bexp_sub_line(pool))
 		# Inert at zero — there is nothing to allocate, and §14 says an entry
-		# whose press would do nothing shouldn't look pressable.
+		# whose press would do nothing shouldn't look pressable. Styling and
+		# focusability ride the setter.
 		_bexp_entry.inert = pool <= 0
-		_bexp_entry.focus_mode = Control.FOCUS_NONE if _bexp_entry.inert else Control.FOCUS_ALL
 	_refresh_save_entry()
 
 
@@ -254,7 +262,9 @@ func _refresh_save_entry() -> void:
 		return
 	_set_main_text(_save_entry, "Save Game" if _dirty else "Game saved!")
 	_save_entry.inert = not _dirty
-	_save_entry.focus_mode = Control.FOCUS_NONE if _save_entry.inert else Control.FOCUS_ALL
+	# Colour override goes AFTER `inert`, deliberately: the setter resets the
+	# label to the primary/disabled pair, and the latched state wants the
+	# SUCCESS voice instead — a different thing from "disabled".
 	if _save_entry._main_label != null:
 		_save_entry._main_label.add_theme_color_override("font_color",
 				GameColors.TEXT_PRIMARY if _dirty else GameColors.TEXT_SUCCESS)
@@ -294,10 +304,10 @@ func _on_bexp_pressed() -> void:
 	SceneRouter.change_scene_to(MANAGE_UNITS_PATH)
 
 
+## No-op while the entry is inert. Kept wired so building §5 is one line here
+## plus dropping the `inert` flag, rather than re-threading the handler.
 func _on_briefing_pressed() -> void:
-	# §5 Mission Briefing is not built yet. Manage Units is the honest
-	# destination in the meantime — better than a dead entry.
-	SceneRouter.change_scene_to(MANAGE_UNITS_PATH)
+	pass
 
 
 ## Only latches on an actual write. write_manual_save() returns "" when there

@@ -136,10 +136,35 @@ see the mockup and §6. These three are the remainder.)*
       curve got steep enough to feel like punishment.
 
 
+- [ ] **Where do objectives actually get DEFINED?** *(Gap found on F5,
+  2026-08-07 — there is no authoring system at all.)* `mission_manifest.json`
+  has an `objectives: []` key and every map ships it empty; `MissionCatalog`
+  reads them for the award side; nothing writes them and nothing tracks them.
+  So the whole objective system is currently a shape with no content.
+  - Stopgap already in: `MissionCatalog.briefing_objectives()` returns an
+    implicit **"Eliminate the enemy"** when a map declares none, so a briefing
+    never renders an empty list. Display-only, pays no bEXP — routing the enemy
+    is how you win, not a bonus for winning.
+  - The real decision, and it's three questions stacked:
+    1. **Where does an objective live** — JSON in the manifest (data, easy to
+       author, can't reference scene nodes), a Resource per mission (typed,
+       inspectable), or on the map scene itself (can point straight at the
+       courier node it's about)? The diegetic-objectives doctrine wants
+       objectives bound to on-board causes, which argues for the map scene.
+    2. **What is an objective made of** — an id, a label, a bEXP amount, and
+       *some* completion predicate. The predicate is the hard part: "escort
+       NPC to tile", "kill unit X", "survive N turns", "reach tile" are all
+       different shapes.
+    3. **Who evaluates it at runtime** — nothing does today. Needs a hook on
+       the same events battle result already listens to.
+  - Blocks: Mission Briefing (§5 of [intermission.md](intermission.md), the hub
+    entry is inert until this exists) and the tracking half of Battle Result V2.
+
 - [ ] **Battle result V2.** V1 shipped (BattleResultPanel: turns-vs-par, itemized
   bEXP income, kills/losses/injuries). Remaining scope: runtime objective
   **tracking** (couriers/NPCs — the award side is already ready in MissionCatalog)
   + per-unit combat stats. See [mission_objectives.md](mission_objectives.md).
+  Gated on the objective-authoring decision above.
   - [ ] Delete the dormant `battle_result_overlay.tscn` once its slide-in
     animation is either adopted or given up on.
 

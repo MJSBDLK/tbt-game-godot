@@ -57,6 +57,46 @@ func test_the_briefing_line_pluralises() -> void:
 	assert_eq(IntermissionHub.briefing_sub_line(0), "no objectives listed")
 
 
+# =============================================================================
+# THE IMPLICIT OBJECTIVE (F5 findings, 2026-08-07)
+# =============================================================================
+
+func test_a_map_with_no_objectives_still_has_one_to_show() -> void:
+	# Every shipped map declares `objectives: []`, so the briefing read
+	# "no objectives listed" on every mission — which looks like a bug rather
+	# than like "nothing special here".
+	var shown: Array = MissionCatalog.briefing_objectives(
+			"res://scenes/battle/maps/test_map_01.tscn")
+	assert_eq(shown.size(), 1, "the victory condition IS the objective")
+	assert_eq(str((shown[0] as Dictionary).get("label", "")), "Eliminate the enemy")
+
+
+func test_an_unknown_map_also_gets_the_implicit_objective() -> void:
+	# Ad-hoc battles aren't in the manifest at all; they must not brief empty.
+	assert_eq(MissionCatalog.briefing_objectives("res://nope.tscn").size(), 1)
+
+
+func test_the_implicit_objective_pays_no_bexp() -> void:
+	# Routing the enemy is how you WIN, not a bonus for winning. If it ever
+	# starts paying, every mission silently gains free income.
+	assert_eq(int(MissionCatalog.DEFAULT_OBJECTIVE.get("bexp", -1)), 0)
+
+
+func test_the_implicit_objective_stays_out_of_the_award_path() -> void:
+	# The display default must not leak into compute_award_lines, or the result
+	# screen grows a 0-bEXP "Eliminate the enemy" row. entry_for() is the award
+	# side and must keep reporting what the manifest actually declared.
+	var entry: Dictionary = MissionCatalog.entry_for(
+			"res://scenes/battle/maps/test_map_01.tscn")
+	assert_eq((entry.get("objectives", []) as Array).size(), 0,
+			"the award side still sees an empty list")
+	var lines: Array[Dictionary] = MissionCatalog.compute_award_lines(
+			entry, 1, true, ["rout"])
+	for line: Dictionary in lines:
+		assert_ne(str(line.get("label", "")), "Eliminate the enemy",
+				"even claiming 'rout' complete adds no line")
+
+
 func test_the_eyebrow_counts_from_one() -> void:
 	# mission_index is 0-based internally; players count from 1.
 	assert_eq(IntermissionHub.eyebrow_text(0, 3), "Mission 1 of 3")
@@ -180,6 +220,24 @@ func test_spending_bexp_re_arms_the_save_entry() -> void:
 	SquadManager.bonus_xp_changed.emit(SquadManager.bonus_xp_pool)
 	assert_false(hub._save_entry.inert, "a pool change re-arms Save Game")
 	assert_eq(hub._save_entry.text, "Save Game")
+
+
+func test_mission_briefing_is_inert_rather_than_going_somewhere_else() -> void:
+	# It used to open Manage Units, which is a worse failure than a dead entry:
+	# a label that silently goes elsewhere teaches the player not to trust any
+	# of them. Found on F5, 2026-08-07.
+	var hub := _built_hub()
+	assert_true(hub._briefing_entry.inert, "inert until §5 exists")
+	assert_eq(hub._briefing_entry.focus_mode, Control.FOCUS_NONE,
+			"and unreachable by cursor navigation")
+
+
+func test_the_briefing_sub_line_is_never_empty_on_a_live_mission() -> void:
+	# The count comes from briefing_objectives(), not the award list, so an
+	# undeclared map reports 1 rather than 0.
+	var hub := _built_hub()
+	assert_ne(hub._briefing_entry.sub_text, "",
+			"the row stays informative even while it's unpressable")
 
 
 func test_inert_entries_stay_out_of_the_focus_chain() -> void:
