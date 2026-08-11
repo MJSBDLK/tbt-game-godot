@@ -42,6 +42,22 @@ const STAT_BLURBS: Dictionary = {
 
 const ICON_SIZE: int = 10
 const GLOW_MATERIAL_PATH: String = "res://resources/hud_glow.tres"
+
+## ACROSS THE SQUAD rows carry a mini StatCapBar (RQD 2026-08-11 mockup):
+## the bar's fill pixels are comparable across units by construction, which
+## is exactly the comparison the list exists to make. Flip false to restore
+## the numbers-only table.
+const SQUAD_COMPARE_BARS: bool = true
+
+## SERVICE-RECORD GAP MARKUP. Authors write unknown canon inline as
+## `[[note about the gap]]` — the note names what's missing ("Ernesto's last
+## name — undecided") and NEVER renders. In-game the span reads
+## [ DATA CORRUPTED ], muted, shaking when motion is enabled — diegetically,
+## the squad may have tampered with their own records. List every open gap:
+##   grep -o '\[\[[^]]*\]\]' data/characters/*.json
+const GAP_OPEN: String = "[["
+const GAP_CLOSE: String = "]]"
+const CORRUPTED_TEXT: String = "[ DATA CORRUPTED ]"
 const ELEMENTAL_ICON_DIR: String = "res://art/sprites/ui/elemental_type_icons_10x10/"
 ## Damage-type icons — the COLORED set in move_type_icons_10x10/ (the flat
 ## ui/ copies were black silhouettes and got retired 2026-08-10 when they
@@ -640,12 +656,28 @@ func _build_stat_lane() -> void:
 		var name_label := GlowLabel.styled(member.character_name, UIManager.font_8px, 8,
 				GameColors.TEXT_PRIMARY if is_current else GameColors.TEXT_SECONDARY,
 				GameColors.TEXT_PRIMARY_GLOW if is_current else GameColors.TEXT_SECONDARY_GLOW)
-		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(name_label)
+		if SQUAD_COMPARE_BARS:
+			# Fixed name column so every bar shares a left edge — ragged bar
+			# starts would break the very comparison the bars exist for.
+			name_label.custom_minimum_size = Vector2(56, 0)
+			name_label.clip_text = true
+			row.add_child(name_label)
+			var bar := StatCapBar.new(stat_name, 1)
+			bar.custom_minimum_size = Vector2(30, 3)
+			bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			bar.set_character(member)
+			row.add_child(bar)
+		else:
+			name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			row.add_child(name_label)
 		var value_label := GlowLabel.styled(str(member.get(stat_name)),
 				UIManager.font_8px, 8,
 				GameColors.TEXT_PRIMARY if is_current else GameColors.TEXT_INFO,
 				GameColors.TEXT_PRIMARY_GLOW if is_current else GameColors.TEXT_INFO_GLOW)
+		if SQUAD_COMPARE_BARS:
+			value_label.custom_minimum_size = Vector2(16, 0)
+			value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.add_child(value_label)
 
 
@@ -710,6 +742,30 @@ func _build_summary_lane() -> void:
 	portrait_area.clip_contents = true
 	stack.add_child(portrait_area)
 
+	# The square frame (RQD 2026-08-11, replacing the bottom-only baseline):
+	# a 1px PRIMARY ring with the orthogonal glow on both sides — the Equip
+	# outline treatment at portrait scale. The art lives in an INNER control
+	# inset past the ring, because the HD mirror renders in HDLayer above
+	# everything HUD-side and would otherwise paint over the frame's bottom
+	# edge exactly where the art butts it.
+	var frame_ring := GlowColorRect.new()
+	frame_ring.material = (load(GLOW_MATERIAL_PATH) as Material).duplicate()
+	frame_ring.border_mode = true
+	frame_ring.color = Color.WHITE
+	frame_ring.self_modulate = GameColors.TEXT_PRIMARY
+	frame_ring.glow_color = GameColors.TEXT_PRIMARY_GLOW
+	frame_ring.set_anchors_preset(Control.PRESET_FULL_RECT)
+	frame_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	portrait_area.add_child(frame_ring)
+
+	var inner := Control.new()
+	inner.set_anchors_preset(Control.PRESET_FULL_RECT)
+	inner.offset_left = 3
+	inner.offset_top = 3
+	inner.offset_right = -3
+	inner.offset_bottom = -3
+	portrait_area.add_child(inner)
+
 	var hd_texture: Texture2D = CharacterPortrait.hd_art_for(_character)
 	var painted_texture: Texture2D = null
 	if hd_texture == null and not _character.portrait_path.is_empty() \
@@ -720,7 +776,7 @@ func _build_summary_lane() -> void:
 		var portrait := TextureRect.new()
 		portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		portrait.stretch_mode = TextureRect.STRETCH_SCALE
-		portrait_area.add_child(portrait)
+		inner.add_child(portrait)
 		var aspect_source: Texture2D = hd_texture if hd_texture != null else painted_texture
 		if painted_texture != null:
 			portrait.texture = painted_texture
@@ -731,35 +787,26 @@ func _build_summary_lane() -> void:
 			CharacterPortrait.bind_to_texture_rect(portrait, _character)
 		# Bottom-align at the art's own aspect: the portrait rect is computed,
 		# not stretched, so the HD slot (full-rect on the TextureRect) and its
-		# mirror land exactly on the drawn art — the art's lower edge BUTTS
-		# the baseline instead of floating centered above it.
+		# mirror land exactly on the drawn art — the art's lower edge butts
+		# the frame's inner bottom edge and scales with whatever height the
+		# service record leaves it, staying composed at any panel size.
 		var align := func() -> void:
-			_bottom_align_portrait(portrait, portrait_area, aspect_source)
-		portrait_area.resized.connect(align)
+			_bottom_align_portrait(portrait, inner, aspect_source)
+		inner.resized.connect(align)
 		align.call_deferred()
 	else:
 		# Records corrupted: full-area animated noise with the caption riding
 		# above it (the overlay is top_level for sizing but still draws in
 		# tree order, so the caption is added after).
 		var noise := StaticCensorOverlay.new()
-		portrait_area.add_child(noise)
-		noise.set_target(portrait_area)
+		inner.add_child(noise)
+		noise.set_target(inner)
 		noise.set_censored(true)
 		noise.modulate = GameColors.with_alpha(Color.WHITE, 0.35)
 		var caption_center := CenterContainer.new()
 		caption_center.set_anchors_preset(Control.PRESET_FULL_RECT)
-		portrait_area.add_child(caption_center)
+		inner.add_child(caption_center)
 		caption_center.add_child(_muted_label("— NO DATA —"))
-
-	# The baseline the art stands on — 1px PRIMARY body with its orthogonal
-	# halo, same shader as every other lit rule on the screen.
-	var baseline := GlowColorRect.new()
-	baseline.material = (load(GLOW_MATERIAL_PATH) as Material).duplicate()
-	baseline.color = GameColors.TEXT_PRIMARY
-	baseline.glow_color = GameColors.TEXT_PRIMARY_GLOW
-	baseline.custom_minimum_size = Vector2(0, 3)
-	baseline.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	stack.add_child(baseline)
 
 	stack.add_child(_service_record_block())
 
@@ -779,18 +826,105 @@ func _bottom_align_portrait(portrait: TextureRect, area: Control,
 	portrait.size = Vector2(drawn_width, drawn_height)
 
 
-## The corp AI's asset assessment, filed under the baseline. Unwritten
-## records read "— NO DATA —", which is itself in-fiction.
+## Splits a record into segments: {text: String, corrupted: bool}. Corrupted
+## segments carry the AUTHOR'S gap note as their text — callers decide
+## whether to render CORRUPTED_TEXT (the game) or the note (tooling).
+static func service_record_segments(record: String) -> Array[Dictionary]:
+	var segments: Array[Dictionary] = []
+	var cursor: int = 0
+	while cursor < record.length():
+		var open: int = record.find(GAP_OPEN, cursor)
+		if open == -1:
+			segments.append({"text": record.substr(cursor), "corrupted": false})
+			break
+		if open > cursor:
+			segments.append({"text": record.substr(cursor, open - cursor), "corrupted": false})
+		var close: int = record.find(GAP_CLOSE, open + GAP_OPEN.length())
+		if close == -1:
+			# Unterminated marker — render the tail verbatim rather than eating it.
+			segments.append({"text": record.substr(open), "corrupted": false})
+			break
+		segments.append({"text": record.substr(open + GAP_OPEN.length(),
+				close - open - GAP_OPEN.length()), "corrupted": true})
+		cursor = close + GAP_CLOSE.length()
+	return segments
+
+
+## Every open canon gap in a record — the notes inside [[...]]. Tooling/tests
+## sugar over the segments.
+static func service_record_gaps(record: String) -> Array[String]:
+	var gaps: Array[String] = []
+	for segment: Dictionary in service_record_segments(record):
+		if segment["corrupted"]:
+			gaps.append(str(segment["text"]))
+	return gaps
+
+
+## The record as bbcode: prose in PRIMARY, gaps as [ DATA CORRUPTED ] in the
+## MUTED body, shaking when motion is enabled, with the tamper story in a
+## hover hint. The gap note itself never renders.
+static func service_record_bbcode(record: String, motion: bool) -> String:
+	var out: String = ""
+	var muted_hex: String = GameColors.TEXT_MUTED.to_html(false)
+	for segment: Dictionary in service_record_segments(record):
+		if segment["corrupted"]:
+			var span: String = "[color=#%s]%s[/color]" % [muted_hex,
+					_escape_bbcode(CORRUPTED_TEXT)]
+			if motion:
+				span = "[shake rate=16.0 level=4]%s[/shake]" % span
+			out += "[hint=records integrity check failed]%s[/hint]" % span
+		else:
+			out += _escape_bbcode(str(segment["text"]))
+	return out
+
+
+## Naive sequential replaces clobber each other — the "]" inside an inserted
+## "[lb]" gets re-escaped by the "]" pass. Route "[" through a sentinel first.
+static func _escape_bbcode(text: String) -> String:
+	var sentinel: String = char(1)
+	return text.replace("[", sentinel).replace("]", "[rb]").replace(sentinel, "[lb]")
+
+
+## The corp AI's asset assessment, filed under the frame. Unwritten records
+## read "— NO DATA —", which is itself in-fiction.
 func _service_record_block() -> Control:
 	var margin := _margins(0, 0, 5, 4)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 2)
 	margin.add_child(column)
 	column.add_child(_dim_label("SERVICE RECORD"))
-	if _character.service_record != "":
-		column.add_child(_body_copy(_character.service_record))
-	else:
+	if _character.service_record == "":
 		column.add_child(_muted_label("— NO DATA —"))
+		return margin
+
+	# RichTextLabel, not GlowLabel: the corrupted spans need per-span color
+	# and the shake effect. The glow material works the same way on its
+	# glyphs; the one impurity is a single halo color for the whole block —
+	# PRIMARY's — which the muted spans inherit. Accepted (RQD 2026-08-11):
+	# a tampered record glowing slightly wrong is on theme.
+	var body := RichTextLabel.new()
+	body.bbcode_enabled = true
+	body.fit_content = true
+	body.scroll_active = false
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.mouse_filter = Control.MOUSE_FILTER_PASS
+	if UIManager.font_8px != null:
+		body.add_theme_font_override("normal_font", UIManager.font_8px)
+	body.add_theme_font_size_override("normal_font_size", 8)
+	body.add_theme_color_override("default_color", GameColors.TEXT_PRIMARY)
+	var glow_material := (load(GLOW_MATERIAL_PATH) as Material).duplicate()
+	(glow_material as ShaderMaterial).set_shader_parameter("glow_color",
+			GameColors.TEXT_PRIMARY_GLOW)
+	body.material = glow_material
+	var inset := StyleBoxEmpty.new()
+	inset.content_margin_left = 1
+	inset.content_margin_right = 1
+	inset.content_margin_top = 1
+	inset.content_margin_bottom = 1
+	body.add_theme_stylebox_override("normal", inset)
+	body.text = service_record_bbcode(_character.service_record,
+			Settings.ui_motion_enabled)
+	column.add_child(body)
 	return margin
 
 

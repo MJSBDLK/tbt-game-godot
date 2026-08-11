@@ -383,3 +383,43 @@ func test_hd_art_detection_branches_the_crew_file() -> void:
 	var maam: CharacterData = SquadManager.get_character_by_id("maam")
 	if maam != null:
 		assert_true(CharacterPortrait.has_hd_art(maam))
+
+
+# =============================================================================
+# SERVICE-RECORD GAP MARKUP — [[gap note]] -> [ DATA CORRUPTED ]
+# =============================================================================
+
+func test_gap_notes_never_reach_the_screen() -> void:
+	var record: String = "Asset X [[real name — undecided]]. Cleared for duty."
+	var rendered: String = UnitWorkbench.service_record_bbcode(record, false)
+	assert_false(rendered.contains("undecided"),
+			"the author's note is for the canon list, not the player")
+	assert_string_contains(rendered, "DATA CORRUPTED")
+	assert_string_contains(rendered, "Cleared for duty.")
+
+
+func test_gaps_are_listable_for_the_canon_backlog() -> void:
+	var record: String = "A [[first gap]] B [[second gap]] C"
+	assert_eq(UnitWorkbench.service_record_gaps(record),
+			["first gap", "second gap"] as Array[String])
+	assert_eq(UnitWorkbench.service_record_gaps("no gaps here").size(), 0)
+
+
+func test_prose_brackets_cannot_break_the_markup() -> void:
+	# A record containing literal [ ] must render as text, not parse as bbcode.
+	var rendered: String = UnitWorkbench.service_record_bbcode("Filed under [misc].", false)
+	assert_string_contains(rendered, "[lb]misc[rb]", "brackets escape to bbcode literals")
+
+
+func test_an_unterminated_marker_renders_verbatim_rather_than_eating_the_tail() -> void:
+	var record: String = "Asset Y [[oops no close"
+	var rendered: String = UnitWorkbench.service_record_bbcode(record, false)
+	assert_string_contains(rendered, "oops no close",
+			"a typo'd marker should be visible in playtests, not silently swallowed")
+
+
+func test_the_shake_effect_is_motion_gated() -> void:
+	var record: String = "[[gap]]"
+	assert_string_contains(UnitWorkbench.service_record_bbcode(record, true), "[shake")
+	assert_false(UnitWorkbench.service_record_bbcode(record, false).contains("[shake"),
+			"reduced-motion players get a still corrupted span")

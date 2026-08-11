@@ -10,7 +10,7 @@
 	"lineartAtlases": {
 		"portrait": "res://art/lineart_fullres/spaceman_portrait.tres"
 	},
-	"serviceRecord": "Asset STELLAR, M. Recent acquisition; zero verified engagements. Enthusiasm metrics exceed competence projections by a margin the underwriters found amusing. Recommend deployment in low-liability sectors until attrition data accumulates.",
+	"serviceRecord": "Asset [[Max Stellar's legal name — undecided]], operating as STELLAR, M. Recent acquisition; zero verified engagements. Enthusiasm metrics exceed competence projections by a margin the underwriters found amusing. Recommend deployment in low-liability sectors until attrition data accumulates.",
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/max/idle.png",
 		"atlasPath": "",

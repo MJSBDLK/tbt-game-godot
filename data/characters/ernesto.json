@@ -10,7 +10,7 @@
 	"lineartAtlases": {
 		"portrait": "res://art/lineart_fullres/ernesto_portrait.tres"
 	},
-	"serviceRecord": "Asset ERNESTO. Certified in seventeen maintenance disciplines; certifying body defunct. Field repairs exceed specification by unauthorized margins. Property damage attributable to enthusiasm remains within acceptable write-off thresholds.",
+	"serviceRecord": "Asset ERNESTO [[Ernesto's last name — undecided]]. Certified in seventeen maintenance disciplines; certifying body defunct. Field repairs exceed specification by unauthorized margins. Property damage attributable to enthusiasm remains within acceptable write-off thresholds.",
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/ernesto/idle.png",
 		"atlasPath": "",
