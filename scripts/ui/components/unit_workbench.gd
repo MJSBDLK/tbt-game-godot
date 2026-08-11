@@ -53,11 +53,20 @@ const SQUAD_COMPARE_BARS: bool = true
 ## `[[note about the gap]]` — the note names what's missing ("Ernesto's last
 ## name — undecided") and NEVER renders. In-game the span reads
 ## [ DATA CORRUPTED ], muted, shaking when motion is enabled — diegetically,
-## the squad may have tampered with their own records. List every open gap:
+## the squad may have tampered with their own records.
+##
+## Second marker flavor (RQD 2026-08-11): `[[ NO DATA ]]` renders a still,
+## muted [ NO DATA ] — the corp AI never had the fact, nobody tampered, so it
+## doesn't shake. Case-insensitive; `[[ NO DATA: note ]]` attaches an author
+## note when the absence is also a canon gap to fill later (a bare
+## `[[ NO DATA ]]` is CANONICAL absence and stays off the backlog).
+## List every open gap:
 ##   grep -o '\[\[[^]]*\]\]' data/characters/*.json
 const GAP_OPEN: String = "[["
 const GAP_CLOSE: String = "]]"
 const CORRUPTED_TEXT: String = "[ DATA CORRUPTED ]"
+const NO_DATA_TEXT: String = "[ NO DATA ]"
+const NO_DATA_MARKER: String = "NO DATA"
 const ELEMENTAL_ICON_DIR: String = "res://art/sprites/ui/elemental_type_icons_10x10/"
 ## Damage-type icons — the COLORED set in move_type_icons_10x10/ (the flat
 ## ui/ copies were black silhouettes and got retired 2026-08-10 when they
@@ -748,6 +757,11 @@ func _build_summary_lane() -> void:
 	# inset past the ring, because the HD mirror renders in HDLayer above
 	# everything HUD-side and would otherwise paint over the frame's bottom
 	# edge exactly where the art butts it.
+	#
+	# The ring HUGS the drawn art (RQD 2026-08-11 round 9): it starts full-rect
+	# for the no-art static tier, but when real art exists _frame_portrait
+	# re-fits it around the art's actual rect every relayout — a frame wider
+	# than its picture reads as black side-bars, not a frame.
 	var frame_ring := GlowColorRect.new()
 	frame_ring.material = (load(GLOW_MATERIAL_PATH) as Material).duplicate()
 	frame_ring.border_mode = true
@@ -789,9 +803,11 @@ func _build_summary_lane() -> void:
 		# not stretched, so the HD slot (full-rect on the TextureRect) and its
 		# mirror land exactly on the drawn art — the art's lower edge butts
 		# the frame's inner bottom edge and scales with whatever height the
-		# service record leaves it, staying composed at any panel size.
+		# service record leaves it, staying composed at any panel size. The
+		# ring re-fits around the same rect, so frame and art never disagree.
+		frame_ring.set_anchors_preset(Control.PRESET_TOP_LEFT)
 		var align := func() -> void:
-			_bottom_align_portrait(portrait, inner, aspect_source)
+			_frame_portrait(portrait, inner, frame_ring, aspect_source)
 		inner.resized.connect(align)
 		align.call_deferred()
 	else:
@@ -811,70 +827,116 @@ func _build_summary_lane() -> void:
 	stack.add_child(_service_record_block())
 
 
+## Where the art lands inside the inner area: fitted to its own aspect,
+## bottom-centered, pixel-snapped (fractional rects shimmer in the pixel
+## viewport). Tall areas leave headroom above; wide areas leave side room —
+## the frame ring absorbs both by hugging this rect instead of the area.
+static func portrait_rect_in_area(area_size: Vector2, aspect: float) -> Rect2:
+	if area_size.x <= 0.0 or area_size.y <= 0.0 or aspect <= 0.0:
+		return Rect2()
+	var drawn_width: float = roundf(minf(area_size.x, area_size.y * aspect))
+	var drawn_height: float = roundf(drawn_width / aspect)
+	return Rect2(floorf((area_size.x - drawn_width) / 2.0),
+			area_size.y - drawn_height, drawn_width, drawn_height)
+
+
 ## Positions the portrait at the art's own aspect ratio, bottom-centered in
-## the area, so its lower edge sits on the baseline border.
-func _bottom_align_portrait(portrait: TextureRect, area: Control,
+## the area, so its lower edge sits on the frame's inner bottom edge — and
+## wraps the frame ring around that exact rect. The area sits 3px inside the
+## ring's coordinate space on every side, so in ring coords the art starts at
+## rect.position + (3,3) and the ring, 3px out again, lands back on
+## rect.position with 6px added to each dimension.
+func _frame_portrait(portrait: TextureRect, area: Control, ring: Control,
 		aspect_source: Texture2D) -> void:
-	if not is_instance_valid(portrait) or not is_instance_valid(area):
+	if not is_instance_valid(portrait) or not is_instance_valid(area) \
+			or not is_instance_valid(ring):
 		return
 	if aspect_source == null or aspect_source.get_height() <= 0 or area.size.y <= 0.0:
 		return
 	var aspect: float = float(aspect_source.get_width()) / float(aspect_source.get_height())
-	var drawn_width: float = minf(area.size.x, area.size.y * aspect)
-	var drawn_height: float = drawn_width / aspect
-	portrait.position = Vector2((area.size.x - drawn_width) / 2.0, area.size.y - drawn_height)
-	portrait.size = Vector2(drawn_width, drawn_height)
+	var rect: Rect2 = portrait_rect_in_area(area.size, aspect)
+	portrait.position = rect.position
+	portrait.size = rect.size
+	ring.position = rect.position
+	ring.size = rect.size + Vector2(6, 6)
 
 
-## Splits a record into segments: {text: String, corrupted: bool}. Corrupted
-## segments carry the AUTHOR'S gap note as their text — callers decide
-## whether to render CORRUPTED_TEXT (the game) or the note (tooling).
+## Splits a record into segments: {text: String, kind: String} where kind is
+## "prose" | "corrupted" | "no_data". Marked segments carry the AUTHOR'S gap
+## note as their text ("" for a bare NO DATA) — callers decide whether to
+## render the placeholder (the game) or the note (tooling).
 static func service_record_segments(record: String) -> Array[Dictionary]:
 	var segments: Array[Dictionary] = []
 	var cursor: int = 0
 	while cursor < record.length():
 		var open: int = record.find(GAP_OPEN, cursor)
 		if open == -1:
-			segments.append({"text": record.substr(cursor), "corrupted": false})
+			segments.append({"text": record.substr(cursor), "kind": "prose"})
 			break
 		if open > cursor:
-			segments.append({"text": record.substr(cursor, open - cursor), "corrupted": false})
+			segments.append({"text": record.substr(cursor, open - cursor), "kind": "prose"})
 		var close: int = record.find(GAP_CLOSE, open + GAP_OPEN.length())
 		if close == -1:
 			# Unterminated marker — render the tail verbatim rather than eating it.
-			segments.append({"text": record.substr(open), "corrupted": false})
+			segments.append({"text": record.substr(open), "kind": "prose"})
 			break
-		segments.append({"text": record.substr(open + GAP_OPEN.length(),
-				close - open - GAP_OPEN.length()), "corrupted": true})
+		segments.append(_classify_marker(record.substr(open + GAP_OPEN.length(),
+				close - open - GAP_OPEN.length())))
 		cursor = close + GAP_CLOSE.length()
 	return segments
 
 
-## Every open canon gap in a record — the notes inside [[...]]. Tooling/tests
-## sugar over the segments.
+## What a [[...]] body means. "NO DATA" (any case, optional ": note") is the
+## still, untampered absence; everything else is a corrupted-record gap whose
+## body is the author's note. The NO DATA match is deliberately exact — a note
+## that merely STARTS with the words ("No data on next of kin recovered")
+## stays a corrupted note, only the bare marker or the colon form switch kind.
+static func _classify_marker(raw: String) -> Dictionary:
+	var stripped: String = raw.strip_edges()
+	if stripped.to_upper() == NO_DATA_MARKER:
+		return {"text": "", "kind": "no_data"}
+	var colon_form: String = NO_DATA_MARKER + ":"
+	if stripped.length() > colon_form.length() \
+			and stripped.substr(0, colon_form.length()).to_upper() == colon_form:
+		return {"text": stripped.substr(colon_form.length()).strip_edges(),
+				"kind": "no_data"}
+	return {"text": raw, "kind": "corrupted"}
+
+
+## Every open canon gap in a record — the notes inside [[...]]. A bare
+## [[ NO DATA ]] contributes nothing (canonical absence, not a to-do); the
+## colon form's note is a gap like any other. Tooling/tests sugar over the
+## segments.
 static func service_record_gaps(record: String) -> Array[String]:
 	var gaps: Array[String] = []
 	for segment: Dictionary in service_record_segments(record):
-		if segment["corrupted"]:
+		if segment["kind"] != "prose" and str(segment["text"]) != "":
 			gaps.append(str(segment["text"]))
 	return gaps
 
 
-## The record as bbcode: prose in PRIMARY, gaps as [ DATA CORRUPTED ] in the
-## MUTED body, shaking when motion is enabled, with the tamper story in a
-## hover hint. The gap note itself never renders.
+## The record as bbcode: prose in PRIMARY; [[gap]]s as [ DATA CORRUPTED ] in
+## the MUTED body, shaking when motion is enabled, tamper story in a hover
+## hint; [[ NO DATA ]]s as a still muted [ NO DATA ] with its own hint. The
+## gap note itself never renders.
 static func service_record_bbcode(record: String, motion: bool) -> String:
 	var out: String = ""
 	var muted_hex: String = GameColors.TEXT_MUTED.to_html(false)
 	for segment: Dictionary in service_record_segments(record):
-		if segment["corrupted"]:
-			var span: String = "[color=#%s]%s[/color]" % [muted_hex,
-					_escape_bbcode(CORRUPTED_TEXT)]
-			if motion:
-				span = "[shake rate=16.0 level=4]%s[/shake]" % span
-			out += "[hint=records integrity check failed]%s[/hint]" % span
-		else:
-			out += _escape_bbcode(str(segment["text"]))
+		match str(segment["kind"]):
+			"corrupted":
+				var span: String = "[color=#%s]%s[/color]" % [muted_hex,
+						_escape_bbcode(CORRUPTED_TEXT)]
+				if motion:
+					span = "[shake rate=16.0 level=4]%s[/shake]" % span
+				out += "[hint=records integrity check failed]%s[/hint]" % span
+			"no_data":
+				# Never shakes: absence is bureaucratic, not tampered — the
+				# stillness IS the contrast with the corrupted spans.
+				out += "[hint=no record on file][color=#%s]%s[/color][/hint]" % [
+						muted_hex, _escape_bbcode(NO_DATA_TEXT)]
+			_:
+				out += _escape_bbcode(str(segment["text"]))
 	return out
 
 
@@ -906,6 +968,10 @@ func _service_record_block() -> Control:
 	body.bbcode_enabled = true
 	body.fit_content = true
 	body.scroll_active = false
+	# RichTextLabel overrides the Control default to clip — which shears the
+	# shaking [ DATA CORRUPTED ] glyphs at the block's edges. Let them
+	# overflow; the block never scrolls (fit_content) so nothing else escapes.
+	body.clip_contents = false
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.mouse_filter = Control.MOUSE_FILTER_PASS
 	if UIManager.font_8px != null:

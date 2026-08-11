@@ -423,3 +423,99 @@ func test_the_shake_effect_is_motion_gated() -> void:
 	assert_string_contains(UnitWorkbench.service_record_bbcode(record, true), "[shake")
 	assert_false(UnitWorkbench.service_record_bbcode(record, false).contains("[shake"),
 			"reduced-motion players get a still corrupted span")
+
+
+func test_shaking_glyphs_are_not_clipped_by_the_record_block() -> void:
+	# Round 9: RichTextLabel overrides clip_contents to true, which sheared
+	# the [shake] glyphs at the block's edges. The summary lane's body must
+	# let them overflow.
+	var unit := _unit()
+	unit.service_record = "Asset with a [[gap]] on file."
+	var workbench := _built_workbench(unit)
+	workbench.show_lane(unit, "none", null)
+	var bodies: Array[Node] = workbench.find_children("*", "RichTextLabel", true, false)
+	assert_eq(bodies.size(), 1, "the summary lane renders exactly one record body")
+	assert_false((bodies[0] as RichTextLabel).clip_contents,
+			"shake displacement must overflow the block, not shear at its edge")
+
+
+# =============================================================================
+# [[ NO DATA ]] — untampered absence, distinct from tampering
+# =============================================================================
+
+func test_a_bare_no_data_marker_renders_still_and_stays_off_the_backlog() -> void:
+	var record: String = "Next of kin: [[ NO DATA ]]."
+	var rendered: String = UnitWorkbench.service_record_bbcode(record, true)
+	assert_string_contains(rendered, "NO DATA")
+	assert_false(rendered.contains("DATA CORRUPTED"),
+			"absence is not tampering — the two placeholders never mix")
+	assert_false(rendered.contains("[shake"),
+			"nobody tampered with nothing: NO DATA holds still even with motion on")
+	assert_string_contains(rendered, "no record on file", "its own hover hint")
+	assert_eq(UnitWorkbench.service_record_gaps(record).size(), 0,
+			"a bare NO DATA is canonical absence, not a canon to-do")
+
+
+func test_the_marker_is_case_insensitive() -> void:
+	assert_string_contains(
+			UnitWorkbench.service_record_bbcode("[[no data]]", false), "NO DATA")
+	assert_false(UnitWorkbench.service_record_bbcode("[[No Data]]", false)
+			.contains("DATA CORRUPTED"))
+
+
+func test_the_colon_form_carries_an_author_note_onto_the_backlog() -> void:
+	var record: String = "Homeworld: [[ NO DATA: which planet — undecided ]]."
+	var rendered: String = UnitWorkbench.service_record_bbcode(record, false)
+	assert_string_contains(rendered, "NO DATA")
+	assert_false(rendered.contains("undecided"), "the note is for us, not the player")
+	assert_eq(UnitWorkbench.service_record_gaps(record),
+			["which planet — undecided"] as Array[String])
+
+
+func test_a_note_merely_starting_with_the_words_stays_corrupted() -> void:
+	# "No data recovered from the wreck" is an author note that happens to
+	# open with the magic words — only the bare marker or the colon form
+	# switch kind.
+	var record: String = "[[No data recovered from the wreck]]"
+	assert_string_contains(
+			UnitWorkbench.service_record_bbcode(record, false), "DATA CORRUPTED")
+	assert_eq(UnitWorkbench.service_record_gaps(record),
+			["No data recovered from the wreck"] as Array[String])
+
+
+func test_both_marker_kinds_coexist_in_one_record() -> void:
+	var record: String = "A [[real name — undecided]] B [[ NO DATA ]] C"
+	var rendered: String = UnitWorkbench.service_record_bbcode(record, false)
+	assert_string_contains(rendered, "DATA CORRUPTED")
+	assert_string_contains(rendered, "NO DATA")
+	assert_eq(UnitWorkbench.service_record_gaps(record),
+			["real name — undecided"] as Array[String])
+
+
+# =============================================================================
+# FRAME GEOMETRY — the ring hugs the drawn art
+# =============================================================================
+
+func test_a_wide_area_bottom_centers_the_art_at_full_height() -> void:
+	# Square art in a 100×50 area: height-constrained to 50×50, centered.
+	assert_eq(UnitWorkbench.portrait_rect_in_area(Vector2(100, 50), 1.0),
+			Rect2(25, 0, 50, 50))
+
+
+func test_a_tall_area_bottom_aligns_the_art_at_full_width() -> void:
+	# Square art in a 50×100 area: width-constrained to 50×50, on the floor.
+	assert_eq(UnitWorkbench.portrait_rect_in_area(Vector2(50, 100), 1.0),
+			Rect2(0, 50, 50, 50))
+
+
+func test_the_art_rect_is_pixel_snapped() -> void:
+	# 101-wide area centers a 50-wide rect at 25.5 — floored, never fractional
+	# (fractional rects shimmer in the pixel viewport).
+	var rect: Rect2 = UnitWorkbench.portrait_rect_in_area(Vector2(101, 50), 1.0)
+	assert_eq(rect.position.x, 25.0)
+	assert_eq(rect.size, Vector2(50, 50))
+
+
+func test_degenerate_areas_produce_an_empty_rect() -> void:
+	assert_eq(UnitWorkbench.portrait_rect_in_area(Vector2(0, 50), 1.0), Rect2())
+	assert_eq(UnitWorkbench.portrait_rect_in_area(Vector2(50, 50), 0.0), Rect2())
