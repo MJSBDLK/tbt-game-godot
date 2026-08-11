@@ -10,6 +10,7 @@
 	"lineartAtlases": {
 		"portrait": "res://art/lineart_fullres/maam_portrait.tres"
 	},
+	"serviceRecord": "Asset designation MA'AM; full legal name withheld by asset. Service history predates this office's records-retention policy. Do not audit. Do not shortchange. Survivability rating: actuarially inconvenient.",
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/ma'am/idle.png",
 		"atlasPath": "",

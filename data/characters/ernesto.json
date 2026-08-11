@@ -10,6 +10,7 @@
 	"lineartAtlases": {
 		"portrait": "res://art/lineart_fullres/ernesto_portrait.tres"
 	},
+	"serviceRecord": "Asset ERNESTO. Certified in seventeen maintenance disciplines; certifying body defunct. Field repairs exceed specification by unauthorized margins. Property damage attributable to enthusiasm remains within acceptable write-off thresholds.",
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/ernesto/idle.png",
 		"atlasPath": "",
@@ -21,14 +22,20 @@
 			"frames": 10,
 			"fps": 10,
 			"hit_frame": 5,
-			"use_when": { "direction": "horizontal", "range": 1 }
+			"use_when": {
+				"direction": "horizontal",
+				"range": 1
+			}
 		},
 		"melee_long": {
 			"path": "res://art/sprites/characters/ernesto/meleelong.png",
 			"frames": 12,
 			"fps": 10,
 			"hit_frame": 7,
-			"use_when": { "direction": "horizontal", "range": 2 }
+			"use_when": {
+				"direction": "horizontal",
+				"range": 2
+			}
 		}
 	},
 	"baseStats": {

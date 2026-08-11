@@ -1,6 +1,9 @@
 # Resp
-- [ ] Regarding the default third panel with the protrait, maybe we include a service record here? Make it lore friendly and from the perspective of the soulless corp AI that sent the crew on this mission in the first place?
-- [ ] 
+- [ ] The bottom border of the highres line art should butt up against a border (same primary/orthogonal glow shader)
+- [ ] Regarding the default third panel with the protrait, maybe we include a service record here? Make it lore friendly and from the perspective of the soulless corp AI that sent the crew on this mission in the first place? Can also use "-- NO DATA --" here as a fallback.
+- [ ] `DEF↵7 of 11 Skulk cap * Game max of 50` should just read DEF 7/11
+  - if this overflows because of statUps that's fine, e.g. HP 22/20
+- [ ] Across the squad - this is honestly a cool feature. It's out of place, but now I'm hesitant to cut it. Thoughts?
 
 # More ideas
 - [ ] Longer ranged moves should carray an accuracy penalty for striking further away. For example, the sidearm can hit units 3 spaces away, but I'd like for it to be optimal at 2, and a risky shot (~50% accuracy for an average unit targeting an average agility enemy) at 3 spaces. We may want to reconsider allowing it to shoot 1 space, as well.

@@ -590,19 +590,23 @@ func _on_bank_row_pressed(name: String) -> void:
 # STAT LANE — pure meaning; the +/− live on the sheet row
 # =============================================================================
 
+## `7/11` — effective value over class cap, and nothing else (RQD 2026-08-11:
+## the prose version buried the two numbers that matter). The numerator is the
+## EFFECTIVE stat, so StatUps can overflow it past the cap — `22/20` is a
+## flex, not an error. Class name, game max, and invested count all live in
+## the sheet row's cap-bar tooltip now.
+static func stat_meta_line(character: CharacterData, stat_name: String) -> String:
+	return "%d/%d" % [int(character.get(stat_name)), character.get_stat_cap(stat_name)]
+
+
 func _build_stat_lane() -> void:
 	var stat_name: String = str(_key)
 	var abbrev: String = UnitSheet.stat_label(stat_name)
 	var level_value: int = _character.get_base_plus_growth(stat_name)
 	var cap: int = _character.get_stat_cap(stat_name)
-	var invested: int = _character.get_allocated_points(stat_name)
 
-	var meta: String = "%d of %d %s cap · game max %d" % [
-			level_value, cap, Enums.get_class_display_name(_character.current_class),
-			_character.get_global_stat_cap(stat_name)]
-	if invested > 0:
-		meta += " · %d StatUp invested" % invested
-	_build_detail_text(abbrev, meta, str(STAT_BLURBS.get(stat_name, "")))
+	_build_detail_text(abbrev, stat_meta_line(_character, stat_name),
+			str(STAT_BLURBS.get(stat_name, "")))
 
 	if level_value >= cap:
 		# The at-cap consequence wears SUCCESS — same voice as the bar's fill
@@ -677,59 +681,117 @@ func _build_injury_lane() -> void:
 
 ## The CREW-FILE lane (RQD 2026-08-11). With nothing selected the panel used
 ## to repeat the sheet's ident and move slots — redundant data 200px from its
-## source. Now it's the unit's PRESENCE instead of their paperwork:
+## source. Now it's the unit's PRESENCE, standing on a lit baseline, with the
+## corp AI's service record filed underneath:
 ##   1. HD line art with the shipped glass/tracking treatment, when the
 ##      character has it (bind_to_texture_rect wires slot + materials, and
-##      Settings.portrait_effects_enabled keeps its off-switch).
-##   2. The painted 600×600 portrait, plain, when there's no line art.
+##      Settings.portrait_effects_enabled keeps its off-switch). The art is
+##      BOTTOM-ALIGNED so its lower edge butts the baseline border.
+##   2. The painted 600×600 portrait, plain, same baseline treatment.
 ##   3. Animated static + "— NO DATA —" when neither exists — the sprite-crop
 ##      fallback reads as a records-corrupted terminal rather than a tiny
 ##      pixel head in a huge panel, and every new portrait Lawrence paints
 ##      silently upgrades its unit.
+## Under the baseline: SERVICE RECORD, per-character lore in the chartering
+## corp AI's voice (CharacterData.service_record), "— NO DATA —" when unwritten.
 func _build_summary_lane() -> void:
 	if _character == null:
 		return
-	var frame_margin := _margins(8, 8, 8, 8)
+	var frame_margin := _margins(8, 8, 8, 0)
 	frame_margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_body.add_child(frame_margin)
 
-	if CharacterPortrait.has_hd_art(_character):
+	var stack := VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 0)
+	frame_margin.add_child(stack)
+
+	var portrait_area := Control.new()
+	portrait_area.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	portrait_area.clip_contents = true
+	stack.add_child(portrait_area)
+
+	var hd_texture: Texture2D = CharacterPortrait.hd_art_for(_character)
+	var painted_texture: Texture2D = null
+	if hd_texture == null and not _character.portrait_path.is_empty() \
+			and ResourceLoader.exists(_character.portrait_path):
+		painted_texture = load(_character.portrait_path) as Texture2D
+
+	if hd_texture != null or painted_texture != null:
 		var portrait := TextureRect.new()
 		portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		portrait.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		frame_margin.add_child(portrait)
-		CharacterPortrait.bind_to_texture_rect(portrait, _character)
-		return
+		portrait.stretch_mode = TextureRect.STRETCH_SCALE
+		portrait_area.add_child(portrait)
+		var aspect_source: Texture2D = hd_texture if hd_texture != null else painted_texture
+		if painted_texture != null:
+			portrait.texture = painted_texture
+			# 600×600 downscaling hard — bilinear, not the pixel NEAREST
+			# everything else in this viewport uses.
+			portrait.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		else:
+			CharacterPortrait.bind_to_texture_rect(portrait, _character)
+		# Bottom-align at the art's own aspect: the portrait rect is computed,
+		# not stretched, so the HD slot (full-rect on the TextureRect) and its
+		# mirror land exactly on the drawn art — the art's lower edge BUTTS
+		# the baseline instead of floating centered above it.
+		var align := func() -> void:
+			_bottom_align_portrait(portrait, portrait_area, aspect_source)
+		portrait_area.resized.connect(align)
+		align.call_deferred()
+	else:
+		# Records corrupted: full-area animated noise with the caption riding
+		# above it (the overlay is top_level for sizing but still draws in
+		# tree order, so the caption is added after).
+		var noise := StaticCensorOverlay.new()
+		portrait_area.add_child(noise)
+		noise.set_target(portrait_area)
+		noise.set_censored(true)
+		noise.modulate = GameColors.with_alpha(Color.WHITE, 0.35)
+		var caption_center := CenterContainer.new()
+		caption_center.set_anchors_preset(Control.PRESET_FULL_RECT)
+		portrait_area.add_child(caption_center)
+		caption_center.add_child(_muted_label("— NO DATA —"))
 
-	if not _character.portrait_path.is_empty() \
-			and ResourceLoader.exists(_character.portrait_path):
-		var painted := TextureRect.new()
-		painted.texture = load(_character.portrait_path) as Texture2D
-		painted.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		painted.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		# The painted portraits are 600×600 downscaling hard — bilinear, not
-		# the pixel-art NEAREST everything else in this viewport uses.
-		painted.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-		painted.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		frame_margin.add_child(painted)
-		return
+	# The baseline the art stands on — 1px PRIMARY body with its orthogonal
+	# halo, same shader as every other lit rule on the screen.
+	var baseline := GlowColorRect.new()
+	baseline.material = (load(GLOW_MATERIAL_PATH) as Material).duplicate()
+	baseline.color = GameColors.TEXT_PRIMARY
+	baseline.glow_color = GameColors.TEXT_PRIMARY_GLOW
+	baseline.custom_minimum_size = Vector2(0, 3)
+	baseline.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stack.add_child(baseline)
 
-	# Records corrupted: full-area animated noise with the caption riding
-	# above it (the overlay is top_level for sizing but still draws in tree
-	# order, so the caption is added after).
-	var static_area := Control.new()
-	static_area.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	frame_margin.add_child(static_area)
-	var noise := StaticCensorOverlay.new()
-	static_area.add_child(noise)
-	noise.set_target(static_area)
-	noise.set_censored(true)
-	noise.modulate = GameColors.with_alpha(Color.WHITE, 0.35)
-	var caption_center := CenterContainer.new()
-	caption_center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	static_area.add_child(caption_center)
-	caption_center.add_child(_muted_label("— NO DATA —"))
+	stack.add_child(_service_record_block())
+
+
+## Positions the portrait at the art's own aspect ratio, bottom-centered in
+## the area, so its lower edge sits on the baseline border.
+func _bottom_align_portrait(portrait: TextureRect, area: Control,
+		aspect_source: Texture2D) -> void:
+	if not is_instance_valid(portrait) or not is_instance_valid(area):
+		return
+	if aspect_source == null or aspect_source.get_height() <= 0 or area.size.y <= 0.0:
+		return
+	var aspect: float = float(aspect_source.get_width()) / float(aspect_source.get_height())
+	var drawn_width: float = minf(area.size.x, area.size.y * aspect)
+	var drawn_height: float = drawn_width / aspect
+	portrait.position = Vector2((area.size.x - drawn_width) / 2.0, area.size.y - drawn_height)
+	portrait.size = Vector2(drawn_width, drawn_height)
+
+
+## The corp AI's asset assessment, filed under the baseline. Unwritten
+## records read "— NO DATA —", which is itself in-fiction.
+func _service_record_block() -> Control:
+	var margin := _margins(0, 0, 5, 4)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 2)
+	margin.add_child(column)
+	column.add_child(_dim_label("SERVICE RECORD"))
+	if _character.service_record != "":
+		column.add_child(_body_copy(_character.service_record))
+	else:
+		column.add_child(_muted_label("— NO DATA —"))
+	return margin
 
 
 # =============================================================================

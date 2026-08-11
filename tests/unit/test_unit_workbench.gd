@@ -337,3 +337,49 @@ func test_filter_chips_know_when_they_would_find_nothing() -> void:
 	assert_false(UnitWorkbench.filter_chip_has_entries(unit,
 			{Enums.DamageType.SUPPORT: true}, {Enums.ElementalType.AIR: true}),
 			"no Air-typed Support move exists in this pool")
+
+
+# =============================================================================
+# CREW FILE + STAT META (RQD 2026-08-11, round 6)
+# =============================================================================
+
+func test_stat_meta_is_effective_over_cap() -> void:
+	# "DEF 7/11", nothing else — prose buried the two numbers that matter.
+	var unit := _unit()
+	unit.base_defense = 7
+	assert_eq(UnitWorkbench.stat_meta_line(unit, "defense"),
+			"7/%d" % unit.get_stat_cap("defense"))
+
+
+func test_statups_may_overflow_the_meta() -> void:
+	# The numerator is the EFFECTIVE stat: allocation past the class cap shows
+	# as 22/20, a flex rather than an error.
+	var unit := _unit()
+	unit.base_strength = unit.get_stat_cap("strength")
+	unit.available_stat_ups = 4
+	unit.set_allocated_points("strength", 4)
+	var meta: String = UnitWorkbench.stat_meta_line(unit, "strength")
+	var parts: PackedStringArray = meta.split("/")
+	assert_gt(int(parts[0]), int(parts[1]), "effective value overflows the cap")
+
+
+func test_the_starting_squad_has_service_records() -> void:
+	# The crew-file lane's lore plumbing, end to end through the real JSON:
+	# loader key serviceRecord -> CharacterData.service_record. Content is
+	# draft copy (corp-AI voice) — this pins the PLUMBING, not the words.
+	for id: String in ["maam", "ernesto", "spaceman", "elfPirate"]:
+		var character: CharacterData = SquadManager.get_character_by_id(id)
+		if character == null:
+			continue
+		assert_ne(character.service_record, "",
+				"%s ships with a service record" % id)
+
+
+func test_hd_art_detection_branches_the_crew_file() -> void:
+	# A synthetic unit has no line art — the lane falls to static/NO DATA.
+	assert_false(CharacterPortrait.has_hd_art(_unit()))
+	assert_null(CharacterPortrait.hd_art_for(_unit()))
+	# Ma'am ships line art, so she gets the HD treatment.
+	var maam: CharacterData = SquadManager.get_character_by_id("maam")
+	if maam != null:
+		assert_true(CharacterPortrait.has_hd_art(maam))
