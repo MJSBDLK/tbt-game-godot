@@ -100,3 +100,39 @@ func test_detail_chips_opt_out_of_hold_to_peek() -> void:
 		assert_false(chip_button.peek_enabled,
 				"no-op venue (RQD 2026-07-21): the detail pane beside these"
 				+ " chips IS the tooltip's content, live and larger")
+
+
+# =============================================================================
+# One track per bar (RQD 2026-08-11): StatCapBar draws the ONLY track
+# =============================================================================
+
+func test_the_cap_bar_is_the_only_visible_bar_in_every_stat_row() -> void:
+	# The scene ships three legacy ColorRects per row (StatBar, StatBonusBar,
+	# StatBarBackground). All three must be hidden — the full-width background
+	# outlived the 2026-08-06 adoption and read as a second, longer track once
+	# StatCapBar started scaling its track to the class cap.
+	var panel := _make_panel()
+	var stats: Node = panel.get_node(
+			"MainRow/LeftColumnMargin/LeftColumn/StatsContainer")
+	var rows_checked: int = 0
+	for stat_container: Node in stats.get_children():
+		# The HP row is exempt: its scene bars are the LIVE rendering (colored
+		# by health ratio), deliberately not a StatCapBar yet — converting it
+		# is an open todo item, and this test should start covering it then.
+		if stat_container.name == "HPContainer":
+			continue
+		var bar_container: Node = stat_container.get_node_or_null(
+				"HBoxContainer/StatBarContainer")
+		if bar_container == null:
+			continue
+		rows_checked += 1
+		var cap_bars: int = 0
+		for child: Node in bar_container.get_children():
+			if child is StatCapBar:
+				cap_bars += 1
+			elif child is ColorRect:
+				assert_false((child as ColorRect).visible,
+						"%s/%s: legacy scene rect must stay hidden behind the cap bar"
+						% [stat_container.name, child.name])
+		assert_eq(cap_bars, 1, "%s: exactly one StatCapBar" % stat_container.name)
+	assert_gt(rows_checked, 0, "the scene's stat rows were actually found")

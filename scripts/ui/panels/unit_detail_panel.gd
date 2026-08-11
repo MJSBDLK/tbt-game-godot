@@ -52,7 +52,7 @@ var _hp_bar_background: ColorRect = null
 var _hp_label: Label = null
 var _hp_max_label: Label = null  # Reuses StatModifier node to show "/max_hp"
 var _hp_censor: StaticCensorOverlay = null
-var _stat_rows: Dictionary = {}  # display_key -> { cap_bar, bar_bg, value_label, modifier_label, name_label }
+var _stat_rows: Dictionary = {}  # display_key -> { cap_bar, value_label, modifier_label, name_label }
 
 # Center column tablets
 var _move_chips: Array[MoveChipButton] = []
@@ -246,6 +246,11 @@ func _cache_node_references() -> void:
 		var scene_bonus: ColorRect = bar_container.get_node("StatBonusBar")
 		scene_base.visible = false
 		scene_bonus.visible = false
+		# The scene's full-width backing too (RQD 2026-08-11): it used to sit
+		# flush under the cap bar's old track, but the GlowColorRect rendering
+		# scales the track to the class cap, so the leftover read as a second,
+		# longer track behind every bar.
+		(bar_container.get_node("StatBarBackground") as ColorRect).visible = false
 
 		var cap_bar := StatCapBar.new(STAT_DISPLAY_MAP[display_key], int(scene_base.size.y))
 		cap_bar.position = scene_base.position
@@ -256,7 +261,6 @@ func _cache_node_references() -> void:
 			"name_label": _find_label_in_node(hbox.get_node("MarginContainer")),
 			"value_label": _find_label_in_node(hbox.get_node("StatValue")),
 			"modifier_label": _find_label_in_node(hbox.get_node("StatModifier")),
-			"bar_bg": bar_container.get_node("StatBarBackground"),
 			"cap_bar": cap_bar,
 		}
 

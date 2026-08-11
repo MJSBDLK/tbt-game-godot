@@ -46,7 +46,7 @@ var _hp_bar_background: ColorRect = null
 var _hp_bar_fill: ColorRect = null
 var _hp_label: Label = null
 
-# Stats — each entry: { "name_label": Label, "value_label": Label, "bar_bg": ColorRect, "cap_bar": StatCapBar }
+# Stats — each entry: { "name_label": Label, "value_label": Label, "cap_bar": StatCapBar }
 var _stat_rows: Dictionary = {}
 var _constitution_label: Label = null
 var _carry_label: Label = null
@@ -415,23 +415,19 @@ func _build_stat_row(display_key: String, ui_manager: Node, parent: VBoxContaine
 	name_label.custom_minimum_size.x = STAT_LABEL_WIDTH
 	row.add_child(name_label)
 
-	# Bar container. Holds a dark backing plus the shared StatCapBar, which
-	# draws class-cap track, grown fill and bonus segment in one pass — this
-	# panel used to hand-roll two ColorRects scaled against a flat
-	# STAT_DISPLAY_MAX = 60 that matched no real ceiling.
+	# Bar container. Holds the shared StatCapBar, which draws class-cap track,
+	# grown fill and bonus segment in one pass — this panel used to hand-roll
+	# two ColorRects scaled against a flat STAT_DISPLAY_MAX = 60 that matched
+	# no real ceiling. It also used to keep a full-width dark backing under
+	# the bar; that got removed (RQD 2026-08-11) when the GlowColorRect
+	# rendering started scaling the track to the class cap — a full-width
+	# backing behind a class-cap track reads as two disagreeing tracks.
 	var bar_container := Control.new()
 	bar_container.custom_minimum_size = Vector2(STAT_BAR_MAX_WIDTH, STAT_BAR_HEIGHT + 4)
 	bar_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(bar_container)
 
 	var bar_y: float = (STAT_BAR_HEIGHT + 4 - STAT_BAR_HEIGHT) / 2.0
-
-	var bar_background := ColorRect.new()
-	bar_background.color = Color(0.1, 0.1, 0.15, 1.0)
-	bar_background.size = Vector2(STAT_BAR_MAX_WIDTH, STAT_BAR_HEIGHT)
-	bar_background.position = Vector2(0, bar_y)
-	bar_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bar_container.add_child(bar_background)
 
 	var cap_bar := StatCapBar.new(STAT_DISPLAY_MAP[display_key], STAT_BAR_HEIGHT)
 	cap_bar.size = Vector2(STAT_BAR_MAX_WIDTH, STAT_BAR_HEIGHT)
@@ -446,7 +442,6 @@ func _build_stat_row(display_key: String, ui_manager: Node, parent: VBoxContaine
 	return {
 		"name_label": name_label,
 		"value_label": value_label,
-		"bar_bg": bar_background,
 		"cap_bar": cap_bar,
 	}
 
