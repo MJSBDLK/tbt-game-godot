@@ -298,3 +298,42 @@ func test_muted_is_its_own_voice_not_a_dimmed_secondary() -> void:
 	assert_ne(GameColors.TEXT_MUTED, GameColors.TEXT_SECONDARY)
 	assert_ne(GameColors.TEXT_MUTED_GLOW, GameColors.TEXT_SECONDARY_GLOW)
 	assert_ne(GameColors.TEXT_MUTED, GameColors.TEXT_PRIMARY)
+
+
+# =============================================================================
+# ROUND-5 F5 FIXES (RQD 2026-08-11)
+# =============================================================================
+
+func test_four_passive_slots_matching_the_engine_cap() -> void:
+	# The F5 bug: Ernesto had two passives equipped and three banked, and the
+	# sheet's two rendered slots made the bank unequippable. equipped_passives
+	# is "Max 4" engine-side; the sheet renders all four.
+	assert_eq(UnitSheet.PASSIVE_SLOT_COUNT, 4)
+	var unit := _unit()
+	assert_true(UnitWorkbench.equip_passive(unit, 3, "Extendo"),
+			"slot 4 is reachable")
+	assert_eq(str(unit.equipped_passives[3]), "Extendo")
+
+
+func test_range_reads_one_to_n_because_targeting_is_inclusive() -> void:
+	# move_targeting runs get_tiles_within_range (distance 1..attack_range),
+	# so "R3" lied by omission — the move also hits adjacent. No minimum-range
+	# mechanic exists; if one is ever added, range_text is where the label
+	# learns it.
+	var melee := Move.new()
+	melee.attack_range = 1
+	assert_eq(UnitWorkbench.range_text(melee), "1")
+	var reach := Move.new()
+	reach.attack_range = 3
+	assert_eq(UnitWorkbench.range_text(reach), "1-3")
+
+
+func test_filter_chips_know_when_they_would_find_nothing() -> void:
+	# Support exists in the pool (Fortify) but not as Air — the Support chip
+	# under an Air element filter grays out; Physical alone stays lit.
+	var unit := _unit()
+	assert_true(UnitWorkbench.filter_chip_has_entries(unit,
+			{Enums.DamageType.PHYSICAL: true}, {}))
+	assert_false(UnitWorkbench.filter_chip_has_entries(unit,
+			{Enums.DamageType.SUPPORT: true}, {Enums.ElementalType.AIR: true}),
+			"no Air-typed Support move exists in this pool")

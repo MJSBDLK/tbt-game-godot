@@ -133,6 +133,26 @@ static func move_bank(character: CharacterData, damage_filter: Dictionary,
 	return available
 
 
+## `R1` / `R1-3` — attack range is 1..N INCLUSIVE (move_targeting runs
+## get_tiles_within_range, distance 1 through attack_range), so a bare "R3"
+## lied by omission: it read as "only at 3" when the move also hits adjacent.
+## No minimum-range mechanic exists in the engine; if one ever does, this is
+## the one place the label needs to learn it.
+static func range_text(move: Move) -> String:
+	if move.attack_range <= 1:
+		return "1"
+	return "1-%d" % move.attack_range
+
+
+## Whether toggling this chip on (in its own dimension, keeping the OTHER
+## dimension's active filters) would show any bank rows. Chips that answer
+## "no" gray out but stay clickable — pressing one lands on the bank's
+## "nothing matches" message rather than a dead control (RQD 2026-08-11).
+static func filter_chip_has_entries(character: CharacterData, chip_damage_filter: Dictionary,
+		chip_element_filter: Dictionary) -> bool:
+	return not move_bank(character, chip_damage_filter, chip_element_filter).is_empty()
+
+
 static func passive_bank(character: CharacterData) -> Array[String]:
 	var equipped_names: Dictionary = {}
 	for passive: Variant in character.equipped_passives:
@@ -273,9 +293,9 @@ func _build_move_detail(move: Move) -> void:
 	meta.add_theme_constant_override("separation", 3)
 	_add_damage_icon(meta, move.damage_type)
 	_add_type_icon(meta, move.element_type)
-	var meta_label := _dim_label("%s · Range %d · AOE %d · Uses %d" % [
+	var meta_label := _dim_label("%s · Range %s · AOE %d · Uses %d" % [
 			("Pow %d" % move.base_power) if move.base_power > 0 else "no damage",
-			move.attack_range, move.area_of_effect, move.max_uses])
+			range_text(move), move.area_of_effect, move.max_uses])
 	meta_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	meta.add_child(meta_label)
 	box.add_child(meta)
@@ -329,9 +349,9 @@ func _build_swap_bar(is_move: bool, equipped: String) -> void:
 		if is_move:
 			var out_move: Move = MoveData.get_move(equipped)
 			if out_move != null:
-				var numbers := _dim_label("%s R%d" % [
+				var numbers := _dim_label("%s R%s" % [
 						("Pow %d" % out_move.base_power) if out_move.base_power > 0 else "—",
-						out_move.attack_range])
+						range_text(out_move)])
 				numbers.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 				bar.add_child(numbers)
 
@@ -415,6 +435,7 @@ func _build_filters() -> void:
 		flow.add_child(_make_filter_chip(str(DAMAGE_ICON_PATHS[damage_type]),
 				str(Enums.DamageType.keys()[damage_type]).capitalize(),
 				_damage_filter.has(damage_type),
+				filter_chip_has_entries(_character, {damage_type: true}, _element_filter),
 				_on_damage_filter_toggled.bind(damage_type)))
 	var gap := Control.new()
 	gap.custom_minimum_size = Vector2(4, 0)
@@ -430,14 +451,15 @@ func _build_filters() -> void:
 		flow.add_child(_make_filter_chip(path,
 				Enums.elemental_type_to_string(element).capitalize(),
 				_element_filter.has(element),
+				filter_chip_has_entries(_character, _damage_filter, {element: true}),
 				_on_element_filter_toggled.bind(element)))
 
 
 func _make_filter_chip(icon_path: String, tip: String, active: bool,
-		handler: Callable) -> Button:
+		has_entries: bool, handler: Callable) -> Button:
 	var chip := Button.new()
 	chip.custom_minimum_size = Vector2(14, 14)
-	chip.tooltip_text = tip
+	chip.tooltip_text = tip if has_entries else "%s — nothing in the bank" % tip
 	chip.focus_mode = Control.FOCUS_NONE
 	var style := StyleBoxFlat.new()
 	style.set_border_width_all(1)
@@ -455,6 +477,10 @@ func _make_filter_chip(icon_path: String, tip: String, active: bool,
 		# chip's center by hand.
 		icon.position = Vector2(2, 2)
 		icon.size = Vector2(ICON_SIZE, ICON_SIZE)
+		if not has_entries and not active:
+			# Grayed, not disabled: the click still lands and answers with the
+			# bank's "nothing matches" message instead of a dead control.
+			icon.self_modulate = Color(0.45, 0.45, 0.45, 0.55)
 		chip.add_child(icon)
 	chip.pressed.connect(handler)
 	return chip
@@ -546,7 +572,7 @@ func _make_bank_row(name: String, is_move: bool) -> Button:
 		power.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		power.nudge_baseline_down(1)
 		content.add_child(power)
-		var range_label := _dim_label("R%d" % move.attack_range)
+		var range_label := _dim_label("R%s" % range_text(move))
 		range_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		range_label.nudge_baseline_down(1)
 		content.add_child(range_label)
@@ -652,20 +678,15 @@ func _build_injury_lane() -> void:
 func _build_summary_lane() -> void:
 	if _character == null:
 		return
-	var equipped_count: int = 0
-	for move: Move in _character.equipped_moves:
-		if not UnitSheet.is_empty_move(move):
-			equipped_count += 1
-	# Nothing is selected, so nothing here is live — the meta reads MUTED
-	# (RQD 2026-08-10, 3A first crack; muted semantic set pending Lawrence).
+	# Just the name and where they stand — the "N moves equipped" count and
+	# the click-a-slot tutorial paragraph are both gone (RQD 2026-08-11:
+	# clean visual design beats new-player hand-holding on an already-busy
+	# screen; if guidance returns it rides a new_player_guidance flag, not
+	# permanent chrome). The meta reads MUTED: nothing selected, nothing live.
 	_build_detail_text(_character.character_name,
-			"%s · Lv %d · %d move%s equipped" % [
-				Enums.get_class_display_name(_character.current_class), _character.level,
-				equipped_count, "" if equipped_count == 1 else "s"],
-			"Click a move, a passive, a stat, or an injury in the middle column. " +
-			"Whatever you touch, this panel explains it — and becomes the place " +
-			"you change it.",
-			GameColors.TEXT_MUTED, GameColors.TEXT_MUTED_GLOW)
+			"%s · Lv %d" % [
+				Enums.get_class_display_name(_character.current_class), _character.level],
+			"", GameColors.TEXT_MUTED, GameColors.TEXT_MUTED_GLOW)
 
 	_body.add_child(_squad_section_header("EQUIPPED"))
 	for move: Move in _character.equipped_moves:

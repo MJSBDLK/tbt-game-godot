@@ -39,9 +39,12 @@ const STAT_ROWS: Array = [
 ]
 
 const MOVE_SLOT_COUNT: int = 4
-## §8: the real count is class-schedule-dependent (1 or 2); rendering assumes
-## 2 until that schedule exists.
-const PASSIVE_SLOT_COUNT: int = 2
+## Four, matching the engine's actual cap (equipped_passives is "Max 4" and
+## shipped rosters use slots 2+). intermission.md §8's class-schedule question
+## (1-2 unlocked per class) is still open — when that schedule exists, LOCKED
+## slots render inert; the COUNT stays 4. Was 2, which made Ernesto's bank
+## unequippable past his second passive (F5 bug, RQD 2026-08-11).
+const PASSIVE_SLOT_COUNT: int = 4
 const CAP_BAR_HEIGHT: int = 3
 const ICON_SIZE: int = 10
 const ELEMENTAL_ICON_DIR: String = "res://art/sprites/ui/elemental_type_icons_10x10/"
