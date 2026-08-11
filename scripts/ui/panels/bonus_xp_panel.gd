@@ -230,7 +230,7 @@ func _build_row(parent: VBoxContainer, character: CharacterData) -> Dictionary:
 	row.add_theme_constant_override("separation", 6)
 	parent.add_child(row)
 
-	# Portrait — same crop logic as PrepScreen's roster cards.
+	# Portrait — same crop logic as the roster rail's cards.
 	var portrait := TextureRect.new()
 	portrait.custom_minimum_size = Vector2(32, 32)
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE

@@ -1,8 +1,6 @@
 ## MANAGE UNITS — the three-column workspace ([.claude/intermission.md] §3).
-## Slice 2 of the intermission port: the screen scaffold and a fully live
-## roster rail. The sheet column carries only the identity block and the
-## workbench only its header until slice 3 absorbs equipment_picker's bank,
-## filters, and detail lanes.
+## Slices 2+3 of the intermission port: rail · sheet · workbench, all live.
+## The bEXP lane on the sheet's XP row is slice 4.
 ##
 ## VENUE (§2): this is the HUD venue — glass panels and the full button
 ## vocabulary, against the same MenuStageBackdrop the hub uses, dimmed harder
@@ -10,9 +8,11 @@
 ## bare text does.
 ##
 ## ONE SCREEN, NO MODES (§3a): click a slot, the workbench offers what fits in
-## it. The rail decides WHO, the sheet shows their state, the workbench is
-## downstream of whatever slot was clicked. Slices 3 and 4 fill in the slots;
-## the column contract is fixed here.
+## it. The rail decides WHO (RosterRail), the sheet shows their state
+## (UnitSheet — every editable thing on it is a slot), the workbench is
+## downstream of whatever slot was clicked (UnitWorkbench). This screen is
+## only the wiring between the three: selection flows right, mutations flow
+## back left as refreshes.
 ##
 ## DEPLOYMENT flows through CampaignManager (already saved + read by
 ## BattleScene). On open, the carried selection is resolved against THIS
@@ -40,11 +40,10 @@ static var open_sorted_by_level: bool = false
 
 
 var _rail: RosterRail = null
+var _sheet: UnitSheet = null
+var _workbench: UnitWorkbench = null
 var _pool_value_label: Label = null
 var _squad_value_label: Label = null
-var _sheet_portrait: TextureRect = null
-var _sheet_name_label: Label = null
-var _sheet_sub_label: Label = null
 
 var _squad_cap: int = 0
 
@@ -70,12 +69,6 @@ static func squad_readout(deployed: int, cap: int) -> String:
 	if cap > 0:
 		return "%d/%d" % [deployed, cap]
 	return str(deployed)
-
-
-## `Spaceman · Lv 5` — the ident block's second line.
-static func ident_sub_line(character: CharacterData) -> String:
-	var class_text: String = str(Enums.CharacterClass.keys()[character.current_class]).capitalize()
-	return "%s · Lv %d" % [class_text, character.level]
 
 
 # =============================================================================
@@ -111,6 +104,16 @@ func _on_deployment_changed(deployed_ids: Array[String]) -> void:
 	if CampaignManager.is_active():
 		CampaignManager.set_deployment(deployed_ids)
 	_refresh_squad_label()
+	# The stat lane's ACROSS THE SQUAD list reads the deployed set.
+	_workbench.set_squad(_deployed_characters())
+
+
+func _deployed_characters() -> Array[CharacterData]:
+	var deployed: Array[CharacterData] = []
+	for character: CharacterData in SquadManager.get_active_roster():
+		if _rail.is_deployed(character.character_id):
+			deployed.append(character)
+	return deployed
 
 
 func _refresh_squad_label() -> void:
@@ -123,16 +126,36 @@ func _on_pool_changed(new_pool: int) -> void:
 		_pool_value_label.text = str(new_pool)
 
 
+## Rail → sheet → workbench, in that order. The sheet keeps its slot-kind
+## selection across the switch (§3b: click Move 2 on Max, click Ernesto in
+## the rail — you're on Ernesto's Move 2), so the workbench re-shows the SAME
+## lane for the new unit.
 func _show_unit(character_id: String) -> void:
 	var character: CharacterData = SquadManager.get_character_by_id(character_id)
 	if character == null:
 		return
-	if _sheet_portrait != null:
-		_sheet_portrait.texture = CharacterPortrait.get_sprite_crop_for(character)
-	if _sheet_name_label != null:
-		_sheet_name_label.text = character.character_name
-	if _sheet_sub_label != null:
-		_sheet_sub_label.text = ident_sub_line(character)
+	_sheet.set_character(character)
+	_workbench.set_squad(_deployed_characters())
+	_workbench.show_lane(character, _sheet.get_selection_kind(), _sheet.get_selection_key())
+
+
+func _on_slot_selected(kind: String, key: Variant) -> void:
+	var character: CharacterData = SquadManager.get_character_by_id(_rail.get_selected_id())
+	_workbench.show_lane(character, kind, key)
+
+
+## A sheet mutation (StatUp allocation): the rail's ★N badges and any open
+## stat lane are now stale.
+func _on_sheet_changed() -> void:
+	_rail.refresh()
+	_workbench.show_lane(SquadManager.get_character_by_id(_rail.get_selected_id()),
+			_sheet.get_selection_kind(), _sheet.get_selection_key())
+
+
+## A workbench commit (equip): the sheet's slot names are now stale.
+func _on_workbench_changed() -> void:
+	_sheet.refresh()
+	_rail.refresh()
 
 
 # =============================================================================
@@ -170,8 +193,18 @@ func _build_content() -> void:
 	_rail.deployment_changed.connect(_on_deployment_changed)
 	body.add_child(_rail)
 
-	body.add_child(_build_sheet_column())
-	body.add_child(_build_workbench_column())
+	_sheet = UnitSheet.new()
+	_sheet.custom_minimum_size = Vector2(SHEET_WIDTH, 0)
+	_sheet.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_sheet.slot_selected.connect(_on_slot_selected)
+	_sheet.changed.connect(_on_sheet_changed)
+	body.add_child(_sheet)
+
+	_workbench = UnitWorkbench.new()
+	_workbench.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_workbench.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_workbench.changed.connect(_on_workbench_changed)
+	body.add_child(_workbench)
 
 
 func _build_top_bar() -> PanelContainer:
@@ -255,97 +288,6 @@ func _key_value_pair(key_text: String, value_text: String, value_color: Color,
 	if value_out is Array:
 		(value_out as Array).append(value_label)
 	return pair
-
-
-func _build_sheet_column() -> PanelContainer:
-	var column := _glass_column()
-	column.custom_minimum_size = Vector2(SHEET_WIDTH, 0)
-
-	var stack := VBoxContainer.new()
-	stack.add_theme_constant_override("separation", 4)
-	column.add_child(stack)
-
-	var ident := HBoxContainer.new()
-	ident.add_theme_constant_override("separation", 6)
-	var ident_margin := MarginContainer.new()
-	for side: String in ["margin_left", "margin_right", "margin_top"]:
-		ident_margin.add_theme_constant_override(side, 5)
-	ident_margin.add_child(ident)
-	stack.add_child(ident_margin)
-
-	_sheet_portrait = TextureRect.new()
-	_sheet_portrait.custom_minimum_size = Vector2(32, 32)
-	_sheet_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_sheet_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_sheet_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	ident.add_child(_sheet_portrait)
-
-	var who := VBoxContainer.new()
-	who.add_theme_constant_override("separation", 1)
-	who.alignment = BoxContainer.ALIGNMENT_CENTER
-	ident.add_child(who)
-
-	_sheet_name_label = Label.new()
-	if UIManager.font_11px != null:
-		_sheet_name_label.add_theme_font_override("font", UIManager.font_11px)
-	_sheet_name_label.add_theme_font_size_override("font_size", 11)
-	_sheet_name_label.add_theme_color_override("font_color",
-			GameColorPalette.get_color("Azure", 9))
-	who.add_child(_sheet_name_label)
-
-	_sheet_sub_label = Label.new()
-	if UIManager.font_8px != null:
-		_sheet_sub_label.add_theme_font_override("font", UIManager.font_8px)
-	_sheet_sub_label.add_theme_font_size_override("font_size", 8)
-	_sheet_sub_label.add_theme_color_override("font_color",
-			GameColorPalette.get_color("Straw2", 5))
-	who.add_child(_sheet_sub_label)
-
-	# Slice 3 stacks the rest of the sheet below the ident: XP row, the
-	# two-column stat block with StatCapBars and inline [−]/[+], move and
-	# passive slots, injury chips.
-	return column
-
-
-func _build_workbench_column() -> PanelContainer:
-	var column := _glass_column()
-	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-
-	var stack := VBoxContainer.new()
-	stack.add_theme_constant_override("separation", 0)
-	column.add_child(stack)
-
-	var head := Label.new()
-	head.text = "UNIT SUMMARY"
-	if UIManager.font_8px != null:
-		head.add_theme_font_override("font", UIManager.font_8px)
-	head.add_theme_font_size_override("font_size", 8)
-	head.add_theme_color_override("font_color", GameColorPalette.get_color("Azure", 9))
-	var head_margin := MarginContainer.new()
-	for side: String in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
-		head_margin.add_theme_constant_override(side, 3 if side != "margin_left" else 5)
-	head_margin.add_child(head)
-	stack.add_child(head_margin)
-
-	var hairline := ColorRect.new()
-	hairline.custom_minimum_size = Vector2(0, 1)
-	hairline.color = GameColorPalette.get_color("Straw2", 2)
-	hairline.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	stack.add_child(hairline)
-
-	# Slice 3 fills this column: detail-first workbench (inspect → swap bar →
-	# filtered bank) fed by whichever slot the sheet has selected.
-	return column
-
-
-func _glass_column() -> PanelContainer:
-	var column := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = GameColors.HUD_PANEL_BACKGROUND
-	style.border_color = GameColorPalette.get_color("Straw2", 3)
-	style.set_border_width_all(1)
-	column.add_theme_stylebox_override("panel", style)
-	return column
 
 
 # =============================================================================

@@ -237,6 +237,16 @@ func deployed_count() -> int:
 	return _deployed.size()
 
 
+func is_deployed(character_id: String) -> bool:
+	return _deployed.has(character_id)
+
+
+## Rebuild the cards against current character state — the ★N badges and sort
+## readouts go stale whenever the sheet or workbench mutates a unit.
+func refresh() -> void:
+	_rebuild_cards()
+
+
 func _find_roster_index(character_id: String) -> int:
 	for i: int in _roster.size():
 		if _roster[i].character_id == character_id:

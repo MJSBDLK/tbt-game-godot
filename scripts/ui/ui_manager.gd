@@ -783,8 +783,8 @@ func _get_camera() -> CameraController:
 ## which info panels (unit info, terrain info) should render.
 ##
 ## Primary gate is scene-presence: if a BattleScene isn't mounted, there's no
-## map to preview, full stop. This makes new non-battle screens (PrepScreen,
-## StartScreen, future overlays) inherently safe — they can't accidentally leak
+## map to preview, full stop. This makes new non-battle screens (the
+## intermission, StartScreen, future overlays) inherently safe — they can't accidentally leak
 ## map UI by forgetting to push a state. The InputState check stacks on top to
 ## suppress panels during in-battle modals (ACTION_MENU_OPEN, etc.).
 func _is_map_view_active() -> bool:

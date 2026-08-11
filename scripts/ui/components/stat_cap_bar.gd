@@ -30,7 +30,7 @@
 ## silently reading as healthy.
 ##
 ## Single shared component by design (RQD 2026-08-06). CharacterSheetPanel,
-## UnitDetailPanel and EquipmentPicker all want the same picture, so they all
+## UnitDetailPanel and UnitSheet all want the same picture, so they all
 ## instantiate this rather than each growing its own cap rendering — three
 ## copies would drift the moment one of them got a tweak. It replaces the
 ## hand-rolled base+bonus bar CharacterSheetPanel used to carry, which scaled

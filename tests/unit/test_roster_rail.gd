@@ -296,7 +296,3 @@ func test_squad_readout_shows_the_cap_only_when_there_is_one() -> void:
 	assert_eq(ManageUnitsScreen.squad_readout(4, 6), "4/6")
 	assert_eq(ManageUnitsScreen.squad_readout(4, 0), "4",
 			"cap 0 = unknown mission — a bare count, same as the old prep screen")
-
-
-func test_ident_sub_line_reads_class_and_level() -> void:
-	assert_eq(ManageUnitsScreen.ident_sub_line(_unit("x", "X", 5)), "Spaceman · Lv 5")

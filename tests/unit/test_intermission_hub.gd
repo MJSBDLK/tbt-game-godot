@@ -239,8 +239,8 @@ func test_mission_boundaries_land_on_the_hub() -> void:
 
 
 func test_manage_units_still_opens_something_real() -> void:
-	# The hub's Manage Units entry points at the pre-redesign prep screen until
-	# slice 3 lands. If that path rots the hub becomes a dead end.
+	# The hub's Manage Units entry opens the three-column workspace. If that
+	# path rots the hub becomes a dead end.
 	assert_true(ResourceLoader.exists(IntermissionHub.MANAGE_UNITS_PATH),
 			"Manage Units has a live destination")
 	assert_true(ResourceLoader.exists(IntermissionHub.START_SCREEN_PATH),

@@ -69,9 +69,13 @@ see the mockup and §6. These three are the remainder.)*
       arrival and rewritten per pip toggle, always in roster order (§4d — spawn
       positions can't move under rail sorting; tested). bEXP deep link opens
       level-ascending.
-    - [ ] Slice 3 — sheet + workbench (absorbs EquipmentPicker; deletes
-      prep_screen.gd, which until then is the only way to edit moves/StatUps —
-      reachable by F6 only, the flow no longer links it).
+    - [x] Slice 3 — sheet + workbench (2026-08-10). UnitSheet: ident, XP row
+      (display-only until slice 4), single-column stat block with StatCapBars
+      + inline [−]/[+] allocation, move/passive slots, injury chips. UnitWork-
+      bench: lane per slot kind — move/passive (detail → swap bar → filtered
+      bank, live commit), stat (blurbs + cap position + ACROSS THE SQUAD),
+      injury, unit summary. prep_screen.gd and equipment_picker.gd DELETED
+      (absorbed; bank/equip semantics pinned in test_unit_workbench.gd).
     - [ ] Slice 4 — the bEXP level row (gated on the three open questions in
       the mockup link above + the staging-layer design below).
   - Related design note: the level-up moment is a *dopamine beat*, not a text
@@ -554,6 +558,7 @@ Each of these is blocked on a decision, not on work.
 - [ ] **Split `StatusEffectType` into `AfflictType` + `BoostType`.** Significant
   rewiring across the game logic, but there's no real alternative: units need to
   carry a boost and an affliction simultaneously.
+- [ ] **size 5 font** - replace the letter "B" and numeral "8" with custom characters
 
 ---
 

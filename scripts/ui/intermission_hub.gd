@@ -41,10 +41,9 @@ const ENTRY_GAP: int = 4
 const TAIL_GAP: int = 12
 
 ## Manage Units is the destination for both the direct entry and the bEXP
-## deep-link. Slice 2 pointed this at the three-column workspace; until slice 3
-## absorbs equipment_picker into its workbench, move/passive editing and StatUp
-## allocation are unreachable from the flow (the old prep_screen still exists
-## on disk for reference).
+## deep-link: the three-column workspace (rail · sheet · workbench). The old
+## prep_screen and equipment_picker were absorbed by it and deleted (slice 3,
+## 2026-08-10).
 const MANAGE_UNITS_PATH: String = "res://scenes/ui/manage_units_screen.tscn"
 const START_SCREEN_PATH: String = "res://scenes/ui/start_screen.tscn"
 
