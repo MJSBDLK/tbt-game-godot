@@ -291,13 +291,23 @@ func _build_chrome() -> void:
 	if UIManager.font_8px != null:
 		_search_edit.add_theme_font_override("font", UIManager.font_8px)
 	_search_edit.add_theme_font_size_override("font_size", 8)
-	# Deliberate exception to the glow rule: a shader material on a LineEdit
-	# would also glow the caret and selection box. Typed text wears PRIMARY's
-	# body color, the placeholder SECONDARY's, both unhaloed.
+	# The glow material is safe on a LineEdit after all: the caret and
+	# selection box render as opaque untextured rects, which the shader
+	# passes through untouched (the same reason the Equip button's stylebox
+	# doesn't halo) — only glyphs glow. The pair swaps with state so body and
+	# halo always travel together: MUTED while showing the placeholder,
+	# PRIMARY once the player is typing.
 	_search_edit.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
-	_search_edit.add_theme_color_override("font_placeholder_color",
-			GameColors.with_alpha(GameColors.TEXT_SECONDARY, 0.6))
+	_search_edit.add_theme_color_override("font_placeholder_color", GameColors.TEXT_MUTED)
+	var search_glow := (load("res://resources/hud_glow.tres") as Material).duplicate()
+	(search_glow as ShaderMaterial).set_shader_parameter("glow_color",
+			GameColors.TEXT_MUTED_GLOW)
+	_search_edit.material = search_glow
 	_search_edit.text_changed.connect(_on_search_changed)
+	_search_edit.text_changed.connect(func(new_text: String) -> void:
+		(search_glow as ShaderMaterial).set_shader_parameter("glow_color",
+				GameColors.TEXT_MUTED_GLOW if new_text.is_empty()
+				else GameColors.TEXT_PRIMARY_GLOW))
 	head_stack.add_child(_search_edit)
 
 	var sort_row := HBoxContainer.new()

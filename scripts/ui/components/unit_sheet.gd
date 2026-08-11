@@ -46,6 +46,16 @@ const CAP_BAR_HEIGHT: int = 3
 const ICON_SIZE: int = 10
 const ELEMENTAL_ICON_DIR: String = "res://art/sprites/ui/elemental_type_icons_10x10/"
 
+## RQD's 9×9 [−]/[+] art (2026-08-10): a 1px outline ring + a 3px symbol,
+## drawn in pure black so the UI tints it. Split at load into ring and symbol
+## textures, because the two want different treatment — orthogonal glow on the
+## SYMBOL, none on the ring (too tight; the halos would collide).
+const ALLOC_ART_PATHS: Dictionary = {
+	"−": "res://art/hud/minus_stat_hud_static.png",
+	"+": "res://art/hud/plus_stat_hud_static.png",
+}
+static var _alloc_art_cache: Dictionary = {}
+
 
 var _character: CharacterData = null
 var _sel_kind: String = "none"
@@ -289,7 +299,9 @@ func _make_stat_row(stat_name: String, abbrev: String) -> Button:
 	#             UnitDetailPanel's "+N" modifier and the bar's bonus segment
 	#             wear, so "modified" is one voice everywhere (Q3)
 	#   PRIMARY   otherwise — it's just content
-	# The tally itself is always SECONDARY: spent points are modifiers.
+	# The tally wears INFO (RQD round 3: "looked better in yellow") — it joins
+	# the ★N badge and pool pips in the StatUp-accent gold rather than the
+	# modifier violet-halo pair.
 	var value_cluster := HBoxContainer.new()
 	value_cluster.add_theme_constant_override("separation", 0)
 	value_cluster.custom_minimum_size = Vector2(28, 0)
@@ -308,7 +320,7 @@ func _make_stat_row(stat_name: String, abbrev: String) -> Button:
 	value_cluster.add_child(number)
 	if points > 0:
 		var tally := GlowLabel.styled("+".repeat(points), UIManager.font_8px, 8,
-				GameColors.TEXT_SECONDARY, GameColors.TEXT_SECONDARY_GLOW)
+				GameColors.TEXT_INFO, GameColors.TEXT_INFO_GLOW)
 		tally.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		value_cluster.add_child(tally)
 	content.add_child(value_cluster)
@@ -337,39 +349,77 @@ func _cap_tooltip(stat_name: String, abbrev: String, level_value: int, capped: b
 			level_value, cap, class_text, _character.get_global_stat_cap(stat_name)]
 
 
-## The [−]/[+] pair. A child Button inside the row button — its clicks are
-## consumed here and never bubble into slot selection. Wears the interactive
-## BOX vocabulary (§14: lit border = pressable), not the bare-glyph look —
-## these are the only two controls on the row and must read as buttons.
+## Splits the 9×9 button art into its ring and its symbol. Cached — the rows
+## rebuild on every allocation click and the split only needs doing once.
+static func _alloc_art_pieces(path: String) -> Array:
+	if _alloc_art_cache.has(path):
+		return _alloc_art_cache[path]
+	var source: Image = (load(path) as Texture2D).get_image()
+	source.convert(Image.FORMAT_RGBA8)
+	var ring: Image = source.duplicate() as Image
+	var symbol: Image = source.duplicate() as Image
+	var width: int = source.get_width()
+	var height: int = source.get_height()
+	for y: int in height:
+		for x: int in width:
+			var on_ring: bool = x == 0 or y == 0 or x == width - 1 or y == height - 1
+			if on_ring:
+				symbol.set_pixel(x, y, Color(0, 0, 0, 0))
+			else:
+				ring.set_pixel(x, y, Color(0, 0, 0, 0))
+	var pieces: Array = [ImageTexture.create_from_image(ring),
+			ImageTexture.create_from_image(symbol)]
+	_alloc_art_cache[path] = pieces
+	return pieces
+
+
+## The [−]/[+] pair — RQD's 9×9 art, tinted per state. A child Button inside
+## the row button, so its clicks never bubble into slot selection. The ring
+## speaks the interactive-border vocabulary (idle/focus/disabled); the symbol
+## speaks PRIMARY with its orthogonal glow, which the ring deliberately
+## doesn't get. Buttons are rebuilt on every refresh, so each is constructed
+## already in its enabled/disabled state — only hover mutates live.
 func _make_alloc_button(glyph: String, enabled: bool, tip: String,
 		handler: Callable) -> Button:
 	var button := Button.new()
-	button.text = glyph
-	button.custom_minimum_size = Vector2(12, 12)
+	button.custom_minimum_size = Vector2(9, 9)
 	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	button.disabled = not enabled
 	button.tooltip_text = tip
 	button.focus_mode = Control.FOCUS_NONE
-	if UIManager.font_8px != null:
-		button.add_theme_font_override("font", UIManager.font_8px)
-	button.add_theme_font_size_override("font_size", 8)
-	button.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
-	button.add_theme_color_override("font_disabled_color", GameColors.INTERACTIVE_TEXT_DISABLED)
-	var box := StyleBoxFlat.new()
-	box.bg_color = GameColors.ACTION_BUTTON_BG_NORMAL
-	box.border_color = GameColors.INTERACTIVE_BORDER_IDLE
-	box.set_border_width_all(1)
-	var box_hover := box.duplicate() as StyleBoxFlat
-	box_hover.bg_color = GameColors.ACTION_BUTTON_BG_HOVERED
-	box_hover.border_color = GameColors.INTERACTIVE_BORDER_FOCUS
-	var box_disabled := box.duplicate() as StyleBoxFlat
-	box_disabled.bg_color = Color.TRANSPARENT
-	box_disabled.border_color = GameColors.INTERACTIVE_BORDER_DISABLED
-	button.add_theme_stylebox_override("normal", box)
-	button.add_theme_stylebox_override("hover", box_hover)
-	button.add_theme_stylebox_override("pressed", box_hover)
-	button.add_theme_stylebox_override("focus", box)
-	button.add_theme_stylebox_override("disabled", box_disabled)
+	for state: String in ["normal", "hover", "pressed", "focus", "disabled"]:
+		button.add_theme_stylebox_override(state, StyleBoxEmpty.new())
+
+	var pieces: Array = _alloc_art_pieces(str(ALLOC_ART_PATHS[glyph]))
+	var ring := _make_icon(pieces[0] as Texture2D)
+	ring.custom_minimum_size = Vector2.ZERO
+	ring.position = Vector2.ZERO
+	ring.size = Vector2(9, 9)
+	ring.self_modulate = GameColors.INTERACTIVE_BORDER_IDLE if enabled \
+			else GameColors.INTERACTIVE_BORDER_DISABLED
+	button.add_child(ring)
+
+	var symbol := _make_icon(pieces[1] as Texture2D)
+	symbol.custom_minimum_size = Vector2.ZERO
+	symbol.position = Vector2.ZERO
+	symbol.size = Vector2(9, 9)
+	if enabled:
+		symbol.self_modulate = GameColors.TEXT_PRIMARY
+		var glow_material := (load("res://resources/hud_glow.tres") as Material).duplicate()
+		(glow_material as ShaderMaterial).set_shader_parameter("glow_color",
+				GameColors.TEXT_PRIMARY_GLOW)
+		symbol.material = glow_material
+	else:
+		symbol.self_modulate = GameColors.INTERACTIVE_TEXT_DISABLED
+	button.add_child(symbol)
+
+	if enabled:
+		button.mouse_entered.connect(func() -> void:
+			ring.self_modulate = GameColors.INTERACTIVE_BORDER_FOCUS
+			symbol.self_modulate = GameColors.brightened(GameColors.TEXT_PRIMARY))
+		button.mouse_exited.connect(func() -> void:
+			ring.self_modulate = GameColors.INTERACTIVE_BORDER_IDLE
+			symbol.self_modulate = GameColors.TEXT_PRIMARY)
 	button.pressed.connect(handler)
 	return button
 

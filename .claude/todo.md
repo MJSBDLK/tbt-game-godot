@@ -1,10 +1,4 @@
 # Resp
-1. `[-][+]` Buttons should have more of a box styling
-2. For "squad order," the order should be Ma'am - Ernesto - Max - ElfPirate
-3. Whatever font+glow is being used for "empty" and "no injuries" looks awful. Maybe we need a new "muted" semantic color pair?
-3A. When you deselect a unit, the muted unit name + level doesn't quite look right. Maybe Lawrence needs to weigh in on muted versions of the semantic colors, but please take a crack at it yourself.
-4. The text in the squad list is having its orthogonal glow cut off on its left and top margins. Same with moves and the move pool. With passives, the left is cut off but not the top.
-5. The "Equip" button needs orthogonal glow as well - on the text and the outline. If this creates a spacing problem, please use the smaller font size, but I think spacing should be fine.
 
 # TBT Game — Open Work
 
