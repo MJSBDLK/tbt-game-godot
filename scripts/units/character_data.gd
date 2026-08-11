@@ -42,6 +42,11 @@ extends Resource
 # resolution via the HDLayer overlay. Leave empty to keep the pixel portrait.
 @export var lineart_path: String = ""
 
+## One short crew-file entry in the voice of the corp AI that chartered the
+## mission — shown on the workbench's idle crew-file lane under the portrait.
+## Empty = the lane shows "— NO DATA —", which is itself in-fiction.
+@export var service_record: String = ""
+
 # Named sub-regions of the line-art. Keys are framing names ("portrait",
 # "thumbnail", "fullbody"); values are paths to AtlasTexture .tres resources
 # that crop the lineart down to that region. UI consumers ask for a specific

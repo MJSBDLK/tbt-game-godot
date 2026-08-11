@@ -215,6 +215,15 @@ static var TEXT_WARNING: Color:
 	get: return GameColorPalette.get_color("YellowOrange", 6)  # #e2ad37 marigold
 static var TEXT_WARNING_GLOW: Color:
 	get: return GameColorPalette.get_color("Red", 4)
+# MUTED — absence and non-content: "(empty)", "no injuries", deselected
+# summaries. Not SECONDARY-dimmed-by-modulate (tried, RQD 2026-08-10: the
+# violet halo goes muddy at low alpha) — its own quiet pair on the panel's own
+# warm ramp, halo barely above the glass. PROVISIONAL colors, RQD first-crack;
+# surface for Lawrence with the rest of the semantic set.
+static var TEXT_MUTED: Color:
+	get: return GameColorPalette.get_color("Straw2", 6)  # #a59363 quiet straw
+static var TEXT_MUTED_GLOW: Color:
+	get: return GameColorPalette.get_color("Straw2", 3)  # #473c27 near-ground
 
 
 # =============================================================================

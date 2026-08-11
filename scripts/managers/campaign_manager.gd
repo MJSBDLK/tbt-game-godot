@@ -27,7 +27,12 @@ signal campaign_ended()
 
 
 const START_SCREEN_PATH: String = "res://scenes/ui/start_screen.tscn"
-const PREP_SCREEN_PATH: String = "res://scenes/ui/prep_screen.tscn"
+## Every mission boundary lands on the intermission HUB (2026-08-07), not
+## straight into the squad editor. The hub is the quiet beat between the battle
+## and the spreadsheet, and it owns Save / Options / Begin Mission; Manage Units
+## is one entry inside it (the three-column workspace — see
+## IntermissionHub.MANAGE_UNITS_PATH).
+const INTERMISSION_PATH: String = "res://scenes/ui/intermission_hub.tscn"
 const CAMPAIGN_COMPLETE_SCREEN_PATH: String = "res://scenes/ui/campaign_complete_screen.tscn"
 const RECRUIT_OFFER_COUNT: int = 3
 
@@ -65,9 +70,11 @@ var _current_mission_index: int = -1
 var _start_level: int = 5
 
 # Player's deployment choice for the upcoming mission. Subset of character_ids
-# from SquadManager's active roster. Set by prep_screen via set_deployment()
-# right before deploy_to_current_mission(). Empty list means "deploy everyone"
-# (the legacy behavior — used as fallback if prep screen never set it).
+# from SquadManager's active roster, ALWAYS in roster order (spawn order is
+# roster order — intermission.md §4d). Seeded by the intermission hub on
+# arrival, rewritten by the Manage Units rail on every pip toggle. Empty list
+# means "deploy everyone" (the legacy fallback for ad-hoc battles that never
+# passed through the hub).
 var _deployment_selection: Array[String] = []
 
 
@@ -95,7 +102,7 @@ func start_campaign(start_level: int, mission_paths: Array[String],
 	campaign_started.emit(_start_level, _mission_paths)
 	DebugConfig.log_unit_init("CampaignManager: Started campaign — level %d, %d missions, %d in recruit pool" % [
 		_start_level, _mission_paths.size(), _recruit_pool.size()])
-	SceneRouter.change_scene_to(PREP_SCREEN_PATH)
+	SceneRouter.change_scene_to(INTERMISSION_PATH)
 
 
 ## Entry point called by UIManager._finish_post_mission_flow at the end of
@@ -150,7 +157,7 @@ func advance_mission() -> void:
 	mission_advanced.emit(_current_mission_index)
 	DebugConfig.log_unit_init("CampaignManager: Advancing to mission %d/%d (via prep screen)" % [
 		_current_mission_index + 1, _mission_paths.size()])
-	SceneRouter.change_scene_to(PREP_SCREEN_PATH)
+	SceneRouter.change_scene_to(INTERMISSION_PATH)
 
 
 ## The defeat branch of conclude_mission. Replays the current mission without
@@ -164,11 +171,12 @@ func _restart_current_mission() -> void:
 	mission_restarted.emit(_current_mission_index)
 	DebugConfig.log_unit_init("CampaignManager: Replaying mission %d/%d after defeat" % [
 		_current_mission_index + 1, _mission_paths.size()])
-	SceneRouter.change_scene_to(PREP_SCREEN_PATH)
+	SceneRouter.change_scene_to(INTERMISSION_PATH)
 
 
 ## Records which roster members the player has chosen to deploy in the next
-## mission. Called by prep_screen right before deploy_to_current_mission().
+## mission. Called by the intermission hub (arrival seeding) and the Manage
+## Units rail (pip toggles), both of which pass ids in roster order.
 ## Empty array = "deploy everyone" (legacy fallback for callers that never set it).
 func set_deployment(character_ids: Array[String]) -> void:
 	_deployment_selection = character_ids.duplicate()
@@ -181,7 +189,7 @@ func get_deployment() -> Array[String]:
 
 
 ## Loads the actual mission scene for the current mission_index. Called by
-## prep_screen's Begin Mission button after the player confirms their squad.
+## the intermission hub's Begin Mission entry.
 func deploy_to_current_mission() -> void:
 	if not is_active():
 		push_warning("CampaignManager: deploy_to_current_mission() called with no active campaign")

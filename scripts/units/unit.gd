@@ -1765,7 +1765,7 @@ func _style_level_label() -> void:
 
 ## Refreshes the level number from character_data.level. Cheap — call any time
 ## the unit's level changes (currently only at spawn; bEXP-driven mid-prep
-## levels happen in prep_screen, not in-battle).
+## levels happen on the intermission screens, not in-battle).
 func _update_level_label() -> void:
 	if _level_label == null or character_data == null:
 		return

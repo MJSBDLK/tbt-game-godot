@@ -8,6 +8,53 @@ class_name GlowLabel
 
 var _glow_material_path: String = "res://resources/hud_glow.tres"
 
+
+## Code-built glow text in one call: body color + its orthogonal-glow partner
+## (always pass one of GameColors' TEXT_*/TEXT_*_GLOW pairs — the voices are a
+## locked set, ui-style-guide §2). Every screen was hand-assembling this
+## five-line recipe; the factory keeps the material/duplicate dance in one
+## place.
+static func styled(text_value: String, font: FontFile, font_size: int,
+		color: Color, glow: Color) -> GlowLabel:
+	var label := GlowLabel.new()
+	label.text = text_value
+	# Duplicate BEFORE the glow_color setter runs — the setter writes a shader
+	# parameter, and writing it on the shared .tres would bleed this label's
+	# color into every glow user in the project.
+	label.material = (load("res://resources/hud_glow.tres") as Material).duplicate()
+	label.glow_color = glow
+	if font != null:
+		label.add_theme_font_override("font", font)
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", color)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# 1px breathing room on every side, or the halo clips wherever glyph ink
+	# reaches the control rect (found on F5 2026-08-10: rail names and move
+	# slots lost their left+top halo). The halo needs exactly the 1px the
+	# shader samples.
+	var inset := StyleBoxEmpty.new()
+	inset.content_margin_left = 1
+	inset.content_margin_right = 1
+	inset.content_margin_top = 1
+	inset.content_margin_bottom = 1
+	label.add_theme_stylebox_override("normal", inset)
+	return label
+
+
+## Baseline correction for the UndeadPixel fonts, which sit high in their em
+## box (RQD 2026-08-10: stat rows read 2px high, slot rows 1px). Shifts the
+## top margin down and the bottom margin up by the same amount, so under
+## VERTICAL_ALIGNMENT_CENTER (which every row label uses) the ink moves
+## exactly `pixels` down while the label's minimum size stays put. Safe for
+## the halo: the whole problem is ink sitting HIGH, so the bottom always has
+## the slack this borrows.
+func nudge_baseline_down(pixels: int) -> void:
+	var box: StyleBoxEmpty = get_theme_stylebox("normal") as StyleBoxEmpty
+	if box == null:
+		return
+	box.content_margin_top += pixels
+	box.content_margin_bottom -= pixels
+
 func _ready() -> void:
 	if material:
 		material = material.duplicate()

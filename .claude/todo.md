@@ -1,3 +1,16 @@
+# Resp
+- [ ] 
+
+# More ideas
+- [ ] Longer ranged moves should carray an accuracy penalty for striking further away. For example, the sidearm can hit units 3 spaces away, but I'd like for it to be optimal at 2, and a risky shot (~50% accuracy for an average unit targeting an average agility enemy) at 3 spaces. We may want to reconsider allowing it to shoot 1 space, as well.
+- [ ] **Correction (2026-08-11): those icons don't exist.** Full sweep of
+    art/sprites/ui/: elemental, move-type (dmg), injury, status-effect, and
+    buff icon sets — nothing for Pow/Range/AOE/Uses. Closest is
+    `infinity_7x4/9x6.png` (for infinite uses). Needs a Lawrence ask: four
+    ~10×10 glyphs; the tap-tooltip pattern already exists (TapTooltip).
+    Text labels stay until the art lands.
+
+
 # TBT Game — Open Work
 
 Everything still to do. **Completed work + its shipped-notes live in
@@ -53,7 +66,7 @@ see the mockup and §6. These three are the remainder.)*
 
 ## 1. Alpha blockers
 
-- [ ] **Squad / prep + between-mission level-up screen.** *(The single biggest
+- [~] **Squad / prep + between-mission level-up screen.** *(The single biggest
   open item — flagged PRIORITY twice, in two different sections, for months.)*
   Pick squad, equip moves (~330 in the bank), equip passives, distribute stat
   allocation points. One screen does double duty: initial prep AND the
@@ -61,6 +74,23 @@ see the mockup and §6. These three are the remainder.)*
   unlocked). Build initial prep first; the level-up overlay reuses most of the
   same widgets. See [equipment_picker.md](equipment_picker.md) and
   [squad_manager.md](squad_manager.md).
+  - **Porting from the mockup in slices** (design locked in
+    [intermission.md](intermission.md), branch `rqd--manage-units`):
+    - [x] Slice 1 — intermission hub (2026-08-07).
+    - [x] Slice 2 — ManageUnitsScreen scaffold + live roster rail (2026-08-10):
+      search / sort-key-as-readout / bench pips, deployment resolved at hub
+      arrival and rewritten per pip toggle, always in roster order (§4d — spawn
+      positions can't move under rail sorting; tested). bEXP deep link opens
+      level-ascending.
+    - [x] Slice 3 — sheet + workbench (2026-08-10). UnitSheet: ident, XP row
+      (display-only until slice 4), single-column stat block with StatCapBars
+      + inline [−]/[+] allocation, move/passive slots, injury chips. UnitWork-
+      bench: lane per slot kind — move/passive (detail → swap bar → filtered
+      bank, live commit), stat (blurbs + cap position + ACROSS THE SQUAD),
+      injury, unit summary. prep_screen.gd and equipment_picker.gd DELETED
+      (absorbed; bank/equip semantics pinned in test_unit_workbench.gd).
+    - [ ] Slice 4 — the bEXP level row (gated on the three open questions in
+      the mockup link above + the staging-layer design below).
   - Related design note: the level-up moment is a *dopamine beat*, not a text
     dump — budget polish from day one.
 ### Subtasks
@@ -136,10 +166,35 @@ see the mockup and §6. These three are the remainder.)*
       curve got steep enough to feel like punishment.
 
 
+- [ ] **Where do objectives actually get DEFINED?** *(Gap found on F5,
+  2026-08-07 — there is no authoring system at all.)* `mission_manifest.json`
+  has an `objectives: []` key and every map ships it empty; `MissionCatalog`
+  reads them for the award side; nothing writes them and nothing tracks them.
+  So the whole objective system is currently a shape with no content.
+  - Stopgap already in: `MissionCatalog.briefing_objectives()` returns an
+    implicit **"Eliminate the enemy"** when a map declares none, so a briefing
+    never renders an empty list. Display-only, pays no bEXP — routing the enemy
+    is how you win, not a bonus for winning.
+  - The real decision, and it's three questions stacked:
+    1. **Where does an objective live** — JSON in the manifest (data, easy to
+       author, can't reference scene nodes), a Resource per mission (typed,
+       inspectable), or on the map scene itself (can point straight at the
+       courier node it's about)? The diegetic-objectives doctrine wants
+       objectives bound to on-board causes, which argues for the map scene.
+    2. **What is an objective made of** — an id, a label, a bEXP amount, and
+       *some* completion predicate. The predicate is the hard part: "escort
+       NPC to tile", "kill unit X", "survive N turns", "reach tile" are all
+       different shapes.
+    3. **Who evaluates it at runtime** — nothing does today. Needs a hook on
+       the same events battle result already listens to.
+  - Blocks: Mission Briefing (§5 of [intermission.md](intermission.md), the hub
+    entry is inert until this exists) and the tracking half of Battle Result V2.
+
 - [ ] **Battle result V2.** V1 shipped (BattleResultPanel: turns-vs-par, itemized
   bEXP income, kills/losses/injuries). Remaining scope: runtime objective
   **tracking** (couriers/NPCs — the award side is already ready in MissionCatalog)
   + per-unit combat stats. See [mission_objectives.md](mission_objectives.md).
+  Gated on the objective-authoring decision above.
   - [ ] Delete the dormant `battle_result_overlay.tscn` once its slide-in
     animation is either adopted or given up on.
 
@@ -516,6 +571,7 @@ Each of these is blocked on a decision, not on work.
 - [ ] **Split `StatusEffectType` into `AfflictType` + `BoostType`.** Significant
   rewiring across the game logic, but there's no real alternative: units need to
   carry a boost and an affliction simultaneously.
+- [ ] **size 5 font** - replace the letter "B" and numeral "8" with custom characters
 
 ---
 

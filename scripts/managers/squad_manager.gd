@@ -55,14 +55,17 @@ var bonus_xp_pool: int = 0
 var last_mission_award_lines: Array[Dictionary] = []
 
 
-# Default roster bootstrapped at game start.
+# Default roster bootstrapped at game start. THE ORDER IS CANON (RQD
+# 2026-08-10): squad order is the order these people joined — Ma'am, then
+# Ernesto, then Max, then the Elf Pirate — and it's what the rail's default
+# sort shows and what spawn position derives from (intermission.md §4a/§4d).
 # ElfPirate is the squad's only Air-type — kept in the starting roster on
 # purpose so terrain that's only traversable by fliers (Wall, Volcano, Water)
 # is always testable without rolling for them in the recruit picker.
 const DEFAULT_ROSTER_PATHS: Array[String] = [
-	"res://data/characters/spaceman.json",
-	"res://data/characters/ernesto.json",
 	"res://data/characters/maam.json",
+	"res://data/characters/ernesto.json",
+	"res://data/characters/spaceman.json",
 	"res://data/characters/elf_pirate.json",
 ]
 

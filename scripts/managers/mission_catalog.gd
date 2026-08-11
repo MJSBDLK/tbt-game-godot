@@ -27,6 +27,21 @@ const MANIFEST_PATH: String = "res://data/missions/mission_manifest.json"
 const DEFAULT_PAR_TURNS: int = 8
 const DEFAULT_DAWDLE_TURNS: int = 16
 
+## Every map has at least one objective to SHOW, because a briefing with an
+## empty list reads as a bug rather than as "nothing special here". When the
+## manifest lists none, the mission's own victory condition is the objective
+## (RQD 2026-08-07).
+##
+## Display-only, and deliberately not in the award path: routing the enemy is
+## how you win, not a bonus for winning, so it pays no bEXP. That's why this
+## is surfaced through briefing_objectives() and never through entry_for() —
+## see the note there.
+const DEFAULT_OBJECTIVE: Dictionary = {
+	"id": "rout",
+	"label": "Eliminate the enemy",
+	"bexp": 0,
+}
+
 # Per-map manifest keys "above_par_bexp" / "dawdle_bexp" override these.
 const ABOVE_PAR_BEXP: int = 150
 const NO_DAWDLING_BEXP: int = 75
@@ -73,6 +88,21 @@ static func compute_award_lines(entry: Dictionary, turn_count: int,
 				"amount": int(objective_dict.get("bexp", 0)),
 			})
 	return lines
+
+
+## What the mission briefing DISPLAYS — the manifest's objectives, or the
+## implicit rout objective when a map declares none.
+##
+## Deliberately separate from entry_for()["objectives"], which is the AWARD
+## side. Keeping the split means the display default can never leak into
+## compute_award_lines and put a 0-bEXP "Eliminate the enemy" line on the
+## result screen. Two different questions: "what pays?" and "what am I here
+## to do?" — they only look the same while every map is a rout.
+static func briefing_objectives(scene_path: String) -> Array:
+	var declared: Array = entry_for(scene_path).get("objectives", []) as Array
+	if declared.is_empty():
+		return [DEFAULT_OBJECTIVE]
+	return declared
 
 
 static func total_of(lines: Array[Dictionary]) -> int:

@@ -76,7 +76,7 @@ static func points_awarded_at_level(new_level: int) -> int:
 static func compute_delta(stat_name: String, level_stat: int, points: int) -> int:
 	if points <= 0:
 		return 0
-	# The cap is enforced UI-side (equipment_picker), so nothing in the data
+	# The cap is enforced UI-side (UnitSheet's stat rows), so nothing in the data
 	# model stops a bad caller — or a save written by an older build — from
 	# handing us more. Loud in dev, clamped in release rather than paying out.
 	assert(points <= PER_STAT_CAP,
