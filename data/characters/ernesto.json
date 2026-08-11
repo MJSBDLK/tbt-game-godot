@@ -10,7 +10,7 @@
 	"lineartAtlases": {
 		"portrait": "res://art/lineart_fullres/ernesto_portrait.tres"
 	},
-	"serviceRecord": "Asset ERNESTO RENTERIA. Certified in several maintenance disciplines; certifying body defunct. Field repairs exceed specification by unauthorized margins. Property damage attributable to enthusiasm remains within acceptable write-off thresholds.",
+	"serviceRecord": "Asset ERNESTO RENTERIA. Certified in several maintenance disciplines; certifying body defunct. Field repairs exceed specification by unauthorized margins. Property damage attributable to enthusiasm remains within acceptable write-off thresholds.\nAnthropometric profile exceeds all referenced standards; berthing, uniform, and overhead requisitions filed as exceptions.",
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/ernesto/idle.png",
 		"atlasPath": "",
