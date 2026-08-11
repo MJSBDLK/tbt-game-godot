@@ -288,3 +288,13 @@ func test_filters_persist_across_lanes_like_workshop_jigs() -> void:
 			"the filter survives leaving and returning to the move lane")
 	workbench._on_damage_filter_toggled(Enums.DamageType.SPECIAL)
 	assert_false(workbench._damage_filter.has(Enums.DamageType.SPECIAL))
+
+
+func test_muted_is_its_own_voice_not_a_dimmed_secondary() -> void:
+	# RQD 2026-08-10: absence text ("(empty)", "no injuries", deselected
+	# summaries) gets a real MUTED pair — modulating SECONDARY turned its
+	# violet halo muddy. Colors are provisional pending Lawrence; the pair
+	# EXISTING and being distinct is the contract.
+	assert_ne(GameColors.TEXT_MUTED, GameColors.TEXT_SECONDARY)
+	assert_ne(GameColors.TEXT_MUTED_GLOW, GameColors.TEXT_SECONDARY_GLOW)
+	assert_ne(GameColors.TEXT_MUTED, GameColors.TEXT_PRIMARY)

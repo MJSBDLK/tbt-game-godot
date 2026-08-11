@@ -338,7 +338,9 @@ func _cap_tooltip(stat_name: String, abbrev: String, level_value: int, capped: b
 
 
 ## The [−]/[+] pair. A child Button inside the row button — its clicks are
-## consumed here and never bubble into slot selection.
+## consumed here and never bubble into slot selection. Wears the interactive
+## BOX vocabulary (§14: lit border = pressable), not the bare-glyph look —
+## these are the only two controls on the row and must read as buttons.
 func _make_alloc_button(glyph: String, enabled: bool, tip: String,
 		handler: Callable) -> Button:
 	var button := Button.new()
@@ -351,6 +353,23 @@ func _make_alloc_button(glyph: String, enabled: bool, tip: String,
 	if UIManager.font_8px != null:
 		button.add_theme_font_override("font", UIManager.font_8px)
 	button.add_theme_font_size_override("font_size", 8)
+	button.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
+	button.add_theme_color_override("font_disabled_color", GameColors.INTERACTIVE_TEXT_DISABLED)
+	var box := StyleBoxFlat.new()
+	box.bg_color = GameColors.ACTION_BUTTON_BG_NORMAL
+	box.border_color = GameColors.INTERACTIVE_BORDER_IDLE
+	box.set_border_width_all(1)
+	var box_hover := box.duplicate() as StyleBoxFlat
+	box_hover.bg_color = GameColors.ACTION_BUTTON_BG_HOVERED
+	box_hover.border_color = GameColors.INTERACTIVE_BORDER_FOCUS
+	var box_disabled := box.duplicate() as StyleBoxFlat
+	box_disabled.bg_color = Color.TRANSPARENT
+	box_disabled.border_color = GameColors.INTERACTIVE_BORDER_DISABLED
+	button.add_theme_stylebox_override("normal", box)
+	button.add_theme_stylebox_override("hover", box_hover)
+	button.add_theme_stylebox_override("pressed", box_hover)
+	button.add_theme_stylebox_override("focus", box)
+	button.add_theme_stylebox_override("disabled", box_disabled)
 	button.pressed.connect(handler)
 	return button
 
@@ -442,11 +461,9 @@ func _build_move_grid() -> void:
 		slot.add_child(content)
 		if not empty:
 			_add_type_icon(content, move.element_type)
-		var name_label: GlowLabel = _dim_label("— empty —") if empty \
+		var name_label: GlowLabel = _muted_label("— empty —") if empty \
 				else GlowLabel.styled(move.move_name, UIManager.font_8px, 8,
 						GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
-		if empty:
-			name_label.modulate.a = 0.6
 		name_label.clip_text = true
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -472,11 +489,9 @@ func _build_passive_grid() -> void:
 		slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		slot.pressed.connect(_pick.bind("passive", i))
 
-		var name_label: GlowLabel = _dim_label("— empty —") if empty \
+		var name_label: GlowLabel = _muted_label("— empty —") if empty \
 				else GlowLabel.styled(passive_name, UIManager.font_8px, 8,
 						GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
-		if empty:
-			name_label.modulate.a = 0.6
 		name_label.clip_text = true
 		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		name_label.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -493,9 +508,7 @@ func _build_injury_row() -> void:
 	_stack.add_child(margin)
 
 	if _character.current_injuries.is_empty():
-		var none := _dim_label("no injuries")
-		none.modulate.a = 0.6
-		row.add_child(none)
+		row.add_child(_muted_label("no injuries"))
 		return
 
 	for i: int in _character.current_injuries.size():
@@ -562,10 +575,17 @@ func _section_header(title: String) -> Control:
 	return margin
 
 
-## Structural text — headers, keys, empties — wears the SECONDARY voice.
+## Structural text — headers, keys — wears the SECONDARY voice.
 func _dim_label(text_value: String) -> GlowLabel:
 	return GlowLabel.styled(text_value, UIManager.font_8px, 8,
 			GameColors.TEXT_SECONDARY, GameColors.TEXT_SECONDARY_GLOW)
+
+
+## Absence — empty slots, "no injuries" — wears MUTED (its own pair, never a
+## modulated SECONDARY; the violet halo goes muddy under an alpha fade).
+func _muted_label(text_value: String) -> GlowLabel:
+	return GlowLabel.styled(text_value, UIManager.font_8px, 8,
+			GameColors.TEXT_MUTED, GameColors.TEXT_MUTED_GLOW)
 
 
 func _margins(left: int, right: int, top: int, bottom: int) -> MarginContainer:

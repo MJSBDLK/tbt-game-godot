@@ -296,3 +296,15 @@ func test_squad_readout_shows_the_cap_only_when_there_is_one() -> void:
 	assert_eq(ManageUnitsScreen.squad_readout(4, 6), "4/6")
 	assert_eq(ManageUnitsScreen.squad_readout(4, 0), "4",
 			"cap 0 = unknown mission — a bare count, same as the old prep screen")
+
+
+func test_the_bootstrap_order_is_the_story_order() -> void:
+	# RQD 2026-08-10: squad order is the order these people joined — Ma'am,
+	# Ernesto, Max, Elf Pirate. It's the rail's default readout (1, 2, 3…)
+	# and what spawn position derives from, so it is CANON, not an accident
+	# of which JSON got listed first.
+	var paths: Array[String] = SquadManager.DEFAULT_ROSTER_PATHS
+	assert_string_contains(paths[0], "maam")
+	assert_string_contains(paths[1], "ernesto")
+	assert_string_contains(paths[2], "spaceman")
+	assert_string_contains(paths[3], "elf_pirate")

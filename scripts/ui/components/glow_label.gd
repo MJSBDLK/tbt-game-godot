@@ -28,6 +28,16 @@ static func styled(text_value: String, font: FontFile, font_size: int,
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# 1px breathing room on every side, or the halo clips wherever glyph ink
+	# reaches the control rect (found on F5 2026-08-10: rail names and move
+	# slots lost their left+top halo). The halo needs exactly the 1px the
+	# shader samples.
+	var inset := StyleBoxEmpty.new()
+	inset.content_margin_left = 1
+	inset.content_margin_right = 1
+	inset.content_margin_top = 1
+	inset.content_margin_bottom = 1
+	label.add_theme_stylebox_override("normal", inset)
 	return label
 
 func _ready() -> void:

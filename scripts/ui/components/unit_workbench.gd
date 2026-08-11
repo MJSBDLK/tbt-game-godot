@@ -41,6 +41,7 @@ const STAT_BLURBS: Dictionary = {
 }
 
 const ICON_SIZE: int = 10
+const GLOW_MATERIAL_PATH: String = "res://resources/hud_glow.tres"
 const ELEMENTAL_ICON_DIR: String = "res://art/sprites/ui/elemental_type_icons_10x10/"
 ## Damage-type icons live flat in ui/. `special_a` is one of seven candidate
 ## special glyphs (`special_a`…`special_g`) — nobody has picked the final one
@@ -337,23 +338,48 @@ func _build_swap_bar(is_move: bool, equipped: String) -> void:
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bar.add_child(spacer)
 
-	# §14: the lit border marks the one press that changes something.
+	# §14: the lit border marks the one press that changes something — and it
+	# glows, text AND outline (RQD 2026-08-10). Composition: the stylebox
+	# carries only the bg fill (opaque draws pass through the glow shader
+	# untouched), the Button's material glows the glyphs, and the outline is a
+	# border_mode GlowColorRect overlaid on top — it only paints the 1px ring
+	# and its halo, so it never covers the text.
 	var equip_button := Button.new()
 	equip_button.text = "Equip"
-	equip_button.custom_minimum_size = Vector2(40, 13)
+	equip_button.custom_minimum_size = Vector2(40, 15)
 	if UIManager.font_8px != null:
 		equip_button.add_theme_font_override("font", UIManager.font_8px)
 	equip_button.add_theme_font_size_override("font_size", 8)
+	equip_button.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
+	var text_glow := (load(GLOW_MATERIAL_PATH) as Material).duplicate()
+	(text_glow as ShaderMaterial).set_shader_parameter("glow_color",
+			GameColors.TEXT_PRIMARY_GLOW)
+	equip_button.material = text_glow
 	var button_style := StyleBoxFlat.new()
 	button_style.bg_color = GameColors.ACTION_BUTTON_BG_NORMAL
-	button_style.border_color = GameColors.INTERACTIVE_BORDER_IDLE
-	button_style.set_border_width_all(1)
-	var button_hover := button_style.duplicate() as StyleBoxFlat
-	button_hover.border_color = GameColors.INTERACTIVE_BORDER_FOCUS
 	equip_button.add_theme_stylebox_override("normal", button_style)
+	var button_hover := button_style.duplicate() as StyleBoxFlat
+	button_hover.bg_color = GameColors.ACTION_BUTTON_BG_HOVERED
 	equip_button.add_theme_stylebox_override("hover", button_hover)
 	equip_button.add_theme_stylebox_override("pressed", button_hover)
 	equip_button.add_theme_stylebox_override("focus", button_style)
+
+	var outline := GlowColorRect.new()
+	outline.material = (load(GLOW_MATERIAL_PATH) as Material).duplicate()
+	outline.border_mode = true
+	# border_mode reads the ring color from vertex COLOR = color × self_modulate;
+	# keep color white so self_modulate alone names the border state.
+	outline.color = Color.WHITE
+	outline.self_modulate = GameColors.INTERACTIVE_BORDER_IDLE
+	outline.glow_color = GameColors.TEXT_PRIMARY_GLOW
+	outline.set_anchors_preset(Control.PRESET_FULL_RECT)
+	outline.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	equip_button.add_child(outline)
+	equip_button.mouse_entered.connect(func() -> void:
+		outline.self_modulate = GameColors.INTERACTIVE_BORDER_FOCUS)
+	equip_button.mouse_exited.connect(func() -> void:
+		outline.self_modulate = GameColors.INTERACTIVE_BORDER_IDLE)
+
 	equip_button.pressed.connect(_on_equip_pressed.bind(is_move))
 	bar.add_child(equip_button)
 
@@ -457,10 +483,9 @@ func _build_bank(is_move: bool) -> void:
 	var names: Array[String] = move_bank(_character, _damage_filter, _element_filter) \
 			if is_move else passive_bank(_character)
 	if names.is_empty():
-		var empty := _dim_label("nothing matches those filters" \
+		var empty := _muted_label("nothing matches those filters" \
 				if is_move and not (_damage_filter.is_empty() and _element_filter.is_empty()) \
 				else "(nothing else available)")
-		empty.modulate.a = 0.6
 		var margin := _margins(5, 5, 3, 0)
 		margin.add_child(empty)
 		list.add_child(margin)
@@ -622,13 +647,16 @@ func _build_summary_lane() -> void:
 	for move: Move in _character.equipped_moves:
 		if not UnitSheet.is_empty_move(move):
 			equipped_count += 1
+	# Nothing is selected, so nothing here is live — the meta reads MUTED
+	# (RQD 2026-08-10, 3A first crack; muted semantic set pending Lawrence).
 	_build_detail_text(_character.character_name,
 			"%s · Lv %d · %d move%s equipped" % [
 				Enums.get_class_display_name(_character.current_class), _character.level,
 				equipped_count, "" if equipped_count == 1 else "s"],
 			"Click a move, a passive, a stat, or an injury in the middle column. " +
 			"Whatever you touch, this panel explains it — and becomes the place " +
-			"you change it.")
+			"you change it.",
+			GameColors.TEXT_MUTED, GameColors.TEXT_MUTED_GLOW)
 
 	_body.add_child(_squad_section_header("EQUIPPED"))
 	for move: Move in _character.equipped_moves:
@@ -682,6 +710,12 @@ func _squad_section_header(title: String) -> Control:
 func _dim_label(text_value: String) -> GlowLabel:
 	return GlowLabel.styled(text_value, UIManager.font_8px, 8,
 			GameColors.TEXT_SECONDARY, GameColors.TEXT_SECONDARY_GLOW)
+
+
+## Absence — empty banks, deselected summaries — wears MUTED.
+func _muted_label(text_value: String) -> GlowLabel:
+	return GlowLabel.styled(text_value, UIManager.font_8px, 8,
+			GameColors.TEXT_MUTED, GameColors.TEXT_MUTED_GLOW)
 
 
 func _margins(left: int, right: int, top: int, bottom: int) -> MarginContainer:

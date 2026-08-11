@@ -439,8 +439,10 @@ func _make_group_header(title: String, cap_text: String, full: bool) -> Control:
 
 
 func _make_empty_hint() -> Control:
-	var hint := _dim_label("(empty)")
-	hint.modulate.a = 0.45
+	# Absence speaks MUTED, not modulated-SECONDARY — the violet halo goes
+	# muddy under an alpha fade (RQD 2026-08-10).
+	var hint := GlowLabel.styled("(empty)", UIManager.font_8px, 8,
+			GameColors.TEXT_MUTED, GameColors.TEXT_MUTED_GLOW)
 	var hint_margin := MarginContainer.new()
 	hint_margin.add_theme_constant_override("margin_left", 4)
 	hint_margin.add_child(hint)
