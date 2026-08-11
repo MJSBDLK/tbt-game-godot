@@ -278,6 +278,7 @@ func _make_stat_row(stat_name: String, abbrev: String) -> Button:
 	var label := _dim_label(abbrev)
 	label.custom_minimum_size = Vector2(20, 0)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.nudge_baseline_down(2)
 	content.add_child(label)
 
 	# The gauge — class-cap track against the global ceiling, the same
@@ -317,11 +318,13 @@ func _make_stat_row(stat_name: String, abbrev: String) -> Button:
 	var number := GlowLabel.styled(str(_character.get(stat_name)),
 			UIManager.font_8px, 8, number_color, number_glow)
 	number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	number.nudge_baseline_down(2)
 	value_cluster.add_child(number)
 	if points > 0:
 		var tally := GlowLabel.styled("+".repeat(points), UIManager.font_8px, 8,
 				GameColors.TEXT_INFO, GameColors.TEXT_INFO_GLOW)
 		tally.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		tally.nudge_baseline_down(2)
 		value_cluster.add_child(tally)
 	content.add_child(value_cluster)
 
@@ -374,11 +377,14 @@ static func _alloc_art_pieces(path: String) -> Array:
 
 
 ## The [−]/[+] pair — RQD's 9×9 art, tinted per state. A child Button inside
-## the row button, so its clicks never bubble into slot selection. The ring
-## speaks the interactive-border vocabulary (idle/focus/disabled); the symbol
-## speaks PRIMARY with its orthogonal glow, which the ring deliberately
-## doesn't get. Buttons are rebuilt on every refresh, so each is constructed
-## already in its enabled/disabled state — only hover mutates live.
+## the row button, so its clicks never bubble into slot selection. The
+## SEMANTIC IDENTITY is PRIMARY (RQD 2026-08-10, superseding the earlier
+## border-vocabulary read): ring and symbol both wear the PRIMARY body,
+## brightening together on hover, and drop to MUTED when the press would do
+## nothing. Only the symbol gets the orthogonal glow — the ring is too tight
+## and the halos would collide. Buttons are rebuilt on every refresh, so
+## each is constructed already in its enabled/disabled state — only hover
+## mutates live.
 func _make_alloc_button(glyph: String, enabled: bool, tip: String,
 		handler: Callable) -> Button:
 	var button := Button.new()
@@ -395,30 +401,26 @@ func _make_alloc_button(glyph: String, enabled: bool, tip: String,
 	ring.custom_minimum_size = Vector2.ZERO
 	ring.position = Vector2.ZERO
 	ring.size = Vector2(9, 9)
-	ring.self_modulate = GameColors.INTERACTIVE_BORDER_IDLE if enabled \
-			else GameColors.INTERACTIVE_BORDER_DISABLED
+	ring.self_modulate = GameColors.TEXT_PRIMARY if enabled else GameColors.TEXT_MUTED
 	button.add_child(ring)
 
 	var symbol := _make_icon(pieces[1] as Texture2D)
 	symbol.custom_minimum_size = Vector2.ZERO
 	symbol.position = Vector2.ZERO
 	symbol.size = Vector2(9, 9)
-	if enabled:
-		symbol.self_modulate = GameColors.TEXT_PRIMARY
-		var glow_material := (load("res://resources/hud_glow.tres") as Material).duplicate()
-		(glow_material as ShaderMaterial).set_shader_parameter("glow_color",
-				GameColors.TEXT_PRIMARY_GLOW)
-		symbol.material = glow_material
-	else:
-		symbol.self_modulate = GameColors.INTERACTIVE_TEXT_DISABLED
+	symbol.self_modulate = GameColors.TEXT_PRIMARY if enabled else GameColors.TEXT_MUTED
+	var glow_material := (load("res://resources/hud_glow.tres") as Material).duplicate()
+	(glow_material as ShaderMaterial).set_shader_parameter("glow_color",
+			GameColors.TEXT_PRIMARY_GLOW if enabled else GameColors.TEXT_MUTED_GLOW)
+	symbol.material = glow_material
 	button.add_child(symbol)
 
 	if enabled:
 		button.mouse_entered.connect(func() -> void:
-			ring.self_modulate = GameColors.INTERACTIVE_BORDER_FOCUS
+			ring.self_modulate = GameColors.brightened(GameColors.TEXT_PRIMARY)
 			symbol.self_modulate = GameColors.brightened(GameColors.TEXT_PRIMARY))
 		button.mouse_exited.connect(func() -> void:
-			ring.self_modulate = GameColors.INTERACTIVE_BORDER_IDLE
+			ring.self_modulate = GameColors.TEXT_PRIMARY
 			symbol.self_modulate = GameColors.TEXT_PRIMARY)
 	button.pressed.connect(handler)
 	return button
@@ -517,6 +519,7 @@ func _build_move_grid() -> void:
 		name_label.clip_text = true
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		name_label.nudge_baseline_down(1)
 		content.add_child(name_label)
 		grid.add_child(slot)
 
@@ -544,6 +547,7 @@ func _build_passive_grid() -> void:
 						GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
 		name_label.clip_text = true
 		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		name_label.nudge_baseline_down(1)
 		name_label.set_anchors_preset(Control.PRESET_FULL_RECT)
 		name_label.offset_left = 3
 		slot.add_child(name_label)

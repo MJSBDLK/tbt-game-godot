@@ -40,6 +40,21 @@ static func styled(text_value: String, font: FontFile, font_size: int,
 	label.add_theme_stylebox_override("normal", inset)
 	return label
 
+
+## Baseline correction for the UndeadPixel fonts, which sit high in their em
+## box (RQD 2026-08-10: stat rows read 2px high, slot rows 1px). Shifts the
+## top margin down and the bottom margin up by the same amount, so under
+## VERTICAL_ALIGNMENT_CENTER (which every row label uses) the ink moves
+## exactly `pixels` down while the label's minimum size stays put. Safe for
+## the halo: the whole problem is ink sitting HIGH, so the bottom always has
+## the slack this borrows.
+func nudge_baseline_down(pixels: int) -> void:
+	var box: StyleBoxEmpty = get_theme_stylebox("normal") as StyleBoxEmpty
+	if box == null:
+		return
+	box.content_margin_top += pixels
+	box.content_margin_bottom -= pixels
+
 func _ready() -> void:
 	if material:
 		material = material.duplicate()

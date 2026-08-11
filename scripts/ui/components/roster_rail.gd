@@ -323,6 +323,14 @@ func _build_chrome() -> void:
 
 	_sort_dir_button = _make_link_button(GameColors.TEXT_INFO, GameColors.TEXT_INFO_GLOW)
 	_sort_dir_button.tooltip_text = "flip sort direction"
+	# The ▲/▼ glyphs hang LOW in the fallback font (opposite problem to the
+	# UndeadPixel baseline): shift the caret 2px up by tilting the button's
+	# content margins — min size stays put, centering does the rest.
+	for state: String in ["normal", "hover", "pressed", "focus"]:
+		var caret_box := StyleBoxEmpty.new()
+		caret_box.content_margin_top = -2
+		caret_box.content_margin_bottom = 2
+		_sort_dir_button.add_theme_stylebox_override(state, caret_box)
 	_sort_dir_button.pressed.connect(_on_sort_dir_pressed)
 	sort_row.add_child(_sort_dir_button)
 	_refresh_sort_label()

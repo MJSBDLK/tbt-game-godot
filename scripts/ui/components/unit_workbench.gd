@@ -533,13 +533,16 @@ func _make_bank_row(name: String, is_move: bool) -> Button:
 	name_label.clip_text = true
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	name_label.nudge_baseline_down(1)
 	content.add_child(name_label)
 	if move != null:
 		var power := _dim_label(("Pow %d" % move.base_power) if move.base_power > 0 else "—")
 		power.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		power.nudge_baseline_down(1)
 		content.add_child(power)
 		var range_label := _dim_label("R%d" % move.attack_range)
 		range_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		range_label.nudge_baseline_down(1)
 		content.add_child(range_label)
 	return row
 
