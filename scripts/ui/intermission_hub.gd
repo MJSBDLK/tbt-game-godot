@@ -41,10 +41,11 @@ const ENTRY_GAP: int = 4
 const TAIL_GAP: int = 12
 
 ## Manage Units is the destination for both the direct entry and the bEXP
-## deep-link. Still the pre-redesign prep screen — slice 3 of the port replaces
-## it with the three-column workspace, and this constant is the only thing that
-## has to move when it does.
-const MANAGE_UNITS_PATH: String = "res://scenes/ui/prep_screen.tscn"
+## deep-link. Slice 2 pointed this at the three-column workspace; until slice 3
+## absorbs equipment_picker into its workbench, move/passive editing and StatUp
+## allocation are unreachable from the flow (the old prep_screen still exists
+## on disk for reference).
+const MANAGE_UNITS_PATH: String = "res://scenes/ui/manage_units_screen.tscn"
 const START_SCREEN_PATH: String = "res://scenes/ui/start_screen.tscn"
 
 
@@ -65,10 +66,26 @@ var _dirty: bool = true
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	_seed_deployment()
 	_build_content()
 	# The pool moves from inside Manage Units, so the hub can't assume its
 	# sub-lines are still true when it regains focus.
 	SquadManager.bonus_xp_changed.connect(_on_squad_state_changed)
+
+
+## Materialize the deployment the sub-line advertises. On first arrival the
+## selection is empty; after a permadeath or on a smaller map the carried
+## selection may be stale. Resolving it HERE — not lazily at Begin Mission —
+## means the sub-line, Manage Units' pips, and the actual spawn all read the
+## same list. Resolution rules (prune, clamp, seed) live on RosterRail, which
+## owns deployment semantics.
+func _seed_deployment() -> void:
+	if not CampaignManager.is_active():
+		return
+	var resolved: Array[String] = RosterRail.resolved_deployment(
+			SquadManager.get_active_roster(), CampaignManager.get_deployment(), _squad_cap())
+	if not resolved.is_empty():
+		CampaignManager.set_deployment(resolved)
 
 
 # =============================================================================
@@ -116,9 +133,9 @@ func _squad_cap() -> int:
 	return TilemapGridBuilder.count_player_spawns(CampaignManager.get_current_mission_path())
 
 
-## Deployment lives in CampaignManager, but nothing writes it until the player
-## visits Manage Units — so on first arrival at a mission it is empty and the
-## honest reading is "everyone the cap allows is coming".
+## _seed_deployment() ran before the entries were built, so on a live campaign
+## the selection is always materialized by the time this reads it. The
+## fallback covers the no-campaign editor-open case only.
 func _deployed_count() -> int:
 	var chosen: int = CampaignManager.get_deployment().size()
 	if chosen > 0:
@@ -297,10 +314,11 @@ func _on_manage_pressed() -> void:
 	SceneRouter.change_scene_to(MANAGE_UNITS_PATH)
 
 
-## A DEEP LINK, not a second screen (§3g): it opens Manage Units already
-## focused on the bEXP task. The preselection itself lands in slice 3, when
-## Manage Units gains a level row to preselect.
+## A DEEP LINK, not a second screen (§3g): it opens Manage Units with the rail
+## sorted level-ascending, so the units the catch-up economy exists for are
+## already on top. Slice 4 extends the link to preselect the level row.
 func _on_bexp_pressed() -> void:
+	ManageUnitsScreen.open_sorted_by_level = true
 	SceneRouter.change_scene_to(MANAGE_UNITS_PATH)
 
 
@@ -322,30 +340,15 @@ func _on_save_pressed() -> void:
 	_refresh_save_entry()
 
 
-## Deployment is written by Manage Units, but the player can press Begin
-## without ever opening it. Seeding from the roster keeps that path working —
-## the same set the sub-line has been advertising all along. Slice 2 moves
-## deploy state into the roster rail and this bridge goes away.
+## Deployment was materialized at _ready (_seed_deployment), so Begin just
+## goes. The old press-time seeding bridge is gone — seeding at arrival means
+## the sub-line and the actual spawn can never disagree.
 func _on_begin_pressed() -> void:
 	if not CampaignManager.is_active():
 		push_warning("IntermissionHub: no active campaign — returning to start screen")
 		SceneRouter.change_scene_to(START_SCREEN_PATH)
 		return
-	if CampaignManager.get_deployment().is_empty():
-		CampaignManager.set_deployment(default_deployment(
-				SquadManager.get_active_roster(), _squad_cap()))
 	CampaignManager.deploy_to_current_mission()
-
-
-## First `cap` characters of the roster, in roster order. Pure so the fallback
-## can be tested without a campaign.
-static func default_deployment(roster: Array[CharacterData], cap: int) -> Array[String]:
-	var ids: Array[String] = []
-	for character: CharacterData in roster:
-		if ids.size() >= cap:
-			break
-		ids.append(character.character_id)
-	return ids
 
 
 func _on_quit_to_menu_pressed() -> void:

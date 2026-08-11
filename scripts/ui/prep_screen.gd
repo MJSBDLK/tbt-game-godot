@@ -1,3 +1,10 @@
+## SUPERSEDED (slice 2 of the intermission port, 2026-08-10): the flow now
+## routes IntermissionHub → ManageUnitsScreen, and nothing links here anymore.
+## Kept on disk until slice 3 absorbs EquipmentPicker into the workbench —
+## this screen is currently the only way to reach move/passive editing and
+## StatUp allocation (open it directly with F6 if you need those). Delete
+## together with that migration.
+##
 ## Between-mission prep hub (squad manager). Master-detail layout per
 ## .claude/squad_manager.md §3+§8: vertical roster strip on the left, focused
 ## unit's editing surface on the right.

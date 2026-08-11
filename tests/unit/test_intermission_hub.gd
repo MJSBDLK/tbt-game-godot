@@ -109,37 +109,10 @@ func test_the_eyebrow_survives_having_no_campaign() -> void:
 	assert_eq(IntermissionHub.eyebrow_text(-1, 0), "Between missions")
 
 
-# =============================================================================
-# BEGIN MISSION FALLBACK
-# =============================================================================
-
-func _roster(count: int) -> Array[CharacterData]:
-	var roster: Array[CharacterData] = []
-	for i: int in count:
-		var data := CharacterData.new()
-		data.character_id = "unit_%d" % i
-		roster.append(data)
-	return roster
-
-
-func test_begin_mission_can_deploy_without_visiting_manage_units() -> void:
-	# Deployment is written by Manage Units, but nothing stops the player from
-	# pressing Begin Mission the moment they arrive. Without this fallback that
-	# path deploys an empty squad.
-	var chosen: Array[String] = IntermissionHub.default_deployment(_roster(6), 4)
-	assert_eq(chosen.size(), 4, "fills the map's spawn count, no more")
-	assert_eq(chosen[0], "unit_0", "roster order — the same order the rail shows")
-
-
-func test_a_roster_smaller_than_the_cap_deploys_everyone() -> void:
-	assert_eq(IntermissionHub.default_deployment(_roster(2), 5).size(), 2,
-			"a 5-spawn map with 2 units deploys 2, not 5 with blanks")
-
-
-func test_a_zero_cap_deploys_nobody() -> void:
-	# count_player_spawns returns 0 for an unloadable mission path; deploying
-	# the whole roster onto a map with no spawn tiles would be worse.
-	assert_eq(IntermissionHub.default_deployment(_roster(4), 0).size(), 0)
+# The Begin Mission fallback moved: deployment is now materialized at hub
+# ARRIVAL (_seed_deployment) from RosterRail.resolved_deployment — prune,
+# clamp, seed — so the sub-line and the actual spawn read the same list. The
+# seeding rules are pinned in test_roster_rail.gd.
 
 
 # =============================================================================

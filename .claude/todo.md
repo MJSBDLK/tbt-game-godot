@@ -53,7 +53,7 @@ see the mockup and §6. These three are the remainder.)*
 
 ## 1. Alpha blockers
 
-- [ ] **Squad / prep + between-mission level-up screen.** *(The single biggest
+- [~] **Squad / prep + between-mission level-up screen.** *(The single biggest
   open item — flagged PRIORITY twice, in two different sections, for months.)*
   Pick squad, equip moves (~330 in the bank), equip passives, distribute stat
   allocation points. One screen does double duty: initial prep AND the
@@ -61,6 +61,19 @@ see the mockup and §6. These three are the remainder.)*
   unlocked). Build initial prep first; the level-up overlay reuses most of the
   same widgets. See [equipment_picker.md](equipment_picker.md) and
   [squad_manager.md](squad_manager.md).
+  - **Porting from the mockup in slices** (design locked in
+    [intermission.md](intermission.md), branch `rqd--manage-units`):
+    - [x] Slice 1 — intermission hub (2026-08-07).
+    - [x] Slice 2 — ManageUnitsScreen scaffold + live roster rail (2026-08-10):
+      search / sort-key-as-readout / bench pips, deployment resolved at hub
+      arrival and rewritten per pip toggle, always in roster order (§4d — spawn
+      positions can't move under rail sorting; tested). bEXP deep link opens
+      level-ascending.
+    - [ ] Slice 3 — sheet + workbench (absorbs EquipmentPicker; deletes
+      prep_screen.gd, which until then is the only way to edit moves/StatUps —
+      reachable by F6 only, the flow no longer links it).
+    - [ ] Slice 4 — the bEXP level row (gated on the three open questions in
+      the mockup link above + the staging-layer design below).
   - Related design note: the level-up moment is a *dopamine beat*, not a text
     dump — budget polish from day one.
 ### Subtasks
