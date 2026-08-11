@@ -186,18 +186,9 @@ func _build_ident() -> void:
 	who.alignment = BoxContainer.ALIGNMENT_CENTER
 	ident.add_child(who)
 
-	var name_label := Label.new()
-	name_label.text = _character.character_name
-	if UIManager.font_11px != null:
-		name_label.add_theme_font_override("font", UIManager.font_11px)
-	name_label.add_theme_font_size_override("font_size", 11)
-	name_label.add_theme_color_override("font_color", GameColorPalette.get_color("Azure", 9))
-	who.add_child(name_label)
-
-	var sub_label := Label.new()
-	sub_label.text = ident_sub_line(_character)
-	_style_dim(sub_label)
-	who.add_child(sub_label)
+	who.add_child(GlowLabel.styled(_character.character_name, UIManager.font_11px, 11,
+			GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW))
+	who.add_child(_dim_label(ident_sub_line(_character)))
 
 	var type_row := HBoxContainer.new()
 	type_row.add_theme_constant_override("separation", 2)
@@ -206,9 +197,11 @@ func _build_ident() -> void:
 	who.add_child(type_row)
 
 
-## Display-only until slice 4: the current XP toward the next level. The gold
-## matches the pool in the top bar — the tell that this number is where bEXP
-## will land.
+## Display-only until slice 4: the current XP toward the next level. The
+## fill and readout wear the INFO voice — the same gold as the pool in the
+## top bar, which is the tell that this number is where bEXP will land. The
+## track wears StatCapBar's track pair so every gauge on the screen shares
+## one ground.
 func _build_xp_row() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 5)
@@ -216,35 +209,38 @@ func _build_xp_row() -> void:
 	margin.add_child(row)
 	_stack.add_child(margin)
 
-	var key_label := Label.new()
-	key_label.text = "XP"
+	var key_label := _dim_label("XP")
 	key_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_style_dim(key_label)
 	row.add_child(key_label)
 
 	var track := Control.new()
 	track.custom_minimum_size = Vector2(0, 4)
 	track.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	track.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var track_bg := ColorRect.new()
-	track_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	track_bg.color = GameColors.with_alpha(GameColorPalette.get_color("Gray", 0), 0.8)
-	track.add_child(track_bg)
-	var fill := ColorRect.new()
-	fill.set_anchors_preset(Control.PRESET_FULL_RECT)
-	fill.anchor_right = clampf(_character.experience / 100.0, 0.0, 1.0)
-	fill.color = GameColors.TEXT_INFO
-	track.add_child(fill)
+	track.add_child(_glow_bar(StatCapBar.COLOR_TRACK, StatCapBar.COLOR_TRACK_GLOW, 1.0))
+	var xp_ratio: float = clampf(_character.experience / 100.0, 0.0, 1.0)
+	if xp_ratio > 0.0:
+		track.add_child(_glow_bar(GameColors.TEXT_INFO, GameColors.TEXT_INFO_GLOW, xp_ratio))
 	row.add_child(track)
 
-	var price := Label.new()
-	price.text = "%d/100" % _character.experience
+	var price := GlowLabel.styled("%d/100" % _character.experience, UIManager.font_8px, 8,
+			GameColors.TEXT_INFO, GameColors.TEXT_INFO_GLOW)
 	price.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	if UIManager.font_8px != null:
-		price.add_theme_font_override("font", UIManager.font_8px)
-	price.add_theme_font_size_override("font_size", 8)
-	price.add_theme_color_override("font_color", GameColors.TEXT_INFO)
 	row.add_child(price)
+
+
+## An anchored glow segment filling `ratio` of its parent's width. The glow
+## shader spends the outer 1px ring on the halo, so the rect is anchored to
+## the parent's full height and the body reads 2px inside a 4px lane.
+func _glow_bar(body: Color, glow: Color, ratio: float) -> GlowColorRect:
+	var bar := GlowColorRect.new()
+	bar.material = (load("res://resources/hud_glow.tres") as Material).duplicate()
+	bar.color = body
+	bar.glow_color = glow
+	bar.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bar.anchor_right = ratio
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return bar
 
 
 # =============================================================================
@@ -269,12 +265,9 @@ func _make_stat_row(stat_name: String, abbrev: String) -> Button:
 	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(content)
 
-	var label := Label.new()
-	label.text = abbrev
+	var label := _dim_label(abbrev)
 	label.custom_minimum_size = Vector2(20, 0)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_style_dim(label)
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(label)
 
 	# The gauge — class-cap track against the global ceiling, the same
@@ -288,26 +281,37 @@ func _make_stat_row(stat_name: String, abbrev: String) -> Button:
 	cap_bar.tooltip_text = _cap_tooltip(stat_name, abbrev, level_value, capped)
 	content.add_child(cap_bar)
 
-	# `24++` — effective number, allocation tally as suffix. Green at the
-	# class ceiling (the shiny-capped-stat convention). The tally is capped at
-	# PER_STAT_CAP = 4 so the suffix can never blow the row width.
-	var value := RichTextLabel.new()
-	value.bbcode_enabled = true
-	value.fit_content = true
-	value.scroll_active = false
-	value.autowrap_mode = TextServer.AUTOWRAP_OFF
-	value.custom_minimum_size = Vector2(28, 0)
-	value.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	if UIManager.font_8px != null:
-		value.add_theme_font_override("normal_font", UIManager.font_8px)
-	value.add_theme_font_size_override("normal_font_size", 8)
-	var number_hex: String = (GameColors.TEXT_SUCCESS if capped
-			else GameColors.TEXT_PRIMARY).to_html(false)
-	var tally_hex: String = GameColorPalette.get_color("Yellow", 5).to_html(false)
-	value.text = "[color=#%s]%d[/color][color=#%s]%s[/color]" % [
-			number_hex, _character.get(stat_name), tally_hex, "+".repeat(points)]
-	value.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_child(value)
+	# `24++` — effective number, allocation tally as suffix (capped at
+	# PER_STAT_CAP = 4, so it can never blow the row width). The number's
+	# voice tells the stat's story at a glance (RQD 2026-08-10):
+	#   SUCCESS   at the class ceiling — cap beats everything (Q4)
+	#   SECONDARY StatUps invested — the same pale-gold/violet pair the old
+	#             UnitDetailPanel's "+N" modifier and the bar's bonus segment
+	#             wear, so "modified" is one voice everywhere (Q3)
+	#   PRIMARY   otherwise — it's just content
+	# The tally itself is always SECONDARY: spent points are modifiers.
+	var value_cluster := HBoxContainer.new()
+	value_cluster.add_theme_constant_override("separation", 0)
+	value_cluster.custom_minimum_size = Vector2(28, 0)
+	value_cluster.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var number_color: Color = GameColors.TEXT_PRIMARY
+	var number_glow: Color = GameColors.TEXT_PRIMARY_GLOW
+	if capped:
+		number_color = GameColors.TEXT_SUCCESS
+		number_glow = GameColors.TEXT_SUCCESS_GLOW
+	elif points > 0:
+		number_color = GameColors.TEXT_SECONDARY
+		number_glow = GameColors.TEXT_SECONDARY_GLOW
+	var number := GlowLabel.styled(str(_character.get(stat_name)),
+			UIManager.font_8px, 8, number_color, number_glow)
+	number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	value_cluster.add_child(number)
+	if points > 0:
+		var tally := GlowLabel.styled("+".repeat(points), UIManager.font_8px, 8,
+				GameColors.TEXT_SECONDARY, GameColors.TEXT_SECONDARY_GLOW)
+		tally.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		value_cluster.add_child(tally)
+	content.add_child(value_cluster)
 
 	content.add_child(_make_alloc_button("−", points > 0,
 			"refund a StatUp (−10%% %s)" % abbrev if points > 0 else "nothing allocated here",
@@ -386,27 +390,25 @@ func _build_statup_pool_line() -> void:
 	var unspent: int = _character.available_stat_ups - _character.allocated_total()
 	if unspent <= 0:
 		return
-	var key_label := Label.new()
-	key_label.text = "StatUps"
-	_style_dim(key_label)
-	row.add_child(key_label)
+	row.add_child(_dim_label("StatUps"))
+	# UNSPENT pips advertise in the INFO voice (matching the rail's ★N and
+	# the hub sub-line); they turn SECONDARY only once spent into a stat.
 	var pips := HBoxContainer.new()
-	pips.add_theme_constant_override("separation", 2)
+	pips.add_theme_constant_override("separation", 3)
 	pips.tooltip_text = "%d StatUp unspent" % unspent
 	pips.mouse_filter = Control.MOUSE_FILTER_PASS
 	for i: int in mini(unspent, 10):
-		var pip := ColorRect.new()
-		pip.custom_minimum_size = Vector2(3, 3)
+		var pip := GlowColorRect.new()
+		pip.material = (load("res://resources/hud_glow.tres") as Material).duplicate()
+		pip.color = GameColors.TEXT_INFO
+		pip.glow_color = GameColors.TEXT_INFO_GLOW
+		pip.custom_minimum_size = Vector2(4, 4)
 		pip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		pip.color = GameColorPalette.get_color("Yellow", 5)
 		pip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		pips.add_child(pip)
 	row.add_child(pips)
 	if unspent > 10:
-		var more := Label.new()
-		more.text = "…"
-		_style_dim(more)
-		row.add_child(more)
+		row.add_child(_dim_label("…"))
 
 
 # =============================================================================
@@ -440,17 +442,14 @@ func _build_move_grid() -> void:
 		slot.add_child(content)
 		if not empty:
 			_add_type_icon(content, move.element_type)
-		var name_label := Label.new()
-		name_label.text = "— empty —" if empty else move.move_name
+		var name_label: GlowLabel = _dim_label("— empty —") if empty \
+				else GlowLabel.styled(move.move_name, UIManager.font_8px, 8,
+						GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
+		if empty:
+			name_label.modulate.a = 0.6
 		name_label.clip_text = true
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		if UIManager.font_8px != null:
-			name_label.add_theme_font_override("font", UIManager.font_8px)
-		name_label.add_theme_font_size_override("font_size", 8)
-		name_label.add_theme_color_override("font_color",
-				GameColorPalette.get_color("Gray", 5) if empty else GameColors.TEXT_PRIMARY)
-		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		content.add_child(name_label)
 		grid.add_child(slot)
 
@@ -473,18 +472,15 @@ func _build_passive_grid() -> void:
 		slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		slot.pressed.connect(_pick.bind("passive", i))
 
-		var name_label := Label.new()
-		name_label.text = "— empty —" if empty else passive_name
+		var name_label: GlowLabel = _dim_label("— empty —") if empty \
+				else GlowLabel.styled(passive_name, UIManager.font_8px, 8,
+						GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
+		if empty:
+			name_label.modulate.a = 0.6
 		name_label.clip_text = true
 		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		name_label.set_anchors_preset(Control.PRESET_FULL_RECT)
 		name_label.offset_left = 3
-		if UIManager.font_8px != null:
-			name_label.add_theme_font_override("font", UIManager.font_8px)
-		name_label.add_theme_font_size_override("font_size", 8)
-		name_label.add_theme_color_override("font_color",
-				GameColorPalette.get_color("Gray", 5) if empty else GameColors.TEXT_PRIMARY)
-		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		slot.add_child(name_label)
 		grid.add_child(slot)
 
@@ -497,9 +493,7 @@ func _build_injury_row() -> void:
 	_stack.add_child(margin)
 
 	if _character.current_injuries.is_empty():
-		var none := Label.new()
-		none.text = "no injuries"
-		_style_dim(none)
+		var none := _dim_label("no injuries")
 		none.modulate.a = 0.6
 		row.add_child(none)
 		return
@@ -512,13 +506,14 @@ func _build_injury_row() -> void:
 		var chip := _slot_button(_is_selected("injury", i))
 		chip.custom_minimum_size = Vector2(0, 12)
 		chip.pressed.connect(_pick.bind("injury", i))
-		# Injuries wear the WARNING voice, not the azure slot chrome — the chip
-		# is a fact about damage, and its selected wash stays in that voice.
+		# Injuries wear the DANGER voice, not the azure slot chrome — the chip
+		# is a fact about damage, and its selected wash stays in that voice
+		# (the mockup's chips were sem-danger all along; WARNING was a misread).
 		var chip_style: StyleBoxFlat = chip.get_theme_stylebox("normal") as StyleBoxFlat
-		chip_style.border_color = GameColors.TEXT_WARNING
+		chip_style.border_color = GameColors.TEXT_DANGER
 		chip_style.set_border_width_all(1)
 		if _is_selected("injury", i):
-			chip_style.bg_color = GameColors.with_alpha(GameColors.TEXT_WARNING, 0.25)
+			chip_style.bg_color = GameColors.with_alpha(GameColors.TEXT_DANGER, 0.25)
 
 		var content := HBoxContainer.new()
 		content.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -529,14 +524,9 @@ func _build_injury_row() -> void:
 		chip.add_child(content)
 		if data != null and data.icon_path != "" and ResourceLoader.exists(data.icon_path):
 			content.add_child(_make_icon(load(data.icon_path) as Texture2D))
-		var name_label := Label.new()
-		name_label.text = display
+		var name_label := GlowLabel.styled(display, UIManager.font_8px, 8,
+				GameColors.TEXT_DANGER, GameColors.TEXT_DANGER_GLOW)
 		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		if UIManager.font_8px != null:
-			name_label.add_theme_font_override("font", UIManager.font_8px)
-		name_label.add_theme_font_size_override("font_size", 8)
-		name_label.add_theme_color_override("font_color", GameColors.TEXT_WARNING)
-		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		content.add_child(name_label)
 		row.add_child(chip)
 
@@ -567,19 +557,15 @@ func _slot_button(selected: bool) -> Button:
 
 
 func _section_header(title: String) -> Control:
-	var label := Label.new()
-	label.text = title
-	_style_dim(label)
 	var margin := _margins(5, 5, 3, 0)
-	margin.add_child(label)
+	margin.add_child(_dim_label(title))
 	return margin
 
 
-func _style_dim(label: Label) -> void:
-	if UIManager.font_8px != null:
-		label.add_theme_font_override("font", UIManager.font_8px)
-	label.add_theme_font_size_override("font_size", 8)
-	label.add_theme_color_override("font_color", GameColorPalette.get_color("Straw2", 5))
+## Structural text — headers, keys, empties — wears the SECONDARY voice.
+func _dim_label(text_value: String) -> GlowLabel:
+	return GlowLabel.styled(text_value, UIManager.font_8px, 8,
+			GameColors.TEXT_SECONDARY, GameColors.TEXT_SECONDARY_GLOW)
 
 
 func _margins(left: int, right: int, top: int, bottom: int) -> MarginContainer:

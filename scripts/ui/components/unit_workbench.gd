@@ -64,7 +64,7 @@ var _bank_pick: String = ""
 var _damage_filter: Dictionary = {}
 var _element_filter: Dictionary = {}
 
-var _head_label: Label = null
+var _head_label: GlowLabel = null
 var _body: VBoxContainer = null
 
 
@@ -79,11 +79,8 @@ func _ready() -> void:
 	stack.add_theme_constant_override("separation", 0)
 	add_child(stack)
 
-	_head_label = Label.new()
-	if UIManager.font_8px != null:
-		_head_label.add_theme_font_override("font", UIManager.font_8px)
-	_head_label.add_theme_font_size_override("font_size", 8)
-	_head_label.add_theme_color_override("font_color", GameColorPalette.get_color("Azure", 9))
+	_head_label = GlowLabel.styled("", UIManager.font_8px, 8,
+			GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
 	var head_margin := MarginContainer.new()
 	head_margin.add_theme_constant_override("margin_left", 5)
 	head_margin.add_theme_constant_override("margin_top", 3)
@@ -273,11 +270,9 @@ func _build_move_detail(move: Move) -> void:
 	meta.add_theme_constant_override("separation", 3)
 	_add_damage_icon(meta, move.damage_type)
 	_add_type_icon(meta, move.element_type)
-	var meta_label := Label.new()
-	meta_label.text = "%s · Range %d · AOE %d · Uses %d" % [
+	var meta_label := _dim_label("%s · Range %d · AOE %d · Uses %d" % [
 			("Pow %d" % move.base_power) if move.base_power > 0 else "no damage",
-			move.attack_range, move.area_of_effect, move.max_uses]
-	_style_dim(meta_label)
+			move.attack_range, move.area_of_effect, move.max_uses])
 	meta_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	meta.add_child(meta_label)
 	box.add_child(meta)
@@ -287,21 +282,19 @@ func _build_move_detail(move: Move) -> void:
 func _build_passive_detail(passive_name: String) -> void:
 	var box := _detail_box()
 	box.add_child(_headline(passive_name))
-	var meta_label := Label.new()
-	meta_label.text = "Passive"
-	_style_dim(meta_label)
-	box.add_child(meta_label)
+	box.add_child(_dim_label("Passive"))
 	box.add_child(_body_copy(PassiveData.get_description(passive_name)))
 
 
-func _build_detail_text(title: String, meta: String, copy: String) -> void:
+## `meta_color`/`meta_glow` default to the SECONDARY structural voice; lanes
+## with a semantic claim on their meta line (injury → DANGER) override.
+func _build_detail_text(title: String, meta: String, copy: String,
+		meta_color: Color = GameColors.TEXT_SECONDARY,
+		meta_glow: Color = GameColors.TEXT_SECONDARY_GLOW) -> void:
 	var box := _detail_box()
 	box.add_child(_headline(title))
 	if meta != "":
-		var meta_label := Label.new()
-		meta_label.text = meta
-		_style_dim(meta_label)
-		box.add_child(meta_label)
+		box.add_child(GlowLabel.styled(meta, UIManager.font_8px, 8, meta_color, meta_glow))
 	if copy != "":
 		box.add_child(_body_copy(copy))
 
@@ -317,36 +310,25 @@ func _build_swap_bar(is_move: bool, equipped: String) -> void:
 	_body.add_child(margin)
 
 	if _bank_pick == "" or _bank_pick == equipped:
-		var hint := Label.new()
-		hint.text = "equipped — pick one below to swap it out" if equipped != "" \
-				else "empty slot — pick one below to equip"
-		_style_dim(hint)
-		bar.add_child(hint)
+		bar.add_child(_dim_label("equipped — pick one below to swap it out" \
+				if equipped != "" else "empty slot — pick one below to equip"))
 		return
 
-	var verb := Label.new()
-	verb.text = "replaces" if equipped != "" else "fills this slot"
-	_style_dim(verb)
+	var verb := _dim_label("replaces" if equipped != "" else "fills this slot")
 	verb.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	bar.add_child(verb)
 
 	if equipped != "":
-		var out_label := Label.new()
-		out_label.text = equipped
-		if UIManager.font_8px != null:
-			out_label.add_theme_font_override("font", UIManager.font_8px)
-		out_label.add_theme_font_size_override("font_size", 8)
-		out_label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
+		var out_label := GlowLabel.styled(equipped, UIManager.font_8px, 8,
+				GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
 		out_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		bar.add_child(out_label)
 		if is_move:
 			var out_move: Move = MoveData.get_move(equipped)
 			if out_move != null:
-				var numbers := Label.new()
-				numbers.text = "%s R%d" % [
+				var numbers := _dim_label("%s R%d" % [
 						("Pow %d" % out_move.base_power) if out_move.base_power > 0 else "—",
-						out_move.attack_range]
-				_style_dim(numbers)
+						out_move.attack_range])
 				numbers.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 				bar.add_child(numbers)
 
@@ -475,11 +457,9 @@ func _build_bank(is_move: bool) -> void:
 	var names: Array[String] = move_bank(_character, _damage_filter, _element_filter) \
 			if is_move else passive_bank(_character)
 	if names.is_empty():
-		var empty := Label.new()
-		empty.text = "nothing matches those filters" \
+		var empty := _dim_label("nothing matches those filters" \
 				if is_move and not (_damage_filter.is_empty() and _element_filter.is_empty()) \
-				else "(nothing else available)"
-		_style_dim(empty)
+				else "(nothing else available)")
 		empty.modulate.a = 0.6
 		var margin := _margins(5, 5, 3, 0)
 		margin.add_child(empty)
@@ -523,26 +503,17 @@ func _make_bank_row(name: String, is_move: bool) -> Button:
 	if move != null:
 		_add_damage_icon(content, move.damage_type)
 		_add_type_icon(content, move.element_type)
-	var name_label := Label.new()
-	name_label.text = name
+	var name_label := GlowLabel.styled(name, UIManager.font_8px, 8,
+			GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
 	name_label.clip_text = true
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	if UIManager.font_8px != null:
-		name_label.add_theme_font_override("font", UIManager.font_8px)
-	name_label.add_theme_font_size_override("font_size", 8)
-	name_label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
-	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(name_label)
 	if move != null:
-		var power := Label.new()
-		power.text = ("Pow %d" % move.base_power) if move.base_power > 0 else "—"
-		_style_dim(power)
+		var power := _dim_label(("Pow %d" % move.base_power) if move.base_power > 0 else "—")
 		power.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		content.add_child(power)
-		var range_label := Label.new()
-		range_label.text = "R%d" % move.attack_range
-		_style_dim(range_label)
+		var range_label := _dim_label("R%d" % move.attack_range)
 		range_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		content.add_child(range_label)
 	return row
@@ -574,11 +545,14 @@ func _build_stat_lane() -> void:
 	_build_detail_text(abbrev, meta, str(STAT_BLURBS.get(stat_name, "")))
 
 	if level_value >= cap:
+		# The at-cap consequence wears SUCCESS — same voice as the bar's fill
+		# and the number on the sheet row, so "maxed" is one color everywhere.
 		var capped_copy := _body_copy(
 				("At the class ceiling. Level-ups can't raise it, so bEXP growths " +
 				"concentrate into this unit's remaining %d open stats. StatUps " +
 				"still work — they're allowed past the cap.") % open_stat_count(_character))
 		capped_copy.add_theme_color_override("font_color", GameColors.TEXT_SUCCESS)
+		capped_copy.glow_color = GameColors.TEXT_SUCCESS_GLOW
 		var margin := _margins(5, 5, 0, 0)
 		margin.add_child(capped_copy)
 		_body.add_child(margin)
@@ -596,25 +570,18 @@ func _build_stat_lane() -> void:
 		var row_margin := _margins(5, 5, 1, 0)
 		row_margin.add_child(row)
 		_body.add_child(row_margin)
+		# The current unit's whole row lifts to PRIMARY; the rest read as
+		# structural names with INFO values, same as the rail's readout.
 		var is_current: bool = member == _character
-		var name_label := Label.new()
-		name_label.text = member.character_name
+		var name_label := GlowLabel.styled(member.character_name, UIManager.font_8px, 8,
+				GameColors.TEXT_PRIMARY if is_current else GameColors.TEXT_SECONDARY,
+				GameColors.TEXT_PRIMARY_GLOW if is_current else GameColors.TEXT_SECONDARY_GLOW)
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		if UIManager.font_8px != null:
-			name_label.add_theme_font_override("font", UIManager.font_8px)
-		name_label.add_theme_font_size_override("font_size", 8)
-		name_label.add_theme_color_override("font_color",
-				GameColorPalette.get_color("Azure", 9) if is_current
-				else GameColorPalette.get_color("Straw2", 5))
 		row.add_child(name_label)
-		var value_label := Label.new()
-		value_label.text = str(member.get(stat_name))
-		if UIManager.font_8px != null:
-			value_label.add_theme_font_override("font", UIManager.font_8px)
-		value_label.add_theme_font_size_override("font_size", 8)
-		value_label.add_theme_color_override("font_color",
-				GameColorPalette.get_color("Azure", 9) if is_current
-				else GameColors.TEXT_INFO)
+		var value_label := GlowLabel.styled(str(member.get(stat_name)),
+				UIManager.font_8px, 8,
+				GameColors.TEXT_PRIMARY if is_current else GameColors.TEXT_INFO,
+				GameColors.TEXT_PRIMARY_GLOW if is_current else GameColors.TEXT_INFO_GLOW)
 		row.add_child(value_label)
 
 
@@ -637,8 +604,11 @@ func _build_injury_lane() -> void:
 		meta_parts.append("affects %s" % UnitSheet.stat_label(data.affected_stat))
 	meta_parts.append("%d battle%s to recover" % [injury.battles_remaining,
 			"" if injury.battles_remaining == 1 else "s"])
+	# The meta line carries the wound facts, so it speaks DANGER like the chip
+	# that opened it; the description below stays PRIMARY reading copy.
 	_build_detail_text(display, " · ".join(meta_parts),
-			data.description if data != null else "")
+			data.description if data != null else "",
+			GameColors.TEXT_DANGER, GameColors.TEXT_DANGER_GLOW)
 
 
 # =============================================================================
@@ -671,13 +641,9 @@ func _build_summary_lane() -> void:
 		_body.add_child(margin)
 		_add_damage_icon(row, move.damage_type)
 		_add_type_icon(row, move.element_type)
-		var name_label := Label.new()
-		name_label.text = move.move_name
+		var name_label := GlowLabel.styled(move.move_name, UIManager.font_8px, 8,
+				GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
 		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		if UIManager.font_8px != null:
-			name_label.add_theme_font_override("font", UIManager.font_8px)
-		name_label.add_theme_font_size_override("font_size", 8)
-		name_label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
 		row.add_child(name_label)
 
 
@@ -694,41 +660,28 @@ func _detail_box() -> VBoxContainer:
 	return box
 
 
-func _headline(text_value: String) -> Label:
-	var label := Label.new()
-	label.text = text_value
-	if UIManager.font_11px != null:
-		label.add_theme_font_override("font", UIManager.font_11px)
-	label.add_theme_font_size_override("font_size", 11)
-	label.add_theme_color_override("font_color", GameColorPalette.get_color("Azure", 9))
-	return label
+func _headline(text_value: String) -> GlowLabel:
+	return GlowLabel.styled(text_value, UIManager.font_11px, 11,
+			GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
 
 
-func _body_copy(text_value: String) -> Label:
-	var label := Label.new()
-	label.text = text_value
+func _body_copy(text_value: String) -> GlowLabel:
+	var label := GlowLabel.styled(text_value, UIManager.font_8px, 8,
+			GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	if UIManager.font_8px != null:
-		label.add_theme_font_override("font", UIManager.font_8px)
-	label.add_theme_font_size_override("font_size", 8)
-	label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
 	return label
 
 
 func _squad_section_header(title: String) -> Control:
-	var label := Label.new()
-	label.text = title
-	_style_dim(label)
 	var margin := _margins(5, 5, 5, 1)
-	margin.add_child(label)
+	margin.add_child(_dim_label(title))
 	return margin
 
 
-func _style_dim(label: Label) -> void:
-	if UIManager.font_8px != null:
-		label.add_theme_font_override("font", UIManager.font_8px)
-	label.add_theme_font_size_override("font_size", 8)
-	label.add_theme_color_override("font_color", GameColorPalette.get_color("Straw2", 5))
+## Structural text — headers, metas, hints — wears the SECONDARY voice.
+func _dim_label(text_value: String) -> GlowLabel:
+	return GlowLabel.styled(text_value, UIManager.font_8px, 8,
+			GameColors.TEXT_SECONDARY, GameColors.TEXT_SECONDARY_GLOW)
 
 
 func _margins(left: int, right: int, top: int, bottom: int) -> MarginContainer:

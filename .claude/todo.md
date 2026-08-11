@@ -1,3 +1,7 @@
+# Resp
+`[-][+]` Buttons should have more of a box styling
+For "squad order," the order should be Ma'am - Ernesto - Max - ElfPirate
+
 # TBT Game — Open Work
 
 Everything still to do. **Completed work + its shipped-notes live in

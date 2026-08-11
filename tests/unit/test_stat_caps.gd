@@ -247,3 +247,40 @@ func test_a_null_character_draws_nothing_rather_than_crashing() -> void:
 	assert_eq(StatCapBar.fill_ratio(null, "defense"), 0.0)
 	assert_eq(StatCapBar.bonus_span(null, "defense"), Vector2.ZERO)
 	assert_false(StatCapBar.is_at_cap(null, "defense"))
+
+
+# =============================================================================
+# THE RENDER VOCABULARY (RQD 2026-08-10) — every segment is a body color plus
+# its ORTHOGONAL GLOW partner, and the semantic segments take their pair from
+# GameColors so the bar and the text beside it can never disagree.
+# =============================================================================
+
+func test_the_bar_speaks_the_text_voices() -> void:
+	assert_eq(StatCapBar.COLOR_FILL, GameColors.TEXT_PRIMARY,
+			"the fill is the unit's actual stat — content, so PRIMARY")
+	assert_eq(StatCapBar.COLOR_FILL_GLOW, GameColors.TEXT_PRIMARY_GLOW)
+	assert_eq(StatCapBar.COLOR_AT_CAP, GameColors.TEXT_SUCCESS,
+			"maxed wears SUCCESS, bar and number together")
+	assert_eq(StatCapBar.COLOR_AT_CAP_GLOW, GameColors.TEXT_SUCCESS_GLOW)
+	assert_eq(StatCapBar.COLOR_BONUS, GameColors.TEXT_SECONDARY,
+			"applied StatUps are modifiers — the old UnitDetailPanel '+N' pair")
+	assert_eq(StatCapBar.COLOR_BONUS_GLOW, GameColors.TEXT_SECONDARY_GLOW)
+	assert_eq(StatCapBar.COLOR_PENALTY, GameColors.TEXT_DANGER)
+	assert_eq(StatCapBar.COLOR_PENALTY_GLOW, GameColors.TEXT_DANGER_GLOW)
+
+
+func test_the_built_bar_recolors_at_the_cap() -> void:
+	# The rendering layer, not just the statics: a bar whose unit reaches the
+	# ceiling must flip its fill segment to the SUCCESS pair.
+	var heavy := _unit(Enums.CharacterClass.HEAVY)
+	heavy.base_defense = 10
+	var bar := StatCapBar.new("defense", 3)
+	bar.set_character(heavy)
+	add_child_autofree(bar)
+	bar.size = Vector2(60, 3)
+	assert_eq(bar._fill_rect.color, StatCapBar.COLOR_FILL, "under the cap: PRIMARY fill")
+	heavy.base_defense = ClassStatCaps.for_class(Enums.CharacterClass.HEAVY, "defense")
+	bar.set_character(heavy)
+	assert_eq(bar._fill_rect.color, StatCapBar.COLOR_AT_CAP, "at the cap: SUCCESS fill")
+	assert_eq(bar._fill_rect.glow_color, StatCapBar.COLOR_AT_CAP_GLOW,
+			"and the halo flips with it — body and glow always travel as a pair")

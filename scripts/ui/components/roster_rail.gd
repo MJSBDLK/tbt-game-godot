@@ -291,9 +291,12 @@ func _build_chrome() -> void:
 	if UIManager.font_8px != null:
 		_search_edit.add_theme_font_override("font", UIManager.font_8px)
 	_search_edit.add_theme_font_size_override("font_size", 8)
+	# Deliberate exception to the glow rule: a shader material on a LineEdit
+	# would also glow the caret and selection box. Typed text wears PRIMARY's
+	# body color, the placeholder SECONDARY's, both unhaloed.
 	_search_edit.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
 	_search_edit.add_theme_color_override("font_placeholder_color",
-			GameColorPalette.get_color("Straw2", 5))
+			GameColors.with_alpha(GameColors.TEXT_SECONDARY, 0.6))
 	_search_edit.text_changed.connect(_on_search_changed)
 	head_stack.add_child(_search_edit)
 
@@ -301,17 +304,14 @@ func _build_chrome() -> void:
 	sort_row.add_theme_constant_override("separation", 4)
 	head_stack.add_child(sort_row)
 
-	var sort_label := Label.new()
-	sort_label.text = "sort"
-	_style_dim_label(sort_label)
-	sort_row.add_child(sort_label)
+	sort_row.add_child(_dim_label("sort"))
 
-	_sort_key_button = _make_link_button(GameColors.TEXT_PRIMARY)
+	_sort_key_button = _make_link_button(GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
 	_sort_key_button.tooltip_text = "cycle the sort key — it becomes every card's readout"
 	_sort_key_button.pressed.connect(_on_sort_key_pressed)
 	sort_row.add_child(_sort_key_button)
 
-	_sort_dir_button = _make_link_button(GameColors.TEXT_INFO)
+	_sort_dir_button = _make_link_button(GameColors.TEXT_INFO, GameColors.TEXT_INFO_GLOW)
 	_sort_dir_button.tooltip_text = "flip sort direction"
 	_sort_dir_button.pressed.connect(_on_sort_dir_pressed)
 	sort_row.add_child(_sort_dir_button)
@@ -330,7 +330,10 @@ func _build_chrome() -> void:
 	scroll.add_child(_card_list)
 
 
-func _make_link_button(text_color: Color) -> Button:
+## A bare-text button in a semantic voice. Safe to put the glow material on
+## the Button itself ONLY because every stylebox is empty — the shader glows
+## whatever the control draws, and here that is exactly the glyphs.
+func _make_link_button(text_color: Color, glow: Color) -> Button:
 	var button := Button.new()
 	button.flat = true
 	button.focus_mode = Control.FOCUS_NONE
@@ -339,6 +342,9 @@ func _make_link_button(text_color: Color) -> Button:
 	button.add_theme_font_size_override("font_size", 8)
 	button.add_theme_color_override("font_color", text_color)
 	button.add_theme_color_override("font_hover_color", GameColors.brightened(text_color))
+	var glow_material := (load("res://resources/hud_glow.tres") as Material).duplicate()
+	(glow_material as ShaderMaterial).set_shader_parameter("glow_color", glow)
+	button.material = glow_material
 	button.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
 	button.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
 	button.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
@@ -346,11 +352,10 @@ func _make_link_button(text_color: Color) -> Button:
 	return button
 
 
-func _style_dim_label(label: Label) -> void:
-	if UIManager.font_8px != null:
-		label.add_theme_font_override("font", UIManager.font_8px)
-	label.add_theme_font_size_override("font_size", 8)
-	label.add_theme_color_override("font_color", GameColorPalette.get_color("Straw2", 5))
+## Structural text — headers, keys, hints — wears the SECONDARY voice.
+func _dim_label(text_value: String) -> GlowLabel:
+	return GlowLabel.styled(text_value, UIManager.font_8px, 8,
+			GameColors.TEXT_SECONDARY, GameColors.TEXT_SECONDARY_GLOW)
 
 
 func _hairline() -> ColorRect:
@@ -419,21 +424,14 @@ func _make_group_header(title: String, cap_text: String, full: bool) -> Control:
 	margin.add_child(row)
 	wrap.add_child(margin)
 
-	var title_label := Label.new()
-	title_label.text = title
-	_style_dim_label(title_label)
-	row.add_child(title_label)
+	row.add_child(_dim_label(title))
 
 	if cap_text != "":
-		var cap_label := Label.new()
-		cap_label.text = cap_text
-		if UIManager.font_8px != null:
-			cap_label.add_theme_font_override("font", UIManager.font_8px)
-		cap_label.add_theme_font_size_override("font_size", 8)
 		# The cap is half the information; it turns warning-hot when the squad
 		# is full so "why is this pip dead" has a visible answer.
-		cap_label.add_theme_color_override("font_color",
-				GameColors.TEXT_WARNING if full else GameColors.TEXT_PRIMARY)
+		var cap_label := GlowLabel.styled(cap_text, UIManager.font_8px, 8,
+				GameColors.TEXT_WARNING if full else GameColors.TEXT_PRIMARY,
+				GameColors.TEXT_WARNING_GLOW if full else GameColors.TEXT_PRIMARY_GLOW)
 		row.add_child(cap_label)
 
 	wrap.add_child(_hairline())
@@ -441,9 +439,7 @@ func _make_group_header(title: String, cap_text: String, full: bool) -> Control:
 
 
 func _make_empty_hint() -> Control:
-	var hint := Label.new()
-	hint.text = "(empty)"
-	_style_dim_label(hint)
+	var hint := _dim_label("(empty)")
 	hint.modulate.a = 0.45
 	var hint_margin := MarginContainer.new()
 	hint_margin.add_theme_constant_override("margin_left", 4)
@@ -505,43 +501,33 @@ func _make_card(roster_index: int) -> Button:
 		portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(portrait)
 
-	var name_label := Label.new()
-	name_label.text = character.character_name
+	var name_label := GlowLabel.styled(character.character_name, UIManager.font_8px, 8,
+			GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
 	name_label.clip_text = true
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	if UIManager.font_8px != null:
-		name_label.add_theme_font_override("font", UIManager.font_8px)
-	name_label.add_theme_font_size_override("font_size", 8)
-	name_label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
-	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(name_label)
 
 	# ★N — the compact StatUp glyph. The word "StatUp" lives in the tooltip;
 	# the glyph is the only spelling that fits a 132px card (RQD round 11).
+	# UNSPENT StatUps advertise in the INFO voice (a live value, like the hub
+	# sub-line); once SPENT they become modifiers and switch to SECONDARY —
+	# see the sheet's tally.
 	var unspent: int = character.available_stat_ups - character.allocated_total()
 	if unspent > 0:
-		var star := Label.new()
-		star.text = "★%d" % unspent
+		var star := GlowLabel.styled("★%d" % unspent, UIManager.font_8px, 8,
+				GameColors.TEXT_INFO, GameColors.TEXT_INFO_GLOW)
 		star.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		if UIManager.font_8px != null:
-			star.add_theme_font_override("font", UIManager.font_8px)
-		star.add_theme_font_size_override("font_size", 8)
-		star.add_theme_color_override("font_color", GameColors.TEXT_INFO)
 		star.tooltip_text = "%d StatUp unspent" % unspent
 		star.mouse_filter = Control.MOUSE_FILTER_PASS
 		row.add_child(star)
 
-	var value_label := Label.new()
-	value_label.text = card_readout(character, _sort_key, roster_index)
+	# The sort readout is a live value — INFO voice, like the pool.
+	var value_label := GlowLabel.styled(card_readout(character, _sort_key, roster_index),
+			UIManager.font_8px, 8, GameColors.TEXT_INFO, GameColors.TEXT_INFO_GLOW)
 	value_label.custom_minimum_size = Vector2(16, 0)
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	if UIManager.font_8px != null:
-		value_label.add_theme_font_override("font", UIManager.font_8px)
-	value_label.add_theme_font_size_override("font_size", 8)
-	value_label.add_theme_color_override("font_color", GameColors.TEXT_INFO)
-	value_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(value_label)
 
 	if not is_deployed:

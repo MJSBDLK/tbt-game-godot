@@ -223,6 +223,8 @@ func _build_top_bar() -> PanelContainer:
 	row.alignment = BoxContainer.ALIGNMENT_BEGIN
 	bar.add_child(row)
 
+	# Bare glyphs over empty styleboxes, so the glow material on the Button
+	# only ever glows text — the same trick the rail's sort links use.
 	var back := Button.new()
 	back.flat = true
 	back.focus_mode = Control.FOCUS_NONE
@@ -230,15 +232,20 @@ func _build_top_bar() -> PanelContainer:
 	if UIManager.font_8px != null:
 		back.add_theme_font_override("font", UIManager.font_8px)
 	back.add_theme_font_size_override("font_size", 8)
-	back.add_theme_color_override("font_color", GameColorPalette.get_color("Azure", 9))
+	back.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
 	back.add_theme_color_override("font_hover_color",
-			GameColors.brightened(GameColorPalette.get_color("Azure", 9)))
+			GameColors.brightened(GameColors.TEXT_PRIMARY))
+	var back_material := (load("res://resources/hud_glow.tres") as Material).duplicate()
+	(back_material as ShaderMaterial).set_shader_parameter("glow_color",
+			GameColors.TEXT_PRIMARY_GLOW)
+	back.material = back_material
 	for state: String in ["normal", "hover", "pressed", "focus"]:
 		back.add_theme_stylebox_override(state, StyleBoxEmpty.new())
 	back.pressed.connect(_on_back_pressed)
 	row.add_child(back)
 
-	row.add_child(_key_value_pair("MISSION", _mission_readout(), GameColors.TEXT_PRIMARY, null))
+	row.add_child(_key_value_pair("MISSION", _mission_readout(),
+			GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW, null))
 
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -247,11 +254,12 @@ func _build_top_bar() -> PanelContainer:
 
 	var pool_holder: Array[Label] = []
 	row.add_child(_key_value_pair("bEXP", str(SquadManager.bonus_xp_pool),
-			GameColors.TEXT_INFO, pool_holder))
+			GameColors.TEXT_INFO, GameColors.TEXT_INFO_GLOW, pool_holder))
 	_pool_value_label = pool_holder[0]
 
 	var squad_holder: Array[Label] = []
-	row.add_child(_key_value_pair("SQUAD", "", GameColors.TEXT_PRIMARY, squad_holder))
+	row.add_child(_key_value_pair("SQUAD", "",
+			GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW, squad_holder))
 	_squad_value_label = squad_holder[0]
 	return bar
 
@@ -263,27 +271,20 @@ func _mission_readout() -> String:
 			CampaignManager.get_mission_count()]
 
 
-## `KEY value` — dim straw key, colored value. When `value_out` is non-null
-## the value Label is appended to it so callers can keep a live handle.
+## `KEY value` — SECONDARY-voice key, semantic-voiced value (each with its
+## orthogonal glow). When `value_out` is non-null the value label is appended
+## to it so callers can keep a live handle.
 func _key_value_pair(key_text: String, value_text: String, value_color: Color,
-		value_out: Variant) -> HBoxContainer:
+		value_glow: Color, value_out: Variant) -> HBoxContainer:
 	var pair := HBoxContainer.new()
 	pair.add_theme_constant_override("separation", 4)
-	var key_label := Label.new()
-	key_label.text = key_text
+	var key_label := GlowLabel.styled(key_text, UIManager.font_8px, 8,
+			GameColors.TEXT_SECONDARY, GameColors.TEXT_SECONDARY_GLOW)
 	key_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	if UIManager.font_8px != null:
-		key_label.add_theme_font_override("font", UIManager.font_8px)
-	key_label.add_theme_font_size_override("font_size", 8)
-	key_label.add_theme_color_override("font_color", GameColorPalette.get_color("Straw2", 5))
 	pair.add_child(key_label)
-	var value_label := Label.new()
-	value_label.text = value_text
+	var value_label := GlowLabel.styled(value_text, UIManager.font_8px, 8,
+			value_color, value_glow)
 	value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	if UIManager.font_8px != null:
-		value_label.add_theme_font_override("font", UIManager.font_8px)
-	value_label.add_theme_font_size_override("font_size", 8)
-	value_label.add_theme_color_override("font_color", value_color)
 	pair.add_child(value_label)
 	if value_out is Array:
 		(value_out as Array).append(value_label)

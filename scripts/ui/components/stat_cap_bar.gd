@@ -45,24 +45,44 @@ extends Control
 
 
 const DEFAULT_HEIGHT_PX: int = 1
+const GLOW_MATERIAL_PATH: String = "res://resources/hud_glow.tres"
 
-## Unfilled remainder of the class's allowance. Dim enough to read as "not yet"
-## rather than as a second value — but NOT dimmer than the panel it sits on.
-## This was Straw2 2 (#2e2719) against a HUD panel of #302d27, a difference of
-## about three values, which made the track invisible and the whole two-level
-## reading collapse into a single stub. Straw2 4 clears the panel while staying
-## well under the fill.
+## The RENDER VOCABULARY (RQD 2026-08-10): every segment is a GlowColorRect
+## wearing a body color + its orthogonal-glow partner, the same recipe the
+## pre-refactor UnitDetailPanel bars shipped (stat_container.tscn). Where the
+## old bars used a semantic voice, the pairing is taken from GameColors so the
+## bar and the text beside it can never disagree:
+##
+##   track    Azure 3 body / Azure 1 halo — the old StatBarBackground pair.
+##            Dim enough to read as "not yet", lit enough to clear the panel.
+##   fill     the PRIMARY voice — this is the unit's actual stat, i.e. content.
+##   at cap   the SUCCESS voice, bar and number together (a color on the
+##            number alone is easy to miss in a block of eight rows).
+##   bonus    the SECONDARY voice — the same pale-gold/violet pair the old
+##            panel's "+N" modifier text wore. Applied StatUps are modifiers,
+##            so segment and tally share one voice.
+##   penalty  the DANGER voice.
 static var COLOR_TRACK: Color:
-	get: return GameColorPalette.get_color("Straw2", 4)
+	get: return GameColorPalette.get_color("Azure", 3)
+static var COLOR_TRACK_GLOW: Color:
+	get: return GameColorPalette.get_color("Azure", 1)
 static var COLOR_FILL: Color:
-	get: return GameColorPalette.get_color("Azure", 7)
+	get: return GameColors.TEXT_PRIMARY
+static var COLOR_FILL_GLOW: Color:
+	get: return GameColors.TEXT_PRIMARY_GLOW
 static var COLOR_AT_CAP: Color:
-	get: return GameColorPalette.get_color("Green", 6)
+	get: return GameColors.TEXT_SUCCESS
+static var COLOR_AT_CAP_GLOW: Color:
+	get: return GameColors.TEXT_SUCCESS_GLOW
 ## Positive bonus rides past the fill; negative is carved back out of it.
 static var COLOR_BONUS: Color:
-	get: return GameColorPalette.get_color("Yellow", 5)
+	get: return GameColors.TEXT_SECONDARY
+static var COLOR_BONUS_GLOW: Color:
+	get: return GameColors.TEXT_SECONDARY_GLOW
 static var COLOR_PENALTY: Color:
-	get: return GameColorPalette.get_color("Red", 5)
+	get: return GameColors.TEXT_DANGER
+static var COLOR_PENALTY_GLOW: Color:
+	get: return GameColors.TEXT_DANGER_GLOW
 
 
 var _character_data: CharacterData = null
@@ -70,10 +90,21 @@ var _stat_name: String = ""
 ## Panels that already spell the modifier out in text can turn the segment off.
 var show_bonus: bool = true
 
+## Body height in pixels. The glow shader spends the outer 1px ring of each
+## rect on the halo, so segments are built body+2 tall and overhang the
+## control by 1px above and below — exactly how the old scene's 4px bars sat
+## in their 2px container. Layouts keep their metrics; the halo is overdraw.
+var _body_height_px: int = DEFAULT_HEIGHT_PX
+
+var _track_rect: GlowColorRect = null
+var _fill_rect: GlowColorRect = null
+var _bonus_rect: GlowColorRect = null
+
 
 func _init(stat_name: String = "", bar_height_px: int = DEFAULT_HEIGHT_PX) -> void:
 	_stat_name = stat_name
-	custom_minimum_size = Vector2(0, bar_height_px)
+	_body_height_px = maxi(1, bar_height_px)
+	custom_minimum_size = Vector2(0, _body_height_px)
 	# PASS, not IGNORE: the bar is a readout and must never swallow a click
 	# meant for the +/- buttons beside it, but IGNORE would also suppress its
 	# tooltip — and the tooltip is where the three numbers behind the drawing
@@ -81,55 +112,94 @@ func _init(stat_name: String = "", bar_height_px: int = DEFAULT_HEIGHT_PX) -> vo
 	mouse_filter = Control.MOUSE_FILTER_PASS
 
 
+func _ready() -> void:
+	_track_rect = _make_segment(COLOR_TRACK, COLOR_TRACK_GLOW)
+	_fill_rect = _make_segment(COLOR_FILL, COLOR_FILL_GLOW)
+	_bonus_rect = _make_segment(COLOR_BONUS, COLOR_BONUS_GLOW)
+	_relayout()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED:
+		_relayout()
+
+
 func set_character(data: CharacterData) -> void:
 	_character_data = data
-	queue_redraw()
+	_relayout()
 
 
 func set_stat_name(stat_name: String) -> void:
 	_stat_name = stat_name
-	queue_redraw()
+	_relayout()
 
 
 ## Refresh both at once — the common case after an allocation or a level-up.
 func set_stat(data: CharacterData, stat_name: String) -> void:
 	_character_data = data
 	_stat_name = stat_name
-	queue_redraw()
+	_relayout()
 
 
-func _draw() -> void:
-	if _character_data == null or _stat_name.is_empty():
+func _make_segment(body: Color, glow: Color) -> GlowColorRect:
+	var segment := GlowColorRect.new()
+	segment.material = (load(GLOW_MATERIAL_PATH) as Material).duplicate()
+	segment.color = body
+	segment.glow_color = glow
+	segment.visible = false
+	segment.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(segment)
+	return segment
+
+
+## Position the three segments from the pure ratios. Widths pixel-snap so the
+## 1px halo ring stays crisp; a segment under 1px of body hides entirely
+## rather than rendering as a floating halo blob.
+func _relayout() -> void:
+	if _track_rect == null:
 		return
+	if _character_data == null or _stat_name.is_empty() or size.x <= 0.0:
+		_track_rect.visible = false
+		_fill_rect.visible = false
+		_bonus_rect.visible = false
+		return
+
 	var full_width: float = size.x
-	if full_width <= 0.0:
-		return
-	var bar_height: float = maxf(float(DEFAULT_HEIGHT_PX), size.y)
 	var capped: bool = is_at_cap(_character_data, _stat_name)
 
-	# Track first, fill over it — the fill can equal the track at cap, and
-	# drawing in this order means the green simply covers it.
-	var track_width: float = track_ratio(_character_data, _stat_name) * full_width
-	if track_width > 0.0:
-		draw_rect(Rect2(0.0, 0.0, track_width, bar_height), COLOR_TRACK, true)
+	var track_px: float = roundf(track_ratio(_character_data, _stat_name) * full_width)
+	_place_segment(_track_rect, 0.0, track_px)
 
-	var fill_width: float = fill_ratio(_character_data, _stat_name) * full_width
-	if fill_width > 0.0:
-		draw_rect(Rect2(0.0, 0.0, fill_width, bar_height),
-				COLOR_AT_CAP if capped else COLOR_FILL, true)
+	var fill_px: float = roundf(fill_ratio(_character_data, _stat_name) * full_width)
+	_fill_rect.color = COLOR_AT_CAP if capped else COLOR_FILL
+	_fill_rect.glow_color = COLOR_AT_CAP_GLOW if capped else COLOR_FILL_GLOW
+	_place_segment(_fill_rect, 0.0, fill_px)
 
 	if not show_bonus:
+		_bonus_rect.visible = false
 		return
 	# Bonus rides PAST the fill and past the track — StatUps are allowed over
 	# the class ceiling. A penalty is drawn back over the fill instead, so an
 	# injured unit's bar visibly shrinks.
 	var span: Vector2 = bonus_span(_character_data, _stat_name)
-	var bonus_start: float = span.x * full_width
-	var bonus_width: float = (span.y - span.x) * full_width
-	if bonus_width > 0.0:
-		var is_penalty: bool = _character_data.get_bonus_total(_stat_name) < 0
-		draw_rect(Rect2(bonus_start, 0.0, bonus_width, bar_height),
-				COLOR_PENALTY if is_penalty else COLOR_BONUS, true)
+	var bonus_start: float = roundf(span.x * full_width)
+	var bonus_end: float = roundf(span.y * full_width)
+	var is_penalty: bool = _character_data.get_bonus_total(_stat_name) < 0
+	_bonus_rect.color = COLOR_PENALTY if is_penalty else COLOR_BONUS
+	_bonus_rect.glow_color = COLOR_PENALTY_GLOW if is_penalty else COLOR_BONUS_GLOW
+	_place_segment(_bonus_rect, bonus_start, bonus_end - bonus_start)
+
+
+## Body geometry in, halo margin out: the rect is grown 1px on every side so
+## the shader's edge ring lands OUTSIDE the body pixels the ratio math asked
+## for — segment bodies stay exactly comparable across bars.
+func _place_segment(segment: GlowColorRect, body_x: float, body_width: float) -> void:
+	if body_width < 1.0:
+		segment.visible = false
+		return
+	segment.visible = true
+	segment.position = Vector2(body_x - 1.0, (size.y - _body_height_px) / 2.0 - 1.0)
+	segment.size = Vector2(body_width + 2.0, _body_height_px + 2.0)
 
 
 # =============================================================================
