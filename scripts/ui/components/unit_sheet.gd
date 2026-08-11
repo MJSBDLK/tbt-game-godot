@@ -140,10 +140,9 @@ func refresh() -> void:
 		return
 	_build_ident()
 	_build_xp_row()
-	_stack.add_child(_section_header("STATS"))
+	_stack.add_child(_make_stats_header())
 	for entry: Array in STAT_ROWS:
 		_stack.add_child(_make_stat_row(str(entry[0]), str(entry[1])))
-	_build_statup_pool_line()
 	_stack.add_child(_section_header("MOVES"))
 	_build_move_grid()
 	_stack.add_child(_section_header("PASSIVES"))
@@ -450,39 +449,48 @@ func _on_stat_decrement(stat_name: String) -> void:
 	changed.emit()
 
 
-## `StatUps ●●●` — the unspent pool, pips capped at ten with an overflow
-## ellipsis. An always-empty line (rather than a vanishing one) keeps the
-## sections below from jumping as points are spent.
-func _build_statup_pool_line() -> void:
+## The STATS section header with the unspent-StatUp pool riding its right
+## edge — the negative space after the word was going unused while the pool's
+## own line under the block cost 10px of a column that's running out of them
+## (RQD 2026-08-11). Pips cap at ten with an overflow ellipsis; the header's
+## height never changes as they come and go, so the rows below don't jump.
+func _make_stats_header() -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
-	row.custom_minimum_size = Vector2(0, 6)
-	var margin := _margins(5, 5, 0, 0)
-	margin.add_child(row)
-	_stack.add_child(margin)
+	row.add_child(_dim_label("STATS"))
+
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(spacer)
 
 	var unspent: int = _character.available_stat_ups - _character.allocated_total()
-	if unspent <= 0:
-		return
-	row.add_child(_dim_label("StatUps"))
-	# UNSPENT pips advertise in the INFO voice (matching the rail's ★N and
-	# the hub sub-line); they turn SECONDARY only once spent into a stat.
-	var pips := HBoxContainer.new()
-	pips.add_theme_constant_override("separation", 3)
-	pips.tooltip_text = "%d StatUp unspent" % unspent
-	pips.mouse_filter = Control.MOUSE_FILTER_PASS
-	for i: int in mini(unspent, 10):
-		var pip := GlowColorRect.new()
-		pip.material = (load("res://resources/hud_glow.tres") as Material).duplicate()
-		pip.color = GameColors.TEXT_INFO
-		pip.glow_color = GameColors.TEXT_INFO_GLOW
-		pip.custom_minimum_size = Vector2(4, 4)
-		pip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		pip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		pips.add_child(pip)
-	row.add_child(pips)
-	if unspent > 10:
-		row.add_child(_dim_label("…"))
+	if unspent > 0:
+		var key := _dim_label("StatUps")
+		key.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		row.add_child(key)
+		# UNSPENT pips advertise in the INFO voice (matching the rail's ★N
+		# and the hub sub-line); they turn SECONDARY only once spent.
+		var pips := HBoxContainer.new()
+		pips.add_theme_constant_override("separation", 3)
+		pips.tooltip_text = "%d StatUp unspent" % unspent
+		pips.mouse_filter = Control.MOUSE_FILTER_PASS
+		for i: int in mini(unspent, 10):
+			var pip := GlowColorRect.new()
+			pip.material = (load("res://resources/hud_glow.tres") as Material).duplicate()
+			pip.color = GameColors.TEXT_INFO
+			pip.glow_color = GameColors.TEXT_INFO_GLOW
+			pip.custom_minimum_size = Vector2(4, 4)
+			pip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			pip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			pips.add_child(pip)
+		row.add_child(pips)
+		if unspent > 10:
+			row.add_child(_dim_label("…"))
+
+	var margin := _margins(5, 5, 3, 0)
+	margin.add_child(row)
+	return margin
 
 
 # =============================================================================

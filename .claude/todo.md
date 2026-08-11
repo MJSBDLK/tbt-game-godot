@@ -1,36 +1,15 @@
 # Resp
-- [x] Some of these descriptions should be tooltips or simply removed. *(DONE 2026-08-11)*
-  - I might err on the side of prioritizing clean visual design over the new player UX. We may at some point need to add a new_player_guidance flag that gently guides new players.
-  - [x] "4 moved equipped" - removed; summary meta is just "Class · Lv N" now.
-  - [x] "Click a move, a passive, ... becomes the place you change it." - removed
-    entirely. The workbench comment notes that if guidance returns it rides a
-    `new_player_guidance` flag, never permanent chrome.
-- [x] BUG - I noticed Ernesto has two passives equipped and three banked, but I can't equip up to four passives.
-  - *(FIXED 2026-08-11)* The sheet rendered 2 passive slots (intermission.md §8
-    guessed 1-2 class-dependent); the engine cap is 4 and shipped data uses
-    slot 3+. Now renders 4 (2×2 grid). When a class unlock schedule exists,
-    locked slots go inert — the count stays 4.
-- [x] feature - in the move filters, it should gray out icons with no entries. *(DONE 2026-08-11 — grayed but still clickable; pressing lands on the bank's "nothing matches" message. Tooltip says "X — nothing in the bank".)*
-- [~] I'm struggling to remember, but I believe we have icons for Pow/Range/AOE/Uses? If not please correct me. I envision icons for these stats with tooltips when you tap the icon.
-  - **Correction (2026-08-11): those icons don't exist.** Full sweep of
+
+
+# More ideas
+- [ ] Longer ranged moves should carray an accuracy penalty for striking further away. For example, the sidearm can hit units 3 spaces away, but I'd like for it to be optimal at 2, and a risky shot (~50% accuracy for an average unit targeting an average agility enemy) at 3 spaces. We may want to reconsider allowing it to shoot 1 space, as well.
+- [ ] **Correction (2026-08-11): those icons don't exist.** Full sweep of
     art/sprites/ui/: elemental, move-type (dmg), injury, status-effect, and
     buff icon sets — nothing for Pow/Range/AOE/Uses. Closest is
     `infinity_7x4/9x6.png` (for infinite uses). Needs a Lawrence ask: four
     ~10×10 glyphs; the tap-tooltip pattern already exists (TapTooltip).
     Text labels stay until the art lands.
-  - [x] Range: if something has range 2, this means it can't hit targets 1 space away. A lot of these moves which say range: 2 or 3 really need to be saying range: 1-2 or 1-3 because they can hit units 1 space away. If this is a gap in the design, let me know because if so we need to prioritize fixing it.
-    - **Not a design gap — a display bug, now fixed (2026-08-11).** Targeting
-      runs `move_targeting.gd` → `get_tiles_within_range`, which hits every
-      distance 1..N inclusive, so a "range 3" move ALWAYS could hit adjacent.
-      Labels now read `R1-3` via `UnitWorkbench.range_text` (tested). There is
-      NO minimum-range mechanic in the engine — the "sidearm shouldn't fire at
-      1 space" idea below would be a new `min_range` field on Move plus a
-      targeting change, and range_text is flagged as the one display site
-      that must learn it.
 
-# More ideas
-- [ ] Longer ranged moves should carray an accuracy penalty for striking further away. For example, the sidearm can hit units 3 spaces away, but I'd like for it to be optimal at 2, and a risky shot (~50% accuracy for an average unit targeting an average agility enemy) at 3 spaces. We may want to reconsider allowing it to shoot 1 space, as well.
-- [ ] 
 
 # TBT Game — Open Work
 
