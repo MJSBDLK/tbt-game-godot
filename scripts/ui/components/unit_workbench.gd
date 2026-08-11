@@ -43,13 +43,15 @@ const STAT_BLURBS: Dictionary = {
 const ICON_SIZE: int = 10
 const GLOW_MATERIAL_PATH: String = "res://resources/hud_glow.tres"
 const ELEMENTAL_ICON_DIR: String = "res://art/sprites/ui/elemental_type_icons_10x10/"
-## Damage-type icons live flat in ui/. `special_a` is one of seven candidate
-## special glyphs (`special_a`…`special_g`) — nobody has picked the final one
-## (§3f open question), so the mockup's choice carries over.
+## Damage-type icons — the COLORED set in move_type_icons_10x10/ (the flat
+## ui/ copies were black silhouettes and got retired 2026-08-10 when they
+## shipped to a build looking like ink blots). `special_a` is one of seven
+## candidate special glyphs (`special_a`…`special_g`) — nobody has picked the
+## final one (§3f open question), so the mockup's choice carries over.
 const DAMAGE_ICON_PATHS: Dictionary = {
-	Enums.DamageType.PHYSICAL: "res://art/sprites/ui/physical.png",
-	Enums.DamageType.SPECIAL: "res://art/sprites/ui/special_a.png",
-	Enums.DamageType.SUPPORT: "res://art/sprites/ui/support.png",
+	Enums.DamageType.PHYSICAL: "res://art/sprites/ui/move_type_icons_10x10/physical.png",
+	Enums.DamageType.SPECIAL: "res://art/sprites/ui/move_type_icons_10x10/special_a.png",
+	Enums.DamageType.SUPPORT: "res://art/sprites/ui/move_type_icons_10x10/support.png",
 }
 
 
