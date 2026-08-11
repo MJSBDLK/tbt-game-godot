@@ -357,6 +357,10 @@ func _build_swap_bar(is_move: bool, equipped: String) -> void:
 	equip_button.material = text_glow
 	var button_style := StyleBoxFlat.new()
 	button_style.bg_color = GameColors.ACTION_BUTTON_BG_NORMAL
+	# The same UndeadPixel baseline correction the sheet rows get: tilt the
+	# margins so the label sits 1px lower without growing the button.
+	button_style.content_margin_top = 1
+	button_style.content_margin_bottom = -1
 	equip_button.add_theme_stylebox_override("normal", button_style)
 	var button_hover := button_style.duplicate() as StyleBoxFlat
 	button_hover.bg_color = GameColors.ACTION_BUTTON_BG_HOVERED
