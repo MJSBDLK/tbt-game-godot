@@ -675,34 +675,61 @@ func _build_injury_lane() -> void:
 # SUMMARY LANE — nothing selected
 # =============================================================================
 
+## The CREW-FILE lane (RQD 2026-08-11). With nothing selected the panel used
+## to repeat the sheet's ident and move slots — redundant data 200px from its
+## source. Now it's the unit's PRESENCE instead of their paperwork:
+##   1. HD line art with the shipped glass/tracking treatment, when the
+##      character has it (bind_to_texture_rect wires slot + materials, and
+##      Settings.portrait_effects_enabled keeps its off-switch).
+##   2. The painted 600×600 portrait, plain, when there's no line art.
+##   3. Animated static + "— NO DATA —" when neither exists — the sprite-crop
+##      fallback reads as a records-corrupted terminal rather than a tiny
+##      pixel head in a huge panel, and every new portrait Lawrence paints
+##      silently upgrades its unit.
 func _build_summary_lane() -> void:
 	if _character == null:
 		return
-	# Just the name and where they stand — the "N moves equipped" count and
-	# the click-a-slot tutorial paragraph are both gone (RQD 2026-08-11:
-	# clean visual design beats new-player hand-holding on an already-busy
-	# screen; if guidance returns it rides a new_player_guidance flag, not
-	# permanent chrome). The meta reads MUTED: nothing selected, nothing live.
-	_build_detail_text(_character.character_name,
-			"%s · Lv %d" % [
-				Enums.get_class_display_name(_character.current_class), _character.level],
-			"", GameColors.TEXT_MUTED, GameColors.TEXT_MUTED_GLOW)
+	var frame_margin := _margins(8, 8, 8, 8)
+	frame_margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_body.add_child(frame_margin)
 
-	_body.add_child(_squad_section_header("EQUIPPED"))
-	for move: Move in _character.equipped_moves:
-		if UnitSheet.is_empty_move(move):
-			continue
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 3)
-		var margin := _margins(5, 5, 1, 0)
-		margin.add_child(row)
-		_body.add_child(margin)
-		_add_damage_icon(row, move.damage_type)
-		_add_type_icon(row, move.element_type)
-		var name_label := GlowLabel.styled(move.move_name, UIManager.font_8px, 8,
-				GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
-		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		row.add_child(name_label)
+	if CharacterPortrait.has_hd_art(_character):
+		var portrait := TextureRect.new()
+		portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		portrait.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		frame_margin.add_child(portrait)
+		CharacterPortrait.bind_to_texture_rect(portrait, _character)
+		return
+
+	if not _character.portrait_path.is_empty() \
+			and ResourceLoader.exists(_character.portrait_path):
+		var painted := TextureRect.new()
+		painted.texture = load(_character.portrait_path) as Texture2D
+		painted.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		painted.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		# The painted portraits are 600×600 downscaling hard — bilinear, not
+		# the pixel-art NEAREST everything else in this viewport uses.
+		painted.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		painted.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		frame_margin.add_child(painted)
+		return
+
+	# Records corrupted: full-area animated noise with the caption riding
+	# above it (the overlay is top_level for sizing but still draws in tree
+	# order, so the caption is added after).
+	var static_area := Control.new()
+	static_area.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	frame_margin.add_child(static_area)
+	var noise := StaticCensorOverlay.new()
+	static_area.add_child(noise)
+	noise.set_target(static_area)
+	noise.set_censored(true)
+	noise.modulate = GameColors.with_alpha(Color.WHITE, 0.35)
+	var caption_center := CenterContainer.new()
+	caption_center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	static_area.add_child(caption_center)
+	caption_center.add_child(_muted_label("— NO DATA —"))
 
 
 # =============================================================================
