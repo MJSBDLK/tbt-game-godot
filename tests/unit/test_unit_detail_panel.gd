@@ -130,6 +130,14 @@ func test_the_cap_bar_is_the_only_visible_bar_in_every_stat_row() -> void:
 		for child: Node in bar_container.get_children():
 			if child is StatCapBar:
 				cap_bars += 1
+				# Anchor-centered, like the scene bars it replaced. Copying a
+				# scene position at _ready captured a PRE-layout y and parked
+				# every bar at the top of its row (RQD 2026-08-11) — anchors
+				# make the layout engine own the centering instead.
+				assert_eq((child as Control).anchor_top, 0.5,
+						"%s: the cap bar centers by anchor, not a captured position"
+						% stat_container.name)
+				assert_eq((child as Control).anchor_bottom, 0.5, stat_container.name)
 			elif child is ColorRect:
 				assert_false((child as ColorRect).visible,
 						"%s/%s: legacy scene rect must stay hidden behind the cap bar"

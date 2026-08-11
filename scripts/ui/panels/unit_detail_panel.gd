@@ -252,9 +252,19 @@ func _cache_node_references() -> void:
 		# longer track behind every bar.
 		(bar_container.get_node("StatBarBackground") as ColorRect).visible = false
 
-		var cap_bar := StatCapBar.new(STAT_DISPLAY_MAP[display_key], int(scene_base.size.y))
-		cap_bar.position = scene_base.position
-		cap_bar.size = Vector2(STAT_BAR_MAX_WIDTH, scene_base.size.y)
+		var bar_height: int = int(scene_base.size.y)
+		var cap_bar := StatCapBar.new(STAT_DISPLAY_MAP[display_key], bar_height)
+		# Vertically centered by ANCHORS, like the scene's own bars — copying
+		# scene_base.position at _ready captured a pre-layout y (the row hasn't
+		# been sized yet), which parked every bar at the top of its row
+		# (RQD 2026-08-11). The +1 bias matches this font's low-sitting ink —
+		# the same 1px-down correction every text row in the HUD has needed.
+		cap_bar.anchor_top = 0.5
+		cap_bar.anchor_bottom = 0.5
+		cap_bar.offset_top = -floorf(bar_height / 2.0) + 1
+		cap_bar.offset_bottom = cap_bar.offset_top + bar_height
+		cap_bar.offset_left = 0
+		cap_bar.offset_right = STAT_BAR_MAX_WIDTH
 		bar_container.add_child(cap_bar)
 
 		_stat_rows[display_key] = {
