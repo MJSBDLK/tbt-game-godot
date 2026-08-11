@@ -41,7 +41,8 @@ func test_move_detail_populates_range_value() -> void:
 
 
 # =============================================================================
-# Chip adoption (2026-07-19): MovePanel tablets -> real MoveChipButtons
+# Sheet-vocabulary rows (RQD 2026-08-11): moves/passives match Manage Units.
+# Supersedes the 2026-07-19 MoveChipButton adoption — the chips are gone.
 # =============================================================================
 
 func _make_move(move_name: String, uses: int = 3, max_uses: int = 5) -> Move:
@@ -61,45 +62,76 @@ func _make_panel_with_moves(moves: Array[Move]) -> UnitDetailPanel:
 	return panel
 
 
-func test_tablets_became_vocabulary_chips_with_full_names() -> void:
+func _row_label(row: Control) -> Label:
+	if row is Label:
+		return row
+	for child: Node in row.get_children():
+		if child is Control:
+			var found: Label = _row_label(child)
+			if found != null:
+				return found
+	return null
+
+
+func test_moves_render_as_four_sheet_rows_with_muted_empties() -> void:
 	var panel := _make_panel_with_moves([_make_move("Frost Lance")])
-	assert_gt(panel._move_chips.size(), 1, "scene tablets replaced in place")
-	for chip_button: MoveChipButton in panel._move_chips:
-		assert_true(chip_button.prefer_full_name, "detail venue shows full names")
-	assert_true(panel._move_chips[0].visible)
-	assert_eq(panel._move_chips[0]._name_label.text, "Frost Lance",
-			"full name, not the menu abbreviation")
-	assert_false(panel._move_chips[1].visible, "empty slots hide")
-	assert_false(panel._move_chips[0]._uses_label.visible,
-			"identity-only selectors: the pane beside them shows the numbers")
-	assert_false(panel._move_chips[0]._scheme_glyph.visible)
+	assert_eq(panel._move_rows.size(), UnitSheet.MOVE_SLOT_COUNT,
+			"the sheet's rule: every slot shows, four always")
+	assert_eq(_row_label(panel._move_rows[0]).text, "Frost Lance",
+			"full name, PRIMARY voice")
+	assert_eq(_row_label(panel._move_rows[1]).text, "— empty —",
+			"open slots read as muted absence, not hidden rows")
 
 
-func test_selection_brackets_mark_the_inspected_move() -> void:
+func test_the_selected_row_wears_the_sheet_chrome() -> void:
 	var panel := _make_panel_with_moves([_make_move("Ember"), _make_move("Spark")])
 	panel._select(UnitDetailPanel.SelectionType.MOVE, 1)
-	assert_true(panel._move_chips[1].selected, "brackets = 'you are inspecting this'")
-	assert_false(panel._move_chips[0].selected)
+	var selected_style: StyleBoxFlat = \
+			panel._move_rows[1].get_theme_stylebox("normal") as StyleBoxFlat
+	var idle_style: StyleBoxFlat = \
+			panel._move_rows[0].get_theme_stylebox("normal") as StyleBoxFlat
+	assert_gt(selected_style.border_width_left, 0,
+			"selected = azure border + wash, the sheet's vocabulary")
+	assert_eq(idle_style.border_width_left, 0)
 	panel._select(UnitDetailPanel.SelectionType.MOVE, 1)
-	assert_false(panel._move_chips[1].selected,
-			"re-click toggles the inspection off")
+	var after_style: StyleBoxFlat = \
+			panel._move_rows[1].get_theme_stylebox("normal") as StyleBoxFlat
+	assert_eq(after_style.border_width_left, 0, "re-click toggles the inspection off")
 
 
-func test_depleted_chip_stays_inspectable_via_denied() -> void:
+func test_depleted_moves_go_muted_but_stay_inspectable() -> void:
 	var panel := _make_panel_with_moves([_make_move("Spark", 0, 4)])
-	var spark := panel._move_chips[0]
-	assert_true(spark.disabled, "depleted wears the dark tier here too")
-	spark.denied.emit()
-	assert_true(spark.selected,
-			"denied routes to select — in this venue the detail pane IS the why")
+	var row: Button = panel._move_rows[0]
+	assert_false(row.disabled, "a spent move is still a fact you can inspect")
+	assert_eq(_row_label(row).text, "Spark")
+	row.pressed.emit()
+	assert_eq(panel._selection_type, UnitDetailPanel.SelectionType.MOVE,
+			"pressing a depleted row opens its detail — the pane IS the why")
 
 
-func test_detail_chips_opt_out_of_hold_to_peek() -> void:
-	var panel := _make_panel_with_moves([_make_move("Ember")])
-	for chip_button: MoveChipButton in panel._move_chips:
-		assert_false(chip_button.peek_enabled,
-				"no-op venue (RQD 2026-07-21): the detail pane beside these"
-				+ " chips IS the tooltip's content, live and larger")
+func test_passives_render_as_four_sheet_rows() -> void:
+	var panel := _make_panel() as UnitDetailPanel
+	var data := CharacterData.new()
+	data.equipped_passives.append("Glib")
+	panel.show_character(data)
+	assert_eq(panel._passive_rows.size(), UnitSheet.PASSIVE_SLOT_COUNT)
+	assert_eq(_row_label(panel._passive_rows[0]).text, "Glib")
+	assert_eq(_row_label(panel._passive_rows[1]).text, "— empty —")
+
+
+func test_the_class_line_split_off_its_xp_suffix() -> void:
+	# "SKULK Lv.11 · 0/100 XP" overflowed and widened the whole left column
+	# (RQD 2026-08-11) — XP lives in its own sheet-style row now, and that row
+	# only shows for live PLAYER units (roster inspection has no XP context).
+	var panel := _make_panel() as UnitDetailPanel
+	var data := CharacterData.new()
+	data.level = 11
+	panel.show_character(data)
+	assert_false(panel._class_label.text.contains("XP"),
+			"the class line carries class and level only")
+	assert_string_contains(panel._class_label.text, "· Lv 11")
+	assert_false(panel._xp_row.visible,
+			"no live unit = no XP row (enemies and roster inspection)")
 
 
 # =============================================================================
@@ -116,11 +148,8 @@ func test_the_cap_bar_is_the_only_visible_bar_in_every_stat_row() -> void:
 			"MainRow/LeftColumnMargin/LeftColumn/StatsContainer")
 	var rows_checked: int = 0
 	for stat_container: Node in stats.get_children():
-		# The HP row is exempt: its scene bars are the LIVE rendering (colored
-		# by health ratio), deliberately not a StatCapBar yet — converting it
-		# is an open todo item, and this test should start covering it then.
-		if stat_container.name == "HPContainer":
-			continue
+		# The HP row is covered too (RQD 2026-08-11): it converted to a
+		# StatCapBar in health mode, so its scene bars went dark like the rest.
 		var bar_container: Node = stat_container.get_node_or_null(
 				"HBoxContainer/StatBarContainer")
 		if bar_container == null:
@@ -144,3 +173,19 @@ func test_the_cap_bar_is_the_only_visible_bar_in_every_stat_row() -> void:
 						% [stat_container.name, child.name])
 		assert_eq(cap_bars, 1, "%s: exactly one StatCapBar" % stat_container.name)
 	assert_gt(rows_checked, 0, "the scene's stat rows were actually found")
+
+
+func test_selecting_an_empty_slot_never_opens_a_ghost_detail() -> void:
+	# Empty rows are clickable (sheet vocabulary) but there's nothing to
+	# describe — the pane stays hidden instead of rendering a move called "—".
+	var panel := _make_panel_with_moves([_make_move("Ember")])
+	panel._select(UnitDetailPanel.SelectionType.MOVE, 2)
+	assert_false(panel._move_description.visible,
+			"empty slot selected: no detail pane, no crash")
+	var with_sentinel := _make_panel() as UnitDetailPanel
+	var data := CharacterData.new()
+	data.equipped_moves.append(Move.EMPTY)
+	with_sentinel.show_character(data)
+	with_sentinel._select(UnitDetailPanel.SelectionType.MOVE, 0)
+	assert_false(with_sentinel._move_description.visible,
+			"the Move.EMPTY sentinel is an empty slot, not a move named em-dash")

@@ -89,6 +89,13 @@ var _character_data: CharacterData = null
 var _stat_name: String = ""
 ## Panels that already spell the modifier out in text can turn the segment off.
 var show_bonus: bool = true
+## HEALTH MODE (RQD 2026-08-11, battle-side HP rows): -1 = stat mode. When
+## >= 0, the bar keeps the shared chrome but changes meaning — the track spans
+## the unit's MAX HP (on the same global scale, so fills stay cross-unit
+## comparable) and the fill is CURRENT HP, colored by health ratio instead of
+## the PRIMARY/at-cap voices. Bonus never draws: buffs already move max_hp,
+## and a battle gauge that showed "progress" segments would lie about danger.
+var _health_current: int = -1
 
 ## Body height in pixels. The glow shader spends the outer 1px ring of each
 ## rect on the halo, so segments are built body+2 tall and overhang the
@@ -138,6 +145,16 @@ func set_stat_name(stat_name: String) -> void:
 func set_stat(data: CharacterData, stat_name: String) -> void:
 	_character_data = data
 	_stat_name = stat_name
+	_health_current = -1
+	_relayout()
+
+
+## Switch to HEALTH MODE and refresh: track = max HP, fill = current HP in the
+## health-ratio color. The battle-side HP row's entry point.
+func set_health(data: CharacterData, current_hp: int) -> void:
+	_character_data = data
+	_stat_name = "max_hp"
+	_health_current = maxi(0, current_hp)
 	_relayout()
 
 
@@ -165,6 +182,24 @@ func _relayout() -> void:
 		return
 
 	var full_width: float = size.x
+
+	if _health_current >= 0:
+		# Health mode: track = max HP, fill = current, health-colored. The
+		# at-cap SUCCESS recolor doesn't apply — a full-HP unit isn't "done
+		# growing", and the health ramp already owns this bar's color story.
+		_place_segment(_track_rect, 0.0,
+				roundf(health_track_ratio(_character_data) * full_width))
+		var health_percent: float = 0.0
+		if _character_data.max_hp > 0:
+			health_percent = clampf(
+					float(_health_current) / float(_character_data.max_hp), 0.0, 1.0)
+		_fill_rect.color = GameColors.get_health_color(health_percent)
+		_fill_rect.glow_color = GameColors.get_health_bg_color(health_percent)
+		_place_segment(_fill_rect, 0.0, roundf(
+				health_fill_ratio(_character_data, _health_current) * full_width))
+		_bonus_rect.visible = false
+		return
+
 	var capped: bool = is_at_cap(_character_data, _stat_name)
 
 	var track_px: float = roundf(track_ratio(_character_data, _stat_name) * full_width)
@@ -252,6 +287,30 @@ static func bonus_span(data: CharacterData, stat_name: String) -> Vector2:
 	var shifted: float = clampf(
 			float(data.get_base_plus_growth(stat_name) + bonus) / float(global_cap), 0.0, 1.0)
 	return Vector2(minf(grown, shifted), maxf(grown, shifted))
+
+
+## HEALTH-MODE track: the unit's EFFECTIVE max HP (buffs included — in battle
+## the frame you can be healed back to is the truth that matters) as a
+## fraction of the global HP ceiling. Same scale as every other bar, so two
+## units' HP fills stay directly comparable — and allowed past the class cap,
+## like a bonus segment would be, because a buffed max is real.
+static func health_track_ratio(data: CharacterData) -> float:
+	if data == null:
+		return 0.0
+	var global_cap: int = data.get_global_stat_cap("max_hp")
+	if global_cap <= 0:
+		return 0.0
+	return clampf(float(data.max_hp) / float(global_cap), 0.0, 1.0)
+
+
+## HEALTH-MODE fill: current HP on the same global scale, clamped to the
+## track — current can't exceed max, so the fill meeting the track's end IS
+## the full-health read.
+static func health_fill_ratio(data: CharacterData, current_hp: int) -> float:
+	if data == null or data.max_hp <= 0:
+		return 0.0
+	var current_fraction: float = clampf(float(current_hp) / float(data.max_hp), 0.0, 1.0)
+	return current_fraction * health_track_ratio(data)
 
 
 ## True when growth has reached the class ceiling. Thin passthrough to

@@ -200,12 +200,12 @@ func _build_ident() -> void:
 
 	who.add_child(GlowLabel.styled(_character.character_name, UIManager.font_11px, 11,
 			GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW))
-	who.add_child(_dim_label(ident_sub_line(_character)))
+	who.add_child(dim_label(ident_sub_line(_character)))
 
 	var type_row := HBoxContainer.new()
 	type_row.add_theme_constant_override("separation", 2)
-	_add_type_icon(type_row, _character.primary_type)
-	_add_type_icon(type_row, _character.secondary_type)
+	add_type_icon(type_row, _character.primary_type)
+	add_type_icon(type_row, _character.secondary_type)
 	who.add_child(type_row)
 
 
@@ -221,7 +221,7 @@ func _build_xp_row() -> void:
 	margin.add_child(row)
 	_stack.add_child(margin)
 
-	var key_label := _dim_label("XP")
+	var key_label := dim_label("XP")
 	key_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(key_label)
 
@@ -229,10 +229,10 @@ func _build_xp_row() -> void:
 	track.custom_minimum_size = Vector2(0, 4)
 	track.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	track.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	track.add_child(_glow_bar(StatCapBar.COLOR_TRACK, StatCapBar.COLOR_TRACK_GLOW, 1.0))
+	track.add_child(glow_bar(StatCapBar.COLOR_TRACK, StatCapBar.COLOR_TRACK_GLOW, 1.0))
 	var xp_ratio: float = clampf(_character.experience / 100.0, 0.0, 1.0)
 	if xp_ratio > 0.0:
-		track.add_child(_glow_bar(GameColors.TEXT_INFO, GameColors.TEXT_INFO_GLOW, xp_ratio))
+		track.add_child(glow_bar(GameColors.TEXT_INFO, GameColors.TEXT_INFO_GLOW, xp_ratio))
 	row.add_child(track)
 
 	var price := GlowLabel.styled("%d/100" % _character.experience, UIManager.font_8px, 8,
@@ -244,7 +244,7 @@ func _build_xp_row() -> void:
 ## An anchored glow segment filling `ratio` of its parent's width. The glow
 ## shader spends the outer 1px ring on the halo, so the rect is anchored to
 ## the parent's full height and the body reads 2px inside a 4px lane.
-func _glow_bar(body: Color, glow: Color, ratio: float) -> GlowColorRect:
+static func glow_bar(body: Color, glow: Color, ratio: float) -> GlowColorRect:
 	var bar := GlowColorRect.new()
 	bar.material = (load("res://resources/hud_glow.tres") as Material).duplicate()
 	bar.color = body
@@ -265,7 +265,7 @@ func _make_stat_row(stat_name: String, abbrev: String) -> Button:
 	var capped: bool = level_value >= _character.get_stat_cap(stat_name)
 	var remaining: int = _character.available_stat_ups - _character.allocated_total()
 
-	var row := _slot_button(_is_selected("stat", stat_name))
+	var row := slot_button(_is_selected("stat", stat_name))
 	row.custom_minimum_size = Vector2(0, 13)
 	row.pressed.connect(_pick.bind("stat", stat_name))
 
@@ -277,7 +277,7 @@ func _make_stat_row(stat_name: String, abbrev: String) -> Button:
 	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(content)
 
-	var label := _dim_label(abbrev)
+	var label := dim_label(abbrev)
 	label.custom_minimum_size = Vector2(20, 0)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.nudge_baseline_down(2)
@@ -399,14 +399,14 @@ func _make_alloc_button(glyph: String, enabled: bool, tip: String,
 		button.add_theme_stylebox_override(state, StyleBoxEmpty.new())
 
 	var pieces: Array = _alloc_art_pieces(str(ALLOC_ART_PATHS[glyph]))
-	var ring := _make_icon(pieces[0] as Texture2D)
+	var ring := make_icon(pieces[0] as Texture2D)
 	ring.custom_minimum_size = Vector2.ZERO
 	ring.position = Vector2.ZERO
 	ring.size = Vector2(9, 9)
 	ring.self_modulate = GameColors.TEXT_PRIMARY if enabled else GameColors.TEXT_MUTED
 	button.add_child(ring)
 
-	var symbol := _make_icon(pieces[1] as Texture2D)
+	var symbol := make_icon(pieces[1] as Texture2D)
 	symbol.custom_minimum_size = Vector2.ZERO
 	symbol.position = Vector2.ZERO
 	symbol.size = Vector2(9, 9)
@@ -457,7 +457,7 @@ func _on_stat_decrement(stat_name: String) -> void:
 func _make_stats_header() -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
-	row.add_child(_dim_label("STATS"))
+	row.add_child(dim_label("STATS"))
 
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -466,7 +466,7 @@ func _make_stats_header() -> Control:
 
 	var unspent: int = _character.available_stat_ups - _character.allocated_total()
 	if unspent > 0:
-		var key := _dim_label("StatUps")
+		var key := dim_label("StatUps")
 		key.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		row.add_child(key)
 		# UNSPENT pips advertise in the INFO voice (matching the rail's ★N
@@ -486,7 +486,7 @@ func _make_stats_header() -> Control:
 			pips.add_child(pip)
 		row.add_child(pips)
 		if unspent > 10:
-			row.add_child(_dim_label("…"))
+			row.add_child(dim_label("…"))
 
 	var margin := _margins(5, 5, 3, 0)
 	margin.add_child(row)
@@ -511,7 +511,7 @@ func _build_move_grid() -> void:
 		if i < _character.equipped_moves.size():
 			move = _character.equipped_moves[i]
 		var empty: bool = is_empty_move(move)
-		var slot := _slot_button(_is_selected("move", i))
+		var slot := slot_button(_is_selected("move", i))
 		slot.custom_minimum_size = Vector2(0, 14)
 		slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		slot.pressed.connect(_pick.bind("move", i))
@@ -523,8 +523,8 @@ func _build_move_grid() -> void:
 		content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		slot.add_child(content)
 		if not empty:
-			_add_type_icon(content, move.element_type)
-		var name_label: GlowLabel = _muted_label("— empty —") if empty \
+			add_type_icon(content, move.element_type)
+		var name_label: GlowLabel = muted_label("— empty —") if empty \
 				else GlowLabel.styled(move.move_name, UIManager.font_8px, 8,
 						GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
 		name_label.clip_text = true
@@ -548,12 +548,12 @@ func _build_passive_grid() -> void:
 		if i < _character.equipped_passives.size() and _character.equipped_passives[i] != null:
 			passive_name = str(_character.equipped_passives[i])
 		var empty: bool = passive_name == ""
-		var slot := _slot_button(_is_selected("passive", i))
+		var slot := slot_button(_is_selected("passive", i))
 		slot.custom_minimum_size = Vector2(0, 14)
 		slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		slot.pressed.connect(_pick.bind("passive", i))
 
-		var name_label: GlowLabel = _muted_label("— empty —") if empty \
+		var name_label: GlowLabel = muted_label("— empty —") if empty \
 				else GlowLabel.styled(passive_name, UIManager.font_8px, 8,
 						GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
 		name_label.clip_text = true
@@ -573,7 +573,7 @@ func _build_injury_row() -> void:
 	_stack.add_child(margin)
 
 	if _character.current_injuries.is_empty():
-		row.add_child(_muted_label("no injuries"))
+		row.add_child(muted_label("no injuries"))
 		return
 
 	for i: int in _character.current_injuries.size():
@@ -581,7 +581,7 @@ func _build_injury_row() -> void:
 		var data: InjuryData = injury.get_data()
 		var display: String = data.display_name if data != null else injury.injury_id.capitalize()
 
-		var chip := _slot_button(_is_selected("injury", i))
+		var chip := slot_button(_is_selected("injury", i))
 		chip.custom_minimum_size = Vector2(0, 12)
 		chip.pressed.connect(_pick.bind("injury", i))
 		# Injuries wear the DANGER voice, not the azure slot chrome — the chip
@@ -601,7 +601,7 @@ func _build_injury_row() -> void:
 		content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		chip.add_child(content)
 		if data != null and data.icon_path != "" and ResourceLoader.exists(data.icon_path):
-			content.add_child(_make_icon(load(data.icon_path) as Texture2D))
+			content.add_child(make_icon(load(data.icon_path) as Texture2D))
 		var name_label := GlowLabel.styled(display, UIManager.font_8px, 8,
 				GameColors.TEXT_DANGER, GameColors.TEXT_DANGER_GLOW)
 		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -615,7 +615,9 @@ func _build_injury_row() -> void:
 
 ## The common slot chrome: transparent at rest, azure wash on hover, azure
 ## border + wash when selected — the same vocabulary as the rail cards.
-func _slot_button(selected: bool) -> Button:
+## PUBLIC STATIC (RQD 2026-08-11): the battle-side UnitDetailPanel builds its
+## move/passive rows from these same helpers, so the two venues can't drift.
+static func slot_button(selected: bool) -> Button:
 	var button := Button.new()
 	button.focus_mode = Control.FOCUS_NONE
 	var normal := StyleBoxFlat.new()
@@ -636,19 +638,19 @@ func _slot_button(selected: bool) -> Button:
 
 func _section_header(title: String) -> Control:
 	var margin := _margins(5, 5, 3, 0)
-	margin.add_child(_dim_label(title))
+	margin.add_child(dim_label(title))
 	return margin
 
 
 ## Structural text — headers, keys — wears the SECONDARY voice.
-func _dim_label(text_value: String) -> GlowLabel:
+static func dim_label(text_value: String) -> GlowLabel:
 	return GlowLabel.styled(text_value, UIManager.font_8px, 8,
 			GameColors.TEXT_SECONDARY, GameColors.TEXT_SECONDARY_GLOW)
 
 
 ## Absence — empty slots, "no injuries" — wears MUTED (its own pair, never a
 ## modulated SECONDARY; the violet halo goes muddy under an alpha fade).
-func _muted_label(text_value: String) -> GlowLabel:
+static func muted_label(text_value: String) -> GlowLabel:
 	return GlowLabel.styled(text_value, UIManager.font_8px, 8,
 			GameColors.TEXT_MUTED, GameColors.TEXT_MUTED_GLOW)
 
@@ -662,17 +664,17 @@ func _margins(left: int, right: int, top: int, bottom: int) -> MarginContainer:
 	return margin
 
 
-func _add_type_icon(parent: Container, element_type: Enums.ElementalType) -> void:
+static func add_type_icon(parent: Container, element_type: Enums.ElementalType) -> void:
 	if element_type == Enums.ElementalType.NONE:
 		return
 	var path: String = ELEMENTAL_ICON_DIR + \
 			str(Enums.ElementalType.keys()[element_type]).to_lower() + ".png"
 	if not ResourceLoader.exists(path):
 		return
-	parent.add_child(_make_icon(load(path) as Texture2D))
+	parent.add_child(make_icon(load(path) as Texture2D))
 
 
-func _make_icon(texture: Texture2D) -> TextureRect:
+static func make_icon(texture: Texture2D) -> TextureRect:
 	var icon := TextureRect.new()
 	icon.texture = texture
 	icon.custom_minimum_size = Vector2(ICON_SIZE, ICON_SIZE)

@@ -284,3 +284,45 @@ func test_the_built_bar_recolors_at_the_cap() -> void:
 	assert_eq(bar._fill_rect.color, StatCapBar.COLOR_AT_CAP, "at the cap: SUCCESS fill")
 	assert_eq(bar._fill_rect.glow_color, StatCapBar.COLOR_AT_CAP_GLOW,
 			"and the halo flips with it — body and glow always travel as a pair")
+
+
+# =============================================================================
+# HEALTH MODE (RQD 2026-08-11) — the battle-side HP row's meaning swap
+# =============================================================================
+
+func test_health_track_is_max_hp_on_the_shared_global_scale() -> void:
+	var unit := _unit(Enums.CharacterClass.HEAVY)
+	unit.base_max_hp = 20
+	var global_cap: int = unit.get_global_stat_cap("max_hp")
+	assert_almost_eq(StatCapBar.health_track_ratio(unit),
+			20.0 / float(global_cap), 0.001,
+			"track = max HP / global ceiling — same scale as every other bar")
+	assert_eq(StatCapBar.health_track_ratio(null), 0.0)
+
+
+func test_health_fill_meets_the_track_end_at_full_hp() -> void:
+	var unit := _unit(Enums.CharacterClass.HEAVY)
+	unit.base_max_hp = 20
+	var track: float = StatCapBar.health_track_ratio(unit)
+	assert_almost_eq(StatCapBar.health_fill_ratio(unit, 20), track, 0.001,
+			"full HP = fill touches the track's end, nothing sticks out")
+	assert_almost_eq(StatCapBar.health_fill_ratio(unit, 10), track / 2.0, 0.001)
+	assert_eq(StatCapBar.health_fill_ratio(unit, 0), 0.0)
+	assert_almost_eq(StatCapBar.health_fill_ratio(unit, 999), track, 0.001,
+			"current is clamped to max — an overheal bug can't overdraw the frame")
+
+
+func test_health_mode_wears_the_health_ramp_not_the_cap_voices() -> void:
+	var unit := _unit(Enums.CharacterClass.HEAVY)
+	unit.base_max_hp = 20
+	var bar := StatCapBar.new("max_hp", 3)
+	add_child_autofree(bar)
+	bar.size = Vector2(60, 3)
+	bar.set_health(unit, 20)
+	assert_eq(bar._fill_rect.color, GameColors.get_health_color(1.0),
+			"full HP is the health ramp's green, NOT the at-cap SUCCESS story")
+	assert_false(bar._bonus_rect.visible,
+			"no bonus segment in battle — buffs already moved max_hp itself")
+	bar.set_health(unit, 4)
+	assert_eq(bar._fill_rect.color, GameColors.get_health_color(0.2),
+			"low HP flips the fill down the ramp")

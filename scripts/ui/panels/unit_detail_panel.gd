@@ -47,16 +47,23 @@ var _type_icon_primary: TextureRect = null
 var _type_icon_secondary: TextureRect = null
 var _type_icon_container_primary: Control = null
 var _type_icon_container_secondary: Control = null
-var _hp_bar: ColorRect = null
-var _hp_bar_background: ColorRect = null
+var _hp_cap_bar: StatCapBar = null  # Health mode: track = max HP, fill = current, health-colored
 var _hp_label: Label = null
 var _hp_max_label: Label = null  # Reuses StatModifier node to show "/max_hp"
 var _hp_censor: StaticCensorOverlay = null
 var _stat_rows: Dictionary = {}  # display_key -> { cap_bar, value_label, modifier_label, name_label }
+# XP moved off the class line into a sheet-style row (RQD 2026-08-11 — the
+# "SKULK Lv.11 · 0/100 XP" one-liner overflowed and widened the whole column).
+var _xp_row: Control = null
+var _xp_fill: GlowColorRect = null
+var _xp_value_label: Label = null
 
-# Center column tablets
-var _move_chips: Array[MoveChipButton] = []
-var _passive_panels: Array[PanelContainer] = []
+# Center column — moves/passives are UnitSheet-vocabulary slot rows
+# (RQD 2026-08-11), rebuilt per update like the sheet rebuilds its grids.
+# Statuses and injuries keep their tablet machinery until their own adoption.
+var _moves_section: VBoxContainer = null
+var _move_rows: Array[Button] = []
+var _passive_rows: Array[Button] = []
 var _status_panels: Array[PanelContainer] = []
 var _passives_section: VBoxContainer = null
 var _status_section: Container = null
@@ -203,18 +210,23 @@ func _cache_node_references() -> void:
 	var class_row: Control = left_column.get_node("ClassNameAndLevel")
 	_class_label = class_row.find_child("GlowLabel", true, false) as Label
 
-	# HP
+	# XP row — sheet vocabulary (dim key · glow track + INFO fill · n/100),
+	# inserted right under the class line it used to overflow.
+	_build_xp_row(left_column, class_row.get_index() + 1)
+
+	# HP — same StatCapBar chrome as the eight stat rows below, in HEALTH mode:
+	# track = max HP on the shared global scale, fill = current HP colored by
+	# health ratio (RQD 2026-08-11). The scene's hand-sized bars go dark.
 	var hp_container: Control = left_column.get_node("StatsContainer/HPContainer")
 	var hp_hbox: HBoxContainer = hp_container.get_node("HBoxContainer")
 	var hp_bar_container: Control = hp_hbox.get_node("StatBarContainer")
-	_hp_bar_background = hp_bar_container.get_node("StatBarBackground") if hp_bar_container.has_node("StatBarBackground") else null
-	_hp_bar = hp_bar_container.get_node("StatBar")
-	# Duplicate the shared `hud_glow.tres` material per-node so each bar's glow_color
-	# can be driven independently by HP% without bleeding into other UI.
-	if _hp_bar != null and _hp_bar.material != null:
-		_hp_bar.material = _hp_bar.material.duplicate()
-	if _hp_bar_background != null and _hp_bar_background.material != null:
-		_hp_bar_background.material = _hp_bar_background.material.duplicate()
+	var hp_scene_base: ColorRect = hp_bar_container.get_node("StatBar")
+	hp_scene_base.visible = false
+	(hp_bar_container.get_node("StatBonusBar") as ColorRect).visible = false
+	(hp_bar_container.get_node("StatBarBackground") as ColorRect).visible = false
+	_hp_cap_bar = StatCapBar.new("max_hp", int(hp_scene_base.size.y))
+	_anchor_center_bar(_hp_cap_bar, int(hp_scene_base.size.y))
+	hp_bar_container.add_child(_hp_cap_bar)
 	_hp_label = _find_label_in_node(hp_hbox.get_node("StatValue"))
 	_hp_max_label = _find_label_in_node(hp_hbox.get_node("StatModifier"))  # Repurposed as "/max_hp"
 	if _hp_label != null and _hp_label.material != null:
@@ -252,19 +264,8 @@ func _cache_node_references() -> void:
 		# longer track behind every bar.
 		(bar_container.get_node("StatBarBackground") as ColorRect).visible = false
 
-		var bar_height: int = int(scene_base.size.y)
-		var cap_bar := StatCapBar.new(STAT_DISPLAY_MAP[display_key], bar_height)
-		# Vertically centered by ANCHORS, like the scene's own bars — copying
-		# scene_base.position at _ready captured a pre-layout y (the row hasn't
-		# been sized yet), which parked every bar at the top of its row
-		# (RQD 2026-08-11). The +1 bias matches this font's low-sitting ink —
-		# the same 1px-down correction every text row in the HUD has needed.
-		cap_bar.anchor_top = 0.5
-		cap_bar.anchor_bottom = 0.5
-		cap_bar.offset_top = -floorf(bar_height / 2.0) + 1
-		cap_bar.offset_bottom = cap_bar.offset_top + bar_height
-		cap_bar.offset_left = 0
-		cap_bar.offset_right = STAT_BAR_MAX_WIDTH
+		var cap_bar := StatCapBar.new(STAT_DISPLAY_MAP[display_key], int(scene_base.size.y))
+		_anchor_center_bar(cap_bar, int(scene_base.size.y))
 		bar_container.add_child(cap_bar)
 
 		_stat_rows[display_key] = {
@@ -274,34 +275,35 @@ func _cache_node_references() -> void:
 			"cap_bar": cap_bar,
 		}
 
-	# Center column — move chips. The scene's MovePanel tablets are replaced
-	# in place with real MoveChipButtons (2026-07-19 adoption): same component
-	# as the action menu, wider name column, full names.
-	var moves_section: VBoxContainer = center_column.get_node("MovesSection")
-	for child: Node in moves_section.get_children():
+	# Center column — moves and passives adopt the Manage Units sheet's slot-row
+	# vocabulary (RQD 2026-08-11): UnitSheet.slot_button chrome, element icon +
+	# PRIMARY name, muted "— empty —" for open slots, rebuilt per update. The
+	# scene's MovePanel tablets (and the MoveChipButtons that had replaced them
+	# on 2026-07-19) are gone — rows are code-built into the emptied sections.
+	_moves_section = center_column.get_node("MovesSection")
+	for child: Node in _moves_section.get_children():
 		if child.name.begins_with("MovePanel") and child is PanelContainer:
-			var chip_button := MoveChipButton.new()
-			chip_button.custom_minimum_size = Vector2(0, 14)
-			chip_button.prefer_full_name = true
-			# Identity-only selectors: the pane beside these already shows
-			# Power/Rng/Acc/Usg — on-chip data was duplication that couldn't
-			# fit the column anyway ("not populating" = clipped away,
-			# RQD 2026-07-19).
-			chip_button.show_scheme_and_range = false
-			chip_button.show_uses = false
-			# No-op venue for hold-to-peek (RQD 2026-07-21): the detail pane
-			# beside these chips IS the tooltip's content, live and larger.
-			chip_button.peek_enabled = false
-			child.add_sibling(chip_button)
-			moves_section.remove_child(child)
+			_moves_section.remove_child(child)
 			child.queue_free()
-			_move_chips.append(chip_button)
-
-	# Center column — passive panels
 	_passives_section = center_column.get_node("PassivesSection")
 	for child: Node in _passives_section.get_children():
 		if child.name.begins_with("PassivePanel") and child is PanelContainer:
-			_passive_panels.append(child as PanelContainer)
+			_passives_section.remove_child(child)
+			child.queue_free()
+	# Sheet headers speak in caps ("MOVES", not "Moves").
+	for header_section: Container in [_moves_section, _passives_section]:
+		var header_label: Label = header_section.find_child("GlowLabel", true, false) as Label
+		if header_label != null:
+			header_label.text = header_label.text.to_upper()
+
+	# Width: nothing gave the center column a size, so it collapsed to its
+	# widest child's minimum and the rows clipped ("First", "Backst" — RQD
+	# 2026-08-11). Center and right split the row's slack at a fixed ratio, so
+	# the layout doesn't jump when the right pane's detail content toggles.
+	get_node("MainRow/CenterColumnMargin").size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var right_margin: Control = get_node("MainRow/RightColumnMargin")
+	right_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right_margin.size_flags_stretch_ratio = 1.3
 
 	# Center column — affliction/boost section.
 	# New layout: AfflictionBoostSection contains StatusSection (afflictions) and BoostSection (boosts).
@@ -424,27 +426,64 @@ func _cache_node_references() -> void:
 # TABLET CLICK HANDLING
 # =============================================================================
 
+## Vertically centered by ANCHORS, like the scene's own bars — copying a scene
+## position at _ready captured a pre-layout y (the row hasn't been sized yet),
+## which parked every bar at the top of its row (RQD 2026-08-11). The +1 bias
+## matches this font's low-sitting ink — the same 1px-down correction every
+## text row in the HUD has needed.
+func _anchor_center_bar(cap_bar: StatCapBar, bar_height: int) -> void:
+	cap_bar.anchor_top = 0.5
+	cap_bar.anchor_bottom = 0.5
+	cap_bar.offset_top = -floorf(bar_height / 2.0) + 1
+	cap_bar.offset_bottom = cap_bar.offset_top + bar_height
+	cap_bar.offset_left = 0
+	cap_bar.offset_right = STAT_BAR_MAX_WIDTH
+
+
+## The sheet's XP row (UnitSheet._build_xp_row's recipe): dim "XP" key, glow
+## track with an INFO fill, "n/100" readout. Hidden until _update_identity
+## decides the unit earns XP.
+func _build_xp_row(left_column: VBoxContainer, at_index: int) -> void:
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 2)
+	margin.add_theme_constant_override("margin_right", 2)
+	margin.add_theme_constant_override("margin_top", 1)
+	margin.add_theme_constant_override("margin_bottom", 1)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 5)
+	margin.add_child(row)
+
+	var key_label := UnitSheet.dim_label("XP")
+	key_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(key_label)
+
+	var track := Control.new()
+	track.custom_minimum_size = Vector2(0, 4)
+	track.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	track.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	track.add_child(UnitSheet.glow_bar(
+			StatCapBar.COLOR_TRACK, StatCapBar.COLOR_TRACK_GLOW, 1.0))
+	_xp_fill = UnitSheet.glow_bar(
+			GameColors.TEXT_INFO, GameColors.TEXT_INFO_GLOW, 0.0)
+	_xp_fill.visible = false
+	track.add_child(_xp_fill)
+	row.add_child(track)
+
+	_xp_value_label = GlowLabel.styled("0/100", UIManager.font_8px, 8,
+			GameColors.TEXT_INFO, GameColors.TEXT_INFO_GLOW)
+	_xp_value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(_xp_value_label)
+
+	margin.visible = false
+	_xp_row = margin
+	left_column.add_child(margin)
+	left_column.move_child(margin, at_index)
+
+
 func _setup_tablet_input() -> void:
-	for i: int in range(_move_chips.size()):
-		var index := i
-		# Chips are real buttons — pressed inspects. A depleted chip is
-		# disabled-tier but must STAY inspectable: in this venue the "why"
-		# IS the detail pane, so denied routes to the same select.
-		_move_chips[i].pressed.connect(func() -> void:
-			_select(SelectionType.MOVE, index))
-		_move_chips[i].denied.connect(func() -> void:
-			_select(SelectionType.MOVE, index))
-
-	for i: int in range(_passive_panels.size()):
-		var index := i
-		_ensure_unique_style(_passive_panels[i])
-		_set_children_mouse_pass(_passive_panels[i])
-		_passive_panels[i].gui_input.connect(func(event: InputEvent):
-			if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-				_select(SelectionType.PASSIVE, index)
-		)
-		_passive_panels[i].mouse_filter = Control.MOUSE_FILTER_STOP
-
+	# Move/passive rows wire their own pressed handlers at build time
+	# (_rebuild_move_rows / _rebuild_passive_rows) — only the tablet families
+	# that still live in the scene need retrofitted input.
 	for i: int in range(_status_panels.size()):
 		var index := i
 		_ensure_unique_style(_status_panels[i])
@@ -502,15 +541,13 @@ func _deselect_all() -> void:
 
 
 func _update_tablet_selection() -> void:
-	# Move chips speak the vocabulary: snapping brackets = "you are
-	# inspecting this" (§14 selected). The other tablet families keep the
-	# border trick until they get their own adoption.
-	for i: int in range(_move_chips.size()):
-		_move_chips[i].selected = \
-				_selection_type == SelectionType.MOVE and i == _selection_index
+	# Move/passive rows bake selection into their slot chrome (azure border +
+	# wash, the sheet's vocabulary) — rebuilding is how the sheet does it too.
+	# The tablet families keep the border trick until their own adoption.
+	if _character_data != null:
+		_rebuild_move_rows()
+		_rebuild_passive_rows()
 
-	for panel: PanelContainer in _passive_panels:
-		_set_tablet_selected(panel, false)
 	for panel: PanelContainer in _status_panels:
 		_set_tablet_selected(panel, false)
 	for panel: PanelContainer in _injury_panels:
@@ -518,8 +555,6 @@ func _update_tablet_selection() -> void:
 
 	var panels: Array[PanelContainer] = []
 	match _selection_type:
-		SelectionType.PASSIVE:
-			panels = _passive_panels
 		SelectionType.STATUS:
 			panels = _status_panels
 		SelectionType.INJURY:
@@ -579,8 +614,8 @@ func _update_all() -> void:
 	_update_identity()
 	_update_hp()
 	_update_stats()
-	_update_move_tablets()
-	_update_passive_tablets()
+	_rebuild_move_rows()
+	_rebuild_passive_rows()
 	_update_status_tablets()
 	_update_injury_panels()
 
@@ -596,14 +631,23 @@ func _update_identity() -> void:
 		_name_label.text = _character_data.character_name.to_upper()
 
 	if _class_label:
+		# Sheet's ident_sub_line convention, in this venue's caps. XP moved to
+		# its own row below (RQD 2026-08-11) — appended to this line it
+		# overflowed and widened the whole left column.
 		var class_text: String = Enums.get_class_display_name(_character_data.current_class)
-		_class_label.text = class_text.to_upper() + " Lv." + str(_character_data.level)
-		# XP progress rides the class row for PLAYER units (2026-08-03 XP
-		# visibility pass — combat XP existed for months with no readout
-		# anywhere, so players believed fighting earned nothing). Enemies
-		# never earn XP; showing their 0/100 would be noise.
-		if _unit != null and _unit.get("faction") == Enums.UnitFaction.PLAYER:
-			_class_label.text += "  ·  %d/100 XP" % _character_data.experience
+		_class_label.text = "%s · Lv %d" % [class_text.to_upper(), _character_data.level]
+
+	# The XP row keeps the 2026-08-03 visibility gate: PLAYER units only —
+	# enemies never earn XP, their 0/100 would be noise.
+	if _xp_row != null:
+		var show_xp: bool = _unit != null \
+				and _unit.get("faction") == Enums.UnitFaction.PLAYER
+		_xp_row.visible = show_xp
+		if show_xp:
+			var xp_ratio: float = clampf(_character_data.experience / 100.0, 0.0, 1.0)
+			_xp_fill.visible = xp_ratio > 0.0
+			_xp_fill.anchor_right = xp_ratio
+			_xp_value_label.text = "%d/100" % _character_data.experience
 
 	# Type icons
 	var primary_visible := _character_data.primary_type != Enums.ElementalType.NONE
@@ -643,15 +687,8 @@ func _update_hp() -> void:
 		if _hp_max_label.material is ShaderMaterial:
 			_hp_max_label.material.set_shader_parameter("glow_color", health_bg_color)
 
-	if _hp_bar and _hp_bar_background:
-		var fill_ratio: float = clampf(float(current_hp) / float(max_hp), 0.0, 1.0) if max_hp > 0 else 0.0
-		_hp_bar.size.x = fill_ratio * _hp_bar_background.size.x
-		_hp_bar.color = health_color
-		_hp_bar_background.color = health_bg_color
-		if _hp_bar.material is ShaderMaterial:
-			_hp_bar.material.set_shader_parameter("glow_color", health_bg_color)
-		if _hp_bar_background.material is ShaderMaterial:
-			_hp_bar_background.material.set_shader_parameter("glow_color", health_bg_color)
+	if _hp_cap_bar != null:
+		_hp_cap_bar.set_health(_character_data, current_hp)
 
 	if _hp_censor != null and _character_data != null:
 		_hp_censor.set_censored(_character_data.is_health_bar_hidden(current_hp))
@@ -726,54 +763,100 @@ func _update_stats() -> void:
 			cap_bar.set_stat(_character_data, stat_name)
 
 
-func _update_move_tablets() -> void:
-	for i: int in range(_move_chips.size()):
-		var chip_button := _move_chips[i]
-		if i < _character_data.equipped_moves.size() \
-				and _character_data.equipped_moves[i] != null:
-			var move: Move = _character_data.equipped_moves[i]
-			chip_button.visible = true
-			# VOID lock is per-battle — only meaningful with a live unit.
-			# NO assigned marker: this venue inspects the roster, it doesn't
-			# arm moves (was "brackets double-book" under the parked-bracket
-			# scheme, RQD 2026-07-19; the orbit COULD coexist with inspection
-			# brackets now — revisit only if the marker hunt asks for it).
-			chip_button.setup(move, false,
-					_unit != null and _unit.is_move_index_locked(i))
+## The sheet's move-grid recipe, stacked vertically: 4 slots always, element
+## icon + PRIMARY name, muted "— empty —" for open slots. Depleted moves speak
+## MUTED too (spent = absence-adjacent; the detail pane holds the numbers).
+## VOID locks keep the shipped overlay treatment.
+func _rebuild_move_rows() -> void:
+	if _moves_section == null:
+		return
+	for row: Button in _move_rows:
+		row.queue_free()
+	_move_rows.clear()
+	for i: int in UnitSheet.MOVE_SLOT_COUNT:
+		var move: Move = null
+		if i < _character_data.equipped_moves.size():
+			move = _character_data.equipped_moves[i]
+		var empty: bool = UnitSheet.is_empty_move(move)
+		var depleted: bool = not empty and move.max_uses > 0 and move.current_uses <= 0
+		var row := _slot_row(SelectionType.MOVE, i)
+		var content := HBoxContainer.new()
+		content.set_anchors_preset(Control.PRESET_FULL_RECT)
+		content.offset_left = 3
+		content.add_theme_constant_override("separation", 3)
+		content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(content)
+		if not empty:
+			UnitSheet.add_type_icon(content, move.element_type)
+		var name_label: GlowLabel
+		if empty:
+			name_label = UnitSheet.muted_label("— empty —")
+		elif depleted:
+			name_label = UnitSheet.muted_label(move.move_name)
 		else:
-			chip_button.visible = false
+			name_label = GlowLabel.styled(move.move_name, UIManager.font_8px, 8,
+					GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
+		name_label.clip_text = true
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		name_label.nudge_baseline_down(1)
+		content.add_child(name_label)
+		_moves_section.add_child(row)
+		_move_rows.append(row)
+		# VOID lock is per-battle — only meaningful with a live unit.
+		VoidLockOverlay.set_locked(row,
+				_unit != null and _unit.is_move_index_locked(i))
 
 
-func _update_passive_tablets() -> void:
+func _rebuild_passive_rows() -> void:
+	if _passives_section == null:
+		return
+	for row: Button in _passive_rows:
+		row.queue_free()
+	_passive_rows.clear()
 	var passive_names: Array = []
-	if not _character_data.equipped_passives.is_empty():
+	var showing_equipped: bool = not _character_data.equipped_passives.is_empty()
+	if showing_equipped:
 		for passive: Variant in _character_data.equipped_passives:
 			if passive is String:
 				passive_names.append(passive)
 			elif passive != null and "passive_name" in passive:
 				passive_names.append(passive.passive_name)
 	else:
+		# Enemy/preview data may carry only a base pool — show that instead of
+		# four empties pretending the unit has nothing.
 		for passive_name: String in _character_data.base_pool_passives:
 			passive_names.append(passive_name)
+	for i: int in UnitSheet.PASSIVE_SLOT_COUNT:
+		var passive_name: String = str(passive_names[i]) if i < passive_names.size() else ""
+		var empty: bool = passive_name == ""
+		var row := _slot_row(SelectionType.PASSIVE, i)
+		var name_label: GlowLabel = UnitSheet.muted_label("— empty —") if empty \
+				else GlowLabel.styled(passive_name, UIManager.font_8px, 8,
+						GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
+		name_label.clip_text = true
+		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		name_label.nudge_baseline_down(1)
+		name_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+		name_label.offset_left = 3
+		row.add_child(name_label)
+		_passives_section.add_child(row)
+		_passive_rows.append(row)
+		# is_passive_index_locked is only meaningful against equipped slots.
+		VoidLockOverlay.set_locked(row, showing_equipped
+				and _unit != null and _unit.is_passive_index_locked(i))
 
-	for i: int in range(_passive_panels.size()):
-		var panel: PanelContainer = _passive_panels[i]
-		var hbox: HBoxContainer = panel.get_node("HBoxContainer")
-		var name_label: Label = _find_label_in_node(hbox.get_node("MarginContainer"))
 
-		if i < passive_names.size():
-			panel.visible = true
-			if name_label:
-				name_label.text = str(passive_names[i]).to_upper()
-			# VOID can lock passives too; is_passive_index_locked is false when the
-			# panel is showing base-pool passives (nothing equipped to lock).
-			VoidLockOverlay.set_locked(panel, _unit != null and _unit.is_passive_index_locked(i))
-		else:
-			panel.visible = false
-			VoidLockOverlay.set_locked(panel, false)
-
-	if _passives_section:
-		_passives_section.visible = not passive_names.is_empty()
+## One slot row: the sheet's chrome (selected state baked in) wired to this
+## panel's selection machinery.
+func _slot_row(type: SelectionType, index: int) -> Button:
+	var row := UnitSheet.slot_button(
+			_selection_type == type and index == _selection_index)
+	row.custom_minimum_size = Vector2(0, 14)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.pressed.connect(func() -> void:
+		_select(type, index))
+	return row
 
 
 ## Slot 0 holds the active buff (if any), slot 1 holds the active debuff.
@@ -993,6 +1076,11 @@ func _show_move_detail(index: int) -> void:
 		return
 
 	var move: Move = _character_data.equipped_moves[index]
+	# Empty slots are clickable rows now (sheet vocabulary) — selecting one is
+	# fine, but there's nothing to describe. Includes the Move.EMPTY sentinel,
+	# which is a real Move named "—", not a null.
+	if UnitSheet.is_empty_move(move):
+		return
 
 	_move_description.visible = true
 
