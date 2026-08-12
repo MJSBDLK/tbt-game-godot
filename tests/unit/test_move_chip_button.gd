@@ -587,3 +587,61 @@ func test_chip_clips_content_never_chrome() -> void:
 			"chip body is clipped content")
 	assert_true(chip_button._chrome_front.get_parent() == chip_button,
 			"front chrome (brackets/rings/flash) stays a direct, unclipped child")
+
+
+# =============================================================================
+# DISPLAY MODE — the washed tier (RQD 2026-08-11)
+# =============================================================================
+
+func test_display_chips_wear_the_washed_tier() -> void:
+	# Playtest: display chips were pixel-identical to clickable ones, so new
+	# players clicked them. Washed = fill one step DOWN the element's own ramp
+	# (the backlight mechanism in reverse — always an artist-picked color) and
+	# the border at the STATIC tier.
+	var chip_button := MoveChipButton.new()
+	add_child_autofree(chip_button)
+	chip_button.make_display_only()
+	chip_button.setup(_make_move())
+	assert_eq(chip_button._chip.fill_color,
+			GameColors.get_move_chip_foreground_washed(Enums.ElementalType.FIRE),
+			"washed fill — visibly below the pressable body")
+	assert_eq(chip_button._chip.border_color, GameColors.STATIC_BORDER,
+			"static border — furniture, not a promise")
+
+
+func test_interactive_chips_keep_the_lit_body() -> void:
+	var chip_button := _make_chip_button(_make_move())
+	assert_eq(chip_button._chip.fill_color,
+			GameColors.get_move_chip_foreground(Enums.ElementalType.FIRE),
+			"a pressable chip keeps the full-brightness body")
+	assert_ne(chip_button._chip.border_color, GameColors.STATIC_BORDER)
+
+
+func test_disabled_outranks_display() -> void:
+	# A depleted chip in a display venue keeps the darker disabled tier —
+	# two inert tiers, and the darker one carries the stronger message.
+	var chip_button := MoveChipButton.new()
+	add_child_autofree(chip_button)
+	chip_button.make_display_only()
+	chip_button.setup(_make_move(0, 5))
+	assert_eq(chip_button._chip.border_color, GameColors.INTERACTIVE_BORDER_DISABLED)
+	assert_ne(chip_button._chip.fill_color,
+			GameColors.get_move_chip_foreground_washed(Enums.ElementalType.FIRE))
+
+
+func test_make_display_only_washes_live_when_called_after_setup() -> void:
+	var chip_button := _make_chip_button(_make_move())
+	chip_button.make_display_only()
+	assert_eq(chip_button._chip.fill_color,
+			GameColors.get_move_chip_foreground_washed(Enums.ElementalType.FIRE),
+			"call order can't leave a display chip lit")
+	assert_eq(chip_button._chip.border_color, GameColors.STATIC_BORDER)
+
+
+func test_the_washed_color_is_on_the_element_ramp() -> void:
+	# One step down PoppyRed's chip foreground (index 5 -> 4) — never a lerp
+	# toward gray, so the element identity stays palette-authored.
+	assert_eq(GameColors.get_move_chip_foreground_washed(Enums.ElementalType.FIRE),
+			GameColorPalette.get_color("PoppyRed", 4))
+	assert_eq(GameColors.STATIC_BORDER, GameColorPalette.get_color("Gray", 5),
+			"static tier: above disabled (Gray 4), below the chip rest border (Gray 7)")

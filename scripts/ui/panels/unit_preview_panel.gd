@@ -42,8 +42,31 @@ var _peek_open: bool = false
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dim_surface_to_static_tier()
 	_resolve_nodes()
 	_load_passive_configs()
+
+
+## §14: this panel is furniture — read-only, mouse-transparent — but its
+## authored border art averages ~190/255, squarely in "lit border = pressable"
+## territory (playtest: new players click the previews). Default treatment
+## pending Lawrence eyes (RQD 2026-08-11): a neutral self_modulate pins the
+## art's brightness to the STATIC tier without touching its hue — one line to
+## revert if it reads muddy in a build.
+func _dim_surface_to_static_tier() -> void:
+	var border_art := get_node_or_null("TextureRect") as TextureRect
+	if border_art != null:
+		var tier_value: float = GameColors.STATIC_BORDER.v
+		border_art.self_modulate = Color(tier_value, tier_value, tier_value)
+	var portrait_frame := get_node_or_null(
+			"MarginContainer/VBoxContainer/HBoxContainer/PortraitFrame") as PanelContainer
+	if portrait_frame != null:
+		var frame_style: StyleBoxFlat = \
+				portrait_frame.get_theme_stylebox("panel") as StyleBoxFlat
+		if frame_style != null:
+			frame_style = frame_style.duplicate()
+			frame_style.border_color = GameColors.STATIC_BORDER
+			portrait_frame.add_theme_stylebox_override("panel", frame_style)
 	# Stay visible when previewing this scene standalone (F6)
 	if get_tree().current_scene != self:
 		visible = false
