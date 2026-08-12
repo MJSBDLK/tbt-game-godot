@@ -541,11 +541,16 @@ func _deselect_all() -> void:
 
 
 func _update_tablet_selection() -> void:
-	# Move/passive rows bake selection into their slot chrome (azure border +
-	# wash, the sheet's vocabulary) — rebuilding is how the sheet does it too.
-	# The tablet families keep the border trick until their own adoption.
+	# Move chips speak the vocabulary: snapping brackets = "you are inspecting
+	# this" (§14 selected). They persist across selection changes — only the
+	# flag toggles. Passive rows bake selection into the sheet chrome, so they
+	# rebuild; the tablet families keep the border trick until their adoption.
+	for i: int in range(_move_rows.size()):
+		var chip_button := _move_rows[i] as MoveChipButton
+		if chip_button != null:
+			chip_button.selected = \
+					_selection_type == SelectionType.MOVE and i == _selection_index
 	if _character_data != null:
-		_rebuild_move_rows()
 		_rebuild_passive_rows()
 
 	for panel: PanelContainer in _status_panels:
@@ -763,10 +768,13 @@ func _update_stats() -> void:
 			cap_bar.set_stat(_character_data, stat_name)
 
 
-## The sheet's move-grid recipe, stacked vertically: 4 slots always, element
-## icon + PRIMARY name, muted "— empty —" for open slots. Depleted moves speak
-## MUTED too (spent = absence-adjacent; the detail pane holds the numbers).
-## VOID locks keep the shipped overlay treatment.
+## Moves are REAL MoveChipButtons again (RQD 2026-08-11 round 3): the chip is
+## the game's clickable move representation everywhere — action menu, and now
+## here — so the detail panel speaks it too. What survived from the sheet
+## detour: 4 slots always (open ones as inert muted "— empty —" markers) and
+## measured widths, so the column is sized by its chips. Chips persist across
+## selection changes (brackets toggle; rebuilding would eat the hover state)
+## and rebuild only on a unit switch.
 func _rebuild_move_rows() -> void:
 	if _moves_section == null:
 		return
@@ -777,36 +785,59 @@ func _rebuild_move_rows() -> void:
 		var move: Move = null
 		if i < _character_data.equipped_moves.size():
 			move = _character_data.equipped_moves[i]
-		var empty: bool = UnitSheet.is_empty_move(move)
-		var depleted: bool = not empty and move.max_uses > 0 and move.current_uses <= 0
-		var row := _slot_row(SelectionType.MOVE, i,
-				"— empty —" if empty else move.move_name, not empty)
-		var content := HBoxContainer.new()
-		content.set_anchors_preset(Control.PRESET_FULL_RECT)
-		content.offset_left = 3
-		content.add_theme_constant_override("separation", 3)
-		content.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_child(content)
-		if not empty:
-			UnitSheet.add_type_icon(content, move.element_type)
-		var name_label: GlowLabel
-		if empty:
-			name_label = UnitSheet.muted_label("— empty —")
-		elif depleted:
-			name_label = UnitSheet.muted_label(move.move_name)
-		else:
-			name_label = GlowLabel.styled(move.move_name, UIManager.font_8px, 8,
-					GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
-		name_label.clip_text = true
-		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		name_label.nudge_baseline_down(1)
-		content.add_child(name_label)
-		_moves_section.add_child(row)
-		_move_rows.append(row)
+		if UnitSheet.is_empty_move(move):
+			var open_slot := _slot_row(SelectionType.MOVE, i, "— empty —", false)
+			# Nothing to inspect in an open slot — it's information, not a
+			# control. Inert, so it can't wear a selection it can't explain.
+			open_slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var name_label := UnitSheet.muted_label("— empty —")
+			name_label.clip_text = true
+			name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			name_label.nudge_baseline_down(1)
+			name_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+			name_label.offset_left = 3
+			open_slot.add_child(name_label)
+			_moves_section.add_child(open_slot)
+			_move_rows.append(open_slot)
+			continue
+
+		var chip_button := MoveChipButton.new()
+		chip_button.custom_minimum_size = Vector2(_chip_min_width(move.move_name), 14)
+		chip_button.prefer_full_name = true
+		# Identity-only selectors: the pane beside these already shows
+		# Power/Rng/Acc/Usg — on-chip data was duplication (RQD 2026-07-19).
+		chip_button.show_scheme_and_range = false
+		chip_button.show_uses = false
+		# No-op venue for hold-to-peek (RQD 2026-07-21): the detail pane
+		# beside these chips IS the tooltip's content, live and larger.
+		chip_button.peek_enabled = false
+		chip_button.selected = \
+				_selection_type == SelectionType.MOVE and i == _selection_index
+		var index := i
+		# Pressed inspects; a depleted chip is disabled-tier but must STAY
+		# inspectable — in this venue the "why" IS the detail pane, so denied
+		# routes to the same select.
+		chip_button.pressed.connect(func() -> void:
+			_select(SelectionType.MOVE, index))
+		chip_button.denied.connect(func() -> void:
+			_select(SelectionType.MOVE, index))
+		_moves_section.add_child(chip_button)
+		_move_rows.append(chip_button)
 		# VOID lock is per-battle — only meaningful with a live unit.
-		VoidLockOverlay.set_locked(row,
+		chip_button.setup(move, false,
 				_unit != null and _unit.is_move_index_locked(i))
+
+
+## The chip's measured minimum: content inset (4L/3R) + element and damage
+## icons (10px + 2px separation each) + the full name at the 8px font. Same
+## principle as _slot_row_min_width — anchored chip content can't reach the
+## minimum-size math, so the width is computed where the name is known.
+func _chip_min_width(move_name: String) -> float:
+	var width: float = 4.0 + 12.0 + 12.0 + 3.0
+	if UIManager.font_8px != null:
+		width += ceilf(UIManager.font_8px.get_string_size(
+				move_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x)
+	return width + 4.0
 
 
 func _rebuild_passive_rows() -> void:

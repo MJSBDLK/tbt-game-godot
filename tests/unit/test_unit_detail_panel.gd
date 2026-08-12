@@ -41,8 +41,9 @@ func test_move_detail_populates_range_value() -> void:
 
 
 # =============================================================================
-# Sheet-vocabulary rows (RQD 2026-08-11): moves/passives match Manage Units.
-# Supersedes the 2026-07-19 MoveChipButton adoption — the chips are gone.
+# Center column (RQD 2026-08-11 round 3): moves are REAL MoveChipButtons — the
+# chip is the game's clickable move representation everywhere. Passives keep
+# the Manage Units sheet-row vocabulary; open move slots are inert muted rows.
 # =============================================================================
 
 func _make_move(move_name: String, uses: int = 3, max_uses: int = 5) -> Move:
@@ -73,40 +74,46 @@ func _row_label(row: Control) -> Label:
 	return null
 
 
-func test_moves_render_as_four_sheet_rows_with_muted_empties() -> void:
+func test_moves_render_as_chips_with_inert_muted_empties() -> void:
 	var panel := _make_panel_with_moves([_make_move("Frost Lance")])
 	assert_eq(panel._move_rows.size(), UnitSheet.MOVE_SLOT_COUNT,
-			"the sheet's rule: every slot shows, four always")
-	assert_eq(_row_label(panel._move_rows[0]).text, "Frost Lance",
-			"full name, PRIMARY voice")
-	assert_eq(_row_label(panel._move_rows[1]).text, "— empty —",
-			"open slots read as muted absence, not hidden rows")
+			"the sheet's rule survives: every slot shows, four always")
+	var chip := panel._move_rows[0] as MoveChipButton
+	assert_not_null(chip, "a real move is a real chip — element-colored identity")
+	assert_true(chip.prefer_full_name, "detail venue shows full names")
+	assert_eq(chip._name_label.text, "Frost Lance")
+	assert_false(chip._uses_label.visible,
+			"identity-only selectors: the pane beside them shows the numbers")
+	assert_false(chip.peek_enabled,
+			"no-op venue: the detail pane IS the tooltip's content")
+	var open_slot: Button = panel._move_rows[1]
+	assert_null(open_slot as MoveChipButton, "open slots are rows, not blank chips")
+	assert_eq(_row_label(open_slot).text, "— empty —")
+	assert_eq(open_slot.mouse_filter, Control.MOUSE_FILTER_IGNORE,
+			"nothing to inspect in an open slot — inert, not clickable")
 
 
-func test_the_selected_row_wears_the_sheet_chrome() -> void:
+func test_selection_brackets_mark_the_inspected_move() -> void:
 	var panel := _make_panel_with_moves([_make_move("Ember"), _make_move("Spark")])
+	var before: Array[Button] = panel._move_rows.duplicate()
 	panel._select(UnitDetailPanel.SelectionType.MOVE, 1)
-	var selected_style: StyleBoxFlat = \
-			panel._move_rows[1].get_theme_stylebox("normal") as StyleBoxFlat
-	var idle_style: StyleBoxFlat = \
-			panel._move_rows[0].get_theme_stylebox("normal") as StyleBoxFlat
-	assert_gt(selected_style.border_width_left, 0,
-			"selected = azure border + wash, the sheet's vocabulary")
-	assert_eq(idle_style.border_width_left, 0)
+	assert_true((panel._move_rows[1] as MoveChipButton).selected,
+			"brackets = 'you are inspecting this'")
+	assert_false((panel._move_rows[0] as MoveChipButton).selected)
+	assert_eq(panel._move_rows, before,
+			"chips persist across selection changes — the flag toggles, no rebuild")
 	panel._select(UnitDetailPanel.SelectionType.MOVE, 1)
-	var after_style: StyleBoxFlat = \
-			panel._move_rows[1].get_theme_stylebox("normal") as StyleBoxFlat
-	assert_eq(after_style.border_width_left, 0, "re-click toggles the inspection off")
+	assert_false((panel._move_rows[1] as MoveChipButton).selected,
+			"re-click toggles the inspection off")
 
 
-func test_depleted_moves_go_muted_but_stay_inspectable() -> void:
+func test_depleted_chip_stays_inspectable_via_denied() -> void:
 	var panel := _make_panel_with_moves([_make_move("Spark", 0, 4)])
-	var row: Button = panel._move_rows[0]
-	assert_false(row.disabled, "a spent move is still a fact you can inspect")
-	assert_eq(_row_label(row).text, "Spark")
-	row.pressed.emit()
+	var spark := panel._move_rows[0] as MoveChipButton
+	assert_true(spark.disabled, "depleted wears the dark tier here too")
+	spark.denied.emit()
 	assert_eq(panel._selection_type, UnitDetailPanel.SelectionType.MOVE,
-			"pressing a depleted row opens its detail — the pane IS the why")
+			"denied routes to select — in this venue the detail pane IS the why")
 
 
 func test_passives_render_as_four_sheet_rows() -> void:
@@ -197,11 +204,11 @@ func test_rows_size_the_column_not_the_other_way_around() -> void:
 	# column's width is its widest row (RQD 2026-08-11 round 2; the expand
 	# approach let the open detail pane squeeze the column to header width).
 	var panel := _make_panel_with_moves([_make_move("Compressed Air"), _make_move("Bonk")])
-	var long_row: Button = panel._move_rows[0]
-	var short_row: Button = panel._move_rows[1]
-	assert_gt(long_row.custom_minimum_size.x, short_row.custom_minimum_size.x,
-			"a longer name claims a wider row")
+	var long_chip: Button = panel._move_rows[0]
+	var short_chip: Button = panel._move_rows[1]
+	assert_gt(long_chip.custom_minimum_size.x, short_chip.custom_minimum_size.x,
+			"a longer name claims a wider chip")
 	var text_width: float = UIManager.font_8px.get_string_size(
 			"Compressed Air", HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
-	assert_gt(long_row.custom_minimum_size.x, text_width,
-			"the row fits its full name plus icon and padding — nothing clips")
+	assert_gt(long_chip.custom_minimum_size.x, text_width,
+			"the chip fits its full name plus both icons — nothing clips")
