@@ -296,14 +296,14 @@ func _cache_node_references() -> void:
 		if header_label != null:
 			header_label.text = header_label.text.to_upper()
 
-	# Width: nothing gave the center column a size, so it collapsed to its
-	# widest child's minimum and the rows clipped ("First", "Backst" — RQD
-	# 2026-08-11). Center and right split the row's slack at a fixed ratio, so
-	# the layout doesn't jump when the right pane's detail content toggles.
-	get_node("MainRow/CenterColumnMargin").size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var right_margin: Control = get_node("MainRow/RightColumnMargin")
-	right_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	right_margin.size_flags_stretch_ratio = 1.3
+	# Width: the column is sized BY its rows (RQD 2026-08-11 round 2 — "size
+	# it based on the move chips, not the chips based on the column"). Row
+	# content is anchored inside the Button, and anchored children contribute
+	# NOTHING to minimum size — so each row measures its own name and sets a
+	# real custom_minimum_size (_slot_row_min_width). The right column takes
+	# whatever slack remains; expanding the center was the first attempt, and
+	# the open detail pane's minimum squeezed it down to the header width.
+	get_node("MainRow/RightColumnMargin").size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	# Center column — affliction/boost section.
 	# New layout: AfflictionBoostSection contains StatusSection (afflictions) and BoostSection (boosts).
@@ -779,7 +779,8 @@ func _rebuild_move_rows() -> void:
 			move = _character_data.equipped_moves[i]
 		var empty: bool = UnitSheet.is_empty_move(move)
 		var depleted: bool = not empty and move.max_uses > 0 and move.current_uses <= 0
-		var row := _slot_row(SelectionType.MOVE, i)
+		var row := _slot_row(SelectionType.MOVE, i,
+				"— empty —" if empty else move.move_name, not empty)
 		var content := HBoxContainer.new()
 		content.set_anchors_preset(Control.PRESET_FULL_RECT)
 		content.offset_left = 3
@@ -830,7 +831,8 @@ func _rebuild_passive_rows() -> void:
 	for i: int in UnitSheet.PASSIVE_SLOT_COUNT:
 		var passive_name: String = str(passive_names[i]) if i < passive_names.size() else ""
 		var empty: bool = passive_name == ""
-		var row := _slot_row(SelectionType.PASSIVE, i)
+		var row := _slot_row(SelectionType.PASSIVE, i,
+				"— empty —" if empty else passive_name, false)
 		var name_label: GlowLabel = UnitSheet.muted_label("— empty —") if empty \
 				else GlowLabel.styled(passive_name, UIManager.font_8px, 8,
 						GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
@@ -848,15 +850,32 @@ func _rebuild_passive_rows() -> void:
 
 
 ## One slot row: the sheet's chrome (selected state baked in) wired to this
-## panel's selection machinery.
-func _slot_row(type: SelectionType, index: int) -> Button:
+## panel's selection machinery. `label_text` + `has_icon` size the row —
+## see _slot_row_min_width.
+func _slot_row(type: SelectionType, index: int, label_text: String,
+		has_icon: bool) -> Button:
 	var row := UnitSheet.slot_button(
 			_selection_type == type and index == _selection_index)
-	row.custom_minimum_size = Vector2(0, 14)
+	row.custom_minimum_size = Vector2(_slot_row_min_width(label_text, has_icon), 14)
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.pressed.connect(func() -> void:
 		_select(type, index))
 	return row
+
+
+## Measured content width: left inset + optional icon + the name at the 8px
+## font + breathing room for the azure wash. This is what actually sizes the
+## center column — the rows' anchored content can't (anchored children don't
+## reach minimum-size math), so the width is computed where the text is known.
+func _slot_row_min_width(label_text: String, has_icon: bool) -> float:
+	var width: float = 3.0  # content inset
+	if has_icon:
+		width += UnitSheet.ICON_SIZE + 3.0  # icon + separation
+	if UIManager.font_8px != null:
+		width += ceilf(UIManager.font_8px.get_string_size(
+				label_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x)
+	width += 6.0  # right breathing room + the GlowLabel halo margins
+	return width
 
 
 ## Slot 0 holds the active buff (if any), slot 1 holds the active debuff.

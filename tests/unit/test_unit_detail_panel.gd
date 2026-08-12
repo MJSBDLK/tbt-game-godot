@@ -189,3 +189,19 @@ func test_selecting_an_empty_slot_never_opens_a_ghost_detail() -> void:
 	with_sentinel._select(UnitDetailPanel.SelectionType.MOVE, 0)
 	assert_false(with_sentinel._move_description.visible,
 			"the Move.EMPTY sentinel is an empty slot, not a move named em-dash")
+
+
+func test_rows_size_the_column_not_the_other_way_around() -> void:
+	# Anchored row content contributes nothing to minimum-size math, so each
+	# row MEASURES its name and claims a real minimum width — the center
+	# column's width is its widest row (RQD 2026-08-11 round 2; the expand
+	# approach let the open detail pane squeeze the column to header width).
+	var panel := _make_panel_with_moves([_make_move("Compressed Air"), _make_move("Bonk")])
+	var long_row: Button = panel._move_rows[0]
+	var short_row: Button = panel._move_rows[1]
+	assert_gt(long_row.custom_minimum_size.x, short_row.custom_minimum_size.x,
+			"a longer name claims a wider row")
+	var text_width: float = UIManager.font_8px.get_string_size(
+			"Compressed Air", HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+	assert_gt(long_row.custom_minimum_size.x, text_width,
+			"the row fits its full name plus icon and padding — nothing clips")
