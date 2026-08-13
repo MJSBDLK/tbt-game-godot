@@ -118,6 +118,10 @@ var attacks_this_turn: int = 0
 # save/load rebuilds units and forgets these — an accepted leniency, the
 # re-earn is a few XP.)
 var _survival_xp_sources: Dictionary = {}
+# Pre-grant stat snapshot for the mid-battle level-up reveal — captured by
+# _grant_combat_xp the first time a level fires in a sequence, consumed and
+# cleared by _flush_xp_feedback. Empty = nothing to celebrate.
+var _level_up_snapshot: Dictionary = {}
 
 # XP earned during the current combat sequence, batched into ONE "+N XP"
 # callout when it ends (per-hit popups would spam a 4-hit chain). Flushed by
@@ -1215,12 +1219,20 @@ func _award_survival_xp(attacker: Unit) -> void:
 ## The one funnel every XP award flows through. Banks into the character,
 ## accumulates for the end-of-combat "+N XP" callout, and refreshes the
 ## on-map labels when a level fires. Callers have already faction-guarded.
+##
+## The pre-grant snapshot feeds the mid-battle celebration: growth rolls
+## happen inside grant_xp, so the "what grew" diff has to be captured here.
+## First snapshot of the sequence wins — a double level-up in one combat
+## shows its total growth against where the unit STARTED.
 func _grant_combat_xp(xp: int) -> void:
 	if xp <= 0:
 		return
 	_combat_xp_gained += xp
+	var snapshot: Dictionary = LevelUpStatPanel.stat_snapshot(character_data)
 	var levels_gained: int = character_data.grant_xp(xp)
 	if levels_gained > 0:
+		if _level_up_snapshot.is_empty():
+			_level_up_snapshot = snapshot
 		_combat_levels_gained += levels_gained
 		_update_level_label()
 		_update_health_bar()
@@ -1228,9 +1240,10 @@ func _grant_combat_xp(xp: int) -> void:
 
 ## End-of-combat XP feedback: one gold "+N XP" callout for everything earned
 ## this sequence (hits, kills, heals, support, survival — batched so a 4-hit
-## chain doesn't spam four popups), then LEVEL UP! on a beat of its own.
-## The mid-battle celebration stays deliberately small — the full stat
-## reveal belongs to LevelUpReportPanel at mission end.
+## chain doesn't spam four popups), then LEVEL UP! on a beat of its own,
+## then the LevelUpStatPanel stat reveal (RQD 2026-08-11 — the in-the-moment
+## dopamine beat; LevelUpReportPanel keeps the end-of-mission aggregate).
+## The panel is awaited, so the turn flow holds while the reveal plays.
 func _flush_xp_feedback() -> void:
 	if _combat_xp_gained <= 0:
 		return
@@ -1238,8 +1251,11 @@ func _flush_xp_feedback() -> void:
 	if _combat_levels_gained > 0 and is_inside_tree():
 		await get_tree().create_timer(0.5).timeout
 		spawn_text_callout("LEVEL UP!", GameColorPalette.get_color("Yellow", 8))
+		if not _level_up_snapshot.is_empty():
+			await UIManager.show_level_up_celebration(character_data, _level_up_snapshot)
 	_combat_xp_gained = 0
 	_combat_levels_gained = 0
+	_level_up_snapshot = {}
 
 
 ## Miss path: attacker plays its approach, brief hold so the player can read

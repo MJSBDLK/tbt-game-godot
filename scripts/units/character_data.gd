@@ -392,8 +392,16 @@ func get_base_plus_growth(stat_name: String) -> int:
 
 
 func get_bonus_total(stat_name: String) -> int:
-	## Returns the sum of allocated + bond + passive + status modifiers (excludes base and growth).
-	## `allocated` is a stat delta computed via StatAllocation, not raw points.
+	## Returns the sum of allocated + bond + passive + status + injury modifiers
+	## (excludes base and growth). `allocated` is a stat delta computed via
+	## StatAllocation, not raw points.
+	##
+	## Injuries joined 2026-08-11 (RQD, "does Trauma actually affect DEF?"):
+	## they were always in the EFFECTIVE stat (the `defense` property et al.)
+	## but missing here — so every stat display built on base+bonus showed a
+	## Trauma'd unit at full DEF while combat used the lowered value. This is
+	## the one seam all the bars and number labels read through; fixing it
+	## here fixes every venue.
 	var bond: int = 0
 	var passive: int = 0
 	var status: int = 0
@@ -416,7 +424,7 @@ func get_bonus_total(stat_name: String) -> int:
 			bond = bond_bonus_resistance; passive = passive_bonus_resistance; status = status_modifier_resistance
 	var level_value: int = get_base_plus_growth(stat_name)
 	var allocated_delta: int = StatAllocation.compute_delta(stat_name, level_value, get_allocated_points(stat_name))
-	return allocated_delta + bond + passive + status
+	return allocated_delta + bond + passive + status + _get_injury_modifier(stat_name)
 
 
 func get_allocated_points(stat_name: String) -> int:

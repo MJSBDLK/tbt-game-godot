@@ -212,3 +212,18 @@ func test_rows_size_the_column_not_the_other_way_around() -> void:
 			"Compressed Air", HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
 	assert_gt(long_chip.custom_minimum_size.x, text_width,
 			"the chip fits its full name plus both icons — nothing clips")
+
+
+func test_the_hp_denominator_speaks_with_the_hp_keys_voice() -> void:
+	# RQD 2026-08-11: the numerator breathes with current HP; "/20" is a
+	# frame fact and wears the same color as the "HP" label beside it —
+	# read FROM that label, so the pair can't drift.
+	var panel := _make_panel() as UnitDetailPanel
+	var data := CharacterData.new()
+	panel.show_character(data)
+	assert_not_null(panel._hp_name_label, "the scene's HP key label was found")
+	assert_eq(panel._hp_max_label.get_theme_color("font_color"),
+			panel._hp_name_label.get_theme_color("font_color"))
+	assert_ne(panel._hp_label.get_theme_color("font_color"),
+			panel._hp_max_label.get_theme_color("font_color"),
+			"numerator stays on the health ramp — full HP green != the key's voice")

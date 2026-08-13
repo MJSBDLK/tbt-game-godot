@@ -326,3 +326,17 @@ func test_health_mode_wears_the_health_ramp_not_the_cap_voices() -> void:
 	bar.set_health(unit, 4)
 	assert_eq(bar._fill_rect.color, GameColors.get_health_color(0.2),
 			"low HP flips the fill down the ramp")
+
+
+func test_injury_penalties_reach_the_bonus_total_and_the_bar() -> void:
+	# RQD 2026-08-11 ("does Trauma actually affect DEF?"): injuries were in
+	# the EFFECTIVE stat but missing from get_bonus_total, so every display
+	# showed a Trauma'd unit at full DEF while combat used the lowered value.
+	var unit := _unit(Enums.CharacterClass.HEAVY)
+	unit.base_defense = 10
+	unit.injury_modifier_defense = -3
+	assert_eq(unit.get_bonus_total("defense"), -3,
+			"the one seam every bar and number label reads through")
+	var span: Vector2 = StatCapBar.bonus_span(unit, "defense")
+	assert_lt(span.x, span.y, "a non-empty penalty span draws on the bar")
+	assert_eq(unit.defense, 7, "and it agrees with the effective stat combat uses")

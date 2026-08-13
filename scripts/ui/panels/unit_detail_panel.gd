@@ -48,6 +48,7 @@ var _type_icon_secondary: TextureRect = null
 var _type_icon_container_primary: Control = null
 var _type_icon_container_secondary: Control = null
 var _hp_cap_bar: StatCapBar = null  # Health mode: track = max HP, fill = current, health-colored
+var _hp_name_label: Label = null  # The scene's "HP" key — the /max voice source
 var _hp_label: Label = null
 var _hp_max_label: Label = null  # Reuses StatModifier node to show "/max_hp"
 var _hp_censor: StaticCensorOverlay = null
@@ -227,6 +228,7 @@ func _cache_node_references() -> void:
 	_hp_cap_bar = StatCapBar.new("max_hp", int(hp_scene_base.size.y))
 	_anchor_center_bar(_hp_cap_bar, int(hp_scene_base.size.y))
 	hp_bar_container.add_child(_hp_cap_bar)
+	_hp_name_label = _find_label_in_node(hp_hbox.get_node("MarginContainer"))
 	_hp_label = _find_label_in_node(hp_hbox.get_node("StatValue"))
 	_hp_max_label = _find_label_in_node(hp_hbox.get_node("StatModifier"))  # Repurposed as "/max_hp"
 	if _hp_label != null and _hp_label.material != null:
@@ -687,10 +689,16 @@ func _update_hp() -> void:
 		if _hp_label.material is ShaderMaterial:
 			_hp_label.material.set_shader_parameter("glow_color", health_bg_color)
 	if _hp_max_label:
+		# The numerator breathes with current HP; the denominator is a FRAME
+		# fact, so it speaks with the "HP" key's own voice (RQD 2026-08-11) —
+		# read from the scene label so the pair can't drift apart.
 		_hp_max_label.text = "/%d" % max_hp
-		_hp_max_label.add_theme_color_override("font_color", health_color)
-		if _hp_max_label.material is ShaderMaterial:
-			_hp_max_label.material.set_shader_parameter("glow_color", health_bg_color)
+		if _hp_name_label != null:
+			_hp_max_label.add_theme_color_override("font_color",
+					_hp_name_label.get_theme_color("font_color"))
+			if _hp_max_label.material is ShaderMaterial and _hp_name_label is GlowLabel:
+				_hp_max_label.material.set_shader_parameter("glow_color",
+						(_hp_name_label as GlowLabel).glow_color)
 
 	if _hp_cap_bar != null:
 		_hp_cap_bar.set_health(_character_data, current_hp)
@@ -834,10 +842,7 @@ func _rebuild_move_rows() -> void:
 ## minimum-size math, so the width is computed where the name is known.
 func _chip_min_width(move_name: String) -> float:
 	var width: float = 4.0 + 12.0 + 12.0 + 3.0
-	if UIManager.font_8px != null:
-		width += ceilf(UIManager.font_8px.get_string_size(
-				move_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x)
-	return width + 4.0
+	return width + UnitSheet.text_width(move_name) + 4.0
 
 
 func _rebuild_passive_rows() -> void:
@@ -902,9 +907,7 @@ func _slot_row_min_width(label_text: String, has_icon: bool) -> float:
 	var width: float = 3.0  # content inset
 	if has_icon:
 		width += UnitSheet.ICON_SIZE + 3.0  # icon + separation
-	if UIManager.font_8px != null:
-		width += ceilf(UIManager.font_8px.get_string_size(
-				label_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x)
+	width += UnitSheet.text_width(label_text)
 	width += 6.0  # right breathing room + the GlowLabel halo margins
 	return width
 

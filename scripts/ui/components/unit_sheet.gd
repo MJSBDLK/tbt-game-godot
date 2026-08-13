@@ -105,6 +105,19 @@ static func is_empty_move(move: Move) -> bool:
 			or move.move_name == "—"
 
 
+## Width of `text_value` at the sheet's 8px font. Slot buttons keep their
+## content in ANCHORED children, which contribute NOTHING to minimum-size
+## math — so any self-sized clickable row measures its content with this and
+## claims the width explicitly. The un-measured injury chip collapsed to a
+## red border sliver with its name painting outside the button's rect
+## (RQD 2026-08-11 — "only the red sliver on the left side is clickable").
+static func text_width(text_value: String) -> float:
+	if UIManager.font_8px == null:
+		return 0.0
+	return ceilf(UIManager.font_8px.get_string_size(
+			text_value, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x)
+
+
 # =============================================================================
 # PUBLIC API
 # =============================================================================
@@ -580,9 +593,15 @@ func _build_injury_row() -> void:
 		var injury: Injury = _character.current_injuries[i]
 		var data: InjuryData = injury.get_data()
 		var display: String = data.display_name if data != null else injury.injury_id.capitalize()
+		var has_icon: bool = data != null and data.icon_path != "" \
+				and ResourceLoader.exists(data.icon_path)
 
 		var chip := slot_button(_is_selected("injury", i))
-		chip.custom_minimum_size = Vector2(0, 12)
+		# Measured, not (0, h): the chip's content is anchored, so without a
+		# claimed width the button collapsed to its border — see text_width.
+		var chip_width: float = 3.0 + (ICON_SIZE + 2.0 if has_icon else 0.0) \
+				+ text_width(display) + 3.0 + 2.0
+		chip.custom_minimum_size = Vector2(chip_width, 12)
 		chip.pressed.connect(_pick.bind("injury", i))
 		# Injuries wear the DANGER voice, not the azure slot chrome — the chip
 		# is a fact about damage, and its selected wash stays in that voice
@@ -600,7 +619,7 @@ func _build_injury_row() -> void:
 		content.add_theme_constant_override("separation", 2)
 		content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		chip.add_child(content)
-		if data != null and data.icon_path != "" and ResourceLoader.exists(data.icon_path):
+		if has_icon:
 			content.add_child(make_icon(load(data.icon_path) as Texture2D))
 		var name_label := GlowLabel.styled(display, UIManager.font_8px, 8,
 				GameColors.TEXT_DANGER, GameColors.TEXT_DANGER_GLOW)

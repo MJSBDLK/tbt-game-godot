@@ -232,11 +232,15 @@ func test_level_up_gets_its_own_callout_beat() -> void:
 	unit._grant_combat_xp(100)
 	assert_eq(unit._combat_levels_gained, 1, "the 100-XP threshold leveled mid-combat")
 
-	await unit._flush_xp_feedback()
+	# Fire-and-forget: the flush now ALSO awaits the LevelUpStatPanel reveal
+	# (RQD 2026-08-11), which outlives the callouts' float animation — waiting
+	# for the whole flush finds only freed popups. Sample at the callout beat.
+	unit._flush_xp_feedback()
+	await get_tree().create_timer(0.7).timeout
 	var texts: Array = _callout_texts(unit)
 	assert_has(texts, "+100 XP")
 	assert_has(texts, "LEVEL UP!",
-			"mid-battle level-ups announce themselves — the full stat reveal still waits for mission end")
+			"the callout still lands its beat before the stat reveal takes over")
 
 
 func test_flush_with_nothing_earned_stays_silent() -> void:
