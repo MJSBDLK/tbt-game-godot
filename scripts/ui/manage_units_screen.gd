@@ -162,6 +162,9 @@ func _set_bexp_mode(active: bool) -> void:
 	_sheet.visible = not active
 	if active:
 		_bexp_panel.bind(SquadManager.get_character_by_id(_rail.get_selected_id()))
+	else:
+		# Leaving abandons any staged pour — only CONFIRM commits.
+		_bexp_panel.discard_stage()
 
 
 func _toggle_bexp_mode() -> void:

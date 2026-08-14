@@ -290,6 +290,32 @@ func buy_bexp_level(character: CharacterData) -> bool:
 	return true
 
 
+## The POUR commit (slice 4, RQD 2026-08-13 — the mockup's "amounts" spec):
+## transfers `amount` banked bEXP into the character's REAL XP gauge, 1:1.
+## Each 100 crossed fires a bEXP-mechanics level (process_bexp_level_up —
+## fixed growth count, capped stats excluded) and the REMAINDER persists as
+## experience. The remainder persisting is the point of the spec's 99 brink
+## button: XP parked at 99 levels through the next combat action instead,
+## with full combat growth rolls rather than bEXP's fixed spread — the
+## optimizer's trade, straight out of Radiant Dawn.
+##
+## Refundability lives UPSTREAM: BexpSpendPanel stages pours as arithmetic
+## and only calls this on CONFIRM — nothing here can be walked back, because
+## the growth rolls happen inside.
+func commit_bexp_pour(character: CharacterData, amount: int) -> int:
+	if character == null or amount <= 0 or amount > bonus_xp_pool:
+		return 0
+	bonus_xp_pool -= amount
+	character.experience += amount
+	var levels_gained: int = 0
+	while character.experience >= 100:
+		character.experience -= 100
+		character.process_bexp_level_up()
+		levels_gained += 1
+	bonus_xp_changed.emit(bonus_xp_pool)
+	return levels_gained
+
+
 ## Snapshots growth_gains_*, runs LEVELS_PER_VICTORY level-up rolls, and returns
 ## the abbreviations of every stat that actually grew across all rolls (e.g.
 ## ["STR", "AGL"]). A stat appears at most once regardless of how many rolls
