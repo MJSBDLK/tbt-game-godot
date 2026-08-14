@@ -97,7 +97,8 @@ func test_the_stage_never_crosses_a_level_boundary() -> void:
 	assert_eq(panel._staged_for_bound(), 60,
 			"[100] fills TO the level and further presses change nothing (2A)")
 	assert_eq(panel._xp_value_label.text, "100/100")
-	assert_eq(panel._level_value_label.text, "Lv 3 → 4")
+	assert_eq(panel._level_value_label.text, "Lv 3 » 4",
+			"» not →: the arrow glyph is a font-fallback and its taller metrics shifted the GUI")
 
 
 func test_the_staged_segment_extends_the_committed_fill() -> void:
@@ -202,7 +203,12 @@ func test_confirm_at_the_boundary_rolls_exactly_one_level() -> void:
 	var panel := _bound_panel(unit)
 	panel._on_pour_pressed(100)
 	assert_eq(panel._staged_for_bound(), 60)
-	await panel._on_confirm_pressed()
+	# A leveling confirm PARKS on the +1 view (round 4) — never await it
+	# bare, or the test hangs waiting for a CONTINUE nobody presses.
+	panel._on_confirm_pressed()
+	await get_tree().process_frame
+	_action_button(panel, "CONTINUE").pressed.emit()
+	await get_tree().process_frame
 	assert_eq(unit.level, 4)
 	assert_eq(unit.experience, 0, "the gauge resets — exactly one level, no spill")
 	assert_eq(SquadManager.bonus_xp_pool, 190)
@@ -315,3 +321,47 @@ func test_the_action_row_fits_the_sheet_column() -> void:
 	assert_lte(panel._actions_row.get_combined_minimum_size().x,
 			float(ManageUnitsScreen.SHEET_WIDTH - 10),
 			"[RESET][-10][-1][+1][+10][99][100][CONFIRM] must fit the column")
+
+
+# =============================================================================
+# ROUND 4 (RQD 2026-08-13): stable metrics, centered row, held reveal
+# =============================================================================
+
+func test_the_level_up_reveal_holds_until_continue() -> void:
+	SquadManager.bonus_xp_pool = 250
+	var unit := _unit()
+	var panel := _bound_panel(unit)
+	panel._on_pour_pressed(100)
+	panel._on_confirm_pressed()
+	await get_tree().process_frame
+	assert_true(panel._awaiting_continue,
+			"the +1 view parks — gains are acknowledged, never timer-yanked")
+	assert_not_null(_action_button(panel, "CONTINUE"),
+			"the action row collapses to the one thing to do")
+	assert_true(panel._revealing, "pour buttons stay locked while parked")
+	_action_button(panel, "CONTINUE").pressed.emit()
+	await get_tree().process_frame
+	assert_false(panel._awaiting_continue)
+	assert_false(panel._revealing)
+	assert_eq(unit.level, 4)
+	assert_not_null(_action_button(panel, "+1"), "the pour view is back")
+
+
+func test_a_rebind_mid_hold_resolves_the_wait_instead_of_hanging() -> void:
+	SquadManager.bonus_xp_pool = 250
+	var panel := _bound_panel(_unit())
+	panel._on_pour_pressed(100)
+	panel._on_confirm_pressed()
+	await get_tree().process_frame
+	assert_true(panel._awaiting_continue)
+	panel.bind(_unit("pour_switch"))
+	await get_tree().process_frame
+	assert_false(panel._awaiting_continue,
+			"a rail switch counts as the acknowledgement — no orphaned coroutine")
+	assert_false(panel._revealing)
+
+
+func test_the_action_row_is_centered() -> void:
+	SquadManager.bonus_xp_pool = 250
+	var panel := _bound_panel(_unit())
+	assert_eq(panel._actions_row.alignment, BoxContainer.ALIGNMENT_CENTER)

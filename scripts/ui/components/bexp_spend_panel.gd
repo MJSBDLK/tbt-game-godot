@@ -2,17 +2,19 @@
 ## swaps in for the UnitSheet in Manage Units' center column. The stat rows
 ## are the same LevelUpStatBlock the mid-battle celebration uses.
 ##
-## THE POUR MODEL, current form (RQD pivot 2A):
+## THE POUR MODEL, current form (RQD pivots 2A + round 4):
 ##
-##   [+1] [+10] [99] [100]   [CONFIRM]     — one row, top right, above the XP bar
+##   [RESET] [-10] [-1] [+1] [+10] [99] [100] [CONFIRM]
+##   — one centered row, above the XP bar
 ##
 ## SINGLE-LEVEL CAP: a unit's stage can never cross more than one level
 ## boundary (staged + experience <= 100). [100] fills exactly to the level;
-## [99] parks at the brink. The cap removes multi-level commit handling — and
-## with it the need for big refunds, which is why the minus buttons from the
-## earlier spec are gone: a mis-pour is walked back by leaving (✕ / Escape /
-## re-clicking the toggle), which discards the whole stage. Nothing commits
-## but CONFIRM.
+## [99] parks at the brink; the minus buttons refund the stage and [RESET]
+## takes back the bound unit's whole pour. Leaving (✕ / Escape / the toggle)
+## discards EVERY unit's stage. Nothing commits but CONFIRM — and after a
+## level-up reveal the panel HOLDS the +1 view until the player continues
+## (CONTINUE square or a click anywhere): gains are acknowledged, never
+## yanked away on a timer.
 ##
 ## Buttons wear the StatUp [−]/[+] scheme (UnitSheet._make_alloc_button's
 ## vocabulary, text edition): square 1px ring + glyph, both PRIMARY,
@@ -46,10 +48,11 @@ extends PanelContainer
 signal changed
 ## The player is done — the screen restores the sheet.
 signal closed
+## The player acknowledged the level-up reveal (the CONTINUE press). Internal
+## pacing signal — the confirm coroutine awaits it.
+signal continue_pressed
 
 
-## Breath between the last reveal beat and the modifiers coming back.
-const RESTORE_PAUSE_SECONDS: float = 0.5
 const XP_PER_LEVEL: int = 100
 
 
@@ -58,6 +61,9 @@ var _character: CharacterData = null
 ## across rail switches so pouring is a squad-wide decision with one confirm.
 var _staged: Dictionary = {}
 var _revealing: bool = false
+## The reveal finished and the panel is holding the +1 view for the player
+## (RQD 2026-08-13 round 4: don't yank the gains away on a timer).
+var _awaiting_continue: bool = false
 
 var _stack: VBoxContainer = null
 var _name_label: Label = null
@@ -102,15 +108,24 @@ func _ready() -> void:
 
 
 func bind(character: CharacterData) -> void:
+	# A rail switch mid-hold counts as the acknowledgement — resolve the
+	# waiting confirm coroutine so it can't hang across a rebind.
+	_resolve_pending_continue()
 	_character = character
 	_refresh()
 
 
 ## Leaving the panel abandons the whole stage — only CONFIRM commits.
 func discard_stage() -> void:
+	_resolve_pending_continue()
 	_staged.clear()
 	if _character != null:
 		_refresh()
+
+
+func _resolve_pending_continue() -> void:
+	if _awaiting_continue:
+		continue_pressed.emit()
 
 
 func _staged_total() -> int:
@@ -162,15 +177,16 @@ func _build() -> void:
 	_level_value_label = _live_label("", GameColors.TEXT_INFO, GameColors.TEXT_INFO_GLOW)
 	ident_row.add_child(_level_value_label)
 
-	# The action row — pour squares + CONFIRM, one line, right-aligned,
-	# ABOVE the XP bar (RQD 2B). Rebuilt per refresh like the StatUp
-	# buttons, so each button is constructed already in its current state.
-	# Eight buttons in a 200px column — separation 2 and 2px glyph margins
-	# keep the row inside the sheet width (pinned by test: the row's minimum
-	# must fit SHEET_WIDTH, so a label change can't silently overflow).
+	# The action row — pour squares + CONFIRM, one line, centered (RQD
+	# 2026-08-13 round 4), ABOVE the XP bar (2B). Rebuilt per refresh like
+	# the StatUp buttons, so each button is constructed already in its
+	# current state. Eight buttons in a 200px column — separation 2 and 2px
+	# glyph margins keep the row inside the sheet width (pinned by test: the
+	# row's minimum must fit SHEET_WIDTH, so a label change can't silently
+	# overflow).
 	_actions_row = HBoxContainer.new()
 	_actions_row.add_theme_constant_override("separation", 2)
-	_actions_row.alignment = BoxContainer.ALIGNMENT_END
+	_actions_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	_stack.add_child(_actions_row)
 
 	# XP row — track + committed INFO fill + staged PRIMARY segment.
@@ -272,10 +288,32 @@ func _on_confirm_pressed() -> void:
 			_block.build(_character, before, not Settings.ui_motion_enabled, false)
 			if Settings.ui_motion_enabled:
 				await _block.play_reveal()
-			await get_tree().create_timer(RESTORE_PAUSE_SECONDS).timeout
+			# Hold the +1 view until the player says so (round 4) — a timer
+			# yanking the gains away made the reveal feel like a glitch.
+			_awaiting_continue = true
+			_show_continue_action()
+			await continue_pressed
+			_awaiting_continue = false
 	_revealing = false
 	changed.emit()
 	_refresh()
+
+
+## The reveal's parking state: the action row collapses to one enabled
+## CONTINUE square. Clicking anywhere on the panel body works too — the
+## affordance is the button, the forgiveness is the whole surface.
+func _show_continue_action() -> void:
+	for child: Node in _actions_row.get_children():
+		child.queue_free()
+	_actions_row.add_child(_square_button("CONTINUE", true,
+			"back to the pour view", func() -> void: continue_pressed.emit()))
+
+
+func _gui_input(event: InputEvent) -> void:
+	if _awaiting_continue and event is InputEventMouseButton \
+			and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		accept_event()
+		continue_pressed.emit()
 
 
 # =============================================================================
@@ -291,7 +329,10 @@ func _refresh() -> void:
 	var gauge: int = _character.experience + staged
 
 	_name_label.text = _character.character_name.to_upper()
-	_level_value_label.text = ("Lv %d → %d" % [_character.level, _character.level + 1]) \
+	# » not →: the arrow isn't in UndeadPixelLight8, and the fallback font's
+	# taller metrics grew the label and shoved the whole GUI down a few px
+	# the moment the preview line appeared (RQD 2026-08-13).
+	_level_value_label.text = ("Lv %d » %d" % [_character.level, _character.level + 1]) \
 			if gauge >= XP_PER_LEVEL else "Lv %d" % _character.level
 
 	# Committed keeps its normal gold; the staged extension is its own
