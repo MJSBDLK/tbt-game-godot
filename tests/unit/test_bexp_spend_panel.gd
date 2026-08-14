@@ -259,3 +259,59 @@ func test_commit_bexp_pour_cascades_and_respects_the_pool() -> void:
 	assert_eq(SquadManager.commit_bexp_pour(unit, 91), 0,
 			"a pour past the pool refuses whole — no partial silent spend")
 	assert_eq(SquadManager.bonus_xp_pool, 90)
+
+
+# =============================================================================
+# ROUND 3 (RQD 2026-08-13): unmodified stats, [RESET][-10][-1], row fit
+# =============================================================================
+
+func test_the_block_shows_unmodified_stats_always() -> void:
+	# "The bEXP screen should be all about unmodified stats" — modifiers live
+	# one Escape away on the manage screen. DEF row: base 5, injured to 3 —
+	# this venue shows the grown 5. (Row layout: key · bar · value · plus.)
+	SquadManager.bonus_xp_pool = 250
+	var unit := _unit()
+	unit.injury_modifier_defense = -2
+	var panel := _bound_panel(unit)
+	var defense_row: Control = panel._block.get_child(6)
+	var value_label: Label = defense_row.get_child(2)
+	assert_eq(value_label.text, "5",
+			"grown value, not the injured effective — growth is this venue's story")
+
+
+func test_reset_takes_back_only_the_bound_units_stage() -> void:
+	SquadManager.bonus_xp_pool = 300
+	var bound := _unit("pour_reset_a")
+	var other := _unit("pour_reset_b")
+	var panel := _bound_panel(other)
+	panel._on_pour_pressed(50)
+	panel.bind(bound)
+	panel._on_pour_pressed(30)
+	panel._on_reset_pressed()
+	assert_eq(panel._staged_for_bound(), 0, "the bound unit's stage is gone")
+	assert_eq(panel._staged_total(), 50, "the other unit's stage survives")
+	assert_true(_action_button(panel, "RESET").disabled,
+			"nothing staged here anymore — RESET goes muted")
+
+
+func test_the_minus_buttons_refund_the_stage() -> void:
+	SquadManager.bonus_xp_pool = 250
+	var panel := _bound_panel(_unit())
+	panel._on_pour_pressed(10)
+	panel._on_pour_pressed(1)
+	panel._on_pour_pressed(-1)
+	assert_eq(panel._staged_for_bound(), 10)
+	panel._on_pour_pressed(-10)
+	assert_eq(panel._staged_for_bound(), 0)
+	assert_true(_action_button(panel, "-1").disabled, "nothing left to refund")
+
+
+func test_the_action_row_fits_the_sheet_column() -> void:
+	# Eight buttons, 200 usable pixels (SHEET_WIDTH minus the panel margins).
+	# Pinned so a label or margin change can't silently overflow the panel.
+	SquadManager.bonus_xp_pool = 250
+	var panel := _bound_panel(_unit())
+	await get_tree().process_frame
+	assert_lte(panel._actions_row.get_combined_minimum_size().x,
+			float(ManageUnitsScreen.SHEET_WIDTH - 10),
+			"[RESET][-10][-1][+1][+10][99][100][CONFIRM] must fit the column")

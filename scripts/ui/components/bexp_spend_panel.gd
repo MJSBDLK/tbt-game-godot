@@ -165,8 +165,11 @@ func _build() -> void:
 	# The action row — pour squares + CONFIRM, one line, right-aligned,
 	# ABOVE the XP bar (RQD 2B). Rebuilt per refresh like the StatUp
 	# buttons, so each button is constructed already in its current state.
+	# Eight buttons in a 200px column — separation 2 and 2px glyph margins
+	# keep the row inside the sheet width (pinned by test: the row's minimum
+	# must fit SHEET_WIDTH, so a label change can't silently overflow).
 	_actions_row = HBoxContainer.new()
-	_actions_row.add_theme_constant_override("separation", 3)
+	_actions_row.add_theme_constant_override("separation", 2)
 	_actions_row.alignment = BoxContainer.ALIGNMENT_END
 	_stack.add_child(_actions_row)
 
@@ -226,6 +229,15 @@ func _on_brink_pressed() -> void:
 	if _revealing or _character == null:
 		return
 	_on_pour_pressed(brink_amount(_character.experience + _staged_for_bound()))
+
+
+## Take back the BOUND unit's whole stage in one press (other units' stages
+## survive — this is a per-unit undo, not the panel-wide discard).
+func _on_reset_pressed() -> void:
+	if _revealing or _character == null:
+		return
+	if _staged.erase(_character.character_id):
+		_refresh()
 
 
 func _on_close_pressed() -> void:
@@ -305,13 +317,20 @@ func _refresh() -> void:
 			preview_label.material.set_shader_parameter("glow_color", value_glow)
 	_update_pulse(uncommitted)
 
-	_block.build(_character, LevelUpStatBlock.stat_snapshot(_character), true, true)
+	# UNMODIFIED stats, always (RQD 2026-08-13): this venue is about growth —
+	# what bEXP levels actually move. Modifiers (injuries, buffs, StatUps)
+	# live one Escape away on the manage screen; showing them here made the
+	# post-reveal "restore" read as the stats jumping. Stripped at rest and
+	# stripped in the reveal = nothing ever blends.
+	_block.build(_character, LevelUpStatBlock.stat_snapshot(_character), true, false)
 	_rebuild_actions(staged)
 
 
-## [+1] [+10] [99] [100] [CONFIRM] — every button constructed already in its
-## enabled/disabled state (the StatUp-button pattern), so enablement is a
-## build-time fact, not mutated chrome.
+## [RESET] [-10] [-1] [+1] [+10] [99] [100] [CONFIRM] — every button
+## constructed already in its enabled/disabled state (the StatUp-button
+## pattern), so enablement is a build-time fact, not mutated chrome.
+## RESET clears the BOUND unit's stage only; leaving the panel is still the
+## all-units discard.
 func _rebuild_actions(staged: int) -> void:
 	for child: Node in _actions_row.get_children():
 		child.queue_free()
@@ -319,10 +338,16 @@ func _rebuild_actions(staged: int) -> void:
 	var experience: int = _character.experience
 	var gauge: int = experience + staged
 
-	for amount: int in [1, 10]:
+	_actions_row.add_child(_square_button("RESET", staged > 0,
+			"take back this unit's staged pour" if staged > 0 else "nothing staged here",
+			_on_reset_pressed))
+
+	for amount: int in [-10, -1, 1, 10]:
 		var would: int = clamp_pour(staged, amount, pool_remaining, experience)
-		_actions_row.add_child(_square_button("+%d" % amount, would != staged,
-				"pour %d" % amount, _on_pour_pressed.bind(amount)))
+		var label_text: String = ("+%d" % amount) if amount > 0 else str(amount)
+		_actions_row.add_child(_square_button(label_text, would != staged,
+				("pour %d" % amount) if amount > 0 else ("refund %d" % -amount),
+				_on_pour_pressed.bind(amount)))
 
 	var brink: int = brink_amount(gauge)
 	_actions_row.add_child(_square_button("99",
@@ -383,8 +408,8 @@ func _square_button(label_text: String, enabled: bool, tip: String,
 	ring.bg_color = Color.TRANSPARENT
 	ring.border_color = body
 	ring.set_border_width_all(1)
-	ring.content_margin_left = 3
-	ring.content_margin_right = 3
+	ring.content_margin_left = 2
+	ring.content_margin_right = 2
 	ring.content_margin_top = 1
 	ring.content_margin_bottom = 1
 	var ring_hover := ring.duplicate() as StyleBoxFlat
