@@ -41,6 +41,7 @@ static var open_sorted_by_level: bool = false
 
 var _rail: RosterRail = null
 var _sheet: UnitSheet = null
+var _bexp_panel: BexpSpendPanel = null
 var _workbench: UnitWorkbench = null
 var _pool_value_label: Label = null
 var _squad_value_label: Label = null
@@ -57,6 +58,9 @@ func _ready() -> void:
 	if open_sorted_by_level:
 		open_sorted_by_level = false
 		_rail.set_sort("lv", true)
+		# The deep link is "Allocate Bonus EXP" — land IN the spend view, not
+		# a click away from it (§3g, extended by slice 4).
+		_set_bexp_mode(true)
 
 
 # =============================================================================
@@ -129,14 +133,50 @@ func _on_pool_changed(new_pool: int) -> void:
 ## Rail → sheet → workbench, in that order. The sheet keeps its slot-kind
 ## selection across the switch (§3b: click Move 2 on Max, click Ernesto in
 ## the rail — you're on Ernesto's Move 2), so the workbench re-shows the SAME
-## lane for the new unit.
+## lane for the new unit. In bEXP mode the spend panel rebinds instead —
+## pouring into several units is one rail click each.
 func _show_unit(character_id: String) -> void:
 	var character: CharacterData = SquadManager.get_character_by_id(character_id)
 	if character == null:
 		return
 	_sheet.set_character(character)
+	if _bexp_panel.visible:
+		_bexp_panel.bind(character)
 	_workbench.set_squad(_deployed_characters())
 	_workbench.show_lane(character, _sheet.get_selection_kind(), _sheet.get_selection_key())
+
+
+# =============================================================================
+# bEXP MODE (slice 4) — the sheet's column converts to the spend view
+# =============================================================================
+
+## "I don't like the idea of populating the third panel with a second stat
+## screen, so maybe converting the center panel?" (RQD 2026-08-11) — the
+## sheet and the spend panel share one column slot; exactly one is visible.
+## Entered via the sheet's XP row, the top bar's bEXP readout, or the hub's
+## deep link; exited via the panel's ✕, either trigger again, or Escape.
+func _set_bexp_mode(active: bool) -> void:
+	if active == _bexp_panel.visible:
+		return
+	_bexp_panel.visible = active
+	_sheet.visible = not active
+	if active:
+		_bexp_panel.bind(SquadManager.get_character_by_id(_rail.get_selected_id()))
+
+
+func _toggle_bexp_mode() -> void:
+	_set_bexp_mode(not _bexp_panel.visible)
+
+
+## A purchased level: rail readouts (Lv, sort) and the workbench's squad
+## stats are stale — same fan-out as a sheet mutation, plus the sheet itself
+## (its XP row and stat block re-read the character when it comes back).
+func _on_bexp_spent() -> void:
+	_rail.refresh()
+	_sheet.refresh()
+	_workbench.set_squad(_deployed_characters())
+	_workbench.show_lane(SquadManager.get_character_by_id(_rail.get_selected_id()),
+			_sheet.get_selection_kind(), _sheet.get_selection_key())
 
 
 func _on_slot_selected(kind: String, key: Variant) -> void:
@@ -198,7 +238,17 @@ func _build_content() -> void:
 	_sheet.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_sheet.slot_selected.connect(_on_slot_selected)
 	_sheet.changed.connect(_on_sheet_changed)
+	_sheet.bexp_requested.connect(func() -> void: _set_bexp_mode(true))
 	body.add_child(_sheet)
+
+	# The spend view shares the sheet's column slot — see _set_bexp_mode.
+	_bexp_panel = BexpSpendPanel.new()
+	_bexp_panel.custom_minimum_size = Vector2(SHEET_WIDTH, 0)
+	_bexp_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_bexp_panel.visible = false
+	_bexp_panel.changed.connect(_on_bexp_spent)
+	_bexp_panel.closed.connect(func() -> void: _set_bexp_mode(false))
+	body.add_child(_bexp_panel)
 
 	_workbench = UnitWorkbench.new()
 	_workbench.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -253,8 +303,17 @@ func _build_top_bar() -> PanelContainer:
 	row.add_child(spacer)
 
 	var pool_holder: Array[Label] = []
-	row.add_child(_key_value_pair("bEXP", str(SquadManager.bonus_xp_pool),
-			GameColors.TEXT_INFO, GameColors.TEXT_INFO_GLOW, pool_holder))
+	var pool_pair := _key_value_pair("bEXP", str(SquadManager.bonus_xp_pool),
+			GameColors.TEXT_INFO, GameColors.TEXT_INFO_GLOW, pool_holder)
+	# The readout doubles as the bEXP-mode toggle (slice 4) — the labels
+	# inside ignore mouse, so the pair itself takes the click.
+	pool_pair.mouse_filter = Control.MOUSE_FILTER_STOP
+	pool_pair.tooltip_text = "allocate bonus EXP"
+	pool_pair.gui_input.connect(func(event: InputEvent) -> void:
+		if event is InputEventMouseButton and event.pressed \
+				and event.button_index == MOUSE_BUTTON_LEFT:
+			_toggle_bexp_mode())
+	row.add_child(pool_pair)
 	_pool_value_label = pool_holder[0]
 
 	var squad_holder: Array[Label] = []
@@ -299,10 +358,14 @@ func _on_back_pressed() -> void:
 	SceneRouter.change_scene_to(CampaignManager.INTERMISSION_PATH)
 
 
-## Escape backs out to the hub — same direction the ◀ button points. Safe to
-## claim here: InputManager's battle handlers are gated on grid readiness, and
-## no battle grid exists behind this screen.
+## Escape backs out one layer at a time: bEXP mode → sheet → hub (same
+## direction the ◀ button points). Safe to claim here: InputManager's battle
+## handlers are gated on grid readiness, and no battle grid exists behind
+## this screen.
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
+		if _bexp_panel != null and _bexp_panel.visible:
+			_set_bexp_mode(false)
+			return
 		_on_back_pressed()

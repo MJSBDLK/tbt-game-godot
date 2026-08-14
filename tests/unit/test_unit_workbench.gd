@@ -519,3 +519,71 @@ func test_the_art_rect_is_pixel_snapped() -> void:
 func test_degenerate_areas_produce_an_empty_rect() -> void:
 	assert_eq(UnitWorkbench.portrait_rect_in_area(Vector2(0, 50), 1.0), Rect2())
 	assert_eq(UnitWorkbench.portrait_rect_in_area(Vector2(50, 50), 0.0), Rect2())
+
+
+# =============================================================================
+# ROUND 6 SHEET RULES (RQD 2026-08-11): DANGER voice, quiet injuries, bEXP row
+# =============================================================================
+
+func test_a_stat_below_its_default_speaks_danger() -> void:
+	# "Stats which are modified to less than their default value should use
+	# textDanger" — and it outranks even the cap story: a capped-but-injured
+	# stat reading SUCCESS would be a lie.
+	var unit := _unit()
+	unit.base_strength = 10
+	assert_eq(UnitSheet.stat_number_voice(unit, "strength")[0], GameColors.TEXT_PRIMARY)
+	unit.injury_modifier_strength = -2
+	assert_eq(UnitSheet.stat_number_voice(unit, "strength")[0], GameColors.TEXT_DANGER)
+	unit.injury_modifier_strength = 0
+	unit.base_defense = unit.get_stat_cap("defense")
+	assert_eq(UnitSheet.stat_number_voice(unit, "defense")[0], GameColors.TEXT_SUCCESS,
+			"healthy at the ceiling stays SUCCESS")
+	unit.injury_modifier_defense = -1
+	assert_eq(UnitSheet.stat_number_voice(unit, "defense")[0], GameColors.TEXT_DANGER,
+			"wounded outranks capped")
+
+
+func test_injury_chips_wear_their_border_only_when_selected() -> void:
+	var unit := _unit()
+	var injury := Injury.new()
+	injury.injury_id = "burn_scar"
+	injury.severity = Enums.InjurySeverity.MINOR
+	injury.battles_remaining = 2
+	unit.current_injuries.append(injury)
+	var sheet := _built_sheet(unit)
+	var chip := _injury_chip(sheet)
+	assert_not_null(chip)
+	var rest_style: StyleBoxFlat = chip.get_theme_stylebox("normal") as StyleBoxFlat
+	assert_eq(rest_style.border_width_left, 0,
+			"at rest: icon + DANGER text on quiet chrome, no border")
+	sheet._pick("injury", 0)
+	var selected_style: StyleBoxFlat = \
+			_injury_chip(sheet).get_theme_stylebox("normal") as StyleBoxFlat
+	assert_eq(selected_style.border_width_left, 1, "selection brings the DANGER border")
+	assert_eq(selected_style.border_color, GameColors.TEXT_DANGER)
+
+
+func _injury_chip(sheet: UnitSheet) -> Button:
+	# Identified by its label — min-size matching collides with the sheet's
+	# other small buttons (the 9px alloc art rides a similar minimum). LAST
+	# match wins: refresh() queue_frees the old rows, but they stay in the
+	# tree until frame end and would otherwise shadow the rebuilt chip.
+	var found: Button = null
+	for button: Node in sheet.find_children("*", "Button", true, false):
+		for label: Node in button.find_children("*", "Label", true, false):
+			if (label as Label).text.begins_with("Burn"):
+				found = button
+	return found
+
+
+func test_the_xp_row_asks_for_the_bexp_view() -> void:
+	var sheet := _built_sheet(_unit())
+	watch_signals(sheet)
+	var xp_slot: Button = null
+	for button: Node in sheet.find_children("*", "Button", true, false):
+		if (button as Button).tooltip_text == "allocate bonus EXP":
+			xp_slot = button
+	assert_not_null(xp_slot, "the whole XP row is the entry point")
+	xp_slot.pressed.emit()
+	assert_signal_emitted(sheet, "bexp_requested",
+			"the screen swaps the sheet for the spend view on this")

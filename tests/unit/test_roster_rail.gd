@@ -308,3 +308,29 @@ func test_the_bootstrap_order_is_the_story_order() -> void:
 	assert_string_contains(paths[1], "ernesto")
 	assert_string_contains(paths[2], "spaceman")
 	assert_string_contains(paths[3], "elf_pirate")
+
+
+# =============================================================================
+# bEXP MODE (slice 4) — the sheet's column converts to the spend view
+# =============================================================================
+
+func test_bexp_mode_swaps_the_sheets_column_and_escape_backs_out_one_layer() -> void:
+	var screen := ManageUnitsScreen.new()
+	add_child_autofree(screen)
+	assert_false(screen._bexp_panel.visible, "the sheet owns the column at rest")
+	screen._set_bexp_mode(true)
+	assert_true(screen._bexp_panel.visible)
+	assert_false(screen._sheet.visible, "one column slot, exactly one occupant")
+	screen._set_bexp_mode(false)
+	assert_true(screen._sheet.visible)
+	assert_false(screen._bexp_panel.visible)
+
+
+func test_the_deep_link_lands_in_the_spend_view() -> void:
+	# §3g extended by slice 4: "Allocate Bonus EXP" should not open a screen
+	# that is still one click away from allocating bonus EXP.
+	ManageUnitsScreen.open_sorted_by_level = true
+	var screen := ManageUnitsScreen.new()
+	add_child_autofree(screen)
+	assert_true(screen._bexp_panel.visible)
+	assert_false(screen._sheet.visible)

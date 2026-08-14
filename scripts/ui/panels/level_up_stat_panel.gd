@@ -1,14 +1,13 @@
 ## Mid-battle level-up celebration (RQD 2026-08-11) — the dopamine beat,
 ## in-combat edition. When a player unit levels during battle, this pops a
-## stats-exclusive cut of the detail panel: ident line, then the eight stat
-## rows in the shared vocabulary (SECONDARY key · StatCapBar · value), with
-## the stats that grew revealing "+1" one beat at a time.
+## stats-exclusive cut of the detail panel: ident line, then the shared
+## LevelUpStatBlock revealing the stats that grew one beat at a time.
 ##
-## REUSE IS THE POINT (RQD: "which is why I keep pushing for these components
-## to be reusable"): rows are built from UnitSheet's public statics and the
-## shared StatCapBar — the bar arrives already knowing caps, at-cap SUCCESS,
-## and injury penalties, so this screen can never disagree with the sheet or
-## the detail panel about what a stat looks like.
+## THIN MODAL HOST: the rows, the snapshot/diff math, and the reveal
+## choreography all live in LevelUpStatBlock — the same component the
+## intermission bEXP spend panel embeds — so the two celebrations can't
+## drift. This class owns only the battle framing: backdrop, header,
+## stat-up badge, skip-click, and the awaited [signal finished].
 ##
 ## FLOW: Unit._flush_xp_feedback awaits UIManager.show_level_up_celebration,
 ## which awaits [signal finished] — so the battle holds its breath while the
@@ -16,9 +15,9 @@
 ## last reveal. Reduced motion (Settings.ui_motion_enabled = false) shows
 ## everything at once and only keeps the reading pause.
 ##
-## The end-of-mission LevelUpReportPanel still owns the AGGREGATE celebration
-## (per-mission deltas + stat-up spending pointer); this screen is the
-## in-the-moment single-level beat.
+## The block renders MODIFIER-STRIPPED here (raw grown values, no bonus
+## segments): the celebration tells the growth story, and there is no
+## at-rest state to restore to — the panel leaves when the beat ends.
 class_name LevelUpStatPanel
 extends Control
 
@@ -26,52 +25,34 @@ extends Control
 signal finished
 
 
-## Stagger between consecutive "+1" reveals — matches LevelUpReportPanel's
-## beat so the two celebrations feel like one system.
-const REVEAL_STAGGER_SECONDS: float = 0.18
-const REVEAL_PUNCH_SECONDS: float = 0.28
 ## Breath after the last reveal before auto-dismiss — long enough to read
 ## eight rows, short enough that the battle doesn't feel paused.
 const LINGER_SECONDS: float = 1.2
 
-const STAT_BAR_WIDTH: float = 64.0
-const STAT_BAR_HEIGHT: int = 3
-
 
 var _character: CharacterData = null
 var _before: Dictionary = {}
-var _plus_labels: Array[GlowLabel] = []
+var _block: LevelUpStatBlock = null
 var _finished: bool = false
 
+## Test/back-compat seam: the reveal seats live on the block now.
+var _plus_labels: Array[GlowLabel]:
+	get: return _block._plus_labels if _block != null else ([] as Array[GlowLabel])
 
-## Everything the reveal needs to diff against, captured BEFORE grant_xp rolls
-## growths: per-stat grown values, the level, and the spendable stat-up pool.
+
+## Delegates — the math moved to LevelUpStatBlock with the extraction
+## (RQD 2026-08-11); these keep the battle-side call sites and the shipped
+## test surface stable.
 static func stat_snapshot(character: CharacterData) -> Dictionary:
-	var stats: Dictionary = {}
-	for entry: Array in UnitSheet.STAT_ROWS:
-		var stat_name: String = str(entry[0])
-		stats[stat_name] = character.get_base_plus_growth(stat_name)
-	return {
-		"level": character.level,
-		"stat_ups": character.available_stat_ups,
-		"stats": stats,
-	}
+	return LevelUpStatBlock.stat_snapshot(character)
 
 
-## The stats whose GROWN value rose since the snapshot, in display order.
 static func grown_stats(before: Dictionary, character: CharacterData) -> Array[String]:
-	var grown: Array[String] = []
-	var stats: Dictionary = before.get("stats", {})
-	for entry: Array in UnitSheet.STAT_ROWS:
-		var stat_name: String = str(entry[0])
-		if character.get_base_plus_growth(stat_name) > int(stats.get(stat_name, 0)):
-			grown.append(stat_name)
-	return grown
+	return LevelUpStatBlock.grown_stats(before, character)
 
 
-## Newly awarded spendable points since the snapshot (level milestones).
 static func stat_ups_gained(before: Dictionary, character: CharacterData) -> int:
-	return maxi(0, character.available_stat_ups - int(before.get("stat_ups", 0)))
+	return LevelUpStatBlock.stat_ups_gained(before, character)
 
 
 func present(character: CharacterData, before: Dictionary) -> void:
@@ -125,13 +106,11 @@ func _build() -> void:
 			UIManager.font_8px, 8, GameColors.TEXT_INFO, GameColors.TEXT_INFO_GLOW)
 	header.add_child(level_label)
 
-	var grown: Array[String] = grown_stats(_before, _character)
-	var show_deltas_immediately: bool = not Settings.ui_motion_enabled
-	for entry: Array in UnitSheet.STAT_ROWS:
-		column.add_child(_stat_row(str(entry[0]), str(entry[1]),
-				grown.has(str(entry[0])), show_deltas_immediately))
+	_block = LevelUpStatBlock.new()
+	_block.build(_character, _before, not Settings.ui_motion_enabled, false)
+	column.add_child(_block)
 
-	var new_stat_ups: int = stat_ups_gained(_before, _character)
+	var new_stat_ups: int = LevelUpStatBlock.stat_ups_gained(_before, _character)
 	if new_stat_ups > 0:
 		var badge := GlowLabel.styled("+%d STAT UP%s" % [new_stat_ups,
 				"" if new_stat_ups == 1 else "S"],
@@ -140,63 +119,9 @@ func _build() -> void:
 		column.add_child(badge)
 
 
-## LABEL · GAUGE · VALUE · [+1] — the sheet's row shape, celebration cut.
-## The bar reads post-level state through the shared component, so caps,
-## at-cap SUCCESS and injury penalties all render exactly as everywhere else.
-func _stat_row(stat_name: String, abbrev: String, grew: bool,
-		show_delta: bool) -> Control:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 5)
-
-	var key := UnitSheet.dim_label(abbrev)
-	key.custom_minimum_size.x = 22
-	key.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(key)
-
-	var bar := StatCapBar.new(stat_name, STAT_BAR_HEIGHT)
-	bar.custom_minimum_size = Vector2(STAT_BAR_WIDTH, STAT_BAR_HEIGHT)
-	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	bar.set_stat(_character, stat_name)
-	row.add_child(bar)
-
-	var capped: bool = StatCapBar.is_at_cap(_character, stat_name)
-	var value_color: Color = GameColors.TEXT_SUCCESS if capped else GameColors.TEXT_PRIMARY
-	var value_glow: Color = GameColors.TEXT_SUCCESS_GLOW if capped else GameColors.TEXT_PRIMARY_GLOW
-	var value := GlowLabel.styled(str(_character.get_stat(stat_name)),
-			UIManager.font_8px, 8, value_color, value_glow)
-	value.custom_minimum_size.x = 16
-	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(value)
-
-	# The "+1" seat exists on every row so the columns line up; only grown
-	# rows ever show theirs. SUCCESS voice: growth is the win condition.
-	var plus := GlowLabel.styled("+1", UIManager.font_8px, 8,
-			GameColors.TEXT_SUCCESS, GameColors.TEXT_SUCCESS_GLOW)
-	plus.custom_minimum_size.x = 14
-	plus.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	plus.visible = grew and show_delta
-	row.add_child(plus)
-	if grew:
-		_plus_labels.append(plus)
-
-	return row
-
-
 func _run_reveal() -> void:
 	if Settings.ui_motion_enabled:
-		for plus: GlowLabel in _plus_labels:
-			if _finished:
-				return
-			await get_tree().create_timer(REVEAL_STAGGER_SECONDS).timeout
-			if _finished or not is_instance_valid(plus):
-				return
-			plus.visible = true
-			plus.pivot_offset = plus.size / 2.0
-			plus.scale = Vector2(1.6, 1.6)
-			var tween := create_tween()
-			tween.tween_property(plus, "scale", Vector2.ONE,
-					REVEAL_PUNCH_SECONDS).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+		await _block.play_reveal()
 	if _finished:
 		return
 	await get_tree().create_timer(LINGER_SECONDS).timeout
@@ -209,8 +134,6 @@ func _finish() -> void:
 	_finished = true
 	# Skip-click while mid-reveal: everything the reveal was going to show
 	# becomes visible before the panel leaves, so a skip never hides a gain.
-	for plus: GlowLabel in _plus_labels:
-		if is_instance_valid(plus):
-			plus.visible = true
-			plus.scale = Vector2.ONE
+	if _block != null:
+		_block.abort_reveal()
 	finished.emit()

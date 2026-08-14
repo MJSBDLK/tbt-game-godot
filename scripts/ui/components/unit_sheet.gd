@@ -29,6 +29,9 @@ signal slot_selected(kind: String, key: Variant)
 ## The sheet mutated the character (StatUp allocation). Rail badges and any
 ## open workbench lane want a refresh; the hub's save latch wants re-arming.
 signal changed
+## The XP row was clicked (slice 4, RQD 2026-08-11): the player wants the
+## bEXP spend view — the screen swaps this sheet for the BexpSpendPanel.
+signal bexp_requested
 
 
 ## Display order + labels, the same convention StatFingerprint and the summary
@@ -103,6 +106,25 @@ static func stat_label(stat_name: String) -> String:
 static func is_empty_move(move: Move) -> bool:
 	return move == null or move.move_id == "empty" or move.move_name == "" \
 			or move.move_name == "—"
+
+
+## The stat NUMBER's voice ladder — [body, glow] (RQD 2026-08-10, DANGER rung
+## added 2026-08-11):
+##   DANGER    effective below the unit's earned (base+growth) value — a
+##             wound is showing, and that outranks even the cap story: a
+##             capped-but-injured stat reading SUCCESS would be a lie
+##   SUCCESS   at the class ceiling — cap beats the modifier stories (Q4)
+##   SECONDARY StatUps invested — the same pale-gold/violet pair the bar's
+##             bonus segment wears, so "modified" is one voice everywhere (Q3)
+##   PRIMARY   otherwise — it's just content
+static func stat_number_voice(character: CharacterData, stat_name: String) -> Array:
+	if int(character.get(stat_name)) < character.get_base_plus_growth(stat_name):
+		return [GameColors.TEXT_DANGER, GameColors.TEXT_DANGER_GLOW]
+	if character.is_at_stat_cap(stat_name):
+		return [GameColors.TEXT_SUCCESS, GameColors.TEXT_SUCCESS_GLOW]
+	if character.get_allocated_points(stat_name) > 0:
+		return [GameColors.TEXT_SECONDARY, GameColors.TEXT_SECONDARY_GLOW]
+	return [GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW]
 
 
 ## Width of `text_value` at the sheet's 8px font. Slot buttons keep their
@@ -228,10 +250,23 @@ func _build_ident() -> void:
 ## track wears StatCapBar's track pair so every gauge on the screen shares
 ## one ground.
 func _build_xp_row() -> void:
+	# The whole row is a slot button (slice 4): clicking it asks the screen
+	# for the bEXP spend view. Content stays anchored inside — width comes
+	# from the sheet's column, so no measuring needed here.
+	var slot := slot_button(false)
+	slot.custom_minimum_size = Vector2(0, 14)
+	slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slot.tooltip_text = "allocate bonus EXP"
+	slot.pressed.connect(func() -> void: bexp_requested.emit())
 	var row := HBoxContainer.new()
+	row.set_anchors_preset(Control.PRESET_FULL_RECT)
+	row.offset_left = 3
+	row.offset_right = -3
 	row.add_theme_constant_override("separation", 5)
-	var margin := _margins(5, 5, 2, 2)
-	margin.add_child(row)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	slot.add_child(row)
+	var margin := _margins(2, 2, 1, 1)
+	margin.add_child(slot)
 	_stack.add_child(margin)
 
 	var key_label := dim_label("XP")
@@ -309,12 +344,7 @@ func _make_stat_row(stat_name: String, abbrev: String) -> Button:
 
 	# `24++` — effective number, allocation tally as suffix (capped at
 	# PER_STAT_CAP = 4, so it can never blow the row width). The number's
-	# voice tells the stat's story at a glance (RQD 2026-08-10):
-	#   SUCCESS   at the class ceiling — cap beats everything (Q4)
-	#   SECONDARY StatUps invested — the same pale-gold/violet pair the old
-	#             UnitDetailPanel's "+N" modifier and the bar's bonus segment
-	#             wear, so "modified" is one voice everywhere (Q3)
-	#   PRIMARY   otherwise — it's just content
+	# voice comes from stat_number_voice — see its docstring for the ladder.
 	# The tally wears INFO (RQD round 3: "looked better in yellow") — it joins
 	# the ★N badge and pool pips in the StatUp-accent gold rather than the
 	# modifier violet-halo pair.
@@ -322,16 +352,9 @@ func _make_stat_row(stat_name: String, abbrev: String) -> Button:
 	value_cluster.add_theme_constant_override("separation", 0)
 	value_cluster.custom_minimum_size = Vector2(28, 0)
 	value_cluster.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var number_color: Color = GameColors.TEXT_PRIMARY
-	var number_glow: Color = GameColors.TEXT_PRIMARY_GLOW
-	if capped:
-		number_color = GameColors.TEXT_SUCCESS
-		number_glow = GameColors.TEXT_SUCCESS_GLOW
-	elif points > 0:
-		number_color = GameColors.TEXT_SECONDARY
-		number_glow = GameColors.TEXT_SECONDARY_GLOW
+	var voice: Array = stat_number_voice(_character, stat_name)
 	var number := GlowLabel.styled(str(_character.get(stat_name)),
-			UIManager.font_8px, 8, number_color, number_glow)
+			UIManager.font_8px, 8, voice[0], voice[1])
 	number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	number.nudge_baseline_down(2)
 	value_cluster.add_child(number)
@@ -606,10 +629,13 @@ func _build_injury_row() -> void:
 		# Injuries wear the DANGER voice, not the azure slot chrome — the chip
 		# is a fact about damage, and its selected wash stays in that voice
 		# (the mockup's chips were sem-danger all along; WARNING was a misread).
-		var chip_style: StyleBoxFlat = chip.get_theme_stylebox("normal") as StyleBoxFlat
-		chip_style.border_color = GameColors.TEXT_DANGER
-		chip_style.set_border_width_all(1)
+		# Border on SELECTION only (RQD 2026-08-11 round 6): an always-on
+		# border read as a bank of pressed buttons; at rest the chip is just
+		# icon + DANGER text on the quiet chrome.
 		if _is_selected("injury", i):
+			var chip_style: StyleBoxFlat = chip.get_theme_stylebox("normal") as StyleBoxFlat
+			chip_style.border_color = GameColors.TEXT_DANGER
+			chip_style.set_border_width_all(1)
 			chip_style.bg_color = GameColors.with_alpha(GameColors.TEXT_DANGER, 0.25)
 
 		var content := HBoxContainer.new()
