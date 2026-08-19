@@ -166,7 +166,51 @@ func test_campaign_state_round_trips_through_json() -> void:
 	assert_eq(captured["mission_paths"], state["mission_paths"])
 	assert_eq(captured["recruited_paths"], state["recruited_paths"])
 	assert_eq(captured["deployment_selection"], state["deployment_selection"])
+	assert_true(bool(captured["deployment_chosen"]),
+			"a non-empty selection is chosen — the flag rides along")
 	assert_true(CampaignManager.is_active(), "index 1 of 2 missions = active campaign")
+
+
+func test_a_benched_everyone_deployment_survives_the_round_trip() -> void:
+	# RQD 2026-08-16: 0/N is a real state. Without the flag an empty list
+	# would reload as "unset" and the hub would re-seed the first cap.
+	CampaignManager.restore_save_state(_json_round_trip({
+		"mission_paths": ["res://scenes/maps/map_a.tscn"],
+		"recruit_pool": [], "recruited_paths": [],
+		"current_mission_index": 0, "start_level": 5,
+		"deployment_selection": [], "deployment_chosen": true,
+	}))
+	assert_true(CampaignManager.has_deployment(), "chosen…")
+	assert_eq(CampaignManager.get_deployment().size(), 0, "…and empty: nobody deploys")
+	assert_true(bool(CampaignManager.capture_save_state()["deployment_chosen"]))
+
+
+func test_a_legacy_save_without_the_flag_reads_empty_as_unset() -> void:
+	# Saves from before the split carry no deployment_chosen; their empty
+	# list WAS the everyone-sentinel, so it must stay "unset" — not become
+	# an unlaunchable 0/N on load.
+	CampaignManager.restore_save_state(_json_round_trip({
+		"mission_paths": ["res://scenes/maps/map_a.tscn"],
+		"recruit_pool": [], "recruited_paths": [],
+		"current_mission_index": 0, "start_level": 5,
+		"deployment_selection": [],
+	}))
+	assert_false(CampaignManager.has_deployment(), "legacy empty = unset = everyone")
+	CampaignManager.restore_save_state(_json_round_trip({
+		"mission_paths": ["res://scenes/maps/map_a.tscn"],
+		"recruit_pool": [], "recruited_paths": [],
+		"current_mission_index": 0, "start_level": 5,
+		"deployment_selection": ["spaceman"],
+	}))
+	assert_true(CampaignManager.has_deployment(), "legacy non-empty = a real choice")
+
+
+func test_set_and_clear_deployment_flip_the_flag() -> void:
+	CampaignManager.set_deployment([])
+	assert_true(CampaignManager.has_deployment(), "an explicit empty write is still a write")
+	CampaignManager.clear_deployment()
+	assert_false(CampaignManager.has_deployment())
+	assert_eq(CampaignManager.get_deployment().size(), 0)
 
 
 # =============================================================================

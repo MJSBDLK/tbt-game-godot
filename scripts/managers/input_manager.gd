@@ -203,7 +203,15 @@ func _unhandled_input(event: InputEvent) -> void:
 					get_viewport().set_input_as_handled()
 					return
 
-	if not input_enabled:
+	# GRID READINESS IS THE BATTLE GATE. This is an autoload, so it keeps
+	# receiving input on menus and the intermission — and every handler below
+	# is battle-only: end turn, escape-to-system-menu, unit info, attack
+	# targeting, board cursor. Without this, Escape on the intermission hub
+	# reached _handle_escape(), read the state as DEFAULT, and opened the
+	# BATTLE pause menu over a screen with no battle behind it (found on F5,
+	# 2026-08-07). _process already gated on exactly this pair; the input path
+	# just never did.
+	if not input_enabled or not GridManager.is_grid_ready():
 		return
 
 	# End turn shortcut (E key)

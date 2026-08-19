@@ -149,7 +149,7 @@ economy was written to avoid.
 
 - **A level costs 100 XP, flat**, at every level and in every tier.
 - **bEXP is a simple pool of spendable XP.** 100 bEXP = one level, for anyone.
-- **All catch-up lives in XP *gain*** — the RD differential formula — never in
+- **All catch-up lives in XP *gain*** — the exponential award formula — never in
   the requirement and never in a purchase price.
 - **Class/build choice never affects XP rate.** See
   [class-and-promotion.md](../data/design/class-and-promotion.md) §4.
@@ -163,10 +163,17 @@ for raising it. Flat pricing makes that legible: *"three levels, that's 300, I
 have 450."* The anti-supersquad work is done by class/type diversity and injury
 attrition, not by XP math ([class-and-promotion.md](../data/design/class-and-promotion.md) §5).
 
-**Code consequences (not yet applied):** delete `SquadManager.bexp_level_cost`
-and its `BEXP_BASE_LEVEL_COST` / `BEXP_MIN_LEVEL_COST` / `BEXP_COST_STEP`
-constants; `buy_bexp_level` charges a flat 100. The BonusXpPanel header's "SPEND
-MODEL (reworked 2026-08-03)" note needs rewriting to match.
+**Code consequences — APPLIED 2026-08-06.** `SquadManager.bexp_level_cost` and
+its three cost constants are gone, replaced by a single `BEXP_LEVEL_COST = 100`;
+`buy_bexp_level` charges it flat. The BonusXpPanel header note and its buy-button
+tooltip were rewritten to match. `CombatXpCalculator` moved to exponential decay
+in the same pass and `TIER_LEVEL_BOOST` was deleted. Pinned by
+`tests/unit/test_squad_manager.gd` and `test_combat_xp.gd`.
+
+One thing the flattening did **not** buy: `buy_bexp_level` still commits
+immediately and irreversibly — the growth rolls happen inside it. The mockup's
+refundable pouring (`[-1]` / `[-10]`) needs a staging layer holding uncommitted
+XP until the player confirms; those buttons can't wire straight through.
 
 ## Open Questions
 

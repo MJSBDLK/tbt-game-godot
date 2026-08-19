@@ -40,6 +40,12 @@ var _peek_hold_start_ms: int = -1
 var _peek_open: bool = false
 
 
+## §14: this panel is furniture — read-only, mouse-transparent. What made it
+## read as pressable was the border art's decorative button rivets, not its
+## brightness: the STATIC-tier self_modulate trial (2026-08-11) muddied the
+## panel and still left the "buttons" there. Since 2026-08-16 the scene wears
+## panel_border_tall_plain.png — Lawrence's own frame minus the two rivet
+## tabs — at full brightness, matching the terrain preview's frame.
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_resolve_nodes()

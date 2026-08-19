@@ -1,3 +1,29 @@
+# Meeting Notes 2026/08/16
+## RQD
+- [x] For the non-interactible HUDs, remove all beep-boop buttons (Done 2026-08-16: the rivet-button tabs were baked into `panel_border_tall.png` — the unit preview's frame. New `panel_border_tall_plain.png` = the same frame with the two tabs removed (built from Lawrence's `panel_border_small.png` rows; a pixel diff vs the tall art shows ONLY the tab regions differ), unit_preview_panel.tscn points at it; the rivet original stays on disk. The STATIC-tier self_modulate dimming on unit preview + combat preview is reverted per the note below — both frames now match the terrain preview at full brightness. The system menu / unit detail panel (interactive) keep their buttons.)
+	- dimming the display did not work well
+- [x] Add a "main menu" option alongside "quit" (Done 2026-08-16: SystemMenuPanel "Main Menu" sits right before Quit → `UIManager._on_system_menu_main_menu` closes the menu (unwinds PAUSED → DEFAULT) and routes to the start screen; BattleScene._exit_tree clears the grid as on a mid-battle load. No confirm, same as Quit and the hub's Quit to Menu — the turn autosave bounds the loss. NOTE pre-existing: New Campaign after returning mid-session reuses the leveled roster (start_campaign never rebuilds it) — same gap the hub's Quit to Menu had.)
+- [x] BUG: When you deselect down to 1 squad member, the "deselect squad member" button appears deselected even though the last unit is selected (Fixed 2026-08-16: the last deployed pip went `disabled`, and disabled pips draw hollow = "benched". Root fix below made the inert rule unnecessary; `REASON_LAST_DEPLOYED` is gone.)
+	- [x] We should actually allow the player to deselect all units (squad size 0/X) but then don't let them start the mission (Done 2026-08-16: `CampaignManager.has_deployment()` splits UNSET ("deploy everyone" legacy fallback for F6/ad-hoc battles) from a CHOSEN EMPTY selection (a real 0/N). Saved as `deployment_chosen` (legacy saves without it: empty = unset). `RosterRail.resolved_deployment(..., chosen)` keeps a chosen empty selection empty instead of re-seeding it on hub arrival; BattleScene honors chosen selections verbatim. Hub: Begin Mission goes inert at 0/N with sub-line "deploy at least one unit"; the summoned cursor skips it. BONUS FIX found while verifying: MainMenuEntry only built its sub label when sub_text was non-empty at _ready, so NONE of the hub's live sub-lines ("4/5 deployed", the bEXP number, Save latch) had ever rendered — sub_text is a live setter now. intermission.md §4c updated.)
+### Unit detail panel
+- [x] The background on the unit detail panel is lighter than the rest of the menus for some reason (Fixed 2026-08-16: the scene root had no stylebox, so it fell back to Godot's default panel — 0.1 gray @ 60% — instead of `HUD_PANEL_BACKGROUND`. `_apply_panel_background()` in unit_detail_panel.gd now stamps the shared menu tint, radius 5 like the system/options/action menus.)
+- [x] Unit detail panel: injury borders are appearing when there's no injury in that slot (Fixed 2026-08-16: empty placeholders keep their footprint — a lone Minor stays Minor-sized — but draw no border; the selection pass used to re-stamp 1px on every injury panel, empties included. Placeholders also no longer take the selection on click.)
+- [x] On the selection border for the passives, I'd like 1px rounded corners, antialiased (Done 2026-08-16: `UnitSheet.SLOT_CORNER_RADIUS = 1` on the shared slot chrome — normal+hover — so the Manage Units sheet rows match; Godot only feathers a StyleBoxFlat once it has a radius. Eyeball: straight edges stay crisp, corner pixel ~50% blend.)
+- [x] "Range" is incorrectly only showing max range, not min range (Fixed 2026-08-16: detail sheet now uses `MoveChipButton.range_text` — "1-3", "1" at melee, "--" for self-target — same helper as the chip band and the peek tooltip. NB: there is no min-range mechanic in the engine yet; every move reaches 1..N.)
+
+
+# Resp
+
+# More ideas
+- [ ] Longer ranged moves should carray an accuracy penalty for striking further away. For example, the sidearm can hit units 3 spaces away, but I'd like for it to be optimal at 2, and a risky shot (~50% accuracy for an average unit targeting an average agility enemy) at 3 spaces. We may want to reconsider allowing it to shoot 1 space, as well.
+- [ ] **Correction (2026-08-11): those icons don't exist.** Full sweep of
+    art/sprites/ui/: elemental, move-type (dmg), injury, status-effect, and
+    buff icon sets — nothing for Pow/Range/AOE/Uses. Closest is
+    `infinity_7x4/9x6.png` (for infinite uses). Needs a Lawrence ask: four
+    ~10×10 glyphs; the tap-tooltip pattern already exists (TapTooltip).
+    Text labels stay until the art lands.
+
+
 # TBT Game — Open Work
 
 Everything still to do. **Completed work + its shipped-notes live in
@@ -11,173 +37,20 @@ everything else, roughly by how soon it matters.
 **Status markers:** `[ ]` not started · `[~]` partially done, detail inline ·
 `[?]` status unknown, needs a look.
 
----
+## Live links
 
-## bEXP screen
-- [ ] flavor text goes at the bottom
-- [ ] keep explanations concise
-- [ ] there should be a [99] button
-- [ ] instead of "2 StatUp to spend" use the same symbol in a pool beneath the stats: StatUps: [ + + ] ... up to [ + + + + + + + + + + ]
-- [ ] include the new stat as well as the original stat, eg.
-  [-] 20+ 22 [+] (workshop this)
-
-## 1. Alpha blockers
-
-- [ ] **Squad / prep + between-mission level-up screen.** *(The single biggest
-  open item — flagged PRIORITY twice, in two different sections, for months.)*
-  Pick squad, equip moves (~330 in the bank), equip passives, distribute stat
-  allocation points. One screen does double duty: initial prep AND the
-  between-mission level-up display (XP gained, stat-up rolls, new moves/passives
-  unlocked). Build initial prep first; the level-up overlay reuses most of the
-  same widgets. See [equipment_picker.md](equipment_picker.md) and
-  [squad_manager.md](squad_manager.md).
-  - Related design note: the level-up moment is a *dopamine beat*, not a text
-    dump — budget polish from day one.
-### Subtasks
-  - [ ] For the bEXP allocation system, I think we should have buttons:
-    [-10][-1][+1][+10][99][100]
-    May want +/- 5 in there. Probably not to start. What do you think?
-    Need a clear pool total to see what we're spending from
-    - **Unblocked 2026-08-05.** These buttons need a flat pool to act on, and
-      that's now the doctrine (below). Once `bexp_level_cost` is gone, they
-      spend from a flat pool at 100/level and the pool total is the readout.
-      ±5 agreed as probably-not-to-start.
-
-  - [ ] **Flatten bEXP to a simple pool** — doctrine amended 2026-08-05
-    ([mission_objectives.md](mission_objectives.md) "XP Economy"). The shipped
-    price-tag model (`100 × level ÷ squad_max`, floor 25) re-introduced
-    "higher level = harder to level" in bEXP currency, which RQD had explicitly
-    argued against; it was recorded as locked but never ratified. Delete
-    `SquadManager.bexp_level_cost` + its three constants, charge a flat 100 in
-    `buy_bexp_level`, rewrite the BonusXpPanel "SPEND MODEL" header note.
-
-  - [ ] **Rework CombatXpCalculator** — decided 2026-08-05, values PROVISIONAL
-    ([class-and-promotion.md](../data/design/class-and-promotion.md) §4 has the
-    rationale and the three-family comparison).
-    - [ ] **Delete `TIER_LEVEL_BOOST`** and the `_internal_level()` indirection.
-      It's a normalization device for FE's reset-on-promotion; our scale is
-      continuous 1–60, so it double-counts and would crater kill XP 70% at levels
-      21 and 41. Dormant today (tier stubbed at 1) but MUST go before tier is ever
-      derived from level. Prune the stale comment at `character_data.gd:30` too.
-    - [ ] **Swap difference → exponential decay:**
-      `xp = base × 2^((their_level − your_level) / k)`. Difference can't jackpot
-      (natural max 89 XP); ratio never stalls. Exponential does both, and gives
-      the underlevelled a **4× premium instead of 1.5×** — which is what makes
-      bringing rookies attractive without nudging.
-    - [ ] Starting dials: **base 80** kill / ~27 hit, **k 15**, floor 1,
-      **no ceiling** (`MAX_XP` retires — the 1–60 range bounds it naturally at
-      ~1200). Every one is a playtest dial; `k` is expected to move most.
-    - [ ] Pacing target to verify: **~2 levels/unit/mission** for the whole squad
-      when the player uses bEXP and fields underlevelled units. Implies a
-      ~30-mission campaign for Lv 1→60. Rests on an estimate of ~1.5 kills per
-      deployed unit — **measure this first**, the whole model hangs off it.
-    - [ ] bEXP income to ~400 pooled/mission (≈2× current) so it closes the last
-      ~0.5 levels/mission.
-
-
-- [ ] **Battle result V2.** V1 shipped (BattleResultPanel: turns-vs-par, itemized
-  bEXP income, kills/losses/injuries). Remaining scope: runtime objective
-  **tracking** (couriers/NPCs — the award side is already ready in MissionCatalog)
-  + per-unit combat stats. See [mission_objectives.md](mission_objectives.md).
-  - [ ] Delete the dormant `battle_result_overlay.tscn` once its slide-in
-    animation is either adopted or given up on.
-
-- [~] **Give all characters at least 9 moves and 9 passives.** Content pass.
-  Gated in practice by the move-distribution bug in §6.
-
----
-
-## 2. "What can I click?" — the interactivity problem
-
-Eight separate tickets across the old file were all this one problem. Playtesters
-cannot tell interactible from non-interactible. §14 of the
-[ui-style-guide](../data/design/ui-style-guide.md) already **locks the vocabulary**
-(lit border = pressable; converging rings = call to action, max one on screen;
-bracket corner ticks = selected) and `InteractiveButton` implements all five
-states — so this is now an **adoption** problem, not a design problem, except
-where noted.
-
-- [ ] **Intermission screens: interactive buttons must read as interactive.**
-  Direct playtest feedback. The intermission screens are getting a full redesign
-  anyway (see [intermission.md](intermission.md)) — fold this in. Open design
-  question specific to this venue: the art direction is *a projection against
-  glass*, so what does interactible-vs-not look like in that idiom?
-
-- [ ] **The combat preview panel looks interactible and isn't.** Confuses new
-  players. Working idea from the original ticket: non-interactible surfaces get
-  dull/dark borders, interactible ones get a border glow. Should just be §14's
-  lit-border rule applied to a read-only panel — verify that reads correctly.
-
-- [ ] **Audit every UI surface against §14.** The catch-all version of the two
-  above. Where the vocabulary isn't adopted yet, adopt it; where §14 has no
-  answer for a venue, extend it.
-
-- [ ] **Display-mode chip look.** Pick from the mockup's three candidates
-  (borderless / ramp-step-down / compact) for preview + other read-only venues.
-  This is the chip-level half of the same question.
-
-- [ ] **Two-line chip + power.** Decide if/when chips grow a second line (power in
-  the damage-type color) — ties into the density-crisis section of the mockup.
-
-- [ ] **Locked moves need a visual.** A literal lock with chain links? A "void"
-  effect for void-locked moves specifically? Strikethrough text? (Void lock
-  already has its own FX — see §4 — this is about locked-ness in general.)
-
-- [ ] **Rework the unit detail panel to use the move styleboxes from the preview
-  panel.** Consistency win, and folds the detail panel into the same vocabulary.
-
-- [ ] **Step indicator: a text box naming the step you're in.** New playtesters
-  struggle to tell "pick where to move" from "select a move" from "select a
-  target." Should be an Options toggle experienced players can turn off.
-  *(Nobody failed at "select a unit" — that step is intuitive enough to skip.)*
-
-- [ ] **In-game legend / glossary.** Lawrence: "is there anywhere you can see what
-  all these icons mean?" Tooltip mode helps but a real glossary probably earns its
-  keep.
-
----
-
-## 3. Playtest & eyeball queue
-
-**Built, tested, headless-green — needs human eyes in a running game.** This is
-the cheapest-value-per-minute list in the file: it's all verification, no
-construction. Several items have been sitting here through multiple shipped
-features.
-
-### Needs RQD in-game
-- [ ] **bEXP / post-battle economy.** Full 2-mission loop, then tune par values.
-  Every number is a named dial.
-- [ ] **Phase 4 (Roar / Shriek).** Callout pacing on strike day, mark icon
-  legibility, flourish pulse. Tuning guesses to confirm: Shriek strike 6 /
-  2-stack marks / AoE 5 / PP 3; Roar AoE 2 / PP 8; CHALLENGED = hard target lock
-  for its 3-turn tick-down; chain arcs faction-blind at Chebyshev-1 reach;
-  support casts award no XP; Steady's existence + its cleanse list.
-- [ ] **Blood Mage shadow fix.** Fixed 2026-08-03 (atlas-path characters never set
-  `_art_feet_drop`, so shadows cast from the waist). Verify in-game, then **delete
-  `image.png`, `image-1.png`, `image-2.png`, `image-3.png` from `.claude/`.**
-- [~] **Threat-overlay static/scanline treatment.** Trial shipped 2026-07-30 —
-  glass static + scanlines now ride every grid overlay. Defaults deliberately
-  visible for the eyeball. Awaiting RQD + Lawrence verdict and tuning.
-- [ ] **Grid live-paint on chip focus.** Intent colors (red damaging / green
-  healing / blue neither) over the green movement tint, static intensity, and
-  whether the preview readout's chips deserve the same on hover.
-- [ ] **Void lock FX.** In-game GPU eyeball. Then: the icon→void-glyph swap, and
-  whether detail-panel tablets need true desaturation.
-- [ ] **Crit feedback.** "CRIT!" popup + hit flash are wired; not headless-testable.
-- [ ] **Save system leftovers.** Yellow 7 / Azure 7 ramp-step eyeball; mid-battle
-  browser-load scene-swap (the one path headless can't cover); Steam Deck path
-  check; KIND_MANUAL slot management polish (overwrite/delete); save-browser
-  visual pass (functionality-first scaffold, Lawrence styling later).
-- [ ] **Controller peek button.** `tooltip_peek` is mapped to BOTH Back and R3 —
-  playtest and cull one.
-- [~] **STAB.** Mechanic shipped (1.2× `STAB_MULTIPLIER`). Open: in-game eyeball,
-  and whether STAB deserves its own callout/badge beyond just a bigger number.
-
-### Needs Lawrence in-game (F6 gallery)
-- [~] **Unit cast shadows.** Override knob is character JSON
-  `sprite.shadowBlobRadius` (0 = casts no blob); global taste = the `SHADOW_*`
-  consts. Double/triple-darkening between units is pre-approved.
-- [~] **Assigned ≠ selected marker (marquee orbit).** In-engine, Gray 10/9/8/7 on
+- **Intermission UI mockup** — <https://claude.ai/code/artifact/c4001371-950b-4d7e-8dc2-6fd619f787bb>
+  Screens 1–2 of 7, interactive. Source of truth is
+  [data/design/mockups/intermission-ui-mockup.html](../data/design/mockups/intermission-ui-mockup.html)
+  in this repo; the URL is a republish of that file, so **edit the file and
+  republish to the same URL** rather than starting a new artifact. Design
+  rationale per round lives in the notes column of the page itself.
+  - Still undecided in there: **2b vs 2c** (bEXP inside Manage Units vs its own
+    screen), the **button set** (symmetric amounts vs named jumps), and whether
+    **bEXP should reach benched units**.
+- **Battle HUD mockup** — <https://claude.ai/code/artifact/d13f16f7-a4a2-47e2-9cbe-9b2e5c1107cd>
+  In-battle widgets, one tab per widget; only the **hint / command bar** so far
+  (round 1, 2026-08-16). Source7 on
   the chip's border ring, 50 px/s (`ORBIT_SPEED_PX_PER_SECOND` is the tinker
   knob), core = step = 3. Wants eyes on: F. Lance (live orbit), Spark (orbit over
   the depleted grey tier), tail wrap on short edges. Static fallbacks (edge bar /
@@ -290,6 +163,21 @@ foundation shipped. What's left is **deliberate deferral, not loose ends**:
 
 ## 6. Bugs
 
+- [x] **Displacement arrows rendered under terrain modifiers and units**
+  (Lawrence 2026-08-05) — **FIXED same day.** Root cause worth remembering: board
+  z is `(99 − row) × 10 + layer`, spanning 0..998, so the **row term dominates**
+  and the 0–8 layer enum only orders *within* a row. The renderer used a flat
+  `z_index = 2`, commented "one slot above the move-range paint, still under
+  units" — reasoning in layer-enum terms while setting an absolute z. That
+  cleared only the back row's floor tiles; everything in front buried it. Now
+  1000, above the board max (998) and the flat vignette (4), because a targeting
+  preview has to be legible over whatever it crosses. Ghosts ride the same node
+  deliberately. Pinned by three tests in test_displacement_preview.gd that assert
+  the *invariant* (outranks any board z, outranks a front-row unit) rather than
+  the magic number.
+- [x] **Displacement arrows too thin** — `ARROW_WIDTH` 1.0 → 2.0, guarded by a
+  test so it can't silently revert.
+
 **Two save-loss defects, both decided 2026-08-04 — design in
 [intermission.md](intermission.md) §2c/§2d. These are live in the current build,
 independent of the intermission redesign.**
@@ -381,7 +269,13 @@ Each of these is blocked on a decision, not on work.
   Ties into the locked target-scheme color language (target type = color, epicenter
   visually distinct). Depends on §4's range icons.
 
-- [?] **Cancel/confirm input hints.** Status unknown — check whether this shipped.
+- [ ] **Cancel/confirm input hints → hint / command bar.** Never shipped (no hint
+  component exists in `scripts/ui/`). Now the playtester ask ("show the useful
+  functions") + the mobile requirement (touch has no button to press for End
+  turn / Menu / Threat zones — the bar IS the control surface there). Mocked
+  round 1 in the Battle HUD mockup (Live links above); port after RQD's picks.
+  Hooks: `GameStateManager.state_changed` + `InputSource.last_kind` sampled at
+  the boundary. Persist a `Settings.show_control_hints` toggle.
 
 ---
 
@@ -427,6 +321,10 @@ Each of these is blocked on a decision, not on work.
   constrained attack cursor both shipped); this is the **menu half** only.
 - [ ] **Icons inside text boxes.** Needs full elementalType / boost / affliction /
   injury icon sets. *(Anything else?)*
+- [ ] **Proofread all AI-generated text.** Go through every AI-generated
+  description, flavor text, blurb, tooltip, etc. (moves, passives, characters,
+  classes, terrain, injuries) and proofread it — voice, accuracy against the
+  actual mechanic, typos.
 - [ ] **Visual feedback for EVERY passive that triggers.** Currently silent.
 - [ ] **Visual feedback when boosts and afflictions clear.**
 - [ ] **Void lock FX density** — tune frequency/extent for larger styleboxes.
@@ -440,6 +338,7 @@ Each of these is blocked on a decision, not on work.
 - [ ] **Split `StatusEffectType` into `AfflictType` + `BoostType`.** Significant
   rewiring across the game logic, but there's no real alternative: units need to
   carry a boost and an affliction simultaneously.
+- [ ] **size 5 font** - replace the letter "B" and numeral "8" with custom characters
 
 ---
 

@@ -11,8 +11,14 @@
 ##
 ## Bar length tiers drive color so a glance tells you the unit's standout
 ## stats without having to count pixels: short = weak, mid = average, long
-## = strong. Divisors are tuned to DEFAULT_STAT_CAPS (HP 100, others 50)
+## = strong. Divisors are tuned to ClassStatCaps.GLOBAL (HP 100, others 50)
 ## so a maxed stat is the longest bar (5px).
+##
+## Scaled GLOBALLY on purpose, never per-class. This widget's whole job is
+## comparing units at a glance, and a class-relative scale would draw a Heavy's
+## DEF and a Mage's DEF the same length at wildly different real values —
+## exactly the comparison it exists to make. Per-class headroom is [StatCapBar]'s
+## job; this one answers "who is bigger", not "who is closer to done".
 class_name StatFingerprint
 extends Control
 

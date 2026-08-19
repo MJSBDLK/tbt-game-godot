@@ -27,7 +27,12 @@ signal campaign_ended()
 
 
 const START_SCREEN_PATH: String = "res://scenes/ui/start_screen.tscn"
-const PREP_SCREEN_PATH: String = "res://scenes/ui/prep_screen.tscn"
+## Every mission boundary lands on the intermission HUB (2026-08-07), not
+## straight into the squad editor. The hub is the quiet beat between the battle
+## and the spreadsheet, and it owns Save / Options / Begin Mission; Manage Units
+## is one entry inside it (the three-column workspace — see
+## IntermissionHub.MANAGE_UNITS_PATH).
+const INTERMISSION_PATH: String = "res://scenes/ui/intermission_hub.tscn"
 const CAMPAIGN_COMPLETE_SCREEN_PATH: String = "res://scenes/ui/campaign_complete_screen.tscn"
 const RECRUIT_OFFER_COUNT: int = 3
 
@@ -65,10 +70,19 @@ var _current_mission_index: int = -1
 var _start_level: int = 5
 
 # Player's deployment choice for the upcoming mission. Subset of character_ids
-# from SquadManager's active roster. Set by prep_screen via set_deployment()
-# right before deploy_to_current_mission(). Empty list means "deploy everyone"
-# (the legacy behavior — used as fallback if prep screen never set it).
+# from SquadManager's active roster, ALWAYS in roster order (spawn order is
+# roster order — intermission.md §4d). Seeded by the intermission hub on
+# arrival, rewritten by the Manage Units rail on every pip toggle.
+#
+# UNSET vs. EMPTY (RQD 2026-08-16): `_deployment_chosen` says whether anyone
+# has written a selection yet. Unset → "deploy everyone" (the legacy fallback
+# for ad-hoc battles that never passed through the hub — F6 on a map). Chosen
+# and EMPTY → the player benched everyone; that's a real 0/N the hub shows and
+# refuses to launch, not a request to deploy the whole roster. Before this
+# split, an empty list WAS the everyone-sentinel, which is why the rail had
+# to forbid benching the last unit.
 var _deployment_selection: Array[String] = []
+var _deployment_chosen: bool = false
 
 
 # =============================================================================
@@ -85,6 +99,9 @@ func start_campaign(start_level: int, mission_paths: Array[String],
 	_recruit_pool = recruit_pool.duplicate()
 	_recruited_paths.clear()
 	_current_mission_index = 0
+	# A selection carried from a previous campaign in this session names a
+	# different roster's people — the hub re-seeds a fresh one on arrival.
+	clear_deployment()
 
 	# Auto-level the player's bootstrapped roster up to the campaign start level.
 	# SquadManager's _bootstrap_default_roster has already loaded these from JSON
@@ -95,7 +112,7 @@ func start_campaign(start_level: int, mission_paths: Array[String],
 	campaign_started.emit(_start_level, _mission_paths)
 	DebugConfig.log_unit_init("CampaignManager: Started campaign — level %d, %d missions, %d in recruit pool" % [
 		_start_level, _mission_paths.size(), _recruit_pool.size()])
-	SceneRouter.change_scene_to(PREP_SCREEN_PATH)
+	SceneRouter.change_scene_to(INTERMISSION_PATH)
 
 
 ## Entry point called by UIManager._finish_post_mission_flow at the end of
@@ -150,7 +167,7 @@ func advance_mission() -> void:
 	mission_advanced.emit(_current_mission_index)
 	DebugConfig.log_unit_init("CampaignManager: Advancing to mission %d/%d (via prep screen)" % [
 		_current_mission_index + 1, _mission_paths.size()])
-	SceneRouter.change_scene_to(PREP_SCREEN_PATH)
+	SceneRouter.change_scene_to(INTERMISSION_PATH)
 
 
 ## The defeat branch of conclude_mission. Replays the current mission without
@@ -164,24 +181,40 @@ func _restart_current_mission() -> void:
 	mission_restarted.emit(_current_mission_index)
 	DebugConfig.log_unit_init("CampaignManager: Replaying mission %d/%d after defeat" % [
 		_current_mission_index + 1, _mission_paths.size()])
-	SceneRouter.change_scene_to(PREP_SCREEN_PATH)
+	SceneRouter.change_scene_to(INTERMISSION_PATH)
 
 
 ## Records which roster members the player has chosen to deploy in the next
-## mission. Called by prep_screen right before deploy_to_current_mission().
-## Empty array = "deploy everyone" (legacy fallback for callers that never set it).
+## mission. Called by the intermission hub (arrival seeding) and the Manage
+## Units rail (pip toggles), both of which pass ids in roster order. An empty
+## array is a real choice — nobody — and marks the selection chosen; see
+## has_deployment().
 func set_deployment(character_ids: Array[String]) -> void:
 	_deployment_selection = character_ids.duplicate()
+	_deployment_chosen = true
 
 
-## Returns the player's deployment selection. Empty array means no filter
-## (deploy everyone). BattleScene reads this when spawning player units.
+## Back to UNSET: no selection on record, spawn logic falls back to everyone.
+func clear_deployment() -> void:
+	_deployment_selection.clear()
+	_deployment_chosen = false
+
+
+## Whether a deployment has been written at all. False = unset = "deploy
+## everyone" (BattleScene) / "seed the first cap" (hub arrival). True with an
+## empty get_deployment() = the player benched everyone.
+func has_deployment() -> bool:
+	return _deployment_chosen
+
+
+## Returns the player's deployment selection. Only meaningful when
+## has_deployment() — an unset selection reads empty too, and means everyone.
 func get_deployment() -> Array[String]:
 	return _deployment_selection.duplicate()
 
 
 ## Loads the actual mission scene for the current mission_index. Called by
-## prep_screen's Begin Mission button after the player confirms their squad.
+## the intermission hub's Begin Mission entry.
 func deploy_to_current_mission() -> void:
 	if not is_active():
 		push_warning("CampaignManager: deploy_to_current_mission() called with no active campaign")
@@ -387,6 +420,7 @@ func capture_save_state() -> Dictionary:
 		"current_mission_index": _current_mission_index,
 		"start_level": _start_level,
 		"deployment_selection": _deployment_selection.duplicate(),
+		"deployment_chosen": _deployment_chosen,
 	}
 
 
@@ -397,6 +431,9 @@ func restore_save_state(state: Dictionary) -> void:
 	_recruit_pool.assign(_to_string_array(state.get("recruit_pool", [])))
 	_recruited_paths.assign(_to_string_array(state.get("recruited_paths", [])))
 	_deployment_selection.assign(_to_string_array(state.get("deployment_selection", [])))
+	# Saves from before the unset/empty split (2026-08-16) carry no flag: an
+	# empty list there was the everyone-sentinel, so it reads as unset.
+	_deployment_chosen = bool(state.get("deployment_chosen", not _deployment_selection.is_empty()))
 	_current_mission_index = int(state.get("current_mission_index", -1))
 	_start_level = int(state.get("start_level", FALLBACK_DEFAULT_LEVEL))
 

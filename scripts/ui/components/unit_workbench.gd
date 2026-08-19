@@ -1,0 +1,1075 @@
+## The WORKBENCH — right column of Manage Units ([.claude/intermission.md]
+## §3c–§3d). Downstream of whatever slot the sheet has selected: it offers
+## what fits in that slot. No mode toggle, no tabs — the lane is implied by
+## what was clicked. This absorbs EquipmentPicker's bank, filters, and detail
+## (its mode toggle and carry/swap state machine are the things that die).
+##
+## READING BEATS SWAPPING (§3c). The lane reads top to bottom detail → swap
+## bar → bank. Clicking an equipped slot is an INSPECT: the thing you touched
+## gets the headline and nothing suggests you were about to change it. Picking
+## a bank entry is the second, explicit step — the detail switches to the
+## CANDIDATE (you're now reading about the incoming move) while the swap bar
+## keeps the outgoing one's numbers in view. Clicking the same bank row again
+## drops the candidate. Equip commits live, no confirm (squad_manager.md §6).
+##
+## Lanes: move / passive (bank + swap), stat (pure meaning — the +/− live on
+## the sheet row, so this panel explains: what the stat does, where it stands
+## against its cap, and the same stat across the squad), injury (real copy),
+## and the unit summary when nothing is selected. The bEXP lane on the level
+## row is slice 4.
+class_name UnitWorkbench
+extends PanelContainer
+
+
+## An equip was committed (live, already written to CharacterData). The sheet
+## and rail want a refresh; the hub's save latch wants re-arming.
+signal changed
+
+
+## What each stat DOES — §3d's sleeper win. Nothing else in the game explains
+## that ATH is attack count, and this panel is the permanent home for that
+## copy at exactly the moment the player cares. Wording locked in the mockup.
+const STAT_BLURBS: Dictionary = {
+	"max_hp": "Hit points. How much punishment you absorb before you go down.",
+	"strength": "Strength. Drives damage on physical moves.",
+	"special": "Special. Drives damage on special moves.",
+	"skill": "Skill. Accuracy — each point adds about 1.5% to your hit chance.",
+	"agility": "Evasion. Each point takes about 1.5% off the attacker's hit chance.",
+	"athleticism": "Athleticism. Attack count — outpace the defender's ATH and you strike more than once.",
+	"defense": "Defense. Cuts physical damage taken.",
+	"resistance": "Resistance. Cuts special damage taken.",
+}
+
+const ICON_SIZE: int = 10
+const GLOW_MATERIAL_PATH: String = "res://resources/hud_glow.tres"
+
+## ACROSS THE SQUAD rows carry a mini StatCapBar (RQD 2026-08-11 mockup):
+## the bar's fill pixels are comparable across units by construction, which
+## is exactly the comparison the list exists to make. Flip false to restore
+## the numbers-only table.
+const SQUAD_COMPARE_BARS: bool = true
+
+## SERVICE-RECORD GAP MARKUP. Authors write unknown canon inline as
+## `[[note about the gap]]` — the note names what's missing ("Ernesto's last
+## name — undecided") and NEVER renders. In-game the span reads
+## [ DATA CORRUPTED ], muted, shaking when motion is enabled — diegetically,
+## the squad may have tampered with their own records.
+##
+## Second marker flavor (RQD 2026-08-11): `[[ NO DATA ]]` renders a still,
+## muted [ NO DATA ] — the corp AI never had the fact, nobody tampered, so it
+## doesn't shake. Case-insensitive; `[[ NO DATA: note ]]` attaches an author
+## note when the absence is also a canon gap to fill later (a bare
+## `[[ NO DATA ]]` is CANONICAL absence and stays off the backlog).
+## List every open gap:
+##   grep -o '\[\[[^]]*\]\]' data/characters/*.json
+const GAP_OPEN: String = "[["
+const GAP_CLOSE: String = "]]"
+const CORRUPTED_TEXT: String = "[ DATA CORRUPTED ]"
+const NO_DATA_TEXT: String = "[ NO DATA ]"
+const NO_DATA_MARKER: String = "NO DATA"
+const ELEMENTAL_ICON_DIR: String = "res://art/sprites/ui/elemental_type_icons_10x10/"
+## Damage-type icons — the COLORED set in move_type_icons_10x10/ (the flat
+## ui/ copies were black silhouettes and got retired 2026-08-10 when they
+## shipped to a build looking like ink blots). `special_a` is one of seven
+## candidate special glyphs (`special_a`…`special_g`) — nobody has picked the
+## final one (§3f open question), so the mockup's choice carries over.
+const DAMAGE_ICON_PATHS: Dictionary = {
+	Enums.DamageType.PHYSICAL: "res://art/sprites/ui/move_type_icons_10x10/physical.png",
+	Enums.DamageType.SPECIAL: "res://art/sprites/ui/move_type_icons_10x10/special_a.png",
+	Enums.DamageType.SUPPORT: "res://art/sprites/ui/move_type_icons_10x10/support.png",
+}
+
+
+var _character: CharacterData = null
+var _kind: String = "none"
+var _key: Variant = null
+## The deployed squad, for the stat lane's ACROSS THE SQUAD list.
+var _squad: Array[CharacterData] = []
+## Candidate picked from the bank ("" = nothing picked, reading the equipped).
+var _bank_pick: String = ""
+## Filter sets persist across lane changes and units, like a real workshop
+## leaves its jigs where you set them.
+var _damage_filter: Dictionary = {}
+var _element_filter: Dictionary = {}
+
+var _head_label: GlowLabel = null
+var _body: VBoxContainer = null
+
+
+func _ready() -> void:
+	var style := StyleBoxFlat.new()
+	style.bg_color = GameColors.HUD_PANEL_BACKGROUND
+	style.border_color = GameColorPalette.get_color("Straw2", 3)
+	style.set_border_width_all(1)
+	add_theme_stylebox_override("panel", style)
+
+	var stack := VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 0)
+	add_child(stack)
+
+	_head_label = GlowLabel.styled("", UIManager.font_8px, 8,
+			GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
+	var head_margin := MarginContainer.new()
+	head_margin.add_theme_constant_override("margin_left", 5)
+	head_margin.add_theme_constant_override("margin_top", 3)
+	head_margin.add_theme_constant_override("margin_bottom", 3)
+	head_margin.add_child(_head_label)
+	stack.add_child(head_margin)
+
+	var hairline := ColorRect.new()
+	hairline.custom_minimum_size = Vector2(0, 1)
+	hairline.color = GameColorPalette.get_color("Straw2", 2)
+	hairline.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stack.add_child(hairline)
+
+	_body = VBoxContainer.new()
+	_body.add_theme_constant_override("separation", 0)
+	_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	stack.add_child(_body)
+	_rebuild()
+
+
+# =============================================================================
+# PURE CORE — bank building and equip commits, pinned by tests
+# =============================================================================
+
+## The move bank: learnable pool minus what's equipped, alphabetized (the
+## predictability rule — same reason rail search is substring). Filter sets
+## hold enum values; an empty set means "no filter", not "nothing".
+static func move_bank(character: CharacterData, damage_filter: Dictionary,
+		element_filter: Dictionary) -> Array[String]:
+	var equipped_names: Dictionary = {}
+	for move: Move in character.equipped_moves:
+		if move != null:
+			equipped_names[move.move_name] = true
+	var available: Array[String] = []
+	for name: String in character.base_pool_moves:
+		if equipped_names.has(name):
+			continue
+		var move: Move = MoveData.get_move(name)
+		if move == null:
+			continue
+		if not damage_filter.is_empty() and not damage_filter.has(move.damage_type):
+			continue
+		if not element_filter.is_empty() and not element_filter.has(move.element_type):
+			continue
+		available.append(name)
+	available.sort()
+	return available
+
+
+## `R1` / `R1-3` — attack range is 1..N INCLUSIVE (move_targeting runs
+## get_tiles_within_range, distance 1 through attack_range), so a bare "R3"
+## lied by omission: it read as "only at 3" when the move also hits adjacent.
+## No minimum-range mechanic exists in the engine; if one ever does, this is
+## the one place the label needs to learn it.
+static func range_text(move: Move) -> String:
+	if move.attack_range <= 1:
+		return "1"
+	return "1-%d" % move.attack_range
+
+
+## Whether toggling this chip on (in its own dimension, keeping the OTHER
+## dimension's active filters) would show any bank rows. Chips that answer
+## "no" gray out but stay clickable — pressing one lands on the bank's
+## "nothing matches" message rather than a dead control (RQD 2026-08-11).
+static func filter_chip_has_entries(character: CharacterData, chip_damage_filter: Dictionary,
+		chip_element_filter: Dictionary) -> bool:
+	return not move_bank(character, chip_damage_filter, chip_element_filter).is_empty()
+
+
+static func passive_bank(character: CharacterData) -> Array[String]:
+	var equipped_names: Dictionary = {}
+	for passive: Variant in character.equipped_passives:
+		if passive != null:
+			equipped_names[str(passive)] = true
+	var available: Array[String] = []
+	for name: String in character.base_pool_passives:
+		if not equipped_names.has(name):
+			available.append(name)
+	available.sort()
+	return available
+
+
+## Live commit of a bank move into an equipped slot. The displaced move falls
+## back into the bank automatically — the bank is always recomputed as pool
+## minus equipped. Appends empty slots when equipping past the current list
+## length (filling slot 3 of a unit with 2 moves).
+static func equip_move(character: CharacterData, slot_index: int, move_name: String) -> bool:
+	var new_move: Move = MoveData.get_move(move_name)
+	if new_move == null or slot_index < 0:
+		return false
+	while character.equipped_moves.size() <= slot_index:
+		character.equipped_moves.append(Move.EMPTY)
+	character.equipped_moves[slot_index] = new_move
+	return true
+
+
+static func equip_passive(character: CharacterData, slot_index: int, passive_name: String) -> bool:
+	if PassiveData.get_passive(passive_name) == null or slot_index < 0:
+		return false
+	while character.equipped_passives.size() <= slot_index:
+		character.equipped_passives.append(null)
+	character.equipped_passives[slot_index] = passive_name
+	return true
+
+
+## `8 - capped` open stats — the number the at-cap explainer quotes.
+static func open_stat_count(character: CharacterData) -> int:
+	var open: int = 0
+	for entry: Array in UnitSheet.STAT_ROWS:
+		var stat_name: String = str(entry[0])
+		if character.get_base_plus_growth(stat_name) < character.get_stat_cap(stat_name):
+			open += 1
+	return open
+
+
+# =============================================================================
+# PUBLIC API
+# =============================================================================
+
+## The deployed squad, freshest copy — only the stat lane reads it.
+func set_squad(squad: Array[CharacterData]) -> void:
+	_squad = squad
+
+
+## Point the bench at a slot. Clears any half-picked candidate — a candidate
+## belongs to the lane it was picked in.
+func show_lane(character: CharacterData, kind: String, key: Variant) -> void:
+	_character = character
+	_kind = kind
+	_key = key
+	_bank_pick = ""
+	_rebuild()
+
+
+# =============================================================================
+# LANE DISPATCH
+# =============================================================================
+
+func _rebuild() -> void:
+	if _body == null:
+		return
+	for child: Node in _body.get_children():
+		child.queue_free()
+	if _character == null:
+		_head_label.text = "UNIT SUMMARY"
+		return
+	match _kind:
+		"move":
+			_head_label.text = "MOVE SLOT %d" % [int(_key) + 1]
+			_build_equip_lane(true)
+		"passive":
+			_head_label.text = "PASSIVE SLOT %d" % [int(_key) + 1]
+			_build_equip_lane(false)
+		"stat":
+			_head_label.text = "STAT — %s" % UnitSheet.stat_label(str(_key))
+			_build_stat_lane()
+		"injury":
+			_head_label.text = "INJURY"
+			_build_injury_lane()
+		_:
+			_head_label.text = "UNIT SUMMARY"
+			_build_summary_lane()
+
+
+# =============================================================================
+# MOVE / PASSIVE LANE — detail, swap bar, filters, bank
+# =============================================================================
+
+func _equipped_name(is_move: bool) -> String:
+	var index: int = int(_key)
+	if is_move:
+		if index < _character.equipped_moves.size() \
+				and not UnitSheet.is_empty_move(_character.equipped_moves[index]):
+			return _character.equipped_moves[index].move_name
+		return ""
+	if index < _character.equipped_passives.size() and _character.equipped_passives[index] != null:
+		return str(_character.equipped_passives[index])
+	return ""
+
+
+func _build_equip_lane(is_move: bool) -> void:
+	var equipped: String = _equipped_name(is_move)
+	# With nothing picked from the bank, the detail describes what's already
+	# in the slot — "what does this move do" answered without a swap in sight.
+	var shown: String = _bank_pick if _bank_pick != "" else equipped
+
+	if shown != "":
+		if is_move:
+			_build_move_detail(MoveData.get_move(shown))
+		else:
+			_build_passive_detail(shown)
+	else:
+		_build_detail_text("Empty slot", "", "Pick something below to equip it.")
+
+	_build_swap_bar(is_move, equipped)
+	if is_move:
+		_build_filters()
+	_build_bank(is_move)
+
+
+func _build_move_detail(move: Move) -> void:
+	if move == null:
+		return
+	var box := _detail_box()
+	box.add_child(_headline(move.move_name))
+	var meta := HBoxContainer.new()
+	meta.add_theme_constant_override("separation", 3)
+	_add_damage_icon(meta, move.damage_type)
+	_add_type_icon(meta, move.element_type)
+	var meta_label := _dim_label("%s · Range %s · AOE %d · Uses %d" % [
+			("Pow %d" % move.base_power) if move.base_power > 0 else "no damage",
+			range_text(move), move.area_of_effect, move.max_uses])
+	meta_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	meta.add_child(meta_label)
+	box.add_child(meta)
+	box.add_child(_body_copy(move.description))
+
+
+func _build_passive_detail(passive_name: String) -> void:
+	var box := _detail_box()
+	box.add_child(_headline(passive_name))
+	box.add_child(_dim_label("Passive"))
+	box.add_child(_body_copy(PassiveData.get_description(passive_name)))
+
+
+## `meta_color`/`meta_glow` default to the SECONDARY structural voice; lanes
+## with a semantic claim on their meta line (injury → DANGER) override.
+func _build_detail_text(title: String, meta: String, copy: String,
+		meta_color: Color = GameColors.TEXT_SECONDARY,
+		meta_glow: Color = GameColors.TEXT_SECONDARY_GLOW) -> void:
+	var box := _detail_box()
+	box.add_child(_headline(title))
+	if meta != "":
+		box.add_child(GlowLabel.styled(meta, UIManager.font_8px, 8, meta_color, meta_glow))
+	if copy != "":
+		box.add_child(_body_copy(copy))
+
+
+## The second, explicit step lives here. Reading state: "equipped — pick one
+## below to swap it out". Candidate state: the outgoing item's name + numbers
+## stay in view next to the one button that commits.
+func _build_swap_bar(is_move: bool, equipped: String) -> void:
+	var bar := HBoxContainer.new()
+	bar.add_theme_constant_override("separation", 4)
+	var margin := _margins(5, 5, 3, 3)
+	margin.add_child(bar)
+	_body.add_child(margin)
+
+	if _bank_pick == "" or _bank_pick == equipped:
+		bar.add_child(_dim_label("equipped — pick one below to swap it out" \
+				if equipped != "" else "empty slot — pick one below to equip"))
+		return
+
+	var verb := _dim_label("replaces" if equipped != "" else "fills this slot")
+	verb.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	bar.add_child(verb)
+
+	if equipped != "":
+		var out_label := GlowLabel.styled(equipped, UIManager.font_8px, 8,
+				GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
+		out_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		bar.add_child(out_label)
+		if is_move:
+			var out_move: Move = MoveData.get_move(equipped)
+			if out_move != null:
+				var numbers := _dim_label("%s R%s" % [
+						("Pow %d" % out_move.base_power) if out_move.base_power > 0 else "—",
+						range_text(out_move)])
+				numbers.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+				bar.add_child(numbers)
+
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar.add_child(spacer)
+
+	# §14: the lit border marks the one press that changes something — and it
+	# glows, text AND outline (RQD 2026-08-10). Composition: the stylebox
+	# carries only the bg fill (opaque draws pass through the glow shader
+	# untouched), the Button's material glows the glyphs, and the outline is a
+	# border_mode GlowColorRect overlaid on top — it only paints the 1px ring
+	# and its halo, so it never covers the text.
+	var equip_button := Button.new()
+	equip_button.text = "Equip"
+	equip_button.custom_minimum_size = Vector2(40, 15)
+	if UIManager.font_8px != null:
+		equip_button.add_theme_font_override("font", UIManager.font_8px)
+	equip_button.add_theme_font_size_override("font_size", 8)
+	equip_button.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
+	var text_glow := (load(GLOW_MATERIAL_PATH) as Material).duplicate()
+	(text_glow as ShaderMaterial).set_shader_parameter("glow_color",
+			GameColors.TEXT_PRIMARY_GLOW)
+	equip_button.material = text_glow
+	var button_style := StyleBoxFlat.new()
+	button_style.bg_color = GameColors.ACTION_BUTTON_BG_NORMAL
+	# The same UndeadPixel baseline correction the sheet rows get: tilt the
+	# margins so the label sits 1px lower without growing the button.
+	button_style.content_margin_top = 1
+	button_style.content_margin_bottom = -1
+	equip_button.add_theme_stylebox_override("normal", button_style)
+	var button_hover := button_style.duplicate() as StyleBoxFlat
+	button_hover.bg_color = GameColors.ACTION_BUTTON_BG_HOVERED
+	equip_button.add_theme_stylebox_override("hover", button_hover)
+	equip_button.add_theme_stylebox_override("pressed", button_hover)
+	equip_button.add_theme_stylebox_override("focus", button_style)
+
+	var outline := GlowColorRect.new()
+	outline.material = (load(GLOW_MATERIAL_PATH) as Material).duplicate()
+	outline.border_mode = true
+	# border_mode reads the ring color from vertex COLOR = color × self_modulate;
+	# keep color white so self_modulate alone names the border state.
+	outline.color = Color.WHITE
+	outline.self_modulate = GameColors.INTERACTIVE_BORDER_IDLE
+	outline.glow_color = GameColors.TEXT_PRIMARY_GLOW
+	outline.set_anchors_preset(Control.PRESET_FULL_RECT)
+	outline.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	equip_button.add_child(outline)
+	equip_button.mouse_entered.connect(func() -> void:
+		outline.self_modulate = GameColors.INTERACTIVE_BORDER_FOCUS)
+	equip_button.mouse_exited.connect(func() -> void:
+		outline.self_modulate = GameColors.INTERACTIVE_BORDER_IDLE)
+
+	equip_button.pressed.connect(_on_equip_pressed.bind(is_move))
+	bar.add_child(equip_button)
+
+
+func _on_equip_pressed(is_move: bool) -> void:
+	# Live commit, no confirm — squad_manager.md §6.
+	var committed: bool = equip_move(_character, int(_key), _bank_pick) if is_move \
+			else equip_passive(_character, int(_key), _bank_pick)
+	if not committed:
+		return
+	_bank_pick = ""
+	_rebuild()
+	changed.emit()
+
+
+## Damage types then elements, all as their real 10×10 art (§3f) — toggling
+## chips shrinks the bank live.
+func _build_filters() -> void:
+	var flow := HFlowContainer.new()
+	flow.add_theme_constant_override("h_separation", 3)
+	flow.add_theme_constant_override("v_separation", 3)
+	var margin := _margins(5, 5, 0, 3)
+	margin.add_child(flow)
+	_body.add_child(margin)
+
+	for damage_type: Enums.DamageType in DAMAGE_ICON_PATHS.keys():
+		flow.add_child(_make_filter_chip(str(DAMAGE_ICON_PATHS[damage_type]),
+				str(Enums.DamageType.keys()[damage_type]).capitalize(),
+				_damage_filter.has(damage_type),
+				filter_chip_has_entries(_character, {damage_type: true}, _element_filter),
+				_on_damage_filter_toggled.bind(damage_type)))
+	var gap := Control.new()
+	gap.custom_minimum_size = Vector2(4, 0)
+	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flow.add_child(gap)
+	for element: Enums.ElementalType in Enums.ElementalType.values():
+		if element == Enums.ElementalType.NONE:
+			continue
+		var path: String = ELEMENTAL_ICON_DIR + \
+				str(Enums.ElementalType.keys()[element]).to_lower() + ".png"
+		if not ResourceLoader.exists(path):
+			continue
+		flow.add_child(_make_filter_chip(path,
+				Enums.elemental_type_to_string(element).capitalize(),
+				_element_filter.has(element),
+				filter_chip_has_entries(_character, _damage_filter, {element: true}),
+				_on_element_filter_toggled.bind(element)))
+
+
+func _make_filter_chip(icon_path: String, tip: String, active: bool,
+		has_entries: bool, handler: Callable) -> Button:
+	var chip := Button.new()
+	chip.custom_minimum_size = Vector2(14, 14)
+	chip.tooltip_text = tip if has_entries else "%s — nothing in the bank" % tip
+	chip.focus_mode = Control.FOCUS_NONE
+	var style := StyleBoxFlat.new()
+	style.set_border_width_all(1)
+	if active:
+		style.bg_color = GameColors.with_alpha(GameColorPalette.get_color("Azure", 2), 0.5)
+		style.border_color = GameColors.INTERACTIVE_BORDER_IDLE
+	else:
+		style.bg_color = GameColors.with_alpha(GameColorPalette.get_color("Gray", 0), 0.5)
+		style.border_color = GameColorPalette.get_color("Straw2", 3)
+	for state: String in ["normal", "hover", "pressed", "focus"]:
+		chip.add_theme_stylebox_override(state, style)
+	if ResourceLoader.exists(icon_path):
+		var icon := _make_icon(load(icon_path) as Texture2D)
+		# Buttons don't lay out children — park the 10px icon at the 14px
+		# chip's center by hand.
+		icon.position = Vector2(2, 2)
+		icon.size = Vector2(ICON_SIZE, ICON_SIZE)
+		if not has_entries and not active:
+			# Grayed, not disabled: the click still lands and answers with the
+			# bank's "nothing matches" message instead of a dead control.
+			icon.self_modulate = Color(0.45, 0.45, 0.45, 0.55)
+		chip.add_child(icon)
+	chip.pressed.connect(handler)
+	return chip
+
+
+func _on_damage_filter_toggled(damage_type: Enums.DamageType) -> void:
+	if _damage_filter.has(damage_type):
+		_damage_filter.erase(damage_type)
+	else:
+		_damage_filter[damage_type] = true
+	_rebuild()
+
+
+func _on_element_filter_toggled(element: Enums.ElementalType) -> void:
+	if _element_filter.has(element):
+		_element_filter.erase(element)
+	else:
+		_element_filter[element] = true
+	_rebuild()
+
+
+func _build_bank(is_move: bool) -> void:
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_body.add_child(scroll)
+	var list := VBoxContainer.new()
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list.add_theme_constant_override("separation", 0)
+	scroll.add_child(list)
+
+	var names: Array[String] = move_bank(_character, _damage_filter, _element_filter) \
+			if is_move else passive_bank(_character)
+	if names.is_empty():
+		var empty := _muted_label("nothing matches those filters" \
+				if is_move and not (_damage_filter.is_empty() and _element_filter.is_empty()) \
+				else "(nothing else available)")
+		var margin := _margins(5, 5, 3, 0)
+		margin.add_child(empty)
+		list.add_child(margin)
+		return
+
+	for name: String in names:
+		list.add_child(_make_bank_row(name, is_move))
+
+
+func _make_bank_row(name: String, is_move: bool) -> Button:
+	var row := Button.new()
+	row.custom_minimum_size = Vector2(0, 14)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.focus_mode = Control.FOCUS_NONE
+	var selected: bool = name == _bank_pick
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color.TRANSPARENT
+	var hover := StyleBoxFlat.new()
+	hover.bg_color = GameColors.with_alpha(GameColorPalette.get_color("Azure", 2), 0.3)
+	if selected:
+		normal.bg_color = GameColors.with_alpha(GameColorPalette.get_color("Azure", 2), 0.6)
+		normal.border_color = GameColors.INTERACTIVE_BORDER_IDLE
+		normal.set_border_width_all(1)
+		hover = normal
+	row.add_theme_stylebox_override("normal", normal)
+	row.add_theme_stylebox_override("hover", hover)
+	row.add_theme_stylebox_override("pressed", hover)
+	row.add_theme_stylebox_override("focus", hover)
+	row.pressed.connect(_on_bank_row_pressed.bind(name))
+
+	var content := HBoxContainer.new()
+	content.set_anchors_preset(Control.PRESET_FULL_RECT)
+	content.offset_left = 5
+	content.offset_right = -5
+	content.add_theme_constant_override("separation", 3)
+	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(content)
+
+	var move: Move = MoveData.get_move(name) if is_move else null
+	if move != null:
+		_add_damage_icon(content, move.damage_type)
+		_add_type_icon(content, move.element_type)
+	var name_label := GlowLabel.styled(name, UIManager.font_8px, 8,
+			GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
+	name_label.clip_text = true
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	name_label.nudge_baseline_down(1)
+	content.add_child(name_label)
+	if move != null:
+		var power := _dim_label(("Pow %d" % move.base_power) if move.base_power > 0 else "—")
+		power.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		power.nudge_baseline_down(1)
+		content.add_child(power)
+		var range_label := _dim_label("R%s" % range_text(move))
+		range_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		range_label.nudge_baseline_down(1)
+		content.add_child(range_label)
+	return row
+
+
+func _on_bank_row_pressed(name: String) -> void:
+	# Same row again drops the candidate and falls back to reading the
+	# equipped item (§3c).
+	_bank_pick = "" if _bank_pick == name else name
+	_rebuild()
+
+
+# =============================================================================
+# STAT LANE — pure meaning; the +/− live on the sheet row
+# =============================================================================
+
+## `7/11` — effective value over class cap, and nothing else (RQD 2026-08-11:
+## the prose version buried the two numbers that matter). The numerator is the
+## EFFECTIVE stat, so StatUps can overflow it past the cap — `22/20` is a
+## flex, not an error. Class name, game max, and invested count all live in
+## the sheet row's cap-bar tooltip now.
+static func stat_meta_line(character: CharacterData, stat_name: String) -> String:
+	return "%d/%d" % [int(character.get(stat_name)), character.get_stat_cap(stat_name)]
+
+
+func _build_stat_lane() -> void:
+	var stat_name: String = str(_key)
+	var abbrev: String = UnitSheet.stat_label(stat_name)
+	var level_value: int = _character.get_base_plus_growth(stat_name)
+	var cap: int = _character.get_stat_cap(stat_name)
+
+	_build_detail_text(abbrev, stat_meta_line(_character, stat_name),
+			str(STAT_BLURBS.get(stat_name, "")))
+
+	if level_value >= cap:
+		# The at-cap consequence wears SUCCESS — same voice as the bar's fill
+		# and the number on the sheet row, so "maxed" is one color everywhere.
+		var capped_copy := _body_copy(
+				("At the class ceiling. Level-ups can't raise it, so bEXP growths " +
+				"concentrate into this unit's remaining %d open stats. StatUps " +
+				"still work — they're allowed past the cap.") % open_stat_count(_character))
+		capped_copy.add_theme_color_override("font_color", GameColors.TEXT_SUCCESS)
+		capped_copy.glow_color = GameColors.TEXT_SUCCESS_GLOW
+		var margin := _margins(5, 5, 0, 0)
+		margin.add_child(capped_copy)
+		_body.add_child(margin)
+
+	# ACROSS THE SQUAD — the deployed roster sorted by this stat. The rail
+	# can only show one stat per card; this is where a stat gets compared
+	# without re-sorting the world.
+	_body.add_child(_squad_section_header("ACROSS THE SQUAD"))
+	var sorted_squad: Array[CharacterData] = _squad.duplicate()
+	sorted_squad.sort_custom(func(a: CharacterData, b: CharacterData) -> bool:
+		return int(a.get(stat_name)) > int(b.get(stat_name)))
+	for member: CharacterData in sorted_squad:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 5)
+		var row_margin := _margins(5, 5, 1, 0)
+		row_margin.add_child(row)
+		_body.add_child(row_margin)
+		# The current unit's whole row lifts to PRIMARY; the rest read as
+		# structural names with INFO values, same as the rail's readout.
+		var is_current: bool = member == _character
+		var name_label := GlowLabel.styled(member.character_name, UIManager.font_8px, 8,
+				GameColors.TEXT_PRIMARY if is_current else GameColors.TEXT_SECONDARY,
+				GameColors.TEXT_PRIMARY_GLOW if is_current else GameColors.TEXT_SECONDARY_GLOW)
+		if SQUAD_COMPARE_BARS:
+			# Fixed name column so every bar shares a left edge — ragged bar
+			# starts would break the very comparison the bars exist for.
+			name_label.custom_minimum_size = Vector2(56, 0)
+			name_label.clip_text = true
+			row.add_child(name_label)
+			var bar := StatCapBar.new(stat_name, 1)
+			bar.custom_minimum_size = Vector2(30, 3)
+			bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			bar.set_character(member)
+			row.add_child(bar)
+		else:
+			name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			row.add_child(name_label)
+		var value_label := GlowLabel.styled(str(member.get(stat_name)),
+				UIManager.font_8px, 8,
+				GameColors.TEXT_PRIMARY if is_current else GameColors.TEXT_INFO,
+				GameColors.TEXT_PRIMARY_GLOW if is_current else GameColors.TEXT_INFO_GLOW)
+		if SQUAD_COMPARE_BARS:
+			value_label.custom_minimum_size = Vector2(16, 0)
+			value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		row.add_child(value_label)
+
+
+# =============================================================================
+# INJURY LANE
+# =============================================================================
+
+func _build_injury_lane() -> void:
+	var index: int = int(_key)
+	if index < 0 or index >= _character.current_injuries.size():
+		_build_summary_lane()
+		return
+	var injury: Injury = _character.current_injuries[index]
+	var data: InjuryData = injury.get_data()
+	var display: String = data.display_name if data != null else injury.injury_id.capitalize()
+	var severity: String = "Major" if injury.severity == Enums.InjurySeverity.MAJOR else "Minor"
+
+	var meta_parts: Array[String] = [severity]
+	if data != null and data.affected_stat != "":
+		meta_parts.append("affects %s" % UnitSheet.stat_label(data.affected_stat))
+	meta_parts.append("%d battle%s to recover" % [injury.battles_remaining,
+			"" if injury.battles_remaining == 1 else "s"])
+	# The meta line carries the wound facts, so it speaks DANGER like the chip
+	# that opened it; the description below stays PRIMARY reading copy.
+	_build_detail_text(display, " · ".join(meta_parts),
+			data.description if data != null else "",
+			GameColors.TEXT_DANGER, GameColors.TEXT_DANGER_GLOW)
+
+
+# =============================================================================
+# SUMMARY LANE — nothing selected
+# =============================================================================
+
+## The CREW-FILE lane (RQD 2026-08-11). With nothing selected the panel used
+## to repeat the sheet's ident and move slots — redundant data 200px from its
+## source. Now it's the unit's PRESENCE, standing on a lit baseline, with the
+## corp AI's service record filed underneath:
+##   1. HD line art with the shipped glass/tracking treatment, when the
+##      character has it (bind_to_texture_rect wires slot + materials, and
+##      Settings.portrait_effects_enabled keeps its off-switch). The art is
+##      BOTTOM-ALIGNED so its lower edge butts the baseline border.
+##   2. The painted 600×600 portrait, plain, same baseline treatment.
+##   3. Animated static + "— NO DATA —" when neither exists — the sprite-crop
+##      fallback reads as a records-corrupted terminal rather than a tiny
+##      pixel head in a huge panel, and every new portrait Lawrence paints
+##      silently upgrades its unit.
+## Under the baseline: SERVICE RECORD, per-character lore in the chartering
+## corp AI's voice (CharacterData.service_record), "— NO DATA —" when unwritten.
+func _build_summary_lane() -> void:
+	if _character == null:
+		return
+	var frame_margin := _margins(8, 8, 8, 0)
+	frame_margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_body.add_child(frame_margin)
+
+	var stack := VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 0)
+	frame_margin.add_child(stack)
+
+	var portrait_area := Control.new()
+	portrait_area.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	portrait_area.clip_contents = true
+	stack.add_child(portrait_area)
+
+	# The square frame (RQD 2026-08-11, replacing the bottom-only baseline):
+	# a 1px PRIMARY ring with the orthogonal glow on both sides — the Equip
+	# outline treatment at portrait scale. The art lives in an INNER control
+	# inset past the ring, because the HD mirror renders in HDLayer above
+	# everything HUD-side and would otherwise paint over the frame's bottom
+	# edge exactly where the art butts it.
+	#
+	# The ring HUGS the drawn art (RQD 2026-08-11 round 9): it starts full-rect
+	# for the no-art static tier, but when real art exists _frame_portrait
+	# re-fits it around the art's actual rect every relayout — a frame wider
+	# than its picture reads as black side-bars, not a frame.
+	var frame_ring := GlowColorRect.new()
+	frame_ring.material = (load(GLOW_MATERIAL_PATH) as Material).duplicate()
+	frame_ring.border_mode = true
+	frame_ring.color = Color.WHITE
+	frame_ring.self_modulate = GameColors.TEXT_PRIMARY
+	frame_ring.glow_color = GameColors.TEXT_PRIMARY_GLOW
+	frame_ring.set_anchors_preset(Control.PRESET_FULL_RECT)
+	frame_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	portrait_area.add_child(frame_ring)
+
+	var inner := Control.new()
+	inner.set_anchors_preset(Control.PRESET_FULL_RECT)
+	inner.offset_left = 3
+	inner.offset_top = 3
+	inner.offset_right = -3
+	inner.offset_bottom = -3
+	portrait_area.add_child(inner)
+
+	var hd_texture: Texture2D = CharacterPortrait.hd_art_for(_character)
+	var painted_texture: Texture2D = null
+	if hd_texture == null and not _character.portrait_path.is_empty() \
+			and ResourceLoader.exists(_character.portrait_path):
+		painted_texture = load(_character.portrait_path) as Texture2D
+
+	if hd_texture != null or painted_texture != null:
+		var portrait := TextureRect.new()
+		portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		portrait.stretch_mode = TextureRect.STRETCH_SCALE
+		inner.add_child(portrait)
+		var aspect_source: Texture2D = hd_texture if hd_texture != null else painted_texture
+		if painted_texture != null:
+			portrait.texture = painted_texture
+			# 600×600 downscaling hard — bilinear, not the pixel NEAREST
+			# everything else in this viewport uses.
+			portrait.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		else:
+			CharacterPortrait.bind_to_texture_rect(portrait, _character)
+		# Bottom-align at the art's own aspect: the portrait rect is computed,
+		# not stretched, so the HD slot (full-rect on the TextureRect) and its
+		# mirror land exactly on the drawn art — the art's lower edge butts
+		# the frame's inner bottom edge and scales with whatever height the
+		# service record leaves it, staying composed at any panel size. The
+		# ring re-fits around the same rect, so frame and art never disagree.
+		frame_ring.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		var align := func() -> void:
+			_frame_portrait(portrait, inner, frame_ring, aspect_source)
+		inner.resized.connect(align)
+		align.call_deferred()
+	else:
+		# Records corrupted: full-area animated noise with the caption riding
+		# above it (the overlay is top_level for sizing but still draws in
+		# tree order, so the caption is added after).
+		var noise := StaticCensorOverlay.new()
+		inner.add_child(noise)
+		noise.set_target(inner)
+		noise.set_censored(true)
+		noise.modulate = GameColors.with_alpha(Color.WHITE, 0.35)
+		var caption_center := CenterContainer.new()
+		caption_center.set_anchors_preset(Control.PRESET_FULL_RECT)
+		inner.add_child(caption_center)
+		caption_center.add_child(_muted_label("— NO DATA —"))
+
+	stack.add_child(_service_record_block())
+
+
+## Where the art lands inside the inner area: fitted to its own aspect,
+## bottom-centered, pixel-snapped (fractional rects shimmer in the pixel
+## viewport). Tall areas leave headroom above; wide areas leave side room —
+## the frame ring absorbs both by hugging this rect instead of the area.
+static func portrait_rect_in_area(area_size: Vector2, aspect: float) -> Rect2:
+	if area_size.x <= 0.0 or area_size.y <= 0.0 or aspect <= 0.0:
+		return Rect2()
+	var drawn_width: float = roundf(minf(area_size.x, area_size.y * aspect))
+	var drawn_height: float = roundf(drawn_width / aspect)
+	return Rect2(floorf((area_size.x - drawn_width) / 2.0),
+			area_size.y - drawn_height, drawn_width, drawn_height)
+
+
+## Positions the portrait at the art's own aspect ratio, bottom-centered in
+## the area, so its lower edge sits on the frame's inner bottom edge — and
+## wraps the frame ring around that exact rect. The area sits 3px inside the
+## ring's coordinate space on every side, so in ring coords the art starts at
+## rect.position + (3,3) and the ring, 3px out again, lands back on
+## rect.position with 6px added to each dimension.
+func _frame_portrait(portrait: TextureRect, area: Control, ring: Control,
+		aspect_source: Texture2D) -> void:
+	if not is_instance_valid(portrait) or not is_instance_valid(area) \
+			or not is_instance_valid(ring):
+		return
+	if aspect_source == null or aspect_source.get_height() <= 0 or area.size.y <= 0.0:
+		return
+	var aspect: float = float(aspect_source.get_width()) / float(aspect_source.get_height())
+	var rect: Rect2 = portrait_rect_in_area(area.size, aspect)
+	portrait.position = rect.position
+	portrait.size = rect.size
+	ring.position = rect.position
+	ring.size = rect.size + Vector2(6, 6)
+
+
+## Splits a record into segments: {text: String, kind: String} where kind is
+## "prose" | "corrupted" | "no_data". Marked segments carry the AUTHOR'S gap
+## note as their text ("" for a bare NO DATA) — callers decide whether to
+## render the placeholder (the game) or the note (tooling).
+static func service_record_segments(record: String) -> Array[Dictionary]:
+	var segments: Array[Dictionary] = []
+	var cursor: int = 0
+	while cursor < record.length():
+		var open: int = record.find(GAP_OPEN, cursor)
+		if open == -1:
+			segments.append({"text": record.substr(cursor), "kind": "prose"})
+			break
+		if open > cursor:
+			segments.append({"text": record.substr(cursor, open - cursor), "kind": "prose"})
+		var close: int = record.find(GAP_CLOSE, open + GAP_OPEN.length())
+		if close == -1:
+			# Unterminated marker — render the tail verbatim rather than eating it.
+			segments.append({"text": record.substr(open), "kind": "prose"})
+			break
+		segments.append(_classify_marker(record.substr(open + GAP_OPEN.length(),
+				close - open - GAP_OPEN.length())))
+		cursor = close + GAP_CLOSE.length()
+	return segments
+
+
+## What a [[...]] body means. "NO DATA" (any case, optional ": note") is the
+## still, untampered absence; everything else is a corrupted-record gap whose
+## body is the author's note. The NO DATA match is deliberately exact — a note
+## that merely STARTS with the words ("No data on next of kin recovered")
+## stays a corrupted note, only the bare marker or the colon form switch kind.
+static func _classify_marker(raw: String) -> Dictionary:
+	var stripped: String = raw.strip_edges()
+	if stripped.to_upper() == NO_DATA_MARKER:
+		return {"text": "", "kind": "no_data"}
+	var colon_form: String = NO_DATA_MARKER + ":"
+	if stripped.length() > colon_form.length() \
+			and stripped.substr(0, colon_form.length()).to_upper() == colon_form:
+		return {"text": stripped.substr(colon_form.length()).strip_edges(),
+				"kind": "no_data"}
+	return {"text": raw, "kind": "corrupted"}
+
+
+## Every open canon gap in a record — the notes inside [[...]]. A bare
+## [[ NO DATA ]] contributes nothing (canonical absence, not a to-do); the
+## colon form's note is a gap like any other. Tooling/tests sugar over the
+## segments.
+static func service_record_gaps(record: String) -> Array[String]:
+	var gaps: Array[String] = []
+	for segment: Dictionary in service_record_segments(record):
+		if segment["kind"] != "prose" and str(segment["text"]) != "":
+			gaps.append(str(segment["text"]))
+	return gaps
+
+
+## The record as bbcode: prose in PRIMARY; [[gap]]s as [ DATA CORRUPTED ] in
+## the MUTED body, shaking when motion is enabled, tamper story in a hover
+## hint; [[ NO DATA ]]s as a still muted [ NO DATA ] with its own hint. The
+## gap note itself never renders.
+static func service_record_bbcode(record: String, motion: bool) -> String:
+	var out: String = ""
+	var muted_hex: String = GameColors.TEXT_MUTED.to_html(false)
+	for segment: Dictionary in service_record_segments(record):
+		match str(segment["kind"]):
+			"corrupted":
+				var span: String = "[color=#%s]%s[/color]" % [muted_hex,
+						_escape_bbcode(CORRUPTED_TEXT)]
+				if motion:
+					span = "[shake rate=16.0 level=4]%s[/shake]" % span
+				out += "[hint=records integrity check failed]%s[/hint]" % span
+			"no_data":
+				# Never shakes: absence is bureaucratic, not tampered — the
+				# stillness IS the contrast with the corrupted spans.
+				out += "[hint=no record on file][color=#%s]%s[/color][/hint]" % [
+						muted_hex, _escape_bbcode(NO_DATA_TEXT)]
+			_:
+				out += _escape_bbcode(str(segment["text"]))
+	return out
+
+
+## Naive sequential replaces clobber each other — the "]" inside an inserted
+## "[lb]" gets re-escaped by the "]" pass. Route "[" through a sentinel first.
+static func _escape_bbcode(text: String) -> String:
+	var sentinel: String = char(1)
+	return text.replace("[", sentinel).replace("]", "[rb]").replace(sentinel, "[lb]")
+
+
+## The corp AI's asset assessment, filed under the frame. Unwritten records
+## read "— NO DATA —", which is itself in-fiction.
+func _service_record_block() -> Control:
+	var margin := _margins(0, 0, 5, 4)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 2)
+	margin.add_child(column)
+	column.add_child(_dim_label("SERVICE RECORD"))
+	if _character.service_record == "":
+		column.add_child(_muted_label("— NO DATA —"))
+		return margin
+
+	# RichTextLabel, not GlowLabel: the corrupted spans need per-span color
+	# and the shake effect. The glow material works the same way on its
+	# glyphs; the one impurity is a single halo color for the whole block —
+	# PRIMARY's — which the muted spans inherit. Accepted (RQD 2026-08-11):
+	# a tampered record glowing slightly wrong is on theme.
+	var body := RichTextLabel.new()
+	body.bbcode_enabled = true
+	body.fit_content = true
+	body.scroll_active = false
+	# RichTextLabel overrides the Control default to clip — which shears the
+	# shaking [ DATA CORRUPTED ] glyphs at the block's edges. Let them
+	# overflow; the block never scrolls (fit_content) so nothing else escapes.
+	body.clip_contents = false
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.mouse_filter = Control.MOUSE_FILTER_PASS
+	if UIManager.font_8px != null:
+		body.add_theme_font_override("normal_font", UIManager.font_8px)
+	body.add_theme_font_size_override("normal_font_size", 8)
+	body.add_theme_color_override("default_color", GameColors.TEXT_PRIMARY)
+	var glow_material := (load(GLOW_MATERIAL_PATH) as Material).duplicate()
+	(glow_material as ShaderMaterial).set_shader_parameter("glow_color",
+			GameColors.TEXT_PRIMARY_GLOW)
+	body.material = glow_material
+	var inset := StyleBoxEmpty.new()
+	inset.content_margin_left = 1
+	inset.content_margin_right = 1
+	inset.content_margin_top = 1
+	inset.content_margin_bottom = 1
+	body.add_theme_stylebox_override("normal", inset)
+	body.text = service_record_bbcode(_character.service_record,
+			Settings.ui_motion_enabled)
+	column.add_child(body)
+	return margin
+
+
+# =============================================================================
+# SHARED WIDGET HELPERS
+# =============================================================================
+
+func _detail_box() -> VBoxContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 3)
+	var margin := _margins(5, 5, 4, 3)
+	margin.add_child(box)
+	_body.add_child(margin)
+	return box
+
+
+func _headline(text_value: String) -> GlowLabel:
+	return GlowLabel.styled(text_value, UIManager.font_11px, 11,
+			GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
+
+
+func _body_copy(text_value: String) -> GlowLabel:
+	var label := GlowLabel.styled(text_value, UIManager.font_8px, 8,
+			GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	return label
+
+
+func _squad_section_header(title: String) -> Control:
+	var margin := _margins(5, 5, 5, 1)
+	margin.add_child(_dim_label(title))
+	return margin
+
+
+## Structural text — headers, metas, hints — wears the SECONDARY voice.
+func _dim_label(text_value: String) -> GlowLabel:
+	return GlowLabel.styled(text_value, UIManager.font_8px, 8,
+			GameColors.TEXT_SECONDARY, GameColors.TEXT_SECONDARY_GLOW)
+
+
+## Absence — empty banks, deselected summaries — wears MUTED.
+func _muted_label(text_value: String) -> GlowLabel:
+	return GlowLabel.styled(text_value, UIManager.font_8px, 8,
+			GameColors.TEXT_MUTED, GameColors.TEXT_MUTED_GLOW)
+
+
+func _margins(left: int, right: int, top: int, bottom: int) -> MarginContainer:
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", left)
+	margin.add_theme_constant_override("margin_right", right)
+	margin.add_theme_constant_override("margin_top", top)
+	margin.add_theme_constant_override("margin_bottom", bottom)
+	return margin
+
+
+func _add_type_icon(parent: Container, element_type: Enums.ElementalType) -> void:
+	if element_type == Enums.ElementalType.NONE:
+		return
+	var path: String = ELEMENTAL_ICON_DIR + \
+			str(Enums.ElementalType.keys()[element_type]).to_lower() + ".png"
+	if not ResourceLoader.exists(path):
+		return
+	parent.add_child(_make_icon(load(path) as Texture2D))
+
+
+func _add_damage_icon(parent: Container, damage_type: Enums.DamageType) -> void:
+	var path: String = str(DAMAGE_ICON_PATHS.get(damage_type, ""))
+	if path == "" or not ResourceLoader.exists(path):
+		return
+	parent.add_child(_make_icon(load(path) as Texture2D))
+
+
+func _make_icon(texture: Texture2D) -> TextureRect:
+	var icon := TextureRect.new()
+	icon.texture = texture
+	icon.custom_minimum_size = Vector2(ICON_SIZE, ICON_SIZE)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return icon

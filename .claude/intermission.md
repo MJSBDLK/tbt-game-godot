@@ -299,15 +299,18 @@ still reserves its 10px so the layout can't lie about the space it needs.
 
 ### 3g. bEXP lives on the level row
 
-Pricing is already built (`SquadManager.bexp_level_cost` — `100 × level ÷ squad
-max`, step 5, floor 25). The player never sees the formula; they see a price on
-the unit they're looking at, and cheap prices on the units who need it. The pool
-sits in the top bar so it's readable while shopping across units.
+There is **no price to display** — flattened 2026-08-06. A level costs
+`SquadManager.BEXP_LEVEL_COST` (100) for everyone at every level; the level-scaled
+price tag this section used to describe was deleted, because catch-up belongs in
+the combat award and a second rubber band hidden in a shop price is a rule the
+player can't see. The pool sits in the top bar and *is* the readout: pool ÷ 100 is
+how many levels you have to hand out.
 
 The hub's **Allocate Bonus EXP** entry is a *deep link*, not a second screen: it
 opens Manage Units with the level row pre-selected and the rail sorted
-**level-ascending**, so the units the catch-up pricing is for are already on top.
-That makes it a genuinely different task view rather than a duplicate door.
+**level-ascending**. That sort was carrying the catch-up signal implicitly all
+along; with pricing gone it's now the *only* thing pointing at who needs the XP,
+which makes it load-bearing rather than a convenience. Keep it.
 
 ### 3h. The trace (cursor model only)
 
@@ -385,6 +388,12 @@ alphabetized. Revisit fuzzy if a roster ever passes 30.
   bEXP notes want players not to permanently bench anyone; a hidden bench makes
   forgetting effortless.
 - At cap, bench→deploy pips go inert (the existing rule), not silently ignored.
+- **The squad may reach 0/N** (RQD 2026-08-16). Benching the last unit is free —
+  the old "last deployed pip goes inert" rule drew that pip hollow, so the one
+  unit still deployed *looked* benched. An empty selection is a real choice now
+  (`CampaignManager.has_deployment()` splits it from the unset "deploy everyone"
+  fallback); the hub's **Begin Mission goes inert** at 0/N with the sub-line
+  "deploy at least one unit" as the tap-for-why.
 
 ### 4d. Sorting must not move spawn positions
 

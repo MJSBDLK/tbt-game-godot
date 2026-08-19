@@ -345,3 +345,34 @@ func test_non_displacing_move_previews_nothing() -> void:
 	plain.base_power = 3
 	renderer.show_preview(attacker, target, plain)
 	assert_false(renderer.has_preview(), "no displacement, no ghosts")
+
+
+# --- z-order (RQD/Lawrence 2026-08-05: arrows were buried under the board) ---
+#
+# Board z is (99 - row) * 10 + layer, so it spans 0..998 and the ROW term
+# dominates — the 0-8 layer enum only orders within a row. The renderer used a
+# flat z_index of 2, reasoning in layer-enum terms, which cleared only the back
+# row's floor tiles. These pin the invariant rather than the magic number: the
+# preview must outrank anything the board can produce.
+
+func test_preview_renders_above_every_board_z() -> void:
+	var renderer := _make_renderer()
+	var board_max: int = ZIndexCalculator.calculate_sorting_order(
+		0, 100, ZIndexCalculator.ZIndexLayer.UI)
+	assert_gt(renderer.z_index, board_max,
+		"preview must sit above the front row's topmost layer (%d)" % board_max)
+
+
+func test_preview_outranks_a_front_row_unit() -> void:
+	_open_grid(0, 4, 0, 4)
+	var blocker := _spawn_scene_unit(GRUNT_PATH, Enums.UnitFaction.ENEMY, 0, 0)
+	var renderer := _make_renderer()
+	assert_gt(renderer.z_index, blocker.z_index,
+		"a unit standing in front of the preview must not bury it")
+
+
+func test_arrow_width_stays_legible() -> void:
+	# Lawrence: 1.0 read too thin at integer zoom. Guards against a silent
+	# revert; raise the expectation deliberately if the art direction changes.
+	assert_gte(DisplacementPreviewRenderer.ARROW_WIDTH, 2.0,
+		"displacement arrows need visible weight on the board")

@@ -305,6 +305,12 @@ func setup(move: Move, is_assigned: bool = false, locked: bool = false) -> void:
 		# Subdued (bubbles only) — the tight menu can't spill the smoke/crackle.
 		VoidLockOverlay.set_locked(_chip, true, true)
 
+	if display_mode and not disabled:
+		# The washed tier — see the display_mode doc above. After the
+		# disabled branch on purpose: disabled outranks display.
+		_base_fill = GameColors.get_move_chip_foreground_washed(_element)
+		_chip.border_color = GameColors.STATIC_BORDER
+
 	_chip.fill_color = _base_fill
 	_chip.empty_color = _base_empty
 	# Chrome state (incl. the shader's shadow pair) must land NOW, not on the
@@ -357,9 +363,25 @@ static func _seat_label(label: Label) -> MarginContainer:
 ## underneath, whose hover flips the info panel to the other side — the
 ## M&K/controller displacement behavior. Touch hold-to-peek in these venues
 ## is watched by the PANEL (UnitPreviewPanel._input), not by the chip.
+##
+## VISUALLY (RQD 2026-08-11 — playtest: display chips read as clickable):
+## the WASHED look. Fill drops one step down the element's own ramp and the
+## border falls to the STATIC tier, so the chip keeps its element identity
+## but visibly sits below anything pressable. Disabled (depleted/locked)
+## chips keep their darker tier — disabled outranks display.
+var display_mode: bool = false
+
+
 func make_display_only() -> void:
+	display_mode = true
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	focus_mode = Control.FOCUS_NONE
+	# Usually called at creation, before the first setup() — but re-wash live
+	# if a move is already on the chip, so call order can't leave it lit.
+	if _move != null and not disabled:
+		_base_fill = GameColors.get_move_chip_foreground_washed(_element)
+		_chip.border_color = GameColors.STATIC_BORDER
+		_redraw_chrome()
 
 
 ## The move this chip was last setup() with — display venues use it to feed
@@ -608,7 +630,10 @@ func _redraw_chrome() -> void:
 	# boundary keeps its contrast. On-ramp at rest and at full lift — the
 	# lerp-toward-white version read as "slightly off" because it left the
 	# ramp (RQD 2026-07-16). Disabled chips stay parked on their grey pair.
-	if disabled:
+	if disabled or display_mode:
+		# Parked tiers: disabled greys, or the display wash (_base_fill was
+		# stepped down in setup). Never recompute from the live ramp here —
+		# that's what un-washed a display chip on every redraw.
 		_chip.fill_color = _base_fill
 		_chip.empty_color = _base_empty
 	else:
@@ -623,7 +648,9 @@ func _redraw_chrome() -> void:
 	# 2026-07-20; depth matched to the mockup's pop 2026-07-26).
 	var chip_material := _chip.material as ShaderMaterial
 	if chip_material != null:
-		if disabled:
+		if disabled or display_mode:
+			# Shadow follows the CURRENT body — for the washed tier that's
+			# the stepped-down fill, so shadows can't out-saturate the chip.
 			chip_material.set_shader_parameter(
 					"fill_shadow_color", _base_fill.darkened(0.4))
 			chip_material.set_shader_parameter(

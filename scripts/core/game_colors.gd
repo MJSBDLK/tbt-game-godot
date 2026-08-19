@@ -170,6 +170,12 @@ static var INTERACTIVE_BORDER_DISABLED: Color:
 	get: return GameColorPalette.get_color("Gray", 4)
 static var INTERACTIVE_TEXT_DISABLED: Color:
 	get: return GameColorPalette.get_color("Gray", 6)
+## Flat dark border for STATIC surfaces (§14: "panels, labels — flat dark
+## border, never moves"). One step above the disabled tier so a dead button
+## still reads darker than furniture, and well below every lit border.
+## Read-only venues (the hover previews, display-mode chips) wear this.
+static var STATIC_BORDER: Color:
+	get: return GameColorPalette.get_color("Gray", 5)
 
 ## Cast-shadow ink — ONE ink for every shadow thrown on the board. Not a
 ## palette ramp color: decoded from Lawrence's baked decoration shadow PNGs
@@ -215,6 +221,15 @@ static var TEXT_WARNING: Color:
 	get: return GameColorPalette.get_color("YellowOrange", 6)  # #e2ad37 marigold
 static var TEXT_WARNING_GLOW: Color:
 	get: return GameColorPalette.get_color("Red", 4)
+# MUTED — absence and non-content: "(empty)", "no injuries", deselected
+# summaries. Not SECONDARY-dimmed-by-modulate (tried, RQD 2026-08-10: the
+# violet halo goes muddy at low alpha) — its own quiet pair on the panel's own
+# warm ramp, halo barely above the glass. PROVISIONAL colors, RQD first-crack;
+# surface for Lawrence with the rest of the semantic set.
+static var TEXT_MUTED: Color:
+	get: return GameColorPalette.get_color("Straw2", 6)  # #a59363 quiet straw
+static var TEXT_MUTED_GLOW: Color:
+	get: return GameColorPalette.get_color("Straw2", 3)  # #473c27 near-ground
 
 
 # =============================================================================
@@ -402,6 +417,18 @@ static func get_move_chip_foreground_lifted(
 		element_type: Enums.ElementalType, lift: float) -> Color:
 	var ramp: Array = _MOVE_CHIP_RAMPS.get(element_type, _MOVE_CHIP_RAMP_FALLBACK)
 	return GameColorPalette.get_color_interpolated(ramp[0], ramp[2] + clampf(lift, 0.0, 1.0))
+
+
+## The DISPLAY-MODE ("washed") chip foreground (RQD 2026-08-11): one step DOWN
+## the element's own ramp — the backlight's mechanism run in reverse, so the
+## washed color is an artist-picked palette entry, never a lerp toward gray.
+## The background holds where it is: compressing the fill/background contrast
+## is what reads as inert, while the hue keeps carrying the element identity a
+## preview exists to show. §14's contract is the reason this exists at all —
+## a chip that can't be pressed must not wear the pressable body.
+static func get_move_chip_foreground_washed(element_type: Enums.ElementalType) -> Color:
+	var ramp: Array = _MOVE_CHIP_RAMPS.get(element_type, _MOVE_CHIP_RAMP_FALLBACK)
+	return GameColorPalette.get_color_interpolated(ramp[0], maxf(ramp[2] - 1.0, 0.0))
 
 
 static func get_move_chip_border(element_type: Enums.ElementalType) -> Color:

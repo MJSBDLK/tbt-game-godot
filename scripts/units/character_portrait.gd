@@ -93,6 +93,22 @@ static func bind_to_texture_rect(texture_rect: TextureRect, character: Character
 		texture_rect.texture = get_for(character)
 
 
+## Whether bind_to_texture_rect would find HD line art for this character.
+## Callers that want a DIFFERENT fallback than the pixel portrait (the
+## workbench's static-noise NO DATA screen) branch on this first.
+static func has_hd_art(character: CharacterData, region_name: String = "portrait") -> bool:
+	return hd_art_for(character, region_name) != null
+
+
+## The HD texture bind_to_texture_rect would use — public so layout code can
+## read its aspect ratio (the crew-file lane bottom-aligns the art against a
+## baseline, which needs the drawn size before the mirror exists).
+static func hd_art_for(character: CharacterData, region_name: String = "portrait") -> Texture2D:
+	if character == null:
+		return null
+	return _resolve_hd_texture(character, region_name)
+
+
 static func _resolve_hd_texture(character: CharacterData, region_name: String) -> Texture2D:
 	# Prefer the region-specific atlas — it pre-crops the source PNG to the
 	# framing we want (head-shot vs full body, etc.).

@@ -11,8 +11,10 @@
     --panel-bg: rgba(48, 45, 39, 0.85);      /* #302d27 @85% — HUD_PANEL_BACKGROUND */
     --panel-bg-heavy: rgba(48, 45, 39, 0.70);
     --azure-9: #dbf3ff;  /* primary text */
+    --azure-7: #93d1f5;  /* cap-bar fill — real Azure 7, was referenced before it existed */
     --azure-5: #4c8cbb;  /* primary glow */
     --azure-3: #2b5a80;
+    --straw2-4: #665639; /* cap-bar track — must out-contrast --panel-bg #302d27 */
     --yo-7: #f5cd65;     /* secondary text (YellowOrange) */
     --magenta-4: #7e4a7e;
     --save-yellow: #e7c14b;
@@ -245,10 +247,6 @@
   /* semantic swatches in the rail */
   .sem { flex: 0 0 auto; width: 14px; height: 14px; border-radius: 2px; position: relative; top: 2px; }
 
-    35%  { opacity: 0.55; }
-    100% { transform: scale(1.0, 1.0); opacity: 0; }
-  }
-
   /* The default action wears the LIT-BORDER BOX (round 9 — rings retired
      from the menu venue: the yield rule flickered on every mouse pass
      through inter-entry dead space). Default follows the save state:
@@ -474,7 +472,7 @@
     position: relative;
   }
   .mu-xp .bar i { position: absolute; inset: 0 auto 0 0; background: var(--sem-info); display: block; }
-  .mu-xp .price { color: var(--sem-info); font-size: 8px; }
+  .mu-xp .price { color: var(--sem-info); font-size: 8px; font-variant-numeric: tabular-nums; }
   .mu-points { padding: 2px 5px 0; font-size: 8px; color: var(--sem-info); flex: 0 0 auto; }
   .movegrid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 4px; padding: 0 4px; flex: 0 0 auto; }
   .slot .tag { color: #8a8578; font-size: 8px; }
@@ -521,11 +519,8 @@
   }
   .mu-detail .meta { font-size: 8px; color: #8a8578; margin-bottom: 4px; letter-spacing: 0.06em; }
   .mu-detail p { font-size: 8px; line-height: 1.55; color: #b6bec7; }
-  .mu-detail .big {
-    font-size: 12px; color: var(--sem-info); text-shadow: 0 0 5px var(--sem-info-glow);
-    font-variant-numeric: tabular-nums;
-  }
-  .mu-detail .arrow { color: #8a8578; }
+  /* `.big` / `.arrow` retired 2026-08-06 with the "N poured · N left" readout
+     they existed for — the numbers moved to a tooltip. */
   .wbbtn {
     font: inherit; font-size: 9px; letter-spacing: 0.06em; margin-top: 5px;
     color: var(--azure-9); text-shadow: 0 0 4px var(--azure-5);
@@ -543,19 +538,49 @@
      Inert = the press would do nothing (pool empty / nothing to refund),
      which is a fact, not a disabled state. */
   .bx-alloc { margin-top: 3px; }
-  .bx-readout { display: flex; align-items: baseline; gap: 6px; }
   .bx-btns { display: flex; gap: 2px; margin-top: 4px; flex-wrap: wrap; }
   .bxb {
     font: inherit; font-size: 8px; letter-spacing: 0;
     color: var(--azure-9); text-shadow: 0 0 4px var(--azure-5);
     background: rgba(24, 26, 24, 0.9); border: 1px solid var(--azure-5);
-    padding: 1px 4px; min-width: 20px; cursor: pointer;
+    /* 2px top / 1px bottom, not a symmetric 1px: UP8's digits hang from the
+       cap line with no internal leading, so even padding optically sits them
+       against the top border. RQD eyeball 2026-08-06. */
+    padding: 2px 4px 1px; min-width: 20px; cursor: pointer;
     font-variant-numeric: tabular-nums;
   }
   .bxb:hover { background: rgba(46, 66, 84, 0.95); border-color: var(--azure-9); }
   .bxb.inert { border-color: #3a3a36; color: #6d6f6d; text-shadow: none; cursor: default; }
   .bxb.inert:hover { background: rgba(24, 26, 24, 0.9); border-color: #3a3a36; }
-  .bx-hint { color: #8a8578; font-size: 8px; margin-top: 4px; }
+
+  /* ---------- uncommitted preview ----------
+     Every number derived from poured bEXP is a PREVIEW — Cancel takes it all
+     back. So the screen shows the value it WILL be, and marks it as not yet
+     real. Level, XP number, XP bar and the pool all carry it, because they
+     all move together and marking only some would imply the others are banked.
+
+     Two marks, not one. The gold tint is the load-bearing signal and is always
+     on; the pulse is emphasis layered over it. That split is deliberate — this
+     project ships a ui_motion_enabled setting, and a state that exists ONLY as
+     an animation vanishes for anyone who turns motion off.
+
+     Selector is `.stage .uncommitted` rather than a bare class on purpose:
+     it has to out-specify the greys these elements already carry
+     (.mu-detail .meta, .bx-row .lv), which are two-part selectors declared
+     earlier. `.bx-row .lv b` stays green — a gained level is its own signal,
+     and it inherits the parent's pulse either way. */
+  @keyframes uncommitted-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .stage .uncommitted { color: var(--sem-info); }
+  .stage.motion-on .uncommitted { animation: uncommitted-pulse 1.15s ease-in-out infinite; }
+  /* Flavor last, quiet — it's the line you read once and never again. */
+  .mu-detail p.flavor { color: #6d6f6d; margin: 6px 0 0; }
+  /* StatUp pool under the stats — the same + mark as the row tally, so the
+     pool and the spend read as one currency. */
+  .mu-points .pool-pips { display: inline-flex; gap: 1px; margin-left: 3px; vertical-align: middle; }
+  .mu-points .pool-pips i {
+    width: 2px; height: 5px; background: var(--sem-info); display: block;
+    box-shadow: 0 0 3px var(--sem-info-glow);
+  }
 
   /* ---------- bEXP as its own screen (variant B) ---------- */
   .bx { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 8px 10px; }
@@ -639,13 +664,19 @@
   .fchip .ic { opacity: 0.45; }
   .fchip.on .ic { opacity: 1; }
 
-  /* ---------- stat rows: HP  [−]  24 ··  [+] ----------
-     Nothing stretches. The tally slot is fixed at exactly the width the
-     stacked pips need, so [+] sits right where the number ends instead of
-     being flung at the far wall by a flex:1. The row lands at ~72px, which
-     is what lets the block go back to two columns of four. */
+  /* ---------- stat rows: HP ▬▬▬━━━━━ [−] 24 ·· [+] ----------
+     ONE column, eight rows (2026-08-07). It was two columns of four, which
+     was right when the row was only text — but a Radiant Dawn–style gauge
+     needs length to say anything, and a 98px column left it 18px. Full width
+     gives the bar ~120px, so a class cap at 18% of global reads as a stub
+     instead of as two pixels.
+     Costs ~52px of sheet height; the sheet had it. Revert = one value here.
+
+     Everything except the bar is fixed-width, so the bar absorbs the slack
+     and every row's track starts and ends at the same x — which is what
+     makes the lengths comparable down the column. */
   .statlist {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 0 4px;
+    display: grid; grid-template-columns: 1fr; gap: 0;
     padding: 0 5px; flex: 0 0 auto;
   }
   .stat { display: flex; align-items: center; gap: 3px; padding: 1px 2px; }
@@ -664,6 +695,47 @@
   .stat .pips.chars {
     color: var(--sem-info); text-shadow: 0 0 4px var(--sem-info-glow); overflow: hidden;
   }
+
+  /* ---------- cap bar: how close this stat is to its class ceiling ----------
+     Laid out the Radiant Dawn way (RQD 2026-08-07), which is also what the
+     Unit Detail Panel already does: the bar is a MEMBER OF THE ROW, sitting
+     between the label and the number, and it flexes to eat whatever width the
+     fixed elements leave. The first attempt made it a 1px rule absolutely
+     positioned along the row's bottom edge — cheap in vertical space and
+     completely wrong to look at. It read as an underline, not a gauge.
+
+       track (b)  dim   0 .. class_cap / GLOBAL_MAX   — headroom this class has
+       fill  (i)  lit   0 .. level_stat / GLOBAL_MAX  — where the unit is now
+
+     Nothing is drawn past the class cap, so the track ENDING is what reads as
+     "this is as far as this class goes." In RD that's the whole trick: the
+     dark line is short on a stat your class can't grow. */
+  .stat .capbar {
+    flex: 1 1 auto; min-width: 14px; height: 3px; position: relative;
+    align-self: center;
+  }
+  /* THREE bugs kept this bar off the screen; all fixed 2026-08-07.
+       1. An UNOPENED COMMENT sat right here — prose with no leading slash-star.
+          CSS swallowed it plus the next selector as one garbage rule, so the
+          declaration below never applied and b/i stayed zero-height inline
+          elements. Braces and comment-terminators were balanced the whole
+          time, which is why counting them proved nothing.
+       2. The fill referenced var(--azure-7), which this file never defined.
+          An undefined custom property makes the declaration invalid at
+          computed-value time, so the fill drew with no background at all.
+       3. The track was #3a3831 against a --panel-bg of #302d27 — about three
+          values apart, invisible even had the rest worked.
+     Colours are real palette entries now, separated from the panel and from
+     each other: panel luma 21, track 87, fill 198. */
+  .stat .capbar b, .stat .capbar i { position: absolute; left: 0; top: 0; height: 3px; display: block; }
+  .stat .capbar b { background: var(--straw2-4); }
+  .stat .capbar i { background: var(--azure-7); }
+  /* StatUps, in the same accent the pips use — one colour for one currency. */
+  .stat .capbar i.bn { background: var(--sem-info); }
+  /* At the ceiling the whole row says so — number and bar together, because a
+     colored number alone is easy to miss in a block of eight. */
+  .stat.capped .capbar i { background: var(--sem-success); }
+  .stat.capped .v { color: var(--sem-success); text-shadow: 0 0 4px var(--sem-success-glow); }
 
   /* ---------- PCB trace: slot → workbench, cursor model only ---------- */
   .mu-trace { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
@@ -707,6 +779,8 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
+    /* The gold tint carries the meaning on its own — see .uncommitted. */
+    .stage.motion-on .uncommitted { animation: none; }
   }
 </style>
 
@@ -1024,13 +1098,13 @@
 
         <section>
           <h2>StatUp tally — pick one</h2>
-          <label class="opt"><input type="radio" name="pip" value="dots" checked>
-            <b>Stacked dots</b>
-            <span class="why">Two rows deep, so ten StatUps cost 14px of width instead of 40. Reads as a quantity mark, not a word. Ma'am's SKL has three, Max's STR has two.</span>
-          </label>
-          <label class="opt"><input type="radio" name="pip" value="chars">
+          <label class="opt"><input type="radio" name="pip" value="chars" checked>
             <b>Run of +</b>
-            <span class="why">Literally <code>++</code> as you spec'd it. Clearer at a glance; needs a cutoff (<code>++++…</code>) once a stat is deep.</span>
+            <span class="why">Literally <code>22+</code> / <code>24++</code> as you drew it. <b>Now the default</b> — no cutoff needed, because <code>PER_STAT_CAP</code> is 4, so the run can never exceed <code>++++</code>.</span>
+          </label>
+          <label class="opt"><input type="radio" name="pip" value="dots">
+            <b>Stacked dots</b>
+            <span class="why">Two rows deep. Kept for comparison, but its reason for existing is gone: the "ten StatUps cost 14px instead of 40" worry assumed one stat could hold ten. Ten is the <i>pool</i>; a single stat caps at four.</span>
           </label>
         </section>
 
@@ -1123,6 +1197,16 @@
           </label>
         </section>
 
+        <section class="notes">
+          <b>Stat row — corrected to RQD's spec, and it caught two bugs</b>
+          <ul>
+            <li><b>The number is the effective stat; the pips ride it as a suffix.</b> <code>20</code> → <code>22+</code> → <code>24++</code>. No original stat shown — the pips already say how much of the number you bought, so a base value would be redundant width. (My <code>20+ 22</code> was the wrong read; this is the corrected one.)</li>
+            <li><b>Your 20 → 22 → 24 is HP, and the mockup had it wrong.</b> <code>StatAllocation.HP_FLAT_PER_POINT = 2</code> — HP realises each point as <b>+2</b>, every other stat as +1. The mockup was giving every stat +1, quietly under-selling HP by half. Fixed: press <code>[+]</code> on HP versus STR and watch them move differently.</li>
+            <li><b>And "4 pips to spend" is a real rule I'd missed.</b> <code>PER_STAT_CAP = 4</code> — at most four points into any ONE stat, against a pool of ~10 at L60. The mockup let you dump everything into one stat. Now <code>[+]</code> goes inert at four with the reason in its tooltip.</li>
+            <li><b>Which retires a width worry.</b> Round 13 stacked the dots two rows deep so "ten StatUps cost 14px instead of 40" — but a single stat can only ever hold <b>four</b>. Ten was always the <i>pool</i>, never one row. Plain <code>+</code> characters fit fine at four, so the tally can read exactly as you drew it; the dots/chars radio still switches them.</li>
+          </ul>
+        </section>
+
         <section>
           <h2>Button set — press both, pick one</h2>
           <label class="opt"><input type="radio" name="bexpbtn" value="amounts" checked>
@@ -1141,6 +1225,69 @@
             <li><b>The price tag is gone.</b> Both screens now run the flat pool: <b>100 bEXP = one level, for anyone</b>. The old <code>100 × level ÷ squad_max</code> price (which this mockup used to render on the XP row) is retired — it re-introduced "higher level costs more" in bEXP currency, which is the thing you'd argued against. Catch-up lives in XP <i>gain</i> now.</li>
             <li><b>Pouring is refundable.</b> Each unit keeps a session baseline plus a <code>poured</code> total, and level/XP are derived from it — so <code>[−]</code> always walks you back, even across a level boundary. Same shape as the StatUp <code>[−]</code> already on the stat rows, which is the point: one interaction idiom for both resources.</li>
             <li><b>The pool is shared and live across both tabs.</b> Pour in 2c, switch to 2b, and the top-bar pool and the XP rows already agree. That's not a mockup trick — it's the same state object, which is what the engine would do too.</li>
+          </ul>
+        </section>
+
+        <section class="notes">
+          <b>Round 19 — the cap bar, formatted like Radiant Dawn</b>
+          <ul>
+            <li><b>An unopened comment ate the rule.</b> The reason nothing showed even after the first fix: a block of prose with no leading <code>/*</code> sat in the stylesheet, so CSS parsed it <i>plus the following selector</i> as one garbage rule and dropped it. That rule was the one giving the track and fill their <code>position:absolute</code> and <code>height</code> — without it they were zero-height inline elements. The DOM was correct the whole time, which is exactly why it was confusing.</li>
+            <li><b>The fill also referenced a colour that didn't exist.</b> <code>var(--azure-7)</code> is never defined in this file, and an undefined custom property makes the declaration invalid at computed-value time — so the fill had no background either way.</li>
+            <li><b>And the track was invisible on its own merits.</b> <code>#3a3831</code> against a panel of <code>#302d27</code> — about three values apart. Colours are real palette entries now, separated from the panel <i>and</i> each other: panel luma 21 → track 87 → fill 198.</li>
+            <li><b>There's a validator now</b> (<code>tools/validate_mockup_css.py</code>, wired into pre-commit). Brace and comment counting passed through both of these — the braces really were balanced. It checks <i>selectors</i> and custom properties instead, which is what actually broke. Verified by running it against the commit that shipped broken: it fails.</li>
+            <li><b>Same bug in the engine, different cause.</b> <code>StatCapBar.COLOR_TRACK</code> was Straw2 2 (<code>#2e2719</code>) against a HUD panel of <code>#171512</code>. Visible, but barely. Moved to Straw2 4.</li>
+            <li><b>Laid out the RD way: LABEL → GAUGE → NUMBER</b>, then the controls. It had been a 1px rule absolutely positioned along the row's bottom edge, which cost no vertical space and read as an underline rather than a gauge — and put the bar nowhere near the number it describes.</li>
+            <li><b>The stat block is one column now.</b> A gauge needs length to say anything, and two columns of four left it 18px. Full width gives ~120px, so a Mage's DEF ceiling at 18% of global reads as a stub instead of two pixels. Costs about 52px of sheet height, which the sheet had. One CSS value reverts it.</li>
+            <li><b>Worth clicking: Ma'am's SKL.</b> 17 grown against a cap of 20, three StatUps on top — the blue fill stops at the ceiling and the gold segment runs <i>past the end of the track</i>. That's the rule made visible, and it was impossible to see while the fill was transparent.</li>
+            <li><b>Also fixed:</b> the generated markup was emitting <code>width:4.0000000000000036%</code>. Rounded now — and it was a fair tell that nobody had read the output.</li>
+          </ul>
+        </section>
+
+        <section class="notes">
+          <b>Round 18 — this preview now renders the engine's real numbers</b>
+          <ul>
+            <li><b>Caps shipped, so the mockup stopped guessing.</b> <code>ClassStatCaps</code> is live in the build — all 21 classes × 8 stats, plus the fixed global ceiling. The table here is <i>generated from that file</i>, not retyped. A preview that predicts different numbers than the build is worse than no preview.</li>
+            <li><b>Two of this mockup's classes didn't exist.</b> The hand-invented table had an <code>Automaton</code> and a <code>Medic</code>; <code>Enums.CharacterClass</code> has neither. Robot is a <b>Heavy</b> now and the Healer Goblin is a <b>Mage</b> — which is exactly the drift that made mirroring worth doing.</li>
+            <li><b>The StatUp segment is on the bar now</b>, matching <code>StatCapBar</code>. Press <code>[+]</code> on a capped stat and the gold segment pushes out <i>past the end of its own track</i>. That's the "StatUps may exceed the cap" rule demonstrating itself instead of being explained in a tooltip.</li>
+            <li><b>Click the Goblin's DEF.</b> A Mage's DEF ceiling is <b>9</b> — the track is a stub at full health. That's the real shipped number and the balance edge I'd watch first: she starts at 4, so roughly five growth points and her DEF is finished for the whole of tier 1. Intended (mages stay papery), but it's the one most likely to feel bad.</li>
+            <li><b>Only Robot is at a cap, and he's staged there.</b> With the real table nobody at Lv 2–11 organically reaches a ceiling, so his AGL and SPC were set to Heavy's actual caps to make the state visible. Everyone else's stats are untouched — five units nowhere near a ceiling is the honest picture for a tier-1 squad this early.</li>
+          </ul>
+        </section>
+
+        <section class="notes">
+          <b>Round 17 — the bank column earns its space (and this changes the 2b/2c call)</b>
+          <ul>
+            <li><b>You were right, it did nothing.</b> Name / level / poured, repeating what the sheet already said, under a header ("ALL FLAT, 100 A LEVEL") left over from when prices varied per unit and there was something to compare. It answered no question you'd actually ask.</li>
+            <li><b>It's now the control, not a readout.</b> Same row component as 2c — portrait, level, XP bar, poured — and <b>clicking a name switches the sheet to that unit</b>. Allocating bEXP is a <i>comparison</i> task, and 2b making you click through the rail one unit at a time was the main thing 2c had going for it. This is the honest test of whether that's still true.</li>
+            <li><b>Sorted level-ascending, in both tabs.</b> With the price tag gone this sort is the <i>only</i> thing left pointing at who the catch-up is for — it went from a convenience to the screen's actual argument.</li>
+            <li><b>Benched units are in the list now, dimmed</b> — Robot (Lv 3) and the Goblin (Lv 2) are the two lowest-level people in the game, and the old list hid both. A "who needs it" panel that omits exactly who needs it is the same uselessness in a new coat, and raising the bench is what bEXP is <i>for</i>. <b>Veto this if bEXP is meant to be a deployed-only reward</b> — it's a real design call, not a layout tweak.</li>
+            <li><b>Both tabs now share one roster and one row component</b>, so 2b and 2c differ in <i>layout only</i>. If they differed in content too, pressing them against each other wouldn't tell you anything.</li>
+          </ul>
+        </section>
+
+        <section class="notes">
+          <b>Round 16 — the XP row says XP, and uncommitted things pulse</b>
+          <ul>
+            <li><b>The XP row shows <code>40/100</code>, not <code>+poured</code>.</b> It was reporting a transaction where a state belongs — and when nothing had been poured it read <code>—</code>, so the row was blank exactly when you most wanted to know where the unit stood.</li>
+            <li><b>Uncommitted = gold + pulsing.</b> Level, XP number, XP bar, the per-unit amount in 2c, and the bank all carry it, because they all move off the same <code>poured</code> number — marking only some would imply the others were already banked.</li>
+            <li><b>Two marks, not one, and that's deliberate.</b> The gold tint is always on; the pulse is emphasis on top. This project ships a <code>ui_motion_enabled</code> setting, and a state that exists ONLY as an animation disappears for anyone who turns motion off. Same reason the reduced-motion query kills the pulse and keeps the tint.</li>
+            <li><b>"N poured · N left · N to the next level" is gone to tooltips.</b> You were right that it's fluff — the screen already says the important half without words. The bar and the level show what you're <i>about</i> to have, and the pulse says it isn't banked. The arithmetic is a footnote you go looking for, not a headline.</li>
+            <li><b>Pour buttons: <code>2px 4px 1px</code>, not a symmetric <code>1px 4px</code>.</b> UP8's digits hang from the cap line with no internal leading, so even padding optically parks them against the top border.</li>
+            <li><b>Found while in there:</b> an orphaned <code>@keyframes</code> tail (three lines of stops with no header) had been sitting in the stylesheet since some earlier round. Invalid CSS, silently discarded by the browser, which is why it survived. Deleted.</li>
+          </ul>
+        </section>
+
+        <section class="notes">
+          <b>Round 15 — stat caps on the sheet</b>
+          <ul>
+            <li><b>One bar, two facts.</b> Track length = class cap ÷ game max. Fill = level_stat, on that same global scale. Your example renders exactly: cap 15 of a 20 max at stat 12 is a track 75% long, filled 80% of itself. The side effect is the good part — because every track uses the <i>same</i> global scale, filled pixels are directly comparable across units, while track length separately says how much headroom each one has. No second widget needed.</li>
+            <li><b>It costs zero vertical space.</b> The bar is 1px, absolutely positioned on the row's bottom pixel, so eight of them don't push the stat block taller. Matches <code>StatFingerprint</code>'s existing 1px vocabulary rather than inventing a second bar idiom.</li>
+            <li><b>Capped reads on the number AND the bar</b> — both go <code>--sem-success</code>. A colored number alone is easy to miss in a block of eight, and the bar is what you're scanning anyway.</li>
+            <li><b>StatUps exceed the cap and don't fill the bar</b>, as specified — and the engine already agrees. <code>is_at_stat_cap()</code> reads <code>get_base_plus_growth()</code>, so allocated points were never counted. The <code>[+]</code> stat-cap gate the mockup used to have was wrong; it's gone.</li>
+            <li><b>Ma'am's SKL is the case worth clicking.</b> Lv 11 Skulk, SKL 17 against the real cap of 20, three StatUps already in it — the fill sits at 85% of its track and the gold StatUp segment rides past it. Both rules in one row: growth stops at the ceiling, purchases don't.</li>
+            <li><b>Robot is the at-cap case.</b> A Heavy's AGL and SPC ceilings are <b>8</b> and <b>9</b> — the lowest in the tier-1 table, because that's what makes a Heavy heavy. Two green stubs, and the <i>stub length</i> is the message. It's also the mechanic paying out: <code>process_bexp_level_up()</code> draws its 3 growths from uncapped stats only, so Robot's bEXP levels concentrate into 6 stats instead of 8.</li>
+            <li><b>Most bars are mostly empty, on purpose.</b> Every unit here is tier 1, and the global max is the <i>tier-3</i> ceiling — so a tier-1 track runs about a third of the width. It reads as "early in a long climb," and makes promotion legible as the thing that buys the rest of the bar. If it feels discouraging rather than motivating in play, the fix is scaling the track to the current tier's ceiling and losing cross-tier comparability.</li>
+            <li><b>One wrinkle worth knowing:</b> percentage StatUps interact badly with <i>low</i> caps. +10% of a stat of 4 rounds to 0, so "StatUps can exceed the cap" is nearly meaningless on the stats where you'd most want it. It works fine on big stats. Not proposing a fix — flagging that the rule pays out unevenly.</li>
           </ul>
         </section>
 
@@ -1436,7 +1583,83 @@
     ['SKL', 'skl', 'Skill. Accuracy — each point adds about 1.5% to your hit chance.'],
     ['RES', 'res', 'Resistance. Cuts special damage taken.'],
   ];
-  const STAT_CAP = 25;
+  // ---- Stat caps (RQD spec 2026-08-06) ----
+  // TWO ceilings, and one bar draws both:
+  //   GLOBAL_MAX  the highest any unit in the game could reach. Sets the bar's
+  //               FULL width — identical on every row of every unit.
+  //   CLASS_CAPS  this class's ceiling. Sets the TRACK length: a class capped
+  //               at 60% of global draws a track 60% as long.
+  // Fill runs 0 -> level_stat inside that track.
+  //
+  // RQD's example: cap 15, game max 20, stat 12 -> a bar 75% of full length,
+  // filled 80% of itself. Note the useful side effect that falls out of it —
+  // because the track is scaled to the SAME global max everywhere, the filled
+  // pixels are always proportional to the raw stat. So two units side by side
+  // are directly comparable on fill length, while the track length tells you
+  // separately how much headroom each one has left. One bar, two facts, no
+  // extra ink.
+  //
+  // StatUps are EXCLUDED from the fill. They can push the number past the cap
+  // and the bar deliberately doesn't follow. This matches the engine, where
+  // is_at_stat_cap() reads get_base_plus_growth() — base + growth, never the
+  // allocated total.
+  const GLOBAL_MAX = {hp:100, str:50, spc:50, skl:50, agl:50, ath:50, def:50, res:50};
+
+  // MIRRORED VERBATIM FROM THE ENGINE — scripts/units/class_stat_caps.gd,
+  // ClassStatCaps.BY_CLASS, all 21 classes. Generated from that file rather
+  // than retyped, because the earlier hand-invented version of this table had
+  // already drifted: it carried two classes ('Automaton', 'Medic') that don't
+  // exist in Enums.CharacterClass at all. If the engine table moves,
+  // regenerate this one; a preview that predicts different numbers than the
+  // build is worse than no preview.
+  //
+  // Tier 1 caps sit well under GLOBAL_MAX (the tier-3 ceiling), so most bars
+  // here are a short track with a lot of empty space after them. That reads
+  // correctly: every unit on this screen is tier 1, early in a long climb,
+  // and promotion is what buys the rest of the bar.
+  const CLASS_CAPS = {
+    'Spaceman':     {hp: 44, str: 18, spc: 15, skl: 17, agl: 17, ath: 15, def: 16, res: 14},  // tier 1
+    'Mercenary':    {hp: 44, str: 20, spc: 11, skl: 19, agl: 15, ath: 14, def: 17, res: 11},  // tier 1
+    'Squire':       {hp: 42, str: 16, spc: 12, skl: 15, agl: 14, ath: 13, def: 18, res: 12},  // tier 1
+    'Noble':        {hp: 42, str: 17, spc: 16, skl: 18, agl: 16, ath: 14, def: 15, res: 17},  // tier 1
+    'Engineer':     {hp: 46, str: 18, spc: 11, skl: 17, agl: 11, ath: 13, def: 19, res: 10},  // tier 1
+    'Pirate':       {hp: 42, str: 19, spc: 10, skl: 16, agl: 18, ath: 17, def: 12, res: 10},  // tier 1
+    'Fighter':      {hp: 46, str: 22, spc:  9, skl: 15, agl: 14, ath: 16, def: 13, res:  9},  // tier 1
+    'Enigma':       {hp: 36, str: 10, spc: 21, skl: 16, agl: 15, ath: 12, def: 10, res: 20},  // tier 1
+    'Skulk':        {hp: 38, str: 13, spc: 13, skl: 20, agl: 20, ath: 16, def: 11, res: 13},  // tier 1
+    'Duelist':      {hp: 38, str: 15, spc: 12, skl: 22, agl: 19, ath: 15, def: 11, res: 12},  // tier 1
+    'Mage':         {hp: 34, str:  9, spc: 23, skl: 17, agl: 14, ath: 11, def:  9, res: 19},  // tier 1
+    'Heavy':        {hp: 48, str: 19, spc:  9, skl: 12, agl:  8, ath: 10, def: 22, res: 13},  // tier 1
+    'Grunt':        {hp: 38, str: 15, spc: 10, skl: 13, agl: 12, ath: 12, def: 13, res: 10},  // tier 1
+    'Keener':       {hp: 36, str: 10, spc: 20, skl: 15, agl: 14, ath: 12, def: 10, res: 22},  // tier 1
+    'Bandit':       {hp: 46, str: 21, spc:  9, skl: 12, agl: 14, ath: 16, def: 14, res:  8},  // tier 1
+    'Jetpack':      {hp: 60, str: 27, spc: 20, skl: 28, agl: 32, ath: 30, def: 20, res: 20},  // tier 2
+    'Hardcase':     {hp: 68, str: 31, spc: 16, skl: 24, agl: 20, ath: 22, def: 32, res: 20},  // tier 2
+    'Knight':       {hp: 66, str: 29, spc: 18, skl: 25, agl: 19, ath: 20, def: 34, res: 24},  // tier 2
+    'EVA':          {hp: 92, str: 44, spc: 30, skl: 40, agl: 38, ath: 40, def: 42, res: 32},  // tier 3
+    'Topdog':       {hp: 88, str: 42, spc: 38, skl: 44, agl: 42, ath: 38, def: 38, res: 38},  // tier 3
+    'Void Knight':  {hp: 90, str: 36, spc: 46, skl: 38, agl: 32, ath: 32, def: 40, res: 48},  // tier 3
+  };
+  const capOf = (u, key) => CLASS_CAPS[u.cls][key];
+  // Cap check reads lvlStat, NOT the displayed number — StatUps don't count.
+  const atCap = (u, key) => u.lvlStat[key] >= capOf(u, key);
+  const cappedCount = u => STATS.filter(([, k]) => atCap(u, k)).length;
+
+  // ---- StatUp allocation (RQD spec 2026-08-05) ----
+  // Each pip is +10% of the unit's level_stat (base + growth), NOT compounding
+  // and NOT of the running total — 4 pips is a flat +40% of the same number.
+  // Rounding happens ONCE on the final total so the curve stays monotonic.
+  //
+  // SHIPPED 2026-08-06. stat_allocation.gd now runs MODE = PERCENTAGE with
+  // PCT_PER_POINT = 0.10, so the engine and this preview agree. (It used to
+  // ship MODE = FLAT at 0.0625, whose percentage branch would have given +25%
+  // at 4 points rather than +40% — this mockup was the spec that caught it.)
+  const PER_STAT_CAP = 4;
+  const PCT_PER_POINT = 0.10;
+  const statDelta = (u, key) => Math.round(u.lvlStat[key] * PCT_PER_POINT * (u.al[key] || 0));
+  function recalcStats(u) {
+    STATS.forEach(([, k]) => { u[k] = u.lvlStat[k] + statDelta(u, k); });
+  }
   // Real entries from InjuryDatabase — id, real copy, real stat, real 10-25% band.
   const INJURIES = {
     'Contusion': {ic:'contusion', s:'ATH',
@@ -1461,10 +1684,18 @@
     {id:'elf', ord:4, nm:'Elf Pirate', cls:'Pirate', c:'#7fae6a', lv:5, dep:true, star:0, xp:55,
      hp:26,str:10,spc:6,skl:12,agl:13,ath:10,def:5,res:6, al:{},
      moves:['Cutlass','Sidearm','Cyclone','Feint'], pas:['Impetuous',null], inj:[]},
-    {id:'robot', ord:5, nm:'Robot', cls:'Automaton', c:'#6d9fd4', lv:3, dep:false, star:0, xp:10,
-     hp:31,str:9,spc:4,skl:7,agl:4,ath:6,def:13,res:9, al:{},
+    // Heavy, not the invented 'Automaton'. AGL and SPC are STAGED to sit
+    // exactly on Heavy's real caps (8 and 9) so the at-cap state is visible
+    // on this screen — at Lv 3 nobody would organically be there. Everyone
+    // else's stats are untouched, and none of them are near a ceiling, which
+    // is the honest picture for a tier-1 squad this early.
+    {id:'robot', ord:5, nm:'Robot', cls:'Heavy', c:'#6d9fd4', lv:3, dep:false, star:0, xp:10,
+     hp:31,str:9,spc:9,skl:7,agl:8,ath:6,def:13,res:9, al:{},
      moves:['Klunk','Megaton Punch','Bonk','Lance'], pas:['Maximum',null], inj:[]},
-    {id:'goblin', ord:6, nm:'Healer Goblin', cls:'Medic', c:'#8f7fb8', lv:2, dep:false, star:0, xp:80,
+    // Mage, not the invented 'Medic'. Worth clicking: a Mage's DEF ceiling is
+    // NINE, so her DEF track is a stub even at full health — that's the
+    // engine's real number and the balance edge most likely to bite.
+    {id:'goblin', ord:6, nm:'Healer Goblin', cls:'Mage', c:'#8f7fb8', lv:2, dep:false, star:0, xp:80,
      hp:19,str:4,spc:11,skl:9,agl:8,ath:5,def:4,res:12, al:{},
      moves:['Poultice','Salve','Bonk','Compressed Air'], pas:['Glib',null], inj:['Frostbite']},
   ];
@@ -1473,7 +1704,7 @@
   let sel = {kind:'none'};       // which slot on the sheet is open
   let bankPick = null;           // highlighted bank entry
   let pool = 340;
-  let pipStyle = 'dots';         // StatUp tally: stacked dots vs a run of '+'
+  let pipStyle = 'chars';         // StatUp tally: stacked dots vs a run of '+'
   const workStage = document.getElementById('stageWork');
 
   const unit = () => UNITS.find(u => u.id === selId);
@@ -1490,6 +1721,12 @@
   // a session baseline (lv0/xp0) plus `poured`, and level/xp are derived —
   // so [−] can always walk you back, even across a level boundary.
   const XP_PER_LEVEL = 100;
+  // Capture level_stat (the listed value) and apply any pre-allocated pips.
+  UNITS.forEach(u => {
+    u.lvlStat = {};
+    STATS.forEach(([, k]) => { u.lvlStat[k] = u[k]; });
+  });
+  UNITS.forEach(recalcStats);
   UNITS.forEach(u => { u.lv0 = u.lv; u.xp0 = u.xp; u.poured = 0; });
   const bankedXp = u => u.lv0 * XP_PER_LEVEL + u.xp0 + u.poured;
   function reflow(u) {                      // derive lv/xp from the bank
@@ -1509,6 +1746,21 @@
   }
   const toNextLevel = u => XP_PER_LEVEL - u.xp;      // cost to finish this level
   const levelsGained = u => u.lv - u.lv0;
+  const anyPoured = () => UNITS.some(u => u.poured !== 0);
+
+  // Everything the on-screen "N poured · N left · N to the next level" readout
+  // used to say, moved into a tooltip (RQD 2026-08-06). Those numbers matter
+  // exactly when you go looking for them and are noise the rest of the time —
+  // and the screen already communicates the important half without words: the
+  // XP bar and level show what you're ABOUT to have, pulsing to say it isn't
+  // banked yet. The arithmetic is the footnote, not the headline.
+  function pourTip(u) {
+    const parts = [];
+    if (levelsGained(u)) parts.push(`Lv ${u.lv0} → ${u.lv}`);
+    if (u.poured) parts.push(`${u.poured} bEXP poured, not yet committed`);
+    parts.push(`${u.xp}/100 XP`, `${toNextLevel(u)} to the next level`, `${pool} left in the pool`);
+    return parts.join(' · ');
+  }
 
   // Two readings of RQD's [-10][-1][+1][+10][99][100] sketch. Both are live —
   // the radio in the notes column switches them, so the choice can be made by
@@ -1519,21 +1771,68 @@
   //              rather than how much they cost.
   let bexpBtnStyle = 'amounts';
 
+  // [99] is "fill to 99/100 and STOP" — not a raw +99, which would overshoot
+  // from any non-empty bar. It exists because bEXP and combat level-ups are
+  // mechanically different: process_bexp_level_up grants exactly
+  // BEXP_GROWTHS_PER_LEVEL (3) growths, while a combat level rolls every stat
+  // against its own growth rate. So parking a high-growth unit at 99 and
+  // letting one kill finish it converts a fixed-3 level into a full-roll one.
+  // That's a real edge, which is what makes the button worth a slot.
+  const toBrink = u => Math.max(0, (XP_PER_LEVEL - 1) - u.xp);
+
   function bexpButtons(u) {
     const b = (amt, label, title, on) =>
       `<button class="bxb ${on ? '' : 'inert'}" data-pour="${amt}" title="${title}">${label}</button>`;
+    const brink = toBrink(u);
+    const brinkBtn = b(brink, '99',
+      brink ? `pour ${brink} — stops at 99/100 so a kill takes the level (full growth rolls, not bEXP's fixed 3)`
+            : 'already at the brink', brink > 0 && pool >= brink);
     if (bexpBtnStyle === 'amounts') {
       return `<div class="bx-btns">
         ${[-100, -10, -1].map(a => b(a, String(a), `refund ${-a}`, u.poured >= -a)).join('')}
-        ${[1, 10, 100].map(a => b(a, '+' + a, `pour ${a}`, pool >= a)).join('')}
+        ${[1, 10].map(a => b(a, '+' + a, `pour ${a}`, pool >= a)).join('')}
+        ${brinkBtn}
+        ${b(100, '+100', 'pour 100 — one full level', pool >= 100)}
       </div>`;
     }
     const need = toNextLevel(u);
     return `<div class="bx-btns">
       ${[-10, -1].map(a => b(a, String(a), `refund ${-a}`, u.poured >= -a)).join('')}
       ${[1, 10].map(a => b(a, '+' + a, `pour ${a}`, pool >= a)).join('')}
-      ${b(need, 'LEVEL', `${need} — finish this level`, pool >= need)}
+      ${brinkBtn}
+      ${b(need, 'LEVEL', `${need} — finish this level now (bEXP grants a fixed 3 growths)`, pool >= need)}
       ${b(pool, 'MAX', `pour all ${pool}`, pool > 0)}
+    </div>`;
+  }
+
+  // ---- the bEXP squad list, shared by 2b's bank column and 2c's main list ----
+  // One component in both places on purpose: if the same list can do the job
+  // inside Manage Units, 2c has to justify itself on something other than
+  // "you can see everyone at once."
+  //
+  // Sorted LEVEL-ASCENDING. With the price tag retired this sort is the only
+  // thing left pointing at who the catch-up is for, which promotes it from a
+  // convenience to the screen's actual argument. `ord` breaks ties so the list
+  // doesn't reshuffle under your cursor when two units share a level.
+  //
+  // Includes BENCHED units, dimmed. A "who needs it" list that hides the two
+  // lowest-level people in the game is the same uselessness in a new coat —
+  // and the bench is precisely who bEXP exists to raise. RQD: veto this if
+  // bEXP is meant to be a deployed-only reward.
+  const bexpRoster = () => [...UNITS].sort((a, b) => a.lv - b.lv || a.ord - b.ord);
+
+  function bexpRow(x, selected, hook) {
+    const g = levelsGained(x);
+    const un = x.poured ? 'uncommitted' : '';
+    return `<div class="bx-row ${selected ? 'sel' : ''}" data-${hook}="${x.id}"
+        style="${x.dep ? '' : 'opacity:0.55'}"
+        title="${pourTip(x)}${x.dep ? '' : ' · benched'}">
+      <span class="por" style="background:${x.c}">${x.nm[0]}</span>
+      <span class="nm">${esc(x.nm)}</span>
+      <span class="lv ${un}">Lv ${g ? `<b>${x.lv}</b>` : x.lv}</span>
+      <span class="bar"><i class="${un}" style="width:${x.xp}%"></i></span>
+      <span class="amt ${un}" style="${x.poured ? '' : 'color:#4d5561'}"
+        >${x.poured ? '+' + x.poured : '·'}</span>
     </div>`;
   }
 
@@ -1639,20 +1938,54 @@
     // HP  [−]  24 ++  [+]  — label, decrement, value, StatUp tally, increment.
     // The tally is what you've already poured in, so the row shows both the
     // number and how much of it you bought.
+    // RQD 2026-08-05: the number IS the effective stat, and the pips ride it
+    // as a suffix — 20 · 22+ · 24++. No original stat: the pips already say
+    // how much of the number you bought, so showing base too is redundant
+    // width. (My earlier `20+ 22` was the wrong read of the note.)
+    //
+    // Math matches StatAllocation: HP_FLAT_PER_POINT = 2, every other stat
+    // +1 per point, and PER_STAT_CAP = 4 points into any one stat.
     const statCells = STATS.map(([lbl, key]) => {
       const spent = u.al[key] || 0;
+      const atPointCap = spent >= PER_STAT_CAP;
+      // NOT gated on the stat cap: StatUps are allowed to push a stat past its
+      // class ceiling. That's the rule, and it's what the engine already does —
+      // is_at_stat_cap() never sees allocated points.
+      const canAdd = u.star > 0 && !atPointCap;
       const tally = pipStyle === 'dots'
         ? `<span class="pipdots" title="${spent} StatUp invested">${'<i></i>'.repeat(spent)}</span>`
-        : `${'+'.repeat(Math.min(spent, 4))}${spent > 4 ? '…' : ''}`;
-      const canAdd = u.star > 0 && u[key] < STAT_CAP;
-      return `<div class="slot stat ${sel.kind === 'stat' && sel.key === key ? 'sel' : ''}" data-stat="${key}">
+        : '+'.repeat(spent);
+      const cap = capOf(u, key), gmax = GLOBAL_MAX[key], raw = u.lvlStat[key];
+      const capped = raw >= cap;
+      const trackPct = Math.min(100, cap / gmax * 100);
+      const fillPct = Math.min(trackPct, raw / gmax * 100);
+      // Bonus segment, matching StatCapBar: rides past the fill and is clamped
+      // only by the GLOBAL ceiling, never by the class cap. Press [+] on a
+      // capped stat and you watch it push out past the end of its own track —
+      // which is the "StatUps may exceed the cap" rule demonstrating itself
+      // rather than being explained.
+      const bonusPct = Math.max(0, Math.min(100, u[key] / gmax * 100) - fillPct);
+      // Round before it reaches the markup — raw float math was emitting
+      // width:4.0000000000000036%, which is both ugly to read and a tell that
+      // nobody had looked at the generated HTML.
+      const pct = n => Math.round(n * 10) / 10;
+      const barTitle = capped
+        ? `${lbl} is at the ${u.cls} cap of ${cap} — growths skip it, so bEXP levels concentrate elsewhere`
+        : `${raw} of ${cap} (${u.cls} cap) · game max ${gmax}`;
+      // Radiant Dawn order: LABEL, GAUGE, NUMBER — then the controls. The bar
+      // used to be tacked on after [+] as an absolutely-positioned underline,
+      // which put the gauge nowhere near the number it describes.
+      return `<div class="slot stat ${capped ? 'capped' : ''} ${
+             sel.kind === 'stat' && sel.key === key ? 'sel' : ''}" data-stat="${key}">
          <span class="k">${lbl}</span>
+         <span class="capbar" title="${barTitle}"><b style="width:${pct(trackPct)}%"></b><i style="width:${pct(fillPct)}%"></i>${
+           bonusPct > 0 ? `<i class="bn" style="left:${pct(fillPct)}%;width:${pct(bonusPct)}%"></i>` : ''}</span>
+         <span class="v">${u[key]}</span><span class="pips ${pipStyle === 'dots' ? '' : 'chars'}">${tally}</span>
          <button class="sbtn ${spent ? '' : 'inert'}" data-minus="${key}"
-           title="${spent ? 'refund a StatUp' : 'nothing allocated here'}">−</button>
-         <span class="v">${u[key]}</span>
-         <span class="pips ${pipStyle === 'dots' ? '' : 'chars'}">${tally}</span>
+           title="${spent ? `refund a StatUp (−10% ${lbl})` : 'nothing allocated here'}">−</button>
          <button class="sbtn ${canAdd ? '' : 'inert'}" data-plus="${key}"
-           title="${canAdd ? 'spend a StatUp' : (u[key] >= STAT_CAP ? 'at cap' : 'no StatUp to spend')}">+</button>
+           title="${canAdd ? `spend a StatUp (+10% ${lbl}, ${PER_STAT_CAP} max)`
+             : (atPointCap ? `${PER_STAT_CAP} points is the per-stat cap` : 'no StatUp to spend')}">+</button>
        </div>`;
     }).join('');
 
@@ -1678,20 +2011,21 @@
         <span class="por" style="background:${u.c}">${u.nm[0]}</span>
         <span class="who">
           <span class="nm">${esc(u.nm)}</span>
-          <span class="sub">${u.cls} · Lv ${u.lv}</span>
+          <span class="sub">${u.cls} · Lv <span class="${gained ? 'uncommitted' : ''}">${u.lv}</span></span>
           <span class="sub">Simple / —</span>
         </span>
       </div>
-      <div class="slot mu-xp ${on('level')}" data-level="1">
+      <div class="slot mu-xp ${on('level')}" data-level="1" title="${pourTip(u)}">
         <span class="k" style="color:#8a8578">XP</span>
-        <span class="bar"><i style="width:${u.xp}%"></i></span>
-        <span class="price" style="${gained ? '' : 'color:#6d6f6d;text-shadow:none'}"
-          title="${gained ? gained + ' level(s) bought with bEXP' : 'bEXP poured into this unit'}"
-          >${u.poured ? '+' + u.poured : '—'}</span>
+        <span class="bar"><i class="${u.poured ? 'uncommitted' : ''}" style="width:${u.xp}%"></i></span>
+        <span class="price ${u.poured ? 'uncommitted' : ''}">${u.xp}/100</span>
       </div>
       <div class="mu-sec">STATS</div>
       <div class="statlist">${statCells}</div>
-      <div class="mu-points">${u.star ? `${u.star} StatUp to spend` : '&nbsp;'}</div>
+      <div class="mu-points">${u.star
+        ? `<span class="k">StatUps</span><span class="pool-pips" title="${u.star} unspent"
+             >${'<i></i>'.repeat(Math.min(u.star, 10))}</span>${u.star > 10 ? '…' : ''}`
+        : '&nbsp;'}</div>
       <div class="mu-sec">MOVES</div>
       <div class="movegrid">${moveCells}</div>
       <div class="mu-sec">PASSIVES</div>
@@ -1711,15 +2045,19 @@
     // +/- live on the row itself, so allocating never requires the workbench.
     sheet.querySelectorAll('[data-plus]').forEach(el => el.addEventListener('click', ev => {
       ev.stopPropagation();
+      // Points are the state; the stat is derived. Rounding therefore happens
+      // once on the final total, never per-press — the difference matters:
+      // four presses of round(12 * 0.10) would give +4, not round(12 * 0.40) = +5.
       const k = el.dataset.plus;
-      if (u.star <= 0 || u[k] >= STAT_CAP) return;
-      u[k]++; u.al[k] = (u.al[k] || 0) + 1; u.star--; dirty = true; renderAll();
+      // No stat-cap gate — StatUps may exceed the class ceiling by design.
+      if (u.star <= 0 || (u.al[k] || 0) >= PER_STAT_CAP) return;
+      u.al[k] = (u.al[k] || 0) + 1; u.star--; recalcStats(u); dirty = true; renderAll();
     }));
     sheet.querySelectorAll('[data-minus]').forEach(el => el.addEventListener('click', ev => {
       ev.stopPropagation();
       const k = el.dataset.minus;
       if (!u.al[k]) return;
-      u[k]--; u.al[k]--; u.star++; dirty = true; renderAll();
+      u.al[k]--; u.star++; recalcStats(u); dirty = true; renderAll();
     }));
     sheet.querySelectorAll('[data-level]').forEach(el => el.addEventListener('click',
       () => pick({kind:'level'})));
@@ -1835,10 +2173,19 @@
       head.textContent = `STAT — ${lbl}`;
       // The +/- live on the sheet row, so this panel is pure meaning: what the
       // stat does, where it stands, what you've already poured in.
+      // The cap line is the one place with room to spell out all three numbers
+      // the bar encodes, plus the bEXP consequence of being capped.
+      const cap = capOf(u, key), raw = u.lvlStat[key];
       detail.innerHTML = `<h4>${lbl}</h4>
-        <div class="meta">${u[key]} of ${STAT_CAP} cap${
+        <div class="meta">${raw} of ${cap} ${u.cls} cap · game max ${GLOBAL_MAX[key]}${
           spent ? ` · ${spent} StatUp invested` : ''}</div>
-        <p>${esc(blurb)}</p>`;
+        <p>${esc(blurb)}</p>
+        ${raw >= cap
+          ? `<p style="color:var(--sem-success)">At the class ceiling. Level-ups
+             can't raise it, so bEXP growths concentrate into this unit's
+             remaining ${8 - cappedCount(u)} open stats. StatUps still work —
+             they're allowed past the cap.</p>`
+          : ''}`;
       bank.innerHTML = `<div style="padding:5px">
         <div class="mu-sec" style="padding:0 0 2px">ACROSS THE SQUAD</div>
         ${UNITS.filter(x => x.dep).sort((a, b) => b[key] - a[key]).map(x =>
@@ -1850,31 +2197,30 @@
     } else if (sel.kind === 'level') {
       const gained = levelsGained(u);
       head.textContent = 'BONUS EXP';
+      // Controls first, flavor last (Lawrence 2026-08-05): the thing you came
+      // here to press shouldn't sit below a paragraph you've already read.
+      // The meta line IS the preview: it shows what committing would leave you
+      // with, pulsing while that's still refundable. No readout, no hint line —
+      // both went to the tooltip.
       detail.innerHTML = `<h4>${esc(u.nm)}</h4>
-        <div class="meta">Lv ${u.lv0}${gained ? ' → ' + u.lv : ''} · ${u.xp}/100 XP</div>
-        <p>Bonus EXP is earned by the squad, not the unit. 100 buys a level for
-           anyone — spend it wherever it does the most good.</p>
-        <div class="bx-alloc">
-          <div class="bx-readout">
-            <span class="big">${u.poured}</span>
-            <span class="arrow">poured · ${pool} left in pool</span>
-          </div>
-          ${bexpButtons(u)}
-          <div class="bx-hint">${gained
-            ? `<b style="color:var(--sem-success)">+${gained} level${gained > 1 ? 's' : ''}</b> · ${toNextLevel(u)} to the next`
-            : `${toNextLevel(u)} more finishes this level`}</div>
-        </div>`;
+        <div class="meta ${u.poured ? 'uncommitted' : ''}" title="${pourTip(u)}"
+          >Lv ${u.lv0}${gained ? ' → ' + u.lv : ''} · ${u.xp}/100 XP</div>
+        <div class="bx-alloc" title="${pourTip(u)}">${bexpButtons(u)}</div>
+        <p class="flavor">100 buys a level for anyone.</p>`;
+      // This column used to be a dead readout — name, level, poured — repeating
+      // what the sheet already said and answering no question you'd actually
+      // ask. Its header ("ALL FLAT, 100 A LEVEL") was a leftover from when
+      // prices varied per unit and there was something to compare.
+      //
+      // Now it's the CONTROL: 2c's row component verbatim, click to switch.
+      // Allocating bEXP is a COMPARISON task — "who needs it most?" — and 2b's
+      // one-unit-at-a-time sheet was the reason 2c looked necessary. Making
+      // this list do the comparing is the honest test of whether it still is.
       bank.innerHTML = `<div style="padding:5px">
-        <div class="mu-sec" style="padding:0 0 2px">SQUAD — ALL FLAT, 100 A LEVEL</div>
-        ${UNITS.filter(x => x.dep).sort((a, b) => a.lv - b.lv).map(x => {
-          const g = levelsGained(x);
-          return `<div style="display:flex;gap:5px;padding:1px 0;${x.id === u.id ? 'color:var(--azure-9)' : 'color:#8a8578'}">
-             <span style="flex:1">${esc(x.nm)}</span>
-             <span>Lv ${x.lv}</span>
-             <span style="width:34px;text-align:right;font-variant-numeric:tabular-nums;color:${
-               g ? 'var(--sem-success)' : (x.poured ? 'var(--sem-info)' : '#4d5561')}">${
-               x.poured ? '+' + x.poured : '·'}</span>
-           </div>`; }).join('')}</div>`;
+        <div class="mu-sec" style="padding:0 0 3px">WHO NEEDS IT · CLICK TO SWITCH</div>
+        ${bexpRoster().map(x => bexpRow(x, x.id === u.id, 'jump')).join('')}</div>`;
+      bank.querySelectorAll('[data-jump]').forEach(el =>
+        el.addEventListener('click', () => { selId = el.dataset.jump; renderAll(); }));
       wireBexpButtons(detail, u);
 
     } else if (sel.kind === 'injury') {
@@ -1976,40 +2322,48 @@
   function renderBexp() {
     const rows = document.getElementById('bxRows');
     if (!rows) return;
-    const deployed = UNITS.filter(u => u.dep);
-    if (!bxSel || !deployed.some(u => u.id === bxSel)) bxSel = deployed[0] && deployed[0].id;
-    rows.innerHTML = deployed.map(u => {
-      const g = levelsGained(u);
-      return `<div class="bx-row ${u.id === bxSel ? 'sel' : ''}" data-bx="${u.id}">
-        <span class="por" style="background:${u.c}">${u.nm[0]}</span>
-        <span class="nm">${esc(u.nm)}</span>
-        <span class="lv">Lv ${g ? `<b>${u.lv}</b>` : u.lv}</span>
-        <span class="bar"><i style="width:${u.xp}%"></i></span>
-        <span class="amt" style="color:${g ? 'var(--sem-success)' : (u.poured ? 'var(--sem-info)' : '#4d5561')}"
-          >${u.poured ? '+' + u.poured : '·'}</span>
-      </div>`;
-    }).join('');
+    // Same roster and same row component as 2b's bank column, so the two tabs
+    // differ in LAYOUT only — which is the whole point of running them side by
+    // side. If they also differed in content, the comparison would be rigged.
+    const roster = bexpRoster();
+    if (!bxSel || !roster.some(u => u.id === bxSel)) bxSel = roster[0] && roster[0].id;
+    rows.innerHTML = roster.map(x => bexpRow(x, x.id === bxSel, 'bx')).join('');
     rows.querySelectorAll('[data-bx]').forEach(el =>
       el.addEventListener('click', () => { bxSel = el.dataset.bx; renderBexp(); }));
 
-    const u = deployed.find(x => x.id === bxSel);
+    const u = roster.find(x => x.id === bxSel);
     const foot = document.getElementById('bxHint');
     if (u) {
       // The selected unit's controls live in the footer so the row list stays
       // scannable — 8 rows of buttons would out-shout the bars.
+      // "N to next" dropped from the footer — it's in the row's tooltip, and
+      // the footer's job is the controls, not a running commentary.
       foot.innerHTML = `<b style="color:var(--page-text)">${esc(u.nm)}</b>
-        &nbsp;${toNextLevel(u)} to next &nbsp;${bexpButtons(u)}`;
+        &nbsp;<span title="${pourTip(u)}">${bexpButtons(u)}</span>`;
       foot.querySelectorAll('[data-pour]').forEach(btn =>
         btn.addEventListener('click', () => {
           if (pour(u, parseInt(btn.dataset.pour, 10))) renderAll();
         }));
-    } else foot.textContent = 'nobody deployed';
-    document.getElementById('bxPool').textContent = pool;
+    } else foot.textContent = 'no units';
+    setPool('bxPool');
+  }
+
+  // The bank is spending uncommitted money too, so it pulses on the same rule
+  // as everything else — the pool and the unit are two ends of one transfer,
+  // and a still bank next to a pulsing unit would read as "the pool is real,
+  // the level isn't."
+  function setPool(id) {
+    const el = document.getElementById(id);
+    el.textContent = pool;
+    el.classList.toggle('uncommitted', anyPoured());
+    el.title = anyPoured()
+      ? `${pool} bEXP left · ${UNITS.reduce((n, u) => n + u.poured, 0)} poured out but not committed`
+      : `${pool} bEXP available`;
   }
 
   function renderAll() {
     renderRail(); renderSheet(); renderWork();
-    document.getElementById('muPool').textContent = pool;
+    setPool('muPool');
     renderHub(); renderBexp();
     requestAnimationFrame(drawTrace);   // after layout settles
   }

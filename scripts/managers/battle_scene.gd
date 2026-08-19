@@ -339,17 +339,19 @@ func _create_unit(json_path: String, faction: Enums.UnitFaction, tile: Tile,
 ## tiles, or one of VERY_LOW..BOSS for difficulty-tagged tiles). Player units
 ## come in pre-leveled from CampaignManager.start_campaign / _register_recruit.
 ## Returns the roster filtered by CampaignManager's deployment selection (the
-## player's prep-screen choice of which units to bring). Empty selection means
-## "deploy everyone." Falls back to the full roster if no campaign is active
-## (e.g. F6 directly on a battle scene).
+## player's prep-screen choice of which units to bring). An UNSET selection
+## (nobody ever wrote one — F6 on a map, an ad-hoc battle) means "deploy
+## everyone"; a chosen selection is honored verbatim, empty included — the hub
+## refuses to launch at 0/N, so an empty board here means a path skipped it.
+## Falls back to the full roster if no campaign is active.
 func _get_deployed_roster() -> Array[CharacterData]:
 	var full_roster: Array[CharacterData] = SquadManager.get_active_roster()
 	var campaign_manager: Node = get_node_or_null("/root/CampaignManager")
 	if campaign_manager == null or not campaign_manager.is_active():
 		return full_roster
-	var selected_ids: Array[String] = campaign_manager.get_deployment()
-	if selected_ids.is_empty():
+	if not campaign_manager.has_deployment():
 		return full_roster
+	var selected_ids: Array[String] = campaign_manager.get_deployment()
 	var filtered: Array[CharacterData] = []
 	for character: CharacterData in full_roster:
 		if selected_ids.has(character.character_id):

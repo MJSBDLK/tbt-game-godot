@@ -26,10 +26,12 @@ extends Resource
 @export var experience: int = 0
 
 # Class tier — 1 = base class, 2 = first promotion, 3 = second promotion.
-# Used by CombatXpCalculator to compute the RD-style "internal level"
-# (level + (tier-1) * 20) so promoting effectively bumps your XP cost and
-# higher-tier units earn less from low-tier opponents. Promotion mechanics
-# aren't implemented yet; all roster JSONs leave this at 1 until they are.
+# Intended to be DERIVED from level once promotion exists (1-20 / 21-40 /
+# 41-60), not tracked independently. Deliberately absent from the XP formula:
+# tier must never affect XP rate, or class choice becomes a leveling decision
+# instead of a build decision. See CombatXpCalculator's header for the version
+# of this that got deleted and why. Promotion mechanics aren't implemented yet;
+# all roster JSONs leave this at 1 until they are.
 @export var tier: int = 1
 
 # Portrait (high-res concept art crop)
@@ -39,6 +41,11 @@ extends Resource
 # for an HDPortraitSlot pointed at this asset — rendered at native window
 # resolution via the HDLayer overlay. Leave empty to keep the pixel portrait.
 @export var lineart_path: String = ""
+
+## One short crew-file entry in the voice of the corp AI that chartered the
+## mission — shown on the workbench's idle crew-file lane under the portrait.
+## Empty = the lane shows "— NO DATA —", which is itself in-fiction.
+@export var service_record: String = ""
 
 # Named sub-regions of the line-art. Keys are framing names ("portrait",
 # "thumbnail", "fullbody"); values are paths to AtlasTexture .tres resources
@@ -292,23 +299,11 @@ func has_maximum_protection() -> bool:
 
 
 # =============================================================================
-# STAT CAPS (default values — will be class-based via CLASS_INFO later)
+# STAT CAPS — now class-based, see [ClassStatCaps]
 # =============================================================================
-
-## 2:1 HP-to-other-stat ratio: HP /20
-## and every other stat /10
-## both top out at 5px
-## these are the practical cap a maxed-late-game unit might pull off.
-const DEFAULT_STAT_CAPS: Dictionary = {
-	"max_hp": 100,
-	"strength": 50,
-	"special": 50,
-	"skill": 50,
-	"agility": 50,
-	"athleticism": 50,
-	"defense": 50,
-	"resistance": 50,
-}
+# The flat DEFAULT_STAT_CAPS table that used to live here (HP 100, everything
+# else 50) became ClassStatCaps.GLOBAL: the tier-3 ceiling nobody exceeds and
+# every bar is scaled against. Per-class ceilings sit under it.
 
 
 # =============================================================================
@@ -369,8 +364,18 @@ func _get_status_modifier(stat_name: String) -> int:
 	return 0
 
 
+## This unit's ceiling for `stat_name`, from its class. Growth rolls and bEXP
+## growths respect it; allocated StatUps deliberately do not (see
+## is_at_stat_cap).
 func get_stat_cap(stat_name: String) -> int:
-	return DEFAULT_STAT_CAPS.get(stat_name, 20)
+	return ClassStatCaps.for_class(current_class, stat_name)
+
+
+## The fixed game-wide ceiling for `stat_name`, independent of class. Used to
+## SCALE cap bars: drawing every unit's track against the same maximum is what
+## makes bar lengths comparable between two units of different classes.
+func get_global_stat_cap(stat_name: String) -> int:
+	return ClassStatCaps.global_cap(stat_name)
 
 
 func get_base_plus_growth(stat_name: String) -> int:
@@ -387,8 +392,16 @@ func get_base_plus_growth(stat_name: String) -> int:
 
 
 func get_bonus_total(stat_name: String) -> int:
-	## Returns the sum of allocated + bond + passive + status modifiers (excludes base and growth).
-	## `allocated` is a stat delta computed via StatAllocation, not raw points.
+	## Returns the sum of allocated + bond + passive + status + injury modifiers
+	## (excludes base and growth). `allocated` is a stat delta computed via
+	## StatAllocation, not raw points.
+	##
+	## Injuries joined 2026-08-11 (RQD, "does Trauma actually affect DEF?"):
+	## they were always in the EFFECTIVE stat (the `defense` property et al.)
+	## but missing here — so every stat display built on base+bonus showed a
+	## Trauma'd unit at full DEF while combat used the lowered value. This is
+	## the one seam all the bars and number labels read through; fixing it
+	## here fixes every venue.
 	var bond: int = 0
 	var passive: int = 0
 	var status: int = 0
@@ -411,7 +424,7 @@ func get_bonus_total(stat_name: String) -> int:
 			bond = bond_bonus_resistance; passive = passive_bonus_resistance; status = status_modifier_resistance
 	var level_value: int = get_base_plus_growth(stat_name)
 	var allocated_delta: int = StatAllocation.compute_delta(stat_name, level_value, get_allocated_points(stat_name))
-	return allocated_delta + bond + passive + status
+	return allocated_delta + bond + passive + status + _get_injury_modifier(stat_name)
 
 
 func get_allocated_points(stat_name: String) -> int:

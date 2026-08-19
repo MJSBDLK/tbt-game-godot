@@ -37,15 +37,27 @@ const GHOST_SHADER: Shader = preload("res://shaders/ghost_projection.gdshader")
 const OVERLAY_MATERIAL: ShaderMaterial = preload("res://resources/overlay_static.tres")
 const LABEL_FONT: FontFile = preload("res://fonts/NotJamPixel5.ttf")
 
-## One z-slot above the move-range live-paint (ThreatOverlayRenderer default 1),
-## still under units.
-const OVERLAY_Z_INDEX: int = 2
+## ABOVE THE WHOLE BOARD — deliberately, and this is a trap worth spelling out.
+##
+## Board z is [code](99 - row) * 10 + layer[/code] (ZIndexCalculator), so it spans
+## 0..998: the row term dominates and the 0-8 layer enum only orders things
+## WITHIN a row. This used to be 2, described as "one slot above the move-range
+## paint, still under units" — reasoning in layer-enum terms while setting a flat
+## absolute z. The result was that the preview only cleared the BACK row's floor
+## tiles; every unit and modifier in front of row 99 buried it (RQD/Lawrence
+## 2026-08-05: "arrows display under terrain modifiers and units").
+##
+## A targeting preview is informational and must be legible over whatever it
+## crosses, so it sits above the board maximum (998) and above the flat
+## vignette polygon (4). Ghosts ride the same node on purpose — a ghost you
+## can't see through a unit standing in front of it isn't a preview.
+const OVERLAY_Z_INDEX: int = 1000
 
 const TRAVEL_SECONDS_PER_TILE: float = 0.18  # slower than the real 0.08 shove — readable
 const BLINK_SECONDS: float = 0.12
 const LOOP_PAUSE_SECONDS: float = 0.35
 const COLLATERAL_GHOST_ALPHA: float = 0.55  # non-primary movers render dimmer
-const ARROW_WIDTH: float = 1.0              # world px — chunky under integer zoom
+const ARROW_WIDTH: float = 2.0              # world px — 1.0 read too thin (Lawrence 2026-08-05)
 const CHEVRON_SPACING_PX: float = 6.0
 const ARC_OVER_LIFT_PX: float = 8.0
 const SWAP_ARROW_SPREAD_PX: float = 2.0

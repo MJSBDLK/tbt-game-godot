@@ -36,12 +36,47 @@ func test_move_detail_populates_range_value() -> void:
 	data.equipped_moves.append(move)
 	panel._character_data = data
 	panel._show_move_detail(0)
-	assert_eq(panel._move_detail_range_label.text, "3",
-			"Move detail shows the move's base range")
+	assert_eq(panel._move_detail_range_label.text, "1-3",
+			"the full 1..N band, not the bare max — '3' read as 'only at 3'")
+
+
+func test_move_detail_range_speaks_the_chip_vocabulary() -> void:
+	# One helper for every venue (chip band, peek tooltip, detail sheet) so a
+	# future min-range mechanic is taught in one place.
+	var panel := _make_panel()
+	var data := CharacterData.new()
+	var melee := Move.new()
+	melee.move_name = "Bonk"
+	melee.attack_range = 1
+	var self_target := Move.new()
+	self_target.move_name = "Fortify"
+	self_target.attack_range = 0
+	data.equipped_moves.append(melee)
+	data.equipped_moves.append(self_target)
+	panel._character_data = data
+	panel._show_move_detail(0)
+	assert_eq(panel._move_detail_range_label.text, "1", "melee is just '1'")
+	panel._show_move_detail(1)
+	assert_eq(panel._move_detail_range_label.text, "--",
+			"no reach reads '--' like the peek tooltip, not '0'")
+
+
+func test_the_panel_wears_the_shared_menu_background() -> void:
+	# The scene root had no stylebox, so it fell back to Godot's default
+	# panel (0.1 gray @ 60%) — visibly lighter than every other menu
+	# (RQD 2026-08-16). Same tint the system/options/action menus use.
+	var panel := _make_panel()
+	var style := panel.get_theme_stylebox("panel") as StyleBoxFlat
+	assert_not_null(style, "root panel carries its own StyleBoxFlat")
+	assert_eq(style.bg_color, GameColors.HUD_PANEL_BACKGROUND)
+	assert_eq(style.get_margin(SIDE_LEFT), 0.0,
+			"effective content margin stays 0 like the default it replaced — no layout shift")
 
 
 # =============================================================================
-# Chip adoption (2026-07-19): MovePanel tablets -> real MoveChipButtons
+# Center column (RQD 2026-08-11 round 3): moves are REAL MoveChipButtons — the
+# chip is the game's clickable move representation everywhere. Passives keep
+# the Manage Units sheet-row vocabulary; open move slots are inert muted rows.
 # =============================================================================
 
 func _make_move(move_name: String, uses: int = 3, max_uses: int = 5) -> Move:
@@ -61,42 +96,253 @@ func _make_panel_with_moves(moves: Array[Move]) -> UnitDetailPanel:
 	return panel
 
 
-func test_tablets_became_vocabulary_chips_with_full_names() -> void:
+func _row_label(row: Control) -> Label:
+	if row is Label:
+		return row
+	for child: Node in row.get_children():
+		if child is Control:
+			var found: Label = _row_label(child)
+			if found != null:
+				return found
+	return null
+
+
+func test_moves_render_as_chips_with_inert_muted_empties() -> void:
 	var panel := _make_panel_with_moves([_make_move("Frost Lance")])
-	assert_gt(panel._move_chips.size(), 1, "scene tablets replaced in place")
-	for chip_button: MoveChipButton in panel._move_chips:
-		assert_true(chip_button.prefer_full_name, "detail venue shows full names")
-	assert_true(panel._move_chips[0].visible)
-	assert_eq(panel._move_chips[0]._name_label.text, "Frost Lance",
-			"full name, not the menu abbreviation")
-	assert_false(panel._move_chips[1].visible, "empty slots hide")
-	assert_false(panel._move_chips[0]._uses_label.visible,
+	assert_eq(panel._move_rows.size(), UnitSheet.MOVE_SLOT_COUNT,
+			"the sheet's rule survives: every slot shows, four always")
+	var chip := panel._move_rows[0] as MoveChipButton
+	assert_not_null(chip, "a real move is a real chip — element-colored identity")
+	assert_true(chip.prefer_full_name, "detail venue shows full names")
+	assert_eq(chip._name_label.text, "Frost Lance")
+	assert_false(chip._uses_label.visible,
 			"identity-only selectors: the pane beside them shows the numbers")
-	assert_false(panel._move_chips[0]._scheme_glyph.visible)
+	assert_false(chip.peek_enabled,
+			"no-op venue: the detail pane IS the tooltip's content")
+	var open_slot: Button = panel._move_rows[1]
+	assert_null(open_slot as MoveChipButton, "open slots are rows, not blank chips")
+	assert_eq(_row_label(open_slot).text, "— empty —")
+	assert_eq(open_slot.mouse_filter, Control.MOUSE_FILTER_IGNORE,
+			"nothing to inspect in an open slot — inert, not clickable")
 
 
 func test_selection_brackets_mark_the_inspected_move() -> void:
 	var panel := _make_panel_with_moves([_make_move("Ember"), _make_move("Spark")])
+	var before: Array[Button] = panel._move_rows.duplicate()
 	panel._select(UnitDetailPanel.SelectionType.MOVE, 1)
-	assert_true(panel._move_chips[1].selected, "brackets = 'you are inspecting this'")
-	assert_false(panel._move_chips[0].selected)
+	assert_true((panel._move_rows[1] as MoveChipButton).selected,
+			"brackets = 'you are inspecting this'")
+	assert_false((panel._move_rows[0] as MoveChipButton).selected)
+	assert_eq(panel._move_rows, before,
+			"chips persist across selection changes — the flag toggles, no rebuild")
 	panel._select(UnitDetailPanel.SelectionType.MOVE, 1)
-	assert_false(panel._move_chips[1].selected,
+	assert_false((panel._move_rows[1] as MoveChipButton).selected,
 			"re-click toggles the inspection off")
 
 
 func test_depleted_chip_stays_inspectable_via_denied() -> void:
 	var panel := _make_panel_with_moves([_make_move("Spark", 0, 4)])
-	var spark := panel._move_chips[0]
+	var spark := panel._move_rows[0] as MoveChipButton
 	assert_true(spark.disabled, "depleted wears the dark tier here too")
 	spark.denied.emit()
-	assert_true(spark.selected,
+	assert_eq(panel._selection_type, UnitDetailPanel.SelectionType.MOVE,
 			"denied routes to select — in this venue the detail pane IS the why")
 
 
-func test_detail_chips_opt_out_of_hold_to_peek() -> void:
+func test_passives_render_as_four_sheet_rows() -> void:
+	var panel := _make_panel() as UnitDetailPanel
+	var data := CharacterData.new()
+	data.equipped_passives.append("Glib")
+	panel.show_character(data)
+	assert_eq(panel._passive_rows.size(), UnitSheet.PASSIVE_SLOT_COUNT)
+	assert_eq(_row_label(panel._passive_rows[0]).text, "Glib")
+	assert_eq(_row_label(panel._passive_rows[1]).text, "— empty —")
+
+
+func test_the_class_line_split_off_its_xp_suffix() -> void:
+	# "SKULK Lv.11 · 0/100 XP" overflowed and widened the whole left column
+	# (RQD 2026-08-11) — XP lives in its own sheet-style row now, and that row
+	# only shows for live PLAYER units (roster inspection has no XP context).
+	var panel := _make_panel() as UnitDetailPanel
+	var data := CharacterData.new()
+	data.level = 11
+	panel.show_character(data)
+	assert_false(panel._class_label.text.contains("XP"),
+			"the class line carries class and level only")
+	assert_string_contains(panel._class_label.text, "· Lv 11")
+	assert_false(panel._xp_row.visible,
+			"no live unit = no XP row (enemies and roster inspection)")
+
+
+# =============================================================================
+# One track per bar (RQD 2026-08-11): StatCapBar draws the ONLY track
+# =============================================================================
+
+func test_the_cap_bar_is_the_only_visible_bar_in_every_stat_row() -> void:
+	# The scene ships three legacy ColorRects per row (StatBar, StatBonusBar,
+	# StatBarBackground). All three must be hidden — the full-width background
+	# outlived the 2026-08-06 adoption and read as a second, longer track once
+	# StatCapBar started scaling its track to the class cap.
+	var panel := _make_panel()
+	var stats: Node = panel.get_node(
+			"MainRow/LeftColumnMargin/LeftColumn/StatsContainer")
+	var rows_checked: int = 0
+	for stat_container: Node in stats.get_children():
+		# The HP row is covered too (RQD 2026-08-11): it converted to a
+		# StatCapBar in health mode, so its scene bars went dark like the rest.
+		var bar_container: Node = stat_container.get_node_or_null(
+				"HBoxContainer/StatBarContainer")
+		if bar_container == null:
+			continue
+		rows_checked += 1
+		var cap_bars: int = 0
+		for child: Node in bar_container.get_children():
+			if child is StatCapBar:
+				cap_bars += 1
+				# Anchor-centered, like the scene bars it replaced. Copying a
+				# scene position at _ready captured a PRE-layout y and parked
+				# every bar at the top of its row (RQD 2026-08-11) — anchors
+				# make the layout engine own the centering instead.
+				assert_eq((child as Control).anchor_top, 0.5,
+						"%s: the cap bar centers by anchor, not a captured position"
+						% stat_container.name)
+				assert_eq((child as Control).anchor_bottom, 0.5, stat_container.name)
+			elif child is ColorRect:
+				assert_false((child as ColorRect).visible,
+						"%s/%s: legacy scene rect must stay hidden behind the cap bar"
+						% [stat_container.name, child.name])
+		assert_eq(cap_bars, 1, "%s: exactly one StatCapBar" % stat_container.name)
+	assert_gt(rows_checked, 0, "the scene's stat rows were actually found")
+
+
+func test_selecting_an_empty_slot_never_opens_a_ghost_detail() -> void:
+	# Empty rows are clickable (sheet vocabulary) but there's nothing to
+	# describe — the pane stays hidden instead of rendering a move called "—".
 	var panel := _make_panel_with_moves([_make_move("Ember")])
-	for chip_button: MoveChipButton in panel._move_chips:
-		assert_false(chip_button.peek_enabled,
-				"no-op venue (RQD 2026-07-21): the detail pane beside these"
-				+ " chips IS the tooltip's content, live and larger")
+	panel._select(UnitDetailPanel.SelectionType.MOVE, 2)
+	assert_false(panel._move_description.visible,
+			"empty slot selected: no detail pane, no crash")
+	var with_sentinel := _make_panel() as UnitDetailPanel
+	var data := CharacterData.new()
+	data.equipped_moves.append(Move.EMPTY)
+	with_sentinel.show_character(data)
+	with_sentinel._select(UnitDetailPanel.SelectionType.MOVE, 0)
+	assert_false(with_sentinel._move_description.visible,
+			"the Move.EMPTY sentinel is an empty slot, not a move named em-dash")
+
+
+func test_rows_size_the_column_not_the_other_way_around() -> void:
+	# Anchored row content contributes nothing to minimum-size math, so each
+	# row MEASURES its name and claims a real minimum width — the center
+	# column's width is its widest row (RQD 2026-08-11 round 2; the expand
+	# approach let the open detail pane squeeze the column to header width).
+	var panel := _make_panel_with_moves([_make_move("Compressed Air"), _make_move("Bonk")])
+	var long_chip: Button = panel._move_rows[0]
+	var short_chip: Button = panel._move_rows[1]
+	assert_gt(long_chip.custom_minimum_size.x, short_chip.custom_minimum_size.x,
+			"a longer name claims a wider chip")
+	var text_width: float = UIManager.font_8px.get_string_size(
+			"Compressed Air", HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+	assert_gt(long_chip.custom_minimum_size.x, text_width,
+			"the chip fits its full name plus both icons — nothing clips")
+
+
+func test_the_hp_denominator_speaks_with_the_hp_keys_voice() -> void:
+	# RQD 2026-08-11: the numerator breathes with current HP; "/20" is a
+	# frame fact and wears the same color as the "HP" label beside it —
+	# read FROM that label, so the pair can't drift.
+	var panel := _make_panel() as UnitDetailPanel
+	var data := CharacterData.new()
+	panel.show_character(data)
+	assert_not_null(panel._hp_name_label, "the scene's HP key label was found")
+	assert_eq(panel._hp_max_label.get_theme_color("font_color"),
+			panel._hp_name_label.get_theme_color("font_color"))
+	assert_ne(panel._hp_label.get_theme_color("font_color"),
+			panel._hp_max_label.get_theme_color("font_color"),
+			"numerator stays on the health ramp — full HP green != the key's voice")
+
+
+# =============================================================================
+# Injury grid: empty placeholders hold the 2×2 shape but draw nothing
+# (RQD 2026-08-16: bordered empties read as "there's an injury here").
+# =============================================================================
+
+func _make_injury(injury_id: String, severity: Enums.InjurySeverity) -> Injury:
+	var injury := Injury.new()
+	injury.injury_id = injury_id
+	injury.severity = severity
+	injury.battles_remaining = 3
+	return injury
+
+
+func _injury_border_width(panel: UnitDetailPanel, slot: int) -> int:
+	var style := panel._injury_panels[slot].get_theme_stylebox("panel") as StyleBoxFlat
+	return style.border_width_left
+
+
+func test_empty_injury_slots_are_borderless_filled_ones_are_not() -> void:
+	var panel := _make_panel() as UnitDetailPanel
+	var data := CharacterData.new()
+	data.current_injuries.append(_make_injury("burn_scar", Enums.InjurySeverity.MINOR))
+	panel.show_character(data)
+	assert_true(panel._injuries_section.visible, "one injury: the grid shows")
+	assert_eq(panel._injury_panels.size(), 4, "2×2 grid")
+	assert_eq(_injury_border_width(panel, 0), 1, "the Minor's slot wears the tablet border")
+	for slot: int in [1, 2, 3]:
+		assert_true(panel._injury_panels[slot].visible,
+				"slot %d keeps its footprint so the Minor stays Minor-sized" % slot)
+		assert_eq(_injury_border_width(panel, slot), 0,
+				"slot %d is empty: no border, nothing to read as an injury" % slot)
+
+
+func test_empty_injury_slots_stay_borderless_across_selection() -> void:
+	# The selection pass used to re-stamp a 1px border on EVERY injury panel,
+	# empties included — that was the bug.
+	var panel := _make_panel() as UnitDetailPanel
+	var data := CharacterData.new()
+	data.current_injuries.append(_make_injury("burn_scar", Enums.InjurySeverity.MINOR))
+	panel.show_character(data)
+	panel._select(UnitDetailPanel.SelectionType.INJURY, 0)
+	assert_eq(_injury_border_width(panel, 0), 0, "selected tablet drops its border")
+	assert_eq(_injury_border_width(panel, 1), 0, "empty stays borderless while a neighbor is selected")
+	panel._select(UnitDetailPanel.SelectionType.INJURY, 0)
+	assert_eq(_injury_border_width(panel, 0), 1, "deselected: the filled slot's border is back")
+	assert_eq(_injury_border_width(panel, 1), 0, "…and the empty is still bare")
+
+
+func test_an_empty_injury_slot_never_takes_the_selection() -> void:
+	var panel := _make_panel() as UnitDetailPanel
+	var data := CharacterData.new()
+	data.current_injuries.append(_make_injury("burn_scar", Enums.InjurySeverity.MINOR))
+	panel.show_character(data)
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.pressed = true
+	panel._injury_panels[3].gui_input.emit(click)
+	assert_eq(panel._selection_type, UnitDetailPanel.SelectionType.NONE,
+			"clicking a placeholder selects nothing")
+	panel._injury_panels[0].gui_input.emit(click)
+	assert_eq(panel._selection_type, UnitDetailPanel.SelectionType.INJURY,
+			"the filled slot still takes it")
+	assert_true(panel._effect_description.visible, "…and opens its detail")
+
+
+# =============================================================================
+# Passive rows: the shared slot chrome's selected border wears 1px rounded,
+# antialiased corners (RQD 2026-08-16).
+# =============================================================================
+
+func test_selected_passive_row_border_has_rounded_antialiased_corners() -> void:
+	var panel := _make_panel() as UnitDetailPanel
+	var data := CharacterData.new()
+	data.equipped_passives.append("Glib")
+	panel.show_character(data)
+	panel._select(UnitDetailPanel.SelectionType.PASSIVE, 0)
+	var style := panel._passive_rows[0].get_theme_stylebox("normal") as StyleBoxFlat
+	assert_eq(style.border_width_left, 1, "selected: 1px border")
+	assert_eq(style.corner_radius_top_left, UnitSheet.SLOT_CORNER_RADIUS)
+	assert_eq(style.corner_radius_bottom_right, UnitSheet.SLOT_CORNER_RADIUS)
+	assert_true(style.anti_aliasing, "the rounding is antialiased")
+	var unselected := panel._passive_rows[1].get_theme_stylebox("hover") as StyleBoxFlat
+	assert_eq(unselected.corner_radius_top_left, UnitSheet.SLOT_CORNER_RADIUS,
+			"the hover wash shares the shape so hover→selected doesn't jump")

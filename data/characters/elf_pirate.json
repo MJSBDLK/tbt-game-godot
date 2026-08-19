@@ -1,6 +1,6 @@
 {
 	"characterId": "elfPirate",
-	"characterName": "Elf Pirate",
+	"characterName": "Pica",
 	"primaryType": "Air",
 	"secondaryType": "None",
 	"currentClass": "Pirate",
@@ -58,5 +58,6 @@
 		"Impetuous",
 		"Capricious",
 		"Reliable"
-	]
+	],
+	"serviceRecord": "Asset PICA NERISSA. Recruited under the Fleet Amnesty Program.\nPrior employer: [[ NO DATA ]]\nPrior cargo: [[ NO DATA ]]\nAirborne mobility rated exceptional.\nInventory shrinkage in adjacent storage bays remains under review."
 }

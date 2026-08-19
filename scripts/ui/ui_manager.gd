@@ -306,6 +306,20 @@ func hide_battle_result() -> void:
 		state_manager.pop_state()
 
 
+## Mid-battle level-up celebration (RQD 2026-08-11): a stats-exclusive cut of
+## the detail panel, awaited so the combat sequence holds while the reveal
+## plays. `before` is LevelUpStatPanel.stat_snapshot taken pre-grant. Safe to
+## call from any combat context — returns immediately on bad input.
+func show_level_up_celebration(character_data: CharacterData, before: Dictionary) -> void:
+	if character_data == null or before.is_empty():
+		return
+	var panel := LevelUpStatPanel.new()
+	add_child(panel)
+	panel.present(character_data, before)
+	await panel.finished
+	panel.queue_free()
+
+
 ## Show the recruit picker with the given candidate JSON paths and await the
 ## user's choice. Returns the chosen path, or "" if the picker can't be shown
 ## (caller should treat that as "skip recruitment, keep going").
@@ -512,6 +526,7 @@ func _instantiate_panels() -> void:
 	_system_menu_panel.options_selected.connect(_on_system_menu_options)
 	_system_menu_panel.save_selected.connect(_on_system_menu_save)
 	_system_menu_panel.load_selected.connect(_on_system_menu_load)
+	_system_menu_panel.main_menu_selected.connect(_on_system_menu_main_menu)
 	_system_menu_panel.quit_selected.connect(_on_system_menu_quit)
 
 	# Options menu panel — centered overlay
@@ -783,8 +798,8 @@ func _get_camera() -> CameraController:
 ## which info panels (unit info, terrain info) should render.
 ##
 ## Primary gate is scene-presence: if a BattleScene isn't mounted, there's no
-## map to preview, full stop. This makes new non-battle screens (PrepScreen,
-## StartScreen, future overlays) inherently safe — they can't accidentally leak
+## map to preview, full stop. This makes new non-battle screens (the
+## intermission, StartScreen, future overlays) inherently safe — they can't accidentally leak
 ## map UI by forgetting to push a state. The InputState check stacks on top to
 ## suppress panels during in-battle modals (ACTION_MENU_OPEN, etc.).
 func _is_map_view_active() -> bool:
@@ -917,6 +932,16 @@ func _on_options_menu_closed() -> void:
 	if state_manager != null and state_manager.current_state == Enums.InputState.PAUSED:
 		if _system_menu_panel != null:
 			_system_menu_panel.show_menu()
+
+
+## Battle → start screen. Closing the menu first is what unwinds the state
+## machine (closed → pop PAUSED → DEFAULT, the same state the game boots in);
+## BattleScene._exit_tree clears the grid when the scene swaps, exactly as on
+## a mid-battle load. CampaignManager stays active on purpose — the start
+## screen's Continue/Load are how the player gets back.
+func _on_system_menu_main_menu() -> void:
+	hide_system_menu()
+	SceneRouter.change_scene_to(CampaignManager.START_SCREEN_PATH)
 
 
 func _on_system_menu_quit() -> void:

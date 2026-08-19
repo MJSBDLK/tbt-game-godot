@@ -1,0 +1,419 @@
+## BexpSpendPanel — the pour spec, single-level-cap revision (RQD 2026-08-13,
+## pivot 2A): [+1][+10][99][100] square buttons + CONFIRM on one row. Staging
+## is per-unit arithmetic that can never cross more than one level boundary;
+## CONFIRM is the one commit; leaving discards. The remainder persisting as
+## real XP is the 99 brink's whole reason to exist.
+extends GutTest
+
+
+var _saved_pool: int = 0
+var _saved_motion: bool = true
+
+
+func before_each() -> void:
+	_saved_pool = SquadManager.bonus_xp_pool
+	_saved_motion = Settings.ui_motion_enabled
+	# Reduced motion keeps the awaited confirm path fast under GUT.
+	Settings.ui_motion_enabled = false
+
+
+func after_each() -> void:
+	SquadManager.bonus_xp_pool = _saved_pool
+	Settings.ui_motion_enabled = _saved_motion
+
+
+func _unit(id: String = "pour_test") -> CharacterData:
+	var data := CharacterData.new()
+	data.character_id = id
+	data.character_name = "Bench Test"
+	data.level = 3
+	data.base_max_hp = 20
+	return data
+
+
+func _bound_panel(unit: CharacterData) -> BexpSpendPanel:
+	var panel := BexpSpendPanel.new()
+	add_child_autofree(panel)
+	panel.bind(unit)
+	return panel
+
+
+func _action_button(panel: BexpSpendPanel, label: String) -> Button:
+	# Last match wins — the action row rebuilds per refresh and queue_freed
+	# buttons linger until frame end.
+	var found: Button = null
+	for button: Node in panel._actions_row.get_children():
+		if button is Button and (button as Button).text == label:
+			found = button
+	return found
+
+
+# =============================================================================
+# PURE POUR MATH
+# =============================================================================
+
+func test_clamp_pour_floors_ceilings_at_pool_and_caps_at_one_level() -> void:
+	assert_eq(BexpSpendPanel.clamp_pour(0, 10, 250, 0), 10)
+	assert_eq(BexpSpendPanel.clamp_pour(5, -100, 250, 0), 0, "refunds floor at zero")
+	assert_eq(BexpSpendPanel.clamp_pour(40, 100, 30, 0), 70,
+			"a pour past the pool takes what's actually left")
+	assert_eq(BexpSpendPanel.clamp_pour(0, 200, 500, 40), 60,
+			"pivot 2A: the stage stops at ONE level — staged + XP never passes 100")
+	assert_eq(BexpSpendPanel.clamp_pour(60, 10, 500, 40), 60,
+			"already at the level boundary: nothing more fits")
+
+
+func test_the_brink_parks_the_gauge_at_99() -> void:
+	assert_eq(BexpSpendPanel.brink_amount(0), 99)
+	assert_eq(BexpSpendPanel.brink_amount(40), 59)
+	assert_eq(BexpSpendPanel.brink_amount(99), 0, "already at the brink")
+
+
+# =============================================================================
+# STAGING — arithmetic only, nothing commits
+# =============================================================================
+
+func test_pouring_stages_a_preview_and_touches_nothing_real() -> void:
+	SquadManager.bonus_xp_pool = 250
+	var unit := _unit()
+	var panel := _bound_panel(unit)
+	panel._on_pour_pressed(10)
+	panel._on_pour_pressed(1)
+	assert_eq(panel._staged_for_bound(), 11)
+	assert_eq(SquadManager.bonus_xp_pool, 250, "the real pool is untouched until CONFIRM")
+	assert_eq(unit.level, 3)
+	assert_eq(unit.experience, 0)
+	assert_eq(panel._pool_value_label.text, "239", "the readout shows the preview pool")
+	assert_eq(panel._xp_value_label.text, "11/100")
+
+
+func test_the_stage_never_crosses_a_level_boundary() -> void:
+	SquadManager.bonus_xp_pool = 500
+	var unit := _unit()
+	unit.experience = 40
+	var panel := _bound_panel(unit)
+	panel._on_pour_pressed(100)
+	panel._on_pour_pressed(100)
+	assert_eq(panel._staged_for_bound(), 60,
+			"[100] fills TO the level and further presses change nothing (2A)")
+	assert_eq(panel._xp_value_label.text, "100/100")
+	assert_eq(panel._level_value_label.text, "Lv 3 » 4",
+			"» not →: the arrow glyph is a font-fallback and its taller metrics shifted the GUI")
+
+
+func test_the_staged_segment_extends_the_committed_fill() -> void:
+	# RQD: 25 committed XP stays its normal gold; the staged extension is its
+	# own segment in the preview voice. The geometry is the testable half.
+	SquadManager.bonus_xp_pool = 250
+	var unit := _unit()
+	unit.experience = 25
+	var panel := _bound_panel(unit)
+	panel._on_pour_pressed(10)
+	panel._on_pour_pressed(10)
+	panel._on_pour_pressed(10)
+	panel._on_pour_pressed(10)
+	panel._on_pour_pressed(10)
+	assert_almost_eq(panel._xp_committed_fill.anchor_right, 0.25, 0.001,
+			"committed gold ends where it always did")
+	assert_almost_eq(panel._xp_staged_fill.anchor_left, 0.25, 0.001,
+			"the staged segment begins exactly there")
+	assert_almost_eq(panel._xp_staged_fill.anchor_right, 0.75, 0.001)
+	assert_eq(panel._xp_staged_fill.color, GameColors.TEXT_PRIMARY,
+			"staged wears the PRIMARY preview pair, not another gold")
+	assert_true(panel._xp_committed_fill.visible)
+
+
+func test_the_brink_button_stages_exactly_to_99() -> void:
+	SquadManager.bonus_xp_pool = 250
+	var unit := _unit()
+	unit.experience = 40
+	var panel := _bound_panel(unit)
+	panel._on_brink_pressed()
+	assert_eq(panel._staged_for_bound(), 59)
+	assert_eq(panel._xp_value_label.text, "99/100")
+
+
+func test_leaving_discards_the_stage() -> void:
+	SquadManager.bonus_xp_pool = 250
+	var unit := _unit()
+	var panel := _bound_panel(unit)
+	panel._on_pour_pressed(100)
+	panel.discard_stage()
+	assert_eq(panel._staged_for_bound(), 0)
+	assert_eq(SquadManager.bonus_xp_pool, 250)
+	assert_eq(unit.level, 3, "nothing rolled — the stage was only ever arithmetic")
+
+
+# =============================================================================
+# THE ACTION ROW — square buttons, StatUp scheme, built in their state
+# =============================================================================
+
+func test_buttons_go_muted_when_the_press_would_change_nothing() -> void:
+	SquadManager.bonus_xp_pool = 0
+	var panel := _bound_panel(_unit())
+	assert_true(_action_button(panel, "+1").disabled, "no pool, nothing to pour")
+	assert_true(_action_button(panel, "CONFIRM").disabled, "nothing staged")
+	SquadManager.bonus_xp_pool = 250
+	panel.bind(_unit("pour_rich"))
+	assert_false(_action_button(panel, "+1").disabled)
+	panel._on_pour_pressed(10)
+	assert_false(_action_button(panel, "CONFIRM").disabled)
+
+
+func test_square_buttons_wear_the_statup_scheme() -> void:
+	SquadManager.bonus_xp_pool = 250
+	var panel := _bound_panel(_unit())
+	var enabled_ring: StyleBoxFlat = \
+			_action_button(panel, "+1").get_theme_stylebox("normal") as StyleBoxFlat
+	assert_eq(enabled_ring.border_color, GameColors.TEXT_PRIMARY,
+			"ring and glyph share the PRIMARY identity")
+	assert_eq(enabled_ring.border_width_left, 1)
+	assert_eq(enabled_ring.content_margin_top - enabled_ring.content_margin_bottom, 2.0,
+			"glyph sits 1px below true center (RQD 2026-08-16), same optical rule as InteractiveButton")
+	SquadManager.bonus_xp_pool = 0
+	panel.bind(_unit("pour_broke"))
+	var muted_ring: StyleBoxFlat = \
+			_action_button(panel, "+1").get_theme_stylebox("normal") as StyleBoxFlat
+	assert_eq(muted_ring.border_color, GameColors.TEXT_MUTED,
+			"a press that would do nothing drops the whole button to MUTED")
+
+
+func _ring_color(panel: BexpSpendPanel, label: String) -> Color:
+	return (_action_button(panel, label).get_theme_stylebox("normal") as StyleBoxFlat).border_color
+
+
+func test_stage_ops_wear_their_own_voices_increments_stay_primary() -> void:
+	# RQD 2026-08-16: eight identical squares hid "reset or commit is next".
+	# CONFIRM = the CTA's motion-parked form (INFO gold ring + glyph); RESET =
+	# the DANGER voice (red — NOT warning, which is a second gold); the six
+	# pour squares keep PRIMARY. Ring and glyph share the voice.
+	SquadManager.bonus_xp_pool = 250
+	var panel := _bound_panel(_unit())
+	panel._on_pour_pressed(10)  # something staged: RESET and CONFIRM both live
+	assert_eq(_ring_color(panel, "CONFIRM"), GameColors.TEXT_INFO, "commit = gold ring")
+	assert_eq(_action_button(panel, "CONFIRM").get_theme_color("font_color"),
+			GameColors.TEXT_INFO, "…and gold glyph")
+	assert_eq(_ring_color(panel, "RESET"), GameColors.TEXT_DANGER, "discard = red ring")
+	assert_eq(_action_button(panel, "RESET").get_theme_color("font_color"),
+			GameColors.TEXT_DANGER, "…and red glyph")
+	for label: String in ["-10", "-1", "+1", "+10", "99", "100"]:
+		assert_eq(_ring_color(panel, label), GameColors.TEXT_PRIMARY,
+				"%s is an increment: PRIMARY" % label)
+
+
+func test_stage_ops_go_muted_like_everything_else_when_inert() -> void:
+	# The voice is an ENABLED-state identity; a dead RESET/CONFIRM drops to
+	# MUTED with the rest, so gold/red never advertise a press that does nothing.
+	SquadManager.bonus_xp_pool = 250
+	var panel := _bound_panel(_unit())
+	assert_eq(_ring_color(panel, "CONFIRM"), GameColors.TEXT_MUTED, "nothing staged")
+	assert_eq(_ring_color(panel, "RESET"), GameColors.TEXT_MUTED, "nothing to take back")
+
+
+func test_the_pour_cluster_is_isolated_by_a_gap_on_each_side() -> void:
+	# Grouping by proximity: RESET | gap | ±99/100 | gap | CONFIRM. Non-button
+	# spacer children carry the gap so the buttons themselves stay square.
+	SquadManager.bonus_xp_pool = 250
+	var panel := _bound_panel(_unit())
+	var sequence: Array[String] = []
+	for child: Node in panel._actions_row.get_children():
+		if child.is_queued_for_deletion():
+			continue
+		if child is Button:
+			sequence.append((child as Button).text)
+		else:
+			assert_eq((child as Control).custom_minimum_size.x, float(BexpSpendPanel.ACTION_GROUP_GAP))
+			sequence.append("|")
+	assert_eq(sequence, ["RESET", "|", "-10", "-1", "+1", "+10", "99", "100", "|", "CONFIRM"] as Array[String])
+
+
+# =============================================================================
+# CONFIRM — the one commit
+# =============================================================================
+
+func test_confirm_below_the_boundary_banks_real_xp_without_a_level() -> void:
+	SquadManager.bonus_xp_pool = 250
+	var unit := _unit()
+	unit.experience = 40
+	var panel := _bound_panel(unit)
+	watch_signals(panel)
+	panel._on_pour_pressed(10)
+	panel._on_pour_pressed(10)
+	await panel._on_confirm_pressed()
+	assert_eq(unit.level, 3, "no threshold crossed")
+	assert_eq(unit.experience, 60, "poured XP persists as REAL experience")
+	assert_eq(SquadManager.bonus_xp_pool, 230)
+	assert_signal_emitted(panel, "changed")
+	assert_false(panel._revealing)
+
+
+func test_confirm_at_the_boundary_rolls_exactly_one_level() -> void:
+	SquadManager.bonus_xp_pool = 250
+	var unit := _unit()
+	unit.experience = 40
+	var panel := _bound_panel(unit)
+	panel._on_pour_pressed(100)
+	assert_eq(panel._staged_for_bound(), 60)
+	# A leveling confirm PARKS on the +1 view (round 4) — never await it
+	# bare, or the test hangs waiting for a CONTINUE nobody presses.
+	panel._on_confirm_pressed()
+	await get_tree().process_frame
+	_action_button(panel, "CONTINUE").pressed.emit()
+	await get_tree().process_frame
+	assert_eq(unit.level, 4)
+	assert_eq(unit.experience, 0, "the gauge resets — exactly one level, no spill")
+	assert_eq(SquadManager.bonus_xp_pool, 190)
+
+
+func test_parked_at_99_commits_without_a_level() -> void:
+	SquadManager.bonus_xp_pool = 250
+	var unit := _unit()
+	unit.experience = 40
+	var panel := _bound_panel(unit)
+	panel._on_brink_pressed()
+	await panel._on_confirm_pressed()
+	assert_eq(unit.level, 3, "no threshold crossed")
+	assert_eq(unit.experience, 99,
+			"parked at the brink — the next combat action takes the level with full rolls")
+	assert_eq(SquadManager.bonus_xp_pool, 191)
+
+
+func test_confirm_commits_every_staged_unit_not_just_the_bound_one() -> void:
+	SquadManager.bonus_xp_pool = 300
+	var bound := _unit("pour_bound")
+	var other := _unit("pour_other")
+	# The other unit must resolve through SquadManager for its silent commit
+	# (get_active_roster returns a copy, so register on the real index).
+	SquadManager._roster_by_id[other.character_id] = other
+	var panel := _bound_panel(other)
+	panel._on_pour_pressed(100)
+	panel.bind(bound)
+	panel._on_pour_pressed(50)
+	assert_eq(panel._pool_value_label.text, "150",
+			"the preview pool carries every unit's stage")
+	await panel._on_confirm_pressed()
+	assert_eq(other.level, 4, "the off-screen unit's level landed silently")
+	assert_eq(bound.experience, 50)
+	assert_eq(SquadManager.bonus_xp_pool, 150)
+	SquadManager._roster_by_id.erase(other.character_id)
+
+
+# =============================================================================
+# THE POUR API (SquadManager)
+# =============================================================================
+
+func test_commit_bexp_pour_cascades_and_respects_the_pool() -> void:
+	# The API still cascades multi-level pours (it serves more callers than
+	# the panel); the panel's single-level cap lives in the STAGING math.
+	SquadManager.bonus_xp_pool = 250
+	var unit := _unit()
+	unit.experience = 50
+	assert_eq(SquadManager.commit_bexp_pour(unit, 160), 2,
+			"50 + 160 crosses two thresholds")
+	assert_eq(unit.level, 5)
+	assert_eq(unit.experience, 10)
+	assert_eq(SquadManager.bonus_xp_pool, 90)
+	assert_eq(SquadManager.commit_bexp_pour(unit, 91), 0,
+			"a pour past the pool refuses whole — no partial silent spend")
+	assert_eq(SquadManager.bonus_xp_pool, 90)
+
+
+# =============================================================================
+# ROUND 3 (RQD 2026-08-13): unmodified stats, [RESET][-10][-1], row fit
+# =============================================================================
+
+func test_the_block_shows_unmodified_stats_always() -> void:
+	# "The bEXP screen should be all about unmodified stats" — modifiers live
+	# one Escape away on the manage screen. DEF row: base 5, injured to 3 —
+	# this venue shows the grown 5. (Row layout: key · bar · value · plus.)
+	SquadManager.bonus_xp_pool = 250
+	var unit := _unit()
+	unit.injury_modifier_defense = -2
+	var panel := _bound_panel(unit)
+	var defense_row: Control = panel._block.get_child(6)
+	var value_label: Label = defense_row.get_child(2)
+	assert_eq(value_label.text, "5",
+			"grown value, not the injured effective — growth is this venue's story")
+
+
+func test_reset_takes_back_only_the_bound_units_stage() -> void:
+	SquadManager.bonus_xp_pool = 300
+	var bound := _unit("pour_reset_a")
+	var other := _unit("pour_reset_b")
+	var panel := _bound_panel(other)
+	panel._on_pour_pressed(50)
+	panel.bind(bound)
+	panel._on_pour_pressed(30)
+	panel._on_reset_pressed()
+	assert_eq(panel._staged_for_bound(), 0, "the bound unit's stage is gone")
+	assert_eq(panel._staged_total(), 50, "the other unit's stage survives")
+	assert_true(_action_button(panel, "RESET").disabled,
+			"nothing staged here anymore — RESET goes muted")
+
+
+func test_the_minus_buttons_refund_the_stage() -> void:
+	SquadManager.bonus_xp_pool = 250
+	var panel := _bound_panel(_unit())
+	panel._on_pour_pressed(10)
+	panel._on_pour_pressed(1)
+	panel._on_pour_pressed(-1)
+	assert_eq(panel._staged_for_bound(), 10)
+	panel._on_pour_pressed(-10)
+	assert_eq(panel._staged_for_bound(), 0)
+	assert_true(_action_button(panel, "-1").disabled, "nothing left to refund")
+
+
+func test_the_action_row_fits_the_sheet_column() -> void:
+	# Eight buttons + two group gaps, 200 usable pixels (SHEET_WIDTH minus the
+	# panel margins). Pinned so a label, margin, or gap change can't silently
+	# overflow the panel.
+	SquadManager.bonus_xp_pool = 250
+	var panel := _bound_panel(_unit())
+	await get_tree().process_frame
+	assert_lte(panel._actions_row.get_combined_minimum_size().x,
+			float(ManageUnitsScreen.SHEET_WIDTH - 10),
+			"[RESET][-10][-1][+1][+10][99][100][CONFIRM] must fit the column")
+
+
+# =============================================================================
+# ROUND 4 (RQD 2026-08-13): stable metrics, centered row, held reveal
+# =============================================================================
+
+func test_the_level_up_reveal_holds_until_continue() -> void:
+	SquadManager.bonus_xp_pool = 250
+	var unit := _unit()
+	var panel := _bound_panel(unit)
+	panel._on_pour_pressed(100)
+	panel._on_confirm_pressed()
+	await get_tree().process_frame
+	assert_true(panel._awaiting_continue,
+			"the +1 view parks — gains are acknowledged, never timer-yanked")
+	assert_not_null(_action_button(panel, "CONTINUE"),
+			"the action row collapses to the one thing to do")
+	assert_true(panel._revealing, "pour buttons stay locked while parked")
+	_action_button(panel, "CONTINUE").pressed.emit()
+	await get_tree().process_frame
+	assert_false(panel._awaiting_continue)
+	assert_false(panel._revealing)
+	assert_eq(unit.level, 4)
+	assert_not_null(_action_button(panel, "+1"), "the pour view is back")
+
+
+func test_a_rebind_mid_hold_resolves_the_wait_instead_of_hanging() -> void:
+	SquadManager.bonus_xp_pool = 250
+	var panel := _bound_panel(_unit())
+	panel._on_pour_pressed(100)
+	panel._on_confirm_pressed()
+	await get_tree().process_frame
+	assert_true(panel._awaiting_continue)
+	panel.bind(_unit("pour_switch"))
+	await get_tree().process_frame
+	assert_false(panel._awaiting_continue,
+			"a rail switch counts as the acknowledgement — no orphaned coroutine")
+	assert_false(panel._revealing)
+
+
+func test_the_action_row_is_centered() -> void:
+	SquadManager.bonus_xp_pool = 250
+	var panel := _bound_panel(_unit())
+	assert_eq(panel._actions_row.alignment, BoxContainer.ALIGNMENT_CENTER)
