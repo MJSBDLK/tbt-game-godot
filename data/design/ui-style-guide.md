@@ -451,6 +451,19 @@ disabled < static < idle < selected < call to action.
 - **Call to action**: converging rings — spawn dim a few game px out, shrink onto the
   border, which catches the light as they land. Motion *toward* = "come here";
   in-place pulse is explicitly rejected (reads as selected/idle).
+  **Motion-parked CTA as a static mark (RQD 2026-08-16)**: the CTA's reduce-motion
+  form — amber/INFO-gold ring + glyph, no rings — is legal on its own where the
+  rings would be too much but the button IS "the game suggests this next." First
+  use: the bEXP row's CONFIRM (`BexpSpendPanel`), gold once anything is staged.
+  Same scarcity rule (one CTA on screen), same monopoly on the hue.
+- **Discard / undo action = DANGER-voice ring** (RQD 2026-08-16, first use: the bEXP
+  row's RESET). Red 5 ring + glyph, Red 2 glow — the universal undo mark, and the one
+  voice orthogonal to both azure (pressable) and gold (CTA). Deliberately not WARNING:
+  that's a second gold, and two golds one gap apart is the "they look the same"
+  problem again. Billing falls out of the palette: gold CONFIRM > red RESET > azure
+  increments. Same row also groups by proximity — an extra gap either side of the
+  ± cluster (`ACTION_GROUP_GAP`) — so the two stage-ops read as a different family
+  before color registers.
 - **Press response — LOCK**: 1 game px downward shift + brightness flash. No scaling,
   ever (integer pixel grid). Pairs with the input-layer tap ring.
 

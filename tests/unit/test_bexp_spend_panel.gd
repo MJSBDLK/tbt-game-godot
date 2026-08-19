@@ -168,12 +168,63 @@ func test_square_buttons_wear_the_statup_scheme() -> void:
 	assert_eq(enabled_ring.border_color, GameColors.TEXT_PRIMARY,
 			"ring and glyph share the PRIMARY identity")
 	assert_eq(enabled_ring.border_width_left, 1)
+	assert_eq(enabled_ring.content_margin_top - enabled_ring.content_margin_bottom, 2.0,
+			"glyph sits 1px below true center (RQD 2026-08-16), same optical rule as InteractiveButton")
 	SquadManager.bonus_xp_pool = 0
 	panel.bind(_unit("pour_broke"))
 	var muted_ring: StyleBoxFlat = \
 			_action_button(panel, "+1").get_theme_stylebox("normal") as StyleBoxFlat
 	assert_eq(muted_ring.border_color, GameColors.TEXT_MUTED,
 			"a press that would do nothing drops the whole button to MUTED")
+
+
+func _ring_color(panel: BexpSpendPanel, label: String) -> Color:
+	return (_action_button(panel, label).get_theme_stylebox("normal") as StyleBoxFlat).border_color
+
+
+func test_stage_ops_wear_their_own_voices_increments_stay_primary() -> void:
+	# RQD 2026-08-16: eight identical squares hid "reset or commit is next".
+	# CONFIRM = the CTA's motion-parked form (INFO gold ring + glyph); RESET =
+	# the DANGER voice (red — NOT warning, which is a second gold); the six
+	# pour squares keep PRIMARY. Ring and glyph share the voice.
+	SquadManager.bonus_xp_pool = 250
+	var panel := _bound_panel(_unit())
+	panel._on_pour_pressed(10)  # something staged: RESET and CONFIRM both live
+	assert_eq(_ring_color(panel, "CONFIRM"), GameColors.TEXT_INFO, "commit = gold ring")
+	assert_eq(_action_button(panel, "CONFIRM").get_theme_color("font_color"),
+			GameColors.TEXT_INFO, "…and gold glyph")
+	assert_eq(_ring_color(panel, "RESET"), GameColors.TEXT_DANGER, "discard = red ring")
+	assert_eq(_action_button(panel, "RESET").get_theme_color("font_color"),
+			GameColors.TEXT_DANGER, "…and red glyph")
+	for label: String in ["-10", "-1", "+1", "+10", "99", "100"]:
+		assert_eq(_ring_color(panel, label), GameColors.TEXT_PRIMARY,
+				"%s is an increment: PRIMARY" % label)
+
+
+func test_stage_ops_go_muted_like_everything_else_when_inert() -> void:
+	# The voice is an ENABLED-state identity; a dead RESET/CONFIRM drops to
+	# MUTED with the rest, so gold/red never advertise a press that does nothing.
+	SquadManager.bonus_xp_pool = 250
+	var panel := _bound_panel(_unit())
+	assert_eq(_ring_color(panel, "CONFIRM"), GameColors.TEXT_MUTED, "nothing staged")
+	assert_eq(_ring_color(panel, "RESET"), GameColors.TEXT_MUTED, "nothing to take back")
+
+
+func test_the_pour_cluster_is_isolated_by_a_gap_on_each_side() -> void:
+	# Grouping by proximity: RESET | gap | ±99/100 | gap | CONFIRM. Non-button
+	# spacer children carry the gap so the buttons themselves stay square.
+	SquadManager.bonus_xp_pool = 250
+	var panel := _bound_panel(_unit())
+	var sequence: Array[String] = []
+	for child: Node in panel._actions_row.get_children():
+		if child.is_queued_for_deletion():
+			continue
+		if child is Button:
+			sequence.append((child as Button).text)
+		else:
+			assert_eq((child as Control).custom_minimum_size.x, float(BexpSpendPanel.ACTION_GROUP_GAP))
+			sequence.append("|")
+	assert_eq(sequence, ["RESET", "|", "-10", "-1", "+1", "+10", "99", "100", "|", "CONFIRM"] as Array[String])
 
 
 # =============================================================================
@@ -313,8 +364,9 @@ func test_the_minus_buttons_refund_the_stage() -> void:
 
 
 func test_the_action_row_fits_the_sheet_column() -> void:
-	# Eight buttons, 200 usable pixels (SHEET_WIDTH minus the panel margins).
-	# Pinned so a label or margin change can't silently overflow the panel.
+	# Eight buttons + two group gaps, 200 usable pixels (SHEET_WIDTH minus the
+	# panel margins). Pinned so a label, margin, or gap change can't silently
+	# overflow the panel.
 	SquadManager.bonus_xp_pool = 250
 	var panel := _bound_panel(_unit())
 	await get_tree().process_frame

@@ -33,7 +33,17 @@ const TICK_INSET_PIXELS: float = 2.0
 const TICK_ARM_PIXELS: float = 4.0
 
 var text: String = ""
-var sub_text: String = ""
+## SETTABLE AT ANY TIME, like `inert`. The sub label is built lazily on the
+## first non-empty value — the hub's live sub-lines ("4/5 deployed", the bEXP
+## number, "deploy at least one unit") all arrive AFTER _ready(), through
+## refresh passes, and every entry that starts with an empty sub-line used
+## to stay bare forever (found 2026-08-16: none of the hub's dynamic
+## sub-lines had ever rendered). Empty hides the label rather than freeing
+## it, so a line can come and go without re-layout churn.
+var sub_text: String = "":
+	set(value):
+		sub_text = value
+		_sync_sub_label()
 
 ## Unlit glass: dim, unfocusable, tickless. SETTABLE AT ANY TIME — the setter
 ## keeps focus_mode and the dim styling in sync, because entries that go inert
@@ -59,6 +69,7 @@ var _hovered: bool = false
 var _press_flash_started_ms: int = -PRESS_FLASH_MS
 var _main_label: GlowLabel = null
 var _sub_label: GlowLabel = null
+var _label_column: VBoxContainer = null  # set in _ready; sub label parent
 
 
 func _ready() -> void:
@@ -77,10 +88,8 @@ func _ready() -> void:
 	_main_label = _make_glow_label(text, UIManager.font_11px, 11,
 			GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
 	column.add_child(_main_label)
-	if sub_text != "":
-		_sub_label = _make_glow_label(sub_text, UIManager.font_8px, 8,
-				GameColors.TEXT_INFO, GameColors.TEXT_INFO_GLOW)
-		column.add_child(_sub_label)
+	_label_column = column
+	_sync_sub_label()
 	_apply_inert_style()
 
 	mouse_entered.connect(func() -> void: _hovered = true; queue_redraw())
@@ -95,6 +104,24 @@ func _process(_delta: float) -> void:
 	# frame is the no-flicker way.
 	if is_aimed() or is_default_action:
 		queue_redraw()
+
+
+## Mirrors `sub_text` into the sub label: builds it on the first non-empty
+## value (once the column exists), retexts it, hides it when empty. No-op
+## before _ready(); _ready() calls it once the column is up.
+func _sync_sub_label() -> void:
+	if _label_column == null:
+		return
+	if sub_text == "":
+		if _sub_label != null:
+			_sub_label.visible = false
+		return
+	if _sub_label == null:
+		_sub_label = _make_glow_label(sub_text, UIManager.font_8px, 8,
+				GameColors.TEXT_INFO, GameColors.TEXT_INFO_GLOW)
+		_label_column.add_child(_sub_label)
+	_sub_label.text = sub_text
+	_sub_label.visible = true
 
 
 ## No-ops before _ready() builds the labels; _ready() calls this itself once

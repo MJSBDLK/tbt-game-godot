@@ -1,6 +1,6 @@
 ## Right-side system menu panel (like the action menu but for game-level actions).
 ## Appears when pressing Escape in DEFAULT state or tapping the menu button.
-## Contains: Options, End Turn, Save, Load, Quit.
+## Contains: End Turn, Options, Save, Load, Main Menu, Quit, Close.
 ## Wears the border vocabulary (§14) since the 2026-07-19 adoption — all
 ## buttons are InteractiveButtons, focus is the cursor.
 class_name SystemMenuPanel
@@ -11,6 +11,10 @@ signal options_selected()
 signal end_turn_selected()
 signal save_selected()
 signal load_selected()
+## Leave the battle for the start screen (RQD 2026-08-16). Sits beside Quit
+## and, like Quit, doesn't confirm — the turn autosave ring means at most the
+## current turn is lost, and neither the hub's Quit to Menu nor Quit here asks.
+signal main_menu_selected()
 signal quit_selected()
 signal closed()
 
@@ -113,6 +117,7 @@ func _populate_menu() -> void:
 	_create_button("Options", func() -> void: options_selected.emit())
 	_save_button = _create_button("Save", func() -> void: save_selected.emit())
 	_create_button("Load", func() -> void: load_selected.emit())
+	_create_button("Main Menu", func() -> void: main_menu_selected.emit())
 	_create_button("Quit", func() -> void: quit_selected.emit())
 	_create_button("Close", func() -> void: hide_menu())
 

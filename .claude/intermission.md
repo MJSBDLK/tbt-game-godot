@@ -388,6 +388,12 @@ alphabetized. Revisit fuzzy if a roster ever passes 30.
   bEXP notes want players not to permanently bench anyone; a hidden bench makes
   forgetting effortless.
 - At cap, bench→deploy pips go inert (the existing rule), not silently ignored.
+- **The squad may reach 0/N** (RQD 2026-08-16). Benching the last unit is free —
+  the old "last deployed pip goes inert" rule drew that pip hollow, so the one
+  unit still deployed *looked* benched. An empty selection is a real choice now
+  (`CampaignManager.has_deployment()` splits it from the unset "deploy everyone"
+  fallback); the hub's **Begin Mission goes inert** at 0/N with the sub-line
+  "deploy at least one unit" as the tap-for-why.
 
 ### 4d. Sorting must not move spawn positions
 

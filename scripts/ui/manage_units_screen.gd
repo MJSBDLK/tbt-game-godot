@@ -87,14 +87,16 @@ func _read_squad_cap() -> int:
 
 ## Resolve the carried deployment for this roster + map, hand it to the rail,
 ## and write the resolved form back so the hub and BattleScene see the same
-## truth the pips show. Cap 0 (no campaign / unloadable map) resolves empty —
-## the rail then shows everyone deployed WITHOUT writing, preserving the
-## legacy "empty selection = deploy everyone" sentinel.
+## truth the pips show. An UNSET selection that resolves empty (no campaign /
+## cap 0 unloadable map) shows everyone deployed WITHOUT writing — the legacy
+## "unset = deploy everyone" read for editor previews. A CHOSEN empty one is
+## the player's own 0/N and shows exactly that.
 func _seed_rail() -> void:
 	var roster: Array[CharacterData] = SquadManager.get_active_roster()
+	var chosen: bool = CampaignManager.is_active() and CampaignManager.has_deployment()
 	var deployed: Array[String] = RosterRail.resolved_deployment(
-			roster, CampaignManager.get_deployment(), _squad_cap)
-	if deployed.is_empty():
+			roster, CampaignManager.get_deployment(), _squad_cap, chosen)
+	if deployed.is_empty() and not chosen:
 		for character: CharacterData in roster:
 			deployed.append(character.character_id)
 	elif CampaignManager.is_active():

@@ -36,8 +36,41 @@ func test_move_detail_populates_range_value() -> void:
 	data.equipped_moves.append(move)
 	panel._character_data = data
 	panel._show_move_detail(0)
-	assert_eq(panel._move_detail_range_label.text, "3",
-			"Move detail shows the move's base range")
+	assert_eq(panel._move_detail_range_label.text, "1-3",
+			"the full 1..N band, not the bare max — '3' read as 'only at 3'")
+
+
+func test_move_detail_range_speaks_the_chip_vocabulary() -> void:
+	# One helper for every venue (chip band, peek tooltip, detail sheet) so a
+	# future min-range mechanic is taught in one place.
+	var panel := _make_panel()
+	var data := CharacterData.new()
+	var melee := Move.new()
+	melee.move_name = "Bonk"
+	melee.attack_range = 1
+	var self_target := Move.new()
+	self_target.move_name = "Fortify"
+	self_target.attack_range = 0
+	data.equipped_moves.append(melee)
+	data.equipped_moves.append(self_target)
+	panel._character_data = data
+	panel._show_move_detail(0)
+	assert_eq(panel._move_detail_range_label.text, "1", "melee is just '1'")
+	panel._show_move_detail(1)
+	assert_eq(panel._move_detail_range_label.text, "--",
+			"no reach reads '--' like the peek tooltip, not '0'")
+
+
+func test_the_panel_wears_the_shared_menu_background() -> void:
+	# The scene root had no stylebox, so it fell back to Godot's default
+	# panel (0.1 gray @ 60%) — visibly lighter than every other menu
+	# (RQD 2026-08-16). Same tint the system/options/action menus use.
+	var panel := _make_panel()
+	var style := panel.get_theme_stylebox("panel") as StyleBoxFlat
+	assert_not_null(style, "root panel carries its own StyleBoxFlat")
+	assert_eq(style.bg_color, GameColors.HUD_PANEL_BACKGROUND)
+	assert_eq(style.get_margin(SIDE_LEFT), 0.0,
+			"effective content margin stays 0 like the default it replaced — no layout shift")
 
 
 # =============================================================================
@@ -227,3 +260,89 @@ func test_the_hp_denominator_speaks_with_the_hp_keys_voice() -> void:
 	assert_ne(panel._hp_label.get_theme_color("font_color"),
 			panel._hp_max_label.get_theme_color("font_color"),
 			"numerator stays on the health ramp — full HP green != the key's voice")
+
+
+# =============================================================================
+# Injury grid: empty placeholders hold the 2×2 shape but draw nothing
+# (RQD 2026-08-16: bordered empties read as "there's an injury here").
+# =============================================================================
+
+func _make_injury(injury_id: String, severity: Enums.InjurySeverity) -> Injury:
+	var injury := Injury.new()
+	injury.injury_id = injury_id
+	injury.severity = severity
+	injury.battles_remaining = 3
+	return injury
+
+
+func _injury_border_width(panel: UnitDetailPanel, slot: int) -> int:
+	var style := panel._injury_panels[slot].get_theme_stylebox("panel") as StyleBoxFlat
+	return style.border_width_left
+
+
+func test_empty_injury_slots_are_borderless_filled_ones_are_not() -> void:
+	var panel := _make_panel() as UnitDetailPanel
+	var data := CharacterData.new()
+	data.current_injuries.append(_make_injury("burn_scar", Enums.InjurySeverity.MINOR))
+	panel.show_character(data)
+	assert_true(panel._injuries_section.visible, "one injury: the grid shows")
+	assert_eq(panel._injury_panels.size(), 4, "2×2 grid")
+	assert_eq(_injury_border_width(panel, 0), 1, "the Minor's slot wears the tablet border")
+	for slot: int in [1, 2, 3]:
+		assert_true(panel._injury_panels[slot].visible,
+				"slot %d keeps its footprint so the Minor stays Minor-sized" % slot)
+		assert_eq(_injury_border_width(panel, slot), 0,
+				"slot %d is empty: no border, nothing to read as an injury" % slot)
+
+
+func test_empty_injury_slots_stay_borderless_across_selection() -> void:
+	# The selection pass used to re-stamp a 1px border on EVERY injury panel,
+	# empties included — that was the bug.
+	var panel := _make_panel() as UnitDetailPanel
+	var data := CharacterData.new()
+	data.current_injuries.append(_make_injury("burn_scar", Enums.InjurySeverity.MINOR))
+	panel.show_character(data)
+	panel._select(UnitDetailPanel.SelectionType.INJURY, 0)
+	assert_eq(_injury_border_width(panel, 0), 0, "selected tablet drops its border")
+	assert_eq(_injury_border_width(panel, 1), 0, "empty stays borderless while a neighbor is selected")
+	panel._select(UnitDetailPanel.SelectionType.INJURY, 0)
+	assert_eq(_injury_border_width(panel, 0), 1, "deselected: the filled slot's border is back")
+	assert_eq(_injury_border_width(panel, 1), 0, "…and the empty is still bare")
+
+
+func test_an_empty_injury_slot_never_takes_the_selection() -> void:
+	var panel := _make_panel() as UnitDetailPanel
+	var data := CharacterData.new()
+	data.current_injuries.append(_make_injury("burn_scar", Enums.InjurySeverity.MINOR))
+	panel.show_character(data)
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.pressed = true
+	panel._injury_panels[3].gui_input.emit(click)
+	assert_eq(panel._selection_type, UnitDetailPanel.SelectionType.NONE,
+			"clicking a placeholder selects nothing")
+	panel._injury_panels[0].gui_input.emit(click)
+	assert_eq(panel._selection_type, UnitDetailPanel.SelectionType.INJURY,
+			"the filled slot still takes it")
+	assert_true(panel._effect_description.visible, "…and opens its detail")
+
+
+# =============================================================================
+# Passive rows: the shared slot chrome's selected border wears 1px rounded,
+# antialiased corners (RQD 2026-08-16).
+# =============================================================================
+
+func test_selected_passive_row_border_has_rounded_antialiased_corners() -> void:
+	var panel := _make_panel() as UnitDetailPanel
+	var data := CharacterData.new()
+	data.equipped_passives.append("Glib")
+	panel.show_character(data)
+	panel._select(UnitDetailPanel.SelectionType.PASSIVE, 0)
+	var style := panel._passive_rows[0].get_theme_stylebox("normal") as StyleBoxFlat
+	assert_eq(style.border_width_left, 1, "selected: 1px border")
+	assert_eq(style.corner_radius_top_left, UnitSheet.SLOT_CORNER_RADIUS)
+	assert_eq(style.corner_radius_bottom_right, UnitSheet.SLOT_CORNER_RADIUS)
+	assert_true(style.anti_aliasing, "the rounding is antialiased")
+	var unselected := panel._passive_rows[1].get_theme_stylebox("hover") as StyleBoxFlat
+	assert_eq(unselected.corner_radius_top_left, UnitSheet.SLOT_CORNER_RADIUS,
+			"the hover wash shares the shape so hover→selected doesn't jump")

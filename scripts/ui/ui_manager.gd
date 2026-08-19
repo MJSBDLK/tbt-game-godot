@@ -526,6 +526,7 @@ func _instantiate_panels() -> void:
 	_system_menu_panel.options_selected.connect(_on_system_menu_options)
 	_system_menu_panel.save_selected.connect(_on_system_menu_save)
 	_system_menu_panel.load_selected.connect(_on_system_menu_load)
+	_system_menu_panel.main_menu_selected.connect(_on_system_menu_main_menu)
 	_system_menu_panel.quit_selected.connect(_on_system_menu_quit)
 
 	# Options menu panel — centered overlay
@@ -931,6 +932,16 @@ func _on_options_menu_closed() -> void:
 	if state_manager != null and state_manager.current_state == Enums.InputState.PAUSED:
 		if _system_menu_panel != null:
 			_system_menu_panel.show_menu()
+
+
+## Battle → start screen. Closing the menu first is what unwinds the state
+## machine (closed → pop PAUSED → DEFAULT, the same state the game boots in);
+## BattleScene._exit_tree clears the grid when the scene swaps, exactly as on
+## a mid-battle load. CampaignManager stays active on purpose — the start
+## screen's Continue/Load are how the player gets back.
+func _on_system_menu_main_menu() -> void:
+	hide_system_menu()
+	SceneRouter.change_scene_to(CampaignManager.START_SCREEN_PATH)
 
 
 func _on_system_menu_quit() -> void:

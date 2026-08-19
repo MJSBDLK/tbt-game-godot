@@ -79,15 +79,10 @@ const _MOVE_DAMAGE_TYPE_ICON_PATH = "MoveRow/HBoxContainer/UnitTypeIconContainer
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# §14: read-only surface, but the authored border art averages ~185/255 —
-	# "lit border = pressable" territory (playtest: looks interactible, isn't).
-	# Default treatment pending Lawrence eyes (RQD 2026-08-11): neutral
-	# self_modulate pins the art to the STATIC tier, hue untouched. One line
-	# to revert if it reads muddy in a build.
-	var border_sprite := get_node_or_null("Control/Sprite2D2") as Sprite2D
-	if border_sprite != null:
-		var tier_value: float = GameColors.STATIC_BORDER.v
-		border_sprite.self_modulate = Color(tier_value, tier_value, tier_value)
+	# §14: read-only surface. The STATIC-tier self_modulate trial (2026-08-11)
+	# was reverted 2026-08-16 — dimming read as muddy, not as furniture. The
+	# preview surfaces' "looks pressable" problem was the unit preview's
+	# rivet-button art, fixed there; this frame has no such decoration.
 	# No manual node lookup needed — @onready + % handles it automatically.
 	# When this node enters the scene tree, Godot resolves all the %Names above.
 	# Stay visible when previewing this scene standalone (F6)

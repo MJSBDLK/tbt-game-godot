@@ -81,9 +81,15 @@ func _ready() -> void:
 func _seed_deployment() -> void:
 	if not CampaignManager.is_active():
 		return
+	var chosen: bool = CampaignManager.has_deployment()
 	var resolved: Array[String] = RosterRail.resolved_deployment(
-			SquadManager.get_active_roster(), CampaignManager.get_deployment(), _squad_cap())
-	if not resolved.is_empty():
+			SquadManager.get_active_roster(), CampaignManager.get_deployment(),
+			_squad_cap(), chosen)
+	# Write the resolved form back — including a chosen EMPTY one (the player
+	# benched everyone; pruning is still a write). Only an unset selection
+	# that resolved to nobody (cap 0: unloadable map) stays unset, so a broken
+	# map path can't pin "nobody" onto a mission that loads later.
+	if not resolved.is_empty() or chosen:
 		CampaignManager.set_deployment(resolved)
 
 
@@ -99,6 +105,15 @@ static func deploy_sub_line(deployed: int, cap: int, unspent_statups: int) -> St
 	if unspent_statups > 0:
 		line += " · %d StatUp" % unspent_statups
 	return line
+
+
+## Begin Mission's sub-line: empty when the squad can launch, the reason when
+## it can't. The entry goes inert alongside (§14: an entry whose press would
+## do nothing must not look pressable) — the sub-line is the tap-for-why.
+static func begin_sub_line(can_launch: bool) -> String:
+	if not can_launch:
+		return "deploy at least one unit"
+	return ""
 
 
 ## The bare number — the parent label already carries the noun (RQD round 11).
@@ -136,10 +151,22 @@ func _squad_cap() -> int:
 ## the selection is always materialized by the time this reads it. The
 ## fallback covers the no-campaign editor-open case only.
 func _deployed_count() -> int:
-	var chosen: int = CampaignManager.get_deployment().size()
-	if chosen > 0:
-		return chosen
+	if CampaignManager.has_deployment():
+		return CampaignManager.get_deployment().size()  # 0 is a real answer
 	return mini(SquadManager.get_active_roster().size(), _squad_cap())
+
+
+## Whether Begin Mission may launch. The one thing that blocks it is the
+## player's own choice of NOBODY — a chosen, empty deployment. Unset stays
+## launchable (it's the legacy "everyone rides along" read: no campaign, or
+## a cap-0 map the seeder wouldn't write for), and Begin routes home or
+## errors on its own there as before.
+func _can_begin() -> bool:
+	if not CampaignManager.is_active():
+		return true
+	if not CampaignManager.has_deployment():
+		return true
+	return not CampaignManager.get_deployment().is_empty()
 
 
 func _unspent_statups() -> int:
@@ -209,10 +236,9 @@ func _build_content() -> void:
 	_add_entry(column, "Quit to Menu", "", _on_quit_to_menu_pressed)
 
 	_refresh_entries()
-	_wire_focus_chain()
 
 	if InputSource.is_cursor_driven():
-		_default_entry.grab_focus.call_deferred()
+		_focus_target().grab_focus.call_deferred()
 
 
 func _spacer(height: int) -> Control:
@@ -259,6 +285,13 @@ func _refresh_entries() -> void:
 	if _manage_entry != null:
 		_set_sub_text(_manage_entry, deploy_sub_line(
 				_deployed_count(), _squad_cap(), _unspent_statups()))
+	if _default_entry != null:
+		# 0/N deployed (the rail lets the squad reach zero since 2026-08-16):
+		# Begin Mission goes inert and says why. It keeps is_default_action —
+		# the lit border already stays off while inert — so it re-arms as the
+		# default the moment someone is deployed.
+		_default_entry.inert = not _can_begin()
+		_set_sub_text(_default_entry, begin_sub_line(_can_begin()))
 	if _bexp_entry != null:
 		var pool: int = SquadManager.bonus_xp_pool
 		_set_sub_text(_bexp_entry, bexp_sub_line(pool))
@@ -267,6 +300,9 @@ func _refresh_entries() -> void:
 		# focusability ride the setter.
 		_bexp_entry.inert = pool <= 0
 	_refresh_save_entry()
+	# Inert flags moved above — the chain has to skip what just went dark
+	# (and pick up what re-armed).
+	_wire_focus_chain()
 
 
 ## §2b: after a save the entry reads "Game saved!" in the success voice with an
@@ -288,10 +324,10 @@ func _refresh_save_entry() -> void:
 				GameColors.TEXT_PRIMARY_GLOW if _dirty else GameColors.TEXT_SUCCESS_GLOW
 
 
+## MainMenuEntry.sub_text is a live setter (builds/retexts/hides its label);
+## this wrapper stays as the hub's one call site for sub-line writes.
 func _set_sub_text(entry: MainMenuEntry, value: String) -> void:
 	entry.sub_text = value
-	if entry._sub_label != null:
-		entry._sub_label.text = value
 
 
 func _set_main_text(entry: MainMenuEntry, value: String) -> void:
@@ -347,6 +383,10 @@ func _on_begin_pressed() -> void:
 		push_warning("IntermissionHub: no active campaign — returning to start screen")
 		SceneRouter.change_scene_to(START_SCREEN_PATH)
 		return
+	# The entry is inert at 0/N so this can't fire from the UI; the guard is
+	# for programmatic callers — an empty board is never a mission.
+	if not _can_begin():
+		return
 	CampaignManager.deploy_to_current_mission()
 
 
@@ -364,10 +404,22 @@ func _unhandled_input(event: InputEvent) -> void:
 	for entry: MainMenuEntry in _menu_entries:
 		if entry.has_focus():
 			return
-	var summon_target: MainMenuEntry = _default_entry
+	var summon_target: MainMenuEntry = _focus_target()
 	for entry: MainMenuEntry in _menu_entries:
 		if entry._hovered and not entry.inert:
 			summon_target = entry
 			break
 	summon_target.grab_focus()
 	get_viewport().set_input_as_handled()
+
+
+## Where a summoned cursor lands: the default action — unless it's inert
+## (0/N deployed), in which case the first live entry, so grab_focus never
+## targets a FOCUS_NONE control.
+func _focus_target() -> MainMenuEntry:
+	if _default_entry != null and not _default_entry.inert:
+		return _default_entry
+	for entry: MainMenuEntry in _menu_entries:
+		if not entry.inert:
+			return entry
+	return _default_entry

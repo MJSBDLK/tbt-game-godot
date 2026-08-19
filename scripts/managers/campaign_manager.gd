@@ -72,10 +72,17 @@ var _start_level: int = 5
 # Player's deployment choice for the upcoming mission. Subset of character_ids
 # from SquadManager's active roster, ALWAYS in roster order (spawn order is
 # roster order — intermission.md §4d). Seeded by the intermission hub on
-# arrival, rewritten by the Manage Units rail on every pip toggle. Empty list
-# means "deploy everyone" (the legacy fallback for ad-hoc battles that never
-# passed through the hub).
+# arrival, rewritten by the Manage Units rail on every pip toggle.
+#
+# UNSET vs. EMPTY (RQD 2026-08-16): `_deployment_chosen` says whether anyone
+# has written a selection yet. Unset → "deploy everyone" (the legacy fallback
+# for ad-hoc battles that never passed through the hub — F6 on a map). Chosen
+# and EMPTY → the player benched everyone; that's a real 0/N the hub shows and
+# refuses to launch, not a request to deploy the whole roster. Before this
+# split, an empty list WAS the everyone-sentinel, which is why the rail had
+# to forbid benching the last unit.
 var _deployment_selection: Array[String] = []
+var _deployment_chosen: bool = false
 
 
 # =============================================================================
@@ -92,6 +99,9 @@ func start_campaign(start_level: int, mission_paths: Array[String],
 	_recruit_pool = recruit_pool.duplicate()
 	_recruited_paths.clear()
 	_current_mission_index = 0
+	# A selection carried from a previous campaign in this session names a
+	# different roster's people — the hub re-seeds a fresh one on arrival.
+	clear_deployment()
 
 	# Auto-level the player's bootstrapped roster up to the campaign start level.
 	# SquadManager's _bootstrap_default_roster has already loaded these from JSON
@@ -176,14 +186,29 @@ func _restart_current_mission() -> void:
 
 ## Records which roster members the player has chosen to deploy in the next
 ## mission. Called by the intermission hub (arrival seeding) and the Manage
-## Units rail (pip toggles), both of which pass ids in roster order.
-## Empty array = "deploy everyone" (legacy fallback for callers that never set it).
+## Units rail (pip toggles), both of which pass ids in roster order. An empty
+## array is a real choice — nobody — and marks the selection chosen; see
+## has_deployment().
 func set_deployment(character_ids: Array[String]) -> void:
 	_deployment_selection = character_ids.duplicate()
+	_deployment_chosen = true
 
 
-## Returns the player's deployment selection. Empty array means no filter
-## (deploy everyone). BattleScene reads this when spawning player units.
+## Back to UNSET: no selection on record, spawn logic falls back to everyone.
+func clear_deployment() -> void:
+	_deployment_selection.clear()
+	_deployment_chosen = false
+
+
+## Whether a deployment has been written at all. False = unset = "deploy
+## everyone" (BattleScene) / "seed the first cap" (hub arrival). True with an
+## empty get_deployment() = the player benched everyone.
+func has_deployment() -> bool:
+	return _deployment_chosen
+
+
+## Returns the player's deployment selection. Only meaningful when
+## has_deployment() — an unset selection reads empty too, and means everyone.
 func get_deployment() -> Array[String]:
 	return _deployment_selection.duplicate()
 
@@ -395,6 +420,7 @@ func capture_save_state() -> Dictionary:
 		"current_mission_index": _current_mission_index,
 		"start_level": _start_level,
 		"deployment_selection": _deployment_selection.duplicate(),
+		"deployment_chosen": _deployment_chosen,
 	}
 
 
@@ -405,6 +431,9 @@ func restore_save_state(state: Dictionary) -> void:
 	_recruit_pool.assign(_to_string_array(state.get("recruit_pool", [])))
 	_recruited_paths.assign(_to_string_array(state.get("recruited_paths", [])))
 	_deployment_selection.assign(_to_string_array(state.get("deployment_selection", [])))
+	# Saves from before the unset/empty split (2026-08-16) carry no flag: an
+	# empty list there was the everyone-sentinel, so it reads as unset.
+	_deployment_chosen = bool(state.get("deployment_chosen", not _deployment_selection.is_empty()))
 	_current_mission_index = int(state.get("current_mission_index", -1))
 	_start_level = int(state.get("start_level", FALLBACK_DEFAULT_LEVEL))
 

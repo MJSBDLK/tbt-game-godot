@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://bthv3anysx78a"]
 
-[ext_resource type="Texture2D" uid="uid://cpjc2y8havpey" path="res://art/sprites/ui/hud_panel/panel_border_tall.png" id="2_1in3x"]
+[ext_resource type="Texture2D" uid="uid://dwr383n7xyyvc" path="res://art/sprites/ui/hud_panel/panel_border_tall_plain.png" id="2_1in3x"]
 [ext_resource type="Texture2D" uid="uid://bbsipj42qbwqu" path="res://art/portraits/maam_portrait.png" id="3_b2vn0"]
 [ext_resource type="PackedScene" uid="uid://bnln2wsfjk1qo" path="res://scenes/ui/panels/ui_text.tscn" id="6_6gye5"]
 [ext_resource type="PackedScene" path="res://scenes/ui/panels/ui_text_secondary.tscn" id="7_1in3x"]

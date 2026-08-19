@@ -51,7 +51,7 @@ func test_every_action_is_a_vocabulary_button() -> void:
 	for child: Node in panel._content_container.get_children():
 		if child is InteractiveButton:
 			buttons.append(child)
-	assert_eq(buttons.size(), 6, "End Turn + Options/Save/Load/Quit/Close")
+	assert_eq(buttons.size(), 7, "End Turn + Options/Save/Load/Main Menu/Quit/Close")
 	var end_turn := buttons[0]
 	assert_eq(end_turn.text, "END TURN")
 	assert_false(end_turn.call_to_action,
@@ -130,3 +130,21 @@ func test_end_turn_still_signals_the_manager() -> void:
 	watch_signals(panel)
 	(panel._content_container.get_child(0) as BaseButton).pressed.emit()
 	assert_signal_emitted(panel, "end_turn_selected")
+
+
+func test_main_menu_sits_beside_quit_and_signals() -> void:
+	# RQD 2026-08-16: a way out of a battle that isn't closing the game.
+	var panel := _make_panel()
+	var buttons: Array[InteractiveButton] = []
+	for child: Node in panel._content_container.get_children():
+		if child is InteractiveButton:
+			buttons.append(child)
+	var main_menu_index: int = -1
+	for i: int in buttons.size():
+		if buttons[i].text == "Main Menu":
+			main_menu_index = i
+	assert_ne(main_menu_index, -1, "the entry exists")
+	assert_eq(buttons[main_menu_index + 1].text, "Quit", "…right before Quit")
+	watch_signals(panel)
+	buttons[main_menu_index].pressed.emit()
+	assert_signal_emitted(panel, "main_menu_selected")

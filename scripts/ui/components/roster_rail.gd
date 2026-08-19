@@ -19,10 +19,12 @@
 ## Deployed cards always sort above the bench line whatever the key; benched
 ## cards stay in the same rail, dimmed — never on a separate tab, because the
 ## bEXP doctrine wants players not to permanently forget anyone. At cap,
-## bench→deploy pips go inert rather than silently ignoring the click; the
-## last deployed unit's pip goes inert too, so the selection can never reach
-## zero (an empty selection is also the legacy "deploy everyone" sentinel —
-## letting it happen would make benching everyone deploy everyone).
+## bench→deploy pips go inert rather than silently ignoring the click. The
+## squad CAN reach zero (RQD 2026-08-16): the last deployed pip used to go
+## inert — and, being drawn hollow when disabled, read as "benched" while the
+## unit was in fact deployed. An empty selection is a real 0/N now
+## (CampaignManager.has_deployment splits it from the unset everyone-
+## sentinel) and the hub's Begin Mission is what refuses to launch it.
 class_name RosterRail
 extends PanelContainer
 
@@ -50,7 +52,6 @@ const CARD_HEIGHT: int = 20
 const BENCHED_ALPHA: float = 0.52
 
 const REASON_SQUAD_FULL: String = "squad is full"
-const REASON_LAST_DEPLOYED: String = "at least one unit must deploy"
 
 
 var _roster: Array[CharacterData] = []
@@ -164,8 +165,17 @@ static func deployment_in_roster_order(roster: Array[CharacterData],
 ## `cap` units in roster order, the same set the hub sub-line advertises.
 ## Cap 0 means the mission is unknown/unloadable: seed nobody, so a broken
 ## map path can't write "deploy everyone onto no spawn tiles".
+##
+## `chosen` = the selection was written by the player (CampaignManager.
+## has_deployment). A chosen EMPTY selection is "bench everyone" and stays
+## empty — seeding it would silently undo the choice on the next hub arrival.
+## An unset one (empty because nobody wrote it) seeds as before, and so does
+## a chosen non-empty one that permadeath pruned to nothing: the player never
+## asked for zero there.
 static func resolved_deployment(roster: Array[CharacterData],
-		selection: Array[String], cap: int) -> Array[String]:
+		selection: Array[String], cap: int, chosen: bool = false) -> Array[String]:
+	if chosen and selection.is_empty():
+		return []
 	var picked: Array[String] = []
 	for character: CharacterData in roster:
 		if cap > 0 and picked.size() >= cap:
@@ -182,11 +192,9 @@ static func resolved_deployment(roster: Array[CharacterData],
 
 
 ## Why this pip can't be pressed, or "" when it can. At cap, bench→deploy
-## pips go inert (never silently ignored); the last deployed pip goes inert
-## so the squad can't reach zero.
+## pips go inert (never silently ignored). Benching is always free — down to
+## zero; the hub, not the pip, is where an empty squad is refused.
 static func pip_inert_reason(is_deployed: bool, deployed_count: int, cap: int) -> String:
-	if is_deployed and deployed_count <= 1:
-		return REASON_LAST_DEPLOYED
 	if not is_deployed and cap > 0 and deployed_count >= cap:
 		return REASON_SQUAD_FULL
 	return ""
@@ -597,8 +605,8 @@ func _on_card_pressed(character_id: String) -> void:
 
 func _on_pip_pressed(character_id: String) -> void:
 	var is_deployed: bool = _deployed.has(character_id)
-	# The disabled state already blocks these; guard anyway so a stale click
-	# can't slip a unit past the cap or empty the squad.
+	# The disabled state already blocks this; guard anyway so a stale click
+	# can't slip a unit past the cap.
 	if pip_inert_reason(is_deployed, _deployed.size(), _cap) != "":
 		return
 	if is_deployed:

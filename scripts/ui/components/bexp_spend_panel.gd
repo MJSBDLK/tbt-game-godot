@@ -17,11 +17,27 @@
 ## yanked away on a timer.
 ##
 ## Buttons wear the StatUp [−]/[+] scheme (UnitSheet._make_alloc_button's
-## vocabulary, text edition): square 1px ring + glyph, both PRIMARY,
+## vocabulary, text edition): square 1px ring + glyph in ONE voice,
 ## brightening together on hover, MUTED when the press would change nothing.
 ## Glow on the glyph only — the ring is a stylebox draw, which the glow
 ## shader passes through untouched, exactly the "not on the border, too
 ## tight" rule.
+##
+## TWO KINDS OF BUTTON, TOLD APART BY VOICE (RQD 2026-08-16): the six pour
+## squares are INCREMENTS and wear PRIMARY (azure = interactivity's hue);
+## RESET and CONFIRM are STAGE OPERATIONS and wear their own marks —
+##   CONFIRM = the call to action in its motion-parked form: the INFO gold
+##            ring + glyph §14 gives the CTA with motion off (the amber
+##            monopoly, no rings — those stay reserved). Gold rhymes with the
+##            committed XP fill it's about to turn the staged segment into.
+##   RESET   = the DANGER voice: red ring + glyph, the universal undo/discard
+##            mark, deliberately NOT a gold — WARNING is a gold too, and two
+##            golds one gap apart is the "they look the same" problem again.
+##            Red 5 sits below banana gold, so billing reads CONFIRM > RESET
+##            > ± straight off the palette.
+## Plus PROXIMITY: an ACTION_GROUP_GAP either side of the ± cluster, so the
+## two stage-ops read as a different family before color even registers.
+## Eight identical PRIMARY squares made "reset or commit is next" invisible.
 ##
 ## THE TWO-SEGMENT BAR (RQD 2026-08-13): committed XP keeps its normal INFO
 ## gold; the staged extension is its own segment in the PRIMARY pair,
@@ -54,6 +70,10 @@ signal continue_pressed
 
 
 const XP_PER_LEVEL: int = 100
+## Extra pixels (on top of the row's 2px separation) isolating the ± cluster
+## from RESET / CONFIRM — grouping by proximity. Budgeted against the sheet
+## column: the row must still fit SHEET_WIDTH minus margins (pinned by test).
+const ACTION_GROUP_GAP: int = 4
 
 
 var _character: CharacterData = null
@@ -381,7 +401,8 @@ func _rebuild_actions(staged: int) -> void:
 
 	_actions_row.add_child(_square_button("RESET", staged > 0,
 			"take back this unit's staged pour" if staged > 0 else "nothing staged here",
-			_on_reset_pressed))
+			_on_reset_pressed, GameColors.TEXT_DANGER, GameColors.TEXT_DANGER_GLOW))
+	_actions_row.add_child(_group_gap())
 
 	for amount: int in [-10, -1, 1, 10]:
 		var would: int = clamp_pour(staged, amount, pool_remaining, experience)
@@ -405,25 +426,37 @@ func _rebuild_actions(staged: int) -> void:
 	_actions_row.add_child(_square_button("100", full_would != staged,
 			"fill the level — %d more" % maxi(0, XP_PER_LEVEL - gauge),
 			_on_pour_pressed.bind(XP_PER_LEVEL)))
+	_actions_row.add_child(_group_gap())
 
 	var confirm := _square_button("CONFIRM",
 			_staged_total() > 0 and not _revealing,
 			"roll the staged level — commits, growths are final"
 			if _staged_total() > 0 else "nothing staged",
-			_on_confirm_pressed)
+			_on_confirm_pressed, GameColors.TEXT_INFO, GameColors.TEXT_INFO_GLOW)
 	_actions_row.add_child(confirm)
+
+
+## The proximity mark between the ± cluster and a stage-op (see header).
+func _group_gap() -> Control:
+	var gap := Control.new()
+	gap.custom_minimum_size = Vector2(ACTION_GROUP_GAP, 0)
+	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return gap
 
 
 # =============================================================================
 # WIDGET HELPERS
 # =============================================================================
 
-## The StatUp [−]/[+] scheme, text edition: square 1px ring + glyph, both
-## PRIMARY (MUTED when the press would do nothing), brightening together on
-## hover. Glow on the glyph only — the ring is an untextured stylebox draw,
-## which the glow shader passes through, so no halo collision.
+## The StatUp [−]/[+] scheme, text edition: square 1px ring + glyph in one
+## voice — `body`/`glow` when enabled (PRIMARY by default; INFO for CONFIRM,
+## DANGER for RESET — see header), MUTED when the press would do nothing —
+## brightening together on hover. Glow on the glyph only — the ring is an
+## untextured stylebox draw, which the glow shader passes through, so no
+## halo collision.
 func _square_button(label_text: String, enabled: bool, tip: String,
-		handler: Callable) -> Button:
+		handler: Callable, voice_body: Color = GameColors.TEXT_PRIMARY,
+		voice_glow: Color = GameColors.TEXT_PRIMARY_GLOW) -> Button:
 	var button := Button.new()
 	button.text = label_text
 	button.disabled = not enabled
@@ -435,8 +468,8 @@ func _square_button(label_text: String, enabled: bool, tip: String,
 		button.add_theme_font_override("font", UIManager.font_8px)
 	button.add_theme_font_size_override("font_size", 8)
 
-	var body: Color = GameColors.TEXT_PRIMARY if enabled else GameColors.TEXT_MUTED
-	var glow: Color = GameColors.TEXT_PRIMARY_GLOW if enabled else GameColors.TEXT_MUTED_GLOW
+	var body: Color = voice_body if enabled else GameColors.TEXT_MUTED
+	var glow: Color = voice_glow if enabled else GameColors.TEXT_MUTED_GLOW
 	button.add_theme_color_override("font_color", body)
 	button.add_theme_color_override("font_disabled_color", body)
 	button.add_theme_color_override("font_hover_color", GameColors.brightened(body))
@@ -451,8 +484,12 @@ func _square_button(label_text: String, enabled: bool, tip: String,
 	ring.set_border_width_all(1)
 	ring.content_margin_left = 2
 	ring.content_margin_right = 2
-	ring.content_margin_top = 1
-	ring.content_margin_bottom = 1
+	# Glyph sits 1px below true center (RQD 2026-08-16) — the same optical
+	# correction InteractiveButton's TEXT_TOP/BOTTOM_MARGIN_PIXELS make: the
+	# 8px font's ink sits low, so geometric center reads high. Asymmetric
+	# margins keep the 14px square; only the text moves.
+	ring.content_margin_top = 2
+	ring.content_margin_bottom = 0
 	var ring_hover := ring.duplicate() as StyleBoxFlat
 	ring_hover.border_color = GameColors.brightened(body)
 	button.add_theme_stylebox_override("normal", ring)

@@ -50,6 +50,11 @@ const MOVE_SLOT_COUNT: int = 4
 const PASSIVE_SLOT_COUNT: int = 4
 const CAP_BAR_HEIGHT: int = 3
 const ICON_SIZE: int = 10
+## Selection/hover chrome corner rounding, in px. 1px + antialiasing (RQD
+## 2026-08-16): softens the selected border's corners without reading as a
+## pill. Godot only feathers a StyleBoxFlat when it has rounded corners, so
+## the radius is what switches the antialiasing on.
+const SLOT_CORNER_RADIUS: int = 1
 const ELEMENTAL_ICON_DIR: String = "res://art/sprites/ui/elemental_type_icons_10x10/"
 
 ## RQD's 9×9 [−]/[+] art (2026-08-10): a 1px outline ring + a 3px symbol,
@@ -669,6 +674,10 @@ static func slot_button(selected: bool) -> Button:
 	normal.bg_color = Color.TRANSPARENT
 	var hover := StyleBoxFlat.new()
 	hover.bg_color = GameColors.with_alpha(GameColorPalette.get_color("Azure", 2), 0.3)
+	# The wash and the selected border share one shape (see SLOT_CORNER_RADIUS).
+	for style: StyleBoxFlat in [normal, hover]:
+		style.set_corner_radius_all(SLOT_CORNER_RADIUS)
+		style.anti_aliasing = true
 	if selected:
 		normal.bg_color = GameColors.with_alpha(GameColorPalette.get_color("Azure", 2), 0.6)
 		normal.border_color = GameColors.INTERACTIVE_BORDER_FOCUS

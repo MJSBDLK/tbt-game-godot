@@ -118,6 +118,7 @@ var _selection_index: int = -1
 
 
 func _ready() -> void:
+	_apply_panel_background()
 	_cache_node_references()
 	_load_passive_configs()
 	_setup_tablet_input()
@@ -137,6 +138,19 @@ func _unhandled_input(event: InputEvent) -> void:
 			if not get_global_rect().has_point(mouse_event.position):
 				hide_panel()
 				get_viewport().set_input_as_handled()
+
+
+## The scene's root PanelContainer carries no stylebox of its own, so it fell
+## back to Godot's default panel (0.1 gray @ 60%) — visibly lighter than every
+## other menu (RQD 2026-08-16). Same tint every menu uses (system/options/
+## action menu): HUD_PANEL_BACKGROUND, corners rounded 5 so the fill stays
+## tucked under the 10px fullscreen border art at the corners. Content margins
+## stay 0 (the default's were 0 too), so the columns don't shift.
+func _apply_panel_background() -> void:
+	var background_style := StyleBoxFlat.new()
+	background_style.bg_color = GameColors.HUD_PANEL_BACKGROUND
+	background_style.set_corner_radius_all(5)
+	add_theme_stylebox_override("panel", background_style)
 
 
 func _add_border_overlay() -> void:
@@ -502,7 +516,10 @@ func _setup_tablet_input() -> void:
 		_set_children_mouse_pass(_injury_panels[i])
 		_injury_panels[i].gui_input.connect(func(event: InputEvent):
 			if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-				_select(SelectionType.INJURY, index)
+				# Empty placeholders hold the grid's shape; there's nothing
+				# to inspect, so they don't take the selection either.
+				if _injury_slot_has_injury(index):
+					_select(SelectionType.INJURY, index)
 		)
 		_injury_panels[i].mouse_filter = Control.MOUSE_FILTER_STOP
 
@@ -557,8 +574,15 @@ func _update_tablet_selection() -> void:
 
 	for panel: PanelContainer in _status_panels:
 		_set_tablet_selected(panel, false)
-	for panel: PanelContainer in _injury_panels:
-		_set_tablet_selected(panel, false)
+	for i: int in range(_injury_panels.size()):
+		# An empty placeholder never wears the tablet border — it's the grid's
+		# shape, not a slot with something in it (RQD 2026-08-16: bordered
+		# empties read as "there's an injury here"). Selection can't reach
+		# it either (see _setup_tablet_input), so borderless is its one state.
+		if _injury_slot_has_injury(i):
+			_set_tablet_selected(_injury_panels[i], false)
+		else:
+			_set_tablet_border(_injury_panels[i], 0)
 
 	var panels: Array[PanelContainer] = []
 	match _selection_type:
@@ -571,20 +595,25 @@ func _update_tablet_selection() -> void:
 		_set_tablet_selected(panels[_selection_index], true)
 
 
+## Whether injury slot `index` currently shows an injury (vs. an empty
+## placeholder or an out-of-range index).
+func _injury_slot_has_injury(index: int) -> bool:
+	return index >= 0 and index < _injury_slot_to_injury.size() \
+			and _injury_slot_to_injury[index] != null
+
+
+## Mockup-era border trick: a selected tablet DROPS its 1px border (the
+## selection reads through the detail pane opening beside it), unselected
+## wears it.
 func _set_tablet_selected(panel: PanelContainer, selected: bool) -> void:
+	_set_tablet_border(panel, 0 if selected else 1)
+
+
+func _set_tablet_border(panel: PanelContainer, width: int) -> void:
 	var style: StyleBoxFlat = panel.get_theme_stylebox("panel") as StyleBoxFlat
 	if style == null:
 		return
-	if selected:
-		style.border_width_left = 0
-		style.border_width_right = 0
-		style.border_width_top = 0
-		style.border_width_bottom = 0
-	else:
-		style.border_width_left = 1
-		style.border_width_right = 1
-		style.border_width_top = 1
-		style.border_width_bottom = 1
+	style.set_border_width_all(width)
 
 
 func _hide_all_details() -> void:
@@ -1065,7 +1094,9 @@ func _set_injury_panel(panel: PanelContainer, injury: Injury, slot_index: int) -
 	var infinity_symbol: Node = usages_container.get_node_or_null("InfinitySymbol") if usages_container != null else null
 
 	if injury == null:
-		# Empty placeholder — clear all content.
+		# Empty placeholder — clear all content and drop the border: the slot
+		# keeps its footprint (a lone Minor stays Minor-sized) but draws nothing.
+		_set_tablet_border(panel, 0)
 		if name_label:
 			name_label.text = ""
 		if type_icon:
@@ -1165,8 +1196,12 @@ func _show_move_detail(index: int) -> void:
 
 	if _move_detail_range_label:
 		# Base reach only — Extendo's +1 and other passives are situational and
-		# belong to the combat preview, not the move's stat sheet.
-		_move_detail_range_label.text = "%d" % move.attack_range
+		# belong to the combat preview, not the move's stat sheet. The full
+		# "1-N" band, not the bare max (RQD 2026-08-16: "3" read as "only at
+		# 3") — the same helper the chips and the peek tooltip use, "--" for
+		# self-target moves with no reach.
+		var range_band: String = MoveChipButton.range_text(move)
+		_move_detail_range_label.text = range_band if range_band != "" else "--"
 
 	if _move_detail_accuracy_label:
 		# Shows the move's base accuracy rating — the actual combat hit chance

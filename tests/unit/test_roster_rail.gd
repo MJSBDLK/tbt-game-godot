@@ -186,14 +186,33 @@ func test_a_zero_cap_still_keeps_a_carried_selection() -> void:
 			["max"] as Array[String])
 
 
+func test_a_chosen_empty_selection_stays_empty() -> void:
+	# RQD 2026-08-16: benching everyone is a real 0/N. Seeding it back to the
+	# first `cap` on the next hub arrival would silently undo the choice.
+	assert_eq(RosterRail.resolved_deployment(_squad(), [], 3, true).size(), 0,
+			"chosen + empty = nobody, not 'seed three'")
+	assert_eq(RosterRail.resolved_deployment(_squad(), [], 3, false).size(), 3,
+			"unset + empty still seeds — nobody asked for zero there")
+
+
+func test_a_chosen_selection_pruned_to_nothing_reseeds() -> void:
+	# The player picked people; permadeath took them all. They never asked
+	# for zero, so the fallback seeds rather than hands them an empty hub.
+	var selection: Array[String] = ["ghost", "phantom"]
+	assert_eq(RosterRail.resolved_deployment(_squad(), selection, 2, true),
+			["maam", "ernesto"] as Array[String])
+
+
 # =============================================================================
 # PIPS — inert, never silent (§4c)
 # =============================================================================
 
-func test_the_last_deployed_pip_goes_inert() -> void:
-	# An empty selection is also the legacy "deploy everyone" sentinel;
-	# letting the player bench everyone would make zero mean six.
-	assert_eq(RosterRail.pip_inert_reason(true, 1, 5), RosterRail.REASON_LAST_DEPLOYED)
+func test_the_last_deployed_pip_stays_pressable() -> void:
+	# It used to go inert — and disabled pips draw hollow, so the one unit
+	# still deployed LOOKED benched (RQD 2026-08-16). Now that an empty
+	# selection is a real 0/N (CampaignManager.has_deployment), benching the
+	# last unit is free; the hub's Begin Mission is what refuses the launch.
+	assert_eq(RosterRail.pip_inert_reason(true, 1, 5), "")
 
 
 func test_bench_pips_go_inert_at_cap() -> void:
@@ -258,12 +277,27 @@ func test_a_full_squad_refuses_one_more() -> void:
 	assert_eq(rail.deployed_count(), 2)
 
 
-func test_the_squad_can_never_reach_zero() -> void:
+func test_the_squad_can_reach_zero_and_says_so() -> void:
 	var rail := _built_rail(_squad(), ["maam"], 4)
 	watch_signals(rail)
 	rail._on_pip_pressed("maam")
-	assert_signal_not_emitted(rail, "deployment_changed")
-	assert_eq(rail.deployed_count(), 1, "the last deployed unit cannot be benched")
+	assert_signal_emitted_with_parameters(rail, "deployment_changed", [[] as Array[String]])
+	assert_eq(rail.deployed_count(), 0, "the last deployed unit can be benched")
+
+
+func test_the_last_deployed_pip_is_drawn_filled_not_hollow() -> void:
+	# The visible half of the bug: at 1/N the deployed unit's pip must still
+	# read as deployed (filled, enabled), not wear the disabled hollow look.
+	var rail := _built_rail(_squad(), ["maam"], 4)
+	var pip: Button = null
+	for card: Button in _card_buttons(rail):
+		for child: Node in card.find_children("*", "Button", true, false):
+			if child != card and (child as Button).tooltip_text == "bench this unit":
+				pip = child
+	assert_not_null(pip, "the deployed unit's pip is the one that benches")
+	assert_false(pip.disabled)
+	var style := pip.get_theme_stylebox("normal") as StyleBoxFlat
+	assert_eq(style.bg_color, GameColors.INTERACTIVE_BORDER_IDLE, "filled = deployed")
 
 
 func test_the_screen_builds_without_a_campaign() -> void:
@@ -334,3 +368,33 @@ func test_the_deep_link_lands_in_the_spend_view() -> void:
 	add_child_autofree(screen)
 	assert_true(screen._bexp_panel.visible)
 	assert_false(screen._sheet.visible)
+
+
+# =============================================================================
+# THE SPAWN FILTER — BattleScene reads the same unset/empty split
+# =============================================================================
+
+func _with_campaign(deployment: Array[String], chosen: bool) -> Dictionary:
+	var saved: Dictionary = CampaignManager.capture_save_state()
+	CampaignManager.restore_save_state({
+		"mission_paths": ["res://scenes/maps/map_a.tscn"],
+		"recruit_pool": [], "recruited_paths": [],
+		"current_mission_index": 0, "start_level": 5,
+		"deployment_selection": deployment, "deployment_chosen": chosen,
+	})
+	return saved
+
+
+func test_an_unset_deployment_spawns_everyone_a_chosen_one_is_verbatim() -> void:
+	var saved := _with_campaign([], false)
+	var scene := BattleScene.new()
+	add_child_autofree(scene)
+	var roster_size: int = SquadManager.get_active_roster().size()
+	assert_eq(scene._get_deployed_roster().size(), roster_size,
+			"unset = the legacy everyone fallback (F6 on a map)")
+	CampaignManager.set_deployment(["spaceman"])
+	assert_eq(scene._get_deployed_roster().size(), 1, "chosen: exactly who was picked")
+	CampaignManager.set_deployment([])
+	assert_eq(scene._get_deployed_roster().size(), 0,
+			"chosen + empty = nobody, NOT everyone — the hub gates this before spawn")
+	CampaignManager.restore_save_state(saved)
