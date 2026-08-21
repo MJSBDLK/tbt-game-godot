@@ -188,6 +188,24 @@ func test_enemy_phase_shows_step_only() -> void:
 
 # --- geometry --------------------------------------------------------------------
 
+func test_fills_a_sized_parent_and_puts_the_row_inside_it_at_the_bottom() -> void:
+	# The F5 2026-08-20/21 bug: set_anchors_preset() on an already-parented
+	# node keeps the 0×0 rect, and the bottom-anchored row ends up at y = -26 —
+	# off the top of the screen. The bar must fill its parent.
+	var canvas := Control.new()
+	canvas.size = Vector2(640, 360)
+	add_child_autofree(canvas)
+	var bar := HintBar.new()
+	canvas.add_child(bar)
+	bar.battle_active = true
+	bar.refresh()
+	assert_eq(bar.size, Vector2(640, 360), "bar fills the HUD canvas")
+	var row_rect: Rect2 = bar._row.get_rect()
+	assert_eq(row_rect.position.y, 360.0 - 14.0 - 12.0, "row sits 12 px above the bottom edge")
+	assert_eq(row_rect.end.y, 360.0 - 12.0)
+	assert_true(Rect2(Vector2.ZERO, canvas.size).encloses(row_rect),
+			"the row must be ON the canvas, not above it: %s" % row_rect)
+
 func test_corner_inset_is_real_geometry() -> void:
 	var bar := _make_bar()
 	bar.placement = HintBar.Placement.CORNERS

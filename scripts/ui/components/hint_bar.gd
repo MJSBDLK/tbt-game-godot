@@ -94,10 +94,18 @@ var _items_box: HBoxContainer = null
 func _ready() -> void:
 	name = "HintBar" if name.is_empty() else name
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# ANCHORS *AND* OFFSETS. set_anchors_preset() alone, on a node that already
+	# has a sized parent, recomputes the offsets to KEEP the current rect — a
+	# fresh Control stays 0×0, and a bottom-anchored row inside a 0-height
+	# parent lands at y = -26: above the screen. That is how the bar shipped
+	# invisible on F5 2026-08-20/21 (found with tools/diag/hint_bar_probe.gd).
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_build()
 	_connect_boundaries()
 	refresh()
+	assert(not is_inside_tree() or get_parent_area_size() == Vector2.ZERO or size == get_parent_area_size(),
+			"HintBar: must fill its parent (%s) to anchor its row at the bottom, got %s" % [
+				get_parent_area_size(), size])
 
 
 func _build() -> void:
