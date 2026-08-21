@@ -33,6 +33,7 @@ var testing_random_hp_on_spawn: bool = false  # Spawn every player unit at 15-10
 var testing_displacement_moves: bool = false  # Fill every player unit's moves with the displacement test kit (Unit.DEBUG_DISPLACEMENT_KIT, rotating 4-move windows) — eyeball Phase 3 shoves/pulls/spins/swaps
 var testing_phase4_moves: bool = false  # Fill every player unit's moves with the Phase 4 kit (Unit.DEBUG_PHASE4_KIT: Roar/Shriek/Steady/First Aid + the revived self-buffs) — eyeball conditional afflictions, delayed strikes, self-casts. Wins over the displacement kit if both are on.
 var debug_menu_badges: bool = true  # Etch each menu's class initials into its border (top-right, PanelBorderOverlay) — themed serial-tag so bug reports can name the misbehaving menu; looks intentional in screenshots. Flip false to hide. (RQD 2026-07-31)
+var debug_force_touch_hints: bool = false  # Force the hint/command bar into its TOUCH rendering (real buttons) on a desktop — eyeball the phone control surface without a phone. Alternative: project setting input_devices/pointing/emulate_touch_from_mouse, which also exercises InputSource's touch detection. (RQD 2026-08-20)
 var unit_cast_shadows: bool = true  # Generated ground shadows under units (UnitShadow, sheared live frame). Flip false to eyeball the board without them. (RQD 2026-07-31)
 
 # Input & State

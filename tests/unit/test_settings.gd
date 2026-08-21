@@ -199,3 +199,16 @@ func test_zero_volume_mutes_the_bus() -> void:
 			"a 0% slider is true silence (mute), not just very quiet")
 	settings.set_music_volume(0.8)
 	assert_false(AudioServer.is_bus_mute(music_index), "raising the volume unmutes")
+
+
+func test_show_control_hints_defaults_on_and_roundtrips() -> void:
+	var settings := _make_settings()
+	assert_true(settings.show_control_hints, "Hint/command bar on by default — it is the touch control surface")
+	watch_signals(settings)
+	settings.set_show_control_hints(false)
+	assert_signal_emitted(settings, "changed")
+	var reloaded := _make_settings()
+	reloaded.load_settings()
+	assert_false(reloaded.show_control_hints, "persisted under [controls]")
+	settings.set_show_control_hints(false)
+	assert_signal_emit_count(settings, "changed", 1, "unchanged value is a no-op")

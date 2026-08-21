@@ -45,6 +45,9 @@ var _unit_info_panel: UnitPreviewPanel = null
 var _terrain_info_panel: TerrainPreviewPanel = null
 var _action_menu_panel: ActionMenuPanel = null
 var _combat_preview_panel: CombatPreviewPanel = null
+# Hint / command bar — bottom row of the HUD canvas (HintBar, built
+# 2026-08-20). Self-driving: samples state + input model at boundaries.
+var _hint_bar: HintBar = null
 
 # Panel side state: when true, action/combat panels are on the left, info panels on the right.
 var _action_panels_on_left: bool = false
@@ -160,6 +163,10 @@ func hide_action_menu() -> void:
 	if _action_menu_panel == null:
 		return
 	_action_menu_panel.hide_menu()
+
+
+func get_hint_bar() -> HintBar:
+	return _hint_bar
 
 
 func get_action_menu_panel() -> Node:
@@ -515,6 +522,12 @@ func _instantiate_panels() -> void:
 	if combat_preview_scene != null:
 		_combat_preview_panel = combat_preview_scene.instantiate() as CombatPreviewPanel
 		_right_panel.add_child(_combat_preview_panel)
+
+	# Hint / command bar — full-rect child of the main layout, positions its own
+	# bottom row; added AFTER the side columns so it draws over them.
+	_hint_bar = HintBar.new()
+	_hint_bar.name = "HintBar"
+	_main_layout.add_child(_hint_bar)
 
 	# System menu panel — anchored directly to main layout (not in a VBox)
 	# so it can anchor to either screen edge without clipping the border.

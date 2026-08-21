@@ -80,6 +80,13 @@ var auto_end_turn: bool = true
 ## branches the load path, so flipping it never invalidates a save.
 var seeded_reload: bool = true
 
+## When true (default), the battle HUD shows the hint / command bar: per-state
+## [glyph] verb hints under controller/keyboard, real buttons under touch.
+## Experienced players can turn it off — but note that under touch the bar is
+## the ONLY way to End turn / open the Menu / toggle Threat zones, so the
+## Options toggle should warn (or hide) there. Built 2026-08-20.
+var show_control_hints: bool = true
+
 const TOOLTIP_HOLD_MIN_MS: int = 200
 const TOOLTIP_HOLD_MAX_MS: int = 1000
 const TOOLTIP_HOLD_STEP_MS: int = 50
@@ -123,6 +130,8 @@ func load_settings() -> void:
 				"gameplay", "auto_end_turn", auto_end_turn))
 		seeded_reload = bool(config.get_value(
 				"gameplay", "seeded_reload", seeded_reload))
+		show_control_hints = bool(config.get_value(
+				"controls", "show_control_hints", show_control_hints))
 	# Engine-level prefs (fps cap, bus volumes) must apply even with no file —
 	# a fresh install still needs the buses minted and defaults pushed.
 	_apply_engine_settings()
@@ -230,6 +239,14 @@ func set_tooltip_hold_ms(value: int) -> void:
 
 
 ## Persists + notifies. No-ops when unchanged (see set_portrait_effects_enabled).
+func set_show_control_hints(value: bool) -> void:
+	if value == show_control_hints:
+		return
+	show_control_hints = value
+	_save()
+	changed.emit()
+
+
 func set_auto_end_turn(value: bool) -> void:
 	if value == auto_end_turn:
 		return
@@ -303,6 +320,7 @@ func _save() -> void:
 	config.set_value("controls", "tooltip_hold_ms", tooltip_hold_ms)
 	config.set_value("gameplay", "auto_end_turn", auto_end_turn)
 	config.set_value("gameplay", "seeded_reload", seeded_reload)
+	config.set_value("controls", "show_control_hints", show_control_hints)
 	var err: int = config.save(settings_path)
 	if err != OK:
 		push_warning("Settings: failed to save %s (error %d)" % [settings_path, err])

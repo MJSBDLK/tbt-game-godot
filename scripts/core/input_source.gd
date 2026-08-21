@@ -16,6 +16,16 @@
 ## menu has no cursor until the first navigation press summons it (see the
 ## menus' quiet-open adoption in _unhandled_input).
 ##
+## DEVICE, finer than KIND (built 2026-08-20 for the hint/command bar):
+## last_device says WHICH hardware drove last — MOUSE / TOUCH / KEYBOARD /
+## JOYPAD — so a prompt can name the right glyph (LMB vs A vs a touch button).
+## Same debounce, same boundary-sampling rule. Kind is derived from the same
+## events and stays the API the menus use. Touch-emulated mouse events
+## (device == DEVICE_ID_EMULATION, Godot's mouse-from-touch) do NOT count as a
+## mouse — they're the touch, echoed. Mouse-emulated touch (the desktop
+## `emulate_touch_from_mouse` test setting) DOES count as touch — that's the
+## point of turning it on.
+##
 ## Registered as Autoload "InputSource", early in the list so its _input
 ## observes events before scene nodes can consume them. Observes only —
 ## never calls set_input_as_handled.
@@ -23,6 +33,7 @@ extends Node
 
 
 enum Kind { POINTER, CURSOR }
+enum Device { MOUSE, TOUCH, KEYBOARD, JOYPAD }
 
 ## Stick/trigger motion below this is drift, not intent. Triggers rest at 0
 ## and sticks near 0; half-travel is a deliberate act on any pad.
@@ -36,27 +47,37 @@ const MOUSE_MOTION_MIN_PX: float = 4.0
 ## in practice (Steam Deck included) some button press always precedes the
 ## first menu and flips this to CURSOR long before it matters.
 var last_kind: Kind = Kind.POINTER
+## Boot default: MOUSE — pairs with POINTER above (a quiet menu, mouse glyphs).
+var last_device: Device = Device.MOUSE
 
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventJoypadButton:
 		if (event as InputEventJoypadButton).pressed:
 			last_kind = Kind.CURSOR
+			last_device = Device.JOYPAD
 	elif event is InputEventJoypadMotion:
 		if absf((event as InputEventJoypadMotion).axis_value) >= STICK_DEADZONE:
 			last_kind = Kind.CURSOR
+			last_device = Device.JOYPAD
 	elif event is InputEventKey:
 		if (event as InputEventKey).pressed:
 			last_kind = Kind.CURSOR
+			last_device = Device.KEYBOARD
 	elif event is InputEventMouseButton:
 		if (event as InputEventMouseButton).pressed:
 			last_kind = Kind.POINTER
+			if event.device != InputEvent.DEVICE_ID_EMULATION:
+				last_device = Device.MOUSE
 	elif event is InputEventMouseMotion:
 		if (event as InputEventMouseMotion).relative.length() >= MOUSE_MOTION_MIN_PX:
 			last_kind = Kind.POINTER
+			if event.device != InputEvent.DEVICE_ID_EMULATION:
+				last_device = Device.MOUSE
 	elif event is InputEventScreenTouch:
 		if (event as InputEventScreenTouch).pressed:
 			last_kind = Kind.POINTER
+			last_device = Device.TOUCH
 
 
 func is_cursor_driven() -> bool:
@@ -65,6 +86,11 @@ func is_cursor_driven() -> bool:
 
 func is_pointer_driven() -> bool:
 	return last_kind == Kind.POINTER
+
+
+## The pointer is a finger, not a mouse. Prompts render touch buttons.
+func is_touch_driven() -> bool:
+	return last_device == Device.TOUCH
 
 
 ## True for the four directional UI actions — the presses that summon the

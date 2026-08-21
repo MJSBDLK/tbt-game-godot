@@ -269,13 +269,18 @@ Each of these is blocked on a decision, not on work.
   Ties into the locked target-scheme color language (target type = color, epicenter
   visually distinct). Depends on §4's range icons.
 
-- [ ] **Cancel/confirm input hints → hint / command bar.** Never shipped (no hint
-  component exists in `scripts/ui/`). Now the playtester ask ("show the useful
-  functions") + the mobile requirement (touch has no button to press for End
-  turn / Menu / Threat zones — the bar IS the control surface there). Mocked
-  round 1 in the Battle HUD mockup (Live links above); port after RQD's picks.
-  Hooks: `GameStateManager.state_changed` + `InputSource.last_kind` sampled at
-  the boundary. Persist a `Settings.show_control_hints` toggle.
+- [~] **Hint / command bar — SCAFFOLD BUILT 2026-08-20** (branch
+  `rqd--guidance-interface`; `HintBar` + `HintBarCommands` in
+  `scripts/ui/components/`, mounted by UIManager; tests in
+  `tests/unit/test_hint_bar*.gd`). Per-state table from the mockup; glyphs
+  resolved from the LIVE InputMap at each boundary (rebinds show, unbound drops);
+  `InputSource.last_device` (MOUSE/TOUCH/KEYBOARD/JOYPAD) added for the model;
+  touch renders real Buttons that inject the key's action; `Settings.
+  show_control_hints` + Options row; `DebugConfig.debug_force_touch_hints` for a
+  desktop eyeball. Bindings added: X → end_turn, LB/L1 → toggle_threat_zones.
+  **Next:** RQD F5 eyeball (stock widgets, no art) → touch button height + step
+  voice decisions → Lawrence visual pass (glass clusters, glyph chips, §14
+  buttons) → Android export setup to test on RQD's GrapheneOS phone.
 
 ---
 
