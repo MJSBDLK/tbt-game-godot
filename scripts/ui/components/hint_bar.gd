@@ -318,9 +318,15 @@ func _on_enemy_phase_started() -> void:
 	refresh()
 
 
-## Any scene swap ends the battle the bar knew about; TurnManager.battle_started
-## re-arms it when the next battle scene boots.
-func _on_scene_changed(_scene: Node) -> void:
+## Leaving for a non-battle scene (main menu, intermission) disarms the bar.
+## A BATTLE scene must NOT: SceneRouter emits scene_changed AFTER add_child
+## returns, and BattleScene._ready starts/resumes the battle synchronously in
+## there — so TurnManager's arming signal has already fired by the time this
+## runs. Disarming here hid the bar on every battle entry (F5 2026-08-20).
+func _on_scene_changed(scene: Node) -> void:
+	if scene is BattleScene:
+		refresh()
+		return
 	battle_active = false
 	enemy_phase = false
 	refresh()

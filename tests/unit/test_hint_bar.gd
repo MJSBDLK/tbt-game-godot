@@ -68,6 +68,27 @@ func test_a_resumed_save_arms_it_via_the_phase_signal() -> void:
 	assert_eq(_items(bar).size(), 5)
 
 
+func test_scene_swap_to_a_battle_scene_does_not_disarm() -> void:
+	# SceneRouter emits scene_changed AFTER add_child, and BattleScene._ready
+	# starts/resumes the battle synchronously inside add_child — the arming
+	# signal has already fired. Disarming here hid the bar on every battle
+	# entry (F5 2026-08-20).
+	var bar := _make_bar(false)
+	bar._on_player_phase_started(1)          # fired during add_child
+	var battle_scene := BattleScene.new()
+	autofree(battle_scene)
+	bar._on_scene_changed(battle_scene)      # fired right after
+	assert_true(bar.visible, "a battle scene must not disarm the bar")
+
+
+func test_scene_swap_to_a_non_battle_scene_disarms() -> void:
+	var bar := _make_bar()
+	var menu := Control.new()
+	autofree(menu)
+	bar._on_scene_changed(menu)
+	assert_false(bar.visible, "main menu / intermission: nothing to hint")
+
+
 func test_battle_end_hides_it() -> void:
 	var bar := _make_bar()
 	bar._on_battle_ended(true)
