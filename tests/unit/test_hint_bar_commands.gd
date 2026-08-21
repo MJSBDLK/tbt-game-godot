@@ -52,9 +52,20 @@ func test_every_advertised_action_exists_in_the_input_map() -> void:
 					"%s advertises unknown action %s" % [Enums.InputState.keys()[state], item.action])
 
 
-func test_movement_planning_shares_unit_selected() -> void:
-	assert_eq(HintBarCommands.items_for(Enums.InputState.MOVEMENT_PLANNING),
-			HintBarCommands.items_for(Enums.InputState.UNIT_SELECTED))
+func test_waypoints_are_taught_one_click_at_a_time() -> void:
+	# RQD 2026-08-21: the first click plots, it does not move; the marker it
+	# leaves is the explanation and the next step line says what it's for.
+	var kb := HintBarCommands.Model.KEYBOARD_MOUSE
+	assert_eq(_verbs(Enums.InputState.UNIT_SELECTED, kb)[0], "Plot path",
+			"never promise 'Move here' for a click that only plots")
+	assert_eq(HintBarCommands.step_text_for(Enums.InputState.UNIT_SELECTED, kb), "Choose a destination")
+	assert_eq(_verbs(Enums.InputState.MOVEMENT_PLANNING, kb)[0], "Add stop")
+	assert_eq(HintBarCommands.step_text_for(Enums.InputState.MOVEMENT_PLANNING, kb),
+			"Select the marker again to move")
+	assert_eq(HintBarCommands.step_text_for(Enums.InputState.MOVEMENT_PLANNING, HintBarCommands.Model.TOUCH),
+			"Tap the marker again to move")
+	# Same glyphs in both states — only the words change.
+	assert_eq(_glyphs(Enums.InputState.MOVEMENT_PLANNING, kb), _glyphs(Enums.InputState.UNIT_SELECTED, kb))
 
 
 func test_states_the_bar_is_silent_in() -> void:

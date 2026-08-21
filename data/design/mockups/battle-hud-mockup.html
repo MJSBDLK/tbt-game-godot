@@ -445,6 +445,7 @@
     <h2>Decisions</h2>
     <ul id="decisions">
       <li>Round 1 (2026-08-16): mocked. Awaiting RQD's picks on placement, touch height, step voice, and the two proposed controller bindings.</li>
+      <li>Round 3 (2026-08-21): SCAFFOLD IS IN-ENGINE (branch rqd--guidance-interface, bottom corners + glass). Waypoints taught one click at a time: UNIT_SELECTED says <b>Plot path</b> (the first press plots, it does not move), MOVEMENT_PLANNING says <b>Add stop</b> with the step line "Select the marker again to move". No sentence describes the whole system — the marker the first click leaves is the explanation.</li>
       <li>Round 2 (2026-08-16): RQD likes <b>bottom corners on mobile</b>, but not flush to the corner — their phone drops touches at the far corners and the rounded screen clips there. Added the corner-inset control (default 12 px) and the rounded bezel to the phone safe-area view. Leaning: placement follows input model (full-width under controller/kb, inset corners under touch).</li>
     </ul>
   </section>
@@ -464,9 +465,15 @@
         { verb: 'Threat zones', g: 'L1', proposed: true, kb: 'V',  touch: 'Threat' },
         { verb: 'Menu',         g: 'B',                 kb: 'Esc', touch: 'Menu' },
       ] },
-    { id: 'selected', name: 'UNIT_SELECTED', sub: 'also MOVEMENT_PLANNING',
+    { id: 'selected', name: 'UNIT_SELECTED', sub: 'no waypoint yet — first press plots, does not move',
       step: 'Choose a destination', stepTouch: 'Tap a destination', items: [
-        { verb: 'Move here', g: 'A', kb: 'LMB', touch: null },
+        { verb: 'Plot path', g: 'A', kb: 'LMB', touch: null },
+        { verb: 'Cancel',    g: 'B', kb: 'RMB', touch: 'Cancel' },
+        { verb: 'Unit info', g: 'Y', kb: 'I',   touch: 'Unit info' },
+      ] },
+    { id: 'planning', name: 'MOVEMENT_PLANNING', sub: 'a marker is on the board — press it to go',
+      step: 'Select the marker again to move', stepTouch: 'Tap the marker again to move', items: [
+        { verb: 'Add stop',  g: 'A', kb: 'LMB', touch: null },
         { verb: 'Cancel',    g: 'B', kb: 'RMB', touch: 'Cancel' },
         { verb: 'Unit info', g: 'Y', kb: 'I',   touch: 'Unit info' },
       ] },

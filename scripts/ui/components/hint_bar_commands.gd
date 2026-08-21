@@ -20,9 +20,14 @@
 ##   - At most MAX_ITEMS_PER_STATE items per state — the bar teaches, it
 ##     doesn't enumerate. Camera, tooltip peek, unit cycling are deliberately
 ##     absent.
-##   - MOVEMENT_PLANNING shares UNIT_SELECTED's entry (same press semantics,
-##     see InputManager). Enemy phase is not an InputState — the turn owner
-##     flips — so it's a flag on the lookups: step text only, no items.
+##   - UNIT_SELECTED and MOVEMENT_PLANNING teach the waypoint mechanic ONE
+##     CLICK AT A TIME (RQD 2026-08-21: "what I just said was overwhelming").
+##     The first click in range doesn't move — it plots a path and flips the
+##     state to MOVEMENT_PLANNING; the marker it leaves is the explanation, and
+##     the next step line says what the marker is for ("select it again to
+##     move"). No sentence ever describes the whole system.
+##   - Enemy phase is not an InputState — the turn owner flips — so it's a
+##     flag on the lookups: step text only, no items.
 ##   - Model is sampled at state boundaries (InputSource doctrine), never live.
 ##     HintBar picks the Model from InputSource.last_device.
 ##
@@ -75,14 +80,6 @@ static var _table: Dictionary = {}
 static func _ensure_table() -> void:
 	if not _table.is_empty():
 		return
-	var selected_entry := {
-		step = "Choose a destination", step_touch = "Tap a destination",
-		items = [
-			{action = &"ui_accept", verb = "Move here", mouse_button = MOUSE_BUTTON_LEFT},
-			{action = &"ui_cancel", verb = "Cancel", mouse_button = MOUSE_BUTTON_RIGHT, touch_label = "Cancel"},
-			{action = &"unit_info", verb = "Unit info", touch_label = "Unit info"},
-		],
-	}
 	_table = {
 		Enums.InputState.DEFAULT: {
 			step = "Select a unit", step_touch = "Tap a unit",
@@ -95,8 +92,26 @@ static func _ensure_table() -> void:
 				{action = &"ui_cancel", verb = "Menu", touch_label = "Menu"},
 			],
 		},
-		Enums.InputState.UNIT_SELECTED: selected_entry,
-		Enums.InputState.MOVEMENT_PLANNING: selected_entry,
+		# No waypoint yet. The first press in range PLOTS a path (it does not
+		# move) — see InputManager._handle_movement_planning_press.
+		Enums.InputState.UNIT_SELECTED: {
+			step = "Choose a destination", step_touch = "Tap a destination",
+			items = [
+				{action = &"ui_accept", verb = "Plot path", mouse_button = MOUSE_BUTTON_LEFT},
+				{action = &"ui_cancel", verb = "Cancel", mouse_button = MOUSE_BUTTON_RIGHT, touch_label = "Cancel"},
+				{action = &"unit_info", verb = "Unit info", touch_label = "Unit info"},
+			],
+		},
+		# A marker is on the board. Pressing IT moves; pressing elsewhere in
+		# range adds a stop. One button, so the step line carries the "go" half.
+		Enums.InputState.MOVEMENT_PLANNING: {
+			step = "Select the marker again to move", step_touch = "Tap the marker again to move",
+			items = [
+				{action = &"ui_accept", verb = "Add stop", mouse_button = MOUSE_BUTTON_LEFT},
+				{action = &"ui_cancel", verb = "Cancel", mouse_button = MOUSE_BUTTON_RIGHT, touch_label = "Cancel"},
+				{action = &"unit_info", verb = "Unit info", touch_label = "Unit info"},
+			],
+		},
 		Enums.InputState.ACTION_MENU_OPEN: {
 			step = "Choose an action", step_touch = "Tap an action",
 			items = [
