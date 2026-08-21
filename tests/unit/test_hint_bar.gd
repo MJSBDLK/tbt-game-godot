@@ -58,6 +58,16 @@ func test_setting_off_hides_it() -> void:
 	assert_false(bar.visible)
 
 
+func test_a_resumed_save_arms_it_via_the_phase_signal() -> void:
+	# TurnManager.resume_battle skips battle_started on purpose and emits only
+	# player_phase_started. Found on F5 2026-08-20: bar invisible after Continue.
+	var bar := _make_bar(false)
+	assert_false(bar.visible)
+	bar._on_player_phase_started(3)
+	assert_true(bar.visible, "any phase signal means a battle is live")
+	assert_eq(_items(bar).size(), 5)
+
+
 func test_battle_end_hides_it() -> void:
 	var bar := _make_bar()
 	bar._on_battle_ended(true)

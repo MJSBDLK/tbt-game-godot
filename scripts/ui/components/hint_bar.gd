@@ -26,8 +26,12 @@
 ## paths in the consumers. `action_requested` is emitted first so tests (and
 ## analytics later) can observe the press without the Input pipeline.
 ##
-## Visibility: only in a live battle (TurnManager.battle_started … battle_ended
-## or a scene swap) and only while Settings.show_control_hints. Within a battle the
+## Visibility: only in a live battle and only while Settings.show_control_hints.
+## "Live battle" = any TurnManager phase signal since the last battle_ended /
+## scene swap — NOT battle_started alone: a save resumes through
+## TurnManager.resume_battle, which deliberately skips battle_started (it
+## would re-run upkeep) and emits only player_phase_started. Found on F5
+## 2026-08-20: bar invisible after Continue. Within a battle the
 ## bar HIDES ITSELF whenever it has nothing to say (no step, no items — the
 ## pause menu, the result screens).
 ##
@@ -71,8 +75,8 @@ enum Placement { CORNERS, FULL_WIDTH }
 		touch_button_height = value
 		_apply_layout()
 
-## True from TurnManager.battle_started until battle_ended / a scene swap.
-## Public so tests (and a future save-load path) can set it directly.
+## True from the first TurnManager phase/battle signal until battle_ended / a
+## scene swap. Public so tests can set it directly.
 var battle_active: bool = false
 ## True between enemy_phase_started and the next player_phase_started.
 var enemy_phase: bool = false
@@ -299,12 +303,17 @@ func _on_battle_ended(_is_victory: bool) -> void:
 	refresh()
 
 
+## Phase signals also ARM the bar: a resumed save never emits battle_started
+## (TurnManager.resume_battle), but every battle — fresh or resumed — starts a
+## phase.
 func _on_player_phase_started(_turn_count: int) -> void:
+	battle_active = true
 	enemy_phase = false
 	refresh()
 
 
 func _on_enemy_phase_started() -> void:
+	battle_active = true
 	enemy_phase = true
 	refresh()
 
