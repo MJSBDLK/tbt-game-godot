@@ -1,3 +1,12 @@
+# Ideas
+- [ ] 1. XP gain on map: When a unit gains XP on the map, we should have an XP bar fade in (quickly) right above/below their health bar (yellow fill, black bg), fill with a filling sound effect, and then fade back out (slowly)
+- [ ] 2. The enemy pyro is outrageously powerful - needs a nerf to Spc
+  - [ ] 2A. upon review, the spc stat is indeed too high, but I unknowingly activated the enemy's "bellows" ability, which obliterated me on the next hit. We should have visual feedback when bellows activates, and when an attack bootsted by bellows fires, as well.
+  - [ ] 2B. Also we should warn the player if they're about to use an attack that triggers bellows, with a pulsing alert, maybe. This requires thoughtful design and can't be a simple add, because we'll want to add this feature for other moves as well. Needs to be a whole system. Let's triage this todo (2B) and keep it for later - I think it's great for the presentation but not high leverage in getting us to alpha.
+- [ ] 3. In the pause menu, we should move "close" to the top, right under "end turn" and above "options," and make that the default selection on controller
+- [ ] 4. Since we added the arrow + phantom effect for displacement moves, should we use the same system when previewing a move with the move beacons?
+  - [ ] 4A. need to decide if we hold off on actually moving the unit (just show the static/fuzzy phantom preview) to the spot before committing an action - would be a departure from current design but more accurate. We should solve the problem both ways and playtest both, and see what players prefer/find less confusing.
+
 # Meeting Notes 2026/08/16
 ## RQD
 - [x] For the non-interactible HUDs, remove all beep-boop buttons (Done 2026-08-16: the rivet-button tabs were baked into `panel_border_tall.png` — the unit preview's frame. New `panel_border_tall_plain.png` = the same frame with the two tabs removed (built from Lawrence's `panel_border_small.png` rows; a pixel diff vs the tall art shows ONLY the tab regions differ), unit_preview_panel.tscn points at it; the rivet original stays on disk. The STATIC-tier self_modulate dimming on unit preview + combat preview is reverted per the note below — both frames now match the terrain preview at full brightness. The system menu / unit detail panel (interactive) keep their buttons.)
@@ -269,18 +278,22 @@ Each of these is blocked on a decision, not on work.
   Ties into the locked target-scheme color language (target type = color, epicenter
   visually distinct). Depends on §4's range icons.
 
-- [~] **Hint / command bar — SCAFFOLD BUILT 2026-08-20** (branch
-  `rqd--guidance-interface`; `HintBar` + `HintBarCommands` in
-  `scripts/ui/components/`, mounted by UIManager; tests in
-  `tests/unit/test_hint_bar*.gd`). Per-state table from the mockup; glyphs
-  resolved from the LIVE InputMap at each boundary (rebinds show, unbound drops);
-  `InputSource.last_device` (MOUSE/TOUCH/KEYBOARD/JOYPAD) added for the model;
-  touch renders real Buttons that inject the key's action; `Settings.
-  show_control_hints` + Options row; `DebugConfig.debug_force_touch_hints` for a
-  desktop eyeball. Bindings added: X → end_turn, LB/L1 → toggle_threat_zones.
-  **Next:** RQD F5 eyeball (stock widgets, no art) → touch button height + step
-  voice decisions → Lawrence visual pass (glass clusters, glyph chips, §14
-  buttons) → Android export setup to test on RQD's GrapheneOS phone.
+- [~] **Hint / command bar — BUILT, RQD-approved on mouse 2026-08-21** (branch
+  `rqd--guidance-interface`, 11 commits d09f9a0..528b9c4; `HintBar` +
+  `HintBarCommands` in `scripts/ui/components/`; tests `test_hint_bar*.gd`).
+  Bottom corners + glass, glyphs from the live InputMap, touch = real buttons,
+  waypoints taught one click at a time (Plot path → Add stop), planning step
+  wears the new NOTICE border, `Settings.move_confirm_mode` Auto/Marker/Button
+  playtest toggle, `Settings.show_control_hints`, X/LB controller bindings.
+  **Unseen so far:** controller glyphs on a real pad; touch rendering
+  (`DebugConfig.debug_force_touch_hints` on desktop, or the phone build).
+  **Remaining, in order:** (1) pad + touch eyeball; (2) Lawrence's visual pass
+  — sprite borders for the glass, glyph chips instead of `[A]` text,
+  InteractiveButton for touch buttons, NOTICE ramp step (Magenta 4–6);
+  (3) Android export setup → sideload on RQD's GrapheneOS phone; safe-area
+  insets then; (4) playtest verdict on Marker vs Button → delete the loser;
+  (5) squash-merge to rqd--main once proven. Mockup artifact is one round
+  behind (no NOTICE / toggle row) — refresh when Lawrence's pass starts.
 
 ---
 
