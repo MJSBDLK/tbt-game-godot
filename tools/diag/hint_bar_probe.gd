@@ -89,15 +89,14 @@ func _dump() -> void:
 			" visible_in_tree=", bar.is_visible_in_tree())
 	print("[probe] step='", bar._step_label.text, "' step.visible=", bar._step_label.visible,
 			" items=", bar._items_box.get_child_count())
-	print("[probe] bar rect=", bar.get_global_rect(), " row rect=", bar._row.get_global_rect(),
-			" row min=", bar._row.custom_minimum_size)
+	print("[probe] bar rect=", bar.get_global_rect(), " strip rect=", bar._strip.get_global_rect())
 	print("[probe] step rect=", bar._step_label.get_global_rect(),
 			" items rect=", bar._items_box.get_global_rect())
 	for child: Node in bar._items_box.get_children():
 		print("[probe]   item ", child.name, " rect=", (child as Control).get_global_rect())
 	var hud_size: Vector2 = Vector2(scene_router.get_hud_viewport().size)
 	print("[probe] hud viewport size=", hud_size)
-	var row_rect: Rect2 = bar._row.get_global_rect()
+	var row_rect: Rect2 = bar._strip.get_global_rect()
 	print("[probe] ROW ON CANVAS: ", Rect2(Vector2.ZERO, hud_size).encloses(row_rect),
 			"  (row must lie inside ", Rect2(Vector2.ZERO, hud_size), ")")
 	var node: Node = bar

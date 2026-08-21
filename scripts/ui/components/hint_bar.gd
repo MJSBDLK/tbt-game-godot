@@ -85,9 +85,20 @@ var enemy_phase: bool = false
 ## future visual pass (corner clusters look different under touch).
 var last_model: HintBarCommands.Model = HintBarCommands.Model.KEYBOARD_MOUSE
 
+# strip (anchored to the canvas bottom)
+#   └ row
+#       ├ step cluster  (glass under CORNERS)  └ step label
+#       ├ spacer
+#       └ items cluster (glass under CORNERS)  └ items box └ [glyph verb] | Button …
+# Under FULL_WIDTH the STRIP wears the glass (one bar edge to edge) and the
+# clusters go transparent. Mockup spec: HUD_PANEL_BACKGROUND + 1 px STATIC
+# border — the sprite-bordered version is Lawrence's pass.
+var _strip: PanelContainer = null
 var _row: HBoxContainer = null
+var _step_panel: PanelContainer = null
 var _step_label: GlowLabel = null
 var _spacer: Control = null
+var _items_panel: PanelContainer = null
 var _items_box: HBoxContainer = null
 
 
@@ -109,18 +120,27 @@ func _ready() -> void:
 
 
 func _build() -> void:
+	_strip = PanelContainer.new()
+	_strip.name = "Strip"
+	_strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_strip)
+
 	_row = HBoxContainer.new()
 	_row.name = "Row"
 	_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_row.add_theme_constant_override("separation", 8)
-	add_child(_row)
+	_strip.add_child(_row)
 
 	var font: FontFile = UIManager.font_8px if UIManager != null else null
+	_step_panel = PanelContainer.new()
+	_step_panel.name = "StepCluster"
+	_step_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_row.add_child(_step_panel)
 	_step_label = GlowLabel.styled("", font, 8, GameColors.TEXT_INFO, GameColors.TEXT_INFO_GLOW)
 	_step_label.name = "Step"
 	_step_label.uppercase = true
 	_step_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_row.add_child(_step_label)
+	_step_panel.add_child(_step_label)
 
 	_spacer = Control.new()
 	_spacer.name = "Spacer"
@@ -128,16 +148,43 @@ func _build() -> void:
 	_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_row.add_child(_spacer)
 
+	_items_panel = PanelContainer.new()
+	_items_panel.name = "ItemsCluster"
+	_items_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_row.add_child(_items_panel)
 	_items_box = HBoxContainer.new()
 	_items_box.name = "Items"
 	_items_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_items_box.add_theme_constant_override("separation", 8)
 	_items_box.alignment = BoxContainer.ALIGNMENT_END
-	_row.add_child(_items_box)
+	_items_panel.add_child(_items_box)
 
-	assert(_row != null and _step_label != null and _items_box != null,
+	assert(_strip != null and _row != null and _step_label != null and _items_box != null,
 			"HintBar: scaffold failed to build")
 	_apply_layout()
+
+
+## The glass backing (mockup: HUD_PANEL_BACKGROUND + 1 px static border; 4 px
+## side / 2 px top-bottom padding → an 8 px GlowLabel row is exactly 14 px).
+## `top_only` = the FULL_WIDTH strip, which meets the screen edges and only
+## needs its top edge drawn.
+static func _glass_style(top_only: bool = false) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = GameColors.HUD_PANEL_BACKGROUND
+	style.border_color = GameColors.STATIC_BORDER
+	if top_only:
+		style.border_width_top = 1
+	else:
+		style.set_border_width_all(1)
+	style.content_margin_left = 4
+	style.content_margin_right = 4
+	style.content_margin_top = 2
+	style.content_margin_bottom = 2
+	return style
+
+
+static func _clear_style() -> StyleBoxEmpty:
+	return StyleBoxEmpty.new()
 
 
 ## Boundaries the bar re-samples at. Every hookup is guarded so the bar can
@@ -178,11 +225,13 @@ func refresh() -> void:
 
 	_step_label.text = HintBarCommands.step_text_for(state, model, enemy_phase)
 	_step_label.visible = not _step_label.text.is_empty()
+	_step_panel.visible = _step_label.visible
 
 	_clear_items()
 	var entries: Array[Dictionary] = HintBarCommands.resolve(state, model, enemy_phase)
 	for entry: Dictionary in entries:
 		_items_box.add_child(_make_item(entry, model))
+	_items_panel.visible = not entries.is_empty()
 
 	_apply_layout()
 	visible = _should_show() and (_step_label.visible or not entries.is_empty())
@@ -253,24 +302,35 @@ func _make_item(entry: Dictionary, model: HintBarCommands.Model) -> Control:
 	return pair
 
 
-## Row geometry for the current placement / model. Anchored to the bottom of
-## the canvas; CORNERS keeps `corner_inset` off every edge.
+## Strip geometry + which layer wears the glass, for the current placement /
+## model. The strip is anchored to the bottom of the canvas; CORNERS keeps it
+## `corner_inset` off every edge and puts the glass on the two clusters,
+## FULL_WIDTH runs edge to edge and puts the glass on the strip itself.
 func _apply_layout() -> void:
-	if _row == null:
+	if _strip == null:
 		return
-	var inset: int = corner_inset if placement == Placement.CORNERS else 0
+	var corners: bool = placement == Placement.CORNERS
+	var inset: int = corner_inset if corners else 0
 	var row_height: int = bar_height
 	if last_model == HintBarCommands.Model.TOUCH:
 		row_height = touch_button_height + 4
-	_row.anchor_left = 0.0
-	_row.anchor_right = 1.0
-	_row.anchor_top = 1.0
-	_row.anchor_bottom = 1.0
-	_row.offset_left = inset
-	_row.offset_right = -inset
-	_row.offset_top = -(row_height + inset)
-	_row.offset_bottom = -inset
-	_row.custom_minimum_size = Vector2(0, row_height)
+	_strip.anchor_left = 0.0
+	_strip.anchor_right = 1.0
+	_strip.anchor_top = 1.0
+	_strip.anchor_bottom = 1.0
+	_strip.offset_left = inset
+	_strip.offset_right = -inset
+	_strip.offset_top = -(row_height + inset)
+	_strip.offset_bottom = -inset
+
+	if corners:
+		_strip.add_theme_stylebox_override("panel", _clear_style())
+		_step_panel.add_theme_stylebox_override("panel", _glass_style())
+		_items_panel.add_theme_stylebox_override("panel", _glass_style())
+	else:
+		_strip.add_theme_stylebox_override("panel", _glass_style(true))
+		_step_panel.add_theme_stylebox_override("panel", _clear_style())
+		_items_panel.add_theme_stylebox_override("panel", _clear_style())
 
 
 # =============================================================================

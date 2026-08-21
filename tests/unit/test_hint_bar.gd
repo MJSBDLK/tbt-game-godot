@@ -200,7 +200,7 @@ func test_fills_a_sized_parent_and_puts_the_row_inside_it_at_the_bottom() -> voi
 	bar.battle_active = true
 	bar.refresh()
 	assert_eq(bar.size, Vector2(640, 360), "bar fills the HUD canvas")
-	var row_rect: Rect2 = bar._row.get_rect()
+	var row_rect: Rect2 = bar._strip.get_rect()
 	assert_eq(row_rect.position.y, 360.0 - 14.0 - 12.0, "row sits 12 px above the bottom edge")
 	assert_eq(row_rect.end.y, 360.0 - 12.0)
 	assert_true(Rect2(Vector2.ZERO, canvas.size).encloses(row_rect),
@@ -210,17 +210,34 @@ func test_corner_inset_is_real_geometry() -> void:
 	var bar := _make_bar()
 	bar.placement = HintBar.Placement.CORNERS
 	bar.corner_inset = 12
-	assert_eq(bar._row.offset_left, 12.0)
-	assert_eq(bar._row.offset_right, -12.0)
-	assert_eq(bar._row.offset_bottom, -12.0)
-	assert_eq(bar._row.offset_top, -float(bar.bar_height + 12))
+	assert_eq(bar._strip.offset_left, 12.0)
+	assert_eq(bar._strip.offset_right, -12.0)
+	assert_eq(bar._strip.offset_bottom, -12.0)
+	assert_eq(bar._strip.offset_top, -float(bar.bar_height + 12))
 	bar.placement = HintBar.Placement.FULL_WIDTH
-	assert_eq(bar._row.offset_left, 0.0)
-	assert_eq(bar._row.offset_bottom, 0.0)
+	assert_eq(bar._strip.offset_left, 0.0)
+	assert_eq(bar._strip.offset_bottom, 0.0)
 
 
 func test_touch_row_is_button_height_plus_padding() -> void:
 	InputSource.last_device = InputSource.Device.TOUCH
 	var bar := _make_bar()
 	bar.placement = HintBar.Placement.FULL_WIDTH
-	assert_eq(bar._row.offset_top, -float(bar.touch_button_height + 4))
+	assert_eq(bar._strip.offset_top, -float(bar.touch_button_height + 4))
+
+
+func test_glass_backing_follows_placement() -> void:
+	# Mockup: CORNERS = two glass boxes (step / items), strip transparent;
+	# FULL_WIDTH = one glass strip edge to edge, clusters transparent.
+	var bar := _make_bar()
+	bar.placement = HintBar.Placement.CORNERS
+	assert_true(bar._step_panel.get_theme_stylebox("panel") is StyleBoxFlat, "step cluster glass")
+	assert_true(bar._items_panel.get_theme_stylebox("panel") is StyleBoxFlat, "items cluster glass")
+	assert_true(bar._strip.get_theme_stylebox("panel") is StyleBoxEmpty, "strip clear")
+	var glass: StyleBoxFlat = bar._items_panel.get_theme_stylebox("panel")
+	assert_eq(glass.bg_color, GameColors.HUD_PANEL_BACKGROUND)
+	assert_eq(glass.border_color, GameColors.STATIC_BORDER)
+	assert_eq(glass.border_width_top, 1)
+	bar.placement = HintBar.Placement.FULL_WIDTH
+	assert_true(bar._strip.get_theme_stylebox("panel") is StyleBoxFlat, "strip glass")
+	assert_true(bar._items_panel.get_theme_stylebox("panel") is StyleBoxEmpty, "items cluster clear")
