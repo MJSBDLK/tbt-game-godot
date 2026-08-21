@@ -186,6 +186,40 @@ func test_enemy_phase_shows_step_only() -> void:
 	assert_eq(_items(bar).size(), 5)
 
 
+# --- the planning step is the screen's call to action ------------------------------
+
+func test_planning_step_wears_the_cta_and_hands_it_back() -> void:
+	var bar := _make_bar()
+	GameStateManager.change_state(Enums.InputState.UNIT_SELECTED)
+	assert_true(bar._step_label.visible, "plain Info-voice step line")
+	assert_false(bar._step_button.visible)
+	assert_false(bar._step_button.call_to_action)
+
+	GameStateManager.change_state(Enums.InputState.MOVEMENT_PLANNING)
+	assert_false(bar._step_label.visible, "the label yields to the CTA button")
+	assert_true(bar._step_button.visible)
+	assert_true(bar._step_button.call_to_action, "converging rings — 'the game suggests this next'")
+	assert_eq(bar._step_button.text, "Select the marker again to move")
+	assert_eq(bar._step_button.focus_mode, Control.FOCUS_NONE, "the bar never takes focus")
+	assert_true(bar._step_panel.get_theme_stylebox("panel") is StyleBoxEmpty,
+			"the button draws its own chrome — no glass behind it")
+
+	GameStateManager.change_state(Enums.InputState.ACTION_MENU_OPEN)
+	assert_false(bar._step_button.call_to_action, "CTA released when the line changes")
+	assert_false(bar._step_button.visible)
+	assert_true(bar._step_label.visible)
+
+
+func test_pressing_the_planning_cta_asks_to_confirm_the_move() -> void:
+	var bar := _make_bar()
+	GameStateManager.change_state(Enums.InputState.MOVEMENT_PLANNING)
+	watch_signals(bar)
+	bar._step_button.pressed.emit()
+	assert_signal_emitted(bar, "move_confirm_requested")
+	# Nothing is selected in this test, so InputManager must refuse quietly.
+	assert_false(InputManager.confirm_planned_movement())
+
+
 # --- geometry --------------------------------------------------------------------
 
 func test_fills_a_sized_parent_and_puts_the_row_inside_it_at_the_bottom() -> void:

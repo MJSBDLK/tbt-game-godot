@@ -66,6 +66,9 @@ static var joy_skin_override: int = -1
 ## Entry keys:
 ##   step        String  — the instruction under controller/kb
 ##   step_touch  String  — the instruction under touch ("Tap a unit")
+##   step_cta    bool    — OPTIONAL: the step line wears the §14 CALL TO ACTION
+##                         (converging rings) and is itself pressable — the
+##                         press does what the line says. One per screen.
 ##   items       Array   — ordered item dictionaries:
 ##     action        StringName — InputMap action; glyph resolved at sample time
 ##     verb          String     — the per-button label ("Select", "End turn")
@@ -103,9 +106,17 @@ static func _ensure_table() -> void:
 			],
 		},
 		# A marker is on the board. Pressing IT moves; pressing elsewhere in
-		# range adds a stop. One button, so the step line carries the "go" half.
+		# range adds a stop. One button, so the step line carries the "go" half
+		# — and wears the CALL TO ACTION so the change from "Choose a
+		# destination" registers (RQD 2026-08-21: "most players won't notice
+		# the text has changed"). NOT the traveling/selection border: §14 says
+		# that means "you are here", and the unit already holds the one
+		# selection on screen. The CTA line is pressable: pressing it confirms
+		# the move, same as pressing the marker (InputManager.
+		# confirm_planned_movement) — so the lit border keeps its promise.
 		Enums.InputState.MOVEMENT_PLANNING: {
 			step = "Select the marker again to move", step_touch = "Tap the marker again to move",
+			step_cta = true,
 			items = [
 				{action = &"ui_accept", verb = "Add stop", mouse_button = MOUSE_BUTTON_LEFT},
 				{action = &"ui_cancel", verb = "Cancel", mouse_button = MOUSE_BUTTON_RIGHT, touch_label = "Cancel"},
@@ -164,6 +175,15 @@ static func step_text_for(state: Enums.InputState, model: Model, enemy_phase: bo
 		return ""
 	var entry: Dictionary = _table[state]
 	return entry.step_touch if model == Model.TOUCH else entry.step
+
+
+## True when the step line is the screen's call to action (see step_cta).
+## Never during the enemy phase — there is nothing to call for.
+static func step_is_call_to_action(state: Enums.InputState, enemy_phase: bool = false) -> bool:
+	_ensure_table()
+	if enemy_phase or not _table.has(state):
+		return false
+	return bool(_table[state].get("step_cta", false))
 
 
 ## The renderable list for a state under a model: each entry is

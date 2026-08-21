@@ -456,6 +456,13 @@ disabled < static < idle < selected < call to action.
   rings would be too much but the button IS "the game suggests this next." First
   use: the bEXP row's CONFIRM (`BexpSpendPanel`), gold once anything is staged.
   Same scarcity rule (one CTA on screen), same monopoly on the hue.
+  **First CTA outside a menu (RQD 2026-08-21): the hint bar's planning step.**
+  In MOVEMENT_PLANNING the bar's step line ("Select the marker again to move")
+  becomes an `InteractiveButton` wearing the rings, so the change from "Choose a
+  destination" registers — and it is PRESSABLE (pressing it confirms the move,
+  same as pressing the marker), so the lit border keeps its promise. Deliberately
+  NOT the traveling/selection border: that means "you are here," and the unit
+  already holds the one selection on screen. (`HintBar`, `HintBarCommands.step_cta`)
 - **Discard / undo action = DANGER-voice ring** (RQD 2026-08-16, first use: the bEXP
   row's RESET). Red 5 ring + glyph, Red 2 glow — the universal undo mark, and the one
   voice orthogonal to both azure (pressable) and gold (CTA). Deliberately not WARNING:

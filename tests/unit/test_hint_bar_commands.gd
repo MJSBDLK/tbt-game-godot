@@ -68,6 +68,20 @@ func test_waypoints_are_taught_one_click_at_a_time() -> void:
 	assert_eq(_glyphs(Enums.InputState.MOVEMENT_PLANNING, kb), _glyphs(Enums.InputState.UNIT_SELECTED, kb))
 
 
+func test_only_the_planning_step_is_a_call_to_action() -> void:
+	# §14: CTA = "the game suggests this next"; ONE on screen. The planning
+	# line is it (so the change from "Choose a destination" registers — RQD
+	# 2026-08-21); nothing else in the table claims it, and not during the
+	# enemy phase.
+	assert_true(HintBarCommands.step_is_call_to_action(Enums.InputState.MOVEMENT_PLANNING))
+	assert_false(HintBarCommands.step_is_call_to_action(Enums.InputState.MOVEMENT_PLANNING, true))
+	var cta_states: Array = []
+	for state: Enums.InputState in HintBarCommands.states_with_entries():
+		if HintBarCommands.step_is_call_to_action(state):
+			cta_states.append(state)
+	assert_eq(cta_states, [Enums.InputState.MOVEMENT_PLANNING])
+
+
 func test_states_the_bar_is_silent_in() -> void:
 	for state: Enums.InputState in [Enums.InputState.PAUSED, Enums.InputState.BATTLE_RESULT,
 			Enums.InputState.DIALOGUE, Enums.InputState.RECRUITING]:

@@ -43,6 +43,9 @@ extends Control
 
 ## Observed by tests; fired before the action is injected into Input.
 signal action_requested(action: StringName)
+## The step line's CALL TO ACTION was pressed (MOVEMENT_PLANNING: confirm the
+## planned move). Fired before InputManager is asked.
+signal move_confirm_requested
 
 ## Mockup placements. Both put the step text bottom-left and the items
 ## bottom-right; CORNERS keeps them `corner_inset` px off the screen edges
@@ -97,6 +100,10 @@ var _strip: PanelContainer = null
 var _row: HBoxContainer = null
 var _step_panel: PanelContainer = null
 var _step_label: GlowLabel = null
+## The step line's §14 CALL TO ACTION form (HintBarCommands.step_cta): an
+## InteractiveButton wearing the converging rings, shown INSTEAD of the label.
+## Pressing it does what the line says. Built once, hidden until needed.
+var _step_button: InteractiveButton = null
 var _spacer: Control = null
 var _items_panel: PanelContainer = null
 var _items_box: HBoxContainer = null
@@ -141,6 +148,18 @@ func _build() -> void:
 	_step_label.uppercase = true
 	_step_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_step_panel.add_child(_step_label)
+	_step_button = InteractiveButton.new()
+	_step_button.name = "StepCallToAction"
+	_step_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_step_button.base_background = GameColors.HUD_PANEL_BACKGROUND
+	_step_button.visible = false
+	_step_button.pressed.connect(_on_step_cta_pressed)
+	_step_panel.add_child(_step_button)
+	# AFTER add_child: InteractiveButton._ready sets its own focus_mode. The
+	# bar never takes focus — the menus own the cursor. A CTA you can't focus
+	# is still honest: the line says how (press the marker) and the pointer
+	# can press the line itself.
+	_step_button.focus_mode = Control.FOCUS_NONE
 
 	_spacer = Control.new()
 	_spacer.name = "Spacer"
@@ -223,9 +242,18 @@ func refresh() -> void:
 	if state_manager != null:
 		state = state_manager.current_state
 
-	_step_label.text = HintBarCommands.step_text_for(state, model, enemy_phase)
-	_step_label.visible = not _step_label.text.is_empty()
-	_step_panel.visible = _step_label.visible
+	var step_text := HintBarCommands.step_text_for(state, model, enemy_phase)
+	var step_cta := HintBarCommands.step_is_call_to_action(state, enemy_phase) and not step_text.is_empty()
+	_step_label.text = step_text
+	_step_button.text = step_text
+	_step_label.visible = not step_text.is_empty() and not step_cta
+	_step_button.visible = step_cta
+	# Claim / release the screen's one CTA. Release BEFORE the button hides so
+	# InteractiveButton's owner bookkeeping sees the hand-back.
+	_step_button.call_to_action = step_cta
+	var row_height: int = touch_button_height if model == HintBarCommands.Model.TOUCH else bar_height
+	_step_button.custom_minimum_size = Vector2(0, row_height)
+	_step_panel.visible = not step_text.is_empty()
 
 	_clear_items()
 	var entries: Array[Dictionary] = HintBarCommands.resolve(state, model, enemy_phase)
@@ -323,9 +351,12 @@ func _apply_layout() -> void:
 	_strip.offset_top = -(row_height + inset)
 	_strip.offset_bottom = -inset
 
+	# The CTA button draws its own background + border; the cluster's glass
+	# would double it.
+	var step_is_button: bool = _step_button != null and _step_button.visible
 	if corners:
 		_strip.add_theme_stylebox_override("panel", _clear_style())
-		_step_panel.add_theme_stylebox_override("panel", _glass_style())
+		_step_panel.add_theme_stylebox_override("panel", _clear_style() if step_is_button else _glass_style())
 		_items_panel.add_theme_stylebox_override("panel", _glass_style())
 	else:
 		_strip.add_theme_stylebox_override("panel", _glass_style(true))
@@ -350,6 +381,15 @@ func _on_touch_pressed(action: StringName) -> void:
 	release.action = action
 	release.pressed = false
 	Input.parse_input_event(release)
+
+
+## The step line's CTA: in MOVEMENT_PLANNING, "select the marker again to
+## move" — pressing the line is pressing the marker.
+func _on_step_cta_pressed() -> void:
+	move_confirm_requested.emit()
+	var input_manager: Node = get_node_or_null("/root/InputManager")
+	if input_manager != null and input_manager.has_method("confirm_planned_movement"):
+		input_manager.confirm_planned_movement()
 
 
 # =============================================================================

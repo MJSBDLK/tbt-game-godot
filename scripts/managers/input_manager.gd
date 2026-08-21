@@ -844,6 +844,24 @@ func _is_waypoint_tile(tile: Tile) -> bool:
 	return false
 
 
+## The hint bar's CALL TO ACTION ("select the marker again to move"): pressing
+## the line is pressing the last marker. Same gates as the board press — a
+## live battle, a selected unit that hasn't moved, a plan on the board, and
+## the planning state. Returns whether a move was started.
+func confirm_planned_movement() -> bool:
+	if not input_enabled or not GridManager.is_grid_ready():
+		return false
+	if _selected_unit == null or not _selected_unit.can_act or _unit_has_moved:
+		return false
+	if _selected_unit.planned_waypoints.is_empty():
+		return false
+	var state_manager: Node = get_node("/root/GameStateManager")
+	if state_manager.current_state != Enums.InputState.MOVEMENT_PLANNING:
+		return false
+	_execute_movement()
+	return true
+
+
 func _execute_movement() -> void:
 	if _selected_unit == null:
 		return
