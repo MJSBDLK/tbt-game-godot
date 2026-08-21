@@ -389,6 +389,8 @@ disabled < static < idle < selected < call to action.
 
 ### States
 - **Static** (panels, labels): flat dark border, never moves.
+- **Notice** (panels, labels): flat VIOLET border, never moves — "look here, it's
+  not a button." See the NOTICE entry under the motion states below.
 - **Interactive idle**: steady lit border (azure family). Never pulses — the light
   alone carries the contract.
 - **Focus/hover** — **NEEDS REVIEW (Lawrence)**: backlight — button background lifts
@@ -447,7 +449,9 @@ disabled < static < idle < selected < call to action.
   phys/spec/support trio now rides on move chips as well as the detail panel,
   equipment picker, and combat preview — making magenta the color of special
   damage. Semantic, never a state, so it can't collide with selection or the
-  amber CTA monopoly. Still do NOT reuse it for selection or call to action.
+  amber CTA monopoly. Still do NOT reuse it for selection or a pressable call to
+  action. The one sanctioned BORDER use is **NOTICE** (below, 2026-08-21) —
+  border channel only, static, never at glyph level.
 - **Call to action**: converging rings — spawn dim a few game px out, shrink onto the
   border, which catches the light as they land. Motion *toward* = "come here";
   in-place pulse is explicitly rejected (reads as selected/idle).
@@ -456,13 +460,26 @@ disabled < static < idle < selected < call to action.
   rings would be too much but the button IS "the game suggests this next." First
   use: the bEXP row's CONFIRM (`BexpSpendPanel`), gold once anything is staged.
   Same scarcity rule (one CTA on screen), same monopoly on the hue.
-  **First CTA outside a menu (RQD 2026-08-21): the hint bar's planning step.**
-  In MOVEMENT_PLANNING the bar's step line ("Select the marker again to move")
-  becomes an `InteractiveButton` wearing the rings, so the change from "Choose a
-  destination" registers — and it is PRESSABLE (pressing it confirms the move,
-  same as pressing the marker), so the lit border keeps its promise. Deliberately
-  NOT the traveling/selection border: that means "you are here," and the unit
-  already holds the one selection on screen. (`HintBar`, `HintBarCommands.step_cta`)
+  **Two tiers, formalized (RQD 2026-08-21)**: the **rings are for "this is
+  literally the only thing left to do"** — End Turn when every unit has acted is
+  the canonical case. Anything that is merely *the suggested next step among
+  several* wears the **motion-parked form** (gold ring + glyph, no rings): bEXP
+  CONFIRM already does; the hint bar's "Move here" button (playtest toggle,
+  `Settings.move_confirm_mode`) does. The rings are too attention-grabbing to
+  spend on a suggestion.
+- **NOTICE — "the game is pointing at this; it is NOT a button" (RQD 2026-08-21,
+  `GameColors.NOTICE_BORDER`)**: a **violet, STATIC 1 px border** on a non-pressable
+  element whose content just changed or matters next. Purple comes back for this
+  role because it is the one border hue that never meant pressable (azure =
+  pressable, gold = wants pressing, white ticks = you are here, red = undo), and
+  violet already carries "secondary/soft" via the secondary voice's halo. Two
+  guardrails: (1) **border channel only** — magenta at glyph level stays SPECIAL
+  damage; the two never swap channels; (2) **no steady motion** — converging is
+  CTA, traveling is selection; a moving violet border would re-muddy both. One
+  NOTICE on screen. First use: the hint bar's planning step ("Select the marker
+  again to move") — not the rings (not the only action), not the traveling border
+  (the unit already holds the selection), not pressable (a lit border would
+  promise a press). Ramp step (Magenta 4–6) is Lawrence's to eyeball; 5 shipped.
 - **Discard / undo action = DANGER-voice ring** (RQD 2026-08-16, first use: the bEXP
   row's RESET). Red 5 ring + glyph, Red 2 glow — the universal undo mark, and the one
   voice orthogonal to both azure (pressable) and gold (CTA). Deliberately not WARNING:

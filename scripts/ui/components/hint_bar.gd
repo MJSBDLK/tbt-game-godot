@@ -43,8 +43,8 @@ extends Control
 
 ## Observed by tests; fired before the action is injected into Input.
 signal action_requested(action: StringName)
-## The step line's CALL TO ACTION was pressed (MOVEMENT_PLANNING: confirm the
-## planned move). Fired before InputManager is asked.
+## The "Move here" button (Settings.move_confirm_mode BUTTON) was pressed.
+## Fired before InputManager is asked to confirm the plan.
 signal move_confirm_requested
 
 ## Mockup placements. Both put the step text bottom-left and the items
@@ -100,10 +100,14 @@ var _strip: PanelContainer = null
 var _row: HBoxContainer = null
 var _step_panel: PanelContainer = null
 var _step_label: GlowLabel = null
-## The step line's §14 CALL TO ACTION form (HintBarCommands.step_cta): an
-## InteractiveButton wearing the converging rings, shown INSTEAD of the label.
-## Pressing it does what the line says. Built once, hidden until needed.
-var _step_button: InteractiveButton = null
+## The pressable alternative to the step line (HintBarCommands.confirm_label,
+## shown under Settings.move_confirm_mode BUTTON): a parked-gold CTA button —
+## the bEXP CONFIRM recipe, INFO voice ring + glyph, no rings (those mean "the
+## only thing left to do"). Shown INSTEAD of the label. Built once.
+var _step_button: Button = null
+## What the last refresh rendered the step as — readable by tests.
+enum StepForm { LABEL, NOTICE, BUTTON }
+var last_step_form: StepForm = StepForm.LABEL
 var _spacer: Control = null
 var _items_panel: PanelContainer = null
 var _items_box: HBoxContainer = null
@@ -148,18 +152,11 @@ func _build() -> void:
 	_step_label.uppercase = true
 	_step_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_step_panel.add_child(_step_label)
-	_step_button = InteractiveButton.new()
-	_step_button.name = "StepCallToAction"
-	_step_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_step_button.base_background = GameColors.HUD_PANEL_BACKGROUND
+	_step_button = _make_parked_cta_button(font)
+	_step_button.name = "StepConfirmButton"
 	_step_button.visible = false
-	_step_button.pressed.connect(_on_step_cta_pressed)
+	_step_button.pressed.connect(_on_confirm_button_pressed)
 	_step_panel.add_child(_step_button)
-	# AFTER add_child: InteractiveButton._ready sets its own focus_mode. The
-	# bar never takes focus — the menus own the cursor. A CTA you can't focus
-	# is still honest: the line says how (press the marker) and the pointer
-	# can press the line itself.
-	_step_button.focus_mode = Control.FOCUS_NONE
 
 	_spacer = Control.new()
 	_spacer.name = "Spacer"
@@ -187,10 +184,10 @@ func _build() -> void:
 ## side / 2 px top-bottom padding → an 8 px GlowLabel row is exactly 14 px).
 ## `top_only` = the FULL_WIDTH strip, which meets the screen edges and only
 ## needs its top edge drawn.
-static func _glass_style(top_only: bool = false) -> StyleBoxFlat:
+static func _glass_style(top_only: bool = false, border: Color = GameColors.STATIC_BORDER) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = GameColors.HUD_PANEL_BACKGROUND
-	style.border_color = GameColors.STATIC_BORDER
+	style.border_color = border
 	if top_only:
 		style.border_width_top = 1
 	else:
@@ -204,6 +201,40 @@ static func _glass_style(top_only: bool = false) -> StyleBoxFlat:
 
 static func _clear_style() -> StyleBoxEmpty:
 	return StyleBoxEmpty.new()
+
+
+## The parked-gold CTA as a stock Button — BexpSpendPanel._square_button's
+## recipe (INFO voice ring + glyph, glow on the text, 1 px ring, no motion).
+## Never takes focus: the menus own the cursor.
+static func _make_parked_cta_button(font: FontFile) -> Button:
+	var button := Button.new()
+	button.focus_mode = Control.FOCUS_NONE
+	button.mouse_filter = Control.MOUSE_FILTER_STOP
+	if font != null:
+		button.add_theme_font_override("font", font)
+	button.add_theme_font_size_override("font_size", 8)
+	var body: Color = GameColors.TEXT_INFO
+	button.add_theme_color_override("font_color", body)
+	button.add_theme_color_override("font_hover_color", GameColors.brightened(body))
+	button.add_theme_color_override("font_pressed_color", GameColors.brightened(body))
+	var button_material := (load("res://resources/hud_glow.tres") as Material).duplicate()
+	(button_material as ShaderMaterial).set_shader_parameter("glow_color", GameColors.TEXT_INFO_GLOW)
+	button.material = button_material
+	var ring := StyleBoxFlat.new()
+	ring.bg_color = GameColors.HUD_PANEL_BACKGROUND
+	ring.border_color = body
+	ring.set_border_width_all(1)
+	ring.content_margin_left = 4
+	ring.content_margin_right = 4
+	ring.content_margin_top = 2
+	ring.content_margin_bottom = 0  # 8 px ink sits low; the 1 px optical drop
+	var ring_hover := ring.duplicate() as StyleBoxFlat
+	ring_hover.border_color = GameColors.brightened(body)
+	button.add_theme_stylebox_override("normal", ring)
+	button.add_theme_stylebox_override("focus", ring)
+	button.add_theme_stylebox_override("hover", ring_hover)
+	button.add_theme_stylebox_override("pressed", ring_hover)
+	return button
 
 
 ## Boundaries the bar re-samples at. Every hookup is guarded so the bar can
@@ -243,17 +274,21 @@ func refresh() -> void:
 		state = state_manager.current_state
 
 	var step_text := HintBarCommands.step_text_for(state, model, enemy_phase)
-	var step_cta := HintBarCommands.step_is_call_to_action(state, enemy_phase) and not step_text.is_empty()
+	var confirm_label := HintBarCommands.confirm_label_for(state, enemy_phase)
+	var use_button: bool = not confirm_label.is_empty() and _confirm_mode_is_button(model)
+	if use_button:
+		last_step_form = StepForm.BUTTON
+	elif HintBarCommands.step_is_notice(state, enemy_phase) and not step_text.is_empty():
+		last_step_form = StepForm.NOTICE
+	else:
+		last_step_form = StepForm.LABEL
 	_step_label.text = step_text
-	_step_button.text = step_text
-	_step_label.visible = not step_text.is_empty() and not step_cta
-	_step_button.visible = step_cta
-	# Claim / release the screen's one CTA. Release BEFORE the button hides so
-	# InteractiveButton's owner bookkeeping sees the hand-back.
-	_step_button.call_to_action = step_cta
+	_step_button.text = confirm_label
+	_step_label.visible = not step_text.is_empty() and not use_button
+	_step_button.visible = use_button
 	var row_height: int = touch_button_height if model == HintBarCommands.Model.TOUCH else bar_height
 	_step_button.custom_minimum_size = Vector2(0, row_height)
-	_step_panel.visible = not step_text.is_empty()
+	_step_panel.visible = _step_label.visible or _step_button.visible
 
 	_clear_items()
 	var entries: Array[Dictionary] = HintBarCommands.resolve(state, model, enemy_phase)
@@ -351,16 +386,24 @@ func _apply_layout() -> void:
 	_strip.offset_top = -(row_height + inset)
 	_strip.offset_bottom = -inset
 
-	# The CTA button draws its own background + border; the cluster's glass
-	# would double it.
-	var step_is_button: bool = _step_button != null and _step_button.visible
+	# Step cluster by form: NOTICE = glass with the violet border; BUTTON draws
+	# its own ring (the cluster's glass would double it); LABEL = plain glass.
+	var step_style: StyleBox
+	match last_step_form:
+		StepForm.BUTTON:
+			step_style = _clear_style()
+		StepForm.NOTICE:
+			step_style = _glass_style(false, GameColors.NOTICE_BORDER)
+		_:
+			step_style = _glass_style()
 	if corners:
 		_strip.add_theme_stylebox_override("panel", _clear_style())
-		_step_panel.add_theme_stylebox_override("panel", _clear_style() if step_is_button else _glass_style())
+		_step_panel.add_theme_stylebox_override("panel", step_style)
 		_items_panel.add_theme_stylebox_override("panel", _glass_style())
 	else:
 		_strip.add_theme_stylebox_override("panel", _glass_style(true))
-		_step_panel.add_theme_stylebox_override("panel", _clear_style())
+		_step_panel.add_theme_stylebox_override("panel",
+				_glass_style(false, GameColors.NOTICE_BORDER) if last_step_form == StepForm.NOTICE else _clear_style())
 		_items_panel.add_theme_stylebox_override("panel", _clear_style())
 
 
@@ -383,9 +426,22 @@ func _on_touch_pressed(action: StringName) -> void:
 	Input.parse_input_event(release)
 
 
-## The step line's CTA: in MOVEMENT_PLANNING, "select the marker again to
-## move" — pressing the line is pressing the marker.
-func _on_step_cta_pressed() -> void:
+## Settings.move_confirm_mode resolved for the sampled model: AUTO = BUTTON
+## under touch, MARKER otherwise. Marker presses work in every mode; this
+## only decides whether the bar ALSO offers the button.
+func _confirm_mode_is_button(model: HintBarCommands.Model) -> bool:
+	var settings: Node = get_node_or_null("/root/Settings")
+	if settings == null:
+		return model == HintBarCommands.Model.TOUCH
+	if settings.move_confirm_mode == settings.MoveConfirmMode.BUTTON:
+		return true
+	if settings.move_confirm_mode == settings.MoveConfirmMode.MARKER:
+		return false
+	return model == HintBarCommands.Model.TOUCH
+
+
+## "Move here" — pressing the button is pressing the last marker.
+func _on_confirm_button_pressed() -> void:
 	move_confirm_requested.emit()
 	var input_manager: Node = get_node_or_null("/root/InputManager")
 	if input_manager != null and input_manager.has_method("confirm_planned_movement"):

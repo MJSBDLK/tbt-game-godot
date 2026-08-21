@@ -212,3 +212,14 @@ func test_show_control_hints_defaults_on_and_roundtrips() -> void:
 	assert_false(reloaded.show_control_hints, "persisted under [controls]")
 	settings.set_show_control_hints(false)
 	assert_signal_emit_count(settings, "changed", 1, "unchanged value is a no-op")
+
+
+func test_move_confirm_mode_defaults_auto_and_roundtrips() -> void:
+	var settings := _make_settings()
+	assert_eq(settings.move_confirm_mode, settings.MoveConfirmMode.AUTO)
+	settings.set_move_confirm_mode(settings.MoveConfirmMode.BUTTON)
+	var reloaded := _make_settings()
+	reloaded.load_settings()
+	assert_eq(reloaded.move_confirm_mode, settings.MoveConfirmMode.BUTTON, "persisted under [controls]")
+	settings.set_move_confirm_mode(99)
+	assert_eq(settings.move_confirm_mode, settings.MoveConfirmMode.BUTTON, "out-of-range clamps")

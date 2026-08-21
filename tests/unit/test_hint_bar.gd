@@ -17,12 +17,14 @@ func before_each() -> void:
 	DebugConfig.debug_force_touch_hints = false
 	HintBarCommands.joy_skin_override = HintBarCommands.JoySkin.XBOX
 	Settings.show_control_hints = true
+	Settings.move_confirm_mode = Settings.MoveConfirmMode.AUTO
 	GameStateManager.change_state(Enums.InputState.DEFAULT)
 
 
 func after_each() -> void:
 	GameStateManager.change_state(Enums.InputState.DEFAULT)
 	Settings.show_control_hints = true
+	Settings.move_confirm_mode = Settings.MoveConfirmMode.AUTO
 	HintBarCommands.joy_skin_override = -1
 	DebugConfig.debug_force_touch_hints = false
 	InputSource.last_device = InputSource.Device.MOUSE
@@ -186,38 +188,59 @@ func test_enemy_phase_shows_step_only() -> void:
 	assert_eq(_items(bar).size(), 5)
 
 
-# --- the planning step is the screen's call to action ------------------------------
+# --- the planning step: NOTICE border, or the "Move here" button ------------------
 
-func test_planning_step_wears_the_cta_and_hands_it_back() -> void:
+func test_planning_step_wears_the_notice_border_under_marker_mode() -> void:
 	var bar := _make_bar()
 	GameStateManager.change_state(Enums.InputState.UNIT_SELECTED)
-	assert_true(bar._step_label.visible, "plain Info-voice step line")
-	assert_false(bar._step_button.visible)
-	assert_false(bar._step_button.call_to_action)
+	assert_eq(bar.last_step_form, HintBar.StepForm.LABEL)
+	assert_true(bar._step_label.visible)
+	var plain: StyleBoxFlat = bar._step_panel.get_theme_stylebox("panel")
+	assert_eq(plain.border_color, GameColors.STATIC_BORDER, "plain glass before the marker")
 
 	GameStateManager.change_state(Enums.InputState.MOVEMENT_PLANNING)
-	assert_false(bar._step_label.visible, "the label yields to the CTA button")
-	assert_true(bar._step_button.visible)
-	assert_true(bar._step_button.call_to_action, "converging rings — 'the game suggests this next'")
-	assert_eq(bar._step_button.text, "Select the marker again to move")
-	assert_eq(bar._step_button.focus_mode, Control.FOCUS_NONE, "the bar never takes focus")
-	assert_true(bar._step_panel.get_theme_stylebox("panel") is StyleBoxEmpty,
-			"the button draws its own chrome — no glass behind it")
+	assert_eq(bar.last_step_form, HintBar.StepForm.NOTICE, "keyboard → AUTO resolves to MARKER")
+	assert_true(bar._step_label.visible, "still a label — NOTICE is not a button")
+	assert_false(bar._step_button.visible)
+	assert_eq(bar._step_label.text, "Select the marker again to move")
+	var notice: StyleBoxFlat = bar._step_panel.get_theme_stylebox("panel")
+	assert_eq(notice.border_color, GameColors.NOTICE_BORDER, "violet = look here, not a button")
+	assert_eq(notice.bg_color, GameColors.HUD_PANEL_BACKGROUND)
 
 	GameStateManager.change_state(Enums.InputState.ACTION_MENU_OPEN)
-	assert_false(bar._step_button.call_to_action, "CTA released when the line changes")
-	assert_false(bar._step_button.visible)
-	assert_true(bar._step_label.visible)
+	assert_eq(bar.last_step_form, HintBar.StepForm.LABEL, "notice released when the line changes")
 
 
-func test_pressing_the_planning_cta_asks_to_confirm_the_move() -> void:
+func test_button_mode_offers_move_here_and_it_confirms_the_plan() -> void:
+	Settings.move_confirm_mode = Settings.MoveConfirmMode.BUTTON
 	var bar := _make_bar()
 	GameStateManager.change_state(Enums.InputState.MOVEMENT_PLANNING)
+	assert_eq(bar.last_step_form, HintBar.StepForm.BUTTON)
+	assert_true(bar._step_button.visible)
+	assert_false(bar._step_label.visible)
+	assert_eq(bar._step_button.text, "Move here")
+	assert_eq(bar._step_button.focus_mode, Control.FOCUS_NONE, "the bar never takes focus")
+	var ring: StyleBoxFlat = bar._step_button.get_theme_stylebox("normal")
+	assert_eq(ring.border_color, GameColors.TEXT_INFO, "parked-gold CTA: INFO ring, no rings")
+	assert_true(bar._step_panel.get_theme_stylebox("panel") is StyleBoxEmpty, "button draws its own ring")
 	watch_signals(bar)
 	bar._step_button.pressed.emit()
 	assert_signal_emitted(bar, "move_confirm_requested")
 	# Nothing is selected in this test, so InputManager must refuse quietly.
 	assert_false(InputManager.confirm_planned_movement())
+
+
+func test_auto_mode_follows_the_device() -> void:
+	var bar := _make_bar()
+	GameStateManager.change_state(Enums.InputState.MOVEMENT_PLANNING)
+	assert_eq(bar.last_step_form, HintBar.StepForm.NOTICE, "keyboard → marker")
+	InputSource.last_device = InputSource.Device.TOUCH
+	GameStateManager.change_state(Enums.InputState.UNIT_SELECTED)
+	GameStateManager.change_state(Enums.InputState.MOVEMENT_PLANNING)
+	assert_eq(bar.last_step_form, HintBar.StepForm.BUTTON, "touch → button: the thumb is already there")
+	Settings.move_confirm_mode = Settings.MoveConfirmMode.MARKER
+	bar.refresh()
+	assert_eq(bar.last_step_form, HintBar.StepForm.NOTICE, "MARKER overrides the device")
 
 
 # --- geometry --------------------------------------------------------------------

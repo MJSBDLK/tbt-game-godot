@@ -176,6 +176,15 @@ static var INTERACTIVE_TEXT_DISABLED: Color:
 ## Read-only venues (the hover previews, display-mode chips) wear this.
 static var STATIC_BORDER: Color:
 	get: return GameColorPalette.get_color("Gray", 5)
+## NOTICE — "the game is pointing at this; it is NOT a button" (RQD 2026-08-21,
+## first use: the hint bar's planning step). The one border hue that never
+## meant pressable: azure = pressable, gold = the game wants this pressed,
+## white ticks = you are here, red = undo. STATIC — never moves (converging is
+## CTA, traveling is selection). Border channel ONLY: magenta at glyph level
+## is special damage (§14) and the two never swap channels. Ramp step is
+## Lawrence's to eyeball (4–6 candidates); 5 for 1 px legibility on dark glass.
+static var NOTICE_BORDER: Color:
+	get: return GameColorPalette.get_color("Magenta", 5)
 
 ## Cast-shadow ink — ONE ink for every shadow thrown on the board. Not a
 ## palette ramp color: decoded from Lawrence's baked decoration shadow PNGs

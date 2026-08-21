@@ -29,6 +29,7 @@ var _auto_end_on_button: Button = null
 var _auto_end_off_button: Button = null
 var _control_hints_on_button: Button = null
 var _control_hints_off_button: Button = null
+var _move_confirm_buttons: Dictionary = {}  # Settings.MoveConfirmMode → Button
 var _seeded_reload_on_button: Button = null
 var _seeded_reload_off_button: Button = null
 var _type_icons_on_button: Button = null
@@ -137,6 +138,9 @@ func _populate_options() -> void:
 
 	# Control Hints (the battle hint / command bar)
 	_create_control_hints_option()
+
+	# Move Confirm (marker again vs a "Move here" button — playtest toggle)
+	_create_move_confirm_option()
 
 	# Seeded Reload (loading a save keeps or re-rolls the dice)
 	_create_seeded_reload_option()
@@ -538,6 +542,45 @@ func _on_control_hints_off() -> void:
 	Settings.set_show_control_hints(false)
 	_apply_toggle_state(_control_hints_on_button, false)
 	_apply_toggle_state(_control_hints_off_button, true)
+
+
+# Move Confirm — the playtest toggle (RQD 2026-08-21). Auto = button on touch,
+# marker elsewhere; Marker = press the marker again (fluent); Button = the hint
+# bar offers a "Move here" button (clear, clunkier). Marker presses always work.
+func _create_move_confirm_option() -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+
+	var label := Label.new()
+	label.text = "Move Confirm"
+	label.tooltip_text = "How a planned move is confirmed. Marker: press the marker again. Button: a Move Here button in the hint bar. Auto: button on touch screens, marker otherwise."
+	label.custom_minimum_size = Vector2(OPTION_LABEL_WIDTH, 0)
+	label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
+	var glow: ShaderMaterial = GLOW_MATERIAL.duplicate()
+	glow.set_shader_parameter("glow_color", GameColors.TEXT_PRIMARY_GLOW)
+	label.material = glow
+	row.add_child(label)
+
+	var button_container := HBoxContainer.new()
+	button_container.add_theme_constant_override("separation", 2)
+	_move_confirm_buttons.clear()
+	var current: int = Settings.move_confirm_mode
+	for entry: Array in [[Settings.MoveConfirmMode.AUTO, "Auto"],
+			[Settings.MoveConfirmMode.MARKER, "Marker"], [Settings.MoveConfirmMode.BUTTON, "Button"]]:
+		var mode: int = entry[0]
+		var button := _create_toggle_button(entry[1], current == mode)
+		button.pressed.connect(_on_move_confirm_selected.bind(mode))
+		_move_confirm_buttons[mode] = button
+		button_container.add_child(button)
+
+	row.add_child(button_container)
+	_content_container.add_child(row)
+
+
+func _on_move_confirm_selected(mode: int) -> void:
+	Settings.set_move_confirm_mode(mode)
+	for key: int in _move_confirm_buttons:
+		_apply_toggle_state(_move_confirm_buttons[key], key == mode)
 
 
 # Seeded Reload: On = loading a save restores the dice exactly (repeating the
