@@ -95,13 +95,16 @@ static var FACTION_HEALTHBAR_ALLY: Color:
 # two bars can't drift apart.
 static var UNIT_BAR_BACKGROUND: Color = Color(0.1, 0.1, 0.1, 1.0)
 
-# On-map XP bar (RQD 2026-08-21): the same yellow as the "+N XP" callout so
-# the two read as one event; FLASH is the brighter beat when the bar wraps a
-# level (the LEVEL UP! callout's ink).
+# On-map XP bar (RQD 2026-08-21): banana — YellowOrange 7, the house gold
+# (the guide's Info ink, azure + gold harmony), NOT the Yellow ramp's olive 7.
+# The floating "+N XP" callout stays on the cooler Yellow ramp on purpose:
+# warm gold floating over the board is reserved for move names (§2 callout-
+# venue rule); a bar isn't text, so the bar gets the real banana. FLASH is the
+# brighter beat when the bar wraps a level.
 static var XP_BAR_FILL: Color:
-	get: return GameColorPalette.get_color("Yellow", 7)
+	get: return GameColorPalette.get_color("YellowOrange", 7)
 static var XP_BAR_FLASH: Color:
-	get: return GameColorPalette.get_color("Yellow", 8)
+	get: return GameColorPalette.get_color("YellowOrange", 8)
 
 
 # =============================================================================
