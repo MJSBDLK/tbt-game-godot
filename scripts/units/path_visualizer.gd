@@ -5,6 +5,16 @@
 ## the last tile resolves to idle, the cycle holds for CYCLE_PAUSE_MS, then
 ## loops. Beacon color follows unit faction: blue for player, red for enemy.
 ## Set as top_level in unit.tscn so positions are in world space.
+##
+## Destination ghost (RQD 2026-08-21, todo #4): while a PLAYER unit has a plan,
+## a projection silhouette of the unit (UnitGhost — the same material as the
+## displacement preview's "where the shove puts them" ghosts) parks on the
+## last waypoint, so "where will I stand" reads without committing the walk.
+## The beacons stay the path; the ghost is the destination. Player-only: the
+## AI's walk is already animated and its beacons already show the route.
+## Parked, not travelling — the shader's static/tracking is the only motion,
+## and reduce-motion freezes that. Above the whole board (an informational
+## overlay — same z rule as DisplacementPreviewRenderer.OVERLAY_Z_INDEX).
 class_name PathVisualizer
 extends Node2D
 
@@ -30,11 +40,21 @@ var _path_tiles: Array[Tile] = []
 var _faction: Enums.UnitFaction = Enums.UnitFaction.PLAYER
 var _beacon_sprites: Array[Sprite2D] = []
 var _animation_time_ms: float = 0.0
+# Destination ghost — one per plan, rebuilt on every update, freed on clear.
+var _ghost: Sprite2D = null
+var _ghost_material: ShaderMaterial = null
 
 
 func _ready() -> void:
 	z_index = ZIndexCalculator.calculate_sorting_order(
 		0, 100, ZIndexCalculator.ZIndexLayer.PATH_INDICATORS)
+	_ghost_material = UnitGhost.make_material()
+	if Settings != null:
+		Settings.changed.connect(_on_settings_changed)
+
+
+func _on_settings_changed() -> void:
+	UnitGhost.set_animated(_ghost_material, Settings.ui_motion_enabled)
 
 
 func update_path(unit: Node2D) -> void:
@@ -59,11 +79,41 @@ func update_path(unit: Node2D) -> void:
 	_path_tiles = full_path
 	_animation_time_ms = 0.0
 	_rebuild_beacon_nodes()
+	_rebuild_destination_ghost(unit)
 
 
 func clear_arrows() -> void:
 	_path_tiles.clear()
 	_rebuild_beacon_nodes()
+	_clear_ghost()
+
+
+func has_destination_ghost() -> bool:
+	return _ghost != null and is_instance_valid(_ghost)
+
+
+## Park a projection of the unit on the plan's last tile. Sprite-space anchor
+## (UnitGhost.anchor_offset) so a mid-body-anchored cast lands where the real
+## sprite would. Absolute z above the board: a "where will I stand" you can't
+## see through the unit in front of it isn't a preview.
+func _rebuild_destination_ghost(unit: Node2D) -> void:
+	_clear_ghost()
+	if _path_tiles.is_empty() or _faction != Enums.UnitFaction.PLAYER:
+		return
+	var ghost := UnitGhost.build(unit, _ghost_material)
+	if ghost == null:
+		return
+	ghost.z_as_relative = false
+	ghost.z_index = DisplacementPreviewRenderer.OVERLAY_Z_INDEX
+	add_child(ghost)
+	ghost.global_position = _path_tiles.back().global_position + UnitGhost.anchor_offset(unit)
+	_ghost = ghost
+
+
+func _clear_ghost() -> void:
+	if _ghost != null and is_instance_valid(_ghost):
+		_ghost.queue_free()
+	_ghost = null
 
 
 func _process(delta: float) -> void:
