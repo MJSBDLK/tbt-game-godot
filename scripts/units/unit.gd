@@ -34,6 +34,10 @@ const HIT_DELAY: float = 0.3  # Seconds between combat hits
 const BOOP_DISTANCE: float = 8.0  # Pixels the sprite bumps toward target during attack
 const HITLAG_MIN: float = 0.05  # Minimum freeze on any hit (seconds)
 const HITLAG_MAX: float = 0.25  # Maximum freeze on a devastating hit (seconds)
+# A Bellows-boosted fire hit never lands soft: impact weight floors here so the
+# flash/shake/hitlag sell the boost (crits floor at 0.8 — this is the lesser
+# beat). RQD 2026-08-21, todo #2A.
+const BELLOWS_IMPACT_FLOOR: float = 0.6
 const ATTACK_CLIP_DEFAULT_FPS: int = 12  # Fallback when a clip omits "fps"
 
 # When true, an attack that isn't a due north/south (vertical) shot uses the
@@ -257,7 +261,7 @@ func _ready() -> void:
 	_build_static_overlay()
 	_build_xp_bar()
 	set_process(true)
-	StatusEffectSystem.status_effect_applied.connect(_on_status_effect_changed)
+	StatusEffectSystem.status_effect_applied.connect(_on_status_effect_applied)
 	StatusEffectSystem.status_effect_removed.connect(_on_status_effect_changed)
 	# Type icons are gated on a live setting — rebuild when the player flips
 	# the Options toggle mid-battle. Rebuilding on unrelated setting changes is
@@ -1152,6 +1156,20 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 	if ctx.is_crit:
 		impact_weight = maxf(impact_weight, 0.8)
 
+	# Bellows-boosted swing (RQD 2026-08-21, todo #2A): announce the exact
+	# multiplier over the attacker BEFORE the approach — the pips on the icon
+	# are one pixel, and "obliterated on the next hit" needs a named cause.
+	# Same number the calculator applied (one helper), element ink like the
+	# AI's move-name callouts (this is "what's firing," not a warning), and a
+	# warm hit flash + impact floor so the target side sells it too.
+	var bellows_scale := DamageCalculator.bellows_multiplier(self, move)
+	var hit_flash_tint := Color.TRANSPARENT
+	if bellows_scale > 1.0:
+		impact_weight = maxf(impact_weight, BELLOWS_IMPACT_FLOOR)
+		hit_flash_tint = GameColorPalette.get_color("Orange", 7)
+		spawn_text_callout(bellows_callout_text(bellows_scale),
+				GameColors.get_move_chip_foreground(Enums.ElementalType.FIRE))
+
 	# Phase 1: Approach. If the attacker has a clip matching this attack's
 	# direction+range, play it through to its hit frame; otherwise nudge.
 	var clip := _pick_attack_clip(target, move)
@@ -1170,7 +1188,7 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 		_play_clip_after_hit(clip)
 	else:
 		_play_boop_return()
-	VisualFeedbackManager.apply_hit_flash(target, impact_weight)
+	VisualFeedbackManager.apply_hit_flash(target, impact_weight, hit_flash_tint)
 
 	var camera := get_viewport().get_camera_2d() as CameraController
 	if camera != null:
@@ -1191,8 +1209,8 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 	if ctx.is_crit:
 		spawn_text_callout("CRIT!", GameColors.TEXT_SECONDARY)
 
-	DebugConfig.log_combat("Hit: %s -> %s for %d damage (x%.2f %s, impact=%.2f, hitlag=%.3fs)" % [
-		unit_name, target.unit_name, damage, type_multiplier, effectiveness_text, impact_weight, hitlag_duration])
+	DebugConfig.log_combat("Hit: %s -> %s for %d damage (x%.2f %s, bellows=x%.2f, impact=%.2f, hitlag=%.3fs)" % [
+		unit_name, target.unit_name, damage, type_multiplier, effectiveness_text, bellows_scale, impact_weight, hitlag_duration])
 
 	# On-hit rider effects (afflictions, cleanse, displacement) and per-hit passive
 	# triggers (e.g. Bellows) run through the combat effect pipeline using the
@@ -2028,6 +2046,52 @@ func _on_status_effect_changed(unit: Node2D, _effect_type_name: String) -> void:
 	if unit != self:
 		return
 	_update_status_indicators()
+
+
+## Applied (new OR restacked — StatusEffectSystem emits for both): refresh the
+## icons like a removal would, then SAY it. Every status used to land
+## silently except for a 6x6 icon + 1px pips (RQD 2026-08-21, todo #2A:
+## "I unknowingly activated the enemy's Bellows"). Generic on purpose — one
+## rule for all 19 statuses, not a Bellows special case.
+func _on_status_effect_applied(unit: Node2D, effect_type_name: String) -> void:
+	if unit != self:
+		return
+	_update_status_indicators()
+	_announce_status_applied(effect_type_name)
+
+
+## Float the status's name over the unit in its category's semantic ink —
+## buffs in the success green, debuffs in the danger red (ui-style-guide §3
+## pairings). NOT element ink: the AI floats MOVE NAMES in element color, and
+## "BELLOWS" in fire-orange would read as an attack announcement. A restack
+## counts up ("BURN x2") so stacking statuses show their growth; the first
+## application is just the name. The icon pops in the same beat.
+func _announce_status_applied(effect_type_name: String) -> void:
+	var configs := StatusEffectData.get_default_configs()
+	var config: StatusEffectData = configs.get(effect_type_name, null)
+	var stacks: int = StatusEffectSystem.get_effect_stacks(self, effect_type_name)
+	var label: String = config.abbrev_name if config != null else effect_type_name.capitalize()
+	var is_buff: bool = config != null and config.category == Enums.EffectCategory.BUFF
+	spawn_text_callout(status_callout_text(label, stacks),
+			GameColors.TEXT_SUCCESS if is_buff else GameColors.TEXT_DANGER)
+	if _status_indicator != null:
+		_status_indicator.pop_icon(effect_type_name)
+
+
+## "BURN" on first application, "BURN x2" on a restack — pure, for tests.
+static func status_callout_text(abbrev_name: String, stacks: int) -> String:
+	var text := abbrev_name.to_upper()
+	if stacks > 1:
+		text += " ×%d" % stacks
+	return text
+
+
+## "BELLOWS ×1.25" / "×1.5" / "×2" — trailing zeros trimmed so the number
+## reads like a multiplier, not a stat readout (String.num keeps "2.0"). Pure,
+## for tests.
+static func bellows_callout_text(multiplier: float) -> String:
+	var number := ("%.2f" % multiplier).rstrip("0").rstrip(".")
+	return "BELLOWS ×%s" % number
 
 
 ## Rebuild the status icon row and adjust health bar position.

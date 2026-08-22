@@ -26,6 +26,8 @@ const CRIT_MULTIPLIER: float = 2.0
 ## handler, for the same reason as terrain/Bellows: the combat preview calls
 ## calculate_damage directly and must always match the real hit.
 const STAB_MULTIPLIER: float = 1.2
+# Bellows: each stack on the ATTACKER adds this to fire damage (4 stacks = x2).
+const BELLOWS_BONUS_PER_STACK: float = 0.25
 
 
 # =============================================================================
@@ -129,18 +131,9 @@ static func calculate_damage(attacker: Node2D, defender: Node2D, move: Move) -> 
 	# Same-type attack bonus
 	var stab_multiplier := get_stab_multiplier(attacker, move)
 
-	# Bellows: +25% fire damage per stack
-	var bellows_multiplier := 1.0
-	if move.element_type == Enums.ElementalType.FIRE:
-		# Tree-residency guard: autoload lookup rides the attacker node, and an
-		# off-tree unit (test harnesses) makes an absolute get_node push an
-		# engine error before returning null. Same null, minus the noise.
-		var status_system: Node = attacker.get_node_or_null("/root/StatusEffectSystem") \
-				if attacker.is_inside_tree() else null
-		if status_system != null:
-			var bellows_stacks: int = status_system.get_effect_stacks(attacker, "BELLOWS")
-			if bellows_stacks > 0:
-				bellows_multiplier = 1.0 + (bellows_stacks * 0.25)
+	# Bellows: +25% fire damage per stack — one helper, shared with the hit
+	# sequence's "BELLOWS xN" announcement so the two can't disagree.
+	var bellows_scale := bellows_multiplier(attacker, move)
 
 	# Terrain: the attacker's tile scales outgoing damage; the defender's tile
 	# scales its defense stat. Reckless on either side doubles its own terrain's
@@ -162,10 +155,10 @@ static func calculate_damage(attacker: Node2D, defender: Node2D, move: Move) -> 
 	# Additive RD-style formula: stat + might - def. Stat growth still matters
 	# but doesn't compound with weapon power, so high-level units don't snowball.
 	var base_damage: int = (attack_stat + move.base_power) - effective_defense
-	var final_damage := maxi(1, roundi(base_damage * type_multiplier * stab_multiplier * bellows_multiplier * attack_terrain))
+	var final_damage := maxi(1, roundi(base_damage * type_multiplier * stab_multiplier * bellows_scale * attack_terrain))
 
 	DebugConfig.log_combat("DamageCalc: atk=%d + power=%d - def=%d(x%.2f) = %d * type=%.2f * stab=%.2f * bellows=%.2f * atkterrain=%.2f -> %d" % [
-		attack_stat, move.base_power, defense_stat, defense_terrain, base_damage, type_multiplier, stab_multiplier, bellows_multiplier, attack_terrain, final_damage])
+		attack_stat, move.base_power, defense_stat, defense_terrain, base_damage, type_multiplier, stab_multiplier, bellows_scale, attack_terrain, final_damage])
 
 	return final_damage
 
@@ -173,6 +166,26 @@ static func calculate_damage(attacker: Node2D, defender: Node2D, move: Move) -> 
 ## STAB for one attacker/move pairing: STAB_MULTIPLIER when the move's element
 ## matches either of the attacker's effective types, else 1.0. Reads the
 ## effective_* accessors so Crystallization stripping a type also strips its STAB.
+## Bellows for one attacker/move pairing: 1 + BELLOWS_BONUS_PER_STACK per
+## BELLOWS stack the ATTACKER carries, fire moves only; 1.0 otherwise. Exposed
+## on its own (RQD 2026-08-21, todo #2A) so Unit._execute_single_hit can
+## announce a boosted swing with the exact number the calculator applies.
+static func bellows_multiplier(attacker: Node2D, move: Move) -> float:
+	if attacker == null or move == null or move.element_type != Enums.ElementalType.FIRE:
+		return 1.0
+	# Tree-residency guard: autoload lookup rides the attacker node, and an
+	# off-tree unit (test harnesses) makes an absolute get_node push an
+	# engine error before returning null. Same null, minus the noise.
+	var status_system: Node = attacker.get_node_or_null("/root/StatusEffectSystem") \
+			if attacker.is_inside_tree() else null
+	if status_system == null:
+		return 1.0
+	var stacks: int = status_system.get_effect_stacks(attacker, "BELLOWS")
+	if stacks <= 0:
+		return 1.0
+	return 1.0 + stacks * BELLOWS_BONUS_PER_STACK
+
+
 static func get_stab_multiplier(attacker: Node2D, move: Move) -> float:
 	if attacker == null or move == null:
 		return 1.0
