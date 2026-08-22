@@ -128,6 +128,11 @@ var _level_up_snapshot: Dictionary = {}
 # _flush_xp_feedback; levels ride along for the LEVEL UP! callout.
 var _combat_xp_gained: int = 0
 var _combat_levels_gained: int = 0
+# On-map XP bar (RQD 2026-08-21): `experience` as it stood BEFORE the first
+# grant of this sequence (-1 = no sequence open), so the bar can sweep from
+# where the unit started to where it landed — first grant wins, like the
+# level-up snapshot. Consumed + reset by _flush_xp_feedback.
+var _xp_before_sequence: int = -1
 
 # Set by take_damage when the killing blow lands. Used by InjurySystem to
 # pick the right injury when the unit_defeated handler runs.
@@ -187,6 +192,12 @@ var _shadow: UnitShadow = null
 var _health_bar: Node2D = null
 var _health_bar_background: ColorRect = null
 var _health_bar_fill: ColorRect = null
+# On-map XP bar — built by _build_xp_bar under HealthBar, hidden at rest.
+var _xp_bar: Node2D = null
+var _xp_bar_fill: ColorRect = null
+# Bumped on every play so an older run's tail can't hide a newer run's bar.
+var _xp_bar_serial: int = 0
+var _xp_bar_tween: Tween = null
 var _status_indicator: StatusEffectIndicator = null
 var _level_label: Label = null
 # Elemental type icon sprites, mirrored right of the health bar (level sits
@@ -200,6 +211,26 @@ const _STATIC_NOISE_TEX: Texture2D = preload("res://art/sprites/ui/static_noise.
 const _STATIC_BAR_WIDTH: int = 24
 const _STATIC_BAR_HEIGHT: int = 2
 const _STATIC_TICK_INTERVAL: float = 0.12
+
+# On-map XP bar geometry + pacing (RQD 2026-08-21). Same footprint as the
+# health bar, parked one pixel BELOW it (above is the status-icon row; RQD:
+# "beneath seems more natural" — set XP_BAR_OFFSET_Y to -4.0 to try above;
+# the health bar spans y -1..1, so +2 leaves a 1px gap). Fade in fast, fill,
+# hold, fade out slow. A level wrap fills to full, flashes, restarts from 0.
+# Reduce-motion parks the bar at the final fraction for the hold and skips
+# every tween. All const-tunable; eyeball at playtest.
+const XP_BAR_WIDTH: int = 24
+const XP_BAR_HEIGHT: int = 2
+const XP_BAR_OFFSET_Y: float = 2.0
+const XP_BAR_FADE_IN_SECONDS: float = 0.1
+const XP_BAR_FILL_SECONDS_PER_LEVEL: float = 0.45  # a full 0→100 sweep
+const XP_BAR_FILL_MIN_SECONDS: float = 0.08
+const XP_BAR_WRAP_FLASH_SECONDS: float = 0.1
+const XP_BAR_HOLD_SECONDS: float = 0.5
+const XP_BAR_FADE_OUT_SECONDS: float = 0.6
+# Placeholder sample from tools/godot/generate_ui_sfx.gd — a rising tick
+# train; Lawrence replaces the file, same name.
+const XP_FILL_STREAM_PATH: String = "res://audio/ui/xp_fill.wav"
 
 
 # =============================================================================
@@ -224,6 +255,7 @@ func _ready() -> void:
 	if has_node("PathVisualizer"):
 		_path_visualizer = $PathVisualizer
 	_build_static_overlay()
+	_build_xp_bar()
 	set_process(true)
 	StatusEffectSystem.status_effect_applied.connect(_on_status_effect_changed)
 	StatusEffectSystem.status_effect_removed.connect(_on_status_effect_changed)
@@ -620,6 +652,127 @@ func _build_static_overlay() -> void:
 	_static_overlay.position = Vector2(-_STATIC_BAR_WIDTH / 2.0, -_STATIC_BAR_HEIGHT / 2.0)
 	_static_overlay.visible = false
 	_health_bar.add_child(_static_overlay)
+
+
+# =============================================================================
+# ON-MAP XP BAR (RQD 2026-08-21, todo #1)
+# =============================================================================
+# The in-the-moment companion to the "+N XP" callout: a yellow-on-black bar
+# the health bar's size, one pixel beneath it, that fades in, sweeps from the
+# pre-combat XP to the new total (wrapping with a flash on a level-up), holds,
+# and fades out. Built in code like the static overlay so bare test units and
+# the .tscn stay untouched; enemies build one too but never show it (only
+# player units earn XP).
+
+func _build_xp_bar() -> void:
+	if _health_bar == null:
+		return
+	_xp_bar = Node2D.new()
+	_xp_bar.name = "XpBar"
+	_xp_bar.visible = false
+	var half_width := float(XP_BAR_WIDTH) / 2.0
+	var background := ColorRect.new()
+	background.name = "Background"
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	background.color = GameColors.UNIT_BAR_BACKGROUND
+	background.position = Vector2(-half_width, XP_BAR_OFFSET_Y)
+	background.size = Vector2(XP_BAR_WIDTH, XP_BAR_HEIGHT)
+	_xp_bar.add_child(background)
+	# Left-anchored like the health bar's fill: the rect's origin is its left
+	# edge, so scale.x grows rightward from there.
+	_xp_bar_fill = ColorRect.new()
+	_xp_bar_fill.name = "Fill"
+	_xp_bar_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_xp_bar_fill.color = GameColors.XP_BAR_FILL
+	_xp_bar_fill.position = Vector2(-half_width, XP_BAR_OFFSET_Y)
+	_xp_bar_fill.size = Vector2(XP_BAR_WIDTH, XP_BAR_HEIGHT)
+	_xp_bar_fill.scale.x = 0.0
+	_xp_bar.add_child(_xp_bar_fill)
+	_health_bar.add_child(_xp_bar)
+
+
+## The bar's sweep as [start, end] fill fractions, one pair per segment —
+## pure, so the wrap logic is testable without a tree. No level: one segment
+## from→to. N levels: from→full, then (N-1)× 0→full, then 0→to; the renderer
+## flashes and resets to 0 between segments.
+static func xp_bar_fill_segments(from_xp: int, to_xp: int, levels_gained: int) -> Array[Array]:
+	var per_level := float(CharacterData.XP_PER_LEVEL)
+	var from_fraction := clampf(float(from_xp) / per_level, 0.0, 1.0)
+	var to_fraction := clampf(float(to_xp) / per_level, 0.0, 1.0)
+	var segments: Array[Array] = []
+	if levels_gained <= 0:
+		segments.append([from_fraction, to_fraction])
+		return segments
+	segments.append([from_fraction, 1.0])
+	for _extra: int in range(levels_gained - 1):
+		segments.append([0.0, 1.0])
+	segments.append([0.0, to_fraction])
+	return segments
+
+
+## Play the bar for one flushed sequence. Fire-and-forget from
+## _flush_xp_feedback so it runs alongside the callouts; a newer play kills
+## the older tween and takes over the bar.
+func _play_xp_bar(from_xp: int, to_xp: int, levels_gained: int) -> void:
+	if _xp_bar == null or _xp_bar_fill == null:
+		return
+	_xp_bar_serial += 1
+	var serial: int = _xp_bar_serial
+	if _xp_bar_tween != null and _xp_bar_tween.is_valid():
+		_xp_bar_tween.kill()
+	var segments := xp_bar_fill_segments(from_xp, to_xp, levels_gained)
+	assert(not segments.is_empty(), "xp_bar_fill_segments always yields at least one segment")
+	_xp_bar.visible = true
+	_xp_bar_fill.color = GameColors.XP_BAR_FILL
+
+	var motion: bool = Settings == null or Settings.ui_motion_enabled
+	if not motion or not is_inside_tree():
+		# Reduce-motion (or no tree to tween in): park at the landing fraction
+		# for the hold, then hide. The callout still carries the number.
+		_xp_bar.modulate.a = 1.0
+		_xp_bar_fill.scale.x = segments.back()[1]
+		_play_xp_fill_sfx()
+		if is_inside_tree():
+			await get_tree().create_timer(XP_BAR_HOLD_SECONDS).timeout
+		if serial == _xp_bar_serial and is_instance_valid(_xp_bar):
+			_xp_bar.visible = false
+		return
+
+	_xp_bar.modulate.a = 0.0
+	_xp_bar_fill.scale.x = segments[0][0]
+	var tween := create_tween()
+	_xp_bar_tween = tween
+	tween.tween_property(_xp_bar, "modulate:a", 1.0, XP_BAR_FADE_IN_SECONDS)
+	for index: int in segments.size():
+		var segment: Array = segments[index]
+		if index > 0:
+			# Level wrap: flash, then restart from empty.
+			tween.tween_property(_xp_bar_fill, "color", GameColors.XP_BAR_FLASH, XP_BAR_WRAP_FLASH_SECONDS / 2.0)
+			tween.tween_property(_xp_bar_fill, "color", GameColors.XP_BAR_FILL, XP_BAR_WRAP_FLASH_SECONDS / 2.0)
+			tween.tween_callback(func() -> void: _xp_bar_fill.scale.x = segment[0])
+		tween.tween_callback(_play_xp_fill_sfx)
+		var distance: float = maxf(0.0, segment[1] - segment[0])
+		var duration: float = maxf(XP_BAR_FILL_MIN_SECONDS, distance * XP_BAR_FILL_SECONDS_PER_LEVEL)
+		tween.tween_property(_xp_bar_fill, "scale:x", segment[1], duration)
+	tween.tween_interval(XP_BAR_HOLD_SECONDS)
+	tween.tween_property(_xp_bar, "modulate:a", 0.0, XP_BAR_FADE_OUT_SECONDS)
+	tween.tween_callback(func() -> void:
+		if serial == _xp_bar_serial and is_instance_valid(_xp_bar):
+			_xp_bar.visible = false)
+
+
+## The filling sound — same fire-and-forget one-shot player as the level-up
+## ding (LevelUpReportPanel._play_ding) and the UI blips. Silent when the
+## sample is missing so a stripped build never errors.
+func _play_xp_fill_sfx() -> void:
+	if not is_inside_tree() or not ResourceLoader.exists(XP_FILL_STREAM_PATH):
+		return
+	var player := AudioStreamPlayer.new()
+	player.stream = load(XP_FILL_STREAM_PATH) as AudioStream
+	player.bus = &"SFX"
+	player.finished.connect(player.queue_free)
+	add_child(player)
+	player.play()
 
 
 func _process(delta: float) -> void:
@@ -1227,6 +1380,8 @@ func _award_survival_xp(attacker: Unit) -> void:
 func _grant_combat_xp(xp: int) -> void:
 	if xp <= 0:
 		return
+	if _xp_before_sequence < 0:
+		_xp_before_sequence = character_data.experience
 	_combat_xp_gained += xp
 	var snapshot: Dictionary = LevelUpStatPanel.stat_snapshot(character_data)
 	var levels_gained: int = character_data.grant_xp(xp)
@@ -1248,6 +1403,12 @@ func _flush_xp_feedback() -> void:
 	if _combat_xp_gained <= 0:
 		return
 	spawn_text_callout("+%d XP" % _combat_xp_gained, GameColorPalette.get_color("Yellow", 7))
+	# The on-map bar sweeps alongside the callout (not awaited — it has its own
+	# pacing and must not hold the turn). Every grant goes through
+	# _grant_combat_xp, which opens the sequence, so the snapshot is always set.
+	assert(_xp_before_sequence >= 0, "XP was banked without _grant_combat_xp opening the sequence")
+	_play_xp_bar(maxi(_xp_before_sequence, 0), character_data.experience, _combat_levels_gained)
+	_xp_before_sequence = -1
 	if _combat_levels_gained > 0 and is_inside_tree():
 		await get_tree().create_timer(0.5).timeout
 		spawn_text_callout("LEVEL UP!", GameColorPalette.get_color("Yellow", 8))
@@ -1665,6 +1826,8 @@ func _handle_defeat() -> void:
 		_health_bar_fill.visible = false
 	if _status_indicator != null:
 		_status_indicator.visible = false
+	if _xp_bar != null:
+		_xp_bar.visible = false
 	if _level_label != null:
 		_level_label.visible = false
 	for icon: Sprite2D in _type_icons:
@@ -1834,7 +1997,7 @@ func _update_type_icons() -> void:
 func _apply_faction_healthbar() -> void:
 	if _health_bar_background == null or _health_bar_fill == null:
 		return
-	_health_bar_background.color = Color(0.1, 0.1, 0.1, 1.0)
+	_health_bar_background.color = GameColors.UNIT_BAR_BACKGROUND
 	match faction:
 		Enums.UnitFaction.PLAYER:
 			_health_bar_fill.color = GameColors.FACTION_HEALTHBAR_PLAYER

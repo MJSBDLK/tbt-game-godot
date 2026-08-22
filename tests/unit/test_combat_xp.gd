@@ -8,6 +8,16 @@ extends GutTest
 const SPACEMAN_PATH: String = "res://data/characters/spaceman.json"
 const GRUNT_PATH: String = "res://data/characters/grunt.json"
 
+var _saved_motion: bool = true
+
+
+func before_each() -> void:
+	_saved_motion = Settings.ui_motion_enabled
+
+
+func after_each() -> void:
+	Settings.ui_motion_enabled = _saved_motion
+
 
 func _data(level: int) -> CharacterData:
 	var data := CharacterData.new()
@@ -247,3 +257,114 @@ func test_flush_with_nothing_earned_stays_silent() -> void:
 	var unit := _spawn_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER)
 	await unit._flush_xp_feedback()
 	assert_eq(_callout_texts(unit).size(), 0, "no XP, no popup — enemies' combats stay quiet")
+
+
+# =============================================================================
+# ON-MAP XP BAR (RQD 2026-08-21, todo #1)
+# =============================================================================
+# A yellow-on-black bar the health bar's size, one pixel beneath it, that
+# fades in, sweeps from the pre-combat XP to the new total (wrapping with a
+# flash on a level-up), holds, fades out. The sweep plan is pure; the
+# renderer is probed under reduce-motion where it parks deterministically.
+
+func test_xp_threshold_is_one_constant_everywhere() -> void:
+	# grant_xp, the bar, the sheet, and the bEXP screen used to each hardcode
+	# 100 with a "keep in sync" comment. Now there is one owner.
+	assert_eq(CharacterData.XP_PER_LEVEL, 100, "RD's flat threshold")
+	assert_eq(BexpSpendPanel.XP_PER_LEVEL, CharacterData.XP_PER_LEVEL,
+			"the bEXP screen reads the same constant")
+	var data := CharacterData.new()
+	assert_eq(data.grant_xp(CharacterData.XP_PER_LEVEL), 1, "exactly one threshold = one level")
+	assert_eq(data.experience, 0)
+
+
+func test_xp_bar_sweep_plan_without_a_level_is_one_segment() -> void:
+	var segments := Unit.xp_bar_fill_segments(40, 65, 0)
+	assert_eq(segments.size(), 1)
+	assert_almost_eq(segments[0][0], 0.40, 0.001, "starts at the pre-combat fraction")
+	assert_almost_eq(segments[0][1], 0.65, 0.001, "lands on the new fraction")
+
+
+func test_xp_bar_sweep_plan_wraps_once_per_level_gained() -> void:
+	var one := Unit.xp_bar_fill_segments(90, 20, 1)
+	assert_eq(one.size(), 2, "fill to full, then restart to the remainder")
+	assert_almost_eq(one[0][0], 0.90, 0.001)
+	assert_almost_eq(one[0][1], 1.0, 0.001, "first segment fills the bar")
+	assert_almost_eq(one[1][0], 0.0, 0.001, "second starts from empty")
+	assert_almost_eq(one[1][1], 0.20, 0.001)
+
+	var two := Unit.xp_bar_fill_segments(90, 5, 2)
+	assert_eq(two.size(), 3, "a double level-up sweeps a whole extra bar")
+	assert_almost_eq(two[1][0], 0.0, 0.001)
+	assert_almost_eq(two[1][1], 1.0, 0.001)
+	assert_almost_eq(two[2][1], 0.05, 0.001)
+
+
+func test_xp_bar_sweep_plan_clamps_garbage() -> void:
+	var segments := Unit.xp_bar_fill_segments(-5, 250, 0)
+	assert_almost_eq(segments[0][0], 0.0, 0.001)
+	assert_almost_eq(segments[0][1], 1.0, 0.001)
+
+
+func test_xp_bar_is_built_under_the_health_bar_and_hidden_at_rest() -> void:
+	var unit := _spawn_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER)
+	assert_not_null(unit._xp_bar, "the bar exists from initialize")
+	assert_eq(unit._xp_bar.get_parent(), unit._health_bar, "it rides the health bar")
+	assert_false(unit._xp_bar.visible, "…and shows nothing until XP lands")
+	assert_gt(unit._xp_bar_fill.position.y, 1.0,
+			"parked BENEATH the health bar (which spans y -1..1) — RQD's call")
+	assert_eq(unit._xp_bar_fill.size, Vector2(Unit.XP_BAR_WIDTH, Unit.XP_BAR_HEIGHT),
+			"same footprint as the health bar")
+
+
+func test_xp_bar_remembers_where_the_sequence_started() -> void:
+	var unit := _spawn_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER)
+	unit.character_data.experience = 40
+	assert_eq(unit._xp_before_sequence, -1, "no sequence open yet")
+	unit._grant_combat_xp(12)
+	unit._grant_combat_xp(5)
+	assert_eq(unit._xp_before_sequence, 40,
+			"first grant opens the sequence; later grants don't move the start")
+	unit._flush_xp_feedback()
+	assert_eq(unit._xp_before_sequence, -1, "flush closes the sequence")
+
+
+func test_xp_bar_parks_on_the_landing_fraction_under_reduce_motion() -> void:
+	Settings.ui_motion_enabled = false
+	var unit := _spawn_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER)
+	unit.character_data.experience = 40
+	unit._grant_combat_xp(25)
+	unit._flush_xp_feedback()
+	assert_true(unit._xp_bar.visible, "the bar shows for the hold")
+	assert_almost_eq(unit._xp_bar_fill.scale.x, 0.65, 0.001,
+			"reduce-motion snaps straight to 65/100 — no sweep")
+	await wait_seconds(Unit.XP_BAR_HOLD_SECONDS + 0.15)
+	assert_false(unit._xp_bar.visible, "…then hides")
+
+
+func test_xp_bar_sweeps_and_fades_with_motion_on() -> void:
+	Settings.ui_motion_enabled = true
+	var unit := _spawn_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER)
+	unit.character_data.experience = 10
+	unit._grant_combat_xp(60)
+	unit._flush_xp_feedback()
+	assert_true(unit._xp_bar.visible)
+	assert_almost_eq(unit._xp_bar_fill.scale.x, 0.10, 0.001, "the sweep begins where the unit stood")
+	var total: float = Unit.XP_BAR_FADE_IN_SECONDS + Unit.XP_BAR_FILL_SECONDS_PER_LEVEL \
+			+ Unit.XP_BAR_HOLD_SECONDS + Unit.XP_BAR_FADE_OUT_SECONDS
+	await wait_seconds(total + 0.3)
+	assert_almost_eq(unit._xp_bar_fill.scale.x, 0.70, 0.001, "landed on 70/100")
+	assert_false(unit._xp_bar.visible, "faded out and hidden")
+
+
+func test_a_newer_xp_bar_play_takes_over_the_older_one() -> void:
+	Settings.ui_motion_enabled = true
+	var unit := _spawn_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER)
+	unit._play_xp_bar(0, 50, 0)
+	var first_serial: int = unit._xp_bar_serial
+	unit._play_xp_bar(50, 80, 0)
+	assert_eq(unit._xp_bar_serial, first_serial + 1, "each play bumps the serial")
+	assert_true(unit._xp_bar.visible)
+	await wait_seconds(Unit.XP_BAR_FADE_IN_SECONDS + Unit.XP_BAR_FILL_SECONDS_PER_LEVEL + 0.2)
+	assert_almost_eq(unit._xp_bar_fill.scale.x, 0.80, 0.001,
+			"the second play owns the bar — the first tween was killed")

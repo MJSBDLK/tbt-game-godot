@@ -240,9 +240,9 @@ func _update_passives(data: CharacterData) -> void:
 
 
 func _xp_for_next_level(_level: int) -> int:
-	# Radiant Dawn–style: flat 100 XP per level. Per-action awards scale with
+	# Radiant Dawn–style: flat XP per level. Per-action awards scale with
 	# level/tier difference (see CombatXpCalculator), not the threshold.
-	return 100
+	return CharacterData.XP_PER_LEVEL
 
 
 # =============================================================================

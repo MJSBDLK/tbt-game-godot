@@ -69,7 +69,7 @@ signal closed
 signal continue_pressed
 
 
-const XP_PER_LEVEL: int = 100
+const XP_PER_LEVEL: int = CharacterData.XP_PER_LEVEL  # one threshold, owned by CharacterData
 ## Extra pixels (on top of the row's 2px separation) isolating the ± cluster
 ## from RESET / CONFIRM — grouping by proximity. Budgeted against the sheet
 ## column: the row must still fit SHEET_WIDTH minus margins (pinned by test).
@@ -231,7 +231,7 @@ func _build() -> void:
 	_xp_staged_fill.visible = false
 	track.add_child(_xp_staged_fill)
 	xp_row.add_child(track)
-	_xp_value_label = _live_label("0/100", GameColors.TEXT_INFO, GameColors.TEXT_INFO_GLOW)
+	_xp_value_label = _live_label("0/%d" % XP_PER_LEVEL, GameColors.TEXT_INFO, GameColors.TEXT_INFO_GLOW)
 	xp_row.add_child(_xp_value_label)
 
 	var pool_row := HBoxContainer.new()
@@ -365,7 +365,7 @@ func _refresh() -> void:
 	_xp_staged_fill.visible = uncommitted
 	_xp_staged_fill.anchor_left = committed_ratio
 	_xp_staged_fill.anchor_right = gauge_ratio
-	_xp_value_label.text = "%d/100" % gauge
+	_xp_value_label.text = "%d/%d" % [gauge, XP_PER_LEVEL]
 	_pool_value_label.text = str(_pool_remaining())
 
 	# Preview text joins the staged segment's voice; committed state keeps

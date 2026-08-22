@@ -283,12 +283,12 @@ func _build_xp_row() -> void:
 	track.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	track.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	track.add_child(glow_bar(StatCapBar.COLOR_TRACK, StatCapBar.COLOR_TRACK_GLOW, 1.0))
-	var xp_ratio: float = clampf(_character.experience / 100.0, 0.0, 1.0)
+	var xp_ratio: float = clampf(_character.experience / float(CharacterData.XP_PER_LEVEL), 0.0, 1.0)
 	if xp_ratio > 0.0:
 		track.add_child(glow_bar(GameColors.TEXT_INFO, GameColors.TEXT_INFO_GLOW, xp_ratio))
 	row.add_child(track)
 
-	var price := GlowLabel.styled("%d/100" % _character.experience, UIManager.font_8px, 8,
+	var price := GlowLabel.styled("%d/%d" % [_character.experience, CharacterData.XP_PER_LEVEL], UIManager.font_8px, 8,
 			GameColors.TEXT_INFO, GameColors.TEXT_INFO_GLOW)
 	price.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(price)

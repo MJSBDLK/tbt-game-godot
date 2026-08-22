@@ -91,6 +91,18 @@ static var FACTION_HEALTHBAR_NEUTRAL: Color:
 static var FACTION_HEALTHBAR_ALLY: Color:
 	get: return GameColorPalette.get_color("Yellow", 7)
 
+# The black behind every on-unit bar (health bar, XP bar) — one token so the
+# two bars can't drift apart.
+static var UNIT_BAR_BACKGROUND: Color = Color(0.1, 0.1, 0.1, 1.0)
+
+# On-map XP bar (RQD 2026-08-21): the same yellow as the "+N XP" callout so
+# the two read as one event; FLASH is the brighter beat when the bar wraps a
+# level (the LEVEL UP! callout's ink).
+static var XP_BAR_FILL: Color:
+	get: return GameColorPalette.get_color("Yellow", 7)
+static var XP_BAR_FLASH: Color:
+	get: return GameColorPalette.get_color("Yellow", 8)
+
 
 # =============================================================================
 # UNIT SELECTION STATES
