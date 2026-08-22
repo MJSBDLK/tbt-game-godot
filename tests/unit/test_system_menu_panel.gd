@@ -51,18 +51,43 @@ func test_every_action_is_a_vocabulary_button() -> void:
 	for child: Node in panel._content_container.get_children():
 		if child is InteractiveButton:
 			buttons.append(child)
-	assert_eq(buttons.size(), 7, "End Turn + Options/Save/Load/Main Menu/Quit/Close")
+	assert_eq(buttons.size(), 7, "End Turn + Close/Options/Save/Load/Main Menu/Quit")
 	var end_turn := buttons[0]
 	assert_eq(end_turn.text, "END TURN")
 	assert_false(end_turn.call_to_action,
 			"empty roster guard: no battle, no invitation")
 
 
-func test_focus_cursor_opens_on_end_turn() -> void:
+func test_close_leads_the_list_right_under_end_turn() -> void:
+	# RQD 2026-08-21: Close moved from the bottom to the top — the peek-and-
+	# leave case is the common one, and it's the safe landing for the cursor.
+	var panel := _make_panel()
+	var buttons: Array[InteractiveButton] = []
+	for child: Node in panel._content_container.get_children():
+		if child is InteractiveButton:
+			buttons.append(child)
+	assert_eq(buttons[0].text, "END TURN")
+	assert_eq(buttons[1].text, "Close", "Close is the first item under End Turn")
+	assert_eq(buttons[2].text, "Options", "…and Options follows it")
+	assert_eq(buttons[-1].text, "Quit", "Quit stays last")
+
+
+func test_focus_cursor_opens_on_close_not_end_turn() -> void:
+	# A default on End Turn meant controller A-A ended the turn by accident.
 	var panel := _make_panel()
 	await wait_process_frames(2)
-	var first := panel._content_container.get_child(0) as InteractiveButton
-	assert_true(first.selected, "cursor-driven open: the cursor starts on the first item")
+	var end_turn := panel._content_container.get_child(0) as InteractiveButton
+	assert_false(end_turn.selected, "cursor-driven open does NOT land on End Turn")
+	assert_true(panel._close_button.selected, "cursor-driven open: the cursor starts on Close")
+	assert_eq(get_viewport().gui_get_focus_owner(), panel._close_button)
+
+
+func test_close_button_closes_the_menu() -> void:
+	var panel := _make_panel()
+	watch_signals(panel)
+	panel._close_button.pressed.emit()
+	assert_signal_emitted(panel, "closed")
+	assert_false(panel.visible)
 
 
 func test_pointer_open_is_quiet_until_a_nav_press_summons_the_cursor() -> void:
@@ -73,15 +98,15 @@ func test_pointer_open_is_quiet_until_a_nav_press_summons_the_cursor() -> void:
 	get_viewport().gui_release_focus()
 	var panel := _make_panel()
 	await wait_process_frames(2)
-	var first := panel._content_container.get_child(0) as InteractiveButton
-	assert_false(first.selected, "pointer-driven open shows no phantom cursor")
+	var landing := panel._close_button
+	assert_false(landing.selected, "pointer-driven open shows no phantom cursor")
 	assert_null(get_viewport().gui_get_focus_owner(), "nothing holds focus on quiet open")
 	var nav := InputEventAction.new()
 	nav.action = "ui_down"
 	nav.pressed = true
 	panel._unhandled_input(nav)
 	await wait_process_frames(2)
-	assert_true(first.selected, "the first nav press summons the cursor onto item one")
+	assert_true(landing.selected, "the first nav press summons the cursor onto Close")
 
 
 func test_pointer_click_on_a_stay_open_item_leaves_no_phantom_cursor() -> void:

@@ -1,6 +1,9 @@
 ## Right-side system menu panel (like the action menu but for game-level actions).
 ## Appears when pressing Escape in DEFAULT state or tapping the menu button.
-## Contains: End Turn, Options, Save, Load, Main Menu, Quit, Close.
+## Contains: End Turn, then Close, Options, Save, Load, Main Menu, Quit.
+## Close sits FIRST under End Turn and is the cursor's default landing (RQD
+## 2026-08-21): the most common reason to open this menu is to peek and leave,
+## and a default on End Turn meant controller A-A ended your turn by accident.
 ## Wears the border vocabulary (§14) since the 2026-07-19 adoption — all
 ## buttons are InteractiveButtons, focus is the cursor.
 class_name SystemMenuPanel
@@ -26,6 +29,8 @@ const BUTTON_WIDTH: int = 114
 var _content_container: VBoxContainer = null
 var _border_overlay: PanelBorderOverlay = null
 var _save_button: InteractiveButton = null
+# The cursor's default landing — see the header. Rebuilt on every populate.
+var _close_button: InteractiveButton = null
 # Bumped on every flash so an older restore-timer can't clobber a newer flash.
 var _save_flash_serial: int = 0
 
@@ -82,10 +87,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	# Quiet-open adoption (InputSource, RQD 2026-07-29): a pointer-opened
 	# menu has no cursor — the first navigation press summons it onto the
-	# first item instead of falling on deaf ears.
+	# default item (Close) instead of falling on deaf ears.
 	if InputSource.is_navigation_press(event) \
 			and get_viewport().gui_get_focus_owner() == null:
-		_focus_first_item()
+		_focus_default_item()
 		get_viewport().set_input_as_handled()
 
 
@@ -114,19 +119,21 @@ func _populate_menu() -> void:
 
 	_create_end_turn_button()
 	_create_spacer()
+	# Close leads the list (RQD 2026-08-21) — see the header for why.
+	_close_button = _create_button("Close", func() -> void: hide_menu())
 	_create_button("Options", func() -> void: options_selected.emit())
 	_save_button = _create_button("Save", func() -> void: save_selected.emit())
 	_create_button("Load", func() -> void: load_selected.emit())
 	_create_button("Main Menu", func() -> void: main_menu_selected.emit())
 	_create_button("Quit", func() -> void: quit_selected.emit())
-	_create_button("Close", func() -> void: hide_menu())
 
 	_resize_panel()
 	# Default selection is a CURSOR-model courtesy (controller/keyboard needs
 	# a starting point). Under pointer input it reads as a phantom "you are
 	# here" nobody put there — open quiet; the first nav press adopts focus.
+	# The landing is Close, not End Turn: a safe default for a stray accept.
 	if InputSource.is_cursor_driven():
-		_focus_first_item()
+		_focus_default_item()
 
 
 const END_TURN_BUTTON_HEIGHT: int = 22
@@ -230,16 +237,21 @@ func _on_item_focused(item: InteractiveButton) -> void:
 
 ## Deferred and re-resolved at fire time (same guard as ActionMenuPanel):
 ## the item the grab was queued for can be freed by a repopulate.
-func _focus_first_item() -> void:
-	_grab_first_focus.call_deferred()
+func _focus_default_item() -> void:
+	_grab_default_focus.call_deferred()
 
 
-func _grab_first_focus() -> void:
+## Close is the landing; End Turn (child 0) is the fallback only if Close
+## somehow wasn't built — it always is, so the fallback is a belt-and-braces
+## guard, not a path.
+func _grab_default_focus() -> void:
 	if _content_container == null or _content_container.get_child_count() == 0:
 		return
-	var first := _content_container.get_child(0) as Control
-	if first != null and first.is_inside_tree():
-		first.grab_focus()
+	var target: Control = _close_button
+	if target == null or not is_instance_valid(target) or not target.is_inside_tree():
+		target = _content_container.get_child(0) as Control
+	if target != null and target.is_inside_tree():
+		target.grab_focus()
 
 
 func _clear_items() -> void:
@@ -248,6 +260,8 @@ func _clear_items() -> void:
 	for child: Node in _content_container.get_children():
 		_content_container.remove_child(child)
 		child.queue_free()
+	_close_button = null
+	_save_button = null
 
 
 func _resize_panel() -> void:
