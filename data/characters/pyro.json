@@ -13,7 +13,7 @@
 	"baseStats": {
 		"maxHP": 13,
 		"strength": 2,
-		"special": 9,
+		"special": 7,
 		"skill": 5,
 		"agility": 4,
 		"athleticism": 3,
@@ -23,7 +23,7 @@
 	"growthRates": {
 		"hp": 40,
 		"strength": 15,
-		"special": 70,
+		"special": 55,
 		"skill": 45,
 		"agility": 40,
 		"athleticism": 20,
@@ -39,9 +39,9 @@
 	"basePoolMoves": [
 		"Scorch",
 		"Flame Strike",
-		"Blaze",
 		"Bonk",
 		"Sidearm",
+		"Blaze",
 		"Compressed Air",
 		"Megaton Punch",
 		"Battle Cry",
