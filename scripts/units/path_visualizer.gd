@@ -46,7 +46,11 @@ const _BEACON_RED: Texture2D = preload("res://art/sprites/ui/move_preview/path_b
 # landing state: ghost on the destination, arrow drawn full. The staged ghost
 # (ACT_THEN_WALK, show_staged_ghost) never rides — rehearsal is planning-time;
 # a committed plan just marks where the unit will stand. Tune at playtest.
-const GHOST_SPEED_PX_PER_SECOND: float = 88.0  # ≈ the displacement loop's 0.18 s/tile
+# WORLD px/s — tiles are 16 world px apart, so 133 ≈ 0.12 s/tile (RQD bump
+# from 88). Window resolution, integer scale, and camera zoom rescale the
+# LOOK only (Camera2D.zoom = screen px per world px); delta-timed, so frame
+# rate doesn't touch it either.
+const GHOST_SPEED_PX_PER_SECOND: float = 133.0
 const GHOST_HOLD_AT_DESTINATION_SECONDS: float = 0.7
 
 
@@ -201,12 +205,16 @@ func _build_ghost_ride(unit: Node2D) -> void:
 		_apply_walk_progress(_walk_total_px)
 
 
-## The displacement arrow recipe, verbatim — same width, same shared static
-## material, the neutral-intent Azure (a move plan damages nothing). Drawn
-## after the ghost like the displacement renderer draws its arrows, so the
-## tip rides visibly over the silhouette.
+## The displacement arrow recipe — same width, same shared static material,
+## and the neutral-intent AZURE family (a move plan damages nothing; red =
+## damaging, green = healing). Azure 5, not the displacement arrows' 7: the
+## ghost shader's tint sits right at the 7 neighborhood, and the trail must
+## read as a separate object from the phantom riding it (RQD 2026-08-31).
+## Azure 4 is the next notch down if 5 still hugs it. Drawn after the ghost
+## like the displacement renderer draws its arrows, so the tip rides visibly
+## over the silhouette.
 func _spawn_ride_arrow() -> void:
-	var color: Color = GameColorPalette.get_color("Azure", 7)
+	var color: Color = GameColorPalette.get_color("Azure", 5)
 	var line := Line2D.new()
 	line.width = DisplacementPreviewRenderer.ARROW_WIDTH
 	line.default_color = color
