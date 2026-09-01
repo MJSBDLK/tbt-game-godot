@@ -141,6 +141,8 @@ func test_staging_hands_the_beacons_over_to_a_lone_ghost() -> void:
 	var visualizer := _visualizer(unit)
 	assert_true(visualizer.has_destination_ghost(), "the ghost holds the spot")
 	assert_true(visualizer._beacon_sprites.is_empty(), "the path is spent — beacons clear")
+	assert_false(visualizer._walking, "a committed plan parks — rehearsal is planning-time")
+	assert_null(visualizer._arrow_line, "…and carries no trail")
 	assert_lt(visualizer._ghost.global_position.distance_to(
 			destination.global_position + anchor), 0.5,
 			"parked where the sprite will stand — anchored against the ORIGIN, "
