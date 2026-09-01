@@ -1,11 +1,12 @@
 ## PathVisualizer's destination ghost (RQD 2026-08-21, todo #4; ride upgrade
 ## RQD 2026-08-31): while a player unit has a move plan, a UnitGhost
-## projection RIDES the planned path — origin to destination, the
-## displacement-style arrow drawing behind it, hold, loop — and reduce-motion
-## parks it at the landing state (ghost on the destination, arrow full).
-## Beacons stay the path either way. Pins WHAT spawns, where the ride starts
-## and lands, the pure ride math, and the anchor/z/player-only/cleared-with-
-## the-plan rules — the shader flicker and ride pacing are eyeball territory.
+## projection RIDES the planned path — origin to destination, hold, loop —
+## and reduce-motion parks it at the landing state (ghost on the
+## destination). Beacons stay the path either way; the trailing arrow is
+## DISABLED (RIDE_ARROW_ENABLED), its math kept pinned. Pins WHAT spawns,
+## where the ride starts and lands, the pure ride math, and the anchor/z/
+## player-only/cleared-with-the-plan rules — the shader flicker and ride
+## pacing are eyeball territory.
 ## Also pins that the extracted UnitGhost builder still feeds the displacement
 ## renderer the same silhouette (its own tests cover the arrows/loop).
 extends GutTest
@@ -128,7 +129,7 @@ func test_planning_a_move_starts_the_ghost_riding_from_the_origin() -> void:
 			"the ride opens at the origin — where the sprite stands")
 
 
-func test_the_ride_lands_on_the_last_waypoint_with_the_arrow_drawn_full() -> void:
+func test_the_ride_lands_on_the_last_waypoint() -> void:
 	_open_row(3)
 	var unit := _spawn_scene_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 0, 0)
 	unit.add_waypoint(GridManager.get_tile(2, 0))
@@ -139,13 +140,20 @@ func test_the_ride_lands_on_the_last_waypoint_with_the_arrow_drawn_full() -> voi
 			+ (sprite.global_position - GridManager.get_tile(0, 0).global_position)
 	assert_lt(visualizer._ghost.global_position.distance_to(expected), 0.5,
 			"lands on the destination, sprite anchor preserved")
-	assert_not_null(visualizer._arrow_line, "the ride draws a trail")
-	assert_eq(visualizer._arrow_line.width, DisplacementPreviewRenderer.ARROW_WIDTH,
-			"the displacement arrow recipe, verbatim")
-	var tip: Vector2 = visualizer._arrow_line.points[visualizer._arrow_line.points.size() - 1]
-	assert_lt(tip.distance_to(GridManager.get_tile(2, 0).global_position), 0.5,
-			"…drawn all the way to the destination's floor")
-	assert_true(visualizer._arrow_head.visible, "head shows once there is trail behind it")
+
+
+func test_the_trailing_arrow_stays_disabled() -> void:
+	# RQD 2026-08-31: the beacons already carry the path — the trail
+	# double-marked it. Disabled (RIDE_ARROW_ENABLED), not deleted: the pure
+	# ride math below stays pinned so a flip re-auditions cleanly.
+	assert_false(PathVisualizer.RIDE_ARROW_ENABLED)
+	_open_row(3)
+	var unit := _spawn_scene_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 0, 0)
+	unit.add_waypoint(GridManager.get_tile(2, 0))
+	var visualizer := _visualizer(unit)
+	assert_true(visualizer._walking, "the ghost still rides")
+	assert_null(visualizer._arrow_line, "…but draws no trail")
+	assert_null(visualizer._arrow_head)
 
 
 func test_reduce_motion_parks_at_the_landing_state() -> void:
@@ -160,10 +168,6 @@ func test_reduce_motion_parks_at_the_landing_state() -> void:
 			+ (sprite.global_position - GridManager.get_tile(0, 0).global_position)
 	assert_lt(visualizer._ghost.global_position.distance_to(expected), 0.5,
 			"parked on the destination — the pre-ride contract survives as the landing state")
-	assert_not_null(visualizer._arrow_line)
-	var tip: Vector2 = visualizer._arrow_line.points[visualizer._arrow_line.points.size() - 1]
-	assert_lt(tip.distance_to(GridManager.get_tile(2, 0).global_position), 0.5,
-			"arrow drawn full — parked at the landing fraction, per the reduce-motion doctrine")
 
 
 func test_the_ghost_sits_above_the_whole_board() -> void:

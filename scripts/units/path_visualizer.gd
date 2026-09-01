@@ -10,12 +10,12 @@
 ## while a PLAYER unit has a plan, a projection silhouette of the unit
 ## (UnitGhost — the same material as the displacement preview's "where the
 ## shove puts them" ghosts) RIDES the planned path — origin to destination,
-## the displacement-style arrow drawing behind it, a hold at the landing,
-## then loop; every plan edit restarts the ride. The beacons stay the path;
-## the ghost rehearses the walk. Player-only: the AI's walk is already
-## animated and its beacons already show the route. Reduce-motion parks the
-## ride at its landing state (ghost on the destination, arrow drawn full) and
-## the shader freezes its static/tracking flicker. The STAGED ghost
+## a hold at the landing, then loop; every plan edit restarts the ride. The
+## beacons stay the path; the ghost rehearses the walk. (A displacement-style
+## trailing arrow is built but disabled — see RIDE_ARROW_ENABLED.)
+## Player-only: the AI's walk is already animated and its beacons already
+## show the route. Reduce-motion parks the ride at its landing state (ghost
+## on the destination) and the shader freezes its static/tracking flicker. The STAGED ghost
 ## (show_staged_ghost, ACT_THEN_WALK) never rides — a committed plan just
 ## marks where the unit will stand. Above the whole board (an informational
 ## overlay — same z rule as DisplacementPreviewRenderer.OVERLAY_Z_INDEX).
@@ -40,18 +40,22 @@ const _BEACON_BLUE: Texture2D = preload("res://art/sprites/ui/move_preview/path_
 const _BEACON_RED: Texture2D = preload("res://art/sprites/ui/move_preview/path_beacon/red.png")
 
 # Ghost ride (RQD 2026-08-31): under motion the destination ghost doesn't just
-# park — it RIDES the plan, walking the path from the origin with the
-# displacement-style arrow drawing behind it, holding at the destination, then
-# looping. Every plan edit restarts the ride. Reduce-motion parks at the
-# landing state: ghost on the destination, arrow drawn full. The staged ghost
+# park — it RIDES the plan, walking the path from the origin, holding at the
+# destination, then looping. Every plan edit restarts the ride. Reduce-motion
+# parks at the landing state: ghost on the destination. The staged ghost
 # (ACT_THEN_WALK, show_staged_ghost) never rides — rehearsal is planning-time;
 # a committed plan just marks where the unit will stand. Tune at playtest.
-# WORLD px/s — tiles are 16 world px apart, so 133 ≈ 0.12 s/tile (RQD bump
-# from 88). Window resolution, integer scale, and camera zoom rescale the
+# WORLD px/s — tiles are 16 world px apart, so 135 ≈ 0.12 s/tile (RQD tune,
+# was 88). Window resolution, integer scale, and camera zoom rescale the
 # LOOK only (Camera2D.zoom = screen px per world px); delta-timed, so frame
 # rate doesn't touch it either.
-const GHOST_SPEED_PX_PER_SECOND: float = 133.0
+const GHOST_SPEED_PX_PER_SECOND: float = 135.0
 const GHOST_HOLD_AT_DESTINATION_SECONDS: float = 0.7
+# The trailing displacement-style arrow is DISABLED, not deleted (RQD
+# 2026-08-31): the beacons already carry the path, so the trail double-marked
+# it. The machinery (spawn/pose/math) stays live and pinned — flip this to
+# re-audition the arrow.
+const RIDE_ARROW_ENABLED: bool = false
 
 
 var _path_tiles: Array[Tile] = []
@@ -196,7 +200,8 @@ func _build_ghost_ride(unit: Node2D) -> void:
 	_walk_elapsed_seconds = 0.0
 	if _walk_total_px <= 0.0:
 		return
-	_spawn_ride_arrow()
+	if RIDE_ARROW_ENABLED:
+		_spawn_ride_arrow()
 	if Settings == null or Settings.ui_motion_enabled:
 		_walking = true
 		_apply_walk_progress(0.0)
