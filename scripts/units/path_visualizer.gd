@@ -92,6 +92,21 @@ func has_destination_ghost() -> bool:
 	return _ghost != null and is_instance_valid(_ghost)
 
 
+## ACT_THEN_WALK (todo 4A): the plan is confirmed but the walk is deferred.
+## Beacons clear — the path is spent — while the ghost alone holds the
+## destination until the action commits (play_deferred_walk clears it) or the
+## plan cancels. Call BEFORE the unit's logic claims the destination:
+## UnitGhost.anchor_offset measures the sprite against current_tile, so both
+## must still agree on the origin.
+func show_staged_ghost(unit: Node2D, tile: Tile) -> void:
+	_path_tiles.clear()
+	_rebuild_beacon_nodes()
+	_clear_ghost()
+	if tile == null or unit.get("faction") != Enums.UnitFaction.PLAYER:
+		return
+	_park_ghost(unit, tile)
+
+
 ## Park a projection of the unit on the plan's last tile. Sprite-space anchor
 ## (UnitGhost.anchor_offset) so a mid-body-anchored cast lands where the real
 ## sprite would. Absolute z above the board: a "where will I stand" you can't
@@ -100,13 +115,17 @@ func _rebuild_destination_ghost(unit: Node2D) -> void:
 	_clear_ghost()
 	if _path_tiles.is_empty() or _faction != Enums.UnitFaction.PLAYER:
 		return
+	_park_ghost(unit, _path_tiles.back())
+
+
+func _park_ghost(unit: Node2D, tile: Tile) -> void:
 	var ghost := UnitGhost.build(unit, _ghost_material)
 	if ghost == null:
 		return
 	ghost.z_as_relative = false
 	ghost.z_index = DisplacementPreviewRenderer.OVERLAY_Z_INDEX
 	add_child(ghost)
-	ghost.global_position = _path_tiles.back().global_position + UnitGhost.anchor_offset(unit)
+	ghost.global_position = tile.global_position + UnitGhost.anchor_offset(unit)
 	_ghost = ghost
 
 

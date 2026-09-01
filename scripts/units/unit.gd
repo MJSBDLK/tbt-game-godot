@@ -153,6 +153,14 @@ var _start_tile_before_move: Tile = null
 # held until the action is finalized. Foot tracks lay on set_acted() (commit),
 # NOT on the tentative walk — so a cancelled move (Escape) leaves none.
 var _pending_track_tiles: Array[Tile] = []
+
+# ACT_THEN_WALK (Settings.move_commit_mode, todo 4A): the walk captured at
+# plan-confirm, replayed by play_deferred_walk() when the action commits.
+# Non-empty exactly while a walk is staged. While staged, LOGIC (current_tile,
+# occupancy, ranges) is already at the destination but global_position — the
+# sprite and everything riding it — is still at the origin, standing behind
+# the PathVisualizer's staged ghost.
+var _deferred_walk_path: Array[Tile] = []
 var _selection_tween: Tween = null
 
 # Topmost opaque pixel of the sprite art in texture coords (canvas top-left = 0).
@@ -419,8 +427,6 @@ func execute_planned_movement() -> void:
 		return
 
 	_start_tile_before_move = current_tile
-	is_moving = true
-	movement_started.emit(self)
 
 	var full_path := _build_full_path()
 
@@ -433,6 +439,16 @@ func execute_planned_movement() -> void:
 	if _start_tile_before_move != null:
 		traversed_tiles.append(_start_tile_before_move)
 	traversed_tiles.append_array(full_path)
+
+	# ACT_THEN_WALK stages instead of walking. Player-only: the AI's walk is
+	# its telegraph, so it always animates immediately regardless of the mode.
+	if faction == Enums.UnitFaction.PLAYER and Settings != null \
+			and Settings.move_commit_mode == Settings.MoveCommitMode.ACT_THEN_WALK:
+		_stage_deferred_movement(full_path, traversed_tiles)
+		return
+
+	is_moving = true
+	movement_started.emit(self)
 
 	if _path_visualizer != null and _path_visualizer.has_method("clear_arrows"):
 		_path_visualizer.call("clear_arrows")
@@ -448,7 +464,65 @@ func execute_planned_movement() -> void:
 	movement_completed.emit(self)
 
 
+## ACT_THEN_WALK: commit the LOGIC of the plan instantly — occupancy, ranges,
+## previews and every movement_completed listener (auras, threat) read the
+## destination — while the sprite stays at the origin behind the staged ghost.
+## Ghost parks BEFORE the claim: UnitGhost.anchor_offset measures the sprite
+## against current_tile, so both must still agree on the origin here. z is
+## deliberately NOT restamped — the visual row hasn't changed; the deferred
+## walk restamps it row by row as the sprite actually passes.
+func _stage_deferred_movement(full_path: Array[Tile], traversed_tiles: Array[Tile]) -> void:
+	var destination: Tile = full_path.back() if not full_path.is_empty() else current_tile
+	if _path_visualizer != null and _path_visualizer.has_method("show_staged_ghost"):
+		_path_visualizer.call("show_staged_ghost", self, destination)
+	elif _path_visualizer != null and _path_visualizer.has_method("clear_arrows"):
+		_path_visualizer.call("clear_arrows")
+	_claim_tile_keep_position(destination)
+	_deferred_walk_path = full_path
+	planned_waypoints.clear()
+	_pending_track_tiles = traversed_tiles
+	movement_completed.emit(self)
+
+
+## True while an ACT_THEN_WALK plan is staged and its walk hasn't played.
+func has_deferred_walk() -> bool:
+	return not _deferred_walk_path.is_empty()
+
+
+## ACT_THEN_WALK: the staged walk, played when the action commits. Logic is
+## already at the destination — this animates ONLY the sprite along the
+## captured path, restamping z per row as it passes so layering follows the
+## visible walk. No-op when nothing is staged, so every commit path can await
+## it unconditionally.
+func play_deferred_walk() -> void:
+	if _deferred_walk_path.is_empty():
+		return
+	var path: Array[Tile] = _deferred_walk_path
+	_deferred_walk_path = []
+	# Frees the staged ghost the moment the real sprite starts covering the
+	# same ground.
+	if _path_visualizer != null and _path_visualizer.has_method("clear_arrows"):
+		_path_visualizer.call("clear_arrows")
+	is_moving = true
+	movement_started.emit(self)
+	for tile: Tile in path:
+		var target_position := tile.global_position
+		var distance := global_position.distance_to(target_position)
+		var duration := distance / MOVE_SPEED
+		if duration < 0.01:
+			duration = 0.01
+		var tween := create_tween()
+		tween.tween_property(self, "global_position", target_position, duration)
+		await tween.finished
+		_update_z_index_for_row(tile.grid_y)
+	is_moving = false
+
+
 func cancel_movement() -> void:
+	# A staged ACT_THEN_WALK walk dies with the plan. The sprite never moved,
+	# so the move_to_tile below re-seats logic at the origin with no visible
+	# jump — the honesty win of the mode.
+	_deferred_walk_path = []
 	if _start_tile_before_move != null:
 		move_to_tile(_start_tile_before_move)
 		_start_tile_before_move = null
@@ -467,6 +541,20 @@ func cancel_movement() -> void:
 # =============================================================================
 
 func move_to_tile(new_tile: Tile) -> void:
+	_claim_tile_keep_position(new_tile)
+	if current_tile != null:
+		global_position = current_tile.global_position
+	_update_z_index()
+
+
+## The occupancy half of move_to_tile: transfer tile registration without
+## touching the sprite. ACT_THEN_WALK stages through this so global_position
+## (and z — the visual row hasn't changed) stay at the origin; everything else
+## wants move_to_tile. Tile.set_unit snaps the unit onto the tile as a side
+## effect, so the position is restored around the claim — that's the "keep"
+## in the name.
+func _claim_tile_keep_position(new_tile: Tile) -> void:
+	var sprite_position: Vector2 = global_position
 	if current_tile != null and current_tile.current_unit == self:
 		current_tile.clear_unit()
 	current_tile = new_tile
@@ -476,8 +564,7 @@ func move_to_tile(new_tile: Tile) -> void:
 		elif current_tile.current_unit != self:
 			push_warning("Unit '%s' told to move_to_tile [%d,%d] already occupied by '%s'" % [
 				unit_name, current_tile.grid_x, current_tile.grid_y, current_tile.current_unit.unit_name])
-		global_position = current_tile.global_position
-	_update_z_index()
+	global_position = sprite_position
 
 
 # =============================================================================
@@ -576,6 +663,11 @@ func refresh_unit() -> void:
 
 
 func set_acted() -> void:
+	# ACT_THEN_WALK: every commit path awaits play_deferred_walk() first —
+	# committing with a staged walk would lay foot tracks under a sprite that
+	# never walks them.
+	assert(_deferred_walk_path.is_empty(),
+			"set_acted with a staged walk pending — play_deferred_walk() must run first")
 	can_act = false
 	_start_tile_before_move = null
 	# Move is now committed — lay the foot tracks captured during the walk.
@@ -889,6 +981,10 @@ func resolve_friendly_fire_victim(original_defender: Unit, move: Move) -> Unit:
 func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 	if defender == null or attacker_move == null:
 		return
+	# ACT_THEN_WALK: the sprite must have walked before it swings — commit
+	# paths await play_deferred_walk() first.
+	assert(_deferred_walk_path.is_empty(),
+			"combat with a staged walk pending — play_deferred_walk() must run first")
 
 	# Friendly casts: ally-targeting moves AND self-casts (Fortify, Roar) both
 	# resolve as a single application — no counter, no multi-hit, no corruption
@@ -2294,12 +2390,17 @@ func _apply_acted_modulate() -> void:
 func _update_z_index() -> void:
 	if current_tile == null:
 		return
-	# Calculate z-index from grid coordinates directly (not pixel position)
-	# to avoid the pixel-space mismatch in GridZIndexHandler.
+	_update_z_index_for_row(current_tile.grid_y)
+
+
+## Calculate z-index from grid coordinates directly (not pixel position) to
+## avoid the pixel-space mismatch in GridZIndexHandler. Split from
+## _update_z_index so the ACT_THEN_WALK deferred walk can restamp z per row
+## the SPRITE is passing — current_tile already sits at the destination then.
+func _update_z_index_for_row(grid_y: int) -> void:
 	var grid_manager: Node = get_node_or_null("/root/GridManager")
 	if grid_manager == null:
 		return
 	var offset_y: int = grid_manager.grid_offset_y
-	var height: int = grid_manager.grid_height
-	var row_index: int = current_tile.grid_y - offset_y  # Front row (lowest grid_y) → index 0 (highest z)
+	var row_index: int = grid_y - offset_y  # Front row (lowest grid_y) → index 0 (highest z)
 	z_index = ZIndexCalculator.calculate_sorting_order(row_index, 100, ZIndexCalculator.ZIndexLayer.UNITS)

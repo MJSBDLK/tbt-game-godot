@@ -118,9 +118,14 @@ static func _ensure_table() -> void:
 		# left to do), not pressable (a lit border would promise a press).
 		# Under Settings.move_confirm_mode BUTTON the cluster is a "Move here"
 		# button instead — the playtest alternative.
+		# Under Settings.move_commit_mode ACT_THEN_WALK the press doesn't walk
+		# — it stages the plan (ghost holds the spot, the unit moves when the
+		# action commits), so the copy must not promise movement (the *_act
+		# keys; step_text_for/confirm_label_for pick them when the flag says).
 		Enums.InputState.MOVEMENT_PLANNING: {
 			step = "Select the marker again to move", step_touch = "Tap the marker again to move",
-			step_notice = true, confirm_label = "Move here",
+			step_act = "Select the marker again to confirm", step_touch_act = "Tap the marker again to confirm",
+			step_notice = true, confirm_label = "Move here", confirm_label_act = "Confirm path",
 			items = [
 				{action = &"ui_accept", verb = "Add stop", mouse_button = MOUSE_BUTTON_LEFT},
 				{action = &"ui_cancel", verb = "Cancel", mouse_button = MOUSE_BUTTON_RIGHT, touch_label = "Cancel"},
@@ -170,15 +175,25 @@ static func items_for(state: Enums.InputState, enemy_phase: bool = false) -> Arr
 
 
 ## The instruction line ("Select a unit"). Empty when the bar has no step for
-## this state; ENEMY_PHASE_STEP while the enemy owns the turn.
-static func step_text_for(state: Enums.InputState, model: Model, enemy_phase: bool = false) -> String:
+## this state; ENEMY_PHASE_STEP while the enemy owns the turn. act_then_walk
+## (Settings.move_commit_mode, sampled by HintBar) swaps in the *_act copy
+## where an entry carries it — the press stages instead of walking, and the
+## step must not promise movement.
+static func step_text_for(state: Enums.InputState, model: Model, enemy_phase: bool = false,
+		act_then_walk: bool = false) -> String:
 	_ensure_table()
 	if enemy_phase:
 		return ENEMY_PHASE_STEP
 	if not _table.has(state):
 		return ""
 	var entry: Dictionary = _table[state]
-	return entry.step_touch if model == Model.TOUCH else entry.step
+	if model == Model.TOUCH:
+		if act_then_walk and entry.has("step_touch_act"):
+			return entry.step_touch_act
+		return entry.step_touch
+	if act_then_walk and entry.has("step_act"):
+		return entry.step_act
+	return entry.step
 
 
 ## True when the step line wears the NOTICE border (see step_notice). Never
@@ -191,12 +206,17 @@ static func step_is_notice(state: Enums.InputState, enemy_phase: bool = false) -
 
 
 ## The label of the pressable alternative to the step line (see
-## confirm_label), or "" when the state has none.
-static func confirm_label_for(state: Enums.InputState, enemy_phase: bool = false) -> String:
+## confirm_label), or "" when the state has none. act_then_walk: see
+## step_text_for.
+static func confirm_label_for(state: Enums.InputState, enemy_phase: bool = false,
+		act_then_walk: bool = false) -> String:
 	_ensure_table()
 	if enemy_phase or not _table.has(state):
 		return ""
-	return String(_table[state].get("confirm_label", ""))
+	var entry: Dictionary = _table[state]
+	if act_then_walk and entry.has("confirm_label_act"):
+		return String(entry.confirm_label_act)
+	return String(entry.get("confirm_label", ""))
 
 
 ## The renderable list for a state under a model: each entry is

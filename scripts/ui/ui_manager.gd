@@ -772,11 +772,17 @@ func _place_system_menu() -> void:
 
 ## Returns true if the unit's world position will appear in the right half of the
 ## screen after the camera finishes panning (uses target_position, not current).
+## Anchored on current_tile when the unit has one: under ACT_THEN_WALK
+## (Settings.move_commit_mode) the sprite lags at the origin while the plan —
+## ghost, ranges, the camera's frame — lives on the tile, and the panel must
+## dodge THAT. The two agree everywhere else.
 func _unit_is_in_right_half(unit: Node) -> bool:
 	var node2d := unit as Node2D
 	if node2d == null:
 		return false
-	return _world_pos_is_in_right_half(node2d.global_position)
+	var tile := unit.get("current_tile") as Node2D
+	var anchor: Vector2 = tile.global_position if tile != null else node2d.global_position
+	return _world_pos_is_in_right_half(anchor)
 
 
 ## Shared half-of-screen test used by both unit-info and terrain-info side-flipping.

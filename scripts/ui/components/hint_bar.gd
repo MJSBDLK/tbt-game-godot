@@ -273,8 +273,13 @@ func refresh() -> void:
 	if state_manager != null:
 		state = state_manager.current_state
 
-	var step_text := HintBarCommands.step_text_for(state, model, enemy_phase)
-	var confirm_label := HintBarCommands.confirm_label_for(state, enemy_phase)
+	# ACT_THEN_WALK swaps the planning copy — the marker press stages the plan
+	# instead of walking (todo 4A). Sampled here, at the same boundary as the
+	# model, never live.
+	var act_then_walk: bool = Settings != null \
+			and Settings.move_commit_mode == Settings.MoveCommitMode.ACT_THEN_WALK
+	var step_text := HintBarCommands.step_text_for(state, model, enemy_phase, act_then_walk)
+	var confirm_label := HintBarCommands.confirm_label_for(state, enemy_phase, act_then_walk)
 	var use_button: bool = not confirm_label.is_empty() and _confirm_mode_is_button(model)
 	if use_button:
 		last_step_form = StepForm.BUTTON

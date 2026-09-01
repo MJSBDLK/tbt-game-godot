@@ -30,6 +30,7 @@ var _auto_end_off_button: Button = null
 var _control_hints_on_button: Button = null
 var _control_hints_off_button: Button = null
 var _move_confirm_buttons: Dictionary = {}  # Settings.MoveConfirmMode → Button
+var _move_commit_buttons: Dictionary = {}  # Settings.MoveCommitMode → Button
 var _seeded_reload_on_button: Button = null
 var _seeded_reload_off_button: Button = null
 var _type_icons_on_button: Button = null
@@ -141,6 +142,9 @@ func _populate_options() -> void:
 
 	# Move Confirm (marker again vs a "Move here" button — playtest toggle)
 	_create_move_confirm_option()
+
+	# Move Commit (walk on plan-confirm vs ghost-until-action — playtest toggle)
+	_create_move_commit_option()
 
 	# Seeded Reload (loading a save keeps or re-rolls the dice)
 	_create_seeded_reload_option()
@@ -581,6 +585,46 @@ func _on_move_confirm_selected(mode: int) -> void:
 	Settings.set_move_confirm_mode(mode)
 	for key: int in _move_confirm_buttons:
 		_apply_toggle_state(_move_confirm_buttons[key], key == mode)
+
+
+# Move Commit — the todo-4A playtest toggle (RQD 2026-08-31). Walk = the unit
+# walks as soon as the plan is confirmed (shipped behavior). Ghost = the
+# staged ghost holds the spot and the unit walks when the action commits —
+# nothing on the board changes visually until then, so cancel never teleports.
+func _create_move_commit_option() -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+
+	var label := Label.new()
+	label.text = "Move Commit"
+	label.tooltip_text = "When a confirmed move actually happens. Walk: the unit walks right away, before choosing an action. Ghost: a ghost holds the spot and the unit walks when the action is confirmed."
+	label.custom_minimum_size = Vector2(OPTION_LABEL_WIDTH, 0)
+	label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
+	var glow: ShaderMaterial = GLOW_MATERIAL.duplicate()
+	glow.set_shader_parameter("glow_color", GameColors.TEXT_PRIMARY_GLOW)
+	label.material = glow
+	row.add_child(label)
+
+	var button_container := HBoxContainer.new()
+	button_container.add_theme_constant_override("separation", 2)
+	_move_commit_buttons.clear()
+	var current: int = Settings.move_commit_mode
+	for entry: Array in [[Settings.MoveCommitMode.WALK_THEN_ACT, "Walk"],
+			[Settings.MoveCommitMode.ACT_THEN_WALK, "Ghost"]]:
+		var mode: int = entry[0]
+		var button := _create_toggle_button(entry[1], current == mode)
+		button.pressed.connect(_on_move_commit_selected.bind(mode))
+		_move_commit_buttons[mode] = button
+		button_container.add_child(button)
+
+	row.add_child(button_container)
+	_content_container.add_child(row)
+
+
+func _on_move_commit_selected(mode: int) -> void:
+	Settings.set_move_commit_mode(mode)
+	for key: int in _move_commit_buttons:
+		_apply_toggle_state(_move_commit_buttons[key], key == mode)
 
 
 # Seeded Reload: On = loading a save restores the dice exactly (repeating the
