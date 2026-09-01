@@ -207,6 +207,25 @@ func test_play_deferred_walk_is_a_no_op_when_nothing_is_staged() -> void:
 			"safe to await unconditionally on every commit path")
 
 
+func test_flipping_the_mode_mid_stage_cannot_strand_the_walk() -> void:
+	# The playtest-host case (RQD 2026-08-31, weekend A/B): Ghost mode stages
+	# a walk, then the Options row flips back to Walk before the action
+	# commits. The stage must still resolve — commit paths await
+	# play_deferred_walk unconditionally, and it replays the CAPTURED path,
+	# never the live setting.
+	Settings.move_commit_mode = Settings.MoveCommitMode.ACT_THEN_WALK
+	_open_grid(2)
+	var unit := _spawn_scene_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 0, 0)
+	var destination := GridManager.get_tile(2, 0)
+	unit.add_waypoint(destination)
+	await unit.execute_planned_movement()
+	Settings.move_commit_mode = Settings.MoveCommitMode.WALK_THEN_ACT
+	await unit.play_deferred_walk()
+	assert_lt(unit.global_position.distance_to(destination.global_position), 0.5,
+			"the staged walk still delivers under the flipped setting")
+	assert_false(unit.has_deferred_walk())
+
+
 func test_cancel_returns_logic_without_ever_having_moved_the_sprite() -> void:
 	Settings.move_commit_mode = Settings.MoveCommitMode.ACT_THEN_WALK
 	_open_grid(2)
