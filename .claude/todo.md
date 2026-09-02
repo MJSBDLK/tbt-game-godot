@@ -409,7 +409,11 @@ Nothing here is code-blocked; all have placeholders shipping today.
   day: ☰/⧉ "always made me look at the controller"): every pad's Menu/Options
   → START word-pill, View/Share → SELECT; Switch keeps +/−; ☰/⧉ sprites kept
   unmapped. Map keys on `joy_button_label`'s output so the skin logic isn't
-  duplicated.
+  duplicated. BREATHING ROOM (RQD same day): letters/digits keep all four
+  orthogonals ≥1px clear of the silhouette (diagonals fine) — text and
+  silhouette compose on separate layers and the generator ASSERTS the rule
+  (circle got flatter shoulders, bumper grew to 15×10, rounded square to
+  13 wide, to pass).
   Lawrence's ask is now a VETO/REDRAW pass — replace a PNG, keep the name,
   nothing else moves. Contact sheet: rerun the generator, it drops
   `.claude/controller_glyphs_contact.png` at 8×. Tests:

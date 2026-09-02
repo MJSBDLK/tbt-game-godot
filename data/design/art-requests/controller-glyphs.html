@@ -344,6 +344,9 @@
       <strong>own button silhouette</strong>: letter in a circle, label on a bumper swept
       round on its outer corner. The engine draws no plate and tints the whole
       sprite to the text ink.</p>
+      <p><strong>Breathing room:</strong> every letter/digit pixel keeps its four
+      orthogonal neighbors free of silhouette pixels (diagonal contact is fine).
+      The generator asserts this — a redraw that pinches a label fails the build.</p>
       <p>Canonical PlayStation shape colors are a possible later variant — your call.</p>
     </div>
     <div class="card">

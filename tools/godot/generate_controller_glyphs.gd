@@ -57,26 +57,31 @@ const MINI_4X5: Dictionary = {
 
 # ---- button silhouettes ------------------------------------------------------
 
+## Flatter-shouldered than a true circle: the shoulder pixels of the round
+## version sat orthogonally above the letters' top row, breaking the 1px
+## text-clearance rule (RQD 2026-09-02) — this curve keeps rows 1/10 clear of
+## the letter columns.
 const CIRCLE_12: Array[String] = [
-	"....####....",
-	"..##....##..",
-	".#........#.",
+	"...######...",
+	".##......##.",
 	"#..........#",
 	"#..........#",
 	"#..........#",
 	"#..........#",
 	"#..........#",
 	"#..........#",
-	".#........#.",
-	"..##....##..",
-	"....####....",
+	"#..........#",
+	"#..........#",
+	".##......##.",
+	"...######...",
 ]
 
-## Left bumper/trigger pill (15x8, stamped at y=2): swept round on the outer
+## Left bumper/trigger pill (15x10, stamped at y=1): swept round on the outer
 ## (top-left) corner, tight radius everywhere else. Right side is the mirror.
-## 15 wide, not 12 — at 12 the sweep collided with the label's first char.
+## 15 wide and 10 tall — narrower/shorter versions put the sweep or an edge
+## orthogonally against the label (the 1px text-clearance rule).
 const BUMPER_WIDTH: int = 15
-const BUMPER_LEFT_15X8: Array[String] = [
+const BUMPER_LEFT_15X10: Array[String] = [
 	"....###########",
 	"..##..........#",
 	".#............#",
@@ -84,23 +89,27 @@ const BUMPER_LEFT_15X8: Array[String] = [
 	"#.............#",
 	"#.............#",
 	"#.............#",
+	"#.............#",
+	"#.............#",
 	".#############.",
 ]
 
-## Sticks + back grips (no distinctive silhouette worth 12px): rounded square.
-const ROUNDED_SQUARE_12: Array[String] = [
-	".##########.",
-	"#..........#",
-	"#..........#",
-	"#..........#",
-	"#..........#",
-	"#..........#",
-	"#..........#",
-	"#..........#",
-	"#..........#",
-	"#..........#",
-	"#..........#",
-	".##########.",
+## Sticks + back grips (no distinctive silhouette worth the pixels): rounded
+## square, 13 wide so the label's right column keeps its 1px clearance.
+const ROUNDED_SQUARE_WIDTH: int = 13
+const ROUNDED_SQUARE_13: Array[String] = [
+	".###########.",
+	"#...........#",
+	"#...........#",
+	"#...........#",
+	"#...........#",
+	"#...........#",
+	"#...........#",
+	"#...........#",
+	"#...........#",
+	"#...........#",
+	"#...........#",
+	".###########.",
 ]
 
 # ---- inner marks (6x6 centers exactly in the 12 circle) ----------------------
@@ -158,30 +167,32 @@ func _run() -> void:
 ## Every sprite as an Array[String] of CANVAS_SIZE rows ('#' = white pixel).
 func _build_all_sprites() -> Dictionary:
 	var sprites: Dictionary = {}
-	var bumper_right: Array[String] = _flip_horizontal(BUMPER_LEFT_15X8)
+	var bumper_right: Array[String] = _flip_horizontal(BUMPER_LEFT_15X10)
 	# Face buttons: 5x7 capital in the circle.
 	for letter: String in ["A", "B", "X", "Y"]:
-		sprites["letter_" + letter.to_lower()] = _compose([
-			[CIRCLE_12, 0, 0], [LETTERS_5X7[letter], 3, 2]])
+		sprites["letter_" + letter.to_lower()] = _compose_button(
+				[[CIRCLE_12, 0, 0]], [[LETTERS_5X7[letter], 3, 2]])
 	# Switch shoulders: single mini letter on the correctly-swept bumper.
-	sprites["letter_l"] = _compose(
-			[[BUMPER_LEFT_15X8, 0, 2], [MINI_4X5["L"], 6, 4]], BUMPER_WIDTH)
-	sprites["letter_r"] = _compose(
-			[[bumper_right, 0, 2], [MINI_4X5["R"], 5, 4]], BUMPER_WIDTH)
+	sprites["letter_l"] = _compose_button(
+			[[BUMPER_LEFT_15X10, 0, 1]], [[MINI_4X5["L"], 6, 4]], BUMPER_WIDTH)
+	sprites["letter_r"] = _compose_button(
+			[[bumper_right, 0, 1]], [[MINI_4X5["R"], 5, 4]], BUMPER_WIDTH)
 	# Shoulder/trigger pairs ride the bumper swept toward their side.
 	for label: String in ["LB", "L1", "LT", "L2", "ZL"]:
-		sprites["label_" + label.to_lower()] = _compose(
-				[[BUMPER_LEFT_15X8, 0, 2]] + _mini_pair_blocks(label, 4, 4), BUMPER_WIDTH)
+		sprites["label_" + label.to_lower()] = _compose_button(
+				[[BUMPER_LEFT_15X10, 0, 1]], _mini_pair_blocks(label, 3, 4), BUMPER_WIDTH)
 	for label: String in ["RB", "R1", "RT", "R2", "ZR"]:
-		sprites["label_" + label.to_lower()] = _compose(
-				[[bumper_right, 0, 2]] + _mini_pair_blocks(label, 2, 4), BUMPER_WIDTH)
+		sprites["label_" + label.to_lower()] = _compose_button(
+				[[bumper_right, 0, 1]], _mini_pair_blocks(label, 3, 4), BUMPER_WIDTH)
 	# Stick clicks + back grips + Elite paddles: rounded square.
 	for label: String in ["L3", "R3"]:
-		sprites["stick_" + label.to_lower()] = _compose(
-				[[ROUNDED_SQUARE_12, 0, 0]] + _mini_pair_blocks(label, 2, 4))
+		sprites["stick_" + label.to_lower()] = _compose_button(
+				[[ROUNDED_SQUARE_13, 0, 0]], _mini_pair_blocks(label, 2, 4),
+				ROUNDED_SQUARE_WIDTH)
 	for label: String in ["L4", "L5", "R4", "R5", "P1", "P2", "P3", "P4"]:
-		sprites["label_" + label.to_lower()] = _compose(
-				[[ROUNDED_SQUARE_12, 0, 0]] + _mini_pair_blocks(label, 2, 4))
+		sprites["label_" + label.to_lower()] = _compose_button(
+				[[ROUNDED_SQUARE_13, 0, 0]], _mini_pair_blocks(label, 2, 4),
+				ROUNDED_SQUARE_WIDTH)
 	# PS faces, Switch +/-, Xbox View: mark inside the circle button.
 	for inner_name: String in ["cross", "circle", "square", "triangle"]:
 		sprites["shape_" + inner_name] = _compose([
@@ -222,11 +233,43 @@ func _pill_label(word: String) -> Array[String]:
 	for y: int in 7:
 		pill.append("#" + ".".repeat(width - 2) + "#")
 	pill.append("." + "#".repeat(width - 2) + ".")
-	var blocks: Array = [[pill, 0, 1]]
+	var text_blocks: Array = []
 	for index: int in word.length():
 		assert(MINI_4X5.has(word[index]), "mini font lacks '%s'" % word[index])
-		blocks.append([MINI_4X5[word[index]], 2 + index * 5, 3])
-	return _compose(blocks, width)
+		text_blocks.append([MINI_4X5[word[index]], 2 + index * 5, 3])
+	return _compose_button([[pill, 0, 1]], text_blocks, width)
+
+
+## The 1px breathing-room rule (RQD 2026-09-02): every letter/digit pixel
+## keeps its four ORTHOGONAL neighbors free of silhouette pixels — diagonal
+## contact is fine. Text and silhouette compose on separate layers so the
+## rule is ASSERTED, not eyeballed: a reshaped silhouette that pinches a
+## label fails generation instead of shipping.
+func _compose_button(silhouette_blocks: Array, text_blocks: Array,
+		width: int = CANVAS_SIZE) -> Array[String]:
+	var silhouette: Array[String] = _compose(silhouette_blocks, width)
+	var text: Array[String] = _compose(text_blocks, width)
+	for y: int in text.size():
+		for x: int in width:
+			if text[y][x] != "#":
+				continue
+			assert(silhouette[y][x] != "#",
+					"text overlaps silhouette at (%d,%d)" % [x, y])
+			for offset: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				var neighbor_x: int = x + offset.x
+				var neighbor_y: int = y + offset.y
+				if neighbor_x < 0 or neighbor_y < 0 or neighbor_x >= width or neighbor_y >= text.size():
+					continue
+				assert(silhouette[neighbor_y][neighbor_x] != "#",
+						"text pixel (%d,%d) touches silhouette orthogonally at (%d,%d)" % [
+							x, y, neighbor_x, neighbor_y])
+	var merged: Array[String] = []
+	for y: int in text.size():
+		var row: String = ""
+		for x: int in width:
+			row += "#" if (silhouette[y][x] == "#" or text[y][x] == "#") else "."
+		merged.append(row)
+	return merged
 
 
 ## Stamp [rows, x, y] blocks onto a blank width x CANVAS_SIZE canvas.
