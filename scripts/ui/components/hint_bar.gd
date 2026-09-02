@@ -355,19 +355,54 @@ func _make_item(entry: Dictionary, model: HintBarCommands.Model) -> Control:
 	pair.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pair.add_theme_constant_override("separation", 3)
 	var font: FontFile = UIManager.font_8px if UIManager != null else null
-	# Glyph chip: bracketed text for the scaffold ("[A]", "[LMB]"). The visual
-	# pass replaces this with a drawn chip / real button-glyph art.
-	var glyph := GlowLabel.styled("[%s]" % String(entry.glyph), font, 8,
-			GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
-	glyph.name = "Glyph"
-	glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	pair.add_child(glyph)
+	# Glyph: under CONTROLLER, labels with drawn button art render as a chip
+	# (HintBarCommands.joy_glyph_texture); everything else — keyboard keys,
+	# mouse buttons, unmapped labels like PS Options/Share — stays the
+	# bracketed text ("[Esc]", "[LMB]").
+	var glyph_texture: Texture2D = null
+	if model == HintBarCommands.Model.CONTROLLER:
+		glyph_texture = HintBarCommands.joy_glyph_texture(String(entry.glyph))
+	if glyph_texture != null:
+		pair.add_child(_make_glyph_chip(glyph_texture))
+	else:
+		var glyph := GlowLabel.styled("[%s]" % String(entry.glyph), font, 8,
+				GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
+		glyph.name = "Glyph"
+		glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		pair.add_child(glyph)
 	var verb := GlowLabel.styled(String(entry.verb), font, 8,
 			GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
 	verb.name = "Verb"
 	verb.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	pair.add_child(verb)
 	return pair
+
+
+## The drawn button chip: 1-bit 10x10 glyph art on a plate. STATIC border per
+## §14 — a hint names a button, it is not itself pressable, so the border must
+## not glow. 10px art + 1px content margin + 1px border = 14px, exactly
+## bar_height (EYEBALL: if the items cluster reads taller than the step
+## cluster in-game, drop the content margin to 0 first).
+func _make_glyph_chip(texture: Texture2D) -> Control:
+	var plate := PanelContainer.new()
+	plate.name = "Glyph"
+	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := StyleBoxFlat.new()
+	style.bg_color = GameColors.HUD_PANEL_BACKGROUND
+	style.border_color = GameColors.STATIC_BORDER
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(2)
+	style.set_content_margin_all(1)
+	plate.add_theme_stylebox_override("panel", style)
+	var icon := TextureRect.new()
+	icon.name = "GlyphIcon"
+	icon.texture = texture
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.custom_minimum_size = Vector2(10, 10)
+	icon.modulate = GameColors.TEXT_PRIMARY
+	plate.add_child(icon)
+	return plate
 
 
 ## Strip geometry + which layer wears the glass, for the current placement /

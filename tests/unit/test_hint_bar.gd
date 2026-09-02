@@ -122,7 +122,27 @@ func test_joypad_renders_controller_glyphs() -> void:
 	InputSource.last_device = InputSource.Device.JOYPAD
 	var bar := _make_bar()
 	assert_eq(bar.last_model, HintBarCommands.Model.CONTROLLER)
-	assert_eq((_items(bar)[0].get_node("Glyph") as Label).text, "[A]")
+	# Drawn chip, not the "[A]" text scaffold: the Glyph node is a plate
+	# holding the letter_a sprite (test_controller_glyphs.gd pins the map).
+	var glyph := _items(bar)[0].get_node("Glyph")
+	assert_false(glyph is Label, "controller glyphs with sprites render as chips, not text")
+	var icon := glyph.get_node("GlyphIcon") as TextureRect
+	assert_not_null(icon.texture)
+	assert_eq(icon.texture.resource_path,
+			HintBarCommands.JOY_GLYPH_SPRITE_DIRECTORY + "letter_a.png")
+
+
+func test_joypad_labels_without_sprites_fall_back_to_text() -> void:
+	InputSource.last_device = InputSource.Device.JOYPAD
+	HintBarCommands.joy_skin_override = HintBarCommands.JoySkin.PLAYSTATION
+	var bar := _make_bar()
+	# DEFAULT's five items on PS: Cross / Triangle / Square / L1 / Circle —
+	# all sprite-backed, so force the text path via a label with no sprite.
+	var texture := HintBarCommands.joy_glyph_texture("Options")
+	assert_null(texture, "PS Options is deliberately text-only")
+	assert_eq(bar.last_model, HintBarCommands.Model.CONTROLLER)
+	var glyph := _items(bar)[0].get_node("Glyph")
+	assert_false(glyph is Label, "Cross has a sprite — chip expected")
 
 
 func test_touch_renders_buttons() -> void:

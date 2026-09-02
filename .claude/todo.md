@@ -64,6 +64,13 @@ everything else, roughly by how soon it matters.
     (±1/±10 symmetric amounts AND the 99/100 named jumps), and **benched units
     do get bEXP** (the panel binds whichever unit the rail selects, bench
     included). The mockup page is behind the build on all three.
+- **Controller glyph brief (Lawrence)** — <https://claude.ai/code/artifact/2d8a96a0-696a-4cfc-9b6a-d11acccf8788>
+  Art request compiled 2026-09-02: the button-glyph sprite sets per skin
+  (Steam Deck + Xbox share phase 1 — 6 sprites make the hint bar iconic;
+  ~29 total for all four skins), sprite spec (10×10, 1-bit, name-by-depiction),
+  plus the standing §4 icon asks in an appendix. Source of truth is
+  [data/design/art-requests/controller-glyphs.html](../data/design/art-requests/controller-glyphs.html)
+  — same edit-the-file-and-republish rule as the mockups.
 - **Battle HUD mockup** — <https://claude.ai/code/artifact/d13f16f7-a4a2-47e2-9cbe-9b2e5c1107cd>
   In-battle widgets, one tab per widget; only the **hint / command bar** so far
   (round 1, 2026-08-16). Source of truth is
@@ -367,6 +374,22 @@ features.
 Nothing here is code-blocked; all have placeholders shipping today.
 
 ### Icons
+*(Everything in this subsection + the controller glyph sets is compiled in the
+**controller glyph brief** — see Live links up top. Hand Lawrence that URL.)*
+- [~] **Controller button glyphs** — GENERATED IN-HOUSE same day (2026-09-02,
+  branch `rqd--controller-glyphs`, eyeball-gated). RQD's call on reading the
+  brief: 1-bit meant the palette wasn't load-bearing, so
+  `tools/godot/generate_controller_glyphs.gd` emits the FULL 30-sprite set
+  (all four skins at once — the phasing in the brief collapsed) into
+  `art/sprites/ui/controller_glyphs/`, name-by-depiction. The hint bar renders
+  drawn chips under CONTROLLER (plate = HUD glass + STATIC border, sprite
+  modulated to TEXT_PRIMARY; PS Options/Share deliberately stay text). Map
+  keys on `joy_button_label`'s output so the skin logic isn't duplicated.
+  Lawrence's ask is now a VETO/REDRAW pass — replace a PNG, keep the name,
+  nothing else moves. Contact sheet: rerun the generator, it drops
+  `.claude/controller_glyphs_contact.png` at 8×. Tests:
+  test_controller_glyphs.gd (every skin×button label → sprite or deliberate
+  text). EYEBALL: chip-vs-text row height, chip read at 1× on the Deck.
 - [ ] 10×10 **"Swap"** icon (like 🔁, but straighter arrows).
 - [ ] Tiny **melee** and **ranged** glyphs (~5px tall, inline beside a 5px-font
   number). The terrain preview's split defense cell (Crater: bonus vs melee,
@@ -600,8 +623,10 @@ Each of these is blocked on a decision, not on work.
   **Unseen so far:** controller glyphs on a real pad; touch rendering
   (`DebugConfig.debug_force_touch_hints` on desktop, or the phone build).
   **Remaining, in order:** (1) pad + touch eyeball; (2) Lawrence's visual pass
-  — sprite borders for the glass, glyph chips instead of `[A]` text,
-  InteractiveButton for touch buttons, NOTICE ramp step (Magenta 4–6);
+  — sprite borders for the glass, InteractiveButton for touch buttons, NOTICE
+  ramp step (Magenta 4–6); glyph chips are DONE in-house 2026-09-02 (branch
+  `rqd--controller-glyphs`, see §4) — Lawrence's half is just vetoing the
+  generated sprites;
   (3) Android export setup → sideload on RQD's GrapheneOS phone; safe-area
   insets then; (4) playtest verdict on Marker vs Button → delete the loser;
   (5) squash-merge to rqd--main once proven. Mockup artifact is one round
