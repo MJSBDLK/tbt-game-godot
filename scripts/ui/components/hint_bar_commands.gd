@@ -305,6 +305,12 @@ static func mouse_button_label(button: int) -> String:
 		MOUSE_BUTTON_MIDDLE: return "MMB"
 		MOUSE_BUTTON_WHEEL_UP: return "Wheel up"
 		MOUSE_BUTTON_WHEEL_DOWN: return "Wheel down"
+		# Side buttons: nothing binds them today, but the bar DROPS an item
+		# whose glyph resolves empty — so if a future binding (or rebind UI)
+		# lands on one, "[M4]" is the difference between a hint and a vanished
+		# action. Text only; no art tier planned until something binds them.
+		MOUSE_BUTTON_XBUTTON1: return "M4"
+		MOUSE_BUTTON_XBUTTON2: return "M5"
 	return ""
 
 
@@ -400,6 +406,33 @@ static func joy_button_label(button: JoyButton, skin: JoySkin) -> String:
 		JOY_BUTTON_DPAD_DOWN: return "D-Down"
 		JOY_BUTTON_DPAD_LEFT: return "D-Left"
 		JOY_BUTTON_DPAD_RIGHT: return "D-Right"
+		# Back grips (SDL "paddles"). Position mapping follows SDL's header
+		# comments — PADDLE1 = upper-left facing the back / Elite P1, PADDLE2 =
+		# upper-right / P3, PADDLE3 = lower-left / P2, PADDLE4 = lower-right /
+		# P4 — which is UNVERIFIED on real Deck hardware. Before anything BINDS
+		# a paddle, mash them in tools/diag/joypad_probe.gd on the Deck and fix
+		# this mapping if the printed L4/R4/L5/R5 don't match the grip pressed.
+		# PS (DualSense Edge) / Nintendo have no standard grip labels: "".
+		JOY_BUTTON_PADDLE1:
+			match skin:
+				JoySkin.STEAM_DECK: return "L4"
+				JoySkin.XBOX: return "P1"
+			return ""
+		JOY_BUTTON_PADDLE2:
+			match skin:
+				JoySkin.STEAM_DECK: return "R4"
+				JoySkin.XBOX: return "P3"
+			return ""
+		JOY_BUTTON_PADDLE3:
+			match skin:
+				JoySkin.STEAM_DECK: return "L5"
+				JoySkin.XBOX: return "P2"
+			return ""
+		JOY_BUTTON_PADDLE4:
+			match skin:
+				JoySkin.STEAM_DECK: return "R5"
+				JoySkin.XBOX: return "P4"
+			return ""
 	return ""
 
 
@@ -412,9 +445,16 @@ static func joy_button_label(button: JoyButton, skin: JoySkin) -> String:
 # by what they DEPICT — so Switch reuses the Xbox letter sprites in swapped
 # positions for free, and this map keys on the LABEL joy_button_label emits
 # (the one per-skin source of truth) instead of duplicating the skin logic.
-# A label absent here renders as text — which is deliberate for PlayStation's
-# Options/Share (words on the physical pad), and the safe fallback for
-# anything else.
+# A label absent here renders as text — the safe fallback for anything new.
+#
+# System buttons speak RETRO-UNIVERSAL, not hardware-accurate (RQD
+# 2026-09-02: the Xbox-era ☰/⧉ icons "have always made me look at the
+# controller"): every pad's start-position button (Menu / Options) shows the
+# START pill and the select-position button (View / Share) shows SELECT —
+# the era this audience learned pads in printed the words, so the
+# word-on-a-pill IS the universal glyph. Switch keeps its +/- (genuinely
+# printed on the hardware). The hardware-accurate icon_menu / icon_view
+# sprites stay on disk, unmapped, for a cheap re-audition.
 
 const JOY_GLYPH_SPRITE_DIRECTORY: String = "res://art/sprites/ui/controller_glyphs/"
 
@@ -424,15 +464,20 @@ const JOY_GLYPH_SPRITES_BY_LABEL: Dictionary = {
 	"Cross": "shape_cross", "Circle": "shape_circle",
 	"Square": "shape_square", "Triangle": "shape_triangle",
 	"LB": "label_lb", "RB": "label_rb", "L1": "label_l1", "R1": "label_r1",
-	"Menu": "icon_menu", "View": "icon_view",
+	"Menu": "label_start", "View": "label_select",
+	"Options": "label_start", "Share": "label_select",
 	"+": "label_plus", "-": "label_minus",
 	"L3": "stick_l3", "R3": "stick_r3",
+	"L4": "label_l4", "L5": "label_l5", "R4": "label_r4", "R5": "label_r5",
+	"P1": "label_p1", "P2": "label_p2", "P3": "label_p3", "P4": "label_p4",
 	"D-Up": "dpad_up", "D-Down": "dpad_down",
 	"D-Left": "dpad_left", "D-Right": "dpad_right",
 }
 
 ## Labels that deliberately stay text (no sprite, not an authoring gap).
-const JOY_GLYPH_TEXT_ONLY_LABELS: Array[String] = ["Options", "Share"]
+## Empty since the START/SELECT pills absorbed Options/Share — kept as the
+## declared home for any future exception, and the tests sweep against it.
+const JOY_GLYPH_TEXT_ONLY_LABELS: Array[String] = []
 
 ## Loaded textures by label; null entries cache "no sprite for this label".
 static var _joy_glyph_cache: Dictionary = {}

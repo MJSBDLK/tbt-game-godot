@@ -231,13 +231,18 @@
 
   <div class="callout" style="border-left-color: #f5cd65;">
     <p>
-      <strong>Status 2026-09-02:</strong> because the spec is 1-bit (the engine draws
-      the plate), the full 30-sprite set below was <strong>generated in-house</strong> the
-      same day — <code>tools/godot/generate_controller_glyphs.gd</code>, single-stroke
-      pixel forms matching the house fonts. The phasing collapsed: all four skins
-      work now. <strong>Your half is a veto pass</strong> — open the game (or rerun the
-      generator for the 8× contact sheet) and redraw any glyph that reads wrong.
-      Replace the PNG, keep the name; nothing else moves.
+      <strong>Status 2026-09-02:</strong> because the spec is 1-bit, the full set
+      (now <strong>40 sprites</strong>) was <strong>generated in-house</strong> the same day —
+      <code>tools/godot/generate_controller_glyphs.gd</code>, single-stroke pixel forms
+      matching the house fonts. Two same-day revisions: <strong>button-format</strong>
+      (each sprite carries its own silhouette — letters in circles, labels on
+      correctly-swept bumper pills, rounded squares for sticks/grips — and the
+      engine draws no plate), and <strong>retro-universal system buttons</strong> (every
+      pad's Menu/Options renders a START word-pill, View/Share renders SELECT —
+      the Xbox-era ☰/⧉ icons made RQD look at the controller; those sprites
+      remain on disk unmapped). Steam Deck back grips L4/L5/R4/R5 and Elite
+      paddles P1–P4 are in. <strong>Your half is a veto pass</strong> — redraw any glyph
+      that reads wrong. Replace the PNG, keep the name; nothing else moves.
     </p>
   </div>
 
@@ -311,7 +316,8 @@
         <tr><td class="mono">View</td><td>Tooltip peek — cull pending¹</td><td><span class="tag bound">BOUND</span></td><td class="mono">View ⧉</td><td class="mono">View ⧉</td><td class="mono">Share</td><td class="mono">−</td></tr>
         <tr><td class="mono">R3</td><td>Tooltip peek — cull pending¹</td><td><span class="tag bound">BOUND</span></td><td class="mono" colspan="4">R3 (stick click — same glyph on every skin)</td></tr>
         <tr><td class="mono">RB</td><td class="dim">Reserved (symmetry with LB)</td><td><span class="tag reserved">RESERVED</span></td><td class="mono">RB</td><td class="mono">R1</td><td class="mono">R1</td><td class="mono">R</td></tr>
-        <tr><td class="mono">Menu</td><td class="dim">System menu, someday</td><td><span class="tag reserved">RESERVED</span></td><td class="mono">Menu ☰</td><td class="mono">Menu ☰</td><td class="mono">Options</td><td class="mono">+</td></tr>
+        <tr><td class="mono">Menu</td><td class="dim">System menu, someday — renders the retro START pill on Xbox/Steam/PS (hardware's own ☰/Options made us look down at the pad); Switch keeps its printed +</td><td><span class="tag reserved">RESERVED</span></td><td class="mono">Menu ☰</td><td class="mono">Menu ☰</td><td class="mono">Options</td><td class="mono">+</td></tr>
+        <tr><td class="mono">L4 L5 R4 R5</td><td class="dim">Back grips (Deck) / paddles P1–P4 (Xbox Elite) — SDL position mapping unverified on hardware, probe before binding</td><td><span class="tag reserved">RESERVED</span></td><td class="mono">P1–P4</td><td class="mono">L4/L5 R4/R5</td><td class="mono">—</td><td class="mono">—</td></tr>
         <tr><td class="mono">D-pad</td><td class="dim">Cursor steps</td><td><span class="tag reserved">RESERVED</span></td><td class="mono" colspan="4">Universal — one sprite, rotated 90° per direction (lossless)</td></tr>
         <tr><td class="mono">L3</td><td class="dim">Unassigned</td><td><span class="tag reserved">RESERVED</span></td><td class="mono" colspan="4">L3 (stick click)</td></tr>
         <tr><td class="mono">LT / RT</td><td class="dim">Zoom candidates</td><td><span class="tag reserved">RESERVED</span></td><td class="mono">LT / RT</td><td class="mono">L2 / R2</td><td class="mono">L2 / R2</td><td class="mono">ZL / ZR</td></tr>
@@ -327,17 +333,18 @@
   <div class="cards">
     <div class="card">
       <h3>Canvas</h3>
-      <p><strong>10×10 px</strong> — the established move-type icon size. The bar row is
-      14 px tall (8 px text + padding), so 10×10 sits flush beside the verbs.</p>
-      <p>Two-character labels (LB, ZL…) may widen the chip — the style guide already
-      locks the "chip expands to fit" precedent. Keep height at 10.</p>
+      <p><strong>12 px tall, width varies</strong> (button-format revision). Circles and
+      rounded squares are 12×12, bumper pills 15 wide, the START/SELECT word-pills
+      wider still — the bar row is 14 px, and width is free (chip expands to fit).</p>
+      <p>Keep height at exactly 12; that's the one invariant the tests pin.</p>
     </div>
     <div class="card">
-      <h3>Color</h3>
-      <p><strong>Default: 1-bit</strong> — white glyph on transparency. The engine draws the
-      plate behind it (Gray-ramp chip, 1 px border, rounded 2) and can tint per state.</p>
-      <p>Canonical PlayStation shape colors are a possible later variant — your call,
-      veto the 1-bit default on sight if it reads wrong.</p>
+      <h3>Color &amp; silhouette</h3>
+      <p><strong>1-bit</strong> — white on transparency — and the sprite carries its
+      <strong>own button silhouette</strong>: letter in a circle, label on a bumper swept
+      round on its outer corner. The engine draws no plate and tints the whole
+      sprite to the text ink.</p>
+      <p>Canonical PlayStation shape colors are a possible later variant — your call.</p>
     </div>
     <div class="card">
       <h3>States</h3>

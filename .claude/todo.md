@@ -1,5 +1,23 @@
 # More stuff
 - [ ] the default camera pan speed is way too low - probably speed up 3-5x
+- [x] For the Steam Deck glyphs, we also need L4-5 and R4-5. (Done 2026-09-02 on
+  `rqd--controller-glyphs`: rounded-square chips for the Deck grips L4/L5/R4/R5
+  AND Xbox Elite paddles P1–P4, labels wired for JOY_BUTTON_PADDLE1..4. CAVEAT:
+  the SDL paddle→position mapping (PADDLE1 = upper-left, etc.) is UNVERIFIED on
+  real hardware — mash `tools/diag/joypad_probe.gd` on the Deck before anything
+  BINDS a paddle; nothing does today.)
+  - [x] On mouse, should M4-5 and beyond be "we'll cross that bridge when we get
+    to it?" (Answered 2026-09-02: yes for art — but the TEXT tier is already
+    crossed: `mouse_button_label` now returns "M4"/"M5", so a future side-button
+    binding degrades to "[M4]" in the bar instead of silently dropping the item.)
+- [x] "Three lines" and "overlapping squares" always require looking at the
+  controller — is there a universal start/select icon for millennial+ gamers?
+  (Answered + built 2026-09-02: there is no universal ICON — that era printed
+  the WORDS on pill buttons, so the word-pill IS the universal glyph. START and
+  SELECT mini-font pills now map from every pad's start/select-position buttons
+  (Menu/Options → START, View/Share → SELECT); Switch keeps its printed +/−.
+  The hardware-accurate ☰/⧉ sprites stay on disk unmapped for a re-audition.)
+  - [ ] Also, "three lines" and "overlapping squares" have always made me look at the controller. Are there icons which universally represent "start" and "select" for us millenial (and older) gamers?
 
 # Ideas
 - [x] 1. XP gain on map: When a unit gains XP on the map, we should have an XP bar fade in (quickly) right above/below their health bar (yellow fill, black bg), fill with a filling sound effect, and then fade back out (slowly) (Done 2026-08-21: `Unit._build_xp_bar` — 24×2 banana-on-black (YellowOrange 7 `#f5cd65`, the house gold — RQD correction 2026-08-21, was the olive Yellow 7) under `HealthBar`, 1px BENEATH the health bar (RQD: beneath reads more natural; `XP_BAR_OFFSET_Y` = -4 tries above). `_flush_xp_feedback` fires `_play_xp_bar(before, after, levels)` alongside the "+N XP" callout: fade in 0.1s → sweep (0.45s per full bar; a level wrap fills to full, flashes Yellow 8, restarts from 0) → hold 0.5s → fade out 0.6s; reduce-motion parks at the landing fraction. `xp_bar_fill_segments` is the pure sweep plan. SFX `audio/ui/xp_fill.wav` — placeholder rising tick train from generate_ui_sfx.gd, Lawrence replaces same-name. While there: `CharacterData.XP_PER_LEVEL` now owns the 100 that grant_xp / sheet / bEXP / unit sheet each hardcoded. 9 tests in test_combat_xp.gd. EYEBALL: the bar's bottom row kisses the top pixel of tall sprites' art for the ~1.7s it shows — fine in a static render; judge in motion.)
@@ -379,12 +397,19 @@ Nothing here is code-blocked; all have placeholders shipping today.
 - [~] **Controller button glyphs** — GENERATED IN-HOUSE same day (2026-09-02,
   branch `rqd--controller-glyphs`, eyeball-gated). RQD's call on reading the
   brief: 1-bit meant the palette wasn't load-bearing, so
-  `tools/godot/generate_controller_glyphs.gd` emits the FULL 30-sprite set
-  (all four skins at once — the phasing in the brief collapsed) into
-  `art/sprites/ui/controller_glyphs/`, name-by-depiction. The hint bar renders
-  drawn chips under CONTROLLER (plate = HUD glass + STATIC border, sprite
-  modulated to TEXT_PRIMARY; PS Options/Share deliberately stay text). Map
-  keys on `joy_button_label`'s output so the skin logic isn't duplicated.
+  `tools/godot/generate_controller_glyphs.gd` emits the FULL set — 40 sprites
+  after the same-day revisions (all four skins at once — the phasing in the
+  brief collapsed) into `art/sprites/ui/controller_glyphs/`, name-by-depiction.
+  BUTTON-FORMAT (RQD same day): each sprite carries its own silhouette —
+  letters in 12px circles, shoulder labels on 15-wide bumper pills swept round
+  on the correct outer corner, rounded squares for sticks + back grips
+  (L4/L5/R4/R5 + Elite P1–P4), the d-pad its own cross — and the bar draws NO
+  plate, just a TextureRect modulated to TEXT_PRIMARY. Height 12 is the pinned
+  invariant; width is free (chip-expands rule). RETRO START/SELECT (RQD same
+  day: ☰/⧉ "always made me look at the controller"): every pad's Menu/Options
+  → START word-pill, View/Share → SELECT; Switch keeps +/−; ☰/⧉ sprites kept
+  unmapped. Map keys on `joy_button_label`'s output so the skin logic isn't
+  duplicated.
   Lawrence's ask is now a VETO/REDRAW pass — replace a PNG, keep the name,
   nothing else moves. Contact sheet: rerun the generator, it drops
   `.claude/controller_glyphs_contact.png` at 8×. Tests:

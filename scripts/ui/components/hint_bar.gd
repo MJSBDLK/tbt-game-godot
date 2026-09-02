@@ -378,31 +378,20 @@ func _make_item(entry: Dictionary, model: HintBarCommands.Model) -> Control:
 	return pair
 
 
-## The drawn button chip: 1-bit 10x10 glyph art on a plate. STATIC border per
-## §14 — a hint names a button, it is not itself pressable, so the border must
-## not glow. 10px art + 1px content margin + 1px border = 14px, exactly
-## bar_height (EYEBALL: if the items cluster reads taller than the step
-## cluster in-game, drop the content margin to 0 first).
+## The drawn button glyph. BUTTON-FORMAT (RQD 2026-09-02): the sprite carries
+## its own silhouette — letter in a circle, label on a correctly-swept bumper
+## pill, START/SELECT on wide word-pills — so the engine adds NO plate or
+## border behind it. 12px tall inside the 14px bar row; width varies by
+## sprite (the chip-expands-to-fit rule).
 func _make_glyph_chip(texture: Texture2D) -> Control:
-	var plate := PanelContainer.new()
-	plate.name = "Glyph"
-	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var style := StyleBoxFlat.new()
-	style.bg_color = GameColors.HUD_PANEL_BACKGROUND
-	style.border_color = GameColors.STATIC_BORDER
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(2)
-	style.set_content_margin_all(1)
-	plate.add_theme_stylebox_override("panel", style)
 	var icon := TextureRect.new()
-	icon.name = "GlyphIcon"
+	icon.name = "Glyph"
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	icon.texture = texture
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
 	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	icon.custom_minimum_size = Vector2(10, 10)
 	icon.modulate = GameColors.TEXT_PRIMARY
-	plate.add_child(icon)
-	return plate
+	return icon
 
 
 ## Strip geometry + which layer wears the glass, for the current placement /
