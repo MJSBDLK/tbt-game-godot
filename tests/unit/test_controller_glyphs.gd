@@ -83,6 +83,45 @@ func test_texture_lookup_falls_back_to_null_for_text_labels() -> void:
 			"keyboard labels never get chips")
 
 
+func test_color_identities_cover_faces_and_nothing_else() -> void:
+	# Xbox + Steam Deck letters and PS shapes carry identities; Switch and
+	# every non-face button stay neutral.
+	for label: String in ["A", "B", "X", "Y"]:
+		assert_false(HintBarCommands.joy_glyph_identity(label, HintBarCommands.JoySkin.XBOX).is_empty(),
+				"%s should be a colored skittle on Xbox" % label)
+		assert_eq(HintBarCommands.joy_glyph_identity(label, HintBarCommands.JoySkin.XBOX),
+				HintBarCommands.joy_glyph_identity(label, HintBarCommands.JoySkin.STEAM_DECK),
+				"Deck shares the Xbox identity (monochrome-hardware veto pending)")
+		assert_true(HintBarCommands.joy_glyph_identity(label, HintBarCommands.JoySkin.NINTENDO).is_empty(),
+				"Switch buttons are black — no identities")
+	for label: String in ["Cross", "Circle", "Square", "Triangle"]:
+		assert_false(HintBarCommands.joy_glyph_identity(label, HintBarCommands.JoySkin.PLAYSTATION).is_empty())
+	for label: String in ["LB", "R3", "Menu", "D-Up"]:
+		for skin: HintBarCommands.JoySkin in HintBarCommands.JoySkin.values():
+			assert_true(HintBarCommands.joy_glyph_identity(label, skin).is_empty(),
+					"'%s' is not a face button" % label)
+
+
+func test_xbox_colors_the_skittle_and_ps_colors_the_mark() -> void:
+	var xbox := HintBarCommands.joy_glyph_identity("A", HintBarCommands.JoySkin.XBOX)
+	assert_true(xbox.has("form_glow"), "Xbox: the colored FORM wears the glow")
+	assert_false(xbox.has("char_glow"), "Xbox: the dark letter is glowless")
+	var playstation := HintBarCommands.joy_glyph_identity("Cross", HintBarCommands.JoySkin.PLAYSTATION)
+	assert_true(playstation.has("char_glow"), "PS: the colored MARK wears the glow")
+	assert_false(playstation.has("form_glow"), "PS: the dark plastic is glowless")
+
+
+func test_identity_layers_exist_with_halo_padding() -> void:
+	for label: String in ["A", "B", "X", "Y", "Cross", "Circle", "Square", "Triangle"]:
+		var layers := HintBarCommands.joy_glyph_layer_textures(label)
+		assert_false(layers.is_empty(), "'%s' needs split layers" % label)
+		assert_eq((layers.form as Texture2D).get_height(), 14,
+				"form is 12 + 1px halo padding each side")
+		assert_eq((layers.char as Texture2D).get_height(), 14)
+	assert_true(HintBarCommands.joy_glyph_layer_textures("LB").is_empty(),
+			"non-face labels have no layers — they fall back to the merged sprite")
+
+
 func test_text_only_list_never_overlaps_the_sprite_map() -> void:
 	var overlap: Array[String] = []
 	for label: String in HintBarCommands.JOY_GLYPH_TEXT_ONLY_LABELS:

@@ -483,6 +483,64 @@ const JOY_GLYPH_TEXT_ONLY_LABELS: Array[String] = []
 static var _joy_glyph_cache: Dictionary = {}
 
 
+# ---- color identities (RQD 2026-09-02: "Y = yellow skittle") ---------------
+# Face buttons carry their hardware color identity, rendered from SPLIT
+# layers (face_form disc + <sprite>_char) so form and character tint
+# independently, each with the house orthogonal glow (hud_glow shader):
+#   - Xbox (and Steam Deck, same letters/positions — veto if the Deck's
+#     monochrome hardware should win): the SKITTLE is colored, letter dark —
+#     A green, B red, X blue, Y gold, glow = the ramp's darker step, same
+#     pairing rule as the TEXT_* voices.
+#   - PlayStation: the button is dark plastic and the MARK is colored (that's
+#     the hardware) — Cross azure, Circle red, Square pink (RedViolet — NOT
+#     the retired magenta), Triangle teal; the mark wears the glow.
+#   - Switch: no identities (black buttons), stays the neutral outline sprite.
+# Colors resolve through GameColorPalette at call time — no hardcoded hex.
+
+## Identity recipe for a label under a skin: {form, char} Colors plus
+## optional {form_glow, char_glow}. Empty when the button has no identity
+## (every non-face button, and all of Switch).
+static func joy_glyph_identity(label: String, skin: JoySkin) -> Dictionary:
+	if skin == JoySkin.XBOX or skin == JoySkin.STEAM_DECK:
+		var skittle: Dictionary = {
+			"A": ["Green", 6, 3], "B": ["Red", 5, 2],
+			"X": ["Azure", 5, 2], "Y": ["YellowOrange", 7, 4],
+		}
+		if skittle.has(label):
+			var ramp: Array = skittle[label]
+			return {
+				form = GameColorPalette.get_color(ramp[0], ramp[1]),
+				form_glow = GameColorPalette.get_color(ramp[0], ramp[2]),
+				char = GameColorPalette.get_color("Gray", 1),
+			}
+	if skin == JoySkin.PLAYSTATION:
+		var marks: Dictionary = {
+			"Cross": ["Azure", 6, 3], "Circle": ["Red", 6, 3],
+			"Square": ["RedViolet", 6, 3], "Triangle": ["Teal", 6, 3],
+		}
+		if marks.has(label):
+			var ramp: Array = marks[label]
+			return {
+				form = GameColorPalette.get_color("Gray", 2),
+				char = GameColorPalette.get_color(ramp[0], ramp[1]),
+				char_glow = GameColorPalette.get_color(ramp[0], ramp[2]),
+			}
+	return {}
+
+
+## The split layers for an identity render: {form: Texture2D, char: Texture2D}.
+## Empty when either file is missing — the caller falls back to the merged
+## outline sprite, so a missing layer degrades, never breaks.
+static func joy_glyph_layer_textures(label: String) -> Dictionary:
+	if not JOY_GLYPH_SPRITES_BY_LABEL.has(label):
+		return {}
+	var char_path: String = JOY_GLYPH_SPRITE_DIRECTORY + String(JOY_GLYPH_SPRITES_BY_LABEL[label]) + "_char.png"
+	var form_path: String = JOY_GLYPH_SPRITE_DIRECTORY + "face_form.png"
+	if not ResourceLoader.exists(char_path) or not ResourceLoader.exists(form_path):
+		return {}
+	return {form = load(form_path), char = load(char_path)}
+
+
 ## The drawn glyph for a controller label, or null when the label renders as
 ## text (unmapped label, or the sprite file is missing — warned once).
 static func joy_glyph_texture(label: String) -> Texture2D:

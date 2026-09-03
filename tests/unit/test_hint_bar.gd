@@ -122,13 +122,22 @@ func test_joypad_renders_controller_glyphs() -> void:
 	InputSource.last_device = InputSource.Device.JOYPAD
 	var bar := _make_bar()
 	assert_eq(bar.last_model, HintBarCommands.Model.CONTROLLER)
-	# Button-format sprite, not the "[A]" text scaffold: the Glyph node IS a
-	# TextureRect holding letter_a — no plate, the silhouette is in the art
-	# (test_controller_glyphs.gd pins the map).
-	var glyph := _items(bar)[0].get_node("Glyph") as TextureRect
-	assert_not_null(glyph, "controller glyphs with sprites render as TextureRects, not text")
-	assert_eq(glyph.texture.resource_path,
-			HintBarCommands.JOY_GLYPH_SPRITE_DIRECTORY + "letter_a.png")
+	# A has an Xbox color identity, so the Glyph renders the SPLIT layers:
+	# the shared disc tinted green (the skittle) under the dark letter
+	# (test_controller_glyphs.gd pins recipes and layer files).
+	var glyph := _items(bar)[0].get_node("Glyph")
+	assert_false(glyph is Label, "sprite-backed glyphs never render as text")
+	var form := glyph.get_node("Form") as TextureRect
+	assert_eq(form.texture.resource_path,
+			HintBarCommands.JOY_GLYPH_SPRITE_DIRECTORY + "face_form.png")
+	assert_eq(form.modulate, GameColorPalette.get_color("Green", 6), "A is the green skittle")
+	assert_not_null(form.material, "the colored skittle wears the glow")
+	var character := glyph.get_node("Char") as TextureRect
+	assert_eq(character.modulate, GameColorPalette.get_color("Gray", 1), "dark letter on the skittle")
+	# LB has no identity — it stays the single ink-tinted outline sprite.
+	var neutral := _items(bar)[3].get_node("Glyph") as TextureRect
+	assert_eq(neutral.texture.resource_path,
+			HintBarCommands.JOY_GLYPH_SPRITE_DIRECTORY + "label_lb.png")
 
 
 func test_joypad_labels_without_sprites_fall_back_to_text() -> void:
@@ -140,8 +149,13 @@ func test_joypad_labels_without_sprites_fall_back_to_text() -> void:
 	# the START/SELECT pills), so exercise the fallback contract directly: an
 	# unmapped label renders as bracketed text.
 	assert_null(HintBarCommands.joy_glyph_texture("NotARealLabel"))
-	assert_true(_items(bar)[0].get_node("Glyph") is TextureRect,
-			"Cross has a sprite — button-format glyph expected")
+	# Cross renders layered PS-style: dark button, the MARK carries color+glow.
+	var glyph := _items(bar)[0].get_node("Glyph")
+	var character := glyph.get_node("Char") as TextureRect
+	assert_eq(character.modulate, GameColorPalette.get_color("Azure", 6), "Cross mark is azure")
+	assert_not_null(character.material, "the colored mark wears the glow")
+	assert_null((glyph.get_node("Form") as TextureRect).material,
+			"PS button plastic is dark and glowless")
 
 
 func test_touch_renders_buttons() -> void:

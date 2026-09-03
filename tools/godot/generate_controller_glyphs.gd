@@ -210,6 +210,20 @@ func _build_all_sprites() -> Dictionary:
 	# universal glyph. Wide sprites — the chip-expands-to-fit rule covers it.
 	sprites["label_start"] = _pill_label("START")
 	sprites["label_select"] = _pill_label("SELECT")
+	# LAYER SPLIT for color identities (RQD 2026-09-02): face buttons also
+	# emit form + character as SEPARATE layers so the engine can tint them
+	# independently — Xbox colors the skittle (green A, red B, blue X, gold Y),
+	# PlayStation colors the mark on a dark button, per hardware. One shared
+	# filled disc serves all eight; each char layer matches its merged sprite's
+	# glyph position. 1px padding on every side gives the runtime glow shader
+	# its halo room (files are 14x14; the merged 12-tall sprites are untouched).
+	sprites["face_form"] = _pad(_fill_rows(_compose([[CIRCLE_12, 0, 0]])))
+	for letter: String in ["A", "B", "X", "Y"]:
+		sprites["letter_" + letter.to_lower() + "_char"] = _pad(
+				_compose([[LETTERS_5X7[letter], 3, 2]]))
+	for inner_name: String in ["cross", "circle", "square", "triangle"]:
+		sprites["shape_" + inner_name + "_char"] = _pad(
+				_compose([[INNER_6X6[inner_name], 3, 3]]))
 	# D-pad: author UP once, derive the rest, center on the canvas.
 	var dpad_variants: Dictionary = {
 		"dpad_up": DPAD_UP_10,
@@ -297,6 +311,31 @@ func _mini_pair_blocks(label: String, x: int, y: int) -> Array:
 	assert(label.length() == 2 and MINI_4X5.has(label[0]) and MINI_4X5.has(label[1]),
 			"mini pair needs two chars from MINI_4X5: " + label)
 	return [[MINI_4X5[label[0]], x, y], [MINI_4X5[label[1]], x + 5, y]]
+
+
+## Row-span fill: every pixel between a row's first and last outline pixel
+## becomes solid. Correct for per-row-convex forms (the circle is).
+func _fill_rows(rows: Array) -> Array[String]:
+	var out: Array[String] = []
+	for row: String in rows:
+		var first: int = row.find("#")
+		var last: int = row.rfind("#")
+		if first < 0:
+			out.append(row)
+		else:
+			out.append(row.substr(0, first) + "#".repeat(last - first + 1) + row.substr(last + 1))
+	return out
+
+
+## 1px transparent border on all sides — halo room for the glow shader, which
+## can only paint inside the texture rect.
+func _pad(rows: Array) -> Array[String]:
+	var width: int = String(rows[0]).length()
+	var out: Array[String] = [".".repeat(width + 2)]
+	for row: String in rows:
+		out.append("." + row + ".")
+	out.append(".".repeat(width + 2))
+	return out
 
 
 func _flip_vertical(rows: Array) -> Array[String]:

@@ -413,7 +413,17 @@ Nothing here is code-blocked; all have placeholders shipping today.
   orthogonals ≥1px clear of the silhouette (diagonals fine) — text and
   silhouette compose on separate layers and the generator ASSERTS the rule
   (circle got flatter shoulders, bumper grew to 15×10, rounded square to
-  13 wide, to pass).
+  13 wide, to pass). COLOR IDENTITIES (RQD same day, "Y = yellow skittle"):
+  face buttons render SPLIT layers (shared `face_form` disc + per-glyph
+  `*_char`, both 1px-padded for halo room) tinted per skin — Xbox/Steam
+  color the skittle + dark letter (A Green 6, B Red 5, X Azure 5,
+  Y YellowOrange 7; glow = ramp −3, the TEXT_* pairing rule), PS colors the
+  MARK on Gray 2 plastic (✕ Azure 6, ○ Red 6, □ RedViolet 6 — pink, not the
+  retired magenta — △ Teal 6), Switch stays neutral. Glow rides the runtime
+  hud_glow shader (generic TextureRect path — no baked glow layers).
+  `joy_glyph_identity` is the one table; missing layer files degrade to the
+  merged outline sprite. EYEBALL: Deck-shares-Xbox-colors call (hardware is
+  monochrome — veto if purism wins), PS disc contrast on dark glass.
   Lawrence's ask is now a VETO/REDRAW pass — replace a PNG, keep the name,
   nothing else moves. Contact sheet: rerun the generator, it drops
   `.claude/controller_glyphs_contact.png` at 8×. Tests:

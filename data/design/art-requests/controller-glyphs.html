@@ -347,6 +347,13 @@
       <p><strong>Breathing room:</strong> every letter/digit pixel keeps its four
       orthogonal neighbors free of silhouette pixels (diagonal contact is fine).
       The generator asserts this — a redraw that pinches a label fails the build.</p>
+      <p><strong>Color identities:</strong> face buttons split into form + character
+      layers (<code>face_form</code> + <code>*_char</code>) so the engine tints them
+      per hardware — Xbox/Steam color the skittle (A green, B red, X azure,
+      Y gold; dark letter), PlayStation colors the mark on dark plastic (✕ azure,
+      ○ red, □ pink, △ teal), each with the house orthogonal glow. Switch stays
+      neutral. Colors resolve from the palette ramps at runtime — a redraw only
+      needs the white shapes.</p>
       <p>Canonical PlayStation shape colors are a possible later variant — your call.</p>
     </div>
     <div class="card">

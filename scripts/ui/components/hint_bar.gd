@@ -363,7 +363,7 @@ func _make_item(entry: Dictionary, model: HintBarCommands.Model) -> Control:
 	if model == HintBarCommands.Model.CONTROLLER:
 		glyph_texture = HintBarCommands.joy_glyph_texture(String(entry.glyph))
 	if glyph_texture != null:
-		pair.add_child(_make_glyph_chip(glyph_texture))
+		pair.add_child(_make_glyph_chip(String(entry.glyph), glyph_texture))
 	else:
 		var glyph := GlowLabel.styled("[%s]" % String(entry.glyph), font, 8,
 				GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
@@ -383,14 +383,49 @@ func _make_item(entry: Dictionary, model: HintBarCommands.Model) -> Control:
 ## pill, START/SELECT on wide word-pills — so the engine adds NO plate or
 ## border behind it. 12px tall inside the 14px bar row; width varies by
 ## sprite (the chip-expands-to-fit rule).
-func _make_glyph_chip(texture: Texture2D) -> Control:
+##
+## Face buttons with a color identity (joy_glyph_identity) render the SPLIT
+## layers instead: a filled disc and the character, tinted independently —
+## Xbox colors the skittle, PS colors the mark — with the house orthogonal
+## glow (hud_glow shader, duplicated per layer like GlowLabel does) on
+## whichever layer the identity says glows. Identity-less labels keep the
+## ink-tinted outline sprite.
+func _make_glyph_chip(label: String, texture: Texture2D) -> Control:
+	var identity := HintBarCommands.joy_glyph_identity(label, HintBarCommands.current_joy_skin())
+	var layers := HintBarCommands.joy_glyph_layer_textures(label) if not identity.is_empty() else {}
+	if identity.is_empty() or layers.is_empty():
+		var icon := _glyph_layer(texture, GameColors.TEXT_PRIMARY, null)
+		icon.name = "Glyph"
+		return icon
+	var chip := Control.new()
+	chip.name = "Glyph"
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.custom_minimum_size = (layers.form as Texture2D).get_size()
+	var form := _glyph_layer(layers.form, identity.form, identity.get("form_glow"))
+	form.name = "Form"
+	form.set_anchors_preset(Control.PRESET_FULL_RECT)
+	chip.add_child(form)
+	var character := _glyph_layer(layers.char, identity.char, identity.get("char_glow"))
+	character.name = "Char"
+	character.set_anchors_preset(Control.PRESET_FULL_RECT)
+	chip.add_child(character)
+	return chip
+
+
+## One tinted glyph layer; glow != null wears the orthogonal-glow shader
+## (material duplicated BEFORE the parameter write, same as GlowLabel — the
+## shared .tres would bleed the color into every glow user).
+func _glyph_layer(texture: Texture2D, tint: Color, glow: Variant) -> TextureRect:
 	var icon := TextureRect.new()
-	icon.name = "Glyph"
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	icon.texture = texture
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
 	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	icon.modulate = GameColors.TEXT_PRIMARY
+	icon.modulate = tint
+	if glow != null:
+		var material := (load("res://resources/hud_glow.tres") as Material).duplicate() as ShaderMaterial
+		material.set_shader_parameter("glow_color", glow)
+		icon.material = material
 	return icon
 
 
