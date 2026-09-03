@@ -52,9 +52,10 @@ func test_every_skin_label_resolves_to_sprite_or_deliberate_text() -> void:
 
 
 func test_every_mapped_sprite_exists_at_bar_height() -> void:
-	# Button-format sprites are exactly 12 tall (the bar row is 14) and at
-	# least 12 wide — width varies by silhouette (bumpers 15, START/SELECT
-	# pills wider still; the chip-expands-to-fit rule).
+	# Button-format sprites are exactly 12 tall (the bar row is 14); width
+	# varies by silhouette — circles 11 (odd, so a 5-wide letter centers
+	# exactly — RQD 2026-09-02), bumpers 15, START/SELECT pills wider still
+	# (the chip-expands-to-fit rule).
 	for label: String in HintBarCommands.JOY_GLYPH_SPRITES_BY_LABEL:
 		var sprite_name := String(HintBarCommands.JOY_GLYPH_SPRITES_BY_LABEL[label])
 		var path := HintBarCommands.JOY_GLYPH_SPRITE_DIRECTORY + sprite_name + ".png"
@@ -62,7 +63,7 @@ func test_every_mapped_sprite_exists_at_bar_height() -> void:
 				"'%s' maps to missing sprite %s — rerun tools/godot/generate_controller_glyphs.gd" % [label, path])
 		var texture: Texture2D = load(path)
 		assert_eq(texture.get_height(), 12, "%s height" % sprite_name)
-		assert_true(texture.get_width() >= 12, "%s width < 12" % sprite_name)
+		assert_true(texture.get_width() >= 11, "%s width < 11" % sprite_name)
 
 
 func test_start_and_select_speak_retro_universal_on_every_wordy_skin() -> void:

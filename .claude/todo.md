@@ -422,8 +422,11 @@ Nothing here is code-blocked; all have placeholders shipping today.
   retired magenta — △ Teal 6), Switch stays neutral. Glow rides the runtime
   hud_glow shader (generic TextureRect path — no baked glow layers).
   `joy_glyph_identity` is the one table; missing layer files degrade to the
-  merged outline sprite. EYEBALL: Deck-shares-Xbox-colors call (hardware is
-  monochrome — veto if purism wins), PS disc contrast on dark glass.
+  merged outline sprite. CIRCLE WENT ODD (RQD same day: letters sat
+  off-center, "shrink or widen by 1px"): 12→11 wide, so 5-wide letters and
+  the redrawn 5-wide marks center exactly on both axes. EYEBALL:
+  Deck-shares-Xbox-colors call (hardware is monochrome — veto if purism
+  wins), PS disc contrast on dark glass.
   Lawrence's ask is now a VETO/REDRAW pass — replace a PNG, keep the name,
   nothing else moves. Contact sheet: rerun the generator, it drops
   `.claude/controller_glyphs_contact.png` at 8×. Tests:

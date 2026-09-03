@@ -57,23 +57,24 @@ const MINI_4X5: Dictionary = {
 
 # ---- button silhouettes ------------------------------------------------------
 
-## Flatter-shouldered than a true circle: the shoulder pixels of the round
-## version sat orthogonally above the letters' top row, breaking the 1px
-## text-clearance rule (RQD 2026-09-02) — this curve keeps rows 1/10 clear of
-## the letter columns.
-const CIRCLE_12: Array[String] = [
-	"...######...",
-	".##......##.",
-	"#..........#",
-	"#..........#",
-	"#..........#",
-	"#..........#",
-	"#..........#",
-	"#..........#",
-	"#..........#",
-	"#..........#",
-	".##......##.",
-	"...######...",
+## ODD width on purpose (RQD 2026-09-02: letters sat off-center — "shrink or
+## widen the buttons by 1px"): 11 centers a 5-wide letter and a 5-wide mark
+## exactly on both axes. Flatter-shouldered than a true circle so the
+## shoulder pixels stay clear of the letters' top row (the 1px
+## text-clearance rule).
+const FACE_WIDTH: int = 11
+const CIRCLE_11: Array[String] = [
+	"...#####...",
+	".##.....##.",
+	"#.........#",
+	"#.........#",
+	"#.........#",
+	"#.........#",
+	"#.........#",
+	"#.........#",
+	"#.........#",
+	".##.....##.",
+	"...#####...",
 ]
 
 ## Left bumper/trigger pill (15x10, stamped at y=1): swept round on the outer
@@ -112,20 +113,20 @@ const ROUNDED_SQUARE_13: Array[String] = [
 	".###########.",
 ]
 
-# ---- inner marks (6x6 centers exactly in the 12 circle) ----------------------
+# ---- inner marks (5x5 centers exactly in the 11 circle) ----------------------
 
-const INNER_6X6: Dictionary = {
-	"cross": ["#....#", ".#..#.", "..##..", "..##..", ".#..#.", "#....#"],
-	"circle": [".####.", "#....#", "#....#", "#....#", "#....#", ".####."],
-	"square": ["######", "#....#", "#....#", "#....#", "#....#", "######"],
-	"triangle": ["..##..", "..##..", ".#..#.", ".#..#.", "#....#", "######"],
-	"plus": ["..##..", "..##..", "######", "######", "..##..", "..##.."],
-	"minus": ["......", "......", "######", "######", "......", "......"],
-	# Two overlapping 4x4 square outlines — the Xbox View glyph.
-	"view": ["####..", "#..#..", "#.####", "####.#", "..#..#", "..####"],
+const INNER_5X5: Dictionary = {
+	"cross": ["#...#", ".#.#.", "..#..", ".#.#.", "#...#"],
+	"circle": [".###.", "#...#", "#...#", "#...#", ".###."],
+	"square": ["#####", "#...#", "#...#", "#...#", "#####"],
+	"triangle": ["..#..", "..#..", ".#.#.", "#...#", "#####"],
+	"plus": ["..#..", "..#..", "#####", "..#..", "..#.."],
+	"minus": [".....", ".....", "#####", ".....", "....."],
+	# Two overlapping 3x3 square outlines — the Xbox View glyph.
+	"view": ["###..", "#.#..", "#####", "..#.#", "..###"],
 }
 
-const MENU_BAR_6: Array[String] = ["######"]
+const MENU_BAR_5: Array[String] = ["#####"]
 
 ## The d-pad cross outline (10x10, centered on the canvas) with the UP arm
 ## filled; the other three directions are derived (flip / transpose), so the
@@ -168,10 +169,10 @@ func _run() -> void:
 func _build_all_sprites() -> Dictionary:
 	var sprites: Dictionary = {}
 	var bumper_right: Array[String] = _flip_horizontal(BUMPER_LEFT_15X10)
-	# Face buttons: 5x7 capital in the circle.
+	# Face buttons: 5x7 capital in the circle, exactly centered (odd-in-odd).
 	for letter: String in ["A", "B", "X", "Y"]:
 		sprites["letter_" + letter.to_lower()] = _compose_button(
-				[[CIRCLE_12, 0, 0]], [[LETTERS_5X7[letter], 3, 2]])
+				[[CIRCLE_11, 0, 0]], [[LETTERS_5X7[letter], 3, 2]], FACE_WIDTH)
 	# Switch shoulders: single mini letter on the correctly-swept bumper.
 	sprites["letter_l"] = _compose_button(
 			[[BUMPER_LEFT_15X10, 0, 1]], [[MINI_4X5["L"], 6, 4]], BUMPER_WIDTH)
@@ -196,15 +197,18 @@ func _build_all_sprites() -> Dictionary:
 	# PS faces, Switch +/-, Xbox View: mark inside the circle button.
 	for inner_name: String in ["cross", "circle", "square", "triangle"]:
 		sprites["shape_" + inner_name] = _compose([
-			[CIRCLE_12, 0, 0], [INNER_6X6[inner_name], 3, 3]])
-	sprites["label_plus"] = _compose([[CIRCLE_12, 0, 0], [INNER_6X6["plus"], 3, 3]])
-	sprites["label_minus"] = _compose([[CIRCLE_12, 0, 0], [INNER_6X6["minus"], 3, 3]])
+			[CIRCLE_11, 0, 0], [INNER_5X5[inner_name], 3, 3]], FACE_WIDTH)
+	sprites["label_plus"] = _compose(
+			[[CIRCLE_11, 0, 0], [INNER_5X5["plus"], 3, 3]], FACE_WIDTH)
+	sprites["label_minus"] = _compose(
+			[[CIRCLE_11, 0, 0], [INNER_5X5["minus"], 3, 3]], FACE_WIDTH)
 	# Hardware-accurate Xbox-era system icons — generated but currently
 	# UNMAPPED (RQD 2026-09-02: "three lines and overlapping squares have
 	# always made me look at the controller"). Kept for a cheap re-audition.
-	sprites["icon_view"] = _compose([[CIRCLE_12, 0, 0], [INNER_6X6["view"], 3, 3]])
-	sprites["icon_menu"] = _compose([[CIRCLE_12, 0, 0],
-			[MENU_BAR_6, 3, 4], [MENU_BAR_6, 3, 6], [MENU_BAR_6, 3, 8]])
+	sprites["icon_view"] = _compose(
+			[[CIRCLE_11, 0, 0], [INNER_5X5["view"], 3, 3]], FACE_WIDTH)
+	sprites["icon_menu"] = _compose([[CIRCLE_11, 0, 0],
+			[MENU_BAR_5, 3, 3], [MENU_BAR_5, 3, 5], [MENU_BAR_5, 3, 7]], FACE_WIDTH)
 	# The retro-universal system buttons: the era this audience learned pads
 	# in printed the WORDS on pill buttons, so the word-on-a-pill IS the
 	# universal glyph. Wide sprites — the chip-expands-to-fit rule covers it.
@@ -217,13 +221,13 @@ func _build_all_sprites() -> Dictionary:
 	# filled disc serves all eight; each char layer matches its merged sprite's
 	# glyph position. 1px padding on every side gives the runtime glow shader
 	# its halo room (files are 14x14; the merged 12-tall sprites are untouched).
-	sprites["face_form"] = _pad(_fill_rows(_compose([[CIRCLE_12, 0, 0]])))
+	sprites["face_form"] = _pad(_fill_rows(_compose([[CIRCLE_11, 0, 0]], FACE_WIDTH)))
 	for letter: String in ["A", "B", "X", "Y"]:
 		sprites["letter_" + letter.to_lower() + "_char"] = _pad(
-				_compose([[LETTERS_5X7[letter], 3, 2]]))
+				_compose([[LETTERS_5X7[letter], 3, 2]], FACE_WIDTH))
 	for inner_name: String in ["cross", "circle", "square", "triangle"]:
 		sprites["shape_" + inner_name + "_char"] = _pad(
-				_compose([[INNER_6X6[inner_name], 3, 3]]))
+				_compose([[INNER_5X5[inner_name], 3, 3]], FACE_WIDTH))
 	# D-pad: author UP once, derive the rest, center on the canvas.
 	var dpad_variants: Dictionary = {
 		"dpad_up": DPAD_UP_10,
