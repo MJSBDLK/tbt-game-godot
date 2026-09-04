@@ -151,15 +151,36 @@ func test_style_knob_switches_the_live_recipe() -> void:
 	assert_true(HintBarCommands.joy_glyph_identity("Y", HintBarCommands.JoySkin.XBOX).has("form_glow"))
 
 
-func test_identity_layers_exist_with_halo_padding() -> void:
-	for label: String in ["A", "B", "X", "Y", "Cross", "Circle", "Square", "Triangle"]:
+func test_every_familied_label_has_form_line_and_char_layers() -> void:
+	# Since the INK style plates EVERY button, layers exist for the whole
+	# vocabulary, not just faces — form + line + char, all 1px halo-padded.
+	for label: String in ["A", "B", "X", "Y", "Cross", "Circle", "Square", "Triangle",
+			"LB", "R1", "L", "R3", "L4", "P2", "Menu", "View", "+", "-"]:
 		var layers := HintBarCommands.joy_glyph_layer_textures(label)
 		assert_false(layers.is_empty(), "'%s' needs split layers" % label)
-		assert_eq((layers.form as Texture2D).get_height(), 14,
-				"form is 12 + 1px halo padding each side")
-		assert_eq((layers.char as Texture2D).get_height(), 14)
-	assert_true(HintBarCommands.joy_glyph_layer_textures("LB").is_empty(),
-			"non-face labels have no layers — they fall back to the merged sprite")
+		for key: String in ["form", "line", "char"]:
+			assert_eq((layers[key] as Texture2D).get_height(), 14,
+					"'%s' %s is 12 + 1px halo padding each side" % [label, key])
+	assert_true(HintBarCommands.joy_glyph_layer_textures("D-Up").is_empty(),
+			"the d-pad has no family — it falls back to the merged sprite")
+
+
+func test_ink_recipe_plates_every_button_and_hardware_only_faces() -> void:
+	# HARDWARE: neutral buttons render the merged sprite (empty recipe).
+	assert_true(HintBarCommands.joy_glyph_recipe("LB", HintBarCommands.JoySkin.XBOX,
+			HintBarCommands.JoyGlyphStyle.HARDWARE).is_empty())
+	# INK: the same button gets the plate + mid-gray outline + text-voice char.
+	var ink := HintBarCommands.joy_glyph_recipe("LB", HintBarCommands.JoySkin.XBOX,
+			HintBarCommands.JoyGlyphStyle.INK)
+	assert_eq(ink.form, HintBarCommands.joy_glyph_ink_plate())
+	assert_eq(ink.line, GameColorPalette.get_color(
+			HintBarCommands.INK_OUTLINE_RAMP, HintBarCommands.INK_OUTLINE_INDEX))
+	assert_eq(ink.char, GameColors.TEXT_PRIMARY, "identity-less glyphs speak the text voice")
+	# INK with an identity: the glyph keeps its color, the plate/outline match.
+	var letter := HintBarCommands.joy_glyph_recipe("A", HintBarCommands.JoySkin.XBOX,
+			HintBarCommands.JoyGlyphStyle.INK)
+	assert_eq(letter.char, GameColorPalette.get_color("Green", 6))
+	assert_true(letter.has("line"), "identity buttons wear the outline too")
 
 
 func test_text_only_list_never_overlaps_the_sprite_map() -> void:

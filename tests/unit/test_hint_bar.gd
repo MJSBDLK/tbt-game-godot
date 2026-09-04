@@ -136,10 +136,27 @@ func test_joypad_renders_controller_glyphs() -> void:
 	assert_not_null(form.material, "the colored skittle wears the glow")
 	var character := glyph.get_node("Char") as TextureRect
 	assert_eq(character.modulate, GameColorPalette.get_color("Gray", 1), "dark letter on the skittle")
-	# LB has no identity — it stays the single ink-tinted outline sprite.
+	# LB has no identity — under HARDWARE it stays the single ink-tinted
+	# outline sprite.
 	var neutral := _items(bar)[3].get_node("Glyph") as TextureRect
 	assert_eq(neutral.texture.resource_path,
 			HintBarCommands.JOY_GLYPH_SPRITE_DIRECTORY + "label_lb.png")
+
+
+func test_ink_style_plates_every_button_in_the_bar() -> void:
+	# The pattern complaint (RQD 2026-09-04): under INK, LB must not stay a
+	# white outline while its neighbors sit on plates — every button renders
+	# form + gray Line + char.
+	InputSource.last_device = InputSource.Device.JOYPAD
+	HintBarCommands.joy_glyph_style = HintBarCommands.JoyGlyphStyle.INK
+	var bar := _make_bar()
+	for item: Node in _items(bar):
+		var glyph := item.get_node("Glyph")
+		assert_true(glyph.has_node("Line"),
+				"%s: INK renders the outline layer on every button" % item.name)
+	var bumper := _items(bar)[3].get_node("Glyph")
+	assert_eq((bumper.get_node("Char") as TextureRect).modulate, GameColors.TEXT_PRIMARY,
+			"LB's label speaks the text voice under INK")
 
 
 func test_joypad_labels_without_sprites_fall_back_to_text() -> void:

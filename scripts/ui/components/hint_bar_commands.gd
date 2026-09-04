@@ -504,12 +504,16 @@ enum JoyGlyphStyle { HARDWARE, INK }
 
 ## The audition knob. Flip the default here (or set it at runtime — the bar
 ## samples per refresh); tests pin their own value, so either default ships.
-static var joy_glyph_style: JoyGlyphStyle = JoyGlyphStyle.HARDWARE
+static var joy_glyph_style: JoyGlyphStyle = JoyGlyphStyle.INK
 
 ## INK-style plate under the colored glyph — the tweakables.
 const INK_PLATE_RAMP: String = "Eggshell"
 const INK_PLATE_INDEX: int = 1
 const INK_PLATE_ALPHA: float = 0.85
+## INK-style button outline (RQD 2026-09-04: "not subtle, not bright") —
+## Gray 5 is the ramp's literal middle; nudge the index to taste.
+const INK_OUTLINE_RAMP: String = "Gray"
+const INK_OUTLINE_INDEX: int = 5
 
 ## label -> [ramp, body step, glow step]; glow = body − 3, the TEXT_* pairing.
 const SKITTLE_RAMPS: Dictionary = {
@@ -566,17 +570,67 @@ static func joy_glyph_identity(label: String, skin: JoySkin, style: int = -1) ->
 	return {}
 
 
-## The split layers for an identity render: {form: Texture2D, char: Texture2D}.
-## Empty when either file is missing — the caller falls back to the merged
-## outline sprite, so a missing layer degrades, never breaks.
+## Which form/line family each sprite's char pairs with. Sprites absent here
+## (d-pads, the unmapped view/menu icons) have no layers and always render
+## their merged sprite.
+const JOY_GLYPH_FORM_FAMILY_BY_SPRITE: Dictionary = {
+	"letter_a": "face", "letter_b": "face", "letter_x": "face", "letter_y": "face",
+	"shape_cross": "face", "shape_circle": "face",
+	"shape_square": "face", "shape_triangle": "face",
+	"label_plus": "face", "label_minus": "face",
+	"letter_l": "bumper_left", "label_lb": "bumper_left", "label_l1": "bumper_left",
+	"label_lt": "bumper_left", "label_l2": "bumper_left", "label_zl": "bumper_left",
+	"letter_r": "bumper_right", "label_rb": "bumper_right", "label_r1": "bumper_right",
+	"label_rt": "bumper_right", "label_r2": "bumper_right", "label_zr": "bumper_right",
+	"stick_l3": "square", "stick_r3": "square",
+	"label_l4": "square", "label_l5": "square", "label_r4": "square", "label_r5": "square",
+	"label_p1": "square", "label_p2": "square", "label_p3": "square", "label_p4": "square",
+	"label_start": "start", "label_select": "select",
+}
+
+
+## The split layers for a layered render: {form, line, char} Texture2Ds.
+## Empty when the sprite has no family or any file is missing — the caller
+## falls back to the merged outline sprite, so a gap degrades, never breaks.
 static func joy_glyph_layer_textures(label: String) -> Dictionary:
 	if not JOY_GLYPH_SPRITES_BY_LABEL.has(label):
 		return {}
-	var char_path: String = JOY_GLYPH_SPRITE_DIRECTORY + String(JOY_GLYPH_SPRITES_BY_LABEL[label]) + "_char.png"
-	var form_path: String = JOY_GLYPH_SPRITE_DIRECTORY + "face_form.png"
-	if not ResourceLoader.exists(char_path) or not ResourceLoader.exists(form_path):
+	var sprite_name: String = String(JOY_GLYPH_SPRITES_BY_LABEL[label])
+	var family: String = String(JOY_GLYPH_FORM_FAMILY_BY_SPRITE.get(sprite_name, ""))
+	if family.is_empty():
 		return {}
-	return {form = load(form_path), char = load(char_path)}
+	var char_path: String = JOY_GLYPH_SPRITE_DIRECTORY + sprite_name + "_char.png"
+	var form_path: String = JOY_GLYPH_SPRITE_DIRECTORY + family + "_form.png"
+	var line_path: String = JOY_GLYPH_SPRITE_DIRECTORY + family + "_line.png"
+	for path: String in [char_path, form_path, line_path]:
+		if not ResourceLoader.exists(path):
+			return {}
+	return {form = load(form_path), line = load(line_path), char = load(char_path)}
+
+
+## What the bar paints for a label: {} = render the merged outline sprite in
+## the text ink (HARDWARE's neutral buttons; anything without layers).
+## Otherwise {form, char} plus optional {form_glow, line, char_glow} —
+## HARDWARE returns the identity as-is (no outline layer); INK plates EVERY
+## layered button: Eggshell plate + gray outline + the glyph in its identity
+## color (or the bar's text voice when it has none), glow and all.
+static func joy_glyph_recipe(label: String, skin: JoySkin, style: int = -1) -> Dictionary:
+	var active: JoyGlyphStyle = (style as JoyGlyphStyle) if style >= 0 else joy_glyph_style
+	var identity := joy_glyph_identity(label, skin, active)
+	if active == JoyGlyphStyle.HARDWARE:
+		return identity
+	var recipe: Dictionary = {
+		form = joy_glyph_ink_plate(),
+		line = GameColorPalette.get_color(INK_OUTLINE_RAMP, INK_OUTLINE_INDEX),
+	}
+	if identity.is_empty():
+		recipe.char = GameColors.TEXT_PRIMARY
+		recipe.char_glow = GameColors.TEXT_PRIMARY_GLOW
+	else:
+		recipe.char = identity.char
+		if identity.has("char_glow"):
+			recipe.char_glow = identity.char_glow
+	return recipe
 
 
 ## The drawn glyph for a controller label, or null when the label renders as

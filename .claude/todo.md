@@ -437,10 +437,18 @@ Nothing here is code-blocked; all have placeholders shipping today.
   Eggshell 1 @ 85%; letter bodies brighten a step for text-on-dark,
   `INK_LETTER_RAMPS`). Static var — flip the default in code or set at
   runtime, bar re-renders at the next boundary; tests pin their own style
-  so either default ships. EYEBALL: HARDWARE vs INK verdict (strips for
-  both in .claude/hint_bar_strip_*.png), plate visibility at 85% on the
-  bar's dark glass (it's subtle — the alpha/index knobs are the dial),
-  Deck-shares-Xbox-colors call, PS disc contrast.
+  so either default ships. INK ROUND 2 (RQD 2026-09-04, from an in-game
+  shot): LB broke the pattern (only faces had layers) → the generator now
+  emits form/line/char layers for EVERY button family (`_emit_form_family`:
+  face, bumper_left/right, square, start, select — 86 sprites total), INK
+  plates the whole bar uniformly, and a NEW OUTLINE LAYER ships in mid-gray
+  (`INK_OUTLINE_RAMP`/`INK_OUTLINE_INDEX` = Gray 5, "not subtle, not
+  bright"); identity-less glyphs (LB, START…) speak TEXT_PRIMARY + its
+  glow. `joy_glyph_recipe` is what the bar paints; HARDWARE is untouched
+  (neutrals stay merged-outline). EYEBALL: HARDWARE vs INK verdict (strips
+  in .claude/hint_bar_strip_*.png — ink pair rendered on a BRIGHT backdrop
+  now), plate alpha/index, outline Gray 5 vs 6, Deck-shares-Xbox-colors
+  call, PS disc contrast.
   Lawrence's ask is now a VETO/REDRAW pass — replace a PNG, keep the name,
   nothing else moves. Contact sheet: rerun the generator, it drops
   `.claude/controller_glyphs_contact.png` at 8×. Tests:

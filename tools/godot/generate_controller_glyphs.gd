@@ -165,46 +165,62 @@ func _run() -> void:
 	print("[glyphs] done — ", names.size(), " sprites")
 
 
-## Every sprite as an Array[String] of CANVAS_SIZE rows ('#' = white pixel).
+## Every sprite as an Array[String] of rows ('#' = white pixel).
+##
+## LAYER SPLIT (RQD 2026-09-02/04): every button family also emits
+## `<family>_form` (the filled shape) and `<family>_line` (the outline
+## alone), and every glyph emits `<sprite>_char` (its text/mark alone, same
+## position as the merged sprite) — so the engine can tint plate, outline,
+## and character independently: HARDWARE colors the skittle or the PS mark,
+## INK plates EVERY button (Eggshell plate + gray outline + colored/ink
+## glyph). All layer files are 1px-padded for glow halo room. The merged
+## 12-tall sprites remain the neutral/fallback rendering.
 func _build_all_sprites() -> Dictionary:
 	var sprites: Dictionary = {}
 	var bumper_right: Array[String] = _flip_horizontal(BUMPER_LEFT_15X10)
+	_emit_form_family(sprites, "face", [[CIRCLE_11, 0, 0]], FACE_WIDTH)
+	_emit_form_family(sprites, "bumper_left", [[BUMPER_LEFT_15X10, 0, 1]], BUMPER_WIDTH)
+	_emit_form_family(sprites, "bumper_right", [[bumper_right, 0, 1]], BUMPER_WIDTH)
+	_emit_form_family(sprites, "square", [[ROUNDED_SQUARE_13, 0, 0]], ROUNDED_SQUARE_WIDTH)
+	_emit_form_family(sprites, "start", [[_pill_rows("START"), 0, 1]], _pill_width("START"))
+	_emit_form_family(sprites, "select", [[_pill_rows("SELECT"), 0, 1]], _pill_width("SELECT"))
 	# Face buttons: 5x7 capital in the circle, exactly centered (odd-in-odd).
 	for letter: String in ["A", "B", "X", "Y"]:
-		sprites["letter_" + letter.to_lower()] = _compose_button(
+		_button_sprite(sprites, "letter_" + letter.to_lower(),
 				[[CIRCLE_11, 0, 0]], [[LETTERS_5X7[letter], 3, 2]], FACE_WIDTH)
 	# Switch shoulders: single mini letter on the correctly-swept bumper.
-	sprites["letter_l"] = _compose_button(
+	_button_sprite(sprites, "letter_l",
 			[[BUMPER_LEFT_15X10, 0, 1]], [[MINI_4X5["L"], 6, 4]], BUMPER_WIDTH)
-	sprites["letter_r"] = _compose_button(
+	_button_sprite(sprites, "letter_r",
 			[[bumper_right, 0, 1]], [[MINI_4X5["R"], 5, 4]], BUMPER_WIDTH)
 	# Shoulder/trigger pairs ride the bumper swept toward their side.
 	for label: String in ["LB", "L1", "LT", "L2", "ZL"]:
-		sprites["label_" + label.to_lower()] = _compose_button(
+		_button_sprite(sprites, "label_" + label.to_lower(),
 				[[BUMPER_LEFT_15X10, 0, 1]], _mini_pair_blocks(label, 3, 4), BUMPER_WIDTH)
 	for label: String in ["RB", "R1", "RT", "R2", "ZR"]:
-		sprites["label_" + label.to_lower()] = _compose_button(
+		_button_sprite(sprites, "label_" + label.to_lower(),
 				[[bumper_right, 0, 1]], _mini_pair_blocks(label, 3, 4), BUMPER_WIDTH)
 	# Stick clicks + back grips + Elite paddles: rounded square.
 	for label: String in ["L3", "R3"]:
-		sprites["stick_" + label.to_lower()] = _compose_button(
+		_button_sprite(sprites, "stick_" + label.to_lower(),
 				[[ROUNDED_SQUARE_13, 0, 0]], _mini_pair_blocks(label, 2, 4),
 				ROUNDED_SQUARE_WIDTH)
 	for label: String in ["L4", "L5", "R4", "R5", "P1", "P2", "P3", "P4"]:
-		sprites["label_" + label.to_lower()] = _compose_button(
+		_button_sprite(sprites, "label_" + label.to_lower(),
 				[[ROUNDED_SQUARE_13, 0, 0]], _mini_pair_blocks(label, 2, 4),
 				ROUNDED_SQUARE_WIDTH)
-	# PS faces, Switch +/-, Xbox View: mark inside the circle button.
+	# PS faces, Switch +/-: mark inside the circle button.
 	for inner_name: String in ["cross", "circle", "square", "triangle"]:
-		sprites["shape_" + inner_name] = _compose([
-			[CIRCLE_11, 0, 0], [INNER_5X5[inner_name], 3, 3]], FACE_WIDTH)
-	sprites["label_plus"] = _compose(
-			[[CIRCLE_11, 0, 0], [INNER_5X5["plus"], 3, 3]], FACE_WIDTH)
-	sprites["label_minus"] = _compose(
-			[[CIRCLE_11, 0, 0], [INNER_5X5["minus"], 3, 3]], FACE_WIDTH)
+		_button_sprite(sprites, "shape_" + inner_name,
+				[[CIRCLE_11, 0, 0]], [[INNER_5X5[inner_name], 3, 3]], FACE_WIDTH)
+	_button_sprite(sprites, "label_plus",
+			[[CIRCLE_11, 0, 0]], [[INNER_5X5["plus"], 3, 3]], FACE_WIDTH)
+	_button_sprite(sprites, "label_minus",
+			[[CIRCLE_11, 0, 0]], [[INNER_5X5["minus"], 3, 3]], FACE_WIDTH)
 	# Hardware-accurate Xbox-era system icons — generated but currently
 	# UNMAPPED (RQD 2026-09-02: "three lines and overlapping squares have
-	# always made me look at the controller"). Kept for a cheap re-audition.
+	# always made me look at the controller"). Kept for a cheap re-audition;
+	# merged only, no layers.
 	sprites["icon_view"] = _compose(
 			[[CIRCLE_11, 0, 0], [INNER_5X5["view"], 3, 3]], FACE_WIDTH)
 	sprites["icon_menu"] = _compose([[CIRCLE_11, 0, 0],
@@ -212,22 +228,10 @@ func _build_all_sprites() -> Dictionary:
 	# The retro-universal system buttons: the era this audience learned pads
 	# in printed the WORDS on pill buttons, so the word-on-a-pill IS the
 	# universal glyph. Wide sprites — the chip-expands-to-fit rule covers it.
-	sprites["label_start"] = _pill_label("START")
-	sprites["label_select"] = _pill_label("SELECT")
-	# LAYER SPLIT for color identities (RQD 2026-09-02): face buttons also
-	# emit form + character as SEPARATE layers so the engine can tint them
-	# independently — Xbox colors the skittle (green A, red B, blue X, gold Y),
-	# PlayStation colors the mark on a dark button, per hardware. One shared
-	# filled disc serves all eight; each char layer matches its merged sprite's
-	# glyph position. 1px padding on every side gives the runtime glow shader
-	# its halo room (files are 14x14; the merged 12-tall sprites are untouched).
-	sprites["face_form"] = _pad(_fill_rows(_compose([[CIRCLE_11, 0, 0]], FACE_WIDTH)))
-	for letter: String in ["A", "B", "X", "Y"]:
-		sprites["letter_" + letter.to_lower() + "_char"] = _pad(
-				_compose([[LETTERS_5X7[letter], 3, 2]], FACE_WIDTH))
-	for inner_name: String in ["cross", "circle", "square", "triangle"]:
-		sprites["shape_" + inner_name + "_char"] = _pad(
-				_compose([[INNER_5X5[inner_name], 3, 3]], FACE_WIDTH))
+	_button_sprite(sprites, "label_start",
+			[[_pill_rows("START"), 0, 1]], _word_blocks("START"), _pill_width("START"))
+	_button_sprite(sprites, "label_select",
+			[[_pill_rows("SELECT"), 0, 1]], _word_blocks("SELECT"), _pill_width("SELECT"))
 	# D-pad: author UP once, derive the rest, center on the canvas.
 	var dpad_variants: Dictionary = {
 		"dpad_up": DPAD_UP_10,
@@ -240,22 +244,44 @@ func _build_all_sprites() -> Dictionary:
 	return sprites
 
 
-## A pill button carrying a whole mini-font word — the retro START/SELECT
-## format. Height 9 (centered on the 12-row canvas), width sized to the text.
-func _pill_label(word: String) -> Array[String]:
-	var text_width: int = word.length() * 5 - 1
-	var width: int = text_width + 4
+## Merged sprite + its char layer (the text alone, padded, same position) —
+## the char pairs with its family's form/line layers at render time.
+func _button_sprite(sprites: Dictionary, sprite_name: String,
+		silhouette: Array, text: Array, width: int) -> void:
+	sprites[sprite_name] = _compose_button(silhouette, text, width)
+	sprites[sprite_name + "_char"] = _pad(_compose(text, width))
+
+
+## One button family's outline (`_line`) and filled shape (`_form`) layers.
+func _emit_form_family(sprites: Dictionary, family: String, blocks: Array, width: int) -> void:
+	var line: Array[String] = _compose(blocks, width)
+	sprites[family + "_line"] = _pad(line)
+	sprites[family + "_form"] = _pad(_fill_rows(line))
+
+
+## The retro START/SELECT pill silhouette: height 9 (stamped at y=1 to center
+## on the 12-row canvas), width sized to the word.
+func _pill_width(word: String) -> int:
+	return word.length() * 5 - 1 + 4
+
+
+func _pill_rows(word: String) -> Array[String]:
+	var width: int = _pill_width(word)
 	var pill: Array[String] = [
 		"." + "#".repeat(width - 2) + ".",
 	]
 	for y: int in 7:
 		pill.append("#" + ".".repeat(width - 2) + "#")
 	pill.append("." + "#".repeat(width - 2) + ".")
-	var text_blocks: Array = []
+	return pill
+
+
+func _word_blocks(word: String) -> Array:
+	var blocks: Array = []
 	for index: int in word.length():
 		assert(MINI_4X5.has(word[index]), "mini font lacks '%s'" % word[index])
-		text_blocks.append([MINI_4X5[word[index]], 2 + index * 5, 3])
-	return _compose_button([[pill, 0, 1]], text_blocks, width)
+		blocks.append([MINI_4X5[word[index]], 2 + index * 5, 3])
+	return blocks
 
 
 ## The 1px breathing-room rule (RQD 2026-09-02): every letter/digit pixel

@@ -391,9 +391,9 @@ func _make_item(entry: Dictionary, model: HintBarCommands.Model) -> Control:
 ## whichever layer the identity says glows. Identity-less labels keep the
 ## ink-tinted outline sprite.
 func _make_glyph_chip(label: String, texture: Texture2D) -> Control:
-	var identity := HintBarCommands.joy_glyph_identity(label, HintBarCommands.current_joy_skin())
-	var layers := HintBarCommands.joy_glyph_layer_textures(label) if not identity.is_empty() else {}
-	if identity.is_empty() or layers.is_empty():
+	var recipe := HintBarCommands.joy_glyph_recipe(label, HintBarCommands.current_joy_skin())
+	var layers := HintBarCommands.joy_glyph_layer_textures(label) if not recipe.is_empty() else {}
+	if recipe.is_empty() or layers.is_empty():
 		var icon := _glyph_layer(texture, GameColors.TEXT_PRIMARY, null)
 		icon.name = "Glyph"
 		return icon
@@ -401,11 +401,16 @@ func _make_glyph_chip(label: String, texture: Texture2D) -> Control:
 	chip.name = "Glyph"
 	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	chip.custom_minimum_size = (layers.form as Texture2D).get_size()
-	var form := _glyph_layer(layers.form, identity.form, identity.get("form_glow"))
+	var form := _glyph_layer(layers.form, recipe.form, recipe.get("form_glow"))
 	form.name = "Form"
 	form.set_anchors_preset(Control.PRESET_FULL_RECT)
 	chip.add_child(form)
-	var character := _glyph_layer(layers.char, identity.char, identity.get("char_glow"))
+	if recipe.has("line"):
+		var line := _glyph_layer(layers.line, recipe.line, null)
+		line.name = "Line"
+		line.set_anchors_preset(Control.PRESET_FULL_RECT)
+		chip.add_child(line)
+	var character := _glyph_layer(layers.char, recipe.char, recipe.get("char_glow"))
 	character.name = "Char"
 	character.set_anchors_preset(Control.PRESET_FULL_RECT)
 	chip.add_child(character)
