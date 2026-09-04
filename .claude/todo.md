@@ -18,6 +18,12 @@
   (Menu/Options → START, View/Share → SELECT); Switch keeps its printed +/−.
   The hardware-accurate ☰/⧉ sprites stay on disk unmapped for a re-audition.)
   - [ ] Also, "three lines" and "overlapping squares" have always made me look at the controller. Are there icons which universally represent "start" and "select" for us millenial (and older) gamers?
+- [ ] Just discovered I can't navigate the unit detail panel with a controller
+  - [ ] All the controls bar reads, in this context, is "B for close"
+- [ ] Default cursor speed is perfect with the D-pad, too fast on the control stick
+  - [ ] For the control stick, I was thinking more of a fairly quick acceleration to medium speed:
+    - you can flick the stick repeatedly for navigaint a single tile at a time
+    - if you hold the stick, it clicks to the nearest tile, but if you keep holding, it begins moving faster, but at a manageable speed - just like the D-pad (let's expose this variable though, so I can test. Might be an options menu "cursor speed")
 
 # Ideas
 - [x] 1. XP gain on map: When a unit gains XP on the map, we should have an XP bar fade in (quickly) right above/below their health bar (yellow fill, black bg), fill with a filling sound effect, and then fade back out (slowly) (Done 2026-08-21: `Unit._build_xp_bar` — 24×2 banana-on-black (YellowOrange 7 `#f5cd65`, the house gold — RQD correction 2026-08-21, was the olive Yellow 7) under `HealthBar`, 1px BENEATH the health bar (RQD: beneath reads more natural; `XP_BAR_OFFSET_Y` = -4 tries above). `_flush_xp_feedback` fires `_play_xp_bar(before, after, levels)` alongside the "+N XP" callout: fade in 0.1s → sweep (0.45s per full bar; a level wrap fills to full, flashes Yellow 8, restarts from 0) → hold 0.5s → fade out 0.6s; reduce-motion parks at the landing fraction. `xp_bar_fill_segments` is the pure sweep plan. SFX `audio/ui/xp_fill.wav` — placeholder rising tick train from generate_ui_sfx.gd, Lawrence replaces same-name. While there: `CharacterData.XP_PER_LEVEL` now owns the 100 that grant_xp / sheet / bEXP / unit sheet each hardcoded. 9 tests in test_combat_xp.gd. EYEBALL: the bar's bottom row kisses the top pixel of tall sprites' art for the ~1.7s it shows — fine in a static render; judge in motion.)
@@ -424,9 +430,17 @@ Nothing here is code-blocked; all have placeholders shipping today.
   `joy_glyph_identity` is the one table; missing layer files degrade to the
   merged outline sprite. CIRCLE WENT ODD (RQD same day: letters sat
   off-center, "shrink or widen by 1px"): 12→11 wide, so 5-wide letters and
-  the redrawn 5-wide marks center exactly on both axes. EYEBALL:
-  Deck-shares-Xbox-colors call (hardware is monochrome — veto if purism
-  wins), PS disc contrast on dark glass.
+  the redrawn 5-wide marks center exactly on both axes. TWO STYLES
+  (RQD 2026-09-04): `HintBarCommands.joy_glyph_style` — HARDWARE (ships:
+  colors where the plastic puts them) vs INK (identity in the glyph + its
+  glow, on a semitransparent plate: `INK_PLATE_RAMP/INDEX/ALPHA` knobs,
+  Eggshell 1 @ 85%; letter bodies brighten a step for text-on-dark,
+  `INK_LETTER_RAMPS`). Static var — flip the default in code or set at
+  runtime, bar re-renders at the next boundary; tests pin their own style
+  so either default ships. EYEBALL: HARDWARE vs INK verdict (strips for
+  both in .claude/hint_bar_strip_*.png), plate visibility at 85% on the
+  bar's dark glass (it's subtle — the alpha/index knobs are the dial),
+  Deck-shares-Xbox-colors call, PS disc contrast.
   Lawrence's ask is now a VETO/REDRAW pass — replace a PNG, keep the name,
   nothing else moves. Contact sheet: rerun the generator, it drops
   `.claude/controller_glyphs_contact.png` at 8×. Tests:

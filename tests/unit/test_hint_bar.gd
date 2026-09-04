@@ -16,6 +16,7 @@ func before_each() -> void:
 	InputSource.last_device = InputSource.Device.KEYBOARD
 	DebugConfig.debug_force_touch_hints = false
 	HintBarCommands.joy_skin_override = HintBarCommands.JoySkin.XBOX
+	HintBarCommands.joy_glyph_style = HintBarCommands.JoyGlyphStyle.HARDWARE
 	Settings.show_control_hints = true
 	Settings.move_confirm_mode = Settings.MoveConfirmMode.AUTO
 	GameStateManager.change_state(Enums.InputState.DEFAULT)
@@ -26,6 +27,7 @@ func after_each() -> void:
 	Settings.show_control_hints = true
 	Settings.move_confirm_mode = Settings.MoveConfirmMode.AUTO
 	HintBarCommands.joy_skin_override = -1
+	HintBarCommands.joy_glyph_style = HintBarCommands.JoyGlyphStyle.HARDWARE
 	DebugConfig.debug_force_touch_hints = false
 	InputSource.last_device = InputSource.Device.MOUSE
 	InputSource.last_kind = InputSource.Kind.POINTER

@@ -486,45 +486,83 @@ static var _joy_glyph_cache: Dictionary = {}
 # ---- color identities (RQD 2026-09-02: "Y = yellow skittle") ---------------
 # Face buttons carry their hardware color identity, rendered from SPLIT
 # layers (face_form disc + <sprite>_char) so form and character tint
-# independently, each with the house orthogonal glow (hud_glow shader):
-#   - Xbox (and Steam Deck, same letters/positions — veto if the Deck's
-#     monochrome hardware should win): the SKITTLE is colored, letter dark —
-#     A green, B red, X blue, Y gold, glow = the ramp's darker step, same
-#     pairing rule as the TEXT_* voices.
-#   - PlayStation: the button is dark plastic and the MARK is colored (that's
-#     the hardware) — Cross azure, Circle red, Square pink (RedViolet — NOT
-#     the retired magenta), Triangle teal; the mark wears the glow.
-#   - Switch: no identities (black buttons), stays the neutral outline sprite.
+# independently, each with the house orthogonal glow (hud_glow shader).
 # Colors resolve through GameColorPalette at call time — no hardcoded hex.
+#
+# TWO STYLINGS, switchable live (RQD 2026-09-04) — flip `joy_glyph_style`
+# and the bar re-renders at the next state boundary:
+#   HARDWARE — colors sit where the plastic puts them: Xbox/Steam Deck color
+#     the SKITTLE with a dark letter (Deck shares Xbox — veto if its
+#     monochrome hardware should win); PlayStation colors the MARK on gray
+#     plastic (Square is RedViolet — pink, NOT the retired magenta).
+#   INK — the identity moves into the text/glyph itself, glow and all, on a
+#     semitransparent dark plate (the INK_PLATE_* knobs — Eggshell 1 @ 85%).
+#     Letter bodies brighten a step where the skittle color was tuned for a
+#     disc (B Red 5→6, X Azure 5→6): text on dark needs the lift.
+#   Switch: no identities in either style (black buttons) — neutral outline.
+enum JoyGlyphStyle { HARDWARE, INK }
+
+## The audition knob. Flip the default here (or set it at runtime — the bar
+## samples per refresh); tests pin their own value, so either default ships.
+static var joy_glyph_style: JoyGlyphStyle = JoyGlyphStyle.HARDWARE
+
+## INK-style plate under the colored glyph — the tweakables.
+const INK_PLATE_RAMP: String = "Eggshell"
+const INK_PLATE_INDEX: int = 1
+const INK_PLATE_ALPHA: float = 0.85
+
+## label -> [ramp, body step, glow step]; glow = body − 3, the TEXT_* pairing.
+const SKITTLE_RAMPS: Dictionary = {
+	"A": ["Green", 6, 3], "B": ["Red", 5, 2],
+	"X": ["Azure", 5, 2], "Y": ["YellowOrange", 7, 4],
+}
+const INK_LETTER_RAMPS: Dictionary = {
+	"A": ["Green", 6, 3], "B": ["Red", 6, 3],
+	"X": ["Azure", 6, 3], "Y": ["YellowOrange", 7, 4],
+}
+const MARK_RAMPS: Dictionary = {
+	"Cross": ["Azure", 6, 3], "Circle": ["Red", 6, 3],
+	"Square": ["RedViolet", 6, 3], "Triangle": ["Teal", 6, 3],
+}
+
+
+## The INK style's translucent plate color.
+static func joy_glyph_ink_plate() -> Color:
+	var plate: Color = GameColorPalette.get_color(INK_PLATE_RAMP, INK_PLATE_INDEX)
+	plate.a = INK_PLATE_ALPHA
+	return plate
+
 
 ## Identity recipe for a label under a skin: {form, char} Colors plus
 ## optional {form_glow, char_glow}. Empty when the button has no identity
-## (every non-face button, and all of Switch).
-static func joy_glyph_identity(label: String, skin: JoySkin) -> Dictionary:
+## (every non-face button, and all of Switch). `style` -1 = the live
+## joy_glyph_style; pass a JoyGlyphStyle to render a specific mode.
+static func joy_glyph_identity(label: String, skin: JoySkin, style: int = -1) -> Dictionary:
+	var active: JoyGlyphStyle = (style as JoyGlyphStyle) if style >= 0 else joy_glyph_style
 	if skin == JoySkin.XBOX or skin == JoySkin.STEAM_DECK:
-		var skittle: Dictionary = {
-			"A": ["Green", 6, 3], "B": ["Red", 5, 2],
-			"X": ["Azure", 5, 2], "Y": ["YellowOrange", 7, 4],
-		}
-		if skittle.has(label):
-			var ramp: Array = skittle[label]
+		if active == JoyGlyphStyle.HARDWARE and SKITTLE_RAMPS.has(label):
+			var ramp: Array = SKITTLE_RAMPS[label]
 			return {
 				form = GameColorPalette.get_color(ramp[0], ramp[1]),
 				form_glow = GameColorPalette.get_color(ramp[0], ramp[2]),
 				char = GameColorPalette.get_color("Gray", 1),
 			}
-	if skin == JoySkin.PLAYSTATION:
-		var marks: Dictionary = {
-			"Cross": ["Azure", 6, 3], "Circle": ["Red", 6, 3],
-			"Square": ["RedViolet", 6, 3], "Triangle": ["Teal", 6, 3],
-		}
-		if marks.has(label):
-			var ramp: Array = marks[label]
+		if active == JoyGlyphStyle.INK and INK_LETTER_RAMPS.has(label):
+			var ramp: Array = INK_LETTER_RAMPS[label]
 			return {
-				form = GameColorPalette.get_color("Gray", 2),
+				form = joy_glyph_ink_plate(),
 				char = GameColorPalette.get_color(ramp[0], ramp[1]),
 				char_glow = GameColorPalette.get_color(ramp[0], ramp[2]),
 			}
+	if skin == JoySkin.PLAYSTATION and MARK_RAMPS.has(label):
+		var ramp: Array = MARK_RAMPS[label]
+		var plate: Color = joy_glyph_ink_plate() if active == JoyGlyphStyle.INK \
+				else GameColorPalette.get_color("Gray", 2)
+		return {
+			form = plate,
+			char = GameColorPalette.get_color(ramp[0], ramp[1]),
+			char_glow = GameColorPalette.get_color(ramp[0], ramp[2]),
+		}
 	return {}
 
 

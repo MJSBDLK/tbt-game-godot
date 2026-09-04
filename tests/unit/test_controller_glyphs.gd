@@ -21,6 +21,16 @@ const LABELED_BUTTONS: Array[JoyButton] = [
 ]
 
 
+## Style is a live audition knob — pin it so these tests pass under either
+## shipped default.
+func before_each() -> void:
+	HintBarCommands.joy_glyph_style = HintBarCommands.JoyGlyphStyle.HARDWARE
+
+
+func after_each() -> void:
+	HintBarCommands.joy_glyph_style = HintBarCommands.JoyGlyphStyle.HARDWARE
+
+
 func test_deck_and_elite_grip_labels_cover_all_four_paddles() -> void:
 	# The Deck names its grips L4/R4 (upper) and L5/R5 (lower); Elite pads say
 	# P1..P4. Each set must be four DISTINCT sprite-backed labels — a collision
@@ -110,6 +120,35 @@ func test_xbox_colors_the_skittle_and_ps_colors_the_mark() -> void:
 	var playstation := HintBarCommands.joy_glyph_identity("Cross", HintBarCommands.JoySkin.PLAYSTATION)
 	assert_true(playstation.has("char_glow"), "PS: the colored MARK wears the glow")
 	assert_false(playstation.has("form_glow"), "PS: the dark plastic is glowless")
+
+
+func test_ink_style_moves_the_color_into_the_glyph() -> void:
+	# The alternative styling (RQD 2026-09-04): identity in the character with
+	# its glow, on the translucent Eggshell plate.
+	var ink := HintBarCommands.joy_glyph_identity("A", HintBarCommands.JoySkin.XBOX,
+			HintBarCommands.JoyGlyphStyle.INK)
+	assert_eq(ink.char, GameColorPalette.get_color("Green", 6), "INK: the letter is green")
+	assert_true(ink.has("char_glow"), "INK: the colored letter wears the glow")
+	assert_false(ink.has("form_glow"), "INK: the plate is glowless")
+	assert_eq(ink.form, HintBarCommands.joy_glyph_ink_plate())
+	assert_almost_eq(ink.form.a, HintBarCommands.INK_PLATE_ALPHA, 0.001,
+			"plate is semitransparent")
+	# PS in INK keeps its mark colors — only the plastic swaps for the plate.
+	var cross := HintBarCommands.joy_glyph_identity("Cross", HintBarCommands.JoySkin.PLAYSTATION,
+			HintBarCommands.JoyGlyphStyle.INK)
+	assert_eq(cross.form, HintBarCommands.joy_glyph_ink_plate())
+	assert_eq(cross.char, GameColorPalette.get_color("Azure", 6))
+	# Switch stays identity-less in both styles.
+	assert_true(HintBarCommands.joy_glyph_identity("A", HintBarCommands.JoySkin.NINTENDO,
+			HintBarCommands.JoyGlyphStyle.INK).is_empty())
+
+
+func test_style_knob_switches_the_live_recipe() -> void:
+	HintBarCommands.joy_glyph_style = HintBarCommands.JoyGlyphStyle.INK
+	var live := HintBarCommands.joy_glyph_identity("Y", HintBarCommands.JoySkin.XBOX)
+	assert_true(live.has("char_glow"), "default-arg calls follow the knob")
+	HintBarCommands.joy_glyph_style = HintBarCommands.JoyGlyphStyle.HARDWARE
+	assert_true(HintBarCommands.joy_glyph_identity("Y", HintBarCommands.JoySkin.XBOX).has("form_glow"))
 
 
 func test_identity_layers_exist_with_halo_padding() -> void:
