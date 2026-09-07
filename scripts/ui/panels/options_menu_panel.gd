@@ -27,6 +27,10 @@ var _click_attack_on_button: Button = null
 var _click_attack_off_button: Button = null
 var _auto_end_on_button: Button = null
 var _auto_end_off_button: Button = null
+var _control_hints_on_button: Button = null
+var _control_hints_off_button: Button = null
+var _move_confirm_buttons: Dictionary = {}  # Settings.MoveConfirmMode → Button
+var _move_commit_buttons: Dictionary = {}  # Settings.MoveCommitMode → Button
 var _seeded_reload_on_button: Button = null
 var _seeded_reload_off_button: Button = null
 var _type_icons_on_button: Button = null
@@ -132,6 +136,15 @@ func _populate_options() -> void:
 
 	# Auto End Turn (phase hands off when every unit has acted)
 	_create_auto_end_option()
+
+	# Control Hints (the battle hint / command bar)
+	_create_control_hints_option()
+
+	# Move Confirm (marker again vs a "Move here" button — playtest toggle)
+	_create_move_confirm_option()
+
+	# Move Commit (walk on plan-confirm vs ghost-until-action — playtest toggle)
+	_create_move_commit_option()
 
 	# Seeded Reload (loading a save keeps or re-rolls the dice)
 	_create_seeded_reload_option()
@@ -486,6 +499,132 @@ func _on_auto_end_off() -> void:
 	Settings.set_auto_end_turn(false)
 	_apply_toggle_state(_auto_end_on_button, false)
 	_apply_toggle_state(_auto_end_off_button, true)
+
+
+# Control Hints: the battle HUD's hint / command bar (HintBar). On by default.
+# Under TOUCH the bar is the only way to End turn / Menu / Threat zones, so
+# the tooltip says so — a phone player who turns it off is choosing the pause
+# menu as their only exit. (HintBar re-reads Settings on `changed`.)
+func _create_control_hints_option() -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+
+	var label := Label.new()
+	label.text = "Control Hints"
+	label.tooltip_text = "Show the bottom bar of button hints for the current step. On touch screens it is also the End Turn / Menu / Threat Zones control."
+	label.custom_minimum_size = Vector2(OPTION_LABEL_WIDTH, 0)
+	label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
+	var glow: ShaderMaterial = GLOW_MATERIAL.duplicate()
+	glow.set_shader_parameter("glow_color", GameColors.TEXT_PRIMARY_GLOW)
+	label.material = glow
+	row.add_child(label)
+
+	var button_container := HBoxContainer.new()
+	button_container.add_theme_constant_override("separation", 2)
+
+	var enabled: bool = Settings.show_control_hints
+
+	_control_hints_on_button = _create_toggle_button("On", enabled)
+	_control_hints_on_button.pressed.connect(_on_control_hints_on)
+	button_container.add_child(_control_hints_on_button)
+
+	_control_hints_off_button = _create_toggle_button("Off", not enabled)
+	_control_hints_off_button.pressed.connect(_on_control_hints_off)
+	button_container.add_child(_control_hints_off_button)
+
+	row.add_child(button_container)
+	_content_container.add_child(row)
+
+
+func _on_control_hints_on() -> void:
+	Settings.set_show_control_hints(true)
+	_apply_toggle_state(_control_hints_on_button, true)
+	_apply_toggle_state(_control_hints_off_button, false)
+
+
+func _on_control_hints_off() -> void:
+	Settings.set_show_control_hints(false)
+	_apply_toggle_state(_control_hints_on_button, false)
+	_apply_toggle_state(_control_hints_off_button, true)
+
+
+# Move Confirm — the playtest toggle (RQD 2026-08-21). Auto = button on touch,
+# marker elsewhere; Marker = press the marker again (fluent); Button = the hint
+# bar offers a "Move here" button (clear, clunkier). Marker presses always work.
+func _create_move_confirm_option() -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+
+	var label := Label.new()
+	label.text = "Move Confirm"
+	label.tooltip_text = "How a planned move is confirmed. Marker: press the marker again. Button: a Move Here button in the hint bar. Auto: button on touch screens, marker otherwise."
+	label.custom_minimum_size = Vector2(OPTION_LABEL_WIDTH, 0)
+	label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
+	var glow: ShaderMaterial = GLOW_MATERIAL.duplicate()
+	glow.set_shader_parameter("glow_color", GameColors.TEXT_PRIMARY_GLOW)
+	label.material = glow
+	row.add_child(label)
+
+	var button_container := HBoxContainer.new()
+	button_container.add_theme_constant_override("separation", 2)
+	_move_confirm_buttons.clear()
+	var current: int = Settings.move_confirm_mode
+	for entry: Array in [[Settings.MoveConfirmMode.AUTO, "Auto"],
+			[Settings.MoveConfirmMode.MARKER, "Marker"], [Settings.MoveConfirmMode.BUTTON, "Button"]]:
+		var mode: int = entry[0]
+		var button := _create_toggle_button(entry[1], current == mode)
+		button.pressed.connect(_on_move_confirm_selected.bind(mode))
+		_move_confirm_buttons[mode] = button
+		button_container.add_child(button)
+
+	row.add_child(button_container)
+	_content_container.add_child(row)
+
+
+func _on_move_confirm_selected(mode: int) -> void:
+	Settings.set_move_confirm_mode(mode)
+	for key: int in _move_confirm_buttons:
+		_apply_toggle_state(_move_confirm_buttons[key], key == mode)
+
+
+# Move Commit — the todo-4A playtest toggle (RQD 2026-08-31). Walk = the unit
+# walks as soon as the plan is confirmed (shipped behavior). Ghost = the
+# staged ghost holds the spot and the unit walks when the action commits —
+# nothing on the board changes visually until then, so cancel never teleports.
+func _create_move_commit_option() -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+
+	var label := Label.new()
+	label.text = "Move Commit"
+	label.tooltip_text = "When a confirmed move actually happens. Walk: the unit walks right away, before choosing an action. Ghost: a ghost holds the spot and the unit walks when the action is confirmed."
+	label.custom_minimum_size = Vector2(OPTION_LABEL_WIDTH, 0)
+	label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
+	var glow: ShaderMaterial = GLOW_MATERIAL.duplicate()
+	glow.set_shader_parameter("glow_color", GameColors.TEXT_PRIMARY_GLOW)
+	label.material = glow
+	row.add_child(label)
+
+	var button_container := HBoxContainer.new()
+	button_container.add_theme_constant_override("separation", 2)
+	_move_commit_buttons.clear()
+	var current: int = Settings.move_commit_mode
+	for entry: Array in [[Settings.MoveCommitMode.WALK_THEN_ACT, "Walk"],
+			[Settings.MoveCommitMode.ACT_THEN_WALK, "Ghost"]]:
+		var mode: int = entry[0]
+		var button := _create_toggle_button(entry[1], current == mode)
+		button.pressed.connect(_on_move_commit_selected.bind(mode))
+		_move_commit_buttons[mode] = button
+		button_container.add_child(button)
+
+	row.add_child(button_container)
+	_content_container.add_child(row)
+
+
+func _on_move_commit_selected(mode: int) -> void:
+	Settings.set_move_commit_mode(mode)
+	for key: int in _move_commit_buttons:
+		_apply_toggle_state(_move_commit_buttons[key], key == mode)
 
 
 # Seeded Reload: On = loading a save restores the dice exactly (repeating the

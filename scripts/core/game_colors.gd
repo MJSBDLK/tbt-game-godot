@@ -91,6 +91,21 @@ static var FACTION_HEALTHBAR_NEUTRAL: Color:
 static var FACTION_HEALTHBAR_ALLY: Color:
 	get: return GameColorPalette.get_color("Yellow", 7)
 
+# The black behind every on-unit bar (health bar, XP bar) — one token so the
+# two bars can't drift apart.
+static var UNIT_BAR_BACKGROUND: Color = Color(0.1, 0.1, 0.1, 1.0)
+
+# On-map XP bar (RQD 2026-08-21): banana — YellowOrange 7, the house gold
+# (the guide's Info ink, azure + gold harmony), NOT the Yellow ramp's olive 7.
+# The floating "+N XP" callout stays on the cooler Yellow ramp on purpose:
+# warm gold floating over the board is reserved for move names (§2 callout-
+# venue rule); a bar isn't text, so the bar gets the real banana. FLASH is the
+# brighter beat when the bar wraps a level.
+static var XP_BAR_FILL: Color:
+	get: return GameColorPalette.get_color("YellowOrange", 7)
+static var XP_BAR_FLASH: Color:
+	get: return GameColorPalette.get_color("YellowOrange", 8)
+
 
 # =============================================================================
 # UNIT SELECTION STATES
@@ -176,6 +191,15 @@ static var INTERACTIVE_TEXT_DISABLED: Color:
 ## Read-only venues (the hover previews, display-mode chips) wear this.
 static var STATIC_BORDER: Color:
 	get: return GameColorPalette.get_color("Gray", 5)
+## NOTICE — "the game is pointing at this; it is NOT a button" (RQD 2026-08-21,
+## first use: the hint bar's planning step). The one border hue that never
+## meant pressable: azure = pressable, gold = the game wants this pressed,
+## white ticks = you are here, red = undo. STATIC — never moves (converging is
+## CTA, traveling is selection). Border channel ONLY: magenta at glyph level
+## is special damage (§14) and the two never swap channels. Ramp step is
+## Lawrence's to eyeball (4–6 candidates); 5 for 1 px legibility on dark glass.
+static var NOTICE_BORDER: Color:
+	get: return GameColorPalette.get_color("Magenta", 5)
 
 ## Cast-shadow ink — ONE ink for every shadow thrown on the board. Not a
 ## palette ramp color: decoded from Lawrence's baked decoration shadow PNGs

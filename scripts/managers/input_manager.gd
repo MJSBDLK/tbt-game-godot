@@ -844,6 +844,24 @@ func _is_waypoint_tile(tile: Tile) -> bool:
 	return false
 
 
+## The hint bar's CALL TO ACTION ("select the marker again to move"): pressing
+## the line is pressing the last marker. Same gates as the board press — a
+## live battle, a selected unit that hasn't moved, a plan on the board, and
+## the planning state. Returns whether a move was started.
+func confirm_planned_movement() -> bool:
+	if not input_enabled or not GridManager.is_grid_ready():
+		return false
+	if _selected_unit == null or not _selected_unit.can_act or _unit_has_moved:
+		return false
+	if _selected_unit.planned_waypoints.is_empty():
+		return false
+	var state_manager: Node = get_node("/root/GameStateManager")
+	if state_manager.current_state != Enums.InputState.MOVEMENT_PLANNING:
+		return false
+	_execute_movement()
+	return true
+
+
 func _execute_movement() -> void:
 	if _selected_unit == null:
 		return
@@ -908,6 +926,9 @@ func _execute_attack(target: Unit) -> void:
 		if cam:
 			cam.center_on((attacker.global_position + target.global_position) / 2.0)
 
+	# ACT_THEN_WALK: the staged walk plays now, then the swing. No-op in
+	# WALK_THEN_ACT (nothing staged).
+	await attacker.play_deferred_walk()
 	await attacker.execute_combat_sequence(target, move)
 
 	if ui_manager != null:
@@ -957,7 +978,12 @@ func _show_action_menu_for_unit(unit: Unit) -> void:
 func _get_post_move_camera_target(unit: Unit) -> Vector2:
 	## After movement, pan to the bounding box center of the unit and all reachable targets.
 	## Falls back to the unit's own position if no targets are in range.
-	var positions: Array[Vector2] = [unit.global_position]
+	## Anchored on current_tile, not global_position: under ACT_THEN_WALK the
+	## sprite is still at the origin here — the tile is where the plan (ghost,
+	## ranges, the action about to be chosen) lives. Identical in WALK_THEN_ACT.
+	var unit_anchor: Vector2 = unit.current_tile.global_position \
+			if unit.current_tile != null else unit.global_position
+	var positions: Array[Vector2] = [unit_anchor]
 	for move: Move in unit.get_usable_moves():
 		for tile: Tile in MoveTargeting.get_valid_target_tiles(unit, move):
 			if tile.current_unit != null:

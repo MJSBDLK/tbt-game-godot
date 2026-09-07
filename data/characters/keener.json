@@ -29,7 +29,7 @@
 	"baseStats": {
 		"maxHP": 13,
 		"strength": 2,
-		"special": 9,
+		"special": 7,
 		"skill": 5,
 		"agility": 4,
 		"athleticism": 3,
@@ -39,7 +39,7 @@
 	"growthRates": {
 		"hp": 40,
 		"strength": 15,
-		"special": 70,
+		"special": 55,
 		"skill": 45,
 		"agility": 40,
 		"athleticism": 20,
@@ -55,9 +55,9 @@
 	"basePoolMoves": [
 		"Shriek of the Damned",
 		"Wither",
-		"Dark Energy",
 		"Void Touch",
 		"Erase",
+		"Dark Energy",
 		"Leech",
 		"Mass Shift",
 		"Strangle",

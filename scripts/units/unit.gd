@@ -34,6 +34,10 @@ const HIT_DELAY: float = 0.3  # Seconds between combat hits
 const BOOP_DISTANCE: float = 8.0  # Pixels the sprite bumps toward target during attack
 const HITLAG_MIN: float = 0.05  # Minimum freeze on any hit (seconds)
 const HITLAG_MAX: float = 0.25  # Maximum freeze on a devastating hit (seconds)
+# A Bellows-boosted fire hit never lands soft: impact weight floors here so the
+# flash/shake/hitlag sell the boost (crits floor at 0.8 — this is the lesser
+# beat). RQD 2026-08-21, todo #2A.
+const BELLOWS_IMPACT_FLOOR: float = 0.6
 const ATTACK_CLIP_DEFAULT_FPS: int = 12  # Fallback when a clip omits "fps"
 
 # When true, an attack that isn't a due north/south (vertical) shot uses the
@@ -128,6 +132,11 @@ var _level_up_snapshot: Dictionary = {}
 # _flush_xp_feedback; levels ride along for the LEVEL UP! callout.
 var _combat_xp_gained: int = 0
 var _combat_levels_gained: int = 0
+# On-map XP bar (RQD 2026-08-21): `experience` as it stood BEFORE the first
+# grant of this sequence (-1 = no sequence open), so the bar can sweep from
+# where the unit started to where it landed — first grant wins, like the
+# level-up snapshot. Consumed + reset by _flush_xp_feedback.
+var _xp_before_sequence: int = -1
 
 # Set by take_damage when the killing blow lands. Used by InjurySystem to
 # pick the right injury when the unit_defeated handler runs.
@@ -144,6 +153,14 @@ var _start_tile_before_move: Tile = null
 # held until the action is finalized. Foot tracks lay on set_acted() (commit),
 # NOT on the tentative walk — so a cancelled move (Escape) leaves none.
 var _pending_track_tiles: Array[Tile] = []
+
+# ACT_THEN_WALK (Settings.move_commit_mode, todo 4A): the walk captured at
+# plan-confirm, replayed by play_deferred_walk() when the action commits.
+# Non-empty exactly while a walk is staged. While staged, LOGIC (current_tile,
+# occupancy, ranges) is already at the destination but global_position — the
+# sprite and everything riding it — is still at the origin, standing behind
+# the PathVisualizer's staged ghost.
+var _deferred_walk_path: Array[Tile] = []
 var _selection_tween: Tween = null
 
 # Topmost opaque pixel of the sprite art in texture coords (canvas top-left = 0).
@@ -187,6 +204,12 @@ var _shadow: UnitShadow = null
 var _health_bar: Node2D = null
 var _health_bar_background: ColorRect = null
 var _health_bar_fill: ColorRect = null
+# On-map XP bar — built by _build_xp_bar under HealthBar, hidden at rest.
+var _xp_bar: Node2D = null
+var _xp_bar_fill: ColorRect = null
+# Bumped on every play so an older run's tail can't hide a newer run's bar.
+var _xp_bar_serial: int = 0
+var _xp_bar_tween: Tween = null
 var _status_indicator: StatusEffectIndicator = null
 var _level_label: Label = null
 # Elemental type icon sprites, mirrored right of the health bar (level sits
@@ -200,6 +223,26 @@ const _STATIC_NOISE_TEX: Texture2D = preload("res://art/sprites/ui/static_noise.
 const _STATIC_BAR_WIDTH: int = 24
 const _STATIC_BAR_HEIGHT: int = 2
 const _STATIC_TICK_INTERVAL: float = 0.12
+
+# On-map XP bar geometry + pacing (RQD 2026-08-21). Same footprint as the
+# health bar, parked one pixel BELOW it (above is the status-icon row; RQD:
+# "beneath seems more natural" — set XP_BAR_OFFSET_Y to -4.0 to try above;
+# the health bar spans y -1..1, so +2 leaves a 1px gap). Fade in fast, fill,
+# hold, fade out slow. A level wrap fills to full, flashes, restarts from 0.
+# Reduce-motion parks the bar at the final fraction for the hold and skips
+# every tween. All const-tunable; eyeball at playtest.
+const XP_BAR_WIDTH: int = 24
+const XP_BAR_HEIGHT: int = 2
+const XP_BAR_OFFSET_Y: float = 2.0
+const XP_BAR_FADE_IN_SECONDS: float = 0.1
+const XP_BAR_FILL_SECONDS_PER_LEVEL: float = 0.45  # a full 0→100 sweep
+const XP_BAR_FILL_MIN_SECONDS: float = 0.08
+const XP_BAR_WRAP_FLASH_SECONDS: float = 0.1
+const XP_BAR_HOLD_SECONDS: float = 0.5
+const XP_BAR_FADE_OUT_SECONDS: float = 0.6
+# Placeholder sample from tools/godot/generate_ui_sfx.gd — a rising tick
+# train; Lawrence replaces the file, same name.
+const XP_FILL_STREAM_PATH: String = "res://audio/ui/xp_fill.wav"
 
 
 # =============================================================================
@@ -224,8 +267,9 @@ func _ready() -> void:
 	if has_node("PathVisualizer"):
 		_path_visualizer = $PathVisualizer
 	_build_static_overlay()
+	_build_xp_bar()
 	set_process(true)
-	StatusEffectSystem.status_effect_applied.connect(_on_status_effect_changed)
+	StatusEffectSystem.status_effect_applied.connect(_on_status_effect_applied)
 	StatusEffectSystem.status_effect_removed.connect(_on_status_effect_changed)
 	# Type icons are gated on a live setting — rebuild when the player flips
 	# the Options toggle mid-battle. Rebuilding on unrelated setting changes is
@@ -383,8 +427,6 @@ func execute_planned_movement() -> void:
 		return
 
 	_start_tile_before_move = current_tile
-	is_moving = true
-	movement_started.emit(self)
 
 	var full_path := _build_full_path()
 
@@ -397,6 +439,16 @@ func execute_planned_movement() -> void:
 	if _start_tile_before_move != null:
 		traversed_tiles.append(_start_tile_before_move)
 	traversed_tiles.append_array(full_path)
+
+	# ACT_THEN_WALK stages instead of walking. Player-only: the AI's walk is
+	# its telegraph, so it always animates immediately regardless of the mode.
+	if faction == Enums.UnitFaction.PLAYER and Settings != null \
+			and Settings.move_commit_mode == Settings.MoveCommitMode.ACT_THEN_WALK:
+		_stage_deferred_movement(full_path, traversed_tiles)
+		return
+
+	is_moving = true
+	movement_started.emit(self)
 
 	if _path_visualizer != null and _path_visualizer.has_method("clear_arrows"):
 		_path_visualizer.call("clear_arrows")
@@ -412,7 +464,65 @@ func execute_planned_movement() -> void:
 	movement_completed.emit(self)
 
 
+## ACT_THEN_WALK: commit the LOGIC of the plan instantly — occupancy, ranges,
+## previews and every movement_completed listener (auras, threat) read the
+## destination — while the sprite stays at the origin behind the staged ghost.
+## Ghost parks BEFORE the claim: UnitGhost.anchor_offset measures the sprite
+## against current_tile, so both must still agree on the origin here. z is
+## deliberately NOT restamped — the visual row hasn't changed; the deferred
+## walk restamps it row by row as the sprite actually passes.
+func _stage_deferred_movement(full_path: Array[Tile], traversed_tiles: Array[Tile]) -> void:
+	var destination: Tile = full_path.back() if not full_path.is_empty() else current_tile
+	if _path_visualizer != null and _path_visualizer.has_method("show_staged_ghost"):
+		_path_visualizer.call("show_staged_ghost", self, destination)
+	elif _path_visualizer != null and _path_visualizer.has_method("clear_arrows"):
+		_path_visualizer.call("clear_arrows")
+	_claim_tile_keep_position(destination)
+	_deferred_walk_path = full_path
+	planned_waypoints.clear()
+	_pending_track_tiles = traversed_tiles
+	movement_completed.emit(self)
+
+
+## True while an ACT_THEN_WALK plan is staged and its walk hasn't played.
+func has_deferred_walk() -> bool:
+	return not _deferred_walk_path.is_empty()
+
+
+## ACT_THEN_WALK: the staged walk, played when the action commits. Logic is
+## already at the destination — this animates ONLY the sprite along the
+## captured path, restamping z per row as it passes so layering follows the
+## visible walk. No-op when nothing is staged, so every commit path can await
+## it unconditionally.
+func play_deferred_walk() -> void:
+	if _deferred_walk_path.is_empty():
+		return
+	var path: Array[Tile] = _deferred_walk_path
+	_deferred_walk_path = []
+	# Frees the staged ghost the moment the real sprite starts covering the
+	# same ground.
+	if _path_visualizer != null and _path_visualizer.has_method("clear_arrows"):
+		_path_visualizer.call("clear_arrows")
+	is_moving = true
+	movement_started.emit(self)
+	for tile: Tile in path:
+		var target_position := tile.global_position
+		var distance := global_position.distance_to(target_position)
+		var duration := distance / MOVE_SPEED
+		if duration < 0.01:
+			duration = 0.01
+		var tween := create_tween()
+		tween.tween_property(self, "global_position", target_position, duration)
+		await tween.finished
+		_update_z_index_for_row(tile.grid_y)
+	is_moving = false
+
+
 func cancel_movement() -> void:
+	# A staged ACT_THEN_WALK walk dies with the plan. The sprite never moved,
+	# so the move_to_tile below re-seats logic at the origin with no visible
+	# jump — the honesty win of the mode.
+	_deferred_walk_path = []
 	if _start_tile_before_move != null:
 		move_to_tile(_start_tile_before_move)
 		_start_tile_before_move = null
@@ -431,6 +541,20 @@ func cancel_movement() -> void:
 # =============================================================================
 
 func move_to_tile(new_tile: Tile) -> void:
+	_claim_tile_keep_position(new_tile)
+	if current_tile != null:
+		global_position = current_tile.global_position
+	_update_z_index()
+
+
+## The occupancy half of move_to_tile: transfer tile registration without
+## touching the sprite. ACT_THEN_WALK stages through this so global_position
+## (and z — the visual row hasn't changed) stay at the origin; everything else
+## wants move_to_tile. Tile.set_unit snaps the unit onto the tile as a side
+## effect, so the position is restored around the claim — that's the "keep"
+## in the name.
+func _claim_tile_keep_position(new_tile: Tile) -> void:
+	var sprite_position: Vector2 = global_position
 	if current_tile != null and current_tile.current_unit == self:
 		current_tile.clear_unit()
 	current_tile = new_tile
@@ -440,8 +564,7 @@ func move_to_tile(new_tile: Tile) -> void:
 		elif current_tile.current_unit != self:
 			push_warning("Unit '%s' told to move_to_tile [%d,%d] already occupied by '%s'" % [
 				unit_name, current_tile.grid_x, current_tile.grid_y, current_tile.current_unit.unit_name])
-		global_position = current_tile.global_position
-	_update_z_index()
+	global_position = sprite_position
 
 
 # =============================================================================
@@ -540,6 +663,11 @@ func refresh_unit() -> void:
 
 
 func set_acted() -> void:
+	# ACT_THEN_WALK: every commit path awaits play_deferred_walk() first —
+	# committing with a staged walk would lay foot tracks under a sprite that
+	# never walks them.
+	assert(_deferred_walk_path.is_empty(),
+			"set_acted with a staged walk pending — play_deferred_walk() must run first")
 	can_act = false
 	_start_tile_before_move = null
 	# Move is now committed — lay the foot tracks captured during the walk.
@@ -620,6 +748,127 @@ func _build_static_overlay() -> void:
 	_static_overlay.position = Vector2(-_STATIC_BAR_WIDTH / 2.0, -_STATIC_BAR_HEIGHT / 2.0)
 	_static_overlay.visible = false
 	_health_bar.add_child(_static_overlay)
+
+
+# =============================================================================
+# ON-MAP XP BAR (RQD 2026-08-21, todo #1)
+# =============================================================================
+# The in-the-moment companion to the "+N XP" callout: a yellow-on-black bar
+# the health bar's size, one pixel beneath it, that fades in, sweeps from the
+# pre-combat XP to the new total (wrapping with a flash on a level-up), holds,
+# and fades out. Built in code like the static overlay so bare test units and
+# the .tscn stay untouched; enemies build one too but never show it (only
+# player units earn XP).
+
+func _build_xp_bar() -> void:
+	if _health_bar == null:
+		return
+	_xp_bar = Node2D.new()
+	_xp_bar.name = "XpBar"
+	_xp_bar.visible = false
+	var half_width := float(XP_BAR_WIDTH) / 2.0
+	var background := ColorRect.new()
+	background.name = "Background"
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	background.color = GameColors.UNIT_BAR_BACKGROUND
+	background.position = Vector2(-half_width, XP_BAR_OFFSET_Y)
+	background.size = Vector2(XP_BAR_WIDTH, XP_BAR_HEIGHT)
+	_xp_bar.add_child(background)
+	# Left-anchored like the health bar's fill: the rect's origin is its left
+	# edge, so scale.x grows rightward from there.
+	_xp_bar_fill = ColorRect.new()
+	_xp_bar_fill.name = "Fill"
+	_xp_bar_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_xp_bar_fill.color = GameColors.XP_BAR_FILL
+	_xp_bar_fill.position = Vector2(-half_width, XP_BAR_OFFSET_Y)
+	_xp_bar_fill.size = Vector2(XP_BAR_WIDTH, XP_BAR_HEIGHT)
+	_xp_bar_fill.scale.x = 0.0
+	_xp_bar.add_child(_xp_bar_fill)
+	_health_bar.add_child(_xp_bar)
+
+
+## The bar's sweep as [start, end] fill fractions, one pair per segment —
+## pure, so the wrap logic is testable without a tree. No level: one segment
+## from→to. N levels: from→full, then (N-1)× 0→full, then 0→to; the renderer
+## flashes and resets to 0 between segments.
+static func xp_bar_fill_segments(from_xp: int, to_xp: int, levels_gained: int) -> Array[Array]:
+	var per_level := float(CharacterData.XP_PER_LEVEL)
+	var from_fraction := clampf(float(from_xp) / per_level, 0.0, 1.0)
+	var to_fraction := clampf(float(to_xp) / per_level, 0.0, 1.0)
+	var segments: Array[Array] = []
+	if levels_gained <= 0:
+		segments.append([from_fraction, to_fraction])
+		return segments
+	segments.append([from_fraction, 1.0])
+	for _extra: int in range(levels_gained - 1):
+		segments.append([0.0, 1.0])
+	segments.append([0.0, to_fraction])
+	return segments
+
+
+## Play the bar for one flushed sequence. Fire-and-forget from
+## _flush_xp_feedback so it runs alongside the callouts; a newer play kills
+## the older tween and takes over the bar.
+func _play_xp_bar(from_xp: int, to_xp: int, levels_gained: int) -> void:
+	if _xp_bar == null or _xp_bar_fill == null:
+		return
+	_xp_bar_serial += 1
+	var serial: int = _xp_bar_serial
+	if _xp_bar_tween != null and _xp_bar_tween.is_valid():
+		_xp_bar_tween.kill()
+	var segments := xp_bar_fill_segments(from_xp, to_xp, levels_gained)
+	assert(not segments.is_empty(), "xp_bar_fill_segments always yields at least one segment")
+	_xp_bar.visible = true
+	_xp_bar_fill.color = GameColors.XP_BAR_FILL
+
+	var motion: bool = Settings == null or Settings.ui_motion_enabled
+	if not motion or not is_inside_tree():
+		# Reduce-motion (or no tree to tween in): park at the landing fraction
+		# for the hold, then hide. The callout still carries the number.
+		_xp_bar.modulate.a = 1.0
+		_xp_bar_fill.scale.x = segments.back()[1]
+		_play_xp_fill_sfx()
+		if is_inside_tree():
+			await get_tree().create_timer(XP_BAR_HOLD_SECONDS).timeout
+		if serial == _xp_bar_serial and is_instance_valid(_xp_bar):
+			_xp_bar.visible = false
+		return
+
+	_xp_bar.modulate.a = 0.0
+	_xp_bar_fill.scale.x = segments[0][0]
+	var tween := create_tween()
+	_xp_bar_tween = tween
+	tween.tween_property(_xp_bar, "modulate:a", 1.0, XP_BAR_FADE_IN_SECONDS)
+	for index: int in segments.size():
+		var segment: Array = segments[index]
+		if index > 0:
+			# Level wrap: flash, then restart from empty.
+			tween.tween_property(_xp_bar_fill, "color", GameColors.XP_BAR_FLASH, XP_BAR_WRAP_FLASH_SECONDS / 2.0)
+			tween.tween_property(_xp_bar_fill, "color", GameColors.XP_BAR_FILL, XP_BAR_WRAP_FLASH_SECONDS / 2.0)
+			tween.tween_callback(func() -> void: _xp_bar_fill.scale.x = segment[0])
+		tween.tween_callback(_play_xp_fill_sfx)
+		var distance: float = maxf(0.0, segment[1] - segment[0])
+		var duration: float = maxf(XP_BAR_FILL_MIN_SECONDS, distance * XP_BAR_FILL_SECONDS_PER_LEVEL)
+		tween.tween_property(_xp_bar_fill, "scale:x", segment[1], duration)
+	tween.tween_interval(XP_BAR_HOLD_SECONDS)
+	tween.tween_property(_xp_bar, "modulate:a", 0.0, XP_BAR_FADE_OUT_SECONDS)
+	tween.tween_callback(func() -> void:
+		if serial == _xp_bar_serial and is_instance_valid(_xp_bar):
+			_xp_bar.visible = false)
+
+
+## The filling sound — same fire-and-forget one-shot player as the level-up
+## ding (LevelUpReportPanel._play_ding) and the UI blips. Silent when the
+## sample is missing so a stripped build never errors.
+func _play_xp_fill_sfx() -> void:
+	if not is_inside_tree() or not ResourceLoader.exists(XP_FILL_STREAM_PATH):
+		return
+	var player := AudioStreamPlayer.new()
+	player.stream = load(XP_FILL_STREAM_PATH) as AudioStream
+	player.bus = &"SFX"
+	player.finished.connect(player.queue_free)
+	add_child(player)
+	player.play()
 
 
 func _process(delta: float) -> void:
@@ -732,6 +981,10 @@ func resolve_friendly_fire_victim(original_defender: Unit, move: Move) -> Unit:
 func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 	if defender == null or attacker_move == null:
 		return
+	# ACT_THEN_WALK: the sprite must have walked before it swings — commit
+	# paths await play_deferred_walk() first.
+	assert(_deferred_walk_path.is_empty(),
+			"combat with a staged walk pending — play_deferred_walk() must run first")
 
 	# Friendly casts: ally-targeting moves AND self-casts (Fortify, Roar) both
 	# resolve as a single application — no counter, no multi-hit, no corruption
@@ -999,6 +1252,20 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 	if ctx.is_crit:
 		impact_weight = maxf(impact_weight, 0.8)
 
+	# Bellows-boosted swing (RQD 2026-08-21, todo #2A): announce the exact
+	# multiplier over the attacker BEFORE the approach — the pips on the icon
+	# are one pixel, and "obliterated on the next hit" needs a named cause.
+	# Same number the calculator applied (one helper), element ink like the
+	# AI's move-name callouts (this is "what's firing," not a warning), and a
+	# warm hit flash + impact floor so the target side sells it too.
+	var bellows_scale := DamageCalculator.bellows_multiplier(self, move)
+	var hit_flash_tint := Color.TRANSPARENT
+	if bellows_scale > 1.0:
+		impact_weight = maxf(impact_weight, BELLOWS_IMPACT_FLOOR)
+		hit_flash_tint = GameColorPalette.get_color("Orange", 7)
+		spawn_text_callout(bellows_callout_text(bellows_scale),
+				GameColors.get_move_chip_foreground(Enums.ElementalType.FIRE))
+
 	# Phase 1: Approach. If the attacker has a clip matching this attack's
 	# direction+range, play it through to its hit frame; otherwise nudge.
 	var clip := _pick_attack_clip(target, move)
@@ -1017,7 +1284,7 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 		_play_clip_after_hit(clip)
 	else:
 		_play_boop_return()
-	VisualFeedbackManager.apply_hit_flash(target, impact_weight)
+	VisualFeedbackManager.apply_hit_flash(target, impact_weight, hit_flash_tint)
 
 	var camera := get_viewport().get_camera_2d() as CameraController
 	if camera != null:
@@ -1038,8 +1305,8 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 	if ctx.is_crit:
 		spawn_text_callout("CRIT!", GameColors.TEXT_SECONDARY)
 
-	DebugConfig.log_combat("Hit: %s -> %s for %d damage (x%.2f %s, impact=%.2f, hitlag=%.3fs)" % [
-		unit_name, target.unit_name, damage, type_multiplier, effectiveness_text, impact_weight, hitlag_duration])
+	DebugConfig.log_combat("Hit: %s -> %s for %d damage (x%.2f %s, bellows=x%.2f, impact=%.2f, hitlag=%.3fs)" % [
+		unit_name, target.unit_name, damage, type_multiplier, effectiveness_text, bellows_scale, impact_weight, hitlag_duration])
 
 	# On-hit rider effects (afflictions, cleanse, displacement) and per-hit passive
 	# triggers (e.g. Bellows) run through the combat effect pipeline using the
@@ -1227,6 +1494,8 @@ func _award_survival_xp(attacker: Unit) -> void:
 func _grant_combat_xp(xp: int) -> void:
 	if xp <= 0:
 		return
+	if _xp_before_sequence < 0:
+		_xp_before_sequence = character_data.experience
 	_combat_xp_gained += xp
 	var snapshot: Dictionary = LevelUpStatPanel.stat_snapshot(character_data)
 	var levels_gained: int = character_data.grant_xp(xp)
@@ -1248,6 +1517,12 @@ func _flush_xp_feedback() -> void:
 	if _combat_xp_gained <= 0:
 		return
 	spawn_text_callout("+%d XP" % _combat_xp_gained, GameColorPalette.get_color("Yellow", 7))
+	# The on-map bar sweeps alongside the callout (not awaited — it has its own
+	# pacing and must not hold the turn). Every grant goes through
+	# _grant_combat_xp, which opens the sequence, so the snapshot is always set.
+	assert(_xp_before_sequence >= 0, "XP was banked without _grant_combat_xp opening the sequence")
+	_play_xp_bar(maxi(_xp_before_sequence, 0), character_data.experience, _combat_levels_gained)
+	_xp_before_sequence = -1
 	if _combat_levels_gained > 0 and is_inside_tree():
 		await get_tree().create_timer(0.5).timeout
 		spawn_text_callout("LEVEL UP!", GameColorPalette.get_color("Yellow", 8))
@@ -1665,6 +1940,8 @@ func _handle_defeat() -> void:
 		_health_bar_fill.visible = false
 	if _status_indicator != null:
 		_status_indicator.visible = false
+	if _xp_bar != null:
+		_xp_bar.visible = false
 	if _level_label != null:
 		_level_label.visible = false
 	for icon: Sprite2D in _type_icons:
@@ -1834,7 +2111,7 @@ func _update_type_icons() -> void:
 func _apply_faction_healthbar() -> void:
 	if _health_bar_background == null or _health_bar_fill == null:
 		return
-	_health_bar_background.color = Color(0.1, 0.1, 0.1, 1.0)
+	_health_bar_background.color = GameColors.UNIT_BAR_BACKGROUND
 	match faction:
 		Enums.UnitFaction.PLAYER:
 			_health_bar_fill.color = GameColors.FACTION_HEALTHBAR_PLAYER
@@ -1865,6 +2142,52 @@ func _on_status_effect_changed(unit: Node2D, _effect_type_name: String) -> void:
 	if unit != self:
 		return
 	_update_status_indicators()
+
+
+## Applied (new OR restacked — StatusEffectSystem emits for both): refresh the
+## icons like a removal would, then SAY it. Every status used to land
+## silently except for a 6x6 icon + 1px pips (RQD 2026-08-21, todo #2A:
+## "I unknowingly activated the enemy's Bellows"). Generic on purpose — one
+## rule for all 19 statuses, not a Bellows special case.
+func _on_status_effect_applied(unit: Node2D, effect_type_name: String) -> void:
+	if unit != self:
+		return
+	_update_status_indicators()
+	_announce_status_applied(effect_type_name)
+
+
+## Float the status's name over the unit in its category's semantic ink —
+## buffs in the success green, debuffs in the danger red (ui-style-guide §3
+## pairings). NOT element ink: the AI floats MOVE NAMES in element color, and
+## "BELLOWS" in fire-orange would read as an attack announcement. A restack
+## counts up ("BURN x2") so stacking statuses show their growth; the first
+## application is just the name. The icon pops in the same beat.
+func _announce_status_applied(effect_type_name: String) -> void:
+	var configs := StatusEffectData.get_default_configs()
+	var config: StatusEffectData = configs.get(effect_type_name, null)
+	var stacks: int = StatusEffectSystem.get_effect_stacks(self, effect_type_name)
+	var label: String = config.abbrev_name if config != null else effect_type_name.capitalize()
+	var is_buff: bool = config != null and config.category == Enums.EffectCategory.BUFF
+	spawn_text_callout(status_callout_text(label, stacks),
+			GameColors.TEXT_SUCCESS if is_buff else GameColors.TEXT_DANGER)
+	if _status_indicator != null:
+		_status_indicator.pop_icon(effect_type_name)
+
+
+## "BURN" on first application, "BURN x2" on a restack — pure, for tests.
+static func status_callout_text(abbrev_name: String, stacks: int) -> String:
+	var text := abbrev_name.to_upper()
+	if stacks > 1:
+		text += " ×%d" % stacks
+	return text
+
+
+## "BELLOWS ×1.25" / "×1.5" / "×2" — trailing zeros trimmed so the number
+## reads like a multiplier, not a stat readout (String.num keeps "2.0"). Pure,
+## for tests.
+static func bellows_callout_text(multiplier: float) -> String:
+	var number := ("%.2f" % multiplier).rstrip("0").rstrip(".")
+	return "BELLOWS ×%s" % number
 
 
 ## Rebuild the status icon row and adjust health bar position.
@@ -2067,12 +2390,17 @@ func _apply_acted_modulate() -> void:
 func _update_z_index() -> void:
 	if current_tile == null:
 		return
-	# Calculate z-index from grid coordinates directly (not pixel position)
-	# to avoid the pixel-space mismatch in GridZIndexHandler.
+	_update_z_index_for_row(current_tile.grid_y)
+
+
+## Calculate z-index from grid coordinates directly (not pixel position) to
+## avoid the pixel-space mismatch in GridZIndexHandler. Split from
+## _update_z_index so the ACT_THEN_WALK deferred walk can restamp z per row
+## the SPRITE is passing — current_tile already sits at the destination then.
+func _update_z_index_for_row(grid_y: int) -> void:
 	var grid_manager: Node = get_node_or_null("/root/GridManager")
 	if grid_manager == null:
 		return
 	var offset_y: int = grid_manager.grid_offset_y
-	var height: int = grid_manager.grid_height
-	var row_index: int = current_tile.grid_y - offset_y  # Front row (lowest grid_y) → index 0 (highest z)
+	var row_index: int = grid_y - offset_y  # Front row (lowest grid_y) → index 0 (highest z)
 	z_index = ZIndexCalculator.calculate_sorting_order(row_index, 100, ZIndexCalculator.ZIndexLayer.UNITS)

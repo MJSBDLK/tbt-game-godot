@@ -80,6 +80,36 @@ var auto_end_turn: bool = true
 ## branches the load path, so flipping it never invalidates a save.
 var seeded_reload: bool = true
 
+## When true (default), the battle HUD shows the hint / command bar: per-state
+## [glyph] verb hints under controller/keyboard, real buttons under touch.
+## Experienced players can turn it off — but note that under touch the bar is
+## the ONLY way to End turn / open the Menu / toggle Threat zones, so the
+## Options toggle should warn (or hide) there. Built 2026-08-20.
+var show_control_hints: bool = true
+
+## How a planned move is confirmed once a marker is on the board — the
+## playtest toggle (RQD 2026-08-21). MARKER: press the marker again (the
+## fluent path; the hint bar's step line wears the NOTICE border and stays a
+## label). BUTTON: the hint bar's step cluster becomes a pressable "Move here"
+## (parked-gold CTA) — clearer the first three times, clunkier the next three
+## hundred. AUTO (default): BUTTON under touch (the corner cluster is already
+## under the thumb and double-tapping a tile is the error-prone gesture),
+## MARKER everywhere else. Marker presses always work in every mode.
+enum MoveConfirmMode { AUTO, MARKER, BUTTON }
+var move_confirm_mode: int = MoveConfirmMode.AUTO
+
+## WHEN a confirmed move plan actually walks — the todo-4A playtest toggle
+## (RQD 2026-08-31). WALK_THEN_ACT (default, the shipped behavior): the unit
+## walks as soon as the plan is confirmed, then picks an action; cancel snaps
+## it back. ACT_THEN_WALK: game LOGIC moves exactly as in WALK_THEN_ACT
+## (current_tile, occupancy, ranges, previews all read the destination) but
+## the sprite stays at the origin behind the staged UnitGhost until the
+## action commits — then the walk plays and the action fires. Player units
+## only; the AI always walks immediately. Design note: ACT_THEN_WALK is the
+## commit model a future fog-of-war mission modifier requires (todo §9).
+enum MoveCommitMode { WALK_THEN_ACT, ACT_THEN_WALK }
+var move_commit_mode: int = MoveCommitMode.WALK_THEN_ACT
+
 const TOOLTIP_HOLD_MIN_MS: int = 200
 const TOOLTIP_HOLD_MAX_MS: int = 1000
 const TOOLTIP_HOLD_STEP_MS: int = 50
@@ -123,6 +153,14 @@ func load_settings() -> void:
 				"gameplay", "auto_end_turn", auto_end_turn))
 		seeded_reload = bool(config.get_value(
 				"gameplay", "seeded_reload", seeded_reload))
+		show_control_hints = bool(config.get_value(
+				"controls", "show_control_hints", show_control_hints))
+		move_confirm_mode = clampi(int(config.get_value(
+				"controls", "move_confirm_mode", move_confirm_mode)),
+				MoveConfirmMode.AUTO, MoveConfirmMode.BUTTON)
+		move_commit_mode = clampi(int(config.get_value(
+				"controls", "move_commit_mode", move_commit_mode)),
+				MoveCommitMode.WALK_THEN_ACT, MoveCommitMode.ACT_THEN_WALK)
 	# Engine-level prefs (fps cap, bus volumes) must apply even with no file —
 	# a fresh install still needs the buses minted and defaults pushed.
 	_apply_engine_settings()
@@ -230,6 +268,32 @@ func set_tooltip_hold_ms(value: int) -> void:
 
 
 ## Persists + notifies. No-ops when unchanged (see set_portrait_effects_enabled).
+func set_show_control_hints(value: bool) -> void:
+	if value == show_control_hints:
+		return
+	show_control_hints = value
+	_save()
+	changed.emit()
+
+
+func set_move_confirm_mode(value: int) -> void:
+	value = clampi(value, MoveConfirmMode.AUTO, MoveConfirmMode.BUTTON)
+	if value == move_confirm_mode:
+		return
+	move_confirm_mode = value
+	_save()
+	changed.emit()
+
+
+func set_move_commit_mode(value: int) -> void:
+	value = clampi(value, MoveCommitMode.WALK_THEN_ACT, MoveCommitMode.ACT_THEN_WALK)
+	if value == move_commit_mode:
+		return
+	move_commit_mode = value
+	_save()
+	changed.emit()
+
+
 func set_auto_end_turn(value: bool) -> void:
 	if value == auto_end_turn:
 		return
@@ -303,6 +367,9 @@ func _save() -> void:
 	config.set_value("controls", "tooltip_hold_ms", tooltip_hold_ms)
 	config.set_value("gameplay", "auto_end_turn", auto_end_turn)
 	config.set_value("gameplay", "seeded_reload", seeded_reload)
+	config.set_value("controls", "show_control_hints", show_control_hints)
+	config.set_value("controls", "move_confirm_mode", move_confirm_mode)
+	config.set_value("controls", "move_commit_mode", move_commit_mode)
 	var err: int = config.save(settings_path)
 	if err != OK:
 		push_warning("Settings: failed to save %s (error %d)" % [settings_path, err])

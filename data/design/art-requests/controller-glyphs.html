@@ -1,0 +1,443 @@
+<title>Controller Glyph Brief</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #131820;
+    --panel: #1a212c;
+    --glass: #212b3a;
+    --line: #2c3746;
+    --ink: #e6ecf4;
+    --muted: #8b97a8;
+    --azure: #6bc2de;
+    --azure-deep: #4c8cbb;
+    --gold: #f5cd65;
+    --font-display: "Silkscreen", "Courier New", monospace;
+    --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", "Consolas", monospace;
+  }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0;
+  }
+  .page { max-width: 860px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  .eyebrow {
+    font-family: var(--font-display);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    color: var(--azure-deep);
+    text-transform: uppercase;
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(26px, 5vw, 38px);
+    line-height: 1.15;
+    margin: 10px 0 14px;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  h2 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 15px;
+    letter-spacing: 0.08em;
+    color: var(--azure);
+    margin: 56px 0 14px;
+    text-transform: uppercase;
+  }
+  h2::before { content: "▸ "; color: var(--azure-deep); }
+  p { margin: 0 0 14px; max-width: 68ch; }
+  .standfirst { font-size: 18px; color: var(--muted); max-width: 62ch; }
+  strong { color: var(--ink); font-weight: 600; }
+  em { color: var(--muted); }
+  a { color: var(--azure); text-decoration-color: var(--azure-deep); }
+  a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.88em;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 1px 5px;
+    white-space: nowrap;
+  }
+
+  /* ---- hint bar mock -------------------------------------------------- */
+  .mock {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 20px;
+    margin: 28px 0 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .mock-row { display: flex; flex-direction: column; gap: 7px; }
+  .mock-caption {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+  .bar {
+    background: #0d1117;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 9px 14px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 20px;
+    width: fit-content;
+    max-width: 100%;
+  }
+  .pair { display: flex; align-items: center; gap: 7px; white-space: nowrap; }
+  .pair .verb { font-size: 14px; color: var(--ink); }
+  .glyph-text {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--azure);
+  }
+  .chip {
+    font-family: var(--font-display);
+    font-size: 10px;
+    line-height: 1;
+    color: #10141b;
+    background: var(--ink);
+    border: 1px solid #ffffff;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    box-sizing: border-box;
+  }
+  .chip.wide { border-radius: 5px; min-width: 26px; }
+  .mock-note { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+  /* ---- tables --------------------------------------------------------- */
+  .table-wrap { overflow-x: auto; margin: 20px 0; border: 1px solid var(--line); border-radius: 6px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; background: var(--panel); }
+  th {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    background: var(--glass);
+    white-space: nowrap;
+  }
+  td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+    font-variant-numeric: tabular-nums;
+  }
+  tr:last-child td { border-bottom: none; }
+  td.mono, .mono { font-family: var(--font-mono); font-size: 13px; white-space: nowrap; }
+  td.dim { color: var(--muted); }
+
+  .tag {
+    font-family: var(--font-display);
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    padding: 3px 7px 2px;
+    border-radius: 3px;
+    white-space: nowrap;
+    display: inline-block;
+  }
+  .tag.bar-now { background: rgba(107, 194, 222, 0.16); color: var(--azure); border: 1px solid var(--azure-deep); }
+  .tag.bound { background: transparent; color: var(--gold); border: 1px solid rgba(245, 205, 101, 0.5); }
+  .tag.reserved { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+
+  /* ---- spec cards ----------------------------------------------------- */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 20px 0; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 16px 18px;
+  }
+  .card h3 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin: 0 0 8px;
+  }
+  .card p { font-size: 14px; margin: 0 0 8px; }
+  .card p:last-child { margin-bottom: 0; }
+
+  /* ---- phases --------------------------------------------------------- */
+  .phase { display: flex; gap: 16px; margin: 18px 0; }
+  .phase-num {
+    font-family: var(--font-display);
+    font-size: 18px;
+    color: var(--azure-deep);
+    min-width: 34px;
+    line-height: 1.3;
+  }
+  .phase-body p { margin-bottom: 6px; }
+  .phase-count {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--gold);
+  }
+
+  .callout {
+    background: var(--glass);
+    border-left: 3px solid var(--azure-deep);
+    border-radius: 0 6px 6px 0;
+    padding: 14px 18px;
+    margin: 22px 0;
+    max-width: 70ch;
+  }
+  .callout p { margin: 0; font-size: 15px; }
+
+  footer {
+    margin-top: 64px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    font-size: 13px;
+    color: var(--muted);
+  }
+  footer p { margin: 0 0 6px; }
+</style>
+
+<div class="page">
+  <header>
+    <div class="eyebrow">Attitude Control · Art Request · 2026-09-02</div>
+    <h1>Controller Glyphs</h1>
+    <p class="standfirst">
+      The hint bar shipped, controller support is verified on real hardware, and the
+      last text scaffold standing is the button labels. This is the sprite list that
+      replaces them — sized so the first six sprites make the bar fully iconic.
+    </p>
+  </header>
+
+  <div class="callout" style="border-left-color: #f5cd65;">
+    <p>
+      <strong>Status 2026-09-02:</strong> because the spec is 1-bit, the full set
+      (now <strong>40 sprites</strong>) was <strong>generated in-house</strong> the same day —
+      <code>tools/godot/generate_controller_glyphs.gd</code>, single-stroke pixel forms
+      matching the house fonts. Two same-day revisions: <strong>button-format</strong>
+      (each sprite carries its own silhouette — letters in circles, labels on
+      correctly-swept bumper pills, rounded squares for sticks/grips — and the
+      engine draws no plate), and <strong>retro-universal system buttons</strong> (every
+      pad's Menu/Options renders a START word-pill, View/Share renders SELECT —
+      the Xbox-era ☰/⧉ icons made RQD look at the controller; those sprites
+      remain on disk unmapped). Steam Deck back grips L4/L5/R4/R5 and Elite
+      paddles P1–P4 are in. <strong>Your half is a veto pass</strong> — redraw any glyph
+      that reads wrong. Replace the PNG, keep the name; nothing else moves.
+    </p>
+  </div>
+
+  <div class="mock">
+    <div class="mock-row">
+      <div class="mock-caption">TODAY — text scaffold, resolved live from the InputMap</div>
+      <div class="bar">
+        <span class="pair"><span class="glyph-text">[A]</span><span class="verb">Select</span></span>
+        <span class="pair"><span class="glyph-text">[Y]</span><span class="verb">Unit info</span></span>
+        <span class="pair"><span class="glyph-text">[X]</span><span class="verb">End turn</span></span>
+        <span class="pair"><span class="glyph-text">[LB]</span><span class="verb">Threat zones</span></span>
+        <span class="pair"><span class="glyph-text">[B]</span><span class="verb">Menu</span></span>
+      </div>
+    </div>
+    <div class="mock-row">
+      <div class="mock-caption">AFTER YOUR PASS — drawn button chips (these are CSS stand-ins, not the art)</div>
+      <div class="bar">
+        <span class="pair"><span class="chip">A</span><span class="verb">Select</span></span>
+        <span class="pair"><span class="chip">Y</span><span class="verb">Unit info</span></span>
+        <span class="pair"><span class="chip">X</span><span class="verb">End turn</span></span>
+        <span class="pair"><span class="chip wide">LB</span><span class="verb">Threat zones</span></span>
+        <span class="pair"><span class="chip">B</span><span class="verb">Menu</span></span>
+      </div>
+    </div>
+  </div>
+  <p class="mock-note">
+    The bar in the DEFAULT battle state. Verbs stay text — only the bracketed
+    labels become sprites.
+  </p>
+
+  <h2>One pad, four skins</h2>
+  <p>
+    The engine side is already done. Godot normalizes every controller into one
+    virtual Xbox-layout pad, so there is <strong>one set of bindings</strong> — the only
+    per-controller difference is which <em>picture</em> we show for a button. The game
+    already detects the connected pad's family and picks a skin
+    (<code>HintBarCommands.JoySkin</code>): <strong>Steam Deck</strong> (primary target),
+    <strong>Xbox</strong> (the fallback, and what Steam Input reports), <strong>PlayStation</strong>,
+    <strong>Nintendo</strong>. Art is the only missing piece.
+  </p>
+  <div class="callout">
+    <p>
+      <strong>The cheat that makes this small:</strong> sprites are named by what they
+      <em>depict</em>, not by which button they sit on. Steam Deck and Xbox share the same
+      face letters. A Switch pad prints the same four letters in swapped positions — the
+      code does the swapping, the letter sprites are reused as-is. Only PlayStation's
+      shape glyphs are genuinely new art. Skins two through four are mostly free.
+    </p>
+  </div>
+
+  <h2>The inventory</h2>
+  <p>
+    Every physical input the game touches, with the label each skin prints
+    (these strings are live in <code>joy_button_label</code> — the sprite for a cell
+    should read as that label).
+  </p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Button</th><th>Job in game</th><th>Status</th>
+          <th>Xbox</th><th>Steam Deck</th><th>PlayStation</th><th>Switch</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="mono">A</td><td>Confirm / select / attack</td><td><span class="tag bar-now">IN THE BAR</span></td><td class="mono">A</td><td class="mono">A</td><td class="mono">Cross ✕</td><td class="mono">B</td></tr>
+        <tr><td class="mono">B</td><td>Cancel / back / menu</td><td><span class="tag bar-now">IN THE BAR</span></td><td class="mono">B</td><td class="mono">B</td><td class="mono">Circle ○</td><td class="mono">A</td></tr>
+        <tr><td class="mono">X</td><td>End turn</td><td><span class="tag bar-now">IN THE BAR</span></td><td class="mono">X</td><td class="mono">X</td><td class="mono">Square □</td><td class="mono">Y</td></tr>
+        <tr><td class="mono">Y</td><td>Unit info</td><td><span class="tag bar-now">IN THE BAR</span></td><td class="mono">Y</td><td class="mono">Y</td><td class="mono">Triangle △</td><td class="mono">X</td></tr>
+        <tr><td class="mono">LB</td><td>Threat zones</td><td><span class="tag bar-now">IN THE BAR</span></td><td class="mono">LB</td><td class="mono">L1</td><td class="mono">L1</td><td class="mono">L</td></tr>
+        <tr><td class="mono">View</td><td>Tooltip peek — cull pending¹</td><td><span class="tag bound">BOUND</span></td><td class="mono">View ⧉</td><td class="mono">View ⧉</td><td class="mono">Share</td><td class="mono">−</td></tr>
+        <tr><td class="mono">R3</td><td>Tooltip peek — cull pending¹</td><td><span class="tag bound">BOUND</span></td><td class="mono" colspan="4">R3 (stick click — same glyph on every skin)</td></tr>
+        <tr><td class="mono">RB</td><td class="dim">Reserved (symmetry with LB)</td><td><span class="tag reserved">RESERVED</span></td><td class="mono">RB</td><td class="mono">R1</td><td class="mono">R1</td><td class="mono">R</td></tr>
+        <tr><td class="mono">Menu</td><td class="dim">System menu, someday — renders the retro START pill on Xbox/Steam/PS (hardware's own ☰/Options made us look down at the pad); Switch keeps its printed +</td><td><span class="tag reserved">RESERVED</span></td><td class="mono">Menu ☰</td><td class="mono">Menu ☰</td><td class="mono">Options</td><td class="mono">+</td></tr>
+        <tr><td class="mono">L4 L5 R4 R5</td><td class="dim">Back grips (Deck) / paddles P1–P4 (Xbox Elite) — SDL position mapping unverified on hardware, probe before binding</td><td><span class="tag reserved">RESERVED</span></td><td class="mono">P1–P4</td><td class="mono">L4/L5 R4/R5</td><td class="mono">—</td><td class="mono">—</td></tr>
+        <tr><td class="mono">D-pad</td><td class="dim">Cursor steps</td><td><span class="tag reserved">RESERVED</span></td><td class="mono" colspan="4">Universal — one sprite, rotated 90° per direction (lossless)</td></tr>
+        <tr><td class="mono">L3</td><td class="dim">Unassigned</td><td><span class="tag reserved">RESERVED</span></td><td class="mono" colspan="4">L3 (stick click)</td></tr>
+        <tr><td class="mono">LT / RT</td><td class="dim">Zoom candidates</td><td><span class="tag reserved">RESERVED</span></td><td class="mono">LT / RT</td><td class="mono">L2 / R2</td><td class="mono">L2 / R2</td><td class="mono">ZL / ZR</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="mock-note">
+    ¹ Tooltip peek is bound to <em>both</em> View and R3 right now; the weekend playtest
+    decides which survives. Both glyphs are cheap, so this doesn't block anything.
+  </p>
+
+  <h2>Sprite spec</h2>
+  <div class="cards">
+    <div class="card">
+      <h3>Canvas</h3>
+      <p><strong>12 px tall, width varies</strong> (button-format revision). Circles are
+      11 wide — odd on purpose, so a 5-wide letter centers exactly — rounded
+      squares 13, bumper pills 15, the START/SELECT word-pills wider still. The
+      bar row is 14 px, and width is free (chip expands to fit).</p>
+      <p>Keep height at exactly 12; that's the one invariant the tests pin.</p>
+    </div>
+    <div class="card">
+      <h3>Color &amp; silhouette</h3>
+      <p><strong>1-bit</strong> — white on transparency — and the sprite carries its
+      <strong>own button silhouette</strong>: letter in a circle, label on a bumper swept
+      round on its outer corner. The engine draws no plate and tints the whole
+      sprite to the text ink.</p>
+      <p><strong>Breathing room:</strong> every letter/digit pixel keeps its four
+      orthogonal neighbors free of silhouette pixels (diagonal contact is fine).
+      The generator asserts this — a redraw that pinches a label fails the build.</p>
+      <p><strong>Color identities:</strong> face buttons split into form + character
+      layers (<code>face_form</code> + <code>*_char</code>) so the engine tints them
+      per hardware — Xbox/Steam color the skittle (A green, B red, X azure,
+      Y gold; dark letter), PlayStation colors the mark on dark plastic (✕ azure,
+      ○ red, □ pink, △ teal), each with the house orthogonal glow. Switch stays
+      neutral. Colors resolve from the palette ramps at runtime — a redraw only
+      needs the white shapes. Two auditionable stylings share the layers
+      (<code>joy_glyph_style</code>): <strong>HARDWARE</strong> as above, or
+      <strong>INK</strong> — the identity moves into the glyph + glow, and EVERY
+      button (bumpers and pills included) sits on a semitransparent dark plate
+      (Eggshell 1 @ 85%) with a mid-gray outline (Gray 5) — all knob-tweakable;
+      identity-less glyphs speak the bar's text voice.</p>
+      <p>Canonical PlayStation shape colors are a possible later variant — your call.</p>
+    </div>
+    <div class="card">
+      <h3>States</h3>
+      <p><strong>One state per glyph.</strong> Pressed / dimmed / disabled are engine tints,
+      not extra art. No animation frames.</p>
+    </div>
+    <div class="card">
+      <h3>Delivery</h3>
+      <p>One <code>.aseprite</code> with a tag per glyph (the tag exporter handles the rest),
+      or loose PNGs into <code>art/sprites/ui/controller_glyphs/</code>.</p>
+      <p>Name by depiction: <code>letter_a</code>, <code>shape_cross</code>,
+      <code>label_lb</code>, <code>icon_view</code>, <code>stick_r3</code>,
+      <code>dpad</code>. The code maps skin + button → sprite.</p>
+    </div>
+  </div>
+
+  <h2>Phasing — smallest useful set first</h2>
+  <div class="phase">
+    <div class="phase-num">01</div>
+    <div class="phase-body">
+      <p><strong>The bar goes iconic</strong> on Steam Deck and Xbox at once (they share
+      everything except the shoulder label):
+      <code>letter_a</code> <code>letter_b</code> <code>letter_x</code> <code>letter_y</code>
+      <code>label_lb</code> <code>label_l1</code>.</p>
+      <p class="phase-count">6 sprites — covers every prompt currently on screen</p>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-num">02</div>
+    <div class="phase-body">
+      <p><strong>Complete the Xbox / Steam Deck vocabulary</strong> so any future prompt has a
+      glyph: <code>label_rb</code> <code>label_r1</code> <code>label_lt</code>
+      <code>label_rt</code> <code>label_l2</code> <code>label_r2</code>
+      <code>icon_view</code> <code>icon_menu</code> <code>dpad</code>
+      <code>stick_l3</code> <code>stick_r3</code>.</p>
+      <p class="phase-count">+11 sprites</p>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-num">03</div>
+    <div class="phase-body">
+      <p><strong>PlayStation:</strong> <code>shape_cross</code> <code>shape_circle</code>
+      <code>shape_square</code> <code>shape_triangle</code> <code>icon_options</code>
+      <code>icon_share</code> — the L-numbers already exist from phase 02.</p>
+      <p class="phase-count">+6 sprites</p>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-num">04</div>
+    <div class="phase-body">
+      <p><strong>Switch:</strong> <code>label_l</code> <code>label_r</code> <code>label_zl</code>
+      <code>label_zr</code> <code>label_plus</code> <code>label_minus</code> — the face
+      letters are reused from phase 01.</p>
+      <p class="phase-count">+6 sprites · ~29 total for all four skins</p>
+    </div>
+  </div>
+
+  <h2>While you're in icon mode</h2>
+  <p>The standing icon asks, unchanged — listed here so one session can sweep them:</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Icon</th><th>Size</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Swap</td><td class="mono">10×10</td><td>Like 🔁 but with straighter arrows</td></tr>
+        <tr><td>Melee / Ranged pair</td><td class="mono">~5 px tall</td><td>Inline beside a 5 px-font number (Crater's split defense cell shows <code>M1.2</code> / <code>R0.8</code> until these land)</td></tr>
+        <tr><td>Range set</td><td class="mono">10×10</td><td>Range 1, 2, 1–2, 2–3, 3+</td></tr>
+        <tr><td>Buff set</td><td class="mono">6×6</td><td>Rallied, Fortified, Hasted, Focused, Regen — and the long-missing <strong>Bellows</strong></td></tr>
+        <tr><td>Denied / broken-link</td><td class="mono">~10×10</td><td>Sits beside the OUT OF RANGE callout so 5 px type isn't carrying the meaning alone</td></tr>
+        <tr><td>Monster + Beast types</td><td class="mono">10×10</td><td>Both element types shipped long ago; chips fall back to the Gray ramp until a palette is picked</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <footer>
+    <p><strong>Defaults, not decrees:</strong> every open call above has a chosen default so
+    nothing blocks — veto anything on sight and we'll swap it.</p>
+    <p>Source of truth: <span class="mono">data/design/art-requests/controller-glyphs.html</span>
+    in the repo — edit the file, republish to the same URL. Questions → RQD.</p>
+  </footer>
+</div>

@@ -45,6 +45,9 @@ var _unit_info_panel: UnitPreviewPanel = null
 var _terrain_info_panel: TerrainPreviewPanel = null
 var _action_menu_panel: ActionMenuPanel = null
 var _combat_preview_panel: CombatPreviewPanel = null
+# Hint / command bar — bottom row of the HUD canvas (HintBar, built
+# 2026-08-20). Self-driving: samples state + input model at boundaries.
+var _hint_bar: HintBar = null
 
 # Panel side state: when true, action/combat panels are on the left, info panels on the right.
 var _action_panels_on_left: bool = false
@@ -160,6 +163,10 @@ func hide_action_menu() -> void:
 	if _action_menu_panel == null:
 		return
 	_action_menu_panel.hide_menu()
+
+
+func get_hint_bar() -> HintBar:
+	return _hint_bar
 
 
 func get_action_menu_panel() -> Node:
@@ -516,6 +523,12 @@ func _instantiate_panels() -> void:
 		_combat_preview_panel = combat_preview_scene.instantiate() as CombatPreviewPanel
 		_right_panel.add_child(_combat_preview_panel)
 
+	# Hint / command bar — full-rect child of the main layout, positions its own
+	# bottom row; added AFTER the side columns so it draws over them.
+	_hint_bar = HintBar.new()
+	_hint_bar.name = "HintBar"
+	_main_layout.add_child(_hint_bar)
+
 	# System menu panel — anchored directly to main layout (not in a VBox)
 	# so it can anchor to either screen edge without clipping the border.
 	_system_menu_panel = SystemMenuPanel.new()
@@ -759,11 +772,17 @@ func _place_system_menu() -> void:
 
 ## Returns true if the unit's world position will appear in the right half of the
 ## screen after the camera finishes panning (uses target_position, not current).
+## Anchored on current_tile when the unit has one: under ACT_THEN_WALK
+## (Settings.move_commit_mode) the sprite lags at the origin while the plan —
+## ghost, ranges, the camera's frame — lives on the tile, and the panel must
+## dodge THAT. The two agree everywhere else.
 func _unit_is_in_right_half(unit: Node) -> bool:
 	var node2d := unit as Node2D
 	if node2d == null:
 		return false
-	return _world_pos_is_in_right_half(node2d.global_position)
+	var tile := unit.get("current_tile") as Node2D
+	var anchor: Vector2 = tile.global_position if tile != null else node2d.global_position
+	return _world_pos_is_in_right_half(anchor)
 
 
 ## Shared half-of-screen test used by both unit-info and terrain-info side-flipping.

@@ -4,9 +4,11 @@
 ## ~2.4 kHz / 25 ms, press ~900 Hz + a bright transient, deny = low
 ## double-knock — plus the level-up ding: a sine chime (C6 + its octave,
 ## fast attack, ~140 ms ring) that LevelUpReportPanel pitch-steps upward
-## per revealed +1. Writes to res://audio/ui/. The shape is the spec
-## (sharp attack, dead-fast decay, RE1/Deus Ex crispy); Lawrence replaces
-## the files with real samples later, same names.
+## per revealed +1 — plus the on-map XP bar's fill (RQD 2026-08-21): a
+## rising tick train over a soft upward chirp, ~0.4 s, the Pokémon
+## "brrrrp" of a gauge filling. Writes to res://audio/ui/. The shape is
+## the spec (sharp attack, dead-fast decay, RE1/Deus Ex crispy); Lawrence
+## replaces the files with real samples later, same names.
 ##
 ## Run:  godot-4 --headless --path . -s tools/godot/generate_ui_sfx.gd
 extends SceneTree
@@ -30,7 +32,15 @@ func _init() -> void:
 		_sine(1046.5, 0.14, 0.30, 0.0),
 		_sine(2093.0, 0.10, 0.12, 0.0),
 	]))
-	print("generate_ui_sfx: wrote 4 sounds to %s" % OUTPUT_DIRECTORY)
+	# XP fill: 14 square ticks 28 ms apart climbing 700 → 1500 Hz, over a quiet
+	# sine chirp that rises with them. Matches Unit.XP_BAR_FILL_SECONDS_PER_LEVEL
+	# (~0.45 s) for a full sweep; shorter sweeps just cut the tail.
+	var xp_layers: Array[PackedFloat32Array] = [_chirp(500.0, 1100.0, 0.40, 0.10)]
+	for i: int in range(14):
+		var t := float(i) / 13.0
+		xp_layers.append(_square(lerpf(700.0, 1500.0, t), 0.018, 0.16, i * 0.028))
+	_write("xp_fill.wav", _mix(xp_layers))
+	print("generate_ui_sfx: wrote 5 sounds to %s" % OUTPUT_DIRECTORY)
 	quit()
 
 
@@ -59,6 +69,21 @@ func _sine(frequency: float, duration: float, gain: float, delay: float) -> Pack
 		var t := float(i - start) / MIX_RATE
 		var envelope := gain * exp(-t / (duration * 0.35))
 		samples[i] = envelope * sin(TAU * frequency * t)
+	return samples
+
+
+## A linear sine chirp f0 → f1 over `duration` with a 10 ms attack and a
+## 60 ms release — the gauge's rising undertone.
+func _chirp(f0: float, f1: float, duration: float, gain: float) -> PackedFloat32Array:
+	var total := int(duration * MIX_RATE)
+	var samples := PackedFloat32Array()
+	samples.resize(total)
+	for i: int in range(total):
+		var t := float(i) / MIX_RATE
+		var phase := TAU * (f0 * t + (f1 - f0) * t * t / (2.0 * duration))
+		var attack := minf(1.0, t / 0.010)
+		var release := minf(1.0, (duration - t) / 0.060)
+		samples[i] = gain * attack * release * sin(phase)
 	return samples
 
 

@@ -725,20 +725,24 @@ func process_bexp_level_up() -> void:
 	available_stat_ups += StatAllocation.points_awarded_at_level(level)
 
 
+## XP per level, flat. Radiant Dawn uses 100 too; the per-level threshold
+## doesn't scale with level in RD — what scales is how much XP each *action*
+## awards (CombatXpCalculator). THE one constant for the threshold: grant_xp,
+## the on-map XP bar (Unit), CharacterSheetPanel, UnitSheet, and the bEXP
+## screen all read it from here — they used to each hardcode 100.
+const XP_PER_LEVEL: int = 100
+
+
 ## Adds `amount` to `experience`, cascading process_level_up for every full
-## 100-XP threshold crossed. Returns the number of level-ups that fired so
-## callers can drive popups / SFX. The 100-XP threshold matches Radiant Dawn
-## and lines up with CharacterSheetPanel._xp_for_next_level / the bEXP
-## screen's per-level cost — keep them in sync if either side moves.
+## XP_PER_LEVEL threshold crossed. Returns the number of level-ups that fired
+## so callers can drive popups / SFX.
 func grant_xp(amount: int) -> int:
 	if amount <= 0:
 		return 0
 	experience += amount
 	var levels_gained: int = 0
-	# 100 XP per level, flat. RD uses 100 too; the per-level threshold doesn't
-	# scale with level in RD — what scales is how much XP each *action* awards.
-	while experience >= 100:
-		experience -= 100
+	while experience >= XP_PER_LEVEL:
+		experience -= XP_PER_LEVEL
 		process_level_up()
 		levels_gained += 1
 	return levels_gained

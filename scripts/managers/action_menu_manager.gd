@@ -160,6 +160,12 @@ func _on_wait() -> void:
 	var unit := _active_unit
 	hide_action_menu()
 
+	# ACT_THEN_WALK: Wait IS the commit — the staged walk plays before the
+	# turn seals (set_acted lays the foot tracks the walk just made). Input
+	# stays disabled until the tail of this handler re-enables it, so the
+	# walk can't be interrupted. No-op in WALK_THEN_ACT.
+	await unit.play_deferred_walk()
+
 	unit.set_acted()
 	unit.set_selected(false)
 	GridManager.clear_movement_range()

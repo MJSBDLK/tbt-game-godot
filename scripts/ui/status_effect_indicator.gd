@@ -13,7 +13,13 @@ const PIP_BAR_WIDTH: int = 4  # 4 pips at 1px each
 const PIP_BAR_Y_OFFSET: int = 4  # Icon center is at y=0; bottom edge at +3; 1px gap; pip bar starts at +4
 
 var _icon_sprites: Array[Sprite2D] = []
+# Parallel to _icon_sprites: which effect each drawn icon stands for, so
+# pop_icon can find the one that just changed.
+var _icon_effect_types: Array[String] = []
 var _pip_bars: Array[Node2D] = []
+# Scale pop on a freshly applied/restacked icon — "this one just changed."
+const POP_SCALE: float = 1.6
+const POP_SECONDS: float = 0.18
 var _icon_cache: Dictionary = {}  # path -> Texture2D
 
 
@@ -68,6 +74,7 @@ func update_icons(active_effects: Array) -> void:
 		sprite.position.x = icon_x
 		add_child(sprite)
 		_icon_sprites.append(sprite)
+		_icon_effect_types.append(effect.effect_type_name)
 
 		# Stack pip bar below the icon
 		var pip_bar := _create_pip_bar(effect.stacks, config.max_stacks)
@@ -95,10 +102,30 @@ func _create_pip_bar(current_stacks: int, max_stacks: int) -> Node2D:
 	return bar
 
 
+## Pop the icon for `effect_type_name` (RQD 2026-08-21, todo #2A): it snaps
+## to POP_SCALE and eases back, so a status landing on a unit that already
+## showed the icon still reads as an event — the pips alone are one pixel.
+## No-op under reduce-motion, or when the effect isn't in a drawn slot.
+func pop_icon(effect_type_name: String) -> void:
+	var index: int = _icon_effect_types.find(effect_type_name)
+	if index < 0 or index >= _icon_sprites.size():
+		return
+	var sprite: Sprite2D = _icon_sprites[index]
+	if Settings != null and not Settings.ui_motion_enabled:
+		return
+	sprite.scale = Vector2(POP_SCALE, POP_SCALE)
+	if not is_inside_tree():
+		sprite.scale = Vector2.ONE
+		return
+	var tween := create_tween()
+	tween.tween_property(sprite, "scale", Vector2.ONE, POP_SECONDS).set_ease(Tween.EASE_OUT)
+
+
 func _clear_icons() -> void:
 	for sprite: Sprite2D in _icon_sprites:
 		sprite.queue_free()
 	_icon_sprites.clear()
+	_icon_effect_types.clear()
 	for bar: Node2D in _pip_bars:
 		bar.queue_free()
 	_pip_bars.clear()

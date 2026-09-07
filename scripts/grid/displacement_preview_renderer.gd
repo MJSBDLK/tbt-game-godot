@@ -33,7 +33,6 @@ class_name DisplacementPreviewRenderer
 extends Node2D
 
 
-const GHOST_SHADER: Shader = preload("res://shaders/ghost_projection.gdshader")
 const OVERLAY_MATERIAL: ShaderMaterial = preload("res://resources/overlay_static.tres")
 const LABEL_FONT: FontFile = preload("res://fonts/NotJamPixel5.ttf")
 
@@ -73,14 +72,14 @@ var _ghost_tracks: Array[Dictionary] = []
 
 func _ready() -> void:
 	z_index = OVERLAY_Z_INDEX
-	_ghost_material = ShaderMaterial.new()
-	_ghost_material.shader = GHOST_SHADER
-	_ghost_material.set_shader_parameter("animate", 1.0 if Settings.ui_motion_enabled else 0.0)
+	# Ghost silhouettes come from the shared UnitGhost builder (also the move
+	# plan's destination ghost in PathVisualizer) — one material recipe, one read.
+	_ghost_material = UnitGhost.make_material()
 	Settings.changed.connect(_on_settings_changed)
 
 
 func _on_settings_changed() -> void:
-	_ghost_material.set_shader_parameter("animate", 1.0 if Settings.ui_motion_enabled else 0.0)
+	UnitGhost.set_animated(_ghost_material, Settings.ui_motion_enabled)
 
 
 ## Render the future of `move` fired by `attacker` at `target`. Clears first;
@@ -136,23 +135,11 @@ func has_preview() -> bool:
 # =============================================================================
 
 func _add_ghost(unit: Node2D, path: Array[Tile], start_step: int, is_primary: bool) -> void:
-	var source: Sprite2D = unit.get_node_or_null("Sprite2D") as Sprite2D
-	if source == null or source.texture == null or path.is_empty():
+	if path.is_empty():
 		return
-	var ghost := Sprite2D.new()
-	ghost.texture = source.texture
-	ghost.region_enabled = source.region_enabled
-	ghost.region_rect = source.region_rect
-	ghost.hframes = source.hframes
-	ghost.vframes = source.vframes
-	ghost.frame = source.frame
-	ghost.offset = source.offset
-	ghost.centered = source.centered
-	ghost.flip_h = source.flip_h
-	ghost.flip_v = source.flip_v
-	ghost.scale = source.global_scale
-	ghost.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	ghost.material = _ghost_material
+	var ghost := UnitGhost.build(unit, _ghost_material)
+	if ghost == null:
+		return
 	if not is_primary:
 		ghost.modulate.a = COLLATERAL_GHOST_ALPHA
 	add_child(ghost)
@@ -161,7 +148,8 @@ func _add_ghost(unit: Node2D, path: Array[Tile], start_step: int, is_primary: bo
 	# The ghost travels in "sprite space": each stop keeps the sprite's own
 	# anchor offset relative to its unit, so mid-body-anchored casts project
 	# correctly onto their destination cells.
-	var anchor_offset: Vector2 = source.global_position - (unit.get("current_tile") as Tile).global_position
+	var anchor_offset: Vector2 = UnitGhost.anchor_offset(unit)
+	var source: Sprite2D = unit.get_node("Sprite2D") as Sprite2D
 	var start: Vector2 = source.global_position
 	var stops: Array[Vector2] = []
 	for tile: Tile in path:
