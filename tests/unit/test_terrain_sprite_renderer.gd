@@ -482,3 +482,19 @@ func test_wildcard_casts_shadow_false_covers_the_family_on_the_board() -> void:
 			["darkforest_a.png", "darkforest_a_shadow.png", "volcano_c.png"],
 			"the volcano loses its shadow, the neighbor keeps its own")
 	ModifierTerrainMap.reload()
+
+
+# =============================================================================
+# TilemapGridBuilder: a nulled exported layer path falls back to the default
+# (an editor save mid-script-reload wrote nulls into test_map_02.tscn).
+# =============================================================================
+
+func test_builder_empty_layer_path_falls_back_to_the_default() -> void:
+	assert_eq(TilemapGridBuilder._path_or_default(^"", ^"TerrainTileLayer", "floor_layer_path"),
+			^"TerrainTileLayer", "empty → default")
+	assert_eq(TilemapGridBuilder._path_or_default(^"Custom", ^"TerrainTileLayer", "floor_layer_path"),
+			^"Custom", "a real path is kept")
+	# The real failure mode: the .tscn line `floor_layer_path = null` loads
+	# an actual null into the typed var.
+	assert_eq(TilemapGridBuilder._path_or_default(null, ^"TerrainTileLayer", "floor_layer_path"),
+			^"TerrainTileLayer", "null → default")

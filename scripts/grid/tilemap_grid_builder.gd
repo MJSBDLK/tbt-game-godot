@@ -37,6 +37,14 @@ var _tile_container: Node2D = null
 
 
 func _ready() -> void:
+	# A scene saved while this script was mid-reload (the editor had a map
+	# open during a script edit, or a dependency failed to compile for a
+	# moment) can write the exported paths as null — test_map_02 caught it
+	# on 2026-09-07. An empty path means "the default", never "no layer".
+	floor_layer_path = _path_or_default(floor_layer_path, ^"TerrainTileLayer", "floor_layer_path")
+	modifier_layer_path = _path_or_default(modifier_layer_path, ^"ModifierTileLayer", "modifier_layer_path")
+	decoration_layer_path = _path_or_default(decoration_layer_path, ^"DecorationTileLayer", "decoration_layer_path")
+	spawn_layer_path = _path_or_default(spawn_layer_path, ^"SpawnTileLayer", "spawn_layer_path")
 	_floor_layer = get_node_or_null(floor_layer_path) as TileMapLayer
 	_modifier_layer = get_node_or_null(modifier_layer_path) as TileMapLayer
 	_decoration_layer = get_node_or_null(decoration_layer_path) as TileMapLayer
@@ -192,6 +200,19 @@ func _build_grid() -> void:
 		_spawn_sprite_renderer(decoration_layer_path, "DecorationRenderer")
 
 	DebugConfig.log_tilemap("TilemapGridBuilder: Created %d tile nodes" % tile_count)
+
+
+## Null/empty exported path → the conventional default (see _ready). `path`
+## is untyped on purpose: a `.tscn` saved with `floor_layer_path = null`
+## really does load a null Variant into the typed var, and a NodePath-typed
+## parameter would reject it before we could fall back. Warns once per scene
+## build so the nulled .tscn gets noticed and cleaned up.
+static func _path_or_default(path: Variant, default: NodePath, property_name: String) -> NodePath:
+	if path is NodePath and not (path as NodePath).is_empty():
+		return path
+	push_warning("TilemapGridBuilder: %s is empty in the scene (saved as null?) — using %s. Reset the property in the inspector to clear this." % [
+		property_name, default])
+	return default
 
 
 ## One TerrainSpriteRenderer per paint layer, as a sibling of the layer.
