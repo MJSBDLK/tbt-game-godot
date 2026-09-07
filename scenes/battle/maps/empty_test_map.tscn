@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://dh782uwwdpc6y" path="res://scripts/managers/battle_scene.gd" id="1_lv864"]
 [ext_resource type="Script" uid="uid://cagsbo3vqi3rj" path="res://scripts/grid/tilemap_grid_builder.gd" id="2_dxcth"]
-[ext_resource type="TileSet" uid="uid://cgxe6s4agw8ll" path="res://resources/battle_tileset.tres" id="3_nhl2k"]
+[ext_resource type="TileSet" uid="uid://ck862ngktubj" path="res://resources/battle_tileset.tres" id="3_nhl2k"]
 [ext_resource type="Script" uid="uid://cvfd4cf0sb8g1" path="res://scripts/managers/camera_controller.gd" id="4_m3flc"]
 
 [node name="TestMap01" type="Node2D" unique_id=89991757]
