@@ -46,14 +46,20 @@ static func _ensure_loaded() -> void:
 	if not (parsed is Dictionary):
 		push_error("ModifierTerrainMap: %s is not a JSON object" % DATA_PATH)
 		return
-	var data: Dictionary = parsed
-	if data.get("by_prefix") is Dictionary:
-		_by_prefix = data["by_prefix"]
-	if data.get("by_sprite") is Dictionary:
-		_by_sprite = data["by_sprite"]
+	load_from_dictionary(parsed)
 
 
-## Force a reload — for tests and any future hot-reload.
+## Replace the live tables with `data` (the modifier_terrain.json shape:
+## {"by_prefix": {...}, "by_sprite": {...}}). Public so tests can stage a
+## sprite that doesn't exist on disk and any future hot-reload can push a
+## fresh parse in; `reload()` restores the file.
+static func load_from_dictionary(data: Dictionary) -> void:
+	_loaded = true
+	_by_prefix = data["by_prefix"] if data.get("by_prefix") is Dictionary else {}
+	_by_sprite = data["by_sprite"] if data.get("by_sprite") is Dictionary else {}
+
+
+## Force a reload from disk — for tests and any future hot-reload.
 static func reload() -> void:
 	_loaded = false
 	_by_prefix = {}
@@ -113,9 +119,27 @@ static func occlude_mode(sprite_name: String) -> String:
 
 
 ## True if this sprite has any terrain mapping (i.e. is a gameplay modifier
-## rather than a pure decoration).
+## rather than a pure decoration). A by_sprite entry only counts when it
+## carries terrain (`rows`/`cells`); render-only entries (`occlude`,
+## `casts_shadow`) on an unprefixed name leave it a pure decoration.
 static func is_modifier(sprite_name: String) -> bool:
 	_ensure_loaded()
 	if _by_sprite.has(sprite_name):
-		return true
+		var entry: Dictionary = _by_sprite[sprite_name]
+		if entry.has("rows") or entry.has("cells"):
+			return true
 	return _prefix_match(sprite_name) != ""
+
+
+## Render hint: should the runtime GENERATE a cast shadow for this sprite
+## when it ships no authored `_shadow.png`? Default true. Flat ground
+## features (craters, bridges — a hole casts nothing) opt out via
+## by_sprite[name].casts_shadow = false. Authored shadows always render;
+## this only gates the generated fallback (TerrainSpriteRenderer).
+static func casts_shadow(sprite_name: String) -> bool:
+	_ensure_loaded()
+	if _by_sprite.has(sprite_name):
+		var entry: Dictionary = _by_sprite[sprite_name]
+		if entry.has("casts_shadow"):
+			return bool(entry["casts_shadow"])
+	return true

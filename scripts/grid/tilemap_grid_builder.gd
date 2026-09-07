@@ -6,10 +6,14 @@
 ## 1. Create a TileSet with custom data layers:
 ##    - "terrain_type" (String) — matches terrain_data.json keys
 ##    - "is_modifier" (bool) — if true, this is a Tier 2 modifier tile
-## 2. Add two TileMapLayer children to this node:
-##    - "FloorLayer" — Tier 1 base terrain
-##    - "ModifierLayer" — Tier 2 modifiers (COMPLETELY REPLACE floor properties)
-##    - "DecorationLayer" (optional) — Tier 3 visual-only (stays visible at runtime)
+## 2. Add these TileMapLayer children to this node:
+##    - "TerrainTileLayer" — Tier 1 base terrain
+##    - "ModifierTileLayer" — Tier 2 modifiers (COMPLETELY REPLACE floor properties)
+##    - "DecorationTileLayer" (optional) — Tier 3 visual-only. Same sprite
+##      library as the modifier layer; painting here is the "no gameplay"
+##      choice. Rendered by the same TerrainSpriteRenderer overlay (full
+##      visual with overhang + shadows), so the layer itself is hidden at
+##      runtime just like the modifier layer.
 ## 3. Paint tiles in the editor. Run the scene. Grid is built automatically.
 ##
 ## Three-tier rule: If a modifier exists at (x,y), its terrain_type COMPLETELY
@@ -141,17 +145,18 @@ func _build_grid() -> void:
 		GridManager.register_tile(tile)
 		tile_count += 1
 
-	# Keep TileMapLayers visible — they display the actual tileset art.
-	# Tile nodes are invisible gameplay objects (selection, occupancy, terrain queries).
+	# The floor TileMapLayer stays visible — it displays the actual tileset
+	# art. Tile nodes are invisible gameplay objects (selection, occupancy,
+	# terrain queries). The modifier + decoration layers get a flat band base
+	# here as a fallback; the per-cell TerrainSpriteRenderer overlays spawned
+	# below do the real per-row sorting and hide the layers. Enum ref (not a
+	# magic number) so it tracks the band across renumbers (e.g. FOOT_TRACKS).
 	if _modifier_layer != null:
-		# Flat band base for the whole layer; the per-cell ModifierRenderer
-		# overlay does the real per-row sorting on top. Enum ref (not a magic
-		# number) so it tracks the band across renumbers (e.g. FOOT_TRACKS).
 		_modifier_layer.z_index = int(ZIndexCalculator.ZIndexLayer.TERRAIN_MODIFIERS)
+	if _decoration_layer != null:
+		_decoration_layer.z_index = int(ZIndexCalculator.ZIndexLayer.TERRAIN_MODIFIERS)
 	if _spawn_layer != null:
 		_spawn_layer.visible = false
-	if _decoration_layer != null:
-		_decoration_layer.z_index = int(ZIndexCalculator.ZIndexLayer.PURE_DECORATIONS)
 
 	# Apply boundary markers if any were placed
 	var boundary := get_boundary_rect()
@@ -165,19 +170,31 @@ func _build_grid() -> void:
 	else:
 		GridManager.set_grid_bounds(grid_width, grid_height, min_x, -max_y, tile_size)
 
-	# Spawn the modifier overlay AFTER set_grid_bounds — ModifierRenderer
+	# Spawn the sprite overlays AFTER set_grid_bounds — TerrainSpriteRenderer
 	# reads GridManager.grid_offset_y in its _ready to compute front-row z
-	# indices, so the bounds must be final first. The renderer draws each
-	# modifier's full PNG (including overhang above/around the gameplay
-	# tile) as Sprite2D overlays with occlusion-correct z, and hides the
-	# modifier tilemap layer to avoid double-rendering.
+	# indices, so the bounds must be final first. Each renderer draws its
+	# layer's full PNGs (including overhang above/around the gameplay tile)
+	# as Sprite2D overlays with occlusion-correct z, and hides its tilemap
+	# layer to avoid double-rendering. ORDER MATTERS: modifier first,
+	# decoration second — equal-z ties resolve by tree order, so a decoration
+	# painted on a modifier's cell draws on top of it.
 	if _modifier_layer != null:
-		var modifier_renderer := ModifierRenderer.new()
-		modifier_renderer.name = "ModifierRenderer"
-		modifier_renderer.modifier_layer_path = NodePath("../" + str(modifier_layer_path).get_file())
-		add_child(modifier_renderer)
+		_spawn_sprite_renderer(modifier_layer_path, "ModifierRenderer")
+	if _decoration_layer != null:
+		_spawn_sprite_renderer(decoration_layer_path, "DecorationRenderer")
 
 	DebugConfig.log_tilemap("TilemapGridBuilder: Created %d tile nodes" % tile_count)
+
+
+## One TerrainSpriteRenderer per paint layer, as a sibling of the layer.
+func _spawn_sprite_renderer(layer_path: NodePath, node_name: String) -> void:
+	var renderer := TerrainSpriteRenderer.new()
+	renderer.name = node_name
+	renderer.layer_path = NodePath("../" + str(layer_path).get_file())
+	add_child(renderer)
+	assert(renderer.get_spawned_sprites().size() > 0 \
+			or (get_node(layer_path) as TileMapLayer).get_used_cells().is_empty(),
+			"TilemapGridBuilder: %s painted cells produced no overlay sprites" % node_name)
 
 
 func _get_terrain_type_from_layer(layer: TileMapLayer, cell: Vector2i) -> String:

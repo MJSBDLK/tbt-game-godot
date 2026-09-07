@@ -35,6 +35,7 @@ var testing_phase4_moves: bool = false  # Fill every player unit's moves with th
 var debug_menu_badges: bool = true  # Etch each menu's class initials into its border (top-right, PanelBorderOverlay) — themed serial-tag so bug reports can name the misbehaving menu; looks intentional in screenshots. Flip false to hide. (RQD 2026-07-31)
 var debug_force_touch_hints: bool = false  # Force the hint/command bar into its TOUCH rendering (real buttons) on a desktop — eyeball the phone control surface without a phone. Alternative: project setting input_devices/pointing/emulate_touch_from_mouse, which also exercises InputSource's touch detection. (RQD 2026-08-20)
 var unit_cast_shadows: bool = true  # Generated ground shadows under units (UnitShadow, sheared live frame). Flip false to eyeball the board without them. (RQD 2026-07-31)
+var terrain_generated_shadows: bool = true  # Generated cast shadows under terrain sprites (modifiers + decorations) that ship NO authored _shadow.png (TerrainSpriteRenderer.generate_cast_shadow, same sun as UnitShadow). Authored shadows always render. Flip false to eyeball authored-only. (RQD 2026-09-07)
 
 # Input & State
 var input: bool = false
