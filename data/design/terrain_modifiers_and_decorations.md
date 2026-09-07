@@ -96,13 +96,22 @@ layer (they're keyed by sprite name, and the renderer is the same):
 
 - `occlude`: `"interleave"` (default) or `"solid"` — how a multi-row
   sprite sorts against units standing on its body.
-- `casts_shadow`: default `true` — whether the runtime *generates* a cast
-  shadow when the sprite ships no authored `_shadow.png`. The craters and
-  the bridge are `false` (a hole casts nothing). Authored shadows always
-  render regardless.
+- `casts_shadow`: default `true`. `false` means the sprite renders with
+  **no shadow at all** — its authored `_shadow.png` is skipped and nothing
+  is generated. This is the switch for floor elements (craters, the
+  bridge, anything lying flat: a hole casts nothing). `true` plays the
+  authored shadow if there is one, else generates a cast.
+
+**Wildcards**: a `by_sprite` key ending in `*` applies its render hints to
+every sprite with that prefix — `"piperoot_*": { "casts_shadow": false }`
+flags the whole family. The exact entry wins for any key it sets; the
+longest wildcard wins between wildcards. Wildcards never carry terrain
+(`rows`/`cells` on them are ignored — that's `by_prefix`'s job).
 
 An entry holding only render hints does **not** make an unprefixed sprite a
 gameplay modifier — `is_modifier` needs `rows`/`cells` or a prefix match.
+The editor preview re-reads this file when it changes, so flip a flag and
+watch the open map.
 
 ## Layer architecture
 
@@ -384,12 +393,11 @@ final (modifier first, decoration second). Each renderer hides its
 TileMapLayer and, per painted cell, spawns:
 
 1. **The shadow**, first, so it sits behind everything else at that
-   position. Resolution order:
+   position. `casts_shadow: false` → none at all. Otherwise:
    - **Authored**: `<source_texture>_shadow.png` next to the source PNG
      (what the exporter emits when the `.aseprite` has a shadow layer).
      Played verbatim, centered on the sprite like the body.
-   - **Generated**: otherwise, unless `casts_shadow: false` in
-     `modifier_terrain.json` or `DebugConfig.terrain_generated_shadows`
+   - **Generated**: otherwise, unless `DebugConfig.terrain_generated_shadows`
      is off, `generate_cast_shadow` rasterizes the sprite's own pixels
      into a cast — the same rigid 90° tip-over + squash `UnitShadow` uses
      for units (it literally calls `UnitShadow.project_silhouette`), so
@@ -413,7 +421,14 @@ own caster (masked) and is covered by anything one row south. Flip the
 const to drop shadows under every body (`TERRAIN_EFFECTS`). All sprites use
 `texture_filter = NEAREST`, absolute z, integer world positions, and share
 one out-of-bounds fade material (`shaders/modifier_oob_fade.gdshader`) so
-overhang past the map edge darkens with the floor.
+overhang past the map edge darkens with the floor. That shader reads the
+fragment's incoming `COLOR` (already texture × modulate) rather than
+sampling the texture again — sampling twice squares every channel, which
+darkened the buildings and thinned the shadows to 16% for a day on
+2026-09-07. `tools/diag/shader_parity_probe.gd` renders the four cases
+(plain sprite, fade material, 40% shadow through the material, UnitShadow's
+draw path) and checks they composite identically; run it after touching
+the shader.
 
 ### Editor preview
 

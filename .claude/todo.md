@@ -1,8 +1,4 @@
 # Resp
-Just met with Lawrence after a long break, and we kinda got our bearings. For next week, he's working on line art and sprites, but starting net week, we're gonna do some map work. There's a handful of things that need to happen to accommodate this.
-1) For terrain modifiers *and* decorations, some assets have custom shadow layers. For assets without, we need to add the dynamic shadow system to these elements.
-2) Terrain modifiers currently have a script (I think) which prevents the sprites from being cropped in adjacent cells. We need the same system for the decoration layer.
-3) I thought I had a third thing, but now I'm drawing a blank. Anything else we need to get the terrain/modifier/decoration stack functioning at a level where Lawrence can begin designing maps?
 
 **Answered + BUILT 2026-09-07 on `rqd--terrain-stack`** (3 commits, suite
 1096 green; squash-merge once RQD/Lawrence have eyeballed a build):
@@ -30,6 +26,22 @@ Design doc rewritten: data/design/terrain_modifiers_and_decorations.md,
 including a new-map checklist (wizard → 4 layers → boundary + P/E stamps →
 `data/missions/mission_manifest.json` → F5; `lawrence_test_map` isn't in
 the manifest yet).
+**RQD build report, same day (all three resolved):**
+- *"Terrain shadows look a different opacity/color than unit shadows"* and
+  *"building_a darkened as a whole"* — ONE bug, mine: the OOB fade shader's
+  "honor modulate" edit sampled the texture a second time (canvas_item
+  `COLOR` already holds texture × modulate), squaring every channel — light
+  buildings darkened, 40 % shadows became 16 %. The PNGs were byte-identical
+  to the unit ink all along. Fixed; `tools/diag/shader_parity_probe.gd`
+  renders the four cases and checks parity (run it after any shader edit).
+- *"Some decorations need no shadow, floor elements"* — `casts_shadow: false`
+  in modifier_terrain.json now means NO shadow of any kind (the authored
+  `_shadow.png` is skipped too), and a wildcard key (`"piperoot_*"`) flags a
+  family. The editor preview re-reads the JSON on change, so flip a line and
+  watch the open map. I couldn't tell from the art WHICH ones RQD means (the
+  craters + bridge already have none; everything else reads as an upright
+  object on the contact sheet), so the list is RQD's to fill — one line per
+  sprite or family.
 **Content note for Lawrence:** every sprite except `castle_a` exports with a
 1×1 footprint — the 160×96 buildings and the 96×96 bridge included — so
 gameplay treats them as one cell (units walk up to / onto a single tile of a

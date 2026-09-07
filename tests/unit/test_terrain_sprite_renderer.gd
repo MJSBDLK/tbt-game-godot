@@ -453,3 +453,32 @@ func test_runtime_renderer_does_not_poll() -> void:
 	# explicitly and the layer never changes underneath us.
 	var renderer := _spawn_layer_with("DecorationTileLayer", {Vector2i(0, 0): "crater_a"})
 	assert_false(renderer.is_processing(), "no per-frame work at runtime")
+
+
+# =============================================================================
+# casts_shadow: false means NO shadow — the authored one included. The
+# system for floor elements Lawrence drew a shadow for anyway.
+# =============================================================================
+
+func test_casts_shadow_false_suppresses_an_authored_shadow() -> void:
+	ModifierTerrainMap.load_from_dictionary({
+		"by_prefix": {},
+		"by_sprite": {"darkforest_a": {"casts_shadow": false}},
+	})
+	var renderer := _spawn_layer_with("DecorationTileLayer", {Vector2i(2, -3): "darkforest_a"})
+	assert_eq(_textures_of(renderer.get_spawned_sprites()), ["darkforest_a.png"],
+			"darkforest_a ships a _shadow.png, and it must NOT be drawn")
+	ModifierTerrainMap.reload()
+
+
+func test_wildcard_casts_shadow_false_covers_the_family_on_the_board() -> void:
+	ModifierTerrainMap.load_from_dictionary({
+		"by_prefix": {},
+		"by_sprite": {"volcano_*": {"casts_shadow": false}},
+	})
+	var renderer := _spawn_layer_with("DecorationTileLayer",
+			{Vector2i(0, -2): "volcano_c", Vector2i(1, -2): "darkforest_a"})
+	assert_eq(_textures_of(renderer.get_spawned_sprites()),
+			["darkforest_a.png", "darkforest_a_shadow.png", "volcano_c.png"],
+			"the volcano loses its shadow, the neighbor keeps its own")
+	ModifierTerrainMap.reload()

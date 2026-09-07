@@ -36,14 +36,15 @@
 ## paint stroke. Unowned nodes are never saved into the .tscn, so the
 ## runtime never sees them.
 ##
-## Shadows, in order: (1) the authored `<sprite>_shadow.png` next to the
-## source texture, when Lawrence drew one — played verbatim; (2) otherwise a
-## GENERATED cast of the sprite's own pixels (generate_cast_shadow, built on
-## UnitShadow.project_silhouette so terrain and units share one sun), unless
-## the sprite opts out in modifier_terrain.json (`casts_shadow: false` —
-## craters, the bridge: flat ground features cast nothing) or
-## DebugConfig.terrain_generated_shadows is off. Authored always wins; the
-## generator is the fallback for art that hasn't had its shadow pass yet.
+## Shadows. A sprite flagged `casts_shadow: false` in modifier_terrain.json
+## (exact or wildcard entry — craters, the bridge, any floor element) gets
+## NO shadow of any kind. Otherwise, in order: (1) the authored
+## `<sprite>_shadow.png` next to the source texture, when Lawrence drew one —
+## played verbatim; (2) else a GENERATED cast of the sprite's own pixels
+## (generate_cast_shadow, built on UnitShadow.project_silhouette so terrain
+## and units share one sun), unless DebugConfig.terrain_generated_shadows is
+## off. Authored wins; the generator is the fallback for art that hasn't had
+## its shadow pass yet.
 @tool
 class_name TerrainSpriteRenderer
 extends Node2D
@@ -98,6 +99,7 @@ var _layer: TileMapLayer = null
 var _sprites: Array[Sprite2D] = []
 var _editor_poll_countdown: int = 0
 var _editor_last_hash: int = 0
+var _editor_last_hints_mtime: int = 0
 
 
 func _ready() -> void:
@@ -119,7 +121,10 @@ func _process(_delta: float) -> void:
 		return
 	_editor_poll_countdown = EDITOR_POLL_FRAMES
 	var current_hash: int = hash(_layer.tile_map_data)
-	if current_hash != _editor_last_hash:
+	# Also watch modifier_terrain.json: flipping casts_shadow / occlude in
+	# the file should show on the open map without a scene reload.
+	var hints_mtime: int = FileAccess.get_modified_time(ModifierTerrainMap.DATA_PATH)
+	if current_hash != _editor_last_hash or hints_mtime != _editor_last_hints_mtime:
 		refresh()
 
 
@@ -160,6 +165,8 @@ func refresh() -> void:
 	var grid_offset_y: int = _grid_offset_y()
 	if in_editor:
 		_editor_last_hash = hash(_layer.tile_map_data)
+		_editor_last_hints_mtime = FileAccess.get_modified_time(ModifierTerrainMap.DATA_PATH)
+		ModifierTerrainMap.reload()  # pick up hint edits made while the map is open
 
 	# Out-of-bounds fade: darken overlay pixels past the map edge with the
 	# same function the floor vignette uses, so overhang doesn't glow at full
@@ -217,9 +224,13 @@ func refresh() -> void:
 		var sprite_name: String = source.resource_name
 
 		# Spawn the shadow first so it sits behind everything else added at
-		# the same world position. Authored wins; generated is the fallback.
+		# the same world position. casts_shadow=false → none at all;
+		# otherwise authored wins and generated is the fallback.
+		var casts_shadow: bool = ModifierTerrainMap.casts_shadow(sprite_name)
 		var shadow_path: String = _shadow_path_for(source.texture.resource_path)
-		if shadow_path != "" and ResourceLoader.exists(shadow_path):
+		if not casts_shadow:
+			pass
+		elif shadow_path != "" and ResourceLoader.exists(shadow_path):
 			var shadow_tex: Texture2D = load(shadow_path)
 			if shadow_tex != null:
 				var shadow_sprite := Sprite2D.new()
@@ -232,7 +243,7 @@ func refresh() -> void:
 				shadow_sprite.material = fade_material
 				add_child(shadow_sprite)
 				_sprites.append(shadow_sprite)
-		elif generated_enabled and ModifierTerrainMap.casts_shadow(sprite_name):
+		elif generated_enabled:
 			var generated: Dictionary = _generated_shadow_for(source.texture)
 			if not generated.is_empty():
 				var shadow_sprite := Sprite2D.new()

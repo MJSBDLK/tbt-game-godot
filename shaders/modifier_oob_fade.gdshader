@@ -7,8 +7,11 @@ shader_type canvas_item;
 // consistently with the floor underneath them — without needing the vignette
 // polygon to sit above them in z (impossible: terrain sprites and units
 // interleave per-row in z, a flat polygon can't separate them).
-// Honors the CanvasItem modulate (the incoming COLOR) like the stock
-// canvas_item fragment does, so a tinted sprite still fades correctly.
+// In a canvas_item fragment(), the incoming COLOR is ALREADY
+// texture(TEXTURE, UV) * modulate — read it, don't sample the texture again
+// (sampling twice squares every channel: midtones darken and a 40% shadow
+// turns 16%; that bug shipped for a day on 2026-09-07 and read as "the
+// buildings got darker and the shadows got lighter").
 uniform vec2 map_min;                 // world-space top-left corner of the map
 uniform vec2 map_max;                 // world-space bottom-right corner of the map
 uniform float fade_width = 32.0;      // pixels from map edge to full darkening
@@ -21,7 +24,7 @@ void vertex() {
 }
 
 void fragment() {
-	vec4 tex = texture(TEXTURE, UV) * COLOR;  // COLOR in = vertex color × modulate
+	vec4 tex = COLOR;  // = texture(TEXTURE, UV) * modulate, per the canvas_item contract
 	// Per-axis distance OUTSIDE the map rect (0 if within on that axis).
 	vec2 outside = max(max(map_min - world_pos, world_pos - map_max), vec2(0.0));
 	float dist = length(outside);
