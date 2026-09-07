@@ -420,3 +420,36 @@ func test_generated_shadow_respects_casts_shadow_false() -> void:
 	var renderer := _spawn_synthetic_tree("flat_thing")
 	assert_eq(renderer.get_spawned_sprites().size(), 1, "opted out: body only")
 	ModifierTerrainMap.reload()
+
+
+# =============================================================================
+# Editor preview — front row derivation (the runtime asks GridManager; the
+# editor has no GridManager and derives the same number from the floor).
+# =============================================================================
+
+func test_editor_grid_offset_makes_the_southernmost_cell_row_zero() -> void:
+	var cells: Array[Vector2i] = [Vector2i(0, -8), Vector2i(3, 0), Vector2i(-2, -3)]
+	var offset: int = TerrainSpriteRenderer.editor_grid_offset_y(cells)
+	assert_eq(offset, 0, "max tilemap y is 0 → offset 0")
+	assert_eq(TerrainSpriteRenderer.front_row_index(0, 1, offset), 0, "southernmost cell is the front row")
+	assert_eq(TerrainSpriteRenderer.front_row_index(-8, 1, offset), 8, "northernmost cell is 8 rows back")
+
+
+func test_editor_grid_offset_matches_the_builder_convention_for_negative_maps() -> void:
+	# A map painted entirely at negative tilemap y (max y = -2): the builder
+	# passes -max_y to set_grid_bounds, so offset must be 2.
+	var cells: Array[Vector2i] = [Vector2i(0, -9), Vector2i(4, -2)]
+	assert_eq(TerrainSpriteRenderer.editor_grid_offset_y(cells), 2)
+	assert_eq(TerrainSpriteRenderer.front_row_index(-2, 1, 2), 0)
+
+
+func test_editor_grid_offset_is_zero_for_an_empty_layer() -> void:
+	var none: Array[Vector2i] = []
+	assert_eq(TerrainSpriteRenderer.editor_grid_offset_y(none), 0)
+
+
+func test_runtime_renderer_does_not_poll() -> void:
+	# set_process is the editor-only poll; at runtime the builder refreshes
+	# explicitly and the layer never changes underneath us.
+	var renderer := _spawn_layer_with("DecorationTileLayer", {Vector2i(0, 0): "crater_a"})
+	assert_false(renderer.is_processing(), "no per-frame work at runtime")

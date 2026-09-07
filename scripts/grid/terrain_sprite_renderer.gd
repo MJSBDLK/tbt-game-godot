@@ -24,6 +24,18 @@
 ## on a more-southern row (+10 per row) covers both. Units in the same row
 ## (UNITS slot) draw over everything terrain.
 ##
+## EDITOR PREVIEW: this script is @tool. TilemapGridBuilder (also @tool)
+## spawns unowned preview renderers while a map scene is open in the editor,
+## so Lawrence paints and sees the real thing — overhang, shadows, per-row
+## sorting — instead of the cropped 32×32 atlas chunk and an F5 round trip.
+## In the editor the renderer keeps the TileMapLayer visible (the overlay
+## covers its chunk pixel-for-pixel, and painting needs the layer shown),
+## skips the out-of-bounds fade (no GridManager), derives the front row from
+## the floor layer's southernmost painted cell (what GridManager would do),
+## and polls the layer's tile data every few frames to refresh after a
+## paint stroke. Unowned nodes are never saved into the .tscn, so the
+## runtime never sees them.
+##
 ## Shadows, in order: (1) the authored `<sprite>_shadow.png` next to the
 ## source texture, when Lawrence drew one — played verbatim; (2) otherwise a
 ## GENERATED cast of the sprite's own pixels (generate_cast_shadow, built on
@@ -32,12 +44,21 @@
 ## craters, the bridge: flat ground features cast nothing) or
 ## DebugConfig.terrain_generated_shadows is off. Authored always wins; the
 ## generator is the fallback for art that hasn't had its shadow pass yet.
+@tool
 class_name TerrainSpriteRenderer
 extends Node2D
 
 
 ## TileMapLayer whose cells drive the overlay sprites. Resolved at _ready.
 @export var layer_path: NodePath = ^"../ModifierTileLayer"
+
+## Editor preview only: the floor layer that defines the map's southernmost
+## row (front row zero). At runtime GridManager owns that number.
+@export var floor_layer_path: NodePath = ^"../TerrainTileLayer"
+
+## Editor preview only: how often (in frames) to check the layer for paint
+## changes. A PackedByteArray hash of ~50 cells is microseconds.
+const EDITOR_POLL_FRAMES: int = 10
 
 # EXPERIMENT (issue: "shadows protrude against elements to the right"):
 # when true, shadows render one z-slot ABOVE same-row bodies instead of
@@ -75,6 +96,8 @@ const _GRID_HEIGHT_FOR_Z: int = 100
 
 var _layer: TileMapLayer = null
 var _sprites: Array[Sprite2D] = []
+var _editor_poll_countdown: int = 0
+var _editor_last_hash: int = 0
 
 
 func _ready() -> void:
@@ -82,7 +105,45 @@ func _ready() -> void:
 	if _layer == null:
 		push_error("TerrainSpriteRenderer: couldn't resolve layer_path: %s" % layer_path)
 		return
+	set_process(Engine.is_editor_hint())
 	refresh()
+
+
+## Editor only (set_process is off at runtime): re-render when the layer's
+## painted data changed since the last look.
+func _process(_delta: float) -> void:
+	if _layer == null:
+		return
+	_editor_poll_countdown -= 1
+	if _editor_poll_countdown > 0:
+		return
+	_editor_poll_countdown = EDITOR_POLL_FRAMES
+	var current_hash: int = hash(_layer.tile_map_data)
+	if current_hash != _editor_last_hash:
+		refresh()
+
+
+## Front-row-zero offset for z math. Runtime: GridManager's, set by the
+## builder before we spawn. Editor: derived the same way the builder does
+## it — the floor layer's southernmost painted cell is row 0 — so the
+## preview sorts like the game will.
+func _grid_offset_y() -> int:
+	if not Engine.is_editor_hint():
+		return GridManager.grid_offset_y
+	var floor_layer := get_node_or_null(floor_layer_path) as TileMapLayer
+	var reference: TileMapLayer = floor_layer if floor_layer != null else _layer
+	return editor_grid_offset_y(reference.get_used_cells())
+
+
+## Pure: the offset that makes the southernmost (max tilemap y) painted cell
+## row 0, matching TilemapGridBuilder's `set_grid_bounds(..., -max_y, ...)`.
+static func editor_grid_offset_y(cells: Array[Vector2i]) -> int:
+	if cells.is_empty():
+		return 0
+	var max_y: int = cells[0].y
+	for cell in cells:
+		max_y = maxi(max_y, cell.y)
+	return -max_y
 
 
 ## Drop every spawned sprite and rebuild from the current layer state. Call
@@ -95,17 +156,25 @@ func refresh() -> void:
 	if tile_set == null:
 		return
 	var tile_size: Vector2i = tile_set.tile_size
-	var grid_offset_y: int = GridManager.grid_offset_y
+	var in_editor: bool = Engine.is_editor_hint()
+	var grid_offset_y: int = _grid_offset_y()
+	if in_editor:
+		_editor_last_hash = hash(_layer.tile_map_data)
 
 	# Out-of-bounds fade: darken overlay pixels past the map edge with the
 	# same function the floor vignette uses, so overhang doesn't glow at full
 	# brightness over the faded border. One shared material — the params are
-	# identical for every sprite.
-	var map_rect: Rect2 = GridManager.get_map_world_rect()
-	var fade_material := ShaderMaterial.new()
-	fade_material.shader = _OOB_FADE_SHADER
-	fade_material.set_shader_parameter("map_min", map_rect.position)
-	fade_material.set_shader_parameter("map_max", map_rect.end)
+	# identical for every sprite. Editor preview: no GridManager, no fade.
+	var fade_material: ShaderMaterial = null
+	if not in_editor:
+		var map_rect: Rect2 = GridManager.get_map_world_rect()
+		fade_material = ShaderMaterial.new()
+		fade_material.shader = _OOB_FADE_SHADER
+		fade_material.set_shader_parameter("map_min", map_rect.position)
+		fade_material.set_shader_parameter("map_max", map_rect.end)
+	# Generated-shadow gate: a dev kill switch at runtime; always on in the
+	# editor preview (no DebugConfig there).
+	var generated_enabled: bool = true if in_editor else DebugConfig.terrain_generated_shadows
 
 	for cell: Vector2i in _layer.get_used_cells():
 		var source_id: int = _layer.get_cell_source_id(cell)
@@ -163,7 +232,7 @@ func refresh() -> void:
 				shadow_sprite.material = fade_material
 				add_child(shadow_sprite)
 				_sprites.append(shadow_sprite)
-		elif DebugConfig.terrain_generated_shadows and ModifierTerrainMap.casts_shadow(sprite_name):
+		elif generated_enabled and ModifierTerrainMap.casts_shadow(sprite_name):
 			var generated: Dictionary = _generated_shadow_for(source.texture)
 			if not generated.is_empty():
 				var shadow_sprite := Sprite2D.new()
@@ -213,8 +282,10 @@ func refresh() -> void:
 
 	# Hide the tilemap layer so it doesn't double-render the gameplay-area
 	# chunk underneath the overlay. The Tile nodes (invisible gameplay state)
-	# don't depend on the layer's visibility.
-	_layer.visible = false
+	# don't depend on the layer's visibility. In the editor the layer stays
+	# visible — painting needs it — and the overlay simply covers its chunk.
+	if not in_editor:
+		_layer.visible = false
 
 
 ## Sprites spawned by the last refresh (tests / diagnostics).

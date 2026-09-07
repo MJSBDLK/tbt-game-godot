@@ -18,6 +18,7 @@
 ##
 ## Three-tier rule: If a modifier exists at (x,y), its terrain_type COMPLETELY
 ## replaces the floor terrain_type. Never additive.
+@tool
 class_name TilemapGridBuilder
 extends Node2D
 
@@ -40,6 +41,13 @@ func _ready() -> void:
 	_modifier_layer = get_node_or_null(modifier_layer_path) as TileMapLayer
 	_decoration_layer = get_node_or_null(decoration_layer_path) as TileMapLayer
 	_spawn_layer = get_node_or_null(spawn_layer_path) as TileMapLayer
+
+	# EDITOR: no grid, no autoloads — just the paint-and-see previews.
+	# TerrainSpriteRenderer is @tool; unowned children never reach the .tscn,
+	# so the runtime path below starts clean every time.
+	if Engine.is_editor_hint():
+		_spawn_editor_previews()
+		return
 
 	if _floor_layer == null:
 		DebugConfig.log_error("TilemapGridBuilder: FloorLayer not found at '%s'" % str(floor_layer_path))
@@ -187,14 +195,29 @@ func _build_grid() -> void:
 
 
 ## One TerrainSpriteRenderer per paint layer, as a sibling of the layer.
-func _spawn_sprite_renderer(layer_path: NodePath, node_name: String) -> void:
+func _spawn_sprite_renderer(layer_path: NodePath, node_name: String) -> TerrainSpriteRenderer:
 	var renderer := TerrainSpriteRenderer.new()
 	renderer.name = node_name
 	renderer.layer_path = NodePath("../" + str(layer_path).get_file())
+	renderer.floor_layer_path = NodePath("../" + str(floor_layer_path).get_file())
 	add_child(renderer)
-	assert(renderer.get_spawned_sprites().size() > 0 \
-			or (get_node(layer_path) as TileMapLayer).get_used_cells().is_empty(),
-			"TilemapGridBuilder: %s painted cells produced no overlay sprites" % node_name)
+	if not Engine.is_editor_hint():
+		assert(renderer.get_spawned_sprites().size() > 0 \
+				or (get_node(layer_path) as TileMapLayer).get_used_cells().is_empty(),
+				"TilemapGridBuilder: %s painted cells produced no overlay sprites" % node_name)
+	return renderer
+
+
+## Editor-only previews of both paint layers (see TerrainSpriteRenderer's
+## header). Same spawn order as the runtime — modifier first, decoration
+## second — so tree-order ties resolve the way the game will. Left unowned
+## on purpose: the scene tree dock doesn't show them and saving the scene
+## doesn't write them.
+func _spawn_editor_previews() -> void:
+	if _modifier_layer != null:
+		_spawn_sprite_renderer(modifier_layer_path, "ModifierPreview")
+	if _decoration_layer != null:
+		_spawn_sprite_renderer(decoration_layer_path, "DecorationPreview")
 
 
 func _get_terrain_type_from_layer(layer: TileMapLayer, cell: Vector2i) -> String:

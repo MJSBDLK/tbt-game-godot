@@ -415,6 +415,38 @@ const to drop shadows under every body (`TERRAIN_EFFECTS`). All sprites use
 one out-of-bounds fade material (`shaders/modifier_oob_fade.gdshader`) so
 overhang past the map edge darkens with the floor.
 
+### Editor preview
+
+Both scripts are `@tool`. With a map scene open in the editor,
+`TilemapGridBuilder._ready` skips the grid build and instead spawns
+`ModifierPreview` + `DecorationPreview` renderers — **unowned**, so the
+scene tree dock doesn't list them and saving never writes them. They draw
+the same overlay the game will (full PNGs, per-row strips, authored or
+generated shadows, same z math with the front row derived from the floor
+layer's southernmost painted cell), keep the TileMapLayer visible so
+painting works, skip the out-of-bounds fade (no GridManager in the
+editor), and re-render about ten frames after any paint stroke by polling
+the layer's tile data. So Lawrence paints and sees; F5 is for units and
+gameplay, not for finding out what a tree looks like.
+
+### Making a new map (checklist)
+
+1. Run the wizard: open `scripts/editor/tilemap_setup_wizard.gd`, set
+   `map_name`, File → Run. It creates the scene with all four layers wired
+   to `battle_tileset.tres` and the builder script.
+2. Paint `TerrainTileLayer` with the terrain-set autotiles (floor is
+   required everywhere a unit can stand).
+3. Paint modifiers and decorations from the sprite sources — the layer
+   decides gameplay. Multi-cell sprites: the painted cell is the north-west
+   corner.
+4. On `SpawnTileLayer`: **Boundary** stamps on the map's corners/edges
+   (the grid is trimmed to their rect), **P** stamps for player deploy
+   slots, **E** stamps for enemy spawns (see `.claude/spawn-system.md`).
+5. Add the scene to `data/missions/mission_manifest.json` so it appears
+   in map select (display name, par turns, dawdle turns).
+6. F5. `tools/diag/map_shot_probe.gd` screenshots any map from the CLI
+   if you want a still to send around.
+
 > **Units cast shadows too** — generated, not authored: `UnitShadow`
 > (`scripts/units/unit_shadow.gd`) rasterizes the unit's live frame onto the
 > ground on the world pixel grid, speaking this section's visual language
@@ -452,11 +484,8 @@ These are out of V1 scope but worth capturing now so they don't get lost:
   The `Sprite2D`-based renderer architecture chosen for V1 directly
   supports this (per-sprite transforms), so it's an extension, not a
   rewrite.
-- **Editor preview** — the renderer is runtime-only, so in the editor
-  Lawrence sees the cropped 32×32 atlas chunk with no overhang or shadow
-  on either layer and has to F5 to see the real map. A `@tool` preview
-  (the renderer refreshing on the layer's `changed` signal inside the
-  editor) would make map painting paint-and-see.
+- ~~Editor preview~~ — done 2026-09-07: `TilemapGridBuilder` and
+  `TerrainSpriteRenderer` are `@tool`; see "Editor preview" above.
 - **Animated terrain sprites** — the exporter emits multi-frame tags as
   horizontal strips and records `frame_durations_ms`, but the renderer
   draws the whole texture as one static sprite. First animated asset
