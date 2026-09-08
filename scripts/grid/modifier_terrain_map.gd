@@ -46,14 +46,20 @@ static func _ensure_loaded() -> void:
 	if not (parsed is Dictionary):
 		push_error("ModifierTerrainMap: %s is not a JSON object" % DATA_PATH)
 		return
-	var data: Dictionary = parsed
-	if data.get("by_prefix") is Dictionary:
-		_by_prefix = data["by_prefix"]
-	if data.get("by_sprite") is Dictionary:
-		_by_sprite = data["by_sprite"]
+	load_from_dictionary(parsed)
 
 
-## Force a reload — for tests and any future hot-reload.
+## Replace the live tables with `data` (the modifier_terrain.json shape:
+## {"by_prefix": {...}, "by_sprite": {...}}). Public so tests can stage a
+## sprite that doesn't exist on disk and any future hot-reload can push a
+## fresh parse in; `reload()` restores the file.
+static func load_from_dictionary(data: Dictionary) -> void:
+	_loaded = true
+	_by_prefix = data["by_prefix"] if data.get("by_prefix") is Dictionary else {}
+	_by_sprite = data["by_sprite"] if data.get("by_sprite") is Dictionary else {}
+
+
+## Force a reload from disk — for tests and any future hot-reload.
 static func reload() -> void:
 	_loaded = false
 	_by_prefix = {}
@@ -99,23 +105,65 @@ static func _prefix_match(sprite_name: String) -> String:
 	return best
 
 
-## Render-time occlusion mode for a sprite (see the OCCLUDE_* constants).
-## Per-sprite via by_sprite[name].occlude; defaults to interleave. Any value
-## other than "solid" is treated as interleave so a typo fails safe to the
-## correct-depth default rather than the legacy block-occlude behavior.
-static func occlude_mode(sprite_name: String) -> String:
+## Render-hint lookup. The exact by_sprite entry wins when it carries the
+## key; otherwise the longest matching WILDCARD entry — a by_sprite key
+## ending in "*" (e.g. "piperoot_*") — so a whole family can be flagged in
+## one line. Wildcard entries carry render hints ONLY; terrain never
+## resolves through them (that's what by_prefix is for). Returns null when
+## nothing sets the key.
+static func _render_hint(sprite_name: String, key: String) -> Variant:
 	_ensure_loaded()
 	if _by_sprite.has(sprite_name):
-		var entry: Dictionary = _by_sprite[sprite_name]
-		if entry.has("occlude") and str(entry["occlude"]) == OCCLUDE_SOLID:
-			return OCCLUDE_SOLID
+		var exact: Dictionary = _by_sprite[sprite_name]
+		if exact.has(key):
+			return exact[key]
+	var best: Variant = null
+	var best_len := -1
+	for raw_key: Variant in _by_sprite:
+		var k := str(raw_key)
+		if not k.ends_with("*"):
+			continue
+		var prefix := k.substr(0, k.length() - 1)
+		if sprite_name.begins_with(prefix) and prefix.length() > best_len:
+			var entry: Dictionary = _by_sprite[k]
+			if entry.has(key):
+				best = entry[key]
+				best_len = prefix.length()
+	return best
+
+
+## Render-time occlusion mode for a sprite (see the OCCLUDE_* constants).
+## Per-sprite via by_sprite[name].occlude (or a wildcard entry); defaults to
+## interleave. Any value other than "solid" is treated as interleave so a
+## typo fails safe to the correct-depth default rather than the legacy
+## block-occlude behavior.
+static func occlude_mode(sprite_name: String) -> String:
+	var hint: Variant = _render_hint(sprite_name, "occlude")
+	if hint != null and str(hint) == OCCLUDE_SOLID:
+		return OCCLUDE_SOLID
 	return DEFAULT_OCCLUDE_MODE
 
 
 ## True if this sprite has any terrain mapping (i.e. is a gameplay modifier
-## rather than a pure decoration).
+## rather than a pure decoration). A by_sprite entry only counts when it
+## carries terrain (`rows`/`cells`); render-only entries (`occlude`,
+## `casts_shadow`) on an unprefixed name leave it a pure decoration.
 static func is_modifier(sprite_name: String) -> bool:
 	_ensure_loaded()
 	if _by_sprite.has(sprite_name):
-		return true
+		var entry: Dictionary = _by_sprite[sprite_name]
+		if entry.has("rows") or entry.has("cells"):
+			return true
 	return _prefix_match(sprite_name) != ""
+
+
+## Render hint: does this sprite cast a shadow at all? Default true. `false`
+## means NO shadow of any kind — the authored `_shadow.png` is skipped and
+## nothing is generated — for floor elements (craters, bridges, anything
+## lying flat: a hole casts nothing). Set via by_sprite[name].casts_shadow
+## or a wildcard entry ("piperoot_*"). Read by TerrainSpriteRenderer.
+static func casts_shadow(sprite_name: String) -> bool:
+	var hint: Variant = _render_hint(sprite_name, "casts_shadow")
+	if hint == null:
+		return true
+	return bool(hint)

@@ -1,3 +1,63 @@
+# Resp
+
+**Answered + BUILT 2026-09-07 on `rqd--terrain-stack`** (3 commits, suite
+1096 green; squash-merge once RQD/Lawrence have eyeballed a build):
+1. Generated-shadow fallback for terrain sprites — the shadow-meeting item
+   below, framed authored-wins / generated-fallback.
+2. Decoration layer now renders exactly like the modifier layer — §6.
+3. The third thing turned out to be **tile registration reshuffling source
+   ids**: `tools/register_modifier_tiles.gd` wiped every source ≥100 and
+   re-minted them in sorted-name order, so the first new sprite sorting
+   before an existing one (`bush_a` < `castle_a`) would have silently
+   repainted every map. Ids are now stable forever, newcomers append, a
+   drift assert refuses to save, a no-op run touches nothing, and headless
+   saves keep their `uid=`s. `tests/unit/test_map_tileset_integrity.gd`
+   walks every map's painted cells against the tileset.
+4. **Editor preview** (the map-week ergonomics win): `TilemapGridBuilder` +
+   `TerrainSpriteRenderer` are `@tool`. With a map open in the editor,
+   unowned `ModifierPreview` / `DecorationPreview` renderers draw the full
+   sprites + shadows on both layers and refresh ~10 frames after a paint
+   stroke. Verified in a headless editor session (spawn, +2 sprites on
+   paint, gone on erase, not written on save). EYEBALL in the real editor:
+   does the overlay fight the tile cursor / selection highlight?
+Also: `tools/diag/map_shot_probe.gd` screenshots any map from the CLI (the
+before/after came from running it in a `git worktree` of the old branch).
+Design doc rewritten: data/design/terrain_modifiers_and_decorations.md,
+including a new-map checklist (wizard → 4 layers → boundary + P/E stamps →
+`data/missions/mission_manifest.json` → F5; `lawrence_test_map` isn't in
+the manifest yet).
+**RQD build report, same day (all three resolved):**
+- *"Terrain shadows look a different opacity/color than unit shadows"* and
+  *"building_a darkened as a whole"* — ONE bug, mine: the OOB fade shader's
+  "honor modulate" edit sampled the texture a second time (canvas_item
+  `COLOR` already holds texture × modulate), squaring every channel — light
+  buildings darkened, 40 % shadows became 16 %. The PNGs were byte-identical
+  to the unit ink all along. Fixed; `tools/diag/shader_parity_probe.gd`
+  renders the four cases and checks parity (run it after any shader edit).
+- *"Some decorations need no shadow, floor elements"* — `casts_shadow: false`
+  in modifier_terrain.json now means NO shadow of any kind (the authored
+  `_shadow.png` is skipped too), and a wildcard key (`"piperoot_*"`) flags a
+  family. The editor preview re-reads the JSON on change, so flip a line and
+  watch the open map. I couldn't tell from the art WHICH ones RQD means (the
+  craters + bridge already have none; everything else reads as an upright
+  object on the contact sheet), so the list is RQD's to fill — one line per
+  sprite or family.
+**Content note for Lawrence:** every sprite except `castle_a` exports with a
+1×1 footprint — the 160×96 buildings and the 96×96 bridge included — so
+gameplay treats them as one cell (units walk up to / onto a single tile of a
+five-cell-wide building). If that's not intended, suffix the tags (`_3x2`)
+and re-export; the registration tool warns when an atlas tile moves and
+those cells need repainting.
+
+# Battle scene
+- [ ] For a minute, the plan was to animate omnidirectional attacks, and I've come to the conclusion that this is simply too colossal an undertaking. We need a Fire Emblem 7 - style battle scene where the units play their attack animations against each other.
+  - [ ] There will be, at minimum, melee, ranged, and self "attack" animations. We may also split into physical/special/support animations. Our system must also allow exceptions to any of the standard rules, as well as a fallback for when units have no attack animation. I'll give you an example.
+    - say an archer has a passive which lets it hit enemies which are one space away. The archer unit may have no attack animation for "melee," in which case we'd need to gracefully fall back to an animation it does have, in a way that makes sense.
+    - that said, we should also be able to override animations, e.g. "when this unit uses its melee special attack, just play the ranged physical aniimation."
+  - [ ] Anything I'm forgetting to make this system as robust and intuitive as possible? This seems like it might be prone to turning into a mess of spaghetti code, which I'd really like to avoid.
+
+
+
 # More stuff
 - [ ] the default camera pan speed is way too low - probably speed up 3-5x
 - [x] For the Steam Deck glyphs, we also need L4-5 and R4-5. (Done 2026-09-02 on
@@ -122,11 +182,28 @@ see the mockup and §6. These three are the remainder.)*
   than the light moving. Currently `SMOOSH_X` is locked at 1.0 by RQD eyeball,
   so this is about making >1.0 *possible* and deciding whether X should be a
   dial at all.
-- [ ] **Try the dynamic shadow system on terrain modifiers and decorations.**
+- [~] **Try the dynamic shadow system on terrain modifiers and decorations.**
   When flipped on, suppress the hand-drawn shadows those sprites ship with —
   the export pipeline already masks shadow pixels under the object's own
   silhouette, so the two systems would otherwise double up. Experiment first;
   this could look wrong or could retire a whole authoring step.
+  (BUILT 2026-09-07 on `rqd--terrain-stack`, eyeball-gated, framed the
+  OTHER way per the 2026-09-07 talk: the authored `_shadow.png` WINS and the
+  generated cast is the FALLBACK for sprites without one.
+  `TerrainSpriteRenderer.generate_cast_shadow` runs the sprite's own pixels
+  through `UnitShadow.project_silhouette` (one sun for units + terrain),
+  feet = lowest opaque row, self-masked like the exporter so it can sit one
+  z slot above bodies, ink baked, cached per texture. Opt-out
+  `casts_shadow: false` in modifier_terrain.json (the five craters + the
+  bridge — flat ground casts nothing); kill switch
+  `DebugConfig.terrain_generated_shadows`. NOTE: today every non-flat sprite
+  already ships an authored shadow, so nothing on disk exercises the fallback
+  yet — the first shadow-less tree Lawrence exports will (a synthetic one is
+  pinned in test_terrain_sprite_renderer.gd). The "suppress authored,
+  generate everywhere" experiment is a two-line swap in `refresh()` if
+  wanted. EYEBALL: generated vs authored cast length — Lawrence's shelltree
+  measured ~0.85 of height vs the units' 1.0; `GENERATED_SMOOSH_*` alias
+  UnitShadow's dials, split them if the two disagree on screen.)
 - [ ] **`unit_cast_shadows` out of debug vars, made the default.** Already
   defaults true in `DebugConfig`, so nothing changes functionally — the ask is
   that it stop being a *dev* flag. Two ways: delete it and rely on the
@@ -597,8 +674,16 @@ independent of the intermission redesign.**
 - [ ] **Tile seams at certain zoom levels + camera positions.** Hard to reproduce.
   The seam z-indexes at roughly the enemy-sprite level; it's a vertical line of
   subpixel resolution when the camera isn't centered. **Needs a screenshot.**
-- [ ] **Decorations layer lacks the modifier layer's sprite handling** — image is
-  cropped, no shadows.
+- [x] **Decorations layer lacks the modifier layer's sprite handling** — image is
+  cropped, no shadows. (FIXED 2026-09-07 on `rqd--terrain-stack`:
+  `ModifierRenderer` → `TerrainSpriteRenderer`, one per paint layer, modifier
+  spawned first so a decoration on a modifier's cell wins by tree order at
+  equal z; `PURE_DECORATIONS` z slot renamed `TERRAIN_SHADOWS` (it was
+  already where terrain shadows rendered). It was worse than "cropped": the
+  flat z also meant a decoration never occluded a unit behind it. Before/after
+  on lawrence_test_map: volcano cones went from flat-topped 32px chunks to
+  full cones with lava tips + cast shadows. Lawrence's map has 43 decoration
+  cells vs 31 modifier cells, so this was most of what he'd painted.)
 - [ ] **The move preview doesn't animate properly when a unit retreads its path.**
 - [ ] **Console errors on load.** Believed to be from Godot editor extensions no
   longer in use — verify, then delete the addon or fix the scripts:

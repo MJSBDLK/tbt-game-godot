@@ -80,3 +80,82 @@ func test_occlude_mode_defaults_to_interleave() -> void:
 	assert_eq(ModifierTerrainMap.occlude_mode("castle_a"), ModifierTerrainMap.OCCLUDE_INTERLEAVE)
 	# An unmapped sprite also defaults to interleave (fails safe).
 	assert_eq(ModifierTerrainMap.occlude_mode("totally_unknown_xyz"), ModifierTerrainMap.OCCLUDE_INTERLEAVE)
+
+
+# =============================================================================
+# casts_shadow — render hint gating the GENERATED shadow fallback
+# =============================================================================
+
+func test_casts_shadow_defaults_true() -> void:
+	assert_true(ModifierTerrainMap.casts_shadow("darkforest_a"), "prefixed sprite, no hint")
+	assert_true(ModifierTerrainMap.casts_shadow("some_pure_decoration"), "unknown sprite")
+
+
+func test_flat_ground_features_opt_out_of_generated_shadows() -> void:
+	# A hole in the ground casts nothing; the bridge lies flat on it.
+	for name in ["crater_a", "crater_b", "crater_c", "crater_d", "crater_e", "bridge_a"]:
+		assert_false(ModifierTerrainMap.casts_shadow(name), "%s is flat — casts nothing" % name)
+
+
+func test_crater_stays_a_modifier_alongside_its_render_hint() -> void:
+	# The by_sprite entry only carries casts_shadow; terrain still comes
+	# from the prefix.
+	assert_true(ModifierTerrainMap.is_modifier("crater_a"))
+	assert_eq(ModifierTerrainMap.resolve("crater_a", Vector2i.ZERO), "Crater")
+
+
+func test_render_only_entry_does_not_promote_a_pure_decoration() -> void:
+	ModifierTerrainMap.load_from_dictionary({
+		"by_prefix": {"crater": "Crater"},
+		"by_sprite": {"pure_bush": {"casts_shadow": false}},
+	})
+	assert_false(ModifierTerrainMap.is_modifier("pure_bush"),
+			"a hint-only entry on an unprefixed name is still a pure decoration")
+	assert_eq(ModifierTerrainMap.resolve("pure_bush", Vector2i.ZERO), "", "…with no terrain")
+	assert_false(ModifierTerrainMap.casts_shadow("pure_bush"), "…but the hint is honored")
+	ModifierTerrainMap.reload()
+
+
+# =============================================================================
+# Wildcard render hints — "piperoot_*" flags a whole family in one line
+# =============================================================================
+
+func _stage_wildcards() -> void:
+	ModifierTerrainMap.load_from_dictionary({
+		"by_prefix": {"piperoot": "Plant", "volcano": "Volcano"},
+		"by_sprite": {
+			"piperoot_*": {"casts_shadow": false},
+			"volcano_*": {"casts_shadow": false, "occlude": "solid"},
+			"volcano_z": {"casts_shadow": true},
+		},
+	})
+
+
+func test_wildcard_applies_render_hints_to_the_family() -> void:
+	_stage_wildcards()
+	assert_false(ModifierTerrainMap.casts_shadow("piperoot_a"))
+	assert_false(ModifierTerrainMap.casts_shadow("piperoot_c"))
+	assert_eq(ModifierTerrainMap.occlude_mode("volcano_b"), ModifierTerrainMap.OCCLUDE_SOLID)
+	assert_true(ModifierTerrainMap.casts_shadow("darkforest_a"), "unrelated sprite untouched")
+	ModifierTerrainMap.reload()
+
+
+func test_exact_entry_beats_wildcard_per_key() -> void:
+	_stage_wildcards()
+	assert_true(ModifierTerrainMap.casts_shadow("volcano_z"), "exact entry sets the key → it wins")
+	assert_eq(ModifierTerrainMap.occlude_mode("volcano_z"), ModifierTerrainMap.OCCLUDE_SOLID,
+			"…but a key the exact entry doesn't set still falls through to the wildcard")
+	ModifierTerrainMap.reload()
+
+
+func test_wildcards_never_carry_terrain() -> void:
+	_stage_wildcards()
+	assert_eq(ModifierTerrainMap.resolve("piperoot_a", Vector2i.ZERO), "Plant", "terrain still comes from by_prefix")
+	ModifierTerrainMap.load_from_dictionary({
+		"by_prefix": {},
+		"by_sprite": {"bush_*": {"casts_shadow": false, "rows": ["Plant"]}},
+	})
+	assert_eq(ModifierTerrainMap.resolve("bush_a", Vector2i.ZERO), "", "rows on a wildcard are ignored")
+	assert_false(ModifierTerrainMap.is_modifier("bush_a"), "a wildcard can't make a sprite a modifier")
+	assert_false(ModifierTerrainMap.casts_shadow("bush_a"), "…its render hint still applies")
+	ModifierTerrainMap.reload()
