@@ -30,25 +30,11 @@ signal combat_completed(attacker: Unit, defender: Unit)
 
 const MOVEMENT_SCALE: int = 2
 const MOVE_SPEED: float = 600.0  # Pixels per second
-const HIT_DELAY: float = 0.3  # Seconds between combat hits
-const BOOP_DISTANCE: float = 8.0  # Pixels the sprite bumps toward target during attack
-const HITLAG_MIN: float = 0.05  # Minimum freeze on any hit (seconds)
-const HITLAG_MAX: float = 0.25  # Maximum freeze on a devastating hit (seconds)
+const HIT_DELAY: float = 0.3  # Seconds between combat hits (a presenter hold; skip → 0)
 # A Bellows-boosted fire hit never lands soft: impact weight floors here so the
 # flash/shake/hitlag sell the boost (crits floor at 0.8 — this is the lesser
 # beat). RQD 2026-08-21, todo #2A.
 const BELLOWS_IMPACT_FLOOR: float = 0.6
-const ATTACK_CLIP_DEFAULT_FPS: int = 12  # Fallback when a clip omits "fps"
-
-# When true, an attack that isn't a due north/south (vertical) shot uses the
-# horizontal (east/west) clip instead of falling back to the boop nudge — so a
-# diagonal attack shows the side-swing, mirrored by flip_h on delta.x's sign
-# (NE flips east, NW stays west). Range then matches on Chebyshev (ring)
-# distance so a diagonally-adjacent target still reads as range 1 and picks the
-# melee clip, not the ranged one. Flip to false to restore strict matching
-# (horizontal clips only for a due east/west delta; diagonals boop). See
-# _select_attack_clip.
-const DIAGONAL_USES_SIDE_ANIMATION: bool = true
 
 
 # =============================================================================
@@ -178,10 +164,11 @@ var _art_top: float = 0.0
 # sidecar's `art_bounds.bottom` minus the pivot; 0 if no sidecar.
 var _art_feet_drop: float = 0.0
 
-# Bumped every time a new attack clip starts. Pending coroutines that finish
-# the tail of the previous clip check this before mutating region_rect, so a
-# fresh clip can't be corrupted by a stale "after hit" continuation.
-var _attack_clip_generation: int = 0
+# Plays attack-clip strips on _sprite (frame timing, hit marker, idle
+# restore) — ONE per sprite so a newer clip can cancel an older tail. Driven
+# by the exchange's CombatPresenter (MapPresenter today); null for bare test
+# units with no Sprite2D.
+var clip_player: ClipPlayer = null
 
 # Same-row z_index tie resolution. Attacker and defender on the same row
 # compute identical z_index ((99-row)*10 + UNITS_layer), so Godot falls back
@@ -193,8 +180,8 @@ var _attack_clip_generation: int = 0
 # and per-hit tails are fire-and-forget — Hit 2 starts before Hit 1's tail
 # completes. Each raise increments the count and (on the first raise)
 # stashes the original sibling index; each lower decrements and only
-# actually restores tree position when the count returns to zero. Bail
-# paths in clip playback also call lower to keep the count balanced.
+# actually restores tree position when the count returns to zero. Every
+# exit of a clip tail / boop return in MapPresenter lowers exactly once.
 var _attack_raised_original_index: int = -1
 var _attack_raise_count: int = 0
 
@@ -258,6 +245,7 @@ func _ready() -> void:
 		_shadow.name = "CastShadow"
 		_shadow.source_sprite = _sprite
 		add_child(_shadow)
+		clip_player = ClipPlayer.new(_sprite, _load_character_sprite)
 	_health_bar = $HealthBar as Node2D
 	_health_bar_background = $HealthBar/Background as ColorRect
 	_health_bar_fill = $HealthBar/Fill as ColorRect
@@ -974,11 +962,19 @@ func resolve_friendly_fire_victim(original_defender: Unit, move: Move) -> Unit:
 
 # =============================================================================
 # COMBAT — SEQUENCE EXECUTION
+# Logic only. Every visual beat goes through a CombatPresenter (its header is
+# the living map): scripts/combat/presenter/combat_presenter.gd.
 # =============================================================================
 
-## Execute a full combat sequence: attacker hits, counter-attacks, bonus hits.
-## This is an async method — caller must await it.
-func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
+## Run one full exchange: the attacker's move against `defender`, counters,
+## multi-hits, and everything that rides on them. LOGIC lives here — rolls,
+## damage, the pipeline, live range re-checks, XP banking. Every visual
+## moment is a beat on `presenter` (CombatPresenter — its header is the
+## living map of the battle-animation system). Pass a presenter to choose
+## the presentation (tests hand in a RecordingPresenter); null lets
+## CombatPresenter.for_exchange decide.
+func execute_combat_sequence(defender: Unit, attacker_move: Move,
+		presenter: CombatPresenter = null) -> void:
 	if defender == null or attacker_move == null:
 		return
 	# ACT_THEN_WALK: the sprite must have walked before it swings — commit
@@ -998,6 +994,8 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 	# (design call 2026-07-06: isolating a corrupted unit from its allies is the
 	# counterplay, so standing alone must be safe, not wasted).
 	# Skipped for ally-targeting moves (they're already friendly).
+	# This is a MAP beat on purpose: it explains the retarget before any
+	# presenter opens, so the scene always shows the real combatants.
 	if not is_ally_move and character_data != null and character_data.friendly_fire_chance_pct() > 0.0:
 		if GameRng.randf() * 100.0 < character_data.friendly_fire_chance_pct():
 			var victim: Unit = resolve_friendly_fire_victim(defender, attacker_move)
@@ -1021,11 +1019,16 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 	if not is_ally_move:
 		defender = MoveTargeting.resolve_actual_target(self, defender, attacker_move)
 
+	# The presentation is chosen once, AFTER the combatants are final.
+	if presenter == null:
+		presenter = CombatPresenter.for_exchange(self, defender, attacker_move)
+
 	combat_started.emit(self, defender)
 	# Count this move use for the turn (Impetuous reads it). Counters go through
 	# _execute_single_hit, not here, so they don't count.
 	attacks_this_turn += 1
 	DebugConfig.log_combat("Combat: %s (move=%s) vs %s" % [unit_name, attacker_move.move_name, defender.unit_name])
+	await presenter.open(self, defender, attacker_move)
 
 	# Friendly casts (heals, buffs, self-target support): single application, no
 	# counter, no multi-hit. A self-cast whose payload is entirely for OTHERS
@@ -1034,10 +1037,10 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 	if is_ally_move:
 		attacker_move.consume_use()
 		if defender != self or _self_cast_has_self_payload(attacker_move):
-			await _execute_single_hit(defender, attacker_move, true)
+			await _execute_single_hit(defender, attacker_move, true, presenter)
 		else:
-			await _play_support_cast_flourish(attacker_move)
-		await _execute_area_applications(defender, attacker_move)
+			await presenter.cast_flourish(self, attacker_move)
+		await _execute_area_applications(defender, attacker_move, presenter)
 		# Non-heal support casts pay flat XP once per CAST (a 5-victim Roar is
 		# one cast, not five awards). Heals award inside _execute_heal_hit —
 		# skipping them here prevents a double grant. No meaningful-effect
@@ -1047,99 +1050,29 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 		# already landed and the target reads as "already buffed."
 		if not attacker_move.heals:
 			_award_support_xp(attacker_move)
+		await presenter.close()
 		await _flush_xp_feedback()
 		combat_completed.emit(self, defender)
 		return
 
-	var attacker_hits := DamageCalculator.calculate_attack_count(self, defender)
-	# Only ELIGIBILITY (alive, usable damaging move) locks in up front. The
-	# range half is checked live before every counter, because displacement
-	# cuts both ways: a shove can deny a counter that was in range at planning,
-	# and a pull (Grav Hook) can GRANT one to a defender that started out of
-	# reach. `had_counter_range` remembers the planning-time verdict purely for
-	# the out-of-range callout — a melee defender plinked by an archer three
-	# tiles away just doesn't counter, silently, same as always.
-	var defender_counter_eligible := DamageCalculator.is_counter_eligible(defender)
-	var defender_had_counter_range := defender_counter_eligible \
-			and DamageCalculator.is_within_attack_range(defender, self, defender.assigned_move)
-	var defender_hits := 0
-	if defender_counter_eligible:
-		defender_hits = DamageCalculator.calculate_attack_count(defender, self)
-
-	# The attacker pays PP up front. The defender pays at counter time instead:
-	# displacement can shove either combatant out of range between hits (denying
-	# the counter is knockback's tactical payoff), and a counter that never
-	# fires shouldn't cost PP. One consume covers the whole counter chain.
-	# Each side announces a range-denied follow-up at most once per combat.
-	attacker_move.consume_use()
-	var defender_counter_paid := false
-	var attacker_denial_shown := false
-	var defender_denial_shown := false
-
-	# === Hit 1: Attacker ===
-	await _execute_single_hit(defender, attacker_move, true)
-	if defender.is_defeated():
-		await defender._handle_defeat()
+	var completed_normally: bool = await _run_offensive_exchange(defender, attacker_move, presenter)
+	# XP feedback and the mid-battle level-up play on the MAP, after the
+	# presenter has closed — never under a scene overlay.
+	await presenter.close()
+	assert(not presenter.is_open(), "presenter still open after close")
+	if not completed_normally:
+		# A combatant fell on hit 1 / counter 1: no bonus hits, no survival XP,
+		# no Capricious reroll (the exchange never reached its natural end).
+		# The survivor's XP still flushes HERE — before the seam this path
+		# returned without it, so a first-hit kill (the most common kill) hid
+		# its +XP callout and level-up celebration until the killer's next
+		# exchange. Pinned by test_combat_xp's first-hit-kill test.
+		if not is_defeated():
+			await _flush_xp_feedback()
+		if is_instance_valid(defender) and not defender.is_defeated():
+			await defender._flush_xp_feedback()
 		combat_completed.emit(self, defender)
 		return
-
-	# === Counter 1: Defender ===
-	# Range checked at execution time, not planning — hit 1 may have displaced
-	# someone, in either direction: shoved out (counter denied) or pulled in
-	# (counter granted to a defender that started beyond reach).
-	if defender_counter_eligible and not defender.is_defeated():
-		if DamageCalculator.is_within_attack_range(defender, self, defender.assigned_move):
-			defender.assigned_move.consume_use()
-			defender_counter_paid = true
-			await get_tree().create_timer(HIT_DELAY).timeout
-			await defender._execute_single_hit(self, defender.assigned_move, true)
-			if is_defeated():
-				await _handle_defeat()
-				combat_completed.emit(self, defender)
-				return
-		elif defender_had_counter_range and not defender_denial_shown:
-			defender_denial_shown = true
-			await defender._announce_out_of_range()
-
-	# === Bonus attacker hits (2nd through Nth) ===
-	# A knockback move's own shove can push the target out of reach mid-chain —
-	# the remaining hits are forfeit, not teleporting lunges.
-	for i: int in range(1, attacker_hits):
-		if defender.is_defeated():
-			break
-		if not DamageCalculator.is_within_attack_range(self, defender, attacker_move):
-			if not attacker_denial_shown:
-				attacker_denial_shown = true
-				await _announce_out_of_range()
-			break
-		await get_tree().create_timer(HIT_DELAY).timeout
-		await _execute_single_hit(defender, attacker_move, false)
-
-	if defender.is_defeated():
-		await defender._handle_defeat()
-
-	# === Bonus defender counters (2nd through Nth) ===
-	if defender_counter_eligible:
-		for i: int in range(1, defender_hits):
-			if is_defeated() or defender.is_defeated():
-				break
-			if not DamageCalculator.is_within_attack_range(defender, self, defender.assigned_move):
-				# Announce only when a counter was actually taken away — they
-				# had range at planning or already landed counter 1 (a pulled-
-				# in defender the bonus hits shoved back out again).
-				if (defender_had_counter_range or defender_counter_paid) \
-						and not defender_denial_shown:
-					defender_denial_shown = true
-					await defender._announce_out_of_range()
-				break
-			if not defender_counter_paid:
-				defender.assigned_move.consume_use()
-				defender_counter_paid = true
-			await get_tree().create_timer(HIT_DELAY).timeout
-			await defender._execute_single_hit(self, defender.assigned_move, false)
-
-	if is_defeated():
-		await _handle_defeat()
 
 	# Survival XP: the defender lived through an enemy's offensive engagement
 	# (tank or dodge — the sequence ran either way). First engagement from
@@ -1166,6 +1099,102 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move) -> void:
 	DebugConfig.log_combat("Combat complete: %s HP=%d, %s HP=%d" % [
 		unit_name, current_hp, defender.unit_name, defender.current_hp])
 
+
+## The offensive exchange proper: hit 1, counter 1, bonus hits, bonus
+## counters, with the live range re-checks between them. Returns false when
+## a combatant fell on hit 1 or counter 1 (the sequence ends there — no
+## bonus hits, and the caller skips the post-combat rewards, as it always
+## has); true when the exchange ran to its natural end.
+func _run_offensive_exchange(defender: Unit, attacker_move: Move,
+		presenter: CombatPresenter) -> bool:
+	var attacker_hits := DamageCalculator.calculate_attack_count(self, defender)
+	# Only ELIGIBILITY (alive, usable damaging move) locks in up front. The
+	# range half is checked live before every counter, because displacement
+	# cuts both ways: a shove can deny a counter that was in range at planning,
+	# and a pull (Grav Hook) can GRANT one to a defender that started out of
+	# reach. `had_counter_range` remembers the planning-time verdict purely for
+	# the out-of-range callout — a melee defender plinked by an archer three
+	# tiles away just doesn't counter, silently, same as always.
+	var defender_counter_eligible := DamageCalculator.is_counter_eligible(defender)
+	var defender_had_counter_range := defender_counter_eligible \
+			and DamageCalculator.is_within_attack_range(defender, self, defender.assigned_move)
+	var defender_hits := 0
+	if defender_counter_eligible:
+		defender_hits = DamageCalculator.calculate_attack_count(defender, self)
+
+	# The attacker pays PP up front. The defender pays at counter time instead:
+	# displacement can shove either combatant out of range between hits (denying
+	# the counter is knockback's tactical payoff), and a counter that never
+	# fires shouldn't cost PP. One consume covers the whole counter chain.
+	# Each side announces a range-denied follow-up at most once per combat.
+	attacker_move.consume_use()
+	var defender_counter_paid := false
+	var attacker_denial_shown := false
+	var defender_denial_shown := false
+
+	# === Hit 1: Attacker ===
+	await _execute_single_hit(defender, attacker_move, true, presenter)
+	if defender.is_defeated():
+		await defender._handle_defeat(presenter)
+		return false
+
+	# === Counter 1: Defender ===
+	# Range checked at execution time, not planning — hit 1 may have displaced
+	# someone, in either direction: shoved out (counter denied) or pulled in
+	# (counter granted to a defender that started beyond reach).
+	if defender_counter_eligible and not defender.is_defeated():
+		if DamageCalculator.is_within_attack_range(defender, self, defender.assigned_move):
+			defender.assigned_move.consume_use()
+			defender_counter_paid = true
+			await presenter.hold(HIT_DELAY)
+			await defender._execute_single_hit(self, defender.assigned_move, true, presenter)
+			if is_defeated():
+				await _handle_defeat(presenter)
+				return false
+		elif defender_had_counter_range and not defender_denial_shown:
+			defender_denial_shown = true
+			await presenter.out_of_range(defender)
+
+	# === Bonus attacker hits (2nd through Nth) ===
+	# A knockback move's own shove can push the target out of reach mid-chain —
+	# the remaining hits are forfeit, not teleporting lunges.
+	for i: int in range(1, attacker_hits):
+		if defender.is_defeated():
+			break
+		if not DamageCalculator.is_within_attack_range(self, defender, attacker_move):
+			if not attacker_denial_shown:
+				attacker_denial_shown = true
+				await presenter.out_of_range(self)
+			break
+		await presenter.hold(HIT_DELAY)
+		await _execute_single_hit(defender, attacker_move, false, presenter)
+
+	if defender.is_defeated():
+		await defender._handle_defeat(presenter)
+
+	# === Bonus defender counters (2nd through Nth) ===
+	if defender_counter_eligible:
+		for i: int in range(1, defender_hits):
+			if is_defeated() or defender.is_defeated():
+				break
+			if not DamageCalculator.is_within_attack_range(defender, self, defender.assigned_move):
+				# Announce only when a counter was actually taken away — they
+				# had range at planning or already landed counter 1 (a pulled-
+				# in defender the bonus hits shoved back out again).
+				if (defender_had_counter_range or defender_counter_paid) \
+						and not defender_denial_shown:
+					defender_denial_shown = true
+					await presenter.out_of_range(defender)
+				break
+			if not defender_counter_paid:
+				defender.assigned_move.consume_use()
+				defender_counter_paid = true
+			await presenter.hold(HIT_DELAY)
+			await defender._execute_single_hit(self, defender.assigned_move, false, presenter)
+
+	if is_defeated():
+		await _handle_defeat(presenter)
+	return true
 
 ## After combat, record what move `combatant` just used and (if they have a
 ## move-randomizer passive, i.e. Capricious) re-pick assigned_move from their
@@ -1208,15 +1237,22 @@ func _capricious_post_combat_reroll(combatant: Unit) -> void:
 	combatant.assigned_move = data.equipped_moves[chosen]
 
 
-## Execute a single hit against a target. Calculates damage (or healing for support
-## moves), spawns popup, optionally applies status effects, runs on-hit cleanses.
-## Sequence: boop out → hitlag freeze at contact → snap back + damage + popup.
-func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
+## Execute a single hit against a target. Calculates damage (or healing for
+## support moves), optionally applies status effects, runs on-hit riders.
+## Sequence: strike to contact → hitlag freeze → release + impact + damage
+## + popup. Every visual moment is a `presenter` beat (see CombatPresenter);
+## null means "whatever the map does" — direct callers (tests, the AoE
+## pass's fallback) never need to care.
+func _execute_single_hit(target: Unit, move: Move, apply_status: bool,
+		presenter: CombatPresenter = null) -> void:
+	if presenter == null:
+		# A lone hit is not an exchange — never the scene (tests, AoE victims).
+		presenter = MapPresenter.new()
 	if move.heals:
-		await _execute_heal_hit(target, move, apply_status)
+		await _execute_heal_hit(target, move, apply_status, presenter)
 		return
 	if move.damage_type == Enums.DamageType.SUPPORT:
-		await _execute_support_hit(target, move, apply_status)
+		await _execute_support_hit(target, move, apply_status, presenter)
 		return
 
 	# Hit roll. Miss path plays the approach but skips damage/flash/popup/status
@@ -1224,7 +1260,7 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 	# Move usage is NOT refunded on miss — RD style.
 	var hit_pct := DamageCalculator.hit_chance_pct(self, target, move)
 	if GameRng.randi() % 100 >= hit_pct:
-		await _play_miss(target, move)
+		await presenter.miss(self, target, move)
 		DebugConfig.log_combat("Miss: %s -> %s (hit %d%%)" % [unit_name, target.unit_name, hit_pct])
 		return
 
@@ -1236,6 +1272,7 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 	ctx.defender = target
 	ctx.move = move
 	ctx.apply_status = apply_status
+	ctx.presenter = presenter
 	var effects := CombatEffectPipeline.gather(ctx)
 
 	ctx.base_damage = DamageCalculator.calculate_damage(self, target, move)
@@ -1263,32 +1300,20 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 	if bellows_scale > 1.0:
 		impact_weight = maxf(impact_weight, BELLOWS_IMPACT_FLOOR)
 		hit_flash_tint = GameColorPalette.get_color("Orange", 7)
-		spawn_text_callout(bellows_callout_text(bellows_scale),
+		presenter.callout(self, bellows_callout_text(bellows_scale),
 				GameColors.get_move_chip_foreground(Enums.ElementalType.FIRE))
 
-	# Phase 1: Approach. If the attacker has a clip matching this attack's
-	# direction+range, play it through to its hit frame; otherwise nudge.
-	var clip := _pick_attack_clip(target, move)
-	var use_clip: bool = not clip.is_empty()
-	if use_clip:
-		await _play_clip_to_hit(clip, target)
-	else:
-		await _play_boop_out(target)
+	# Phase 1: Approach — through the hit frame of a matching clip, or the
+	# boop nudge when there is none. The presenter decides which.
+	await presenter.strike_to_contact(self, target, move)
 
 	# Phase 2: Hitlag — both units freeze at moment of contact
-	var hitlag_duration := lerpf(HITLAG_MIN, HITLAG_MAX, impact_weight)
-	await get_tree().create_timer(hitlag_duration).timeout
+	var hitlag_duration := CombatPresenter.hitlag_seconds(impact_weight)
+	await presenter.hold(hitlag_duration)
 
 	# Phase 3: Snap back + hit flash + screenshake + damage (all fire together as hitlag releases)
-	if use_clip:
-		_play_clip_after_hit(clip)
-	else:
-		_play_boop_return()
-	VisualFeedbackManager.apply_hit_flash(target, impact_weight, hit_flash_tint)
-
-	var camera := get_viewport().get_camera_2d() as CameraController
-	if camera != null:
-		camera.screenshake(impact_weight)
+	presenter.release_contact(self)
+	presenter.impact(target, impact_weight, hit_flash_tint)
 
 	target.take_damage(damage, {
 		"element": move.element_type,
@@ -1301,9 +1326,9 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 	_award_combat_xp(target, target.is_defeated())
 	combat_hit.emit(self, target, damage)
 
-	_spawn_damage_popup(target, damage, effectiveness_text, type_multiplier)
+	presenter.show_damage(self, target, damage, effectiveness_text, type_multiplier)
 	if ctx.is_crit:
-		spawn_text_callout("CRIT!", GameColors.TEXT_SECONDARY)
+		presenter.callout(self, "CRIT!", GameColors.TEXT_SECONDARY)
 
 	DebugConfig.log_combat("Hit: %s -> %s for %d damage (x%.2f %s, bellows=x%.2f, impact=%.2f, hitlag=%.3fs)" % [
 		unit_name, target.unit_name, damage, type_multiplier, effectiveness_text, bellows_scale, impact_weight, hitlag_duration])
@@ -1319,21 +1344,23 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool) -> void:
 	if target.is_defeated():
 		CombatEffectPipeline.run_on_kill(ctx, effects)
 
-
 ## Heal-side counterpart to _execute_single_hit. No hit flash, no screenshake,
-## no displacement. Heal amount = caster.special + move.base_power.
-func _execute_heal_hit(target: Unit, move: Move, apply_status: bool) -> void:
+## no displacement. Heal amount = caster.special + move.base_power. The
+## approach is a friendly nudge, never a swing — a healer with a melee clip
+## must not slash the ally it's mending.
+func _execute_heal_hit(target: Unit, move: Move, apply_status: bool,
+		presenter: CombatPresenter) -> void:
 	var heal_amount: int = DamageCalculator.calculate_heal_amount(self, target, move)
 
-	await _play_boop_out(target)
+	await presenter.nudge_to_contact(self, target)
 	# Brief beat for the heal to feel weighty without the full damage hitlag.
-	await get_tree().create_timer(HITLAG_MIN).timeout
-	_play_boop_return()
+	await presenter.hold(CombatPresenter.HITLAG_MIN)
+	presenter.release_contact(self)
 
 	target.heal(heal_amount)
 	_award_heal_xp(target, heal_amount)
 	combat_hit.emit(self, target, -heal_amount)
-	_spawn_heal_popup(target, heal_amount)
+	presenter.show_heal(self, target, heal_amount)
 
 	DebugConfig.log_combat("Heal: %s -> %s for %d HP (move=%s)" % [
 		unit_name, target.unit_name, heal_amount, move.move_name])
@@ -1346,9 +1373,9 @@ func _execute_heal_hit(target: Unit, move: Move, apply_status: bool) -> void:
 	ctx.move = move
 	ctx.is_heal = true
 	ctx.apply_status = apply_status
+	ctx.presenter = presenter
 	var effects := CombatEffectPipeline.gather(ctx)
 	await CombatEffectPipeline.run_on_hit(ctx, effects)
-
 
 ## Support-side counterpart to _execute_single_hit for non-heal, non-damage
 ## applications (Fortify's buff, Roar's shout landing on a victim, Shriek's
@@ -1357,13 +1384,15 @@ func _execute_heal_hit(target: Unit, move: Move, apply_status: bool) -> void:
 ## flourish or the primary combat beat already carried the motion). Everything
 ## lands through the pipeline so afflictions, conditionals, marks, cleanses,
 ## and support shoves use the same machinery as combat hits.
-func _execute_support_hit(target: Unit, move: Move, apply_status: bool) -> void:
+func _execute_support_hit(target: Unit, move: Move, apply_status: bool,
+		presenter: CombatPresenter = null) -> void:
 	var ctx := CombatHitContext.new()
 	ctx.attacker = self
 	ctx.defender = target
 	ctx.move = move
 	ctx.apply_status = apply_status
 	ctx.is_support = true
+	ctx.presenter = presenter
 	var effects := CombatEffectPipeline.gather(ctx)
 	DebugConfig.log_combat("Support: %s -> %s (move=%s)" % [
 		unit_name, target.unit_name, move.move_name])
@@ -1374,7 +1403,7 @@ func _execute_support_hit(target: Unit, move: Move, apply_status: bool) -> void:
 ## move's area (epicenter = the primary target's tile; for a self-cast, the
 ## caster's own tile) gets its own pipeline application. AoE victims never
 ## counter and never trigger multi-hit — that belongs to the primary exchange.
-func _execute_area_applications(primary: Unit, move: Move) -> void:
+func _execute_area_applications(primary: Unit, move: Move, presenter: CombatPresenter) -> void:
 	if move.area_of_effect <= 0:
 		return
 	var epicenter: Tile = primary.current_tile if primary != null else current_tile
@@ -1383,10 +1412,9 @@ func _execute_area_applications(primary: Unit, move: Move) -> void:
 	for victim: Unit in MoveTargeting.get_area_victims(self, epicenter, move):
 		if victim == primary:
 			continue
-		await _execute_single_hit(victim, move, true)
+		await _execute_single_hit(victim, move, true, presenter)
 		if victim.is_defeated():
-			await victim._handle_defeat()
-
+			await victim._handle_defeat(presenter)
 
 ## Does a SELF-cast of this move do anything to the caster themselves? Heals,
 ## flat statuses, cleanses, and displacement are self-directed on a self-cast;
@@ -1398,24 +1426,6 @@ func _self_cast_has_self_payload(move: Move) -> bool:
 			or move.status_effect_type != Enums.StatusEffectType.NONE \
 			or not move.cleanse_effects.is_empty() \
 			or move.displace_distance > 0
-
-
-## The visible beat for a self-cast whose payload is all AoE (Roar, Shriek):
-## a quick sprite pulse, plus the move-name callout for PLAYER casters (the
-## enemy AI already announces its move pre-swing — a second callout would
-## read as a stutter).
-func _play_support_cast_flourish(move: Move) -> void:
-	if faction == Enums.UnitFaction.PLAYER:
-		var callout_color: Color = GameColors.get_move_chip_foreground(move.element_type) \
-				if move.element_type != Enums.ElementalType.NONE else GameColors.PLAYER_UNIT
-		spawn_text_callout(move.move_name.to_upper(), callout_color)
-	var sprite := get_node_or_null("Sprite2D") as Sprite2D
-	if sprite == null or not is_inside_tree():
-		return
-	var tween := create_tween()
-	tween.tween_property(sprite, "scale", Vector2(1.15, 1.15), 0.12).set_ease(Tween.EASE_OUT)
-	tween.tween_property(sprite, "scale", Vector2.ONE, 0.12).set_ease(Tween.EASE_IN)
-	await tween.finished
 
 
 ## Fear-cluster query — see CombatPredicates.is_brave (the one source of truth).
@@ -1533,276 +1543,18 @@ func _flush_xp_feedback() -> void:
 	_level_up_snapshot = {}
 
 
-## Miss path: attacker plays its approach, brief hold so the player can read
-## "MISS" on the target, then return to idle. No damage, no flash, no
-## screenshake, no status proc, no XP — just animation + callout.
-func _play_miss(target: Unit, move: Move) -> void:
-	var clip := _pick_attack_clip(target, move)
-	var use_clip: bool = not clip.is_empty()
-	if use_clip:
-		await _play_clip_to_hit(clip, target)
-	else:
-		await _play_boop_out(target)
-
-	# Match the minimum-hitlag hold so the MISS callout has time to land before
-	# the attacker snaps back. Keeps the swing-and-dodge rhythm consistent with
-	# a low-impact hit.
-	await get_tree().create_timer(HITLAG_MIN).timeout
-
-	if use_clip:
-		_play_clip_after_hit(clip)
-	else:
-		_play_boop_return()
-	target.spawn_text_callout("MISS", GameColorPalette.get_color("Gray", 5))
-
-
-## Boop out: sprite bumps toward the target. Awaitable — completes at the contact point.
-func _play_boop_out(target: Unit) -> void:
-	if _sprite == null or target == null:
-		await get_tree().create_timer(0.08).timeout
-		return
-	# Raise above same-row neighbors for the swing window. Paired with the
-	# _lower_after_attack triggered when _play_boop_return's tween finishes.
-	_raise_for_attack()
-	var direction := (target.global_position - global_position).normalized()
-	var boop_offset := direction * BOOP_DISTANCE
-	var tween := create_tween()
-	tween.tween_property(_sprite, "position", boop_offset, 0.08).set_ease(Tween.EASE_OUT)
-	await tween.finished
-
-
-## Boop return: sprite snaps back to center. Fire-and-forget (not awaited).
-## Lowers the unit (refcount-aware) when the return tween finishes, so the
-## raise from _play_boop_out is balanced even when chained Hit 2 starts
-## before this tween completes — refcount stays consistent across hits.
-func _play_boop_return() -> void:
-	if _sprite == null:
-		_lower_after_attack()
-		return
-	var tween := create_tween()
-	tween.tween_property(_sprite, "position", Vector2.ZERO, 0.12).set_ease(Tween.EASE_IN)
-	tween.finished.connect(_lower_after_attack)
-
-
-## Manhattan delta from self to target in tile coords. Falls back to global_position
+## Delta from self to target in tile coords (public — MapPresenter mirrors the
+## clip on its sign). Falls back to global_position
 ## divided by tile size if either unit isn't on a tile yet.
-func _attack_delta_tiles(target: Unit) -> Vector2i:
+func attack_delta_tiles(target: Unit) -> Vector2i:
 	if current_tile != null and target != null and target.current_tile != null:
 		return Vector2i(target.current_tile.grid_x - current_tile.grid_x,
 				target.current_tile.grid_y - current_tile.grid_y)
 	if target == null:
 		return Vector2i.ZERO
 	var dp := target.global_position - global_position
-	return Vector2i(roundi(dp.x / 16.0), roundi(dp.y / 16.0))
-
-
-## Returns the best-matching clip dict from character_data.attack_animations
-## given direction-to-target, range, and the move's animation style. Empty dict
-## means "no match — fall back to boop nudge". Thin wrapper that resolves the
-## tile delta, then defers to the pure select_styled_attack_clip so the
-## matching logic stays unit-testable.
-func _pick_attack_clip(target: Unit, move: Move) -> Dictionary:
-	if character_data == null or character_data.attack_animations.is_empty():
-		return {}
-	if target == null:
-		return {}
-	return select_styled_attack_clip(character_data.attack_animations,
-			_attack_delta_tiles(target), move, DIAGONAL_USES_SIDE_ANIMATION)
-
-
-## Style-aware clip selection: a ranged move fired point-blank should read as a
-## shot, not a melee swing (and an explicitly melee-tagged reach move as a
-## swing, not a shot). Tries the move's effective_animation_style first by
-## projecting the delta to a distance that matches that style, then falls back
-## to the true distance — so a melee-only sprite using a ranged move up close
-## still swings instead of booping.
-static func select_styled_attack_clip(attack_animations: Dictionary, delta: Vector2i,
-		move: Move, diagonal_as_side: bool) -> Dictionary:
-	var styled_delta := _style_adjusted_delta(delta, move)
-	if styled_delta != delta:
-		var styled := _select_attack_clip(attack_animations, styled_delta, diagonal_as_side)
-		if not styled.is_empty():
-			return styled
-	return _select_attack_clip(attack_animations, delta, diagonal_as_side)
-
-
-## Projects an attack delta to the distance band matching the move's animation
-## style, preserving direction: ranged moves read as at least ring distance 2,
-## melee moves as the adjacent ring. Identity for null moves or when the delta
-## already sits in the style's band.
-static func _style_adjusted_delta(delta: Vector2i, move: Move) -> Vector2i:
-	if move == null or delta == Vector2i.ZERO:
-		return delta
-	match move.effective_animation_style():
-		"ranged":
-			if maxi(absi(delta.x), absi(delta.y)) < 2:
-				return delta * 2
-		"melee":
-			return Vector2i(signi(delta.x), signi(delta.y))
-	return delta
-
-
-## Pure clip selection: given the animation table and the attacker→target tile
-## delta, return the first clip whose use_when filters pass. First-match wins;
-## clip ordering in JSON matters only when two clips' filters would both pass
-## (avoid that). Empty dict means no match (caller boops).
-##
-## direction filter: "vertical" needs a due north/south delta; "horizontal"
-## needs an east/west component. When diagonal_as_side is true a diagonal counts
-## as horizontal (shows the side-swing, mirrored later by flip_h) and range is
-## matched on Chebyshev (ring) distance, so a diagonally-adjacent target reads as
-## range 1 and picks melee rather than the ranged clip. Chebyshev == Manhattan
-## for orthogonal attacks, so straight-line matching is untouched. With the flag
-## off, diagonals match neither directional clip (legacy boop fallback) and range
-## is Manhattan — exactly the original behavior.
-##
-## Static + pure so it's testable without a scene tree, tiles, or live targets.
-static func _select_attack_clip(attack_animations: Dictionary, delta: Vector2i,
-		diagonal_as_side: bool) -> Dictionary:
-	var vertical: bool = delta.x == 0 and delta.y != 0
-	var horizontal: bool
-	var range_distance: int
-	if diagonal_as_side:
-		horizontal = delta.x != 0  # pure east/west OR any diagonal
-		range_distance = maxi(absi(delta.x), absi(delta.y))  # Chebyshev / ring
-	else:
-		horizontal = delta.y == 0 and delta.x != 0
-		range_distance = absi(delta.x) + absi(delta.y)  # Manhattan
-	for clip_name: Variant in attack_animations.keys():
-		var clip_value: Variant = attack_animations[clip_name]
-		if not (clip_value is Dictionary):
-			continue
-		var clip: Dictionary = clip_value
-		var use_when: Dictionary = clip.get("use_when", {})
-		var dir_req: String = str(use_when.get("direction", "any"))
-		if dir_req == "horizontal" and not horizontal:
-			continue
-		if dir_req == "vertical" and not vertical:
-			continue
-		if use_when.has("range") and int(use_when["range"]) != range_distance:
-			continue
-		if use_when.has("range_min") and int(use_when["range_min"]) > range_distance:
-			continue
-		if use_when.has("range_max") and int(use_when["range_max"]) < range_distance:
-			continue
-		return clip
-	return {}
-
-
-## Resolves both per-frame durations (seconds) and hit_frame for a clip.
-## Both are sourced from the sidecar JSON when present (the exporter writes
-## them from Lawrence's authored timings and `hit` marker tags). Falls back
-## to the clip JSON's `fps` / `hit_frame` when absent — so clips authored
-## before the exporter update still play.
-## Returns: { "durations_s": Array[float], "hit_frame": int }.
-func _resolve_clip_playback(strip_path: String, clip: Dictionary, frames: int) -> Dictionary:
-	var durations_s: Array[float] = []
-	var hit_frame: int = int(clip.get("hit_frame", frames / 2))
-	var sidecar_path: String = strip_path.trim_suffix(".png") + ".json"
-	if FileAccess.file_exists(sidecar_path):
-		var content := FileAccess.get_file_as_string(sidecar_path)
-		if not content.is_empty():
-			var parsed: Variant = JSON.parse_string(content)
-			if parsed is Dictionary:
-				if parsed.has("frame_durations_ms"):
-					var ms_array: Array = parsed["frame_durations_ms"]
-					if ms_array.size() == frames:
-						for ms: Variant in ms_array:
-							durations_s.append(float(ms) / 1000.0)
-				if parsed.has("hit_frame"):
-					hit_frame = int(parsed["hit_frame"])
-	if durations_s.is_empty():
-		var fps: int = max(1, int(clip.get("fps", ATTACK_CLIP_DEFAULT_FPS)))
-		var dt: float = 1.0 / float(fps)
-		for _i in range(frames):
-			durations_s.append(dt)
-	hit_frame = clampi(hit_frame, 0, frames - 1)
-	return { "durations_s": durations_s, "hit_frame": hit_frame }
-
-
-## Plays clip frames 0..hit_frame inclusive, awaiting on each frame. Mirrors via
-## flip_h when the target is east of self (clips authored left-facing). Assumes
-## the clip's pivot.x is at frame center — off-center pivots would visibly jump
-## on flip; revisit if/when Lawrence delivers an off-center clip.
-func _play_clip_to_hit(clip: Dictionary, target: Unit) -> void:
-	if _sprite == null or clip.is_empty():
-		await get_tree().create_timer(0.08).timeout
-		return
-	var strip_path: String = clip.get("path", "")
-	var strip_texture: Texture2D = load(strip_path) as Texture2D
-	if strip_texture == null:
-		await get_tree().create_timer(0.08).timeout
-		return
-	_attack_clip_generation += 1
-	var generation: int = _attack_clip_generation
-	var frames: int = max(1, int(clip.get("frames", 1)))
-	var playback: Dictionary = _resolve_clip_playback(strip_path, clip, frames)
-	var hit_frame: int = playback["hit_frame"]
-	var durations_s: Array[float] = playback["durations_s"]
-	var frame_width: float = float(strip_texture.get_width()) / float(frames)
-	var frame_height: float = float(strip_texture.get_height())
-
-	var delta := _attack_delta_tiles(target)
-	_sprite.flip_h = delta.x > 0
-	_sprite.texture = strip_texture
-	_sprite.region_enabled = true
-	_sprite.region_rect = Rect2(0.0, 0.0, frame_width, frame_height)
-	# Raise above same-row neighbors for the duration of the swing —
-	# attacker should always render in front of the defender. See
-	# _raise_for_attack for the full rationale.
-	_raise_for_attack()
-
-	for frame_index: int in range(0, hit_frame):
-		await get_tree().create_timer(durations_s[frame_index]).timeout
-		if _attack_clip_generation != generation or _sprite == null:
-			return
-		_sprite.region_rect = Rect2((frame_index + 1) * frame_width, 0.0, frame_width, frame_height)
-
-
-## Plays the remaining frames (hit_frame+1 .. last), then restores idle.
-## Fire-and-forget — runs while damage popups/screenshake play. Guards against
-## a newer clip starting mid-tail via the generation counter.
-##
-## Bail paths still call _lower_after_attack to keep the raise refcount
-## balanced — the matching raise happened in _play_clip_to_hit. The newer
-## clip's own tail handles its own restore_idle_sprite; we only release our
-## refcount slot.
-func _play_clip_after_hit(clip: Dictionary) -> void:
-	if _sprite == null or clip.is_empty():
-		_lower_after_attack()
-		return
-	var generation: int = _attack_clip_generation
-	var frames: int = max(1, int(clip.get("frames", 1)))
-	var strip_path: String = clip.get("path", "")
-	var playback: Dictionary = _resolve_clip_playback(strip_path, clip, frames)
-	var hit_frame: int = playback["hit_frame"]
-	var durations_s: Array[float] = playback["durations_s"]
-	var frame_width: float = _sprite.region_rect.size.x
-	var frame_height: float = _sprite.region_rect.size.y
-	for frame_index: int in range(hit_frame + 1, frames):
-		await get_tree().create_timer(durations_s[frame_index]).timeout
-		if _attack_clip_generation != generation or _sprite == null:
-			_lower_after_attack()
-			return
-		_sprite.region_rect = Rect2(frame_index * frame_width, 0.0, frame_width, frame_height)
-	# Brief hold on the final frame before resetting to idle.
-	await get_tree().create_timer(durations_s[frames - 1]).timeout
-	if _attack_clip_generation != generation or _sprite == null:
-		_lower_after_attack()
-		return
-	_restore_idle_sprite()
-
-
-## Reverts the Sprite2D back to the idle texture+offset emitted by
-## _load_character_sprite. Called at the tail of an attack clip. Also
-## restores the sibling tree position raised in _raise_for_attack.
-func _restore_idle_sprite() -> void:
-	if _sprite == null or character_data == null:
-		return
-	_sprite.region_enabled = false
-	_sprite.flip_h = false
-	_load_character_sprite()
-	_lower_after_attack()
+	var tile_px: float = float(GridManager.tile_size)  # 32 on registered battle maps
+	return Vector2i(roundi(dp.x / tile_px), roundi(dp.y / tile_px))
 
 
 ## Move this unit to the end of its sibling list so it draws on top of any
@@ -1907,19 +1659,12 @@ func spawn_text_callout(text: String, color: Color) -> void:
 		popup.call("initialize_callout", text, color)
 
 
-## Surface a follow-up (counter or bonus hit) that the mid-combat range
-## re-check refused — displacement moved someone out of reach. Without this
-## the lost attack is invisible negative space: the player reads "the game
-## forgot to counter," not "they got shoved out of reach." Same muted ink as
-## MISS (the "attack didn't happen" family) + the CORRUPTION-style read-beat
-## so cause-and-effect lands before combat moves on.
-func _announce_out_of_range() -> void:
-	spawn_text_callout("OUT OF RANGE", GameColorPalette.get_color("Gray", 5))
-	await get_tree().create_timer(0.4).timeout
-
-
-## Handle unit defeat: gray out, fade, clear tile.
-func _handle_defeat() -> void:
+## Handle unit defeat: flip the flags, play the death (through `presenter`
+## when an exchange owns the moment, else the map's own fade), clear the
+## tile. The LOGIC half is unconditional — a RecordingPresenter that draws
+## nothing still leaves a correctly dead unit. Self-guards against a double
+## play (combat and displacement can both discover the same corpse).
+func _handle_defeat(presenter: CombatPresenter = null) -> void:
 	if _defeat_visuals_played:
 		return
 	_defeat_visuals_played = true
@@ -1929,11 +1674,27 @@ func _handle_defeat() -> void:
 	# Stop any selection effects
 	_stop_selection_pulse()
 
-	# Gray out
+	if presenter != null:
+		await presenter.death(self)
+	else:
+		await play_defeat_visuals()
+
+	# Clear tile occupancy
+	if current_tile != null:
+		current_tile.clear_unit()
+		current_tile = null
+
+# =============================================================================
+# VISUAL HELPERS
+# =============================================================================
+
+## The map's death: gray out, hide the bars, fade over a second. Awaitable.
+## MapPresenter.death routes here; callers outside an exchange
+## (DisplacementSystem collateral, ScheduledEffects, the cheat kill) reach
+## it through _handle_defeat.
+func play_defeat_visuals() -> void:
 	if _sprite != null:
 		_sprite.modulate = Color(0.4, 0.4, 0.4, 1.0)
-
-	# Hide health bar and status icons
 	if _health_bar_background != null:
 		_health_bar_background.visible = false
 	if _health_bar_fill != null:
@@ -1953,15 +1714,6 @@ func _handle_defeat() -> void:
 		tween.tween_property(self, "modulate:a", 0.0, 1.0)
 		await tween.finished
 
-	# Clear tile occupancy
-	if current_tile != null:
-		current_tile.clear_unit()
-		current_tile = null
-
-
-# =============================================================================
-# VISUAL HELPERS
-# =============================================================================
 
 ## Load the character's sprite from an Aseprite atlas spritesheet.
 ## Falls back to the placeholder texture if no sprite data is configured.
@@ -2015,27 +1767,12 @@ func _load_character_sprite() -> void:
 ## pixel-corner space relative to the canvas top-left. Falls back to
 ## feet-at-tile-center for sprites without a sidecar.
 func _resolve_pivot_offset(sheet_path: String, texture: Texture2D) -> Vector2:
-	var width := float(texture.get_width())
-	var height := float(texture.get_height())
-	_art_top = 0.0
-	var sidecar_path: String = sheet_path.trim_suffix(".png") + ".json"
-	if FileAccess.file_exists(sidecar_path):
-		var content := FileAccess.get_file_as_string(sidecar_path)
-		if not content.is_empty():
-			var parsed: Variant = JSON.parse_string(content)
-			if parsed is Dictionary and parsed.has("pivot"):
-				var pivot: Dictionary = parsed["pivot"]
-				var px := float(pivot.get("x", width / 2.0))
-				var py := float(pivot.get("y", height))
-				if parsed.has("art_bounds"):
-					var bounds: Dictionary = parsed["art_bounds"]
-					_art_top = float(bounds.get("top", 0))
-					# Visual feet = bottom of the opaque art. With the cast's
-					# body-centered canvases the pivot is mid-body; the gap is
-					# what the shadow needs to pivot at the boots.
-					_art_feet_drop = maxf(0.0, float(bounds.get("bottom", py)) - py)
-				return Vector2(width / 2.0 - px, height / 2.0 - py)
-	return Vector2(0, -height / 2.0)
+	# Shared with CombatPuppet so the stage stands a unit exactly like the map.
+	var sidecar: Dictionary = SpriteSidecar.read(sheet_path, texture)
+	_art_top = sidecar["art_top"]
+	if sidecar["has_pivot"]:
+		_art_feet_drop = sidecar["feet_drop"]
+	return sidecar["offset"]
 
 
 ## One-time font + outline-shader setup for the level number. Pulled out so
@@ -2134,7 +1871,6 @@ func _update_healthbar_position() -> void:
 	# old behavior is preserved in that case.
 	var sprite_top := _sprite.offset.y - _sprite.texture.get_height() / 2.0 + _art_top
 	_health_bar.position.y = sprite_top - 3.0
-
 
 
 ## Called when any status effect is applied or removed on any unit.

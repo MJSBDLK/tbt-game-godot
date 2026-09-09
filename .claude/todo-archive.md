@@ -725,3 +725,807 @@ record of a root cause. The parent's *remaining* work lives in [todo.md](todo.md
 
 ## Displacement authoring (parent still open: Stampede / Razor Wing / Roar-knockback)
 - [~] Author: Bounce Out DONE (`contest: constitution, margin: 1`, bonus_damage wall slams). Stampede/Razor Wing (charge = subject:self + toward_target + fall_through, landing past the target) and Roar-knockback (Phase 4's Roar) await their moves — the engine supports both today.
+
+---
+
+## Battle animations plan (landed 2026-09-09)
+
+Kept verbatim from `.claude/battle-animations.md` when the FE7-style combat scene
+landed from `rqd--battle-animations`. The decision list (D1–D8), edge cases, art asks,
+build phases and RQD's eyeball rounds are the only written home for several calls
+(player on the right, no facing metadata, map-tile spacing, playback-only HUD).
+
+# Battle Animations — FE7-style Combat Scene (plan)
+
+**Status**: PLAN ONLY, no code (RQD, 2026-09-07). Branch: `rqd--battle-animations`.
+**Decision rounds 1–2 (2026-09-07)**: D1–D6 and D8 answered; D7 (playback HUD
+contents) is the only open item and it's a mockup, not a blocker. Each
+answered decision has a **Resolution** line saying what the design now does.
+**Replaces**: the omnidirectional in-place attack plan (todo.md "# Battle scene").
+**Code anchor once built**: the header of `scripts/combat/presenter/combat_presenter.gd`
+becomes the living map; this file is intent + checklist and should point there.
+
+**How to use this doc**: §1 is the only part that needs RQD. Fill in each
+`**Answer**:` line; a **Resolution** line under it records what the design
+does with the answer. Everything after §1 is the design as it stands. Phase 0
+(§8) needs no further answers — it can start today.
+
+---
+
+## 1. Decisions — fill in the **Answer** lines
+
+### D1 — What do we call it in code?  ✅ ANSWERED
+**Blocks**: Phase 0 (file and class names).
+**Why it matters**: `battle_scene.gd` / `battle_scene.tscn` already mean THE
+MAP (the mission root that spawns units). The FE7 view needs a name that
+doesn't collide in greps or conversation.
+**Options**: (a) `combat_scene` (b) `duel` (c) `cutaway`.
+**Answer**: if "combat scene" isn't taken, I like that best.
+**Consequence** (checked 2026-09-07 — not taken anywhere):
+- The FE7 view is **`CombatScene`** — `scripts/combat/scene/combat_scene.gd`,
+  `scenes/battle/combat_scene.tscn`, puppets are `CombatPuppet`.
+- The seam between logic and visuals (§3) is **`CombatPresenter`** with
+  `MapPresenter` / `ScenePresenter` / `RecordingPresenter` — "presenter"
+  because "CombatStage" next to "CombatScene" would blur together.
+- Player-facing label: **"Battle Animations"** (FE's own options term).
+- One wart to live with: `battle_scene.tscn` and `combat_scene.tscn` will
+  sit side by side in `scenes/battle/`. The class headers say which is which.
+
+### D2 — Which side does each unit stand on?  ✅ ANSWERED
+**Blocks**: Phase 2 (first eyeball build).
+**Why it matters**: decides whether the HP/name layout is stable across a
+battle, and whether player art is always mirrored. Clips are authored
+left-facing, so whoever stands on the LEFT is drawn with `flip_h`.
+**Options**:
+- (a) **Fixed faction sides** — player always left, enemy always right.
+  Pokemon-style: your bar is always in the same place. Cost: player sprites
+  are always mirrored (the map already mirrors constantly; pixel art
+  survives this fine unless a sprite has text on it).
+- (b) **Initiator on a fixed side** — GBA FE style. A given character shows
+  up on both sides across a battle; the HP layout swaps with initiative.
+- (c) Player always RIGHT (unmirrored player art), enemy left.
+**Recommendation**: (a). If Lawrence hates seeing his player art mirrored,
+(c) is the same code with one boolean flipped.
+**Answer**: Let's look at the directions of the sprites' attacks are currently - are they mismatched? If not, I'd say let's make that alignment the canonical "player side". This may need to be changed later so don't hardcode too much.
+**Resolution** (surveyed 2026-09-07):
+- **Attack clips are NOT mismatched** — all 7 strips (Max ×2, Ernesto ×2,
+  Keener ×2, Grasker) are authored facing LEFT, measured by how far the
+  action frames reach past the idle bbox (13–50 px left vs 0–9 px right).
+  The Keener's `shootside` is a ground-circle cast with no direction at all.
+- So the canonical **player side is the RIGHT**: the unflipped attacker faces
+  left at an enemy on the left. Option (c).
+- **Idles are mixed** (~15 face left, ~10 right, 4 symmetric — sheet at
+  `.claude/idle_facing_contact_sheet.png`, table in §9). **RQD, round 2:
+  keep idles as-is, no direction metadata.** So there is NO `facing` field
+  anywhere. "All attack clips face left" is an art convention (§7), not
+  data, and the puppet applies ONE rule: **the left-side puppet mirrors
+  every clip, idle included; the right-side puppet mirrors nothing.**
+  Mirroring the idle with the clips means no facing pop between idle and
+  swing; a right-facing idle ends up looking away from its opponent on one
+  side, and that is accepted. If one bugs anyone later, the fix is in art.
+- "Don't hardcode": exactly one constant, `PLAYER_SIDE` (RIGHT), read by
+  the scene and the HUD layout; the mirror rule derives from it.
+- **Round 3 (RQD)**: puppet scale 3× confirmed as the starting point; the
+  mirrored right-facing idles are left as-is for now, "we'll likely fix it
+  later" (in art — §9 is the list).
+
+
+### D3 — What goes through the scene in v1?  ✅ ANSWERED
+**Blocks**: Phase 2 scope.
+**Why it matters**: heals, buffs, self-casts and AoE casts (Roar/Shriek)
+have no clips and already have map beats. Putting them in the scene means
+designing a "cast" beat with nothing to show yet.
+**Options**:
+- (a) **Offensive single-target exchanges only** (attack + counters +
+  multi-hits). Everything else stays on the map exactly as today.
+- (b) (a) + single-target heals/buffs (FE shows staff heals in the scene).
+- (c) Everything, including AoE casts — the scene would have to show N
+  victims or cut back to the map mid-cast.
+**Recommendation**: (a). The resolver (§4) already understands a `cast`
+intent, so (b) becomes a Phase 4 add the day Lawrence draws a cast clip.
+**Answer**: If it can't be displayed in the comabt scene, just do it on the map. I was considering just making all of these types of moves happen on the map anyway, for pace's sake.
+**Resolution**: option (a), stated as a rule the factory enforces —
+`CombatPresenter.for_exchange` returns the ScenePresenter ONLY for an
+offensive single-target exchange; heals, buffs, self-casts, AoE casts,
+scheduled strikes and DoT ticks are map beats, full stop. Phase 4 is
+deleted from the build plan; if a `cast` clip ever exists and pace allows,
+it comes back as a new decision.
+
+### D4 — Does today's in-place presentation survive as a player option?  ✅ ANSWERED
+**Blocks**: Phase 2 (Options row or not).
+**Why it matters**: after the Phase 0 seam, keeping the map presentation
+costs ~nothing — it is literally today's code behind an interface. The
+question is whether to EXPOSE it.
+**Options**:
+- (a) **Setting "Battle Animations: Scene | Map"** — Map is today's boop +
+  side clips in place. Doubles as a fast mode; playtesters can compare.
+- (b) Scene only; the skip input is the fast path. Map presentation stays
+  in code as the fallback for bare/off-grid units and tests, but has no UI.
+**Recommendation**: (a), then delete it later if nobody flips it — same
+"build both, playtest, delete the loser" pattern as Walk vs Ghost.
+**Answer**: Maybe. I think we may preserve the in-place left/right animations, and just use the "boop" animation for all other directions. For now, let's make that a player option.
+**Resolution**: option (a). MapPresenter = side clips for horizontal AND
+diagonal attacks (mirrored by `flip_h`), boop for due north/south — which
+is exactly today's behaviour with `DIAGONAL_USES_SIDE_ANIMATION = true`, so
+nothing new is built for it. Exposed through the setting in D5.
+
+### D5 — Enemy-phase attacks: full scene, or auto-fast?  ✅ ANSWERED
+**Blocks**: Phase 2 now (it shapes the setting).
+**Why it matters**: five enemies attacking = five scenes per enemy phase.
+FE plays them all (skippable). Advance Wars-likes often auto-shorten them.
+**Options**: (a) full scene, skippable, same as player attacks
+(b) enemy scenes auto-fast-forward (c) a third setting value.
+**Recommendation**: (a) for the first build; decide after a playtest.
+**Answer**: Pursuant to the above, assuming it stays an option, let's let the player choose whether they want the combat animations to play during the enemy's turn.
+**Resolution**: one Options row, three values —
+`Settings.battle_animations = ALWAYS | PLAYER_PHASE_ONLY | MAP`. MAP is the
+D4 in-place presentation for every exchange; PLAYER_PHASE_ONLY plays the
+scene for exchanges the player initiates and the in-place beats for enemy
+initiations. The factory reads the setting + who initiated. Persisted in
+`user://settings.cfg` like every other Settings field. Skip works in all
+modes.
+
+### D6 — Do we ask Lawrence for physical/special clip variants now?  ✅ ANSWERED (not now)
+**Blocks**: the art request (§7). Code is unaffected either way.
+**Why it matters**: the vocabulary (§4) supports `melee_special` etc. and
+falls back to `melee` when absent, so this is purely how big the first
+asset order is.
+**Options**: (a) `melee` + `ranged` only per character (b) also
+`melee_special` / `ranged_special` where the kit has special moves.
+**Recommendation**: (a). Two clips per character is the whole point of
+switching to side view; refinements come after the cast is covered.
+**Answer**: If these are useful now, let me know, and I'll make them a priority starting Sunday - should have them the following Sunday. If not, let's just leave placeholders.
+**Resolution**: **not useful now** — the resolver falls back from
+`melee_special` to `melee` for free, and until the scene exists nobody can
+judge whether a special swing needs to look different. Leave placeholders.
+What WOULD pay off in that week (Sun 2026-09-13 → Sun 2026-09-20), in order:
+1. `melee` + (if the kit has ranged moves) `ranged` side clips, left-facing,
+   for characters that have NONE — player recruit pool first, then the
+   enemies in the test-map manifest. 28 of 32 characters have only an idle.
+2. ONE `dodge` clip and ONE `death` clip on any character that already has
+   attacks (Max is the obvious pick) so the reaction beats can be built
+   against real frames instead of the procedural stand-ins.
+3. An `fx_origin` slice on the ranged clips (muzzle / hand) for the
+   procedural projectile.
+4. Tag names straight from the §5 vocabulary (`melee`, `ranged`, `dodge`,
+   `death`) so no aliasing is needed for new art.
+Nothing in that list is blocked on code; the exporter already handles it.
+(RQD's round-2 reply labelled "D6" was about the extra click — that's the
+D8 press-count cost and is recorded there.)
+
+### D7 — What's in the scene's HUD? (contents lock before any styling)  ✅ ANSWERED (round 3)
+**Blocks**: Phase 2. Per the UI work-order rule, contents get locked before
+Lawrence styles anything.
+**Why it matters**: FE shows name, HP, weapon, and HIT/DMG/CRT numbers.
+Every element we add is a thing that must stay readable at 640×360 and on
+a phone.
+**Options** (pick any set):
+- name · HP bar · move chip (element-coloured, reuses `MoveChip`)
+- hit % and damage forecast (numbers the combat preview already computes)
+- portraits (`HDPortraitSlot` works inside any HUD Control)
+- status effect icons (buff/debuff slots, as on the map)
+**Recommendation**: name + HP bar + move chip for v1; portraits in Phase 3;
+hit/dmg only if the combat preview panel isn't already carrying that job.
+**Answer**: Everything in the combat preview panel? Maybe some additional stuff like STAB? We'll need to mock the HUD up, for sure. You're making me think that we may even want to replace the combat preview panel with the combat scene, prior to committing any attacks. I like that flow in my mind, but it may have problems - let's discuss.
+**Resolution** (revised after D8 closed): the forecast stays in the preview
+panel, so the scene HUD is a **playback** HUD, not a forecast. Recommended
+contents, per side: name, type icons, HP pips that drain as hits land, the
+move chip (attacker's move; the defender's chip appears when the counter
+fires). That's it — every number the player needed to decide was already
+on the panel before the click, and popups carry the live numbers. STAB is
+a real gap, but it's a PANEL gap: `DamageCalculator.get_stab_multiplier`
+feeds the damage number silently. Filed as a preview-panel todo, not scene
+scope. Sequence per the UI work-order rule: Phase 2 scaffolds this with
+stock widgets → RQD confirms the list → a "Combat scene" tab goes on the
+existing battle-HUD mockup artifact → Lawrence's pass.
+**Answer (round 3, RQD)**: name, HP bar, move, attack element/type, defender
+type, projected health loss (which updates after each hit/miss) — did I miss
+anything?
+**Resolution — LOCKED 2026-09-07, built the same day** (stock widgets in
+`combat_scene.gd`, Lawrence's pass later). Per side: name + the unit's own
+type icons (both sides — symmetric, and the attacker's type is what STAB
+reads); the HP bar with a pulsing band for the **projected loss of the
+UPCOMING strike** (my reading of "updates after each hit/miss": it is
+recomputed on every swing, counters included; a hit drains the bar and
+spends the band, a miss clears it — the whole-exchange total stays the
+preview panel's job); the move row: element icon, damage-type icon, move
+name in element ink, plus what I think you missed —
+- **hit %** — the enemy phase has NO forecast (the preview panel is
+  hover-driven on the player's turn), so during enemy attacks this HUD is
+  the only place the numbers exist; a miss should read as "that was the
+  60%".
+- **the type-matchup multiplier** (×2 / ×½ …, style-guide colours) — makes
+  the two type displays mean something at a glance.
+- **the defender's row starts as "—"** and fills in when the counter swings,
+  so "why no counter?" is visible negative space rather than a blank.
+- **a skip hint** on stage ("any button: skip") — touch users have no other
+  way to learn it.
+Deliberately left out of round 3: status chips, portraits, PP remaining,
+level.
+**Answer (round 4, RQD, same day)**: "Agreed … All of this should be in
+there somewhere."
+**Resolution — BUILT 2026-09-07** (still stock widgets): a portrait frame on
+the outer edge of each column (HD line art via `HDPortraitSlot` when the
+character has it, the pixel portrait otherwise; it pops in after the wipe-in
+and out before the wipe-out because the HD mirror lives in HDLayer and
+cannot follow the scene's modulate); "Lv.N" after the name; PP as "4/5" on
+the move row (pre-spend at open, post-spend on the strike — the exchange
+pays before the swing; hidden for `max_uses` 0); one buff + one debuff chip
+under the move row (the map's slot model: 6×6 icon, abbreviated name in the
+category's semantic ink, stack count), live off
+`StatusEffectSystem.status_effect_applied/removed` — a Bellows stack landing
+mid-exchange repaints the chip, flashes it, and floats "BELLOWS ×2" over the
+puppet exactly as the map unit does underneath. Found on the way:
+`HDPortraitSlot` polled for HDLayer with a self-re-deferring `call_deferred`,
+which re-runs inside the SAME message-queue flush (proved by
+`tools/diag/deferred_flush_probe.gd`) — with no HDLayer ever coming (GUT)
+it filled the queue and segfaulted the runner. It now waits on a new
+`SceneRouter.game_root_registered` signal; regression test in
+test_hd_portrait_slot.gd.
+
+### D8 — Should the combat scene double as the attack-confirm screen?  ✅ ANSWERED (no)
+**Blocks**: nothing now. Opened from RQD's D7 answer, closed the same day.
+**The flow being proposed**: action menu → pick move → aim → select target
+→ the combat scene opens with both puppets idle and the full forecast HUD
+→ [Attack] plays the exchange in the SAME scene, no second wipe → wipe out.
+[Back] returns to aiming with the cursor still on that target.
+**What it fixes**:
+- **Touch has no forecast today.** The preview panel is hover-driven
+  (`InputManager._update_hover`); a tap on a target goes straight to
+  `_execute_attack`. Playtesters said they'd play on phones. A confirm
+  screen is the touch-native fix, and it's the same screen everyone gets.
+- **The numbers you saw are the numbers that hit** — forecast and result on
+  one surface, and the forecast HUD becomes the battle HUD with no redraw.
+- **Room.** 640×360 instead of a 140 px column: STAB, terrain multipliers,
+  displacement, and the pre-warn for reactive passives (todo §7 design
+  calls — Bellows) all get a home. The [Attack]/[Back] pair is a clean
+  "what can I click" answer.
+**What it costs / risks**:
+- **+1 press per attack** for mouse, keyboard and pad users. That is GBA FE
+  parity (target → confirm) but a regression against today's one-click
+  attack — the same tension as Marker vs Button in move_confirm_mode.
+- **It hides the map**, so the on-board displacement preview (ghost, arrows,
+  slam stars) and any AoE footprint vanish behind it. The scene must carry
+  its own displacement readout, or leave a map strip visible.
+- **Comparison shopping** — hovering between three enemies to compare
+  matchups can't open a full scene per hover. Aiming has to keep a light
+  forecast (the panel) and the scene is the CONFIRM, not the aiming surface.
+- **The panel doesn't die.** D3 keeps heals/buffs/AoE on the map, so their
+  forecasts still need the panel. Two surfaces = drift risk, mitigated by
+  the shared forecast struct (D7).
+- **Enemy phase** has no confirm; the scene opens straight into playback
+  there. Two entry paths into one scene — fine, but must be designed, not
+  bolted on.
+**Options**:
+- (a) **Confirm-in-scene, input-aware** — `Settings.attack_confirm_mode =
+  AUTO | SCENE | INSTANT`; AUTO = scene-confirm under touch, instant attack
+  under mouse/keyboard/pad. Same shape as `move_confirm_mode`. Aiming keeps
+  the hover panel on non-touch inputs.
+- (b) **Always confirm in scene**, every input model. Simplest rule, costs
+  the press.
+- (c) **Never** — scene is playback only; touch gets a small tap-to-preview
+  step on the panel instead.
+**Recommendation**: (a), default AUTO, and let the playtest decide whether
+SCENE-always earns its press (the Walk/Ghost pattern: build both, delete the
+loser). Architecturally it's cheap once the scene exists: PREVIEW mode =
+puppets idle + forecast HUD + two buttons; `ScenePresenter.open()` attaches
+to an already-open preview instead of wiping in.
+**Answer** (RQD, round 2): the extra click is fine — quick attack
+(`click_to_attack_enabled`) was confusing to new players and is off by
+default, and a click that shows useful information earns itself. But
+hovering between enemies to compare matchups is the real problem, so the
+hover step stays, which makes a forecast inside the scene redundant.
+"So there goes that idea."
+**Resolution**: option (c) — the scene is **playback only**; the forecast
+lives in the preview panel during aiming, as today. No PREVIEW mode, no
+`attack_confirm_mode`, no new input state. For the record: press count was
+NOT the blocker, comparison-while-aiming was; a "cycle targets inside the
+scene" variant doesn't rescue it because the map is hidden and you can't
+see where the enemy you're cycling to stands.
+**Spin-off, not this feature**: touch still has no forecast before the tap
+that attacks. The panel-side fix is tap-to-preview then tap-again-to-attack
+(the marker double-press pattern the hint bar already teaches for
+movement). Filed in todo.md under the battle-scene pointer.
+
+### Not decisions (knobs for the eyeball pass, listed so they don't look forgotten)
+- Puppet scale: 3× confirmed (round 3) — `CombatScene.PUPPET_SCALE`.
+- Wipe style and duration (~0.25 s, stepped).
+- Backdrop art direction: Lawrence's, after seeing the v1 placeholder (§6).
+- Whether the map unit's death fade should be instant after the scene
+  already showed the death.
+
+---
+
+## 2. Why we're changing course
+
+The shipped system plays attack clips **in place on the map**, picked by
+attacker→target direction + range (`Unit._pick_attack_clip`, `use_when
+{direction, range}`). It works, but the art bill is the problem:
+
+| Fact | Number |
+|---|---|
+| Characters in the cast | 32 |
+| Characters with ANY attack clip | 4 (Max, Ernesto, Keener, Grasker) |
+| Directions the in-place plan needs | 3 (side + up + down), side mirrored |
+| Clip families per character | 2–3 (melee, ranged, later support) |
+| Moves in the bank: melee / ranged / support | 25 / 20 / 8 |
+
+Omnidirectional means ~6 clips per character before dodge/hurt/death, and the
+up/down variants are the expensive ones (no mirroring). Two more costs of the
+in-place approach that a combat scene erases:
+
+- Tiles are 16 px; canvases are 64–128 px. A side-swing physically overlaps
+  the neighbouring units and terrain sprites, hence the z-reorder dance in
+  `_raise_for_attack` / `_lower_after_attack`.
+- Every beat (hitlag, flash, popup, shove) is rendered on a busy map where
+  the player is also reading threat zones, HP bars, and terrain.
+
+A side-view combat scene needs **one facing per clip family**, drawn once,
+mirrored for the other side. That's the entire pitch.
+
+---
+
+## 3. Player-facing behaviour (the target)
+
+Beat by beat, an offensive exchange with battle animations ON:
+
+1. Player confirms the attack (or the AI's `attack_delay` elapses). Friendly
+   fire retarget + Protector redirect resolve exactly as today, on the map,
+   BEFORE the scene opens — so the scene always shows the real combatants.
+2. **Wipe in** (stepped, pixel-quantized; ~0.25 s). Map dims underneath.
+3. **Scene**: two puppets facing each other on a backdrop. Player on the
+   RIGHT (D2); the left puppet is mirrored wholesale. HUD per D7.
+3b. Puppets stand **one map tile apart per tile of distance** (32 sprite px
+   — battle_tileset.tres is 32×32; cap 4 tiles = 128 px) so a jab meets an
+   adjacent target and a two-tile thrust lands two tiles out — the clips
+   were authored for the map's spacing (Ernesto's thrust reaches 58 px).
+4. Attacker's clip plays to its `hit_frame` → **hitlag** (both freeze,
+   scaled by impact weight, same numbers as today) → release: flash on the
+   defender, scene shake (not camera shake — the map camera isn't involved),
+   damage popup, status callouts (BELLOWS ×1.5, CRIT!, MISS, RESIST, OUT OF
+   RANGE…) all rendered inside the scene.
+5. Counter, bonus hits, bonus counters — same order and same live range
+   re-checks as `execute_combat_sequence` today. A displacement rider
+   commits the map TILE at once (the range re-check needs it) but the map
+   unit's slide waits until the scene has wiped out; on stage the puppet
+   echoes it ("shoved back a step") so a denied counter reads. (RQD's first
+   eyeball, 2026-09-08: the slide used to play under the overlay, so the
+   board came back with units teleported.)
+6. Death: puppet death beat (fade v1; Lawrence's death clip later), then
+   wipe out. Map unit's existing fade follows.
+7. **Wipe out**. XP bars / mid-battle level-up panel play on the map as
+   today (they are already post-exchange beats).
+
+**Skip**: any confirm/cancel press or tap during the scene fast-forwards —
+every awaited beat returns immediately, logic runs unchanged, final state
+lands, short wipe out. Skipping never skips *logic*.
+
+**Setting** (D4 + D5): `Settings.battle_animations = ALWAYS |
+PLAYER_PHASE_ONLY | MAP`, one Options row. Reduce-motion (`ui_motion_enabled`
+off) keeps the setting but turns wipes into cuts and drops scene shake.
+
+**What stays on the map** (D3): heals, buffs, self-casts, AoE casts
+(Roar/Shriek), scheduled strikes (chain lightning), DoT ticks. They already
+have map beats; the scene is for the *exchange*.
+
+**Mobile**: the scene is a 640×360-core HUD canvas overlay; anchors grow it
+on 780×360 phones. Tap anywhere = skip.
+
+---
+
+## 4. Architecture — one seam, two presenters
+
+### The principle
+
+`execute_combat_sequence` + `_execute_single_hit` stay the **logic** owner
+(rolls, damage, pipeline, live range checks, XP banking). Every visual beat
+they perform today goes through one interface, `CombatPresenter`. Two real
+implementations, one test double:
+
+```
+CombatPresenter (base, scripts/combat/presenter/combat_presenter.gd) ← LIVING MAP header
+├── MapPresenter        today's code, moved: boop/clip in place, camera shake,
+│                       popups hosted on the map. Zero behaviour change.
+├── ScenePresenter      drives a CombatScene: HUD overlay + puppets + scene HUD.
+└── RecordingPresenter  test double: records beats in order, awaits nothing.
+```
+
+Selection happens once per exchange in `execute_combat_sequence`:
+`CombatPresenter.for_exchange(attacker, defender, move)` → ScenePresenter
+when the setting allows it for this initiator (D5) **and** the exchange
+qualifies (offensive, single-target, both units on-grid with sprites, scene
+tree present — D3); otherwise MapPresenter. Bare test units (no Sprite2D, no tree) get
+MapPresenter/RecordingPresenter exactly like today's null-guarded paths —
+the whole existing combat suite keeps running unmodified.
+
+### The beats (draft API — settle during Phase 0)
+
+```
+open(attacker, defender, move)            -> await   # transition in, puppets idle
+strike_to_contact(actor, target, clip)    -> await   # frames 0..hit_frame (or boop out)
+hold(seconds)                             -> await   # hitlag; skip → 0
+release_contact(actor, clip)                         # tail frames / boop return
+impact(target, impact_weight, tint)                  # flash + shake (presenter-owned)
+miss(actor, target)                       -> await
+show_damage(target, dmg, eff_text, mult) / show_heal(target, amount)
+callout(unit, text, color)                           # BELLOWS, CRIT!, MISS, RESIST…
+displace(plan)                            -> await   # Map: slide now; Scene: puppet echo, map slide after close
+death(unit)                               -> await
+close()                                   -> await
+request_skip()                                       # flips the fast-forward flag
+```
+
+Rules that keep this from becoming spaghetti:
+
+- **Logic never touches a sprite.** After Phase 0, `unit.gd` has no
+  `_sprite.region_rect` / tween / popup code left in the combat path; grep
+  is the assert.
+- **Presenters never roll dice or mutate HP.** They receive results.
+- **Handlers reach the presenter through `CombatHitContext.presenter`**
+  (DisplaceEffect → DisplacementSystem.resolve → `displace` / `callout`).
+  Displacement commits occupancy in logic and hands the slide to the beat;
+  ScenePresenter echoes on the puppet and replays the real slide on the map
+  in `close()`, after the wipe-out. ScheduledEffects._strike and the map
+  unit's own status callout still present on their own.
+- **Lifecycle is explicit calls, not signals.** `open` after
+  `combat_started.emit`, `close` before `_flush_xp_feedback`. Assert
+  open/close balance at `combat_completed`.
+- **Popups spawned by a presenter are hosted by that presenter** — today's
+  `_host_popup` targets the *map* scene, which the overlay covers.
+
+### Where the CombatScene renders
+
+The **HUD pipeline** (a Control inside HUDViewport's overlay CanvasLayer,
+same home as the phase banner). Reasons: integer scale for free; anchors
+handle phone aspects; the map camera is untouched; `_gui_input` skip like
+`LevelUpStatPanel`; InputRouter already blocks the world when the HUD
+consumes the press. Puppets are Node2Ds inside the Control, drawn at an
+**integer puppet scale** (default 3× design px — idle art is ~24×31 px, so
+1× would be a speck on a 360 px canvas; knob for the eyeball pass).
+
+### Puppets
+
+`CombatPuppet` = Node2D + child `Sprite2D` (named `Sprite2D`, so
+`VisualFeedbackManager.apply_hit_flash` works unchanged) + `UnitShadow`
+(`source_sprite` is any Sprite2D — shadows are free) + the extracted
+`ClipPlayer`. Positioned by pivot, not canvas, so 64/96/128 canvases line
+up on one ground line. The left-side puppet sets `flip_h` on everything it
+plays, idle included; the right side never flips (D2).
+
+### ClipPlayer extraction
+
+`_resolve_clip_playback`, `_play_clip_to_hit`, `_play_clip_after_hit`, the
+generation counter and idle-restore move out of `unit.gd` into
+`scripts/units/clip_player.gd`, driving any Sprite2D. Both MapPresenter and
+CombatPuppet use it. The sidecar contract (frame_durations_ms, hit_frame,
+optional `_shadow.png`) is unchanged.
+
+### What we deliberately don't build
+
+- **Script-then-play** (resolve every roll up front, then play a script).
+  Displacement's live between-hit range checks and awaitable on_hit riders
+  make this a re-plumb of the whole pipeline for no player-visible gain.
+- **AnimationPlayer / AnimationTree state machines.** Strip PNG + sidecar +
+  explicit coroutines match the exporter and are already tested.
+
+---
+
+## 5. Animation taxonomy, fallback, overrides (the robustness question)
+
+### Intent
+
+Per strike the logic side computes an **intent** from (move, actor):
+
+```
+reach:  melee | ranged            ← Move.effective_animation_style() (unchanged)
+kind:   physical | special | support ← Move.damage_type
+beat:   attack | miss_dodge | hurt | death | idle | cast
+```
+
+Direction is **gone** from the intent — the scene has one facing.
+(MapPresenter still needs to know whether a clip is usable in place; it
+keeps the "horizontal or diagonal → side clip, vertical → boop" rule
+internally.)
+
+### Clip vocabulary (aseprite tag names = JSON keys)
+
+```
+idle                    required
+melee                   side-view melee strike
+ranged                  side-view shot / cast-at-distance
+melee_special, ranged_special, melee_physical, ranged_physical   optional refinements
+cast                    support / self-buff flourish
+dodge, hurt, death      optional reaction clips
+crit_melee, crit_ranged optional crit variants
+```
+
+Existing tags `meleeside` / `shootside` / `meleelong` are aliases handled by
+the migration (4 JSON files: spaceman, ernesto, keener, grasker). Lawrence's
+future tags use the vocabulary directly; the exporter needs no change.
+
+### Resolution chain (pure, static, tested)
+
+`UnitAnimationResolver.resolve(clip_table, overrides, move, intent) -> clip_key`
+walks an explicit ordered list and returns the first key that exists:
+
+```
+attack, reach=melee,  kind=special : melee_special → melee → ranged_special → ranged → <any attack clip> → PROCEDURAL
+attack, reach=ranged, kind=physical: ranged_physical → ranged → melee_physical → melee → <any attack clip> → PROCEDURAL
+cast (support/self)                : cast → melee → ranged → <any> → PROCEDURAL (today's scale pulse)
+dodge                              : dodge → PROCEDURAL (idle + slide back)
+hurt                               : hurt → PROCEDURAL (idle + flash, as now)
+death                              : death → PROCEDURAL (fade, as now)
+```
+
+The archer example falls out: a bow unit forced into melee by a passive has
+no `melee`, resolves to `ranged`, and shoots point-blank — which is what FE
+does and what reads correctly. PROCEDURAL is a real terminal, never an
+error: every character is playable with `idle` alone.
+
+### Override levels (most specific wins; a missing named clip falls through
+to the chain and logs once per (character, intent) under a DebugConfig flag)
+
+1. **Character × move**: `animation_overrides: {"move:Uppercut": "ranged"}`.
+2. **Move (visual only)**: JSON `animationClip: "ranged"`. NEW key. Distinct
+   from `animationStyle`, which ALSO drives gameplay (Crater's melee/ranged
+   defense split reads `is_ranged_style`). A pure visual override must not
+   change combat math — hence two keys.
+3. **Character × intent**: `animation_overrides: {"melee_special": "ranged"}`
+   — RQD's "when this unit uses its melee special, play the ranged
+   physical" case.
+4. Default chain above.
+
+### Data schema (character JSON, after migration)
+
+```json
+"animations": {
+  "melee":  { "path": "res://art/sprites/characters/max/meleeside.png", "frames": 8 },
+  "ranged": { "path": "res://art/sprites/characters/max/shootside.png", "frames": 8 }
+},
+"animation_overrides": { "melee_special": "ranged" }
+```
+
+`fps` / `hit_frame` stay optional fallbacks (sidecar wins, as now).
+`use_when` is dropped by the migration; the loader warns if it sees one.
+
+### Tooling that makes this hold up
+
+- `tools/diag/animation_coverage_probe.gd` (headless): character × intent →
+  resolved clip or PROCEDURAL; validates paths exist and strip width ==
+  frames × frame width. Output doubles as Lawrence's asset queue.
+- `tests/unit/test_animation_resolver.gd`: chain order, each override level,
+  missing-named-clip fallthrough, alias migration, the archer case.
+- `tests/unit/test_animation_coverage.gd`: no *broken* reference in any
+  shipped character (fallbacks allowed).
+- `DebugConfig.debug_battle_animations`: log every resolution.
+
+---
+
+## 6. Edge-case inventory ("anything I'm forgetting?")
+
+- **Displacement mid-exchange** — map moves underneath; scene echoes; range
+  re-checks unchanged. The awaited map push tween adds to pacing; if it
+  drags, give DisplacementSystem an "instant when staged" hint later.
+- **AoE / self-cast / heals / buffs** — map beats in v1 (D3). The resolver
+  already knows `cast`, so the scene can adopt them when a `cast` clip exists.
+- **Protector redirect, Corruption retarget** — resolved before `open`; the
+  CORRUPTION callout stays a map beat (it explains the retarget).
+- **Out-of-range denial callouts** — become scene callouts.
+- **Bellows / crit announcements** — pre-swing callout on the attacker side.
+- **Death ordering** — puppet death → close → map fade. Consider making the
+  map fade instant when the scene already showed the death.
+- **Mid-battle level-up + XP bars** — after `close`; already correct order.
+- **Enemy phase** — same code path; AI's pre-swing move callout still floats
+  on the map before the wipe. Pacing per D5.
+- **Camera** — input_manager's pre-centre still runs; harmless.
+- **Hitlag / flash / shake ownership** — presenter-owned; MapPresenter keeps
+  camera shake, ScenePresenter shakes the scene node.
+- **Reduce motion vs the setting** — orthogonal (§3).
+- **Skip semantics** — flag on the presenter; beats early-return; logic
+  unchanged; tested with RecordingPresenter + skip.
+- **Touch / controller** — overlay swallows presses; InputRouter blocks the
+  world; controller confirm/cancel routed the same way.
+- **Existing tests** — 12 clip-selection tests in test_unit.gd migrate to the
+  resolver suite; combat suites run on MapPresenter/RecordingPresenter
+  unchanged.
+- **Popup hosting** — presenter-hosted (the map is covered).
+- **Z-order hacks** — `_raise_for_attack` / `_lower_after_attack` move into
+  MapPresenter; the scene doesn't need them.
+- **Projectiles for ranged** — v1: procedural streak in element ink from an
+  `fx_origin` slice (exporter reads a second named slice; same parser as the
+  pivot) to the target's centre. Per-move FX strips later.
+- **Sound hooks** — `impact` / `strike_to_contact` are the natural hook
+  points; leave a no-op `AudioCue` call in the seam.
+- **Save/load** — exchanges are atomic; no new state to persist.
+- **XP flush skipped on early-ended exchanges** — found building Phase 0,
+  FIXED 2026-09-07 (next commit after the seam): a hit-1 / counter-1 kill
+  returned before `_flush_xp_feedback`, so the +XP callout and mid-battle
+  level-up for the most common kill shape surfaced only after the killer's
+  NEXT exchange. Now the living combatant flushes on that path too. Two
+  tests in test_combat_xp.gd pin it. Survival XP and Capricious rerolls
+  still skip on early ends (the exchange never reached its natural end) —
+  deliberate, flag if it reads wrong.
+
+---
+
+## 7. Art asks for Lawrence (side-view only, from now on)
+
+- Every attack clip is **side view, left-facing**, on the existing
+  body-centred canvases (do NOT re-expand canvases — see the pivot memory).
+- Tag names from the vocabulary in §5. `hit` / `hit_<clip>` marker tags pin
+  the impact frame (exporter already does this). Frame durations are honoured.
+- Optional `shadow` layer → `<tag>_shadow.png` (exporter already emits it;
+  runtime plays it verbatim when present — first use ever).
+- Optional second slice named `fx_origin` (fist / muzzle / wand tip).
+- **Priority per character** (subject to D6): `melee` → `ranged` (only if
+  the kit has ranged moves) → `dodge` → `hurt` → `death` → `cast` → crit
+  variants. Player roster first; Max / Ernesto / Keener / Grasker only need
+  renames + `dodge`.
+- Up/down variants are **no longer requested** — strike them from the
+  character asset checklist.
+- **Backdrop — simple test combat scene (RQD 2026-09-08, Lawrence's next
+  priority).** One `.aseprite` canvas at sprite density (1 art px = 1 sprite
+  px; the runtime draws it at the puppets' 3× on the same pixel grid,
+  anchored to the core, nearest filter, no parallax in v1):
+  - **Canvas 288 × 134.** Covers every supported aspect with bleed — 8:5
+    (Steam Deck, 640×400 canvas) up to 64:27 "21:9" panels (853×360). See
+    the supported-aspect range (memory) for the table.
+  - **Core rectangle, always visible: 214 × 120 at (37, 7).** Everything
+    outside is bleed: columns 0–36 and 251–287 appear on phones and
+    ultrawide; rows 0–6 and 127–133 appear on the Steam Deck. Nothing that
+    must be seen goes outside the core.
+  - **Horizon = row 86** — sky ends, floor starts (code `SKY_BOTTOM` 237 ÷ 3).
+  - **Feet line = row 91** (code `GROUND_Y` 252 ÷ 3): puppets stand here, 5
+    rows into the floor. **Spacing follows the map** (RQD 2026-09-08: the
+    clips were authored for tile spacing — Ernesto's thrust reaches exactly
+    two tiles): centres 32 px apart per tile of map distance (tiles are
+    32×32), symmetric about **x = 144** (core 107), capped at 4 tiles =
+    128 px, so centres range x 80–208. No panning/zoom unless that ever
+    proves necessary. A
+    shove re-spaces the stage by the same rule (the shoved puppet travels;
+    the other gives way only at the safe margin). Puppets are their normal
+    sprite size, feet on row 91.
+  - **Two layers → two PNGs**: `sky.png` (288 × 86, rows 0–85 — or the
+    full canvas with the floor transparent) and `floor.png` (the full
+    288 × 134 with transparency; it draws OVER the sky, so hills, fences,
+    props may rise above row 86).
+  - **The HUD covers the top corners of the core** until its restyle:
+    about 67 columns × 24 rows from (37, 7) and from (180, 7). Keep the
+    sky quiet there.
+  - **Drop-in**: export to `res://art/backdrops/combat_test/sky.png` and
+    `floor.png`; CombatScene picks them up on the next run (absent → the
+    palette bands). Placement: `CombatScene.backdrop_position`.
+  - **Template**: `art/backdrops/combat_test/combat_backdrop_template.aseprite`
+    (+ README.md there) — guides layer, named slices, project palette, both
+    default puppets on the feet line. Generated by
+    `tools/aseprite/combat_backdrop_template.lua` (re-run if the knobs
+    move); `tools/aseprite/export_combat_backdrop.lua` writes the two PNGs.
+  Later idea, unchanged: a ground strip per puppet built from that unit's
+  *own* tile terrain (reads the defense bonus for free).
+
+---
+
+## 8. Build plan (each phase = eyeball gate; squash-merge at the end)
+
+- [x] **Phase 0 — the seam. BUILT 2026-09-07** on this branch, zero visual
+      change. `scripts/combat/presenter/combat_presenter.gd` (the living-map
+      header), `map_presenter.gd` (today's beats, moved), `recording_presenter.gd`
+      (test double), `scripts/units/clip_player.gd` (strip playback, one per
+      sprite). unit.gd lost 157 lines; its combat section greps clean for
+      `_sprite` / `create_tween`. `tests/unit/test_combat_presenter.gd`: 14
+      tests — beat order for plain hit / counter / multi-hit / miss /
+      first-hit kill / shove-denied counter / heal, skip keeps order, the
+      ClipPlayer strip contract. Suite 1116 green. Beat API as built adds
+      `nudge_to_contact` (heals lunge, never swing — a healer with a melee
+      clip must not slash the ally). Found + fixed in the follow-up commit:
+      the hit-1 / counter-1 kill XP-flush gap (§6).
+- [x] **Phase 1 — resolver + vocabulary. BUILT 2026-09-07.**
+      `scripts/units/unit_animation_resolver.gd` (intent → chain → clip key,
+      three override levels, PROCEDURAL terminal, once-per-character
+      fall-through log under `DebugConfig.battle_animations`);
+      `CharacterData.animation_overrides` + loader (keys lower-cased, legacy
+      `use_when` warned and dropped); `Move.animation_clip` (JSON
+      `animationClip`, visual-only — `animationStyle` keeps its gameplay
+      role); `MapPresenter.pick_clip` = resolver × `side_clip_allowed`
+      (the in-place direction rule, `DIAGONAL_USES_SIDE_ANIMATION` moved
+      here); Unit's `use_when` selection deleted. The 4 clip-bearing JSONs
+      migrated: meleeside→`melee`, shootside→`ranged`, Ernesto's
+      melee_long→`ranged_physical`. Tests: test_animation_resolver.gd (19),
+      test_map_presenter_clips.gd (6), test_animation_coverage.gd (2 — no
+      broken strip/override anywhere in the roster); the 12 use_when tests
+      retired from test_unit.gd. Suite 1133 green. Probe:
+      `godot-4 --headless --path . -s tools/diag/animation_coverage_probe.gd`.
+      Reach = **the distance to the target** (adjacent = melee, 2+ =
+      ranged), the use_when-era rule; an `animationStyle` tag forces the
+      family, and only with no target known does the move's own range stand
+      in. Chains try the same reach's other kind before crossing reach.
+      (Phase 1 first shipped "reach from the move, never the distance" with
+      reach-crossing chains; RQD's eyeball caught Ernesto jabbing with Laser
+      at range — fixed the same day, test_animation_coverage pins Ernesto.)
+      Knock-on kept from the old era: a punch landed two tiles away via
+      Extendo reads as ranged; tag the move `melee` if it ever matters.
+- [x] **Phase 2 — CombatScene v1. BUILT 2026-09-07 — EYEBALL GATE.**
+      `scripts/combat/scene/combat_scene.gd` (full-rect HUD overlay: dim,
+      placeholder sky/ground, two puppets, popup layer, per-side playback
+      HUD in stock widgets — name / HP bar / move), `combat_puppet.gd`
+      (same strips, pivot, shadow as the map unit; own hit flash; lunge /
+      dodge / stepped death as the procedural terminal), `presenter/
+      scene_presenter.gd` (every beat on the stage; popups hosted there),
+      `scripts/units/sprite_sidecar.gd` (pivot reader shared with Unit).
+      `Settings.battle_animations` ALWAYS / PLAYER_PHASE_ONLY / MAP +
+      Options row "Battle Anims" (default ALWAYS). `CombatPresenter.
+      for_exchange` admits the scene per D3/D5 and only for real mounted
+      units. Skip: any press/tap, confirm or cancel. Sandbox:
+      `godot-4 --path . -- --map=scenes/debug/combat_sandbox.tscn` (pick
+      two, a move, a counter, Loop). Tests: test_scene_presenter.gd (12 —
+      factory rules, sides, feet on the ground line, a whole exchange
+      mounts/plays/unmounts with popups on the stage, skip, kill clears the
+      tile, default path). The suite runs in MAP mode via
+      tests/gut_pre_run.gd. Suite 1155 green; headless smoke through
+      GameRoot → sandbox → Fight → skip → Done.
+      **EYEBALL LIST** (all knobs at the top of combat_scene.gd): puppet
+      scale 3× (LOCKED 2026-09-08 — "perfect") · LEFT_X/RIGHT_X spacing · GROUND_Y · sky/ground
+      palette bands · dim alpha · wipe steps · HUD placement · whether the
+      mirrored idles of right-facing characters bother anyone (§9) · HUD
+      contents (LOCKED round 3 + extended round 4 — see D7; built: types,
+      projection band, hit %, multiplier, counter row, skip hint, portrait,
+      level, PP, buff/debuff chips) → mockup tab.
+      **RQD 2026-09-08**: 250 ms settle at open (after the wipe-in) and at
+      close (before the wipe-out) — "it whips by before my brain can process
+      it". Knobs `OPEN_SETTLE_SECONDS` / `CLOSE_SETTLE_SECONDS` at the top of
+      scene_presenter.gd; skip removes both. Debug:
+      `DebugConfig.combat_scene_step_pauses = true` turns both settles into
+      indefinite pauses — the stage waits for a press (which advances, not
+      skips; hint reads "paused — any button: continue") so it can be
+      examined.
+      **RQD's screenshot (2026-09-08)**: a diagonal Compressed Air drew the
+      pair ADJACENT and overlapping. Reach and spacing measured Chebyshev
+      (the use_when-era metric, chosen for "does a diagonal show side art")
+      while gameplay range is MANHATTAN — a diagonal neighbour is 2 away and
+      only a range-2 move reaches it. `MapPresenter.attack_distance` is
+      Manhattan now, everywhere reach matters (clip choice, stage spacing,
+      re-spacing); the side-art direction rule is unchanged.
+      **RQD's first eyeball (2026-09-07)**: (1) "doesn't trigger at all" —
+      the pre-commit suite had written battle_animations=MAP into the
+      player's settings.cfg (the hook sets MAP; one test calls a persisting
+      setter; _save writes every field). Fixed: `Settings.persistence_enabled`,
+      off for the suite (test_settings_persistence.gd); the cfg repaired by
+      hand. (2) Ernesto jabbing with Laser at range — the Phase 1 note above.
+- [ ] **Phase 3 — reactions + polish.** dodge / hurt / death
+      beats, procedural projectile, puppet shadows, terrain ground strips,
+      reduce-motion behaviour, enemy-phase pacing.
+      (Portraits landed early — D7 round 4. Displacement landed early too,
+      2026-09-08, as the `displace` beat: occupancy at once, puppet echo on
+      stage, the map slide replayed after the wipe-out — RQD's first big
+      note from the build.)
+- [ ] **Docs on landing**: rewrite combat-system.md §Combat Animations;
+      update character-asset-checklist.md (§7); close the todo.md item; this
+      file collapses to a pointer at `combat_presenter.gd`'s header.
+
+---
+
+## 9. Idle facing survey (informational — RQD: no action, idles stay as-is)
+
+Sheet: `.claude/idle_facing_contact_sheet.png` (row-major, 8 per row, 2×).
+"Left" = the character's body/weapon reads as turned toward screen-left.
+Kept so nobody re-surveys: with the D2 mirror rule, the "right" column will
+look away from its opponent when standing on the right (player side), the
+"left" column when standing on the left. Accepted; fix in art if it bugs.
+
+| left (≈15) | right (≈10) | none / unsure |
+|---|---|---|
+| bandit, bugler_gentry, desert_sniper, elf_pirate, ernesto, grasker, grunt, keener, knight, max, mystic?, ogre, pierre, squash, robot? | berzerker?, bugler_chivalric, desert_prince?, flamethrower_phoenix, healer_goblin, ice_archer, ma'am?, pyro, thumps, traveller | battle_chicken?, gravity_captain?, healer_plant, napdog?, ogre_squire?, plant_cultist, plant_urchin |
+
+All 7 existing attack clips: **left** (Keener `shootside`: **none**).
+
+### The original todo item
+
+- [x] For a minute, the plan was to animate omnidirectional attacks, and I've come to the conclusion that this is simply too colossal an undertaking. We need a Fire Emblem 7 - style battle scene where the units play their attack animations against each other.
+  - [ ] There will be, at minimum, melee, ranged, and self "attack" animations. We may also split into physical/special/support animations. Our system must also allow exceptions to any of the standard rules, as well as a fallback for when units have no attack animation. I'll give you an example.
+    - say an archer has a passive which lets it hit enemies which are one space away. The archer unit may have no attack animation for "melee," in which case we'd need to gracefully fall back to an animation it does have, in a way that makes sense.
+    - that said, we should also be able to override animations, e.g. "when this unit uses its melee special attack, just play the ranged physical aniimation."
+  - [ ] Anything I'm forgetting to make this system as robust and intuitive as possible? This seems like it might be prone to turning into a mess of spaghetti code, which I'd really like to avoid.
+  - **DONE 2026-09-09** — every requirement above landed: melee/ranged/cast
+    intents with physical/special refinements, the fallback chain (the archer
+    shoots point-blank), the three override levels, and the presenter seam that
+    kept it out of spaghetti. See the plan above.

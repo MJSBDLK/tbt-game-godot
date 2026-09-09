@@ -74,11 +74,16 @@
 ## RESOLUTION MODEL: build_plan() is PURE — it walks a virtual occupancy
 ## overlay and returns a DisplacePlan (per-unit step-aligned tile paths,
 ## collisions, resisted subjects) without touching the board; that's what the
-## unit tests drive. resolve() then animates all movers in parallel (one
-## parallel tween per global step, PUSH_TWEEN_PER_TILE each), batch-commits
-## occupancy (clear every mover's registration, THEN re-register at the
-## destinations — ordering-safe for swaps and rotations, where sequential
-## move_to_tile calls would clobber each other), and applies collision damage.
+## unit tests drive. resolve() then batch-commits OCCUPANCY (clear every
+## mover's registration, THEN re-register at the destinations — ordering-safe
+## for swaps and rotations, where sequential move_to_tile calls would clobber
+## each other; the nodes stay where they stand), hands the SLIDE to the
+## exchange's CombatPresenter as its `displace` beat (MapPresenter.
+## slide_along_plan: one parallel tween per global step, PUSH_TWEEN_PER_TILE
+## each, then a snap onto the committed tile; ScenePresenter echoes the shove
+## on the puppet and replays the slide on the map after its wipe-out — RQD's
+## first eyeball: units must not "teleport" while the stage hides them), and
+## applies collision damage.
 ## Multi-subject ordering: a subject whose path hits a not-yet-resolved subject
 ## is deferred and retried, so a push wave propagates front-most-first no
 ## matter how the shape enumerated it; a genuine mutual block falls back to
@@ -101,10 +106,11 @@ const _DEFERRED := 1
 
 
 ## Pure output of build_plan(). Each mover is {unit: Node2D, path: Array[Tile],
-## start_step: int}: path holds the tiles stepped through in order, start_step
-## aligns simultaneous animation (a swap partner or chain member starts moving
-## on the global step the subject reaches it). Collisions are
-## {unit: Node2D, damage: int}.
+## start_step: int, start: Vector2i}: path holds the tiles stepped through in
+## order, start is the cell it left (presenters read direction from it after
+## occupancy has moved on), start_step aligns simultaneous animation (a swap
+## partner or chain member starts moving on the global step the subject
+## reaches it). Collisions are {unit: Node2D, damage: int}.
 class DisplacePlan:
 	var movers: Array[Dictionary] = []
 	var collisions: Array[Dictionary] = []
@@ -117,22 +123,26 @@ class DisplacePlan:
 		return {}
 
 
-## Resolve any on-hit displacement on `move`: plan, animate, commit, collide.
-## Awaitable — returns when the push tweens (and any collateral defeat) finish.
-static func resolve(caster: Node2D, target: Node2D, move: Move) -> void:
+## Resolve any on-hit displacement on `move`: plan, commit occupancy, hand
+## the slide to the presenter, collide. Awaitable — returns when the
+## presenter's displace beat (and any collateral defeat) finishes. A null
+## presenter means the map presentation (direct calls, tests).
+static func resolve(caster: Node2D, target: Node2D, move: Move,
+		presenter: CombatPresenter = null) -> void:
 	var plan := build_plan(caster, target, move)
 	if plan == null:
 		return
+	if presenter == null:
+		presenter = MapPresenter.new()
 
 	for unit: Node2D in plan.resisted:
 		DebugConfig.log_combat("DisplacementSystem: %s resisted displacement" % unit.unit_name)
-		if unit.has_method("spawn_text_callout"):
-			unit.spawn_text_callout("RESIST", GameColors.TEXT_PRIMARY)
+		presenter.callout(unit, "RESIST", GameColors.TEXT_PRIMARY)
 
 	if not plan.movers.is_empty():
-		await _animate(plan)
 		_commit(plan)
-	await _apply_collisions(plan, caster, target)
+		await presenter.displace(plan)
+	await _apply_collisions(plan, caster, target, presenter)
 
 
 # =============================================================================
@@ -600,37 +610,12 @@ static func _rotation_occupant(cell: Vector2i, mover: Node2D,
 # EXECUTION (animation, occupancy commit, collision damage)
 # =============================================================================
 
-## All movers animate together: one parallel tween per global step, each active
-## mover sliding one tile. A chain member with start_step 2 sits still for the
-## first two beats, then rides the train.
-static func _animate(plan: DisplacePlan) -> void:
-	var total_steps := 0
-	for mover: Dictionary in plan.movers:
-		total_steps = maxi(total_steps, int(mover.start_step) + (mover.path as Array[Tile]).size())
-	if total_steps == 0:
-		return
-	var host: Node2D = plan.movers[0].unit
-	for step: int in range(total_steps):
-		var tween := host.create_tween().set_parallel(true)
-		var stepped := false
-		for mover: Dictionary in plan.movers:
-			var index: int = step - int(mover.start_step)
-			var path: Array[Tile] = mover.path
-			if index < 0 or index >= path.size():
-				continue
-			tween.tween_property(mover.unit, "global_position",
-					path[index].global_position, PUSH_TWEEN_PER_TILE)
-			stepped = true
-		if stepped:
-			await tween.finished
-		else:
-			tween.kill()
-
-
-## Batch occupancy commit: clear EVERY mover's registration first, then
-## re-register each at its destination. Sequential move_to_tile alone would
-## clobber on swaps/rotations (A registers onto B's tile while B still holds
-## it; B's move then wipes A's registration).
+## Batch occupancy commit, registration ONLY: clear EVERY mover's
+## registration first, then re-register each at its destination (sequential
+## move_to_tile alone would clobber on swaps/rotations — A registers onto B's
+## tile while B still holds it; B's move then wipes A's registration). The
+## nodes do not move here: the presenter's displace beat slides them and
+## snaps each onto its tile when it is done (MapPresenter.settle_movers).
 static func _commit(plan: DisplacePlan) -> void:
 	for mover: Dictionary in plan.movers:
 		var unit: Node2D = mover.unit
@@ -640,13 +625,16 @@ static func _commit(plan: DisplacePlan) -> void:
 	for mover: Dictionary in plan.movers:
 		var unit: Node2D = mover.unit
 		var destination: Tile = (mover.path as Array[Tile]).back()
-		if unit.has_method("move_to_tile"):
+		if unit.has_method("_claim_tile_keep_position"):
+			unit._claim_tile_keep_position(destination)
+		elif unit.has_method("move_to_tile"):
 			unit.move_to_tile(destination)
 		DebugConfig.log_combat("DisplacementSystem: %s displaced to [%d,%d]" % [
 				unit.unit_name, destination.grid_x, destination.grid_y])
 
 
-static func _apply_collisions(plan: DisplacePlan, caster: Node2D, target: Node2D) -> void:
+static func _apply_collisions(plan: DisplacePlan, caster: Node2D, target: Node2D,
+		presenter: CombatPresenter) -> void:
 	for collision: Dictionary in plan.collisions:
 		var unit: Node2D = collision.unit
 		var damage: int = collision.damage
@@ -664,9 +652,9 @@ static func _apply_collisions(plan: DisplacePlan, caster: Node2D, target: Node2D
 			})
 		# Labeled so collision damage can't read as a mystery attack — this can
 		# hit bystanders the shoved unit was thrown into, with no swing animation
-		# to explain it.
-		if unit.has_method("spawn_text_callout"):
-			unit.spawn_text_callout("SLAM -%d" % damage, GameColors.TEXT_DANGER)
+		# to explain it. Through the presenter: on stage when the unit is a
+		# combatant, on the map for a bystander.
+		presenter.callout(unit, "SLAM -%d" % damage, GameColors.TEXT_DANGER)
 		# The combat sequence owns the caster's and primary target's defeats;
 		# collateral (chain blockers, shape bystanders) is handled here.
 		if unit != caster and unit != target \
@@ -699,7 +687,7 @@ static func _add_mover(plan: DisplacePlan, unit: Node2D, path: Array[Tile],
 		start_step: int, overlay: Dictionary, start: Vector2i) -> void:
 	if path.is_empty():
 		return
-	plan.movers.append({"unit": unit, "path": path, "start_step": start_step})
+	plan.movers.append({"unit": unit, "path": path, "start_step": start_step, "start": start})
 	var start_tile: Tile = GridManager.get_tile(start.x, start.y) as Tile
 	if _occupant(overlay, start, start_tile) == unit:
 		overlay[start] = null

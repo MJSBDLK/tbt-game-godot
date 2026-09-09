@@ -494,6 +494,13 @@ func _build_overlay_layer() -> void:
 	add_child(_overlay_layer)
 
 
+## The HUD-space overlay CanvasLayer (layer 11, above every panel). Phase
+## banners live here; ScenePresenter mounts the CombatScene here so it draws
+## over the map AND the battle panels. Null until _ready has run.
+func get_overlay_layer() -> CanvasLayer:
+	return _overlay_layer
+
+
 # =============================================================================
 # PANEL / OVERLAY INSTANTIATION
 # =============================================================================

@@ -12,8 +12,9 @@ art/
   sprites/characters/
     <id>.aseprite              # Lawrence's source. Canvas expanded so the FEET
                                #   land at canvas center (96×96 → pivot 48,48).
-                               #   One tag per animation: idle, melee, meleelong,
-                               #   meleeside, shootside, ...
+                               #   One tag per animation, from the clip
+                               #   vocabulary: idle, melee, ranged, dodge,
+                               #   hurt, death, cast, ... (side view, LEFT-facing)
     <id>/                      # Tag-exporter output (right-click .aseprite in
       idle.png                 #   FileSystem dock → "Export Tags as PNGs")
       idle.json                # Sidecar: pivot + frame metadata. Never hand-edit
@@ -44,11 +45,15 @@ Legacy stragglers that don't follow this (`.js` files, `grasker-portrait.png`,
 - [ ] `<id>.aseprite` with expanded canvas (feet at canvas center)
 - [ ] `idle` tag exported (`<id>/idle.png` + `idle.json` sidecar)
 - [ ] Pivot verified in-game (stands centered on its tile, no float/sink)
-- [ ] Attack animations exported — the game picks clips by `use_when`
-      {direction: horizontal/up/down, range: 1/2+}, so the minimum useful set:
-  - [ ] melee side-swing (`melee` / `meleeside`)
-  - [ ] ranged side-shot (`shootside`) — only if the kit has ranged moves
-  - [ ] TBD: up/down variants (diagonals already reuse side + flip_h)
+- [ ] Attack animations exported — SIDE VIEW, LEFT-FACING, tagged from the
+      clip vocabulary (header of `scripts/units/unit_animation_resolver.gd`).
+      The minimum useful set:
+  - [ ] `melee` side-swing
+  - [ ] `ranged` side-shot — only if the kit has ranged moves
+  - [ ] optional reactions `dodge`, `hurt`, `death`; `cast` for support;
+        refinements (`melee_special`, …) only when a look must differ
+  - [ ] NO up/down variants — the combat scene has one facing; on the map a
+        due-vertical attack falls back to the boop nudge
 
 **Art — portraits**
 - [ ] 92×92 portrait (unit detail / prep panels)
@@ -72,7 +77,9 @@ Legacy stragglers that don't follow this (`.js` files, `grasker-portrait.png`,
 - [ ] `basePoolPassives` — target ≥ 9 (alpha goal; Maximum/Stellar stay
       Max-only)
 - [ ] `sprite` block (sheetPath → exported idle.png)
-- [ ] `animations` block (path/frames/fps/hit_frame + `use_when` per clip)
+- [ ] `animations` block keyed by vocabulary name (path/frames; fps/hit_frame
+      are fallbacks — the strip's sidecar wins); `animation_overrides` only for
+      exceptions (`"melee_special": "ranged"`, `"move:Uppercut": "ranged"`)
 - [ ] `portraitPath`, `lineartPath`, `lineartAtlases.portrait`
 
 **Wiring**
@@ -93,10 +100,13 @@ Legacy stragglers that don't follow this (`.js` files, `grasker-portrait.png`,
   correct *because* the canvas is expanded. Older sprites with tight canvases
   (grunt-era) get fixed by resizing the canvas in Aseprite and re-exporting —
   never by hand-tuning the sidecar.
-- **Animation taxonomy**: the design shorthand
-  "attack_physical_adjacent_north" maps onto the shipped system as
-  `use_when {direction, range}` + the move's melee/ranged style
-  (`Move.is_ranged_style`). Diagonals reuse the horizontal clip mirrored, so
-  north/south clips are the only extra directional art.
+- **Animation taxonomy**: a clip is chosen by reach (melee when the target
+  is adjacent, ranged from two tiles; a move's `animationStyle` tag forces
+  it) × kind (physical/special) — never by direction. A missing refinement
+  falls back along an explicit chain, same reach first
+  (`melee_special → melee → melee_physical → ranged_special → …`), that ends in
+  a procedural nudge, so a character with only `idle` is always playable.
+  `tools/diag/animation_coverage_probe.gd` prints who plays what. Design:
+  `.claude/battle-animations.md`.
 - **The `.aseprite` file is the source of truth** for all sprite art; the
   exported PNGs are build artifacts and safe to regenerate at any time.

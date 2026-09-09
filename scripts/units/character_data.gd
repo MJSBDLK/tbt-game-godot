@@ -65,13 +65,24 @@ extends Resource
 # hatch for stances the measurement misjudges — RQD 2026-08-01.
 @export var shadow_blob_radius: float = -1.0
 
-# Optional attack-animation clips keyed by clip name. Each entry is a Dictionary:
-#   { "path": String, "frames": int, "fps": int, "hit_frame": int,
-#     "use_when": { "direction": "horizontal"|"vertical"|"any", "range": int|null } }
-# Strips are laid out as N frames of (idle_width × idle_height) concatenated
-# left-to-right. unit.gd picks a clip per attack via _pick_attack_clip; misses
-# fall back to the boop nudge.
+# Optional animation clips keyed by VOCABULARY name (= the aseprite tag):
+# melee, ranged, melee_physical, melee_special, ranged_physical,
+# ranged_special, cast, dodge, hurt, death, crit_melee, crit_ranged. Each
+# entry: { "path": String, "frames": int, "fps": int, "hit_frame": int }
+# (fps / hit_frame are fallbacks — the strip's sidecar JSON wins). Strips are
+# N frames of equal width concatenated left-to-right, authored SIDE VIEW,
+# LEFT-FACING. Which key plays for a given move is UnitAnimationResolver's
+# call (its header is the doc); direction is not a factor any more — the
+# old `use_when {direction, range}` filters are ignored with a warning.
 @export var attack_animations: Dictionary = {}
+
+# Optional per-character clip overrides (JSON `animation_overrides`), keys
+# lower-cased by the loader:
+#   "melee_special": "ranged"     intent → clip   (this unit's melee special
+#                                                  looks like its shot)
+#   "move:uppercut": "ranged"     move   → clip   (most specific; wins)
+# Values are vocabulary keys; a missing clip falls through to the chain.
+@export var animation_overrides: Dictionary = {}
 
 
 # =============================================================================

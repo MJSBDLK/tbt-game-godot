@@ -21,21 +21,13 @@
 			"path": "res://art/sprites/characters/ernesto/melee.png",
 			"frames": 10,
 			"fps": 10,
-			"hit_frame": 5,
-			"use_when": {
-				"direction": "horizontal",
-				"range": 1
-			}
+			"hit_frame": 5
 		},
-		"melee_long": {
+		"ranged_physical": {
 			"path": "res://art/sprites/characters/ernesto/meleelong.png",
 			"frames": 12,
 			"fps": 10,
-			"hit_frame": 7,
-			"use_when": {
-				"direction": "horizontal",
-				"range": 2
-			}
+			"hit_frame": 7
 		}
 	},
 	"baseStats": {

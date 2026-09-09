@@ -186,11 +186,14 @@ func _ensure_mirror() -> void:
 		return
 	var hd_layer: CanvasLayer = SceneRouter.get_hd_layer()
 	if hd_layer == null:
-		# GameRoot hasn't registered yet — defer one frame and try again. This
-		# happens when the slot is part of the first scene loaded into the
-		# SubViewport: that scene's _ready can run before GameRoot finishes
-		# wiring SceneRouter.
-		call_deferred("_ensure_mirror")
+		# GameRoot hasn't registered yet (the first scene's _ready can run
+		# before GameRoot wires SceneRouter; headless tests never wire it).
+		# Wait for the registration signal. This used to call_deferred itself:
+		# a deferred call that re-defers runs again inside the SAME flush, so
+		# with no HDLayer ever coming it spun until "Message queue out of
+		# memory" and crashed the test runner (found 2026-09-07 when the
+		# combat scene bound HD portraits under GUT).
+		_wait_for_game_root()
 		return
 	_mirror_parent = hd_layer
 	_mirror = TextureRect.new()
@@ -234,9 +237,8 @@ func _ensure_overlay() -> void:
 		return
 	var hd_layer: CanvasLayer = SceneRouter.get_hd_layer()
 	if hd_layer == null:
-		# Mirrors the deferred-retry pattern in _ensure_mirror — GameRoot may
-		# not have registered yet on the first frame.
-		call_deferred("_ensure_overlay")
+		# Same wait as _ensure_mirror — the registration handler builds both.
+		_wait_for_game_root()
 		return
 	_overlay = ColorRect.new()
 	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -245,6 +247,20 @@ func _ensure_overlay() -> void:
 	hd_layer.add_child(_overlay)
 	_sync_overlay_geometry()
 	_sync_mirror_visibility()
+
+
+## One connection per slot, however many callers asked; a slot that left the
+## tree before registration builds nothing.
+func _wait_for_game_root() -> void:
+	if not SceneRouter.game_root_registered.is_connected(_on_game_root_registered):
+		SceneRouter.game_root_registered.connect(_on_game_root_registered, CONNECT_ONE_SHOT)
+
+
+func _on_game_root_registered() -> void:
+	if not is_inside_tree():
+		return
+	_ensure_mirror()  # builds the overlay too, in draw order
+	_apply_effects_state()
 
 
 func _sync_mirror_geometry() -> void:

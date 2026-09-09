@@ -32,6 +32,17 @@ static func load_move_bank(json_path: String = "res://data/moves/basic_move_bank
 
 
 ## Returns a fresh duplicate of the named move (per-unit PP tracking).
+## Every move name in the bank, sorted — for pickers (the combat sandbox).
+static func get_move_names() -> Array[String]:
+	if not _is_loaded:
+		load_move_bank()
+	var names: Array[String] = []
+	for key: Variant in _move_database.keys():
+		names.append(str(key))
+	names.sort()
+	return names
+
+
 static func get_move(move_name: String) -> Move:
 	if not _is_loaded:
 		load_move_bank()
@@ -54,6 +65,7 @@ static func _parse_move_entry(move_name: String, data: Dictionary) -> Move:
 	move.base_power = int(data.get("basePower", 0))
 	move.accuracy = int(data.get("accuracy", 90))
 	move.animation_style = String(data.get("animationStyle", "auto")).to_lower()
+	move.animation_clip = String(data.get("animationClip", "")).to_lower()
 
 	# PP from power tier + optional offset
 	var base_pp := Move.calculate_max_uses_from_power(move.base_power)

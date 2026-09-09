@@ -110,6 +110,17 @@ var move_confirm_mode: int = MoveConfirmMode.AUTO
 enum MoveCommitMode { WALK_THEN_ACT, ACT_THEN_WALK }
 var move_commit_mode: int = MoveCommitMode.WALK_THEN_ACT
 
+## HOW an offensive exchange is shown (plan .claude/todo-archive.md ("Battle animations plan"),
+## D4 + D5). ALWAYS: the FE7-style combat scene for every exchange.
+## PLAYER_PHASE_ONLY: the scene when the player initiates, the in-place map
+## beats when the enemy does. MAP: the in-place presentation for everything
+## (boop nudge or side clip on the map unit — today's look). Friendly casts,
+## AoE and support never use the scene regardless (D3). Read once per
+## exchange by CombatPresenter.for_exchange. Default ALWAYS: the scene is
+## the intended look; the sandbox and the suite flip this explicitly.
+enum BattleAnimations { ALWAYS, PLAYER_PHASE_ONLY, MAP }
+var battle_animations: int = BattleAnimations.ALWAYS
+
 const TOOLTIP_HOLD_MIN_MS: int = 200
 const TOOLTIP_HOLD_MAX_MS: int = 1000
 const TOOLTIP_HOLD_STEP_MS: int = 50
@@ -117,6 +128,14 @@ const TOOLTIP_HOLD_STEP_MS: int = 50
 ## The file settings load from / save to. Overridable so tests can point at a
 ## throwaway path instead of clobbering the player's real settings file.
 var settings_path: String = DEFAULT_SETTINGS_PATH
+
+## False = setters still apply in memory but _save() never touches disk.
+## The GUT pre-run hook turns this off: the suite forces battle_animations =
+## MAP for speed, and one persisting setter call in any test would otherwise
+## write that (and every other suite-time value) into the PLAYER's
+## user://settings.cfg — exactly how RQD's build lost the combat scene on
+## 2026-09-07 ("doesn't trigger at all").
+var persistence_enabled: bool = true
 
 
 func _ready() -> void:
@@ -161,6 +180,9 @@ func load_settings() -> void:
 		move_commit_mode = clampi(int(config.get_value(
 				"controls", "move_commit_mode", move_commit_mode)),
 				MoveCommitMode.WALK_THEN_ACT, MoveCommitMode.ACT_THEN_WALK)
+		battle_animations = clampi(int(config.get_value(
+				"visuals", "battle_animations", battle_animations)),
+				BattleAnimations.ALWAYS, BattleAnimations.MAP)
 	# Engine-level prefs (fps cap, bus volumes) must apply even with no file —
 	# a fresh install still needs the buses minted and defaults pushed.
 	_apply_engine_settings()
@@ -294,6 +316,15 @@ func set_move_commit_mode(value: int) -> void:
 	changed.emit()
 
 
+func set_battle_animations(value: int) -> void:
+	value = clampi(value, BattleAnimations.ALWAYS, BattleAnimations.MAP)
+	if value == battle_animations:
+		return
+	battle_animations = value
+	_save()
+	changed.emit()
+
+
 func set_auto_end_turn(value: bool) -> void:
 	if value == auto_end_turn:
 		return
@@ -353,6 +384,8 @@ func _apply_bus_volume(bus_name: String, linear: float) -> void:
 ## keys other systems may have written survive the round-trip (forward-
 ## compatible — we never blow away sections we don't know about).
 func _save() -> void:
+	if not persistence_enabled:
+		return
 	var config := ConfigFile.new()
 	config.load(settings_path)  # ignore error — a fresh file is fine
 	config.set_value("visuals", "portrait_effects_enabled", portrait_effects_enabled)
@@ -370,6 +403,7 @@ func _save() -> void:
 	config.set_value("controls", "show_control_hints", show_control_hints)
 	config.set_value("controls", "move_confirm_mode", move_confirm_mode)
 	config.set_value("controls", "move_commit_mode", move_commit_mode)
+	config.set_value("visuals", "battle_animations", battle_animations)
 	var err: int = config.save(settings_path)
 	if err != OK:
 		push_warning("Settings: failed to save %s (error %d)" % [settings_path, err])

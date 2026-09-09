@@ -368,3 +368,50 @@ func test_a_newer_xp_bar_play_takes_over_the_older_one() -> void:
 	await wait_seconds(Unit.XP_BAR_FADE_IN_SECONDS + Unit.XP_BAR_FILL_SECONDS_PER_LEVEL + 0.2)
 	assert_almost_eq(unit._xp_bar_fill.scale.x, 0.80, 0.001,
 			"the second play owns the bar — the first tween was killed")
+
+
+# =============================================================================
+# XP FEEDBACK ON EARLY-ENDED EXCHANGES (found building the presenter seam)
+# =============================================================================
+# A kill on hit 1 or counter 1 ends the exchange early — no bonus hits, no
+# survival XP. The killer's XP feedback must still flush THEN: before this
+# was pinned, the most common kill shape hid its +XP callout and level-up
+# celebration until the killer's next exchange.
+
+func _lethal_probe(power: int) -> Move:
+	var move := Move.new()
+	move.move_name = "Probe"
+	move.base_power = power
+	move.accuracy = 500  # clamps to 100 — always lands
+	move.damage_type = Enums.DamageType.PHYSICAL
+	move.attack_range = 1
+	move.max_uses = 5
+	move.current_uses = 5
+	return move
+
+
+func test_a_first_hit_kill_flushes_the_killers_xp_in_the_same_exchange() -> void:
+	var killer := _spawn_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER)
+	var victim := _spawn_unit(GRUNT_PATH, Enums.UnitFaction.ENEMY)
+	victim.current_hp = 1
+	var expected: int = CombatXpCalculator.compute_combat_xp(
+			killer.character_data, victim.character_data, true)
+	await killer.execute_combat_sequence(victim, _lethal_probe(5), RecordingPresenter.new())
+	assert_true(victim.is_defeated(), "precondition: the first hit killed")
+	assert_eq(killer._combat_xp_gained, 0, "the kill's XP flushed at the end of THIS exchange")
+	assert_has(_callout_texts(killer), "+%d XP" % expected,
+			"the +XP callout floats now, not after the killer's next fight")
+
+
+func test_a_counter_kill_flushes_the_defenders_xp_in_the_same_exchange() -> void:
+	var attacker := _spawn_unit(GRUNT_PATH, Enums.UnitFaction.ENEMY)
+	var defender := _spawn_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER)
+	attacker.current_hp = 1
+	defender.assigned_move = _lethal_probe(5)
+	var expected: int = CombatXpCalculator.compute_combat_xp(
+			defender.character_data, attacker.character_data, true)
+	await attacker.execute_combat_sequence(defender, _lethal_probe(1), RecordingPresenter.new())
+	assert_true(attacker.is_defeated(), "precondition: counter 1 killed the attacker")
+	assert_false(defender.is_defeated(), "precondition: the defender survived hit 1")
+	assert_eq(defender._combat_xp_gained, 0, "the counter-kill's XP flushed at the end of THIS exchange")
+	assert_has(_callout_texts(defender), "+%d XP" % expected)

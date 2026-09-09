@@ -76,3 +76,38 @@ func test_debug_bypass_also_clears_material() -> void:
 	assert_null(slot._mirror.material,
 			"Debug bypass clears the mirror material even with the user setting on")
 	DebugConfig.debug_portrait_effects_disabled = saved_debug
+
+
+# =============================================================================
+# Readied before GameRoot registers (or never, under GUT): the slot must WAIT
+# for SceneRouter.game_root_registered, not poll with call_deferred. The old
+# self-deferring retry re-ran inside the same message-queue flush and, with no
+# HDLayer ever coming, filled the queue and crashed the runner.
+# =============================================================================
+
+func test_a_slot_readied_without_an_hd_layer_waits_for_registration() -> void:
+	assert_null(SceneRouter.get_hd_layer(), "precondition: GUT never registers a GameRoot")
+	var host := TextureRect.new()
+	add_child_autofree(host)
+	var slot := HDPortraitSlot.new()
+	slot.hd_texture = PlaceholderTexture2D.new()
+	slot.overlay_material = ShaderMaterial.new()
+	host.add_child(slot)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	assert_null(slot._mirror, "no HDLayer → no mirror yet")
+	assert_true(SceneRouter.game_root_registered.is_connected(slot._on_game_root_registered),
+			"the slot is parked on the registration signal")
+
+	# Registration arrives: the mirror and overlay land in the layer, in order.
+	var layer := CanvasLayer.new()
+	add_child_autofree(layer)
+	SceneRouter._hd_layer = layer
+	SceneRouter.game_root_registered.emit()
+	SceneRouter._hd_layer = null
+	assert_not_null(slot._mirror, "registration builds the mirror")
+	assert_eq(slot._mirror.get_parent(), layer)
+	assert_not_null(slot._overlay, "and the overlay")
+	assert_eq(layer.get_child(0), slot._mirror, "mirror first so the overlay draws above it")
+	assert_false(SceneRouter.game_root_registered.is_connected(slot._on_game_root_registered),
+			"one-shot: the slot lets go of the signal once served")

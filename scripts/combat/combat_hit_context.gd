@@ -36,6 +36,11 @@ var apply_status: bool = true
 # Heal hits skip displacement. Set by _execute_heal_hit.
 var is_heal: bool = false
 
+# The exchange's presenter, so handlers that PRESENT (DisplaceEffect →
+# DisplacementSystem.resolve → the `displace` beat) stay behind the seam.
+# null → the map presentation.
+var presenter: CombatPresenter = null
+
 # Support applications (non-heal, non-damage: Roar's shout, Shriek's mark).
 # Skips crit + combat passives like heals do, but KEEPS displacement — a
 # support shove (Roar-knockback style) is legal. Set by _execute_support_hit.

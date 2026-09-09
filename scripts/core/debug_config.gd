@@ -18,6 +18,8 @@ var unit_init: bool = false
 
 # Combat
 var combat: bool = false
+var combat_scene_step_pauses: bool = false  # CombatScene: the 250 ms settles at open/close become indefinite pauses — the stage waits for a press (which ADVANCES, not skips) so it can be examined. RQD 2026-09-08.
+var battle_animations: bool = false  # Clip resolution per swing (UnitAnimationResolver: intent → clip or PROCEDURAL, override fall-throughs) — see .claude/todo-archive.md ("Battle animations plan")
 var ai: bool = false
 var status_effects: bool = false
 var testing_status_effects: bool = false  # Assign random status effects on unit spawn
@@ -125,6 +127,9 @@ func log_unit_init(message: String) -> void:
 
 func log_combat(message: String) -> void:
 	log_if(combat, message)
+
+func log_battle_animations(message: String) -> void:
+	log_if(battle_animations, message)
 
 func log_ai(message: String) -> void:
 	log_if(ai, message)

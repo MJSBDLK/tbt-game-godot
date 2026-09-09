@@ -1,4 +1,18 @@
 # Resp
+1. Yes, great catch - please do this.
+2. Agreed, please take care of this!
+3. Agreed, please take care of this!
+4. Oh yeah, I do wish these would be caught before the commits. Maybe we create a new policy where you're a bit less commit-happy? The downside to this is, I forget to commit. Maybe the happy medium is that you don't commit unless asked, but you remind me often?
+5. Agreed, please take care of this!
+6. Agreed, please take care of this!
+
+# Todo
+- [ ] Options menu has gotten too big for the screen. We'll need to tabulate and/or refactor
+- [ ] Pull spry.md and the spry skill out of work's documents - then see how we can apply those principles here
+- [ ] I noticed the enemy AI will often move and not attack - definitely not a bug.
+- [ ] In spite of the above, default difficulty is substantially too high - this is fine for now because I've done minimal tuning of the difficulty, but we should discuss how to tune this without simply overleveling the player. The game should *feel* like an even playing field, or even slightly oppressive - we want to keep the player in that zone of proximal development, and never feel like they're coasting. Force them to learn, but make the on-raamp really gradual. Shouldn't feel like a tutorial either, though.
+  - [ ] We should discuss dynamic difficulty scaling, as well. This would be especially easy to implement near-imperceptibly in our game
+- [ ] Note on AI in general - this needs a complete rework. I want the AI to be smart. We're not there yet - I want to get the systems in a good place first. But this is a high priority task, when the time comes.
 
 **Answered + BUILT 2026-09-07 on `rqd--terrain-stack`** (3 commits, suite
 1096 green; squash-merge once RQD/Lawrence have eyeballed a build):
@@ -49,12 +63,37 @@ five-cell-wide building). If that's not intended, suffix the tags (`_3x2`)
 and re-export; the registration tool warns when an atlas tile moves and
 those cells need repainting.
 
-# Battle scene
-- [ ] For a minute, the plan was to animate omnidirectional attacks, and I've come to the conclusion that this is simply too colossal an undertaking. We need a Fire Emblem 7 - style battle scene where the units play their attack animations against each other.
-  - [ ] There will be, at minimum, melee, ranged, and self "attack" animations. We may also split into physical/special/support animations. Our system must also allow exceptions to any of the standard rules, as well as a fallback for when units have no attack animation. I'll give you an example.
-    - say an archer has a passive which lets it hit enemies which are one space away. The archer unit may have no attack animation for "melee," in which case we'd need to gracefully fall back to an animation it does have, in a way that makes sense.
-    - that said, we should also be able to override animations, e.g. "when this unit uses its melee special attack, just play the ranged physical aniimation."
-  - [ ] Anything I'm forgetting to make this system as robust and intuitive as possible? This seems like it might be prone to turning into a mess of spaghetti code, which I'd really like to avoid.
+# Combat scene — follow-ups
+- [x] **FE7-style combat scene LANDED 2026-09-09** from `rqd--battle-animations`
+  (plan + decision log: [todo-archive.md](todo-archive.md) "Battle animations
+  plan"; pointer at [battle-animations.md](battle-animations.md); player-facing
+  description in `data/design/combat-system.md` §Combat Animations). Live by
+  default (Options → "Battle Anims": Scene / Player / Map). Sandbox:
+  `godot-4 --path . -- --map=scenes/debug/combat_sandbox.tscn`; every knob at
+  the top of `scripts/combat/scene/combat_scene.gd`.
+- [ ] **Lawrence: backdrop test scene** — template + brief in
+  `art/backdrops/combat_test/` (288×134 at sprite density; drop-in `sky.png`
+  / `floor.png`, the scene picks them up).
+- [ ] **Lawrence: reaction clips** — `dodge`, `hurt`, `death` (side view,
+  left-facing, tag names from the vocabulary); then `cast`; crit variants
+  last. Procedural stand-ins (hop, flash, fade) play until then.
+- [ ] Procedural projectile for ranged clips (needs an `fx_origin` slice from
+  Lawrence — muzzle / fist / wand tip).
+- [ ] Terrain tile strip: draw each puppet's REAL tile terrain under it
+  (defense bonus for free) instead of the flat palette tiles.
+- [ ] Enemy-phase pacing (the scene on the enemy's turn may want to run faster).
+- [ ] "Combat scene" tab on the battle-HUD mockup artifact for Lawrence's HUD
+  pass (contents locked — D7 rounds 3–4 in the archive).
+- [ ] Mirrored right-facing idles on the left puppet — art fix (RQD: "we'll
+  likely fix it later").
+- [ ] Missing status icon `status_effect_icons_6x6_v2/hasted_0000.png` —
+  applying Hasted logs a resource error (unrelated to the scene, seen in RQD's log).
+- [ ] Spin-off (mobile arc, NOT this feature): touch has no attack forecast
+  before the tap that attacks — the preview panel is hover-driven. Fix is
+  tap-to-preview then tap-again-to-attack (the marker double-press pattern).
+- [ ] Spin-off (preview panel): STAB ×1.2 is applied silently —
+  `DamageCalculator.get_stab_multiplier` feeds the number but nothing
+  displays it. Show it on the panel.
 
 
 

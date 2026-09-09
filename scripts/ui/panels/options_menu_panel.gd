@@ -31,6 +31,7 @@ var _control_hints_on_button: Button = null
 var _control_hints_off_button: Button = null
 var _move_confirm_buttons: Dictionary = {}  # Settings.MoveConfirmMode → Button
 var _move_commit_buttons: Dictionary = {}  # Settings.MoveCommitMode → Button
+var _battle_animations_buttons: Dictionary = {}  # Settings.BattleAnimations → Button
 var _seeded_reload_on_button: Button = null
 var _seeded_reload_off_button: Button = null
 var _type_icons_on_button: Button = null
@@ -145,6 +146,9 @@ func _populate_options() -> void:
 
 	# Move Commit (walk on plan-confirm vs ghost-until-action — playtest toggle)
 	_create_move_commit_option()
+
+	# Battle Animations (FE7-style combat scene: always / player turn / map)
+	_create_battle_animations_option()
 
 	# Seeded Reload (loading a save keeps or re-rolls the dice)
 	_create_seeded_reload_option()
@@ -625,6 +629,47 @@ func _on_move_commit_selected(mode: int) -> void:
 	Settings.set_move_commit_mode(mode)
 	for key: int in _move_commit_buttons:
 		_apply_toggle_state(_move_commit_buttons[key], key == mode)
+
+
+# Battle Animations — how an offensive exchange is shown (plan
+# .claude/todo-archive.md ("Battle animations plan") D4/D5). Scene = the FE7-style cutaway every
+# time; Player = the cutaway only when the player attacks, in-place beats on
+# the enemy phase; Map = the in-place beats everywhere (the pre-scene look).
+func _create_battle_animations_option() -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+
+	var label := Label.new()
+	label.text = "Battle Anims"
+	label.tooltip_text = "How attacks are shown. Scene: a side-view combat scene for every attack. Player: the scene on your turn only, quick map animations on the enemy's. Map: quick map animations always."
+	label.custom_minimum_size = Vector2(OPTION_LABEL_WIDTH, 0)
+	label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
+	var glow: ShaderMaterial = GLOW_MATERIAL.duplicate()
+	glow.set_shader_parameter("glow_color", GameColors.TEXT_PRIMARY_GLOW)
+	label.material = glow
+	row.add_child(label)
+
+	var button_container := HBoxContainer.new()
+	button_container.add_theme_constant_override("separation", 2)
+	_battle_animations_buttons.clear()
+	var current: int = Settings.battle_animations
+	for entry: Array in [[Settings.BattleAnimations.ALWAYS, "Scene"],
+			[Settings.BattleAnimations.PLAYER_PHASE_ONLY, "Player"],
+			[Settings.BattleAnimations.MAP, "Map"]]:
+		var mode: int = entry[0]
+		var button := _create_toggle_button(entry[1], current == mode)
+		button.pressed.connect(_on_battle_animations_selected.bind(mode))
+		_battle_animations_buttons[mode] = button
+		button_container.add_child(button)
+
+	row.add_child(button_container)
+	_content_container.add_child(row)
+
+
+func _on_battle_animations_selected(mode: int) -> void:
+	Settings.set_battle_animations(mode)
+	for key: int in _battle_animations_buttons:
+		_apply_toggle_state(_battle_animations_buttons[key], key == mode)
 
 
 # Seeded Reload: On = loading a save restores the dice exactly (repeating the
