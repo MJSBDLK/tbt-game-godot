@@ -55,17 +55,17 @@ var _action_panels_on_left: bool = false
 # Overlays
 var _overlay_layer: CanvasLayer = null
 var _phase_transition_overlay: Node = null
-var _battle_result_overlay: Node = null
 var _unit_detail_panel: UnitDetailPanel = null
 var _system_menu_panel: SystemMenuPanel = null
 var _options_menu_panel: OptionsMenuPanel = null
 var _save_browser_panel: SaveBrowserPanel = null
 var _battle_result_panel: BattleResultPanel = null
-var _level_up_report_panel: LevelUpReportPanel = null
-var _bonus_xp_panel: BonusXpPanel = null
-# Stashed between BattleResultPanel.closed → LevelUpReportPanel.show_report →
-# BonusXpPanel.show_report, since each screen accepts the same payload but
-# renders in sequence.
+# The mid-battle level-up reveal while it is up (show_level_up_celebration);
+# null otherwise. Exposed so callers can tell a celebration is holding the
+# turn, and so tests can press through it.
+var _level_up_celebration: LevelUpStatPanel = null
+# SquadManager's post-mission report, held from post_mission_report_ready
+# until the banner clears and BattleResultPanel renders it.
 var _pending_post_mission_report: Array = []
 # Outcome recorded by show_battle_result (which _end_battle calls before
 # emitting battle_ended) so the banner played at the top of the post-mission
@@ -298,16 +298,15 @@ func show_battle_result(is_victory: bool, turn_count: int, player_units_lost: in
 		"total_players": total_players,
 		"total_enemies": total_enemies,
 	}
-	# The legacy stats overlay is DELIBERATELY NOT shown. The post-mission
-	# chain suppresses it via hide_battle_result() in the same frame anyway
-	# (its Continue button has no listeners — dead UI, superseded by
-	# BattleResultPanel). Showing it after an awaited banner resurrected
-	# it as an undismissable zombie underneath the bEXP screen (2026-07-07).
+	# Nothing is SHOWN from here: the post-mission chain
+	# (_on_post_mission_report_ready) plays the banner and then
+	# BattleResultPanel. A stats overlay used to be shown here and came back
+	# as an undismissable zombie under the chain (2026-07-07); it was deleted
+	# 2026-09-09.
 
 
+## Unwinds the BATTLE_RESULT state show_battle_result pushed.
 func hide_battle_result() -> void:
-	if _battle_result_overlay != null and _battle_result_overlay.has_method("hide_result"):
-		_battle_result_overlay.hide_result()
 	var state_manager := get_node_or_null("/root/GameStateManager")
 	if state_manager != null and state_manager.current_state == Enums.InputState.BATTLE_RESULT:
 		state_manager.pop_state()
@@ -315,16 +314,43 @@ func hide_battle_result() -> void:
 
 ## Mid-battle level-up celebration (RQD 2026-08-11): a stats-exclusive cut of
 ## the detail panel, awaited so the combat sequence holds while the reveal
-## plays. `before` is LevelUpStatPanel.stat_snapshot taken pre-grant. Safe to
-## call from any combat context — returns immediately on bad input.
+## plays — and, since 2026-09-09, until the player PRESSES through it (the
+## panel never auto-dismisses; the post-battle report it used to hand off to
+## is gone). `before` is LevelUpStatPanel.stat_snapshot taken pre-grant. Safe
+## to call from any combat context — returns immediately on bad input.
+##
+## While the panel is up, InputState.LEVEL_UP_CELEBRATION is pushed: the
+## InputManager goes quiet (the Continue press must not also select a unit),
+## the info panels stay down (Enums.MAP_VIEW_STATES), the camera stops
+## panning, and HintBar shows the one verb. The push lands mid combat
+## sequence — over ATTACK_TARGETING on the player's turn, DEFAULT on the
+## enemy's — and pop restores that state verbatim.
 func show_level_up_celebration(character_data: CharacterData, before: Dictionary) -> void:
 	if character_data == null or before.is_empty():
 		return
+	assert(_level_up_celebration == null,
+			"UIManager: a level-up celebration is already up — reveals are sequential")
+	var state_manager := get_node_or_null("/root/GameStateManager")
+	var input_manager := get_node_or_null("/root/InputManager")
+	# GameStateManager._enter_state re-ENABLES input when popping back to a
+	# map state. On the enemy's turn (their hit leveled our defender) input
+	# was off and must stay off — restore what the phase had, not what the
+	# popped-to state implies.
+	var input_was_enabled: bool = input_manager != null and input_manager.input_enabled
+	if state_manager != null:
+		state_manager.push_state(Enums.InputState.LEVEL_UP_CELEBRATION)
 	var panel := LevelUpStatPanel.new()
+	_level_up_celebration = panel
 	add_child(panel)
 	panel.present(character_data, before)
 	await panel.finished
+	_level_up_celebration = null
 	panel.queue_free()
+	if state_manager != null \
+			and state_manager.current_state == Enums.InputState.LEVEL_UP_CELEBRATION:
+		state_manager.pop_state()
+	if input_manager != null and not input_was_enabled:
+		input_manager.disable_input()
 
 
 ## Show the recruit picker with the given candidate JSON paths and await the
@@ -574,12 +600,6 @@ func _instantiate_overlays() -> void:
 		_phase_transition_overlay = phase_scene.instantiate()
 		_overlay_layer.add_child(_phase_transition_overlay)
 
-	# Battle result overlay
-	var result_scene := load("res://scenes/ui/overlays/battle_result_overlay.tscn")
-	if result_scene != null:
-		_battle_result_overlay = result_scene.instantiate()
-		_overlay_layer.add_child(_battle_result_overlay)
-
 	# Unit detail panel (fullscreen overlay)
 	var unit_detail_scene := load("res://scenes/ui/panels/unit_detail_panel/unit_info_panel.tscn")
 	if unit_detail_scene != null:
@@ -590,27 +610,15 @@ func _instantiate_overlays() -> void:
 		_overlay_layer.add_child(_unit_detail_panel)
 		_unit_detail_panel.closed.connect(_on_unit_detail_closed)
 
-	# Post-mission flow: BattleResultPanel → LevelUpReportPanel → BonusXpPanel.
-	# Each step self-skips if its preconditions don't fire (no level-ups,
-	# zero bEXP pool, etc.), so the chain falls through naturally on defeat
-	# or for first-mission victories where there's nothing to celebrate.
+	# Post-mission flow: banner → BattleResultPanel → conclude. The level-up
+	# report and bEXP screens that used to follow were removed 2026-09-09:
+	# level-ups celebrate mid-battle as they happen (show_level_up_celebration)
+	# and bEXP is spent in the intermission (BexpSpendPanel).
 	var battle_result_scene := load("res://scenes/ui/panels/battle_result_panel.tscn")
 	if battle_result_scene != null:
 		_battle_result_panel = battle_result_scene.instantiate() as BattleResultPanel
 		_overlay_layer.add_child(_battle_result_panel)
 		_battle_result_panel.closed.connect(_on_battle_result_panel_closed)
-
-	var level_up_scene := load("res://scenes/ui/panels/level_up_report_panel.tscn")
-	if level_up_scene != null:
-		_level_up_report_panel = level_up_scene.instantiate() as LevelUpReportPanel
-		_overlay_layer.add_child(_level_up_report_panel)
-		_level_up_report_panel.closed.connect(_on_level_up_report_closed)
-
-	var bonus_xp_scene := load("res://scenes/ui/panels/bonus_xp_panel.tscn")
-	if bonus_xp_scene != null:
-		_bonus_xp_panel = bonus_xp_scene.instantiate() as BonusXpPanel
-		_overlay_layer.add_child(_bonus_xp_panel)
-		_bonus_xp_panel.closed.connect(_on_bonus_xp_closed)
 
 	var squad_manager: Node = get_node_or_null("/root/SquadManager")
 	if squad_manager and squad_manager.has_signal("post_mission_report_ready"):
@@ -623,20 +631,15 @@ func _instantiate_overlays() -> void:
 		_overlay_layer.add_child(_recruit_picker_panel)
 
 
-## Entry point for the post-mission flow. Chain (reordered 2026-08-03 —
-## results FIRST: the player learns what happened before being asked to
-## celebrate or spend):
+## Entry point for the post-mission flow. Chain (results first, 2026-08-03;
+## trimmed to one screen 2026-09-09 — level-ups already celebrated
+## mid-battle, bEXP is spent in the intermission):
 ##   battle_ended signal → _on_post_mission_report_ready (this)
 ##     → banner ("VICTORY"/"DEFEAT", no numbers) — awaited, blocks the chain
 ##     → BattleResultPanel.show_result() — turns vs par, itemized bEXP
 ##         income, kills/losses, injuries/permadeath.
-##     → _on_battle_result_panel_closed → LevelUpReportPanel.show_report() —
-##         celebrates leveled characters. Self-skips if no one leveled.
-##     → _on_level_up_report_closed → BonusXpPanel.show_report() — spend
-##         accumulated bEXP on individual characters' experience.
-##         Self-skips if bonus_xp_pool == 0.
-##     → _on_bonus_xp_closed → _finish_post_mission_flow() — state pop,
-##         campaign concludes (victory advances, defeat replays).
+##     → _on_battle_result_panel_closed → _finish_post_mission_flow() —
+##         state pop, campaign concludes (victory advances, defeat replays).
 func _on_post_mission_report_ready(report: Array) -> void:
 	# Suppress the legacy battle-result overlay so its Continue button doesn't
 	# compete with the post-mission panel (they share the same overlay layer).
@@ -647,7 +650,7 @@ func _on_post_mission_report_ready(report: Array) -> void:
 	# Belt-and-suspenders map-panel teardown (mirrors show_battle_result): if
 	# POST_MISSION_REPORT was already on the stack the push above is skipped,
 	# the state-changed handler never fires, and a hovered terrain preview
-	# would sit under the level-up → bEXP → report chain.
+	# would sit under the result panel.
 	hide_unit_info()
 	hide_terrain_info()
 	hide_action_menu()
@@ -657,11 +660,11 @@ func _on_post_mission_report_ready(report: Array) -> void:
 	_pending_post_mission_report = report
 	# Banner-first flow (Lawrence, playtesting): the FIRST thing the player
 	# sees at battle end is a bare "VICTORY"/"DEFEAT" riding the phase banner —
-	# no numbers, no buttons. The await here holds back the entire level-up →
-	# bEXP → report chain until the banner clears; map input is already dead
-	# because POST_MISSION_REPORT was pushed above. This must live HERE, not in
-	# show_battle_result — the chain starts off battle_ended and would race a
-	# banner played anywhere else (it did: bEXP screen over the banner).
+	# no numbers, no buttons. The await here holds back the result panel until
+	# the banner clears; map input is already dead because POST_MISSION_REPORT
+	# was pushed above. This must live HERE, not in show_battle_result — the
+	# chain starts off battle_ended and would race a banner played anywhere
+	# else (it did, 2026-07-07: the old bEXP screen popped over the banner).
 	var banner_color: Color = GameColors.PLAYER_UNIT if _pending_result_is_victory \
 			else GameColors.ENEMY_UNIT
 	await show_phase_transition(
@@ -670,36 +673,10 @@ func _on_post_mission_report_ready(report: Array) -> void:
 		_battle_result_panel.show_result(_pending_battle_stats,
 				SquadManager.last_mission_award_lines, report)
 	else:
-		_show_level_up_report()
+		_finish_post_mission_flow()
 
 
 func _on_battle_result_panel_closed() -> void:
-	_show_level_up_report()
-
-
-func _show_level_up_report() -> void:
-	if _level_up_report_panel != null:
-		# LevelUpReportPanel filters internally; if nobody leveled it emits
-		# `closed` immediately and the chain continues without delay.
-		_level_up_report_panel.show_report(_pending_post_mission_report)
-	else:
-		_show_bonus_xp_panel()
-
-
-func _on_level_up_report_closed() -> void:
-	_show_bonus_xp_panel()
-
-
-func _show_bonus_xp_panel() -> void:
-	if _bonus_xp_panel == null:
-		_finish_post_mission_flow()
-		return
-	# BonusXpPanel.show_report self-skips when the pool is empty — no need
-	# to peek at SquadManager.bonus_xp_pool here.
-	_bonus_xp_panel.show_report(_pending_post_mission_report)
-
-
-func _on_bonus_xp_closed() -> void:
 	_finish_post_mission_flow()
 
 
@@ -877,7 +854,7 @@ func _on_state_changed(_old_state: Enums.InputState, new_state: Enums.InputState
 			hide_combat_preview()
 			hide_unit_detail()
 		Enums.InputState.BATTLE_RESULT, Enums.InputState.POST_MISSION_REPORT, \
-		Enums.InputState.RECRUITING:
+		Enums.InputState.RECRUITING, Enums.InputState.LEVEL_UP_CELEBRATION:
 			hide_unit_info()
 			hide_terrain_info()
 			hide_action_menu()

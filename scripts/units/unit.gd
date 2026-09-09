@@ -846,7 +846,7 @@ func _play_xp_bar(from_xp: int, to_xp: int, levels_gained: int) -> void:
 
 
 ## The filling sound — same fire-and-forget one-shot player as the level-up
-## ding (LevelUpReportPanel._play_ding) and the UI blips. Silent when the
+## ding (LevelUpStatBlock.play_ding) and the UI blips. Silent when the
 ## sample is missing so a stripped build never errors.
 func _play_xp_fill_sfx() -> void:
 	if not is_inside_tree() or not ResourceLoader.exists(XP_FILL_STREAM_PATH):
@@ -1439,9 +1439,8 @@ func is_brave() -> bool:
 ## target (a counter-killer wouldn't credit the original attacker).
 ##
 ## On level-up we refresh the level label + health bar so the visual reflects
-## the new state immediately. The full level-up celebration runs at the end
-## of mission via LevelUpReportPanel (uses SquadManager's pre-battle snapshot
-## to detect the delta).
+## the new state immediately; the stat reveal itself plays once the combat
+## sequence settles (_flush_xp_feedback → LevelUpStatPanel).
 func _award_combat_xp(target: Unit, killed: bool) -> void:
 	if faction != Enums.UnitFaction.PLAYER:
 		return
@@ -1521,8 +1520,9 @@ func _grant_combat_xp(xp: int) -> void:
 ## this sequence (hits, kills, heals, support, survival — batched so a 4-hit
 ## chain doesn't spam four popups), then LEVEL UP! on a beat of its own,
 ## then the LevelUpStatPanel stat reveal (RQD 2026-08-11 — the in-the-moment
-## dopamine beat; LevelUpReportPanel keeps the end-of-mission aggregate).
-## The panel is awaited, so the turn flow holds while the reveal plays.
+## dopamine beat, and since 2026-09-09 the ONLY level-up screen: the
+## post-battle report is gone). The panel is awaited and holds until the
+## player presses, so the turn flow waits on the reveal — on either phase.
 func _flush_xp_feedback() -> void:
 	if _combat_xp_gained <= 0:
 		return

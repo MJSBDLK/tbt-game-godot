@@ -1,10 +1,4 @@
 # Resp
-1. Yes, great catch - please do this.
-2. Agreed, please take care of this!
-3. Agreed, please take care of this!
-4. Oh yeah, I do wish these would be caught before the commits. Maybe we create a new policy where you're a bit less commit-happy? The downside to this is, I forget to commit. Maybe the happy medium is that you don't commit unless asked, but you remind me often?
-5. Agreed, please take care of this!
-6. Agreed, please take care of this!
 
 # Todo
 - [ ] Options menu has gotten too big for the screen. We'll need to tabulate and/or refactor
@@ -13,6 +7,39 @@
 - [ ] In spite of the above, default difficulty is substantially too high - this is fine for now because I've done minimal tuning of the difficulty, but we should discuss how to tune this without simply overleveling the player. The game should *feel* like an even playing field, or even slightly oppressive - we want to keep the player in that zone of proximal development, and never feel like they're coasting. Force them to learn, but make the on-raamp really gradual. Shouldn't feel like a tutorial either, though.
   - [ ] We should discuss dynamic difficulty scaling, as well. This would be especially easy to implement near-imperceptibly in our game
 - [ ] Note on AI in general - this needs a complete rework. I want the AI to be smart. We're not there yet - I want to get the systems in a good place first. But this is a high priority task, when the time comes.
+- [x] Post-battle: remove a lot of these screens (DONE 2026-09-09 on
+  `rqd--post-battle-cleanup`, eyeball-gated — squash-merge once seen in a
+  build. The chain is now banner → BattleResultPanel → conclude; ~1,000
+  lines of scaffolding left with the two scenes + the dormant
+  `battle_result_overlay`. Pinned in test_post_battle_flow.gd.)
+  - [x] bEXP screen - completely remove. This system has moved to the intermission.
+    (`BonusXpPanel` + `SquadManager.buy_bexp_level` deleted; `commit_bexp_pour`
+    is the one spend API and now reads `BEXP_LEVEL_COST` too.)
+  - [x] level up summary: remove it from the post-battle, but the level up in-mission screen should behave more like this post-battle version (while keeping the visual design of the in-mission version)
+    - the post-battle version is better at being a dopamine factory, per the intended design
+    - I like needing to manually advance after viewing a level-up
+    - I like the smaller form-factor of the in-mission level-up screen, as well as its general visual design
+    (What moved into `LevelUpStatPanel`: the pitch-climbing DING per "+1"
+    — now `LevelUpStatBlock.play_ding`, so the intermission bEXP pour rings
+    too; the stat-up badge landing on its own beat after the last "+1"
+    with the next ding; the 0.35 s breath; then a blinking CONTINUE and
+    MANUAL ADVANCE — the panel never leaves on its own. Two-stage press
+    like a dialogue box: while revealing a press skips to the end (every
+    gain shown), once armed a press dismisses. Click/tap anywhere, or
+    A/Enter/B/Esc. Form factor + sheet chrome untouched. NEW
+    `InputState.LEVEL_UP_CELEBRATION` is pushed around the reveal so the
+    board goes quiet under the press, the camera holds, and the hint bar
+    says "[A] Continue" — in the ENEMY phase too (their hit can level our
+    defender; input stays off afterwards). Reduce-motion: everything at
+    once, armed immediately. FOUND + FIXED on the way (headless shot): the
+    panel's root was 0×0 (set_anchors_preset-on-a-parented-Control gotcha),
+    so it had been sitting TOP-LEFT and "click anywhere to skip" had never
+    had a hit target — it's centered now and the click works. 22 tests
+    across test_level_up_stat_panel / _block / hint_bar_commands + a runtime
+    assert on the root rect. EYEBALL: badge-beat timing, prompt blink rate,
+    whether the two-press skip feels right or should be one press; the
+    ding now also plays in the intermission pour — keep?)
+
 
 **Answered + BUILT 2026-09-07 on `rqd--terrain-stack`** (3 commits, suite
 1096 green; squash-merge once RQD/Lawrence have eyeballed a build):
@@ -98,7 +125,9 @@ those cells need repainting.
 
 
 # More stuff
-- [ ] the default camera pan speed is way too low - probably speed up 3-5x
+- [x] the default camera pan speed is way too low - probably speed up 3-5x
+  (Done 2026-09-09: `CameraController.pan_speed` 120 → 480 screen px/s — 4x,
+  the mid-point; it's an @export, tune in the inspector or the const.)
 - [x] For the Steam Deck glyphs, we also need L4-5 and R4-5. (Done 2026-09-02 on
   `rqd--controller-glyphs`: rounded-square chips for the Deck grips L4/L5/R4/R5
   AND Xbox Elite paddles P1–P4, labels wired for JOY_BUTTON_PADDLE1..4. CAVEAT:
@@ -398,8 +427,9 @@ see the mockup and §6. These three are the remainder.)*
   **tracking** (couriers/NPCs — the award side is already ready in MissionCatalog)
   + per-unit combat stats. See [mission_objectives.md](mission_objectives.md).
   Gated on the objective-authoring decision above.
-  - [ ] Delete the dormant `battle_result_overlay.tscn` once its slide-in
-    animation is either adopted or given up on.
+  - [x] Delete the dormant `battle_result_overlay.tscn` once its slide-in
+    animation is either adopted or given up on. (Deleted 2026-09-09 with the
+    post-battle cleanup; the slide-in was never adopted.)
 
 - [~] **Give all characters at least 9 moves and 9 passives.** Content pass.
   Gated in practice by the move-distribution bug in §6.
@@ -724,8 +754,12 @@ independent of the intermission redesign.**
   full cones with lava tips + cast shadows. Lawrence's map has 43 decoration
   cells vs 31 modifier cells, so this was most of what he'd painted.)
 - [ ] **The move preview doesn't animate properly when a unit retreads its path.**
-- [ ] **Console errors on load.** Believed to be from Godot editor extensions no
-  longer in use — verify, then delete the addon or fix the scripts:
+- [x] **Console errors on load.** (Cleared 2026-09-09: the texturepacker addon
+  was not enabled and nothing referenced it — deleted; game_colors_demo now
+  reads the TEXT_WARNING pair; TEXT_WARNING already existed, so the terrain
+  test panel line had stopped erroring on its own.) Was: believed to be from
+  Godot editor extensions no longer in use — verify, then delete the addon or
+  fix the scripts:
   ```
   res://addons/codeandweb.texturepacker/texturepacker_import_spritesheet.gd:54
       Parse Error: Not all code paths return a value.

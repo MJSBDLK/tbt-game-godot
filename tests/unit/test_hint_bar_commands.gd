@@ -211,3 +211,24 @@ func test_skin_override_drives_resolution() -> void:
 	HintBarCommands.joy_skin_override = HintBarCommands.JoySkin.PLAYSTATION
 	assert_eq(_glyphs(Enums.InputState.DEFAULT, HintBarCommands.Model.CONTROLLER),
 			["Cross", "Triangle", "Square", "L1", "Circle"])
+
+
+# --- the level-up reveal (manual advance, 2026-09-09) --------------------------
+
+func test_the_level_up_reveal_says_continue_in_both_phases() -> void:
+	# RQD 2026-09-09 manual advance: LevelUpStatPanel holds for a press. An
+	# enemy's hit can level our defender, so the row survives the enemy-phase
+	# blank every other state gets — phase_blind is that one exception.
+	var state := Enums.InputState.LEVEL_UP_CELEBRATION
+	for enemy: bool in [false, true]:
+		assert_eq(_glyphs(state, HintBarCommands.Model.CONTROLLER, enemy), ["A"],
+				"Continue on the pad (enemy phase: %s)" % enemy)
+		assert_eq(_glyphs(state, HintBarCommands.Model.KEYBOARD_MOUSE, enemy), ["LMB"])
+		assert_eq(_glyphs(state, HintBarCommands.Model.TOUCH, enemy), ["Continue"],
+				"touch gets a real button")
+		assert_eq(HintBarCommands.step_text_for(state, HintBarCommands.Model.KEYBOARD_MOUSE, enemy),
+				"", "no step line — the panel is the step")
+	for other: Enums.InputState in HintBarCommands.states_with_entries():
+		if other != state:
+			assert_eq(HintBarCommands.items_for(other, true).size(), 0,
+					"%s still blanks in the enemy phase" % Enums.InputState.keys()[other])

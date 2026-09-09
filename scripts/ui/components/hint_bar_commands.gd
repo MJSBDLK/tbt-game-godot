@@ -152,6 +152,16 @@ static func _ensure_table() -> void:
 				{action = &"ui_cancel", verb = "Close", touch_label = "Close"},
 			],
 		},
+		# The mid-battle level-up reveal (LevelUpStatPanel) holds until the
+		# player presses — one verb, no step (the panel IS the step). It shows
+		# in BOTH phases: an enemy's hit can level our defender, and the bar
+		# must still say how to move on (phase_blind — see items_for).
+		Enums.InputState.LEVEL_UP_CELEBRATION: {
+			step = "", step_touch = "", phase_blind = true,
+			items = [
+				{action = &"ui_accept", verb = "Continue", mouse_button = MOUSE_BUTTON_LEFT, touch_label = "Continue"},
+			],
+		},
 		# PAUSED / DIALOGUE / BATTLE_RESULT / POST_MISSION_REPORT / RECRUITING:
 		# absent on purpose — those screens carry their own affordances and the
 		# bar has nothing to say, so it hides (HintBar hides when step + items
@@ -169,9 +179,18 @@ static func states_with_entries() -> Array:
 ## bar doesn't speak in, and during the enemy phase.
 static func items_for(state: Enums.InputState, enemy_phase: bool = false) -> Array:
 	_ensure_table()
-	if enemy_phase or not _table.has(state):
+	if not _table.has(state):
+		return []
+	if enemy_phase and not _phase_blind(state):
 		return []
 	return _table[state].items
+
+
+## True for rows that show regardless of whose phase it is — modal beats that
+## can interrupt the enemy's turn and still need the player's press.
+static func _phase_blind(state: Enums.InputState) -> bool:
+	_ensure_table()
+	return _table.has(state) and bool(_table[state].get("phase_blind", false))
 
 
 ## The instruction line ("Select a unit"). Empty when the bar has no step for
@@ -182,7 +201,7 @@ static func items_for(state: Enums.InputState, enemy_phase: bool = false) -> Arr
 static func step_text_for(state: Enums.InputState, model: Model, enemy_phase: bool = false,
 		act_then_walk: bool = false) -> String:
 	_ensure_table()
-	if enemy_phase:
+	if enemy_phase and not _phase_blind(state):
 		return ENEMY_PHASE_STEP
 	if not _table.has(state):
 		return ""

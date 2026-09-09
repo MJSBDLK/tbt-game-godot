@@ -261,40 +261,20 @@ func _on_battle_ended(is_victory: bool) -> void:
 # Catch-up belongs in the combat award (CombatXpCalculator's exponential), full
 # stop. One rubber band, in one place, that the player can actually observe. A
 # second one hidden in a shop price is a rule you can't see and can't learn.
+## The pour's per-level threshold — the same 100 XP a level costs in the
+## field (CharacterData.XP_PER_LEVEL; pinned equal in test_squad_manager).
+## The whole-level purchase API (buy_bexp_level) retired with the post-battle
+## bEXP screen (2026-09-09); commit_bexp_pour is the one way bEXP is spent.
 const BEXP_LEVEL_COST: int = 100
-
-
-## Buys one bEXP level. A level costs BEXP_LEVEL_COST regardless of who is
-## buying or how high they are — same 100 XP a level costs in the field.
-## Partial combat XP is untouched: a unit at 40/100 levels and is still at
-## 40/100 in the new level.
-##
-## Deliberately does NOT route through CharacterData.grant_xp, because that
-## path uses the combat level-up (rolls every stat against its growth rate).
-## bEXP is a mechanically different XP source: process_bexp_level_up grants
-## exactly BEXP_GROWTHS_PER_LEVEL growths, capped stats excluded.
-##
-## NOTE for the bEXP screen: this commits immediately and irreversibly — the
-## growth rolls happen inside it. The mockup's refundable pouring (the [-1] and
-## [-10] buttons) therefore needs a staging layer on top of this, holding
-## uncommitted XP until the player confirms. Don't wire those buttons straight
-## through to here.
-func buy_bexp_level(character: CharacterData) -> bool:
-	if character == null:
-		return false
-	if bonus_xp_pool < BEXP_LEVEL_COST:
-		return false
-	bonus_xp_pool -= BEXP_LEVEL_COST
-	character.process_bexp_level_up()
-	bonus_xp_changed.emit(bonus_xp_pool)
-	return true
 
 
 ## The POUR commit (slice 4, RQD 2026-08-13 — the mockup's "amounts" spec):
 ## transfers `amount` banked bEXP into the character's REAL XP gauge, 1:1.
-## Each 100 crossed fires a bEXP-mechanics level (process_bexp_level_up —
-## fixed growth count, capped stats excluded) and the REMAINDER persists as
-## experience. The remainder persisting is the point of the spec's 99 brink
+## Each BEXP_LEVEL_COST crossed fires a bEXP-mechanics level
+## (process_bexp_level_up — deliberately NOT CharacterData.grant_xp, whose
+## level-up rolls every stat against its growth rate; bEXP grants exactly
+## BEXP_GROWTHS_PER_LEVEL growths, capped stats excluded) and the REMAINDER
+## persists as experience. The remainder persisting is the point of the spec's 99 brink
 ## button: XP parked at 99 levels through the next combat action instead,
 ## with full combat growth rolls rather than bEXP's fixed spread — the
 ## optimizer's trade, straight out of Radiant Dawn.
@@ -308,8 +288,8 @@ func commit_bexp_pour(character: CharacterData, amount: int) -> int:
 	bonus_xp_pool -= amount
 	character.experience += amount
 	var levels_gained: int = 0
-	while character.experience >= 100:
-		character.experience -= 100
+	while character.experience >= BEXP_LEVEL_COST:
+		character.experience -= BEXP_LEVEL_COST
 		character.process_bexp_level_up()
 		levels_gained += 1
 	bonus_xp_changed.emit(bonus_xp_pool)

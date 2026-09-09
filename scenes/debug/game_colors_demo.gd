@@ -193,8 +193,8 @@ func _build_text_colors(parent: Control) -> void:
 
 	# Status text
 	vbox.add_child(_make_glow_label(
-		"Status: BURN 3T  (YellowOrange 7 + Red 4)",
-		GameColors.STATUS_TEXT, GameColors.STATUS_TEXT_GLOW
+		"Status: BURN 3T  (WARNING voice — the status-text pairing)",
+		GameColors.TEXT_WARNING, GameColors.TEXT_WARNING_GLOW
 	))
 
 

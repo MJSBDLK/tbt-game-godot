@@ -86,7 +86,8 @@ func _enter_state(state: Enums.InputState) -> void:
 	match state:
 		Enums.InputState.ACTION_MENU_OPEN, Enums.InputState.UNIT_DETAIL, \
 		Enums.InputState.PAUSED, Enums.InputState.BATTLE_RESULT, \
-		Enums.InputState.POST_MISSION_REPORT, Enums.InputState.RECRUITING:
+		Enums.InputState.POST_MISSION_REPORT, Enums.InputState.RECRUITING, \
+		Enums.InputState.LEVEL_UP_CELEBRATION:
 			input_manager.disable_input()
 		Enums.InputState.DEFAULT, Enums.InputState.UNIT_SELECTED, \
 		Enums.InputState.MOVEMENT_PLANNING, Enums.InputState.ATTACK_TARGETING:

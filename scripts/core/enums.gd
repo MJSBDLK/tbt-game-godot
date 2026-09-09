@@ -240,8 +240,12 @@ enum InputState {
 	DIALOGUE,
 	PAUSED,
 	BATTLE_RESULT,    # End-of-mission result overlay is up
-	POST_MISSION_REPORT,  # Post-mission summary panel is up (recruit/wound report)
+	POST_MISSION_REPORT,  # Post-mission chain is up (banner → BattleResultPanel)
 	RECRUITING,       # Recruit picker is up between missions
+	# The mid-battle level-up reveal (LevelUpStatPanel) is up and holding for
+	# the player's press. Pushed mid combat sequence by
+	# UIManager.show_level_up_celebration — on either faction's turn.
+	LEVEL_UP_CELEBRATION,
 }
 
 # Map-interactive states — info panels (unit info, terrain info) only show when
