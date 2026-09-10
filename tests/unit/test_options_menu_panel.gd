@@ -49,7 +49,7 @@ func _ids(tab: OptionsMenuPanel.Tab) -> Array[String]:
 func test_every_persisted_setting_lives_on_exactly_one_tab() -> void:
 	# The membership decision, pinned. Moving a row is editing this list.
 	assert_eq(_ids(OptionsMenuPanel.Tab.GAMEPLAY), ["click_attack", "auto_end_turn",
-			"move_confirm", "move_commit", "battle_animations", "seeded_reload",
+			"move_confirm", "battle_animations", "seeded_reload",
 			"control_hints", "tooltip_hold"] as Array[String])
 	assert_eq(_ids(OptionsMenuPanel.Tab.VIDEO), ["zoom_mode", "portrait_effects",
 			"ui_motion", "type_icons", "max_fps"] as Array[String])
@@ -60,7 +60,7 @@ func test_every_persisted_setting_lives_on_exactly_one_tab() -> void:
 		for id: String in _ids(tab as OptionsMenuPanel.Tab):
 			assert_false(all_ids.has(id), "%s appears on two tabs" % id)
 			all_ids.append(id)
-	assert_eq(all_ids.size(), 16, "sixteen persisted settings, each on one tab")
+	assert_eq(all_ids.size(), 15, "fifteen persisted settings, each on one tab")
 
 
 # =============================================================================

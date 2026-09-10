@@ -240,7 +240,7 @@ func test_enemy_phase_shows_step_only() -> void:
 	assert_eq(_items(bar).size(), 5)
 
 
-# --- the planning step: NOTICE border, or the "Move here" button ------------------
+# --- the planning step: NOTICE border, or the "Confirm path" button --------------
 
 func test_planning_step_wears_the_notice_border_under_marker_mode() -> void:
 	var bar := _make_bar()
@@ -254,7 +254,7 @@ func test_planning_step_wears_the_notice_border_under_marker_mode() -> void:
 	assert_eq(bar.last_step_form, HintBar.StepForm.NOTICE, "keyboard → AUTO resolves to MARKER")
 	assert_true(bar._step_label.visible, "still a label — NOTICE is not a button")
 	assert_false(bar._step_button.visible)
-	assert_eq(bar._step_label.text, "Select the marker again to move")
+	assert_eq(bar._step_label.text, "Select the marker again to confirm")
 	var notice: StyleBoxFlat = bar._step_panel.get_theme_stylebox("panel")
 	assert_eq(notice.border_color, GameColors.NOTICE_BORDER, "violet = look here, not a button")
 	assert_eq(notice.bg_color, GameColors.HUD_PANEL_BACKGROUND)
@@ -270,7 +270,7 @@ func test_button_mode_offers_move_here_and_it_confirms_the_plan() -> void:
 	assert_eq(bar.last_step_form, HintBar.StepForm.BUTTON)
 	assert_true(bar._step_button.visible)
 	assert_false(bar._step_label.visible)
-	assert_eq(bar._step_button.text, "Move here")
+	assert_eq(bar._step_button.text, "Confirm path")
 	assert_eq(bar._step_button.focus_mode, Control.FOCUS_NONE, "the bar never takes focus")
 	var ring: StyleBoxFlat = bar._step_button.get_theme_stylebox("normal")
 	assert_eq(ring.border_color, GameColors.TEXT_INFO, "parked-gold CTA: INFO ring, no rings")

@@ -1,12 +1,12 @@
-## Settings.move_commit_mode (todo 4A, RQD 2026-08-31): WHEN a confirmed move
-## plan actually walks. WALK_THEN_ACT = the shipped behavior (walk on plan
-## confirm, then choose an action). ACT_THEN_WALK = logic commits instantly —
-## current_tile, occupancy, every movement_completed listener — while the
-## sprite stays at the origin behind the PathVisualizer's staged ghost until
-## the action commits, then play_deferred_walk() replays the captured path.
-## Pins the logic/visual split, the ghost hand-off, the clean cancel (the
-## sprite never moved, so nothing teleports), the player-only gate, and the
-## hint bar's mode-aware planning copy.
+## The DEFERRED WALK (todo 4A) — the only commit model since 2026-09-10, when
+## the Walk | Ghost playtest toggle (Settings.move_commit_mode) was deleted
+## and Ghost made canonical. On plan-confirm a PLAYER unit's LOGIC commits
+## instantly — current_tile, occupancy, every movement_completed listener —
+## while the sprite stays at the origin behind the PathVisualizer's staged
+## ghost until the action commits, then play_deferred_walk() replays the
+## captured path. Pins the logic/visual split, the ghost hand-off, the clean
+## cancel (the sprite never moved, so nothing teleports), the AI's immediate
+## walk, the hint bar's confirm-only planning copy, and the setting's absence.
 extends GutTest
 
 
@@ -14,19 +14,16 @@ const UNIT_SCENE: String = "res://scenes/battle/unit.tscn"
 const SPACEMAN_PATH: String = "res://data/characters/spaceman.json"
 const GRUNT_PATH: String = "res://data/characters/grunt.json"
 
-var _mode_before: int = Settings.MoveCommitMode.WALK_THEN_ACT
 var _motion_before: bool = true
 
 
 func before_each() -> void:
 	GridManager.clear_grid()
-	_mode_before = Settings.move_commit_mode
 	_motion_before = Settings.ui_motion_enabled
 	Settings.ui_motion_enabled = true
 
 
 func after_each() -> void:
-	Settings.move_commit_mode = _mode_before
 	Settings.ui_motion_enabled = _motion_before
 
 
@@ -70,44 +67,20 @@ func _visualizer(unit: Unit) -> PathVisualizer:
 
 
 # =============================================================================
-# THE SETTING
+# THE SETTING IS GONE — pinned so it can't creep back as a hidden flag
 # =============================================================================
 
-func test_default_mode_is_walk_then_act() -> void:
-	assert_eq(_mode_before, Settings.MoveCommitMode.WALK_THEN_ACT,
-			"the shipped behavior stays the default — ACT_THEN_WALK is the playtest option")
-
-
-func test_setter_clamps_to_the_enum() -> void:
-	Settings.set_move_commit_mode(99)
-	assert_eq(Settings.move_commit_mode, Settings.MoveCommitMode.ACT_THEN_WALK)
-	Settings.set_move_commit_mode(-5)
-	assert_eq(Settings.move_commit_mode, Settings.MoveCommitMode.WALK_THEN_ACT)
+func test_there_is_no_move_commit_setting() -> void:
+	assert_null(Settings.get("move_commit_mode"),
+			"Walk mode was deleted 2026-09-10 — the deferred walk is not optional")
+	assert_false(Settings.has_method("set_move_commit_mode"))
 
 
 # =============================================================================
-# WALK_THEN_ACT — the shipped behavior, pinned against regression
-# =============================================================================
-
-func test_walk_then_act_moves_sprite_and_logic_together() -> void:
-	Settings.move_commit_mode = Settings.MoveCommitMode.WALK_THEN_ACT
-	_open_grid(2)
-	var unit := _spawn_scene_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 0, 0)
-	var destination := GridManager.get_tile(2, 0)
-	assert_true(unit.add_waypoint(destination), "precondition: the plan is legal")
-	await unit.execute_planned_movement()
-	assert_eq(unit.current_tile, destination)
-	assert_lt(unit.global_position.distance_to(destination.global_position), 0.5,
-			"the sprite walked")
-	assert_false(unit.has_deferred_walk(), "nothing staged in the classic mode")
-
-
-# =============================================================================
-# ACT_THEN_WALK — stage
+# STAGE
 # =============================================================================
 
 func test_staging_commits_logic_but_not_the_sprite() -> void:
-	Settings.move_commit_mode = Settings.MoveCommitMode.ACT_THEN_WALK
 	_open_grid(2)
 	var unit := _spawn_scene_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 0, 0)
 	var origin := GridManager.get_tile(0, 0)
@@ -129,7 +102,6 @@ func test_staging_commits_logic_but_not_the_sprite() -> void:
 
 
 func test_staging_hands_the_beacons_over_to_a_lone_ghost() -> void:
-	Settings.move_commit_mode = Settings.MoveCommitMode.ACT_THEN_WALK
 	_open_grid(2)
 	var unit := _spawn_scene_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 0, 0)
 	var destination := GridManager.get_tile(2, 0)
@@ -150,7 +122,6 @@ func test_staging_hands_the_beacons_over_to_a_lone_ghost() -> void:
 
 
 func test_staging_keeps_the_visual_row_z() -> void:
-	Settings.move_commit_mode = Settings.MoveCommitMode.ACT_THEN_WALK
 	_open_grid(0, 1)
 	# Back row (higher grid_y) → front row: the rows have different z.
 	var unit := _spawn_scene_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 0, 1)
@@ -163,8 +134,7 @@ func test_staging_keeps_the_visual_row_z() -> void:
 	assert_ne(unit.z_index, origin_z, "…and restamps once the walk actually happens")
 
 
-func test_act_then_walk_is_player_only() -> void:
-	Settings.move_commit_mode = Settings.MoveCommitMode.ACT_THEN_WALK
+func test_the_ai_walks_immediately() -> void:
 	_open_grid(2)
 	var enemy := _spawn_scene_unit(GRUNT_PATH, Enums.UnitFaction.ENEMY, 0, 0)
 	var destination := GridManager.get_tile(2, 0)
@@ -176,11 +146,10 @@ func test_act_then_walk_is_player_only() -> void:
 
 
 # =============================================================================
-# ACT_THEN_WALK — commit and cancel
+# COMMIT AND CANCEL
 # =============================================================================
 
 func test_play_deferred_walk_delivers_the_sprite_and_clears_the_stage() -> void:
-	Settings.move_commit_mode = Settings.MoveCommitMode.ACT_THEN_WALK
 	_open_grid(2)
 	var unit := _spawn_scene_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 0, 0)
 	var destination := GridManager.get_tile(2, 0)
@@ -198,7 +167,8 @@ func test_play_deferred_walk_delivers_the_sprite_and_clears_the_stage() -> void:
 
 
 func test_play_deferred_walk_is_a_no_op_when_nothing_is_staged() -> void:
-	Settings.move_commit_mode = Settings.MoveCommitMode.WALK_THEN_ACT
+	# Act-in-place (no plan) reaches the same commit paths, which await it
+	# unconditionally.
 	_open_grid(1)
 	var unit := _spawn_scene_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 0, 0)
 	var position_before: Vector2 = unit.global_position
@@ -207,27 +177,7 @@ func test_play_deferred_walk_is_a_no_op_when_nothing_is_staged() -> void:
 			"safe to await unconditionally on every commit path")
 
 
-func test_flipping_the_mode_mid_stage_cannot_strand_the_walk() -> void:
-	# The playtest-host case (RQD 2026-08-31, weekend A/B): Ghost mode stages
-	# a walk, then the Options row flips back to Walk before the action
-	# commits. The stage must still resolve — commit paths await
-	# play_deferred_walk unconditionally, and it replays the CAPTURED path,
-	# never the live setting.
-	Settings.move_commit_mode = Settings.MoveCommitMode.ACT_THEN_WALK
-	_open_grid(2)
-	var unit := _spawn_scene_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 0, 0)
-	var destination := GridManager.get_tile(2, 0)
-	unit.add_waypoint(destination)
-	await unit.execute_planned_movement()
-	Settings.move_commit_mode = Settings.MoveCommitMode.WALK_THEN_ACT
-	await unit.play_deferred_walk()
-	assert_lt(unit.global_position.distance_to(destination.global_position), 0.5,
-			"the staged walk still delivers under the flipped setting")
-	assert_false(unit.has_deferred_walk())
-
-
 func test_cancel_returns_logic_without_ever_having_moved_the_sprite() -> void:
-	Settings.move_commit_mode = Settings.MoveCommitMode.ACT_THEN_WALK
 	_open_grid(2)
 	var unit := _spawn_scene_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 0, 0)
 	var origin := GridManager.get_tile(0, 0)
@@ -247,7 +197,6 @@ func test_cancel_returns_logic_without_ever_having_moved_the_sprite() -> void:
 
 
 func test_set_acted_after_the_walk_lays_the_full_track() -> void:
-	Settings.move_commit_mode = Settings.MoveCommitMode.ACT_THEN_WALK
 	_open_grid(2)
 	var unit := _spawn_scene_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 0, 0)
 	unit.add_waypoint(GridManager.get_tile(2, 0))
@@ -263,24 +212,10 @@ func test_set_acted_after_the_walk_lays_the_full_track() -> void:
 # HINT BAR COPY — the planning press must not promise movement it won't make
 # =============================================================================
 
-func test_planning_copy_swaps_under_act_then_walk() -> void:
+func test_planning_copy_never_promises_movement() -> void:
 	var state := Enums.InputState.MOVEMENT_PLANNING
-	assert_eq(HintBarCommands.step_text_for(state, HintBarCommands.Model.KEYBOARD_MOUSE, false, true),
+	assert_eq(HintBarCommands.step_text_for(state, HintBarCommands.Model.KEYBOARD_MOUSE),
 			"Select the marker again to confirm")
-	assert_eq(HintBarCommands.step_text_for(state, HintBarCommands.Model.TOUCH, false, true),
+	assert_eq(HintBarCommands.step_text_for(state, HintBarCommands.Model.TOUCH),
 			"Tap the marker again to confirm")
-	assert_eq(HintBarCommands.confirm_label_for(state, false, true), "Confirm path")
-
-
-func test_planning_copy_is_unchanged_in_walk_then_act() -> void:
-	var state := Enums.InputState.MOVEMENT_PLANNING
-	assert_eq(HintBarCommands.step_text_for(state, HintBarCommands.Model.KEYBOARD_MOUSE, false, false),
-			"Select the marker again to move")
-	assert_eq(HintBarCommands.confirm_label_for(state, false, false), "Move here")
-
-
-func test_states_without_act_copy_ignore_the_flag() -> void:
-	assert_eq(HintBarCommands.step_text_for(Enums.InputState.DEFAULT,
-			HintBarCommands.Model.KEYBOARD_MOUSE, false, true),
-			HintBarCommands.step_text_for(Enums.InputState.DEFAULT,
-			HintBarCommands.Model.KEYBOARD_MOUSE, false, false))
+	assert_eq(HintBarCommands.confirm_label_for(state), "Confirm path")

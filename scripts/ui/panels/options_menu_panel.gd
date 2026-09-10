@@ -216,20 +216,12 @@ func _row_specs() -> Array[Dictionary]:
 			write = _write_auto_end_turn},
 		# Move Confirm — the playtest toggle (RQD 2026-08-21). Auto = button on
 		# touch, marker elsewhere; Marker = press the marker again (fluent);
-		# Button = the hint bar offers "Move here" (clear, clunkier).
+		# Button = the hint bar offers "Confirm path" (clear, clunkier).
 		{id = "move_confirm", tab = Tab.GAMEPLAY, kind = RowKind.CHOICE, label = "Move Confirm",
-			tooltip = "How a planned move is confirmed. Marker: press the marker again. Button: a Move Here button in the hint bar. Auto: button on touch screens, marker otherwise.",
+			tooltip = "How a planned move is confirmed. Marker: press the marker again. Button: a Confirm Path button in the hint bar. Auto: button on touch screens, marker otherwise.",
 			choices = [[Settings.MoveConfirmMode.AUTO, "Auto"], [Settings.MoveConfirmMode.MARKER, "Marker"],
 					[Settings.MoveConfirmMode.BUTTON, "Button"]],
 			current = Settings.move_confirm_mode, write = Settings.set_move_confirm_mode},
-		# Move Commit — the todo-4A playtest toggle (RQD 2026-08-31). Walk = the
-		# unit walks on plan-confirm; Ghost = a ghost holds the spot and the
-		# unit walks when the action commits, so cancel never teleports.
-		{id = "move_commit", tab = Tab.GAMEPLAY, kind = RowKind.CHOICE, label = "Move Commit",
-			tooltip = "When a confirmed move actually happens. Walk: the unit walks right away, before choosing an action. Ghost: a ghost holds the spot and the unit walks when the action is confirmed.",
-			choices = [[Settings.MoveCommitMode.WALK_THEN_ACT, "Walk"],
-					[Settings.MoveCommitMode.ACT_THEN_WALK, "Ghost"]],
-			current = Settings.move_commit_mode, write = Settings.set_move_commit_mode},
 		# Battle Animations (todo-archive "Battle animations plan" D4/D5).
 		# Scene = the FE7-style cutaway always; Player = cutaway on the
 		# player's turn, in-place beats on the enemy's; Map = in-place always.

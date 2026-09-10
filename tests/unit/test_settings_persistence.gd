@@ -1,7 +1,7 @@
 ## The suite must never write the player's user://settings.cfg. The GUT
 ## pre-run hook (tests/gut_pre_run.gd) forces battle_animations = MAP for
 ## speed; before Settings.persistence_enabled existed, one persisting setter
-## call in any test (test_move_commit_mode's clamp test) wrote that — and
+## call in any test (a since-deleted Settings clamp test) wrote that — and
 ## every other suite-time value — into the real file. RQD's build then
 ## loaded MAP and the combat scene "never triggered" (2026-09-07).
 extends GutTest

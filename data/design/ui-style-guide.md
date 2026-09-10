@@ -527,7 +527,7 @@ anything with a detail body): **long press (touch) = right click (mouse) =
 Back or R3 (controller — playtest which)**. Content = the move detail panel's
 data, with explanations. This is what lets the chip stay a mnemonic — the
 tooltip is the spec sheet, so nobody is *required* to navigate menus to play.
-- Long-press duration: Settings slider, **200–1000 ms in 50 ms steps, default
+- Long-press duration: Settings slider, **200–800 ms in 50 ms steps, default
   200 ms**. The 200 ms floor is a softlock guard: below a hold the player can
   reliably execute, ordinary taps start reading as long-presses and pressing
   becomes impossible.

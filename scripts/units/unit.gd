@@ -140,8 +140,9 @@ var _start_tile_before_move: Tile = null
 # NOT on the tentative walk — so a cancelled move (Escape) leaves none.
 var _pending_track_tiles: Array[Tile] = []
 
-# ACT_THEN_WALK (Settings.move_commit_mode, todo 4A): the walk captured at
-# plan-confirm, replayed by play_deferred_walk() when the action commits.
+# The DEFERRED WALK (todo 4A; the only commit model since 2026-09-10, when
+# the "Walk" mode was deleted): the walk captured at plan-confirm, replayed
+# by play_deferred_walk() when the action commits.
 # Non-empty exactly while a walk is staged. While staged, LOGIC (current_tile,
 # occupancy, ranges) is already at the destination but global_position — the
 # sprite and everything riding it — is still at the origin, standing behind
@@ -405,6 +406,25 @@ func clear_waypoints() -> void:
 		_path_visualizer.call("clear_arrows")
 
 
+## Back the plan up so `tile`'s stop is the LAST one — every later stop is
+## dropped (the FE re-route: pressing an earlier marker means "back to here").
+## Cumulative costs on the kept stops are already measured from the start
+## tile, so nothing needs recomputing. Beacons + ghost redraw from the
+## shortened plan. False (and nothing changes) when `tile` isn't a planned
+## stop. RQD 2026-09-10: 3 → 2 → 3 used to EXECUTE on the third press (any
+## marker press confirmed) and the unit stopped on 2.
+func truncate_waypoints_to(tile: Tile) -> bool:
+	for index: int in planned_waypoints.size():
+		if planned_waypoints[index].tile == tile:
+			planned_waypoints.resize(index + 1)
+			if _path_visualizer != null and _path_visualizer.has_method("update_path"):
+				_path_visualizer.call("update_path", self)
+			DebugConfig.log_unit_move("Unit '%s': Plan backed up to %s (%d stop(s))" % [
+				unit_name, tile.get_coordinates(), planned_waypoints.size()])
+			return true
+	return false
+
+
 # =============================================================================
 # MOVEMENT EXECUTION
 # =============================================================================
@@ -428,10 +448,12 @@ func execute_planned_movement() -> void:
 		traversed_tiles.append(_start_tile_before_move)
 	traversed_tiles.append_array(full_path)
 
-	# ACT_THEN_WALK stages instead of walking. Player-only: the AI's walk is
-	# its telegraph, so it always animates immediately regardless of the mode.
-	if faction == Enums.UnitFaction.PLAYER and Settings != null \
-			and Settings.move_commit_mode == Settings.MoveCommitMode.ACT_THEN_WALK:
+	# PLAYER units stage instead of walking: logic commits now, the sprite
+	# waits behind the ghost until the action commits (the deferred walk —
+	# canonical since 2026-09-10; the "Walk" mode that animated here on
+	# confirm was deleted). The AI's walk is its telegraph, so it always
+	# animates immediately.
+	if faction == Enums.UnitFaction.PLAYER:
 		_stage_deferred_movement(full_path, traversed_tiles)
 		return
 
@@ -452,7 +474,7 @@ func execute_planned_movement() -> void:
 	movement_completed.emit(self)
 
 
-## ACT_THEN_WALK: commit the LOGIC of the plan instantly — occupancy, ranges,
+## The deferred walk: commit the LOGIC of the plan instantly — occupancy, ranges,
 ## previews and every movement_completed listener (auras, threat) read the
 ## destination — while the sprite stays at the origin behind the staged ghost.
 ## Ghost parks BEFORE the claim: UnitGhost.anchor_offset measures the sprite
@@ -472,12 +494,12 @@ func _stage_deferred_movement(full_path: Array[Tile], traversed_tiles: Array[Til
 	movement_completed.emit(self)
 
 
-## True while an ACT_THEN_WALK plan is staged and its walk hasn't played.
+## True while a plan is staged and its walk hasn't played.
 func has_deferred_walk() -> bool:
 	return not _deferred_walk_path.is_empty()
 
 
-## ACT_THEN_WALK: the staged walk, played when the action commits. Logic is
+## The staged walk, played when the action commits. Logic is
 ## already at the destination — this animates ONLY the sprite along the
 ## captured path, restamping z per row as it passes so layering follows the
 ## visible walk. No-op when nothing is staged, so every commit path can await
@@ -507,9 +529,9 @@ func play_deferred_walk() -> void:
 
 
 func cancel_movement() -> void:
-	# A staged ACT_THEN_WALK walk dies with the plan. The sprite never moved,
+	# A staged walk dies with the plan. The sprite never moved,
 	# so the move_to_tile below re-seats logic at the origin with no visible
-	# jump — the honesty win of the mode.
+	# jump — the honesty win of the deferred walk.
 	_deferred_walk_path = []
 	if _start_tile_before_move != null:
 		move_to_tile(_start_tile_before_move)
@@ -536,7 +558,7 @@ func move_to_tile(new_tile: Tile) -> void:
 
 
 ## The occupancy half of move_to_tile: transfer tile registration without
-## touching the sprite. ACT_THEN_WALK stages through this so global_position
+## touching the sprite. The deferred walk stages through this so global_position
 ## (and z — the visual row hasn't changed) stay at the origin; everything else
 ## wants move_to_tile. Tile.set_unit snaps the unit onto the tile as a side
 ## effect, so the position is restored around the claim — that's the "keep"
@@ -651,7 +673,7 @@ func refresh_unit() -> void:
 
 
 func set_acted() -> void:
-	# ACT_THEN_WALK: every commit path awaits play_deferred_walk() first —
+	# Deferred walk: every commit path awaits play_deferred_walk() first —
 	# committing with a staged walk would lay foot tracks under a sprite that
 	# never walks them.
 	assert(_deferred_walk_path.is_empty(),
@@ -977,7 +999,7 @@ func execute_combat_sequence(defender: Unit, attacker_move: Move,
 		presenter: CombatPresenter = null) -> void:
 	if defender == null or attacker_move == null:
 		return
-	# ACT_THEN_WALK: the sprite must have walked before it swings — commit
+	# Deferred walk: the sprite must have walked before it swings — commit
 	# paths await play_deferred_walk() first.
 	assert(_deferred_walk_path.is_empty(),
 			"combat with a staged walk pending — play_deferred_walk() must run first")
@@ -2131,7 +2153,7 @@ func _update_z_index() -> void:
 
 ## Calculate z-index from grid coordinates directly (not pixel position) to
 ## avoid the pixel-space mismatch in GridZIndexHandler. Split from
-## _update_z_index so the ACT_THEN_WALK deferred walk can restamp z per row
+## _update_z_index so the deferred walk can restamp z per row
 ## the SPRITE is passing — current_tile already sits at the destination then.
 func _update_z_index_for_row(grid_y: int) -> void:
 	var grid_manager: Node = get_node_or_null("/root/GridManager")

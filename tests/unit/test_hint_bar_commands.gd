@@ -57,25 +57,27 @@ func test_waypoints_are_taught_one_click_at_a_time() -> void:
 	# leaves is the explanation and the next step line says what it's for.
 	var kb := HintBarCommands.Model.KEYBOARD_MOUSE
 	assert_eq(_verbs(Enums.InputState.UNIT_SELECTED, kb)[0], "Plot path",
-			"never promise 'Move here' for a click that only plots")
+			"never promise a confirm for a click that only plots")
 	assert_eq(HintBarCommands.step_text_for(Enums.InputState.UNIT_SELECTED, kb), "Choose a destination")
 	assert_eq(_verbs(Enums.InputState.MOVEMENT_PLANNING, kb)[0], "Add stop")
+	# "confirm", never "move": the press stages the plan (deferred walk), the
+	# sprite walks when the action commits.
 	assert_eq(HintBarCommands.step_text_for(Enums.InputState.MOVEMENT_PLANNING, kb),
-			"Select the marker again to move")
+			"Select the marker again to confirm")
 	assert_eq(HintBarCommands.step_text_for(Enums.InputState.MOVEMENT_PLANNING, HintBarCommands.Model.TOUCH),
-			"Tap the marker again to move")
+			"Tap the marker again to confirm")
 	# Same glyphs in both states — only the words change.
 	assert_eq(_glyphs(Enums.InputState.MOVEMENT_PLANNING, kb), _glyphs(Enums.InputState.UNIT_SELECTED, kb))
 
 
-func test_only_the_planning_step_is_a_notice_and_has_the_move_here_button() -> void:
+func test_only_the_planning_step_is_a_notice_and_has_the_confirm_path_button() -> void:
 	# §14 NOTICE (violet, static, not a button): ONE on screen. The planning
 	# line is it (so the change from "Choose a destination" registers — RQD
 	# 2026-08-21); nothing else in the table claims it, never in the enemy
-	# phase. The same state offers the playtest alternative, "Move here".
+	# phase. The same state offers the playtest alternative, "Confirm path".
 	assert_true(HintBarCommands.step_is_notice(Enums.InputState.MOVEMENT_PLANNING))
 	assert_false(HintBarCommands.step_is_notice(Enums.InputState.MOVEMENT_PLANNING, true))
-	assert_eq(HintBarCommands.confirm_label_for(Enums.InputState.MOVEMENT_PLANNING), "Move here")
+	assert_eq(HintBarCommands.confirm_label_for(Enums.InputState.MOVEMENT_PLANNING), "Confirm path")
 	assert_eq(HintBarCommands.confirm_label_for(Enums.InputState.UNIT_SELECTED), "")
 	var notice_states: Array = []
 	for state: Enums.InputState in HintBarCommands.states_with_entries():

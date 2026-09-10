@@ -1,16 +1,62 @@
 # Resp
 
 # Quick Fixes
-- [ ] Goblin Healer - not a mage, an... apothecary? I think that's the name of the store. What do you call them, an herbalist or something? What word am I looking for?
-- [ ] Reduce tooltip hold max from 1000ms -> 800ms
-- [ ] options menu: "walk" and "ghost" both apply "ghost" mode
-- [ ] There's a bug when you try to take a nonsense path, e.g. move to space 3, then 2, then back to 3 - the game moves you to space 2. This is cancelable and therefore of low consequence, but I believe it's a real bug
+- [~] Goblin Healer - not a mage, an... apothecary? I think that's the name of the store. What do you call them, an herbalist or something? What word am I looking for?
+  (ANSWERED 2026-09-10: **apothecary** — it names both the shop and the
+  person who keeps it; "herbalist" is the plants-only narrower word,
+  "chirurgeon" the period word for a cutter. NOT one-shottable as a class
+  change: `CharacterClass` has no healer/support class — `healer_goblin.json`
+  and `healer_plant.json` both sit on the shared Mage sheet (6 characters
+  use it). Adding APOTHECARY (tier 1) touches: the enum + `CLASS_INFO`
+  in enums.gd, a provisional cap row in class_stat_caps.gd (start from
+  Mage's, lift Skill/Res, drop Spc), both healer JSONs' `currentClass`,
+  and the tier-1 list in class-and-promotion.md §Tier 1 (15 → 16). Wants
+  RQD's call first — it's the first class added since the enum was ported,
+  and the class doc is still the design's open question.)
+- [x] Reduce tooltip hold max from 1000ms -> 800ms (Done 2026-09-10:
+  `Settings.TOOLTIP_HOLD_MAX_MS` 1000 → 800; the slider reads the const; the
+  §14 style-guide range + test_settings ceiling assert updated.)
+- [x] options menu: "walk" and "ghost" both apply "ghost" mode
+  (RESOLVED 2026-09-10 by DECREE, not diagnosis: RQD re-confirmed the bug
+  in-game after a headless investigation couldn't reproduce it (the tab
+  refactor's handler was line-for-line the old one, the setter persisted,
+  the 15 mode tests were green, and the real InputManager press path walked
+  the sprite under Walk) — and called it: **Ghost is canonical, Walk is
+  deleted.** "It works great", was leaning to nix Walk anyway; the
+  un-trackable bug decided it. Gone: `Settings.move_commit_mode` + its
+  setter/load/save (an old settings.cfg key is ignored), the Options "Move
+  Commit" row (GAMEPLAY is 7 rows now), the hint bar's mode flag — the
+  planning copy is the confirm copy only ("Select the marker again to
+  confirm" / "Tap the marker again to confirm" / BUTTON mode's "Confirm
+  path"). `Unit.execute_planned_movement` stages for EVERY player unit; the
+  AI still walks immediately (its walk is its telegraph). Tests:
+  test_move_commit_mode.gd → test_deferred_walk.gd (10 tests, incl. one
+  that pins the setting's absence); test_waypoint_replan.gd re-pinned to the
+  staged contract. Design consequence worth remembering: this is the commit
+  model fog missions need (§9), so nothing is foreclosed.)
+- [x] There's a bug when you try to take a nonsense path, e.g. move to space 3, then 2, then back to 3 - the game moves you to space 2. This is cancelable and therefore of low consequence, but I believe it's a real bug
+  (FIXED 2026-09-10. Cause: `_handle_movement_planning_press` executed on
+  ANY marker press — pressing 3 again after 3 → 2 confirmed the 3 → 2 plan.
+  Now only the LAST marker confirms (the marker double-press gesture, same
+  as the hint bar's copy); pressing an EARLIER marker backs the plan up to
+  it (`Unit.truncate_waypoints_to`, FE-style re-route — it becomes the last
+  stop, so pressing it again confirms). Costs stay cumulative-from-start so
+  nothing recomputes; beacons + ghost redraw from the shortened plan. This
+  doubles as the first plan UNDO — before, the only undo was right-click,
+  which deselects. The alternative reading (a third press APPENDS a revisit
+  so the unit literally walks 3 → 2 → 3) was rejected: a stop on a stop is
+  never a useful plan, self-crossing paths still work by routing THROUGH an
+  earlier tile, and the genre convention is truncate. 5 tests in
+  test_waypoint_replan.gd (drives the real press handler the mouse + board
+  cursor share). Not touched, flagging: the "move preview doesn't animate
+  properly when a unit retreads its path" item in §6 is probably related
+  (beacon phase on revisited tiles), not this.)
 - [ ] 
 
 # Todo
 - [x] Options menu has gotten too big for the screen. We'll need to tabulate and/or refactor
   (DONE 2026-09-09 on `rqd--options-tabs`, eyeball-gated. Both: three tabs
-  — GAMEPLAY (Quick Attack, Auto End Turn, Move Confirm, Move Commit,
+  — GAMEPLAY (Quick Attack, Auto End Turn, Move Confirm, [Move Commit — deleted 2026-09-10],
   Battle Anims, Seeded Reload, Control Hints, Tooltip Hold) · VIDEO (Zoom
   Mode, Portrait FX, UI Motion, Type Icons, FPS Cap) · AUDIO (three volumes)
   — over a ROW REGISTRY (`_row_specs()`, one entry per setting; the panel
@@ -186,7 +232,7 @@ those cells need repainting.
 - [x] 3. In the pause menu, we should move "close" to the top, right under "end turn" and above "options," and make that the default selection on controller (Done 2026-08-21: SystemMenuPanel order is END TURN, Close, Options, Save, Load, Main Menu, Quit; the cursor-model default landing AND the quiet-open "first nav press summons the cursor" target are both Close now — a stray controller A-A used to end the turn. 3 tests in test_system_menu_panel.gd.)
 - [~] 4. Since we added the arrow + phantom effect for displacement moves, should we use the same system when previewing a move with the move beacons? (FIRST CUT 2026-08-21 on branch `rqd--move-preview-ghost`, eyeball-gated: the beacons stay the path, and a `UnitGhost` projection (the displacement renderer's silhouette recipe, extracted into scripts/grid/unit_ghost.gd — renderer behavior unchanged) parks on the plan's last waypoint while a PLAYER unit is planning. Same material/shader as the displacement ghosts, absolute z above the board, player-only, freed with the plan. Did NOT replace the beacons with the polyline arrow — the beacons are shipped LOD art and already carry the path. 8 tests in test_path_ghost.gd. Squash-merge once RQD has seen it in a build.)
   (RIDE UPGRADE 2026-08-31, RQD ask, built on `rqd--move-commit-mode`: the ghost now RIDES the plan under motion — walks the tile-center polyline from the origin with the displacement arrow recipe (same ARROW_WIDTH, shared overlay_static material, Azure 7 neutral intent, Polygon2D head riding the tip) drawing behind it, holds `GHOST_HOLD_AT_DESTINATION_SECONDS` at the landing, loops; `GHOST_SPEED_PX_PER_SECOND` = 88 ≈ the displacement loop's 0.18 s/tile — both are the tinker knobs. Every plan edit restarts the ride. Beacons KEPT underneath (still the shipped path language). ARROW DISABLED SAME DAY (RQD: "that's what the beacons were for" — the trail double-marked the path): `RIDE_ARROW_ENABLED = false`, machinery + pure math kept and pinned for a cheap re-audition; the arrow had been retuned to Azure 5 first (the phantom's tint sits at the Azure 7 neighborhood — if re-enabled, keep the two apart). Ghost speed RQD-tuned 88 → 135 world-px/s. Reduce-motion parks at the landing state: ghost on the destination + arrow drawn full (the old parked contract survives as that state). The ACT_THEN_WALK staged ghost never rides — committed plans park. Pure ride math (walk_sample/trail_points/path_length) static + pinned; test_path_ghost.gd rewritten to the riding contract, 12 tests; suite 1040 green. EYEBALL: ride pacing/loop feel, arrow-over-beacon density, tip-over-silhouette read.)
-  - [~] 4A. need to decide if we hold off on actually moving the unit (just show the static/fuzzy phantom preview) to the spot before committing an action - would be a departure from current design but more accurate. We should solve the problem both ways and playtest both, and see what players prefer/find less confusing. (UNPARKED after the 2026-08-31 talk — the fog objection resolved in REVERSE: ACT_THEN_WALK is the only commit model a future fog modifier can work with, so building it forecloses nothing; fog itself is filed post-alpha in §9 below with the "clank" interception rule. BUILT 2026-08-31 on THIS branch (`rqd--move-commit-mode`, stacked on the #4 ghost), eyeball-gated: `Settings.move_commit_mode { WALK_THEN_ACT (default, shipped behavior), ACT_THEN_WALK }` — Options row "Move Commit" [Walk|Ghost] beside Move Confirm. ACT_THEN_WALK per the candidate shape: `Unit._stage_deferred_movement` commits LOGIC instantly (occupancy via `_claim_tile_keep_position`, which restores global_position around Tile.set_unit's snap — found by test; movement_completed still fires so auras/threat recompute) while the sprite keeps its origin position AND origin-row z; `PathVisualizer.show_staged_ghost` clears the spent beacons and parks the lone #4 ghost on the destination (anchored BEFORE the claim — anchor_offset measures sprite vs current_tile). Commit paths — `_execute_attack` pre-swing, `_on_wait` pre-set_acted — `await play_deferred_walk()`: sprite replays the captured path, restamping z per row, then the action fires; foot tracks stashed at stage time survive to set_acted (asserts guard both commit sites). Cancel is the honesty win: the sprite never moved, so Escape never teleports. Camera post-move target + UIManager panel side-pick re-anchored on current_tile (identical in WALK_THEN_ACT). Hint bar planning copy goes mode-aware ("…to confirm" / "Confirm path"). Player-only — the AI's walk is its telegraph. 14 tests in test_move_commit_mode.gd; suite 1036 green. EYEBALL: ghost-hold through the action menu, walk-then-strike pacing on commit, whether the deferred walk wants a skip input. Playtest Walk vs Ghost → delete the loser; squash-merge once seen in a build.)
+  - [x] 4A. need to decide if we hold off on actually moving the unit (just show the static/fuzzy phantom preview) to the spot before committing an action - would be a departure from current design but more accurate. We should solve the problem both ways and playtest both, and see what players prefer/find less confusing. (UNPARKED after the 2026-08-31 talk — the fog objection resolved in REVERSE: ACT_THEN_WALK is the only commit model a future fog modifier can work with, so building it forecloses nothing; fog itself is filed post-alpha in §9 below with the "clank" interception rule. BUILT 2026-08-31 on THIS branch (`rqd--move-commit-mode`, stacked on the #4 ghost), eyeball-gated: `Settings.move_commit_mode { WALK_THEN_ACT (default, shipped behavior), ACT_THEN_WALK }` — Options row "Move Commit" [Walk|Ghost] beside Move Confirm. ACT_THEN_WALK per the candidate shape: `Unit._stage_deferred_movement` commits LOGIC instantly (occupancy via `_claim_tile_keep_position`, which restores global_position around Tile.set_unit's snap — found by test; movement_completed still fires so auras/threat recompute) while the sprite keeps its origin position AND origin-row z; `PathVisualizer.show_staged_ghost` clears the spent beacons and parks the lone #4 ghost on the destination (anchored BEFORE the claim — anchor_offset measures sprite vs current_tile). Commit paths — `_execute_attack` pre-swing, `_on_wait` pre-set_acted — `await play_deferred_walk()`: sprite replays the captured path, restamping z per row, then the action fires; foot tracks stashed at stage time survive to set_acted (asserts guard both commit sites). Cancel is the honesty win: the sprite never moved, so Escape never teleports. Camera post-move target + UIManager panel side-pick re-anchored on current_tile (identical in WALK_THEN_ACT). Hint bar planning copy goes mode-aware ("…to confirm" / "Confirm path"). Player-only — the AI's walk is its telegraph. 14 tests in test_move_commit_mode.gd; suite 1036 green. EYEBALL: ghost-hold through the action menu, walk-then-strike pacing on commit, whether the deferred walk wants a skip input. Playtest Walk vs Ghost → delete the loser; squash-merge once seen in a build.) (RESOLVED 2026-09-10 — Ghost won, by decree: RQD "it works great", was leaning to nix Walk anyway, and an un-reproducible "both modes ghost" report (top-of-file Quick Fixes) decided it. The setting, the Options row and the hint bar's mode flag are gone; staging is unconditional for player units; test_move_commit_mode.gd → test_deferred_walk.gd. Loser deleted, as the plan said.)
 
 # Meeting Notes 2026/08/16
 ## RQD

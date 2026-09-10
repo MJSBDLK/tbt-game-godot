@@ -180,7 +180,7 @@ func test_tooltip_hold_defaults_snaps_and_clamps() -> void:
 			"the 200ms floor is a softlock guard — below it, ordinary taps"
 			+ " start reading as long-presses and pressing becomes impossible")
 	settings.set_tooltip_hold_ms(4000)
-	assert_eq(settings.tooltip_hold_ms, 1000, "1s ceiling")
+	assert_eq(settings.tooltip_hold_ms, 800, "0.8s ceiling (was 1s; RQD 2026-09-10)")
 
 
 func test_tooltip_hold_persists_across_instances() -> void:
