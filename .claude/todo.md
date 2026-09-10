@@ -1,7 +1,31 @@
 # Resp
 
+# Quick Fixes
+- [ ] Goblin Healer - not a mage, an... apothecary? I think that's the name of the store. What do you call them, an herbalist or something? What word am I looking for?
+- [ ] Reduce tooltip hold max from 1000ms -> 800ms
+- [ ] options menu: "walk" and "ghost" both apply "ghost" mode
+- [ ] There's a bug when you try to take a nonsense path, e.g. move to space 3, then 2, then back to 3 - the game moves you to space 2. This is cancelable and therefore of low consequence, but I believe it's a real bug
+- [ ] 
+
 # Todo
-- [ ] Options menu has gotten too big for the screen. We'll need to tabulate and/or refactor
+- [x] Options menu has gotten too big for the screen. We'll need to tabulate and/or refactor
+  (DONE 2026-09-09 on `rqd--options-tabs`, eyeball-gated. Both: three tabs
+  — GAMEPLAY (Quick Attack, Auto End Turn, Move Confirm, Move Commit,
+  Battle Anims, Seeded Reload, Control Hints, Tooltip Hold) · VIDEO (Zoom
+  Mode, Portrait FX, UI Motion, Type Icons, FPS Cap) · AUDIO (three volumes)
+  — over a ROW REGISTRY (`_row_specs()`, one entry per setting; the panel
+  went 889 → 680 lines and adding a setting is adding an entry). The rows
+  area is pinned to the tallest tab so the strip and Close never jump.
+  Headers are InteractiveButtons (current tab wears the §14 brackets);
+  NEW actions `menu_tab_prev` / `menu_tab_next` = Q / E + LB / RB switch
+  from anywhere and wrap; the strip shows the glyph for the driving
+  device. Cursor model as the system menu: pad/keyboard opens land on the
+  first row's ACTIVE pill, pointer opens stay quiet. Measured ~265 px tall
+  vs ~420 before. 12 tests in test_options_menu_panel.gd pin tab
+  membership + the height budget. EYEBALL: tab grouping, Q/E vs another
+  key pair (E is also End Turn on the map — harmless, InputManager is off
+  under the menu, but the double meaning may grate), glyph placement.)
+- [ ] Oh yeah, I forgot to mention - after our last meeting (9/7) I merged in a bunch of Lawrence's new line art. This provides some new line art for characters for whom there's no data yet.
 - [ ] Pull spry.md and the spry skill out of work's documents - then see how we can apply those principles here
 - [ ] I noticed the enemy AI will often move and not attack - definitely not a bug.
 - [ ] In spite of the above, default difficulty is substantially too high - this is fine for now because I've done minimal tuning of the difficulty, but we should discuss how to tune this without simply overleveling the player. The game should *feel* like an even playing field, or even slightly oppressive - we want to keep the player in that zone of proximal development, and never feel like they're coasting. Force them to learn, but make the on-raamp really gradual. Shouldn't feel like a tutorial either, though.
@@ -39,7 +63,8 @@
     assert on the root rect. EYEBALL: badge-beat timing, prompt blink rate,
     whether the two-press skip feels right or should be one press; the
     ding now also plays in the intermission pour — keep?)
-
+- [ ] sliders in the options menu need to be styled to match existing visual design.
+- [ ] 
 
 **Answered + BUILT 2026-09-07 on `rqd--terrain-stack`** (3 commits, suite
 1096 green; squash-merge once RQD/Lawrence have eyeballed a build):
@@ -910,8 +935,8 @@ Each of these is blocked on a decision, not on work.
   `character_data.strength` etc.
 - [ ] **Preview path on hover.** On controller/M&K, show the preview path while
   hovering the next node in the planned path.
-- [ ] **Options menu tabs.** It's cluttered. Gameplay / Video / Audio — anything
-  else yet?
+- [x] **Options menu tabs.** It's cluttered. Gameplay / Video / Audio — anything
+  else yet? (BUILT 2026-09-09 — see the top-of-file item; exactly those three.)
 - [ ] **Split `StatusEffectType` into `AfflictType` + `BoostType`.** Significant
   rewiring across the game logic, but there's no real alternative: units need to
   carry a boost and an affliction simultaneously.
