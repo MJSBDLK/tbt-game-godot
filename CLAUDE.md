@@ -31,6 +31,17 @@ Read `.claude/guide.md` for the full agent guide. These rules are non-negotiable
 - Prefer `@export` over hardcoded values
 - Full variable names, no abbreviations
 
+## Before Committing
+
+Commits happen only when RQD asks for one. When a commit is requested:
+
+1. Run `/spry` on the diff that will be committed. Fix each flag or waive it
+   with a one-line reason in the commit message. Advisory, not blocking, same
+   soft-fail stance as the GUT pre-commit hook. If it starts making results
+   worse, remove it: the skill's principles.md has an exit clause with the
+   three-step recipe.
+2. Sweep editor stragglers (`.import`, `.uid`) so the commit doesn't orphan them.
+
 ## Project Structure
 
 ```
