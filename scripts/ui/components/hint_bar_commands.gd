@@ -145,9 +145,14 @@ static func _ensure_table() -> void:
 				{action = &"ui_cancel", verb = "Back", mouse_button = MOUSE_BUTTON_RIGHT, touch_label = "Back"},
 			],
 		},
+		# The sheet is browsable under the cursor model (UnitDetailPanel wires
+		# every inspectable into a focus chain), so the bar says what the
+		# press does. Touch has no cursor — a tap on a chip IS the inspect —
+		# so only Close gets a button. No step line (mockup round 1).
 		Enums.InputState.UNIT_DETAIL: {
 			step = "", step_touch = "",
 			items = [
+				{action = &"ui_accept", verb = "Inspect", mouse_button = MOUSE_BUTTON_LEFT},
 				{action = &"ui_cancel", verb = "Close", touch_label = "Close"},
 			],
 		},

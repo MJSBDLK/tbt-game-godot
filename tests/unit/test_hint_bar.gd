@@ -217,8 +217,8 @@ func test_state_change_resamples_contents() -> void:
 	assert_eq(_items(bar).size(), 3)
 	GameStateManager.change_state(Enums.InputState.UNIT_DETAIL)
 	assert_false(bar._step_label.visible, "unit detail has no step line")
-	assert_eq(_items(bar).size(), 1)
-	assert_true(bar.visible, "one item is still something to say")
+	assert_eq(_items(bar).size(), 2, "Inspect + Close (the sheet is browsable)")
+	assert_true(bar.visible, "items are still something to say")
 
 
 func test_device_is_sampled_at_the_boundary_not_live() -> void:

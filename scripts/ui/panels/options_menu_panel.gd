@@ -65,6 +65,20 @@ var _border_overlay: PanelBorderOverlay = null
 var _toggle_style_active: StyleBoxFlat = null
 var _toggle_style_inactive: StyleBoxFlat = null
 var _toggle_style_hovered: StyleBoxFlat = null
+# Slider dress — the pill palette stretched into a bar. Godot's default
+# HSlider (rounded gray track, 16 px disc) was the one stock widget left in
+# the menu and read as a different game on a 14 px row.
+#   track  = the unlit pill (dim wash, gray border)
+#   fill   = the lit pill (gold border) up to the knob — "the current value"
+#   knob   = a SLIDER_KNOB_SIZE pixel plate, gold-rimmed; near-white rim
+#            while hovered / focused (the cursor is on it)
+const SLIDER_KNOB_SIZE: Vector2i = Vector2i(5, 9)
+const SLIDER_TRACK_HEIGHT: int = 6
+var _slider_track_style: StyleBoxFlat = null
+var _slider_fill_style: StyleBoxFlat = null
+var _slider_fill_highlight_style: StyleBoxFlat = null
+var _slider_knob: ImageTexture = null
+var _slider_knob_highlight: ImageTexture = null
 
 
 func _ready() -> void:
@@ -93,6 +107,12 @@ func _ready() -> void:
 	_toggle_style_active = _create_toggle_style(GameColors.ACTION_BUTTON_BG_HOVERED, true)
 	_toggle_style_inactive = _create_toggle_style(GameColors.ACTION_BUTTON_BG_NORMAL, false)
 	_toggle_style_hovered = _create_toggle_style(GameColors.ACTION_BUTTON_BG_HOVERED, false)
+	_slider_track_style = _create_slider_bar_style(GameColors.ACTION_BUTTON_BG_NORMAL, false)
+	_slider_fill_style = _create_slider_bar_style(GameColors.ACTION_BUTTON_BG_HOVERED, true)
+	_slider_fill_highlight_style = _create_slider_bar_style(
+			GameColors.with_alpha(GameColorPalette.get_color("Gray", 4), 0.6), true)
+	_slider_knob = _create_slider_knob(GameColors.TEXT_SECONDARY)
+	_slider_knob_highlight = _create_slider_knob(GameColors.TEXT_PRIMARY)
 
 	# Margins
 	var margin := MarginContainer.new()
@@ -255,6 +275,13 @@ func _row_specs() -> Array[Dictionary]:
 			min_value = float(Settings.TOOLTIP_HOLD_MIN_MS), max_value = float(Settings.TOOLTIP_HOLD_MAX_MS),
 			step = float(Settings.TOOLTIP_HOLD_STEP_MS), current = float(Settings.tooltip_hold_ms),
 			format = _format_milliseconds, write = _write_tooltip_hold},
+		# Board-cursor travel rate while a direction is held (d-pad, stick or
+		# arrow key). Tinker knob; 12.5/s = an 80 ms step.
+		{id = "cursor_speed", tab = Tab.GAMEPLAY, kind = RowKind.SLIDER, label = "Cursor Speed",
+			tooltip = "How fast the board cursor travels while a direction is held on a controller or keyboard.",
+			min_value = Settings.CURSOR_SPEED_MIN, max_value = Settings.CURSOR_SPEED_MAX,
+			step = Settings.CURSOR_SPEED_STEP, current = Settings.cursor_speed,
+			format = _format_tiles_per_second, write = Settings.set_cursor_speed},
 		# --- VIDEO ---------------------------------------------------------
 		# Zoom mode: the camera mirrors Settings on spawn, and a live camera
 		# is nudged by _write_zoom_mode.
@@ -336,6 +363,10 @@ func _write_max_fps(value: float) -> void:
 
 func _format_milliseconds(value: float) -> String:
 	return "%dms" % roundi(value)
+
+
+func _format_tiles_per_second(value: float) -> String:
+	return "%.1f/s" % value
 
 
 func _format_fps(value: float) -> String:
@@ -528,6 +559,7 @@ func _create_slider_row(spec: Dictionary) -> HBoxContainer:
 	slider.custom_minimum_size = Vector2(80, OPTION_HEIGHT)
 	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_dress_slider(slider)
 	row.add_child(slider)
 
 	var format: Callable = spec.format
@@ -586,6 +618,48 @@ func _apply_toggle_state(button: Button, is_active: bool) -> void:
 		button.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
 		button.add_theme_color_override("font_hover_color", Color.WHITE)
 		button.add_theme_color_override("font_pressed_color", GameColors.TEXT_SECONDARY)
+
+
+func _dress_slider(slider: HSlider) -> void:
+	slider.add_theme_stylebox_override("slider", _slider_track_style)
+	slider.add_theme_stylebox_override("grabber_area", _slider_fill_style)
+	slider.add_theme_stylebox_override("grabber_area_highlight", _slider_fill_highlight_style)
+	slider.add_theme_icon_override("grabber", _slider_knob)
+	slider.add_theme_icon_override("grabber_highlight", _slider_knob_highlight)
+	slider.add_theme_icon_override("grabber_disabled", _slider_knob)
+	# The knob rides centred on the track, not hanging off its top edge.
+	slider.add_theme_constant_override("center_grabber", 1)
+	slider.add_theme_constant_override("grabber_offset", 0)
+
+
+## The pill recipe (_create_toggle_style) as a bar: same wash, same border
+## rule (gold when lit), same 2 px corners, sized by content margins to
+## SLIDER_TRACK_HEIGHT because a StyleBox's minimum size IS its margins.
+func _create_slider_bar_style(background_color: Color, is_lit: bool) -> StyleBoxFlat:
+	var style := _create_toggle_style(background_color, is_lit)
+	style.content_margin_left = 0
+	style.content_margin_right = 0
+	@warning_ignore("integer_division")
+	style.content_margin_top = SLIDER_TRACK_HEIGHT / 2
+	@warning_ignore("integer_division")
+	style.content_margin_bottom = SLIDER_TRACK_HEIGHT / 2
+	return style
+
+
+## A SLIDER_KNOB_SIZE plate: panel-dark body, 1 px rim in `rim`. Drawn pixel
+## by pixel so it stays crisp at every integer scale — no vector disc.
+static func _create_slider_knob(rim: Color) -> ImageTexture:
+	var image := Image.create(SLIDER_KNOB_SIZE.x, SLIDER_KNOB_SIZE.y, false, Image.FORMAT_RGBA8)
+	var body: Color = GameColors.HUD_PANEL_BACKGROUND
+	body.a = 1.0
+	image.fill(body)
+	for x: int in SLIDER_KNOB_SIZE.x:
+		image.set_pixel(x, 0, rim)
+		image.set_pixel(x, SLIDER_KNOB_SIZE.y - 1, rim)
+	for y: int in SLIDER_KNOB_SIZE.y:
+		image.set_pixel(0, y, rim)
+		image.set_pixel(SLIDER_KNOB_SIZE.x - 1, y, rim)
+	return ImageTexture.create_from_image(image)
 
 
 func _create_toggle_style(background_color: Color, is_active: bool) -> StyleBoxFlat:

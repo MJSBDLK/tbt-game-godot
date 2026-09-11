@@ -116,6 +116,19 @@ func test_default_row_under_touch_is_only_the_buttons() -> void:
 			["End turn", "Threat", "Menu"])
 
 
+func test_unit_detail_row_says_what_the_press_does() -> void:
+	# RQD 2026-09-10: "all the controls bar reads, in this context, is 'B for
+	# close'". The sheet is a focus chain under the cursor model now, so A
+	# means something. Touch has no cursor — a tap IS the inspect — so only
+	# Close is a button there. Still no step line (mockup round 1).
+	assert_eq(_glyphs(Enums.InputState.UNIT_DETAIL, HintBarCommands.Model.CONTROLLER), ["A", "B"])
+	assert_eq(_verbs(Enums.InputState.UNIT_DETAIL, HintBarCommands.Model.CONTROLLER),
+			["Inspect", "Close"])
+	assert_eq(_glyphs(Enums.InputState.UNIT_DETAIL, HintBarCommands.Model.KEYBOARD_MOUSE),
+			["LMB", "Esc"])
+	assert_eq(_glyphs(Enums.InputState.UNIT_DETAIL, HintBarCommands.Model.TOUCH), ["Close"])
+
+
 func test_unit_selected_row() -> void:
 	assert_eq(_glyphs(Enums.InputState.UNIT_SELECTED, HintBarCommands.Model.KEYBOARD_MOUSE),
 			["LMB", "RMB", "I"])

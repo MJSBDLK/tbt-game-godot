@@ -100,11 +100,18 @@ func is_navigation_press(event: InputEvent) -> bool:
 	return navigation_direction(event) != Vector2i.ZERO
 
 
+## Which stick axes are currently pushed past the deadzone, and which way:
+## axis (int) → sign (-1 / +1). See _stick_direction.
+var _engaged_stick_axes: Dictionary = {}
+
+
 ## The grid direction of a navigation press (screen convention: -y is up), or
 ## ZERO for any other event. Board consumers (the board cursors) use the
 ## vector; menus only care that it isn't ZERO. NOTE: the game grid is Y-up —
 ## board consumers flip the vertical before touching grid coordinates.
 func navigation_direction(event: InputEvent) -> Vector2i:
+	if event is InputEventJoypadMotion:
+		return _stick_direction(event as InputEventJoypadMotion)
 	if event.is_action_pressed("ui_up"):
 		return Vector2i(0, -1)
 	if event.is_action_pressed("ui_down"):
@@ -113,6 +120,31 @@ func navigation_direction(event: InputEvent) -> Vector2i:
 		return Vector2i(-1, 0)
 	if event.is_action_pressed("ui_right"):
 		return Vector2i(1, 0)
+	return Vector2i.ZERO
+
+
+## Stick travel arrives as a STREAM of motion events, and is_action_pressed
+## says "pressed" for every one past the deadzone — so a single flick stepped
+## the board cursor two or three tiles on its way out, and a half-held stick
+## jittered it along at the event rate. A stick press is therefore an EDGE:
+## one press when the axis crosses INTO the deadzone band, none until it
+## comes back to rest. Held travel is the hold-to-repeat engine's job
+## (Input.is_action_pressed tracks the axis), exactly as for a held D-pad —
+## flick = one tile, hold = tile then repeat.
+func _stick_direction(motion: InputEventJoypadMotion) -> Vector2i:
+	var sign_now: int = 0
+	if absf(motion.axis_value) >= STICK_DEADZONE:
+		sign_now = 1 if motion.axis_value > 0.0 else -1
+	var engaged: int = int(_engaged_stick_axes.get(motion.axis, 0))
+	if sign_now == engaged:
+		return Vector2i.ZERO  # still held, or still at rest — no edge
+	_engaged_stick_axes[motion.axis] = sign_now
+	if sign_now == 0:
+		return Vector2i.ZERO  # released
+	# Resolve through the InputMap so a rebound stick still speaks ui_*.
+	for direction: Vector2i in [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0)]:
+		if motion.is_action_pressed(action_for_direction(direction)):
+			return direction
 	return Vector2i.ZERO
 
 

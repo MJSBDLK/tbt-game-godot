@@ -2,6 +2,12 @@
 ## Displays attacker/defender stats, damage preview, and projected HP.
 ## Located in the right panel, shown when hovering over valid targets.
 ##
+## THE MULTIPLIER COLUMN shows what the damage number was scaled by that the
+## player can read off the board: type effectiveness × STAB (same-type attack
+## bonus). Its COLOUR follows the type stage alone (§6 LOCK) — a yellow
+## "x1.2" is STAB on a neutral matchup, an orange "x1.2" a type edge without
+## STAB, an orange "x1.44" both.
+##
 ## HOW THE WIRING WORKS:
 ## This script attaches to the root node of combat_preview_panel.tscn.
 ## In _ready(), we walk the scene tree to find each label/pip bar by its path.
@@ -176,12 +182,14 @@ func _update_attacker_section(attacker: Node, defender: Node, move: Move) -> voi
 	else:
 		_attacker_secondary_label.text = "--"
 
-	# Type effectiveness multiplier
+	# Type effectiveness × STAB — the readable part of the damage scale.
 	var effectiveness := DamageCalculator.get_type_effectiveness(attacker, defender, move)
-	_set_multiplier_label(_attacker_multiplier_label, effectiveness)
+	var stab := DamageCalculator.get_stab_multiplier(attacker, move)
+	_set_multiplier_label(_attacker_multiplier_label,
+			displayed_multiplier(effectiveness, stab), effectiveness)
 
-	DebugConfig.log_combat_preview("Preview: %s uses %s → %d dmg x%d (%.1fx)" % [
-		attacker_name, move.move_name, damage_per_hit, hit_count, effectiveness])
+	DebugConfig.log_combat_preview("Preview: %s uses %s → %d dmg x%d (type %.2fx, STAB %.2fx)" % [
+		attacker_name, move.move_name, damage_per_hit, hit_count, effectiveness, stab])
 
 
 # =============================================================================
@@ -219,7 +227,10 @@ func _update_defender_section(attacker: Node, defender: Node, move: Move) -> voi
 
 		var counter_effectiveness := DamageCalculator.get_type_effectiveness(
 			defender, attacker, counter_move)
-		_set_multiplier_label(_defender_multiplier_label, counter_effectiveness)
+		_set_multiplier_label(_defender_multiplier_label,
+				displayed_multiplier(counter_effectiveness,
+						DamageCalculator.get_stab_multiplier(defender, counter_move)),
+				counter_effectiveness)
 	else:
 		_defender_move_label.text = "--"
 		_defender_move_type_icon.get_parent().visible = false
@@ -336,8 +347,8 @@ func _truncate(text: String) -> String:
 func _format_multiplier(effectiveness: float) -> String:
 	if TypeChart.is_immune(effectiveness):
 		return "x0"
-	if effectiveness == int(effectiveness):
-		return "x%d" % int(effectiveness)
+	if is_equal_approx(effectiveness, roundf(effectiveness)):
+		return "x%d" % roundi(effectiveness)
 	return "x%.2f" % effectiveness
 
 
@@ -362,13 +373,24 @@ func _set_hits_label(label: Label, hit_count: int) -> void:
 		label.text = "x%d" % hit_count
 
 
-func _set_multiplier_label(label: Label, effectiveness: float) -> void:
-	if effectiveness == 1.0 or effectiveness == 0.0:
+## Type × STAB, the number the column shows. Immunity stays immunity — no
+## bonus rescues a move the target can't feel.
+static func displayed_multiplier(type_effectiveness: float, stab: float) -> float:
+	if TypeChart.is_immune(type_effectiveness):
+		return type_effectiveness
+	return type_effectiveness * stab
+
+
+## `shown` is the number drawn (type × STAB); `type_effectiveness` alone
+## picks the colour tier. 1.0 and the 0.0 "nothing to show" sentinel hide the
+## column (a resisted STAB move nets x1 and hides too — honest, if terse).
+func _set_multiplier_label(label: Label, shown: float, type_effectiveness: float = 1.0) -> void:
+	if is_equal_approx(shown, 1.0) or shown == 0.0:
 		label.get_parent().visible = false
 	else:
 		label.get_parent().visible = true
-		label.text = _format_multiplier(effectiveness)
-		_color_multiplier_label(label, effectiveness)
+		label.text = _format_multiplier(shown)
+		_color_multiplier_label(label, type_effectiveness)
 
 
 func _color_multiplier_label(label: Label, effectiveness: float) -> void:

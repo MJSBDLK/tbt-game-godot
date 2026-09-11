@@ -591,6 +591,7 @@ func _instantiate_panels() -> void:
 	_overlay_layer.add_child(_save_browser_panel)
 	_save_browser_panel.closed.connect(_on_save_browser_closed)
 	_save_browser_panel.save_chosen.connect(_on_save_browser_chosen)
+	_save_browser_panel.slot_chosen.connect(_on_save_browser_slot_chosen)
 
 
 func _instantiate_overlays() -> void:
@@ -893,10 +894,29 @@ func _on_system_menu_options() -> void:
 
 
 func _on_system_menu_save() -> void:
-	# Menu stays open; the Save row itself flashes the outcome.
+	# A free manual slot: silent write, the Save row itself flashes the
+	# outcome. Ring full: the press would destroy a save the player asked to
+	# keep, so the overwrite picker takes over (same hide-without-closed dance
+	# as Load) and the write lands in _on_save_browser_slot_chosen.
+	if SaveManager.find_free_manual_slot().is_empty():
+		if _system_menu_panel != null:
+			_system_menu_panel.visible = false
+		if _save_browser_panel != null:
+			_save_browser_panel.show_overwrite_picker()
+		return
 	var path: String = SaveManager.write_manual_save()
 	if _system_menu_panel != null:
 		_system_menu_panel.flash_save_result(not path.is_empty())
+
+
+func _on_save_browser_slot_chosen(path: String) -> void:
+	var written: String = SaveManager.write_manual_save_to(path)
+	# hide_panel emits closed, which brings the system menu back (still
+	# PAUSED) — then the Save row flashes on the rebuilt menu.
+	if _save_browser_panel != null:
+		_save_browser_panel.hide_panel()
+	if _system_menu_panel != null and _system_menu_panel.visible:
+		_system_menu_panel.flash_save_result(not written.is_empty())
 
 
 func _on_system_menu_load() -> void:

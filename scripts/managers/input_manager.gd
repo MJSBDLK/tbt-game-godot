@@ -33,9 +33,11 @@ var _board_cursor_tile: Tile = null
 # Hold-to-repeat for both board cursors. The initial press steps via the
 # event; holding keeps stepping on this timer. OS key echo is deliberately
 # ignored (navigation_direction filters it) — joypads never echo, so the
-# timer serves keyboard and d-pad identically.
+# timer serves keyboard, d-pad and stick identically (a stick press is
+# edge-detected in InputSource; its hold rides this same timer). The step
+# interval is the player's: Settings.cursor_speed, the Options "Cursor
+# Speed" slider.
 const NAV_REPEAT_DELAY_SECONDS: float = 0.35
-const NAV_REPEAT_INTERVAL_SECONDS: float = 0.08
 var _held_nav_direction: Vector2i = Vector2i.ZERO
 var _nav_repeat_at: float = 0.0
 
@@ -810,7 +812,7 @@ func _tick_nav_repeat(now: float) -> void:
 		return
 	if now < _nav_repeat_at:
 		return
-	_nav_repeat_at = now + NAV_REPEAT_INTERVAL_SECONDS
+	_nav_repeat_at = now + Settings.cursor_repeat_interval_seconds()
 	if _is_selecting_attack_target:
 		_move_target_cursor(_held_nav_direction)
 	elif _is_map_view_state():

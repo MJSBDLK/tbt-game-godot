@@ -13,6 +13,13 @@
   and the tier-1 list in class-and-promotion.md §Tier 1 (15 → 16). Wants
   RQD's call first — it's the first class added since the enum was ported,
   and the class doc is still the design's open question.)
+
+  - [ ] Goblin Healer
+    1. Base class: herbalist
+      2. Level 2: Apothecary *or* [something that can become a chirurgeon]
+        3A. Apothecary can class up into [a more badass apothecary] or [something else]
+        3B. [other ]
+
 - [x] Reduce tooltip hold max from 1000ms -> 800ms (Done 2026-09-10:
   `Settings.TOOLTIP_HOLD_MAX_MS` 1000 → 800; the slider reads the const; the
   §14 style-guide range + test_settings ceiling assert updated.)
@@ -72,7 +79,8 @@
   key pair (E is also End Turn on the map — harmless, InputManager is off
   under the menu, but the double meaning may grate), glyph placement.)
 - [ ] Oh yeah, I forgot to mention - after our last meeting (9/7) I merged in a bunch of Lawrence's new line art. This provides some new line art for characters for whom there's no data yet.
-- [ ] Pull spry.md and the spry skill out of work's documents - then see how we can apply those principles here
+- [x] Pull spry.md and the spry skill out of work's documents - then see how we can apply those principles here
+  - [ ] Follow-up: Corporate have a more sophisticated SPRY workflow - would be very interested to pull any ideas from it which are applicable to our project. Should be ready to go by 9/14 - check back in after that.
 - [ ] I noticed the enemy AI will often move and not attack - definitely not a bug.
 - [ ] In spite of the above, default difficulty is substantially too high - this is fine for now because I've done minimal tuning of the difficulty, but we should discuss how to tune this without simply overleveling the player. The game should *feel* like an even playing field, or even slightly oppressive - we want to keep the player in that zone of proximal development, and never feel like they're coasting. Force them to learn, but make the on-raamp really gradual. Shouldn't feel like a tutorial either, though.
   - [ ] We should discuss dynamic difficulty scaling, as well. This would be especially easy to implement near-imperceptibly in our game
@@ -109,7 +117,10 @@
     assert on the root rect. EYEBALL: badge-beat timing, prompt blink rate,
     whether the two-press skip feels right or should be one press; the
     ding now also plays in the intermission pour — keep?)
-- [ ] sliders in the options menu need to be styled to match existing visual design.
+- [x] sliders in the options menu need to be styled to match existing visual design.
+  (DONE 2026-09-10: `OptionsMenuPanel._dress_slider` — the pill palette as a
+  bar, 5×9 knob. RQD: "knob looks good". Still no §14 slider design; this
+  is the placeholder.)
 - [ ] 
 
 **Answered + BUILT 2026-09-07 on `rqd--terrain-stack`** (3 commits, suite
@@ -184,14 +195,21 @@ those cells need repainting.
   pass (contents locked — D7 rounds 3–4 in the archive).
 - [ ] Mirrored right-facing idles on the left puppet — art fix (RQD: "we'll
   likely fix it later").
-- [ ] Missing status icon `status_effect_icons_6x6_v2/hasted_0000.png` —
+- [x] Missing status icon `status_effect_icons_6x6_v2/hasted_0000.png` —
   applying Hasted logs a resource error (unrelated to the scene, seen in RQD's log).
+  (DONE 2026-09-10: PLACEHOLDERS minted for Hasted, Fortified AND Regen —
+  none had a tag in the v2 .aseprite — via `tools/art/placeholder_status_icon.gd`;
+  Lawrence replaces same-name. test_status_effect_data.gd now fails the
+  suite on the next missing icon.)
 - [ ] Spin-off (mobile arc, NOT this feature): touch has no attack forecast
   before the tap that attacks — the preview panel is hover-driven. Fix is
   tap-to-preview then tap-again-to-attack (the marker double-press pattern).
-- [ ] Spin-off (preview panel): STAB ×1.2 is applied silently —
+- [x] Spin-off (preview panel): STAB ×1.2 is applied silently —
   `DamageCalculator.get_stab_multiplier` feeds the number but nothing
-  displays it. Show it on the panel.
+  displays it. Show it on the panel. (DONE 2026-09-10: the multiplier column
+  shows type × STAB, coloured by the TYPE stage alone. RQD 2026-09-11:
+  not clear enough — the redesign is filed in §8, "STAB presentation
+  redesign + a damage-calc tooltip system".)
 
 
 
@@ -217,12 +235,23 @@ those cells need repainting.
   (Menu/Options → START, View/Share → SELECT); Switch keeps its printed +/−.
   The hardware-accurate ☰/⧉ sprites stay on disk unmapped for a re-audition.)
   - [ ] Also, "three lines" and "overlapping squares" have always made me look at the controller. Are there icons which universally represent "start" and "select" for us millenial (and older) gamers?
-- [ ] Just discovered I can't navigate the unit detail panel with a controller
-  - [ ] All the controls bar reads, in this context, is "B for close"
-- [ ] Default cursor speed is perfect with the D-pad, too fast on the control stick
-  - [ ] For the control stick, I was thinking more of a fairly quick acceleration to medium speed:
+- [x] Just discovered I can't navigate the unit detail panel with a controller
+  (DONE 2026-09-10: every inspectable is a focus stop; Up/Down walk
+  moves → passives → statuses → injuries, Left/Right jump families, A
+  inspects. Story in the commit. EYEBALL: the 1.6× tablet lift vs the chip
+  backlight; Left/Right as family-jump vs column geometry.)
+  - [x] All the controls bar reads, in this context, is "B for close"
+    (DONE same day: [A] Inspect · [B] Close; touch stays Close-only.)
+- [x] Default cursor speed is perfect with the D-pad, too fast on the control stick
+  (DONE 2026-09-10: stick presses are now EDGES in `InputSource` — one per
+  deadzone crossing; the hold rides the D-pad's repeat timer. Story in the
+  commit. Untested on a real pad.)
+  - [x] For the control stick, I was thinking more of a fairly quick acceleration to medium speed:
     - you can flick the stick repeatedly for navigaint a single tile at a time
     - if you hold the stick, it clicks to the nearest tile, but if you keep holding, it begins moving faster, but at a manageable speed - just like the D-pad (let's expose this variable though, so I can test. Might be an options menu "cursor speed")
+    (EXPOSED same day: Options → Gameplay → "Cursor Speed", 4–25 tiles/s,
+    default 12.5 = the old constant. The 0.35 s initial delay is still a
+    constant; a slow→fast ramp was NOT built — read as delay-then-repeat.)
 
 # Ideas
 - [x] 1. XP gain on map: When a unit gains XP on the map, we should have an XP bar fade in (quickly) right above/below their health bar (yellow fill, black bg), fill with a filling sound effect, and then fade back out (slowly) (Done 2026-08-21: `Unit._build_xp_bar` — 24×2 banana-on-black (YellowOrange 7 `#f5cd65`, the house gold — RQD correction 2026-08-21, was the olive Yellow 7) under `HealthBar`, 1px BENEATH the health bar (RQD: beneath reads more natural; `XP_BAR_OFFSET_Y` = -4 tries above). `_flush_xp_feedback` fires `_play_xp_bar(before, after, levels)` alongside the "+N XP" callout: fade in 0.1s → sweep (0.45s per full bar; a level wrap fills to full, flashes Yellow 8, restarts from 0) → hold 0.5s → fade out 0.6s; reduce-motion parks at the landing fraction. `xp_bar_fill_segments` is the pure sweep plan. SFX `audio/ui/xp_fill.wav` — placeholder rising tick train from generate_ui_sfx.gd, Lawrence replaces same-name. While there: `CharacterData.XP_PER_LEVEL` now owns the 100 that grant_xp / sheet / bEXP / unit sheet each hardcoded. 9 tests in test_combat_xp.gd. EYEBALL: the bar's bottom row kisses the top pixel of tall sprites' art for the ~1.7s it shows — fine in a static render; judge in motion.)
@@ -679,7 +708,10 @@ Nothing here is code-blocked; all have placeholders shipping today.
 - [ ] **Range icons**: range 1, range 2, range 1-2, range 2-3, range 3+.
   *(Any others needed here?)*
 - [ ] **Buff icons**: Rallied, Fortified, Hasted, Focused, Regen — plus the
-  long-missing **Bellows**.
+  long-missing **Bellows**. (Fortified / Hasted / Regen have PLACEHOLDERS as
+  of 2026-09-10 — `tools/art/placeholder_status_icon.gd`, same-name
+  replacement; the missing-art resource error is gone but the art is still
+  Lawrence's.)
 - [ ] A **broken-link / denied glyph** to sit beside the OUT OF RANGE callout, so
   the meaning isn't carried entirely by 5px type.
 - [ ] **Monster** and **Beast** type icons (both types shipped 2026-07-06; missing
@@ -785,28 +817,15 @@ foundation shipped. What's left is **deliberate deferral, not loose ends**:
 [intermission.md](intermission.md) §2c/§2d. These are live in the current build,
 independent of the intermission redesign.**
 
-- [ ] **No autosave at the mission boundary → intermission work is lost.**
-  Autosaves are battle-only (`SaveManager` writes on `player_phase_started`, and
-  early-returns when `capture_battle_snapshot()` is empty); `CampaignManager`
-  never saves. So nothing is written between the last turn of mission N and turn 1
-  of mission N+1 — quit from the intermission and "Continue" should rewind into
-  the battle you *already finished*, discarding every StatUp, move swap, and bEXP
-  purchase. **Fix: autosave on ENTERING the intermission** (leaving is already
-  covered by the next mission's turn-1 write). `build_snapshot()` already takes
-  `battle` as optional, so this is a trigger, not new machinery. Open sub-call:
-  which ring — recommendation is to widen the existing blue ring from
-  "battle-start" to "mission boundary" rather than mint a fourth color.
-  **Wants an in-game repro first** — this reads from the code path, unconfirmed.
-
-- [ ] **The 5th manual save silently destroys the 1st.** `write_manual_save()`
-  routes through `_pick_ring_slot` ("first empty wins, else overwrite oldest"), so
-  manual saves rotate exactly like autosaves. Rotation is correct for autosaves
-  (unrequested) and wrong for manual saves (the press *is* the intent to keep it).
-  **Fix: prompt only when the press would destroy** — silent write while a slot is
-  free, picker when all 4 are full, no write and no latch on cancel. Split
-  `find_free_manual_slot()` + `write_manual_save_to(path)` out of the eviction
-  path; the picker is `SaveBrowserPanel` in a second mode (render empty slots,
-  emit `slot_chosen`). Autosave rings unchanged.
+- [x] **No autosave at the mission boundary → intermission work is lost.**
+  (FIXED 2026-09-10 per §2c: a FOURTH ring, `KIND_AUTO_BASE`, written off
+  CampaignManager's three boundary signals; GREEN 7 placeholder colour for
+  Lawrence. Story in the commit. Open: the hub's Save Game still arrives
+  armed — §2b's "redundant?" question stands. Not in-game-verified.)
+- [x] **The 5th manual save silently destroys the 1st.** (FIXED 2026-09-10
+  per §2d: manual saves take a free slot or open `SaveBrowserPanel`'s
+  overwrite picker; never rotate. Both callers (system menu, hub). Story in
+  the commit. Not in-game-verified; UIManager's glue has no test.)
 
 - [ ] **Move distribution in the demo is wonky.** Characters get moves far too
   powerful at level 5; this is what makes the Ogre feel broken. *Deliberately
@@ -928,6 +947,36 @@ Each of these is blocked on a decision, not on work.
 ---
 
 ## 8. Not started
+
+- [ ] **STAB presentation redesign + a damage-calc tooltip system** (RQD
+  2026-09-11, after seeing the x1.20 readout: "a simple multiplier isn't
+  clear enough — back to the drawing board"). The yellow multiplier stays, but
+  it can't carry the *why* on its own.
+  - **Idea 1 — show the MATCH, not just the number.** When STAB applies, the
+    unit's elemental type icon and the move's elemental type icon on the
+    combat preview both light up together — the §14 traveling-border orbit
+    (the assigned-marker recipe) or a shimmer — reading as "THESE MATCH,"
+    alongside the yellow multiplier. Needs a §14 ruling: the orbit currently
+    means *assigned*; a shimmer would be a new motion category, and the
+    scarcity rules cap animating things at two on screen. Decide which
+    channel, then mock it on the battle-HUD artifact before building.
+  - **Idea 2 — a tooltip system for the whole damage calculation.** Every
+    factor that modifies damage gets an explanation on demand: base (stat +
+    power − def), type effectiveness (with the two type icons and the stage
+    colour), STAB (matching icons), Bellows stacks, terrain on either side,
+    Reckless, crit, hit chance. Colour-coded to the same tiers the panel
+    uses, icons inline where a factor has one, so the tooltip *is* the
+    legend. Rides the existing hold-to-peek contract (§14 detail tooltips:
+    long press = right click = Back/R3). Presentation must be on point —
+    this is the "what can I click / what does this mean" answer for the
+    combat preview, which today looks interactible and isn't (§2).
+  - Related: the in-game legend / glossary ask in §2, the "combat preview:
+    indicate buffs/debuffs in play" item below, and the corruption misfire
+    chip in §7 — all of them are "explain the number" and should share one
+    tooltip surface rather than each growing a badge.
+  - Until then the shipped reading is colour-only: yellow x1.2 = STAB on a
+    neutral matchup, orange x1.2 = a type edge without STAB
+    (`CombatPreviewPanel.displayed_multiplier`).
 
 - [ ] **CLASS & PROMOTION SYSTEM** — design doc written 2026-08-05
   ([class-and-promotion.md](../data/design/class-and-promotion.md)), nothing

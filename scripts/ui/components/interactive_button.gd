@@ -183,11 +183,15 @@ func _process(_delta: float) -> void:
 
 
 func _gui_input(event: InputEvent) -> void:
-	# Disabled buttons still see input; a press on one is a question, not a click.
+	# Disabled buttons still see input; a press on one is a question, not a
+	# click — from the mouse or from accept on a focused button (the pad's
+	# press reaches a focused Control through gui_input).
 	if not disabled:
 		return
 	var mouse := event as InputEventMouseButton
-	if mouse != null and mouse.pressed and mouse.button_index == MOUSE_BUTTON_LEFT:
+	var asked: bool = (mouse != null and mouse.pressed and mouse.button_index == MOUSE_BUTTON_LEFT) \
+			or event.is_action_pressed("ui_accept")
+	if asked:
 		_play_sfx(SFX_DENY)
 		denied.emit()
 		accept_event()

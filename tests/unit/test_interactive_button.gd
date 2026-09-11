@@ -84,6 +84,22 @@ func test_pressing_a_disabled_button_emits_denied() -> void:
 	assert_signal_not_emitted(button, "pressed")
 
 
+func test_accept_on_a_focused_disabled_button_is_also_a_question() -> void:
+	# The pad's press reaches a focused Control through gui_input; a depleted
+	# chip under the cursor must answer the same way the click does (the unit
+	# detail sheet routes denied to the same inspect).
+	var button := InteractiveButton.new()
+	button.disabled = true
+	add_child_autofree(button)
+	watch_signals(button)
+	var accept := InputEventAction.new()
+	accept.action = "ui_accept"
+	accept.pressed = true
+	button._gui_input(accept)
+	assert_signal_emitted(button, "denied")
+	assert_signal_not_emitted(button, "pressed")
+
+
 func test_pressing_an_enabled_button_does_not_emit_denied() -> void:
 	var button := InteractiveButton.new()
 	add_child_autofree(button)

@@ -191,3 +191,73 @@ func test_device_ignores_releases_and_jitter_like_kind_does() -> void:
 	source._input(_mouse_button(false))       # a release flips nothing
 	source._input(_mouse_motion(1.0))         # jitter flips nothing
 	assert_eq(source.last_device, source.Device.TOUCH)
+
+
+# =============================================================================
+# STICK PRESSES ARE EDGES (RQD 2026-09-10: "too fast on the control stick")
+# =============================================================================
+# A flick is a stream of motion events, every one past the deadzone reads as
+# "pressed" to is_action_pressed — so one flick used to step two or three
+# tiles. navigation_direction counts ONE press per crossing into the band.
+
+func _stick_y(value: float) -> InputEventJoypadMotion:
+	var event := InputEventJoypadMotion.new()
+	event.axis = JOY_AXIS_LEFT_Y
+	event.axis_value = value
+	return event
+
+
+func test_a_flick_is_exactly_one_press() -> void:
+	var source := _make_source()
+	var presses: Array[Vector2i] = []
+	for value: float in [0.2, 0.55, 0.8, 1.0, 1.0, 0.7, 0.3, 0.0]:
+		var direction: Vector2i = source.navigation_direction(_stick_motion(value))
+		if direction != Vector2i.ZERO:
+			presses.append(direction)
+	assert_eq(presses, [Vector2i(1, 0)] as Array[Vector2i],
+			"the ramp out and the ramp back are one press, at the deadzone crossing")
+
+
+func test_a_held_stick_is_not_a_press_stream() -> void:
+	var source := _make_source()
+	assert_eq(source.navigation_direction(_stick_motion(0.9)), Vector2i(1, 0))
+	for value: float in [0.92, 0.88, 0.95, 0.9]:
+		assert_eq(source.navigation_direction(_stick_motion(value)), Vector2i.ZERO,
+				"jitter at %.2f is the same hold, not a new press" % value)
+	assert_false(source.is_navigation_press(_stick_motion(0.93)),
+			"so a menu's summon fires once per flick, never per jitter")
+
+
+func test_release_then_push_again_presses_again() -> void:
+	var source := _make_source()
+	assert_eq(source.navigation_direction(_stick_motion(1.0)), Vector2i(1, 0))
+	assert_eq(source.navigation_direction(_stick_motion(0.1)), Vector2i.ZERO, "release")
+	assert_eq(source.navigation_direction(_stick_motion(1.0)), Vector2i(1, 0),
+			"flick, flick: one tile each — the D-pad contract")
+
+
+func test_crossing_straight_through_centre_is_a_new_press_the_other_way() -> void:
+	var source := _make_source()
+	assert_eq(source.navigation_direction(_stick_motion(0.9)), Vector2i(1, 0))
+	assert_eq(source.navigation_direction(_stick_motion(-0.9)), Vector2i(-1, 0),
+			"no rest sample in between, still an edge — the sign flipped")
+	assert_eq(source.navigation_direction(_stick_motion(-0.95)), Vector2i.ZERO)
+
+
+func test_axes_are_independent_and_y_speaks_screen_down() -> void:
+	var source := _make_source()
+	assert_eq(source.navigation_direction(_stick_motion(0.9)), Vector2i(1, 0))
+	assert_eq(source.navigation_direction(_stick_y(0.9)), Vector2i(0, 1),
+			"a diagonal engages the second axis as its own press (as two d-pad buttons would)")
+	assert_eq(source.navigation_direction(_stick_y(-0.9)), Vector2i(0, -1))
+	assert_eq(source.navigation_direction(_stick_motion(0.9)), Vector2i.ZERO, "X is still held")
+
+
+func test_dpad_and_keys_are_untouched_by_the_edge_logic() -> void:
+	var source := _make_source()
+	var press := InputEventAction.new()
+	press.action = "ui_left"
+	press.pressed = true
+	assert_eq(source.navigation_direction(press), Vector2i(-1, 0))
+	assert_eq(source.navigation_direction(press), Vector2i(-1, 0),
+			"buttons already arrive as discrete presses; each one counts")

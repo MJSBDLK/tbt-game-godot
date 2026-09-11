@@ -226,7 +226,10 @@ out-of-panel debug/devtools.
 ## 6. Combat Preview Panel
 
 - Two-column layout (attacker top, defender bottom).
-- Shows DMG, HIT, multiplier, element icons.
+- Shows DMG, HIT, multiplier, element icons. The multiplier is type
+  effectiveness × STAB (2026-09-10 — STAB was applied silently before);
+  its colour tier follows the TYPE stage alone, so yellow "x1.2" = STAB on a
+  neutral matchup, orange "x1.2" = a type edge without STAB.
 - Move name + type icon at top.
 - **Largely done**, only small tweaks expected from here.
 
@@ -262,7 +265,11 @@ out-of-panel debug/devtools.
   wears the converging rings for the spent phase (all units acted). TurnManager
   emits `player_phase_spent` for that state. Options toggle pills stay
   hand-rolled — the vocabulary has no toggle/segmented design yet (future §14
-  extension).
+  extension). **Options sliders wear the pill palette (2026-09-10, TBD —
+  Lawrence to eyeball)**: track = the unlit pill, fill up to the knob = the lit
+  pill (gold rim = "the current value"), knob = a 5×9 px gold-rimmed plate
+  (near-white rim under hover/focus), 6 px track. Placeholder until a real
+  slider design joins the vocabulary; `OptionsMenuPanel._dress_slider`.
 - ~~Default button: Gray 2 bg @ 30%, Gray 7 border. Hover: Gray 3 @ 50%.~~
 - **Disabled / out-of-range handling**:
   - Out-of-range attacks are **hidden**, not shown disabled.

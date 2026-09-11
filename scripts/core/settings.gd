@@ -121,6 +121,15 @@ const TOOLTIP_HOLD_MIN_MS: int = 200
 const TOOLTIP_HOLD_MAX_MS: int = 800
 const TOOLTIP_HOLD_STEP_MS: int = 50
 
+## Board-cursor hold-to-repeat rate in tiles per second: once a held D-pad,
+## stick or arrow key has waited out the initial delay, this is how fast the
+## cursor travels. The Options slider offers CURSOR_SPEED_MIN–MAX in
+## CURSOR_SPEED_STEP steps; 12.5 is the tuned D-pad feel (an 80 ms step).
+var cursor_speed: float = 12.5
+const CURSOR_SPEED_MIN: float = 4.0
+const CURSOR_SPEED_MAX: float = 25.0
+const CURSOR_SPEED_STEP: float = 0.5
+
 ## The file settings load from / save to. Overridable so tests can point at a
 ## throwaway path instead of clobbering the player's real settings file.
 var settings_path: String = DEFAULT_SETTINGS_PATH
@@ -164,6 +173,8 @@ func load_settings() -> void:
 				"display", "max_fps", max_fps)), 0, 1000)
 		tooltip_hold_ms = _snap_tooltip_hold(int(config.get_value(
 				"controls", "tooltip_hold_ms", tooltip_hold_ms)))
+		cursor_speed = _snap_cursor_speed(float(config.get_value(
+				"controls", "cursor_speed", cursor_speed)))
 		auto_end_turn = bool(config.get_value(
 				"gameplay", "auto_end_turn", auto_end_turn))
 		seeded_reload = bool(config.get_value(
@@ -282,6 +293,22 @@ func set_tooltip_hold_ms(value: int) -> void:
 	changed.emit()
 
 
+## Persists + notifies. Snapped to the slider grid and clamped to the range.
+func set_cursor_speed(value: float) -> void:
+	value = _snap_cursor_speed(value)
+	if is_equal_approx(value, cursor_speed):
+		return
+	cursor_speed = value
+	_save()
+	changed.emit()
+
+
+## The repeat engine's step, derived: seconds between cursor steps while a
+## direction is held (InputManager._tick_nav_repeat reads this every tick).
+func cursor_repeat_interval_seconds() -> float:
+	return 1.0 / cursor_speed
+
+
 ## Persists + notifies. No-ops when unchanged (see set_portrait_effects_enabled).
 func set_show_control_hints(value: bool) -> void:
 	if value == show_control_hints:
@@ -324,6 +351,11 @@ func set_seeded_reload(value: bool) -> void:
 	seeded_reload = value
 	_save()
 	changed.emit()
+
+
+func _snap_cursor_speed(value: float) -> float:
+	var snapped_value: float = roundf(value / CURSOR_SPEED_STEP) * CURSOR_SPEED_STEP
+	return clampf(snapped_value, CURSOR_SPEED_MIN, CURSOR_SPEED_MAX)
 
 
 func _snap_tooltip_hold(value: int) -> int:
@@ -382,6 +414,7 @@ func _save() -> void:
 	config.set_value("audio", "music_volume", music_volume)
 	config.set_value("display", "max_fps", max_fps)
 	config.set_value("controls", "tooltip_hold_ms", tooltip_hold_ms)
+	config.set_value("controls", "cursor_speed", cursor_speed)
 	config.set_value("gameplay", "auto_end_turn", auto_end_turn)
 	config.set_value("gameplay", "seeded_reload", seeded_reload)
 	config.set_value("controls", "show_control_hints", show_control_hints)

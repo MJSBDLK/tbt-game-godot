@@ -116,6 +116,20 @@ enum SelectionType { NONE, MOVE, PASSIVE, STATUS, INJURY }
 var _selection_type: SelectionType = SelectionType.NONE
 var _selection_index: int = -1
 
+## CURSOR MODEL (controller / keyboard). Every inspectable takes focus: move
+## chips (InteractiveButton — backlight), passive rows (the sheet's focus
+## wash), status and injury tablets (TABLET_CURSOR_MODULATE lifts the
+## tablet). ui_up / ui_down walk the inspectables in reading order — moves →
+## passives → statuses → injuries — and wrap; ui_left / ui_right jump to the
+## neighbouring family's first item; accept inspects, through the same
+## _select the mouse uses. Cursor-driven opens land on the first inspectable;
+## pointer opens stay quiet and the first nav press summons (InputSource
+## doctrine, same as every menu). Empty slots and hidden tablets are never in
+## the chain — nothing to inspect, nothing to land on.
+const TABLET_CURSOR_MODULATE: Color = Color(1.6, 1.6, 1.6)
+var _inspectables: Array[Control] = []
+var _inspectable_families: Array[int] = []
+
 
 func _ready() -> void:
 	_apply_panel_background()
@@ -132,6 +146,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel") or event.is_action_pressed("unit_info"):
 		hide_panel()
 		get_viewport().set_input_as_handled()
+	elif InputSource.is_navigation_press(event) and _focused_inspectable() == null:
+		# A quiet (pointer) open: the first nav press summons the cursor. With
+		# an inspectable focused the viewport's focus chain has already eaten
+		# the press and this never sees it.
+		if _focus_first_inspectable():
+			get_viewport().set_input_as_handled()
 	elif event is InputEventMouseButton and event.pressed:
 		var mouse_event := event as InputEventMouseButton
 		if mouse_event.button_index == MOUSE_BUTTON_LEFT or mouse_event.button_index == MOUSE_BUTTON_RIGHT:
@@ -181,6 +201,8 @@ func show_unit(unit: Variant) -> void:
 	_update_all()
 	_deselect_all()
 	visible = true
+	if InputSource.is_cursor_driven():
+		_focus_first_inspectable()
 
 
 func show_character(character_data: CharacterData) -> void:
@@ -191,6 +213,9 @@ func hide_panel() -> void:
 	_character_data = null
 	_unit = null
 	TapTooltip.dismiss()
+	var focused: Control = _focused_inspectable()
+	if focused != null:
+		focused.release_focus()
 	visible = false
 	closed.emit()
 
@@ -504,24 +529,133 @@ func _setup_tablet_input() -> void:
 		var index := i
 		_ensure_unique_style(_status_panels[i])
 		_set_children_mouse_pass(_status_panels[i])
+		# A focused tablet receives the pad's accept through gui_input, the
+		# same channel the click arrives on.
 		_status_panels[i].gui_input.connect(func(event: InputEvent):
-			if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			if _is_tablet_press(event):
 				_select(SelectionType.STATUS, index)
+				get_viewport().set_input_as_handled()
 		)
 		_status_panels[i].mouse_filter = Control.MOUSE_FILTER_STOP
+		_wire_tablet_cursor(_status_panels[i])
 
 	for i: int in range(_injury_panels.size()):
 		var index := i
 		_ensure_unique_style(_injury_panels[i])
 		_set_children_mouse_pass(_injury_panels[i])
 		_injury_panels[i].gui_input.connect(func(event: InputEvent):
-			if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			if _is_tablet_press(event):
 				# Empty placeholders hold the grid's shape; there's nothing
 				# to inspect, so they don't take the selection either.
 				if _injury_slot_has_injury(index):
 					_select(SelectionType.INJURY, index)
+					get_viewport().set_input_as_handled()
 		)
 		_injury_panels[i].mouse_filter = Control.MOUSE_FILTER_STOP
+		_wire_tablet_cursor(_injury_panels[i])
+
+
+static func _is_tablet_press(event: InputEvent) -> bool:
+	if event is InputEventMouseButton:
+		return event.pressed and event.button_index == MOUSE_BUTTON_LEFT
+	return event.is_action_pressed("ui_accept")
+
+
+## The tablet's "you are here": self_modulate lifts the tablet's own plate
+## (bg + border) and leaves its children alone. A node property, so it
+## survives the stylebox swaps _set_injury_panel does on every refresh.
+func _wire_tablet_cursor(panel: PanelContainer) -> void:
+	panel.focus_entered.connect(func() -> void: panel.self_modulate = TABLET_CURSOR_MODULATE)
+	panel.focus_exited.connect(func() -> void: panel.self_modulate = Color.WHITE)
+
+
+# =============================================================================
+# CURSOR CHAIN
+# =============================================================================
+
+## Rebuilds the focus chain over everything currently inspectable. Called
+## after every row rebuild / tablet refresh — cheap, and the chain must never
+## point at a freed row.
+func _wire_focus_chain() -> void:
+	_inspectables.clear()
+	_inspectable_families.clear()
+	for row: Button in _move_rows:
+		if row is MoveChipButton:
+			_add_inspectable(row, SelectionType.MOVE)
+	for row: Button in _passive_rows:
+		if row.focus_mode != Control.FOCUS_NONE:
+			_add_inspectable(row, SelectionType.PASSIVE)
+	var statuses_shown: bool = _status_section == null or _status_section.visible
+	for panel: PanelContainer in _status_panels:
+		var inspectable: bool = statuses_shown and panel.visible
+		panel.focus_mode = Control.FOCUS_ALL if inspectable else Control.FOCUS_NONE
+		if inspectable:
+			_add_inspectable(panel, SelectionType.STATUS)
+	var injuries_shown: bool = _injuries_section != null and _injuries_section.visible
+	for i: int in range(_injury_panels.size()):
+		var panel: PanelContainer = _injury_panels[i]
+		var inspectable: bool = injuries_shown and panel.visible and _injury_slot_has_injury(i)
+		panel.focus_mode = Control.FOCUS_ALL if inspectable else Control.FOCUS_NONE
+		if inspectable:
+			_add_inspectable(panel, SelectionType.INJURY)
+
+	var count: int = _inspectables.size()
+	for i: int in count:
+		var control: Control = _inspectables[i]
+		var previous: Control = _inspectables[(i - 1 + count) % count]
+		var next: Control = _inspectables[(i + 1) % count]
+		control.focus_neighbor_top = control.get_path_to(previous)
+		control.focus_neighbor_bottom = control.get_path_to(next)
+		control.focus_previous = control.get_path_to(previous)
+		control.focus_next = control.get_path_to(next)
+		control.focus_neighbor_left = control.get_path_to(_family_jump(i, -1))
+		control.focus_neighbor_right = control.get_path_to(_family_jump(i, 1))
+
+
+func _add_inspectable(control: Control, family: SelectionType) -> void:
+	assert(control.focus_mode != Control.FOCUS_NONE,
+			"UnitDetailPanel: an inspectable the cursor can't land on")
+	_inspectables.append(control)
+	_inspectable_families.append(family)
+
+
+## The first inspectable of the family `step` families away from entry `i`'s
+## (wrapping) — the left/right jump. With one family it's the entry itself,
+## which Godot treats as "stay".
+func _family_jump(i: int, step: int) -> Control:
+	var families: Array[int] = []
+	var first_of: Dictionary = {}
+	for k: int in _inspectable_families.size():
+		var family: int = _inspectable_families[k]
+		if not first_of.has(family):
+			first_of[family] = k
+			families.append(family)
+	var position: int = families.find(_inspectable_families[i])
+	var target: int = families[(position + step + families.size()) % families.size()]
+	return _inspectables[int(first_of[target])]
+
+
+func _focused_inspectable() -> Control:
+	for control: Control in _inspectables:
+		if is_instance_valid(control) and control.has_focus():
+			return control
+	return null
+
+
+## Lands the cursor on the first inspectable. False when there is nothing to
+## land on (a sheet of empties).
+func _focus_first_inspectable() -> bool:
+	if _inspectables.is_empty():
+		return false
+	_inspectables[0].grab_focus()
+	return true
+
+
+func _passive_row_index_with_focus() -> int:
+	for i: int in _passive_rows.size():
+		if is_instance_valid(_passive_rows[i]) and _passive_rows[i].has_focus():
+			return i
+	return -1
 
 
 func _ensure_unique_style(panel: PanelContainer) -> void:
@@ -654,6 +788,7 @@ func _update_all() -> void:
 	_rebuild_passive_rows()
 	_update_status_tablets()
 	_update_injury_panels()
+	_wire_focus_chain()
 
 
 func _update_portrait() -> void:
@@ -880,6 +1015,9 @@ func _chip_min_width(move_name: String) -> float:
 func _rebuild_passive_rows() -> void:
 	if _passives_section == null:
 		return
+	# Selection rebuilds these rows, and the cursor may be ON the one being
+	# inspected — remember where it sat so the rebuilt row takes it back.
+	var focused_index: int = _passive_row_index_with_focus()
 	for row: Button in _passive_rows:
 		row.queue_free()
 	_passive_rows.clear()
@@ -910,11 +1048,17 @@ func _rebuild_passive_rows() -> void:
 		name_label.set_anchors_preset(Control.PRESET_FULL_RECT)
 		name_label.offset_left = 3
 		row.add_child(name_label)
+		# An empty slot is information, not a control — the cursor skips it.
+		row.focus_mode = Control.FOCUS_NONE if empty else Control.FOCUS_ALL
 		_passives_section.add_child(row)
 		_passive_rows.append(row)
 		# is_passive_index_locked is only meaningful against equipped slots.
 		VoidLockOverlay.set_locked(row, showing_equipped
 				and _unit != null and _unit.is_passive_index_locked(i))
+	_wire_focus_chain()
+	if focused_index >= 0 and focused_index < _passive_rows.size() \
+			and _passive_rows[focused_index].focus_mode != Control.FOCUS_NONE:
+		_passive_rows[focused_index].grab_focus()
 
 
 ## One slot row: the sheet's chrome (selected state baked in) wired to this
@@ -1369,7 +1513,7 @@ func _load_passive_configs() -> void:
 func _get_status_effect_icon_by_name(effect_type_name: String) -> Texture2D:
 	var configs := StatusEffectData.get_default_configs()
 	var config: StatusEffectData = configs.get(effect_type_name, null)
-	if config == null or config.icon_path == "":
+	if config == null or config.icon_path == "" or not ResourceLoader.exists(config.icon_path):
 		return null
 	return load(config.icon_path) as Texture2D
 

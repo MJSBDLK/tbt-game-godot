@@ -89,10 +89,15 @@ arrive pre-latched because "the campaign already autosaves at mission boundaries
 writes on `player_phase_started` and early-returns when `capture_battle_snapshot()`
 is empty, and `CampaignManager` never saves at all. The entry arrives **armed**.
 
-### 2c. Base autosave — TO BUILD (decided 2026-08-04, not yet implemented)
+### 2c. Base autosave — BUILT 2026-09-10 (decided 2026-08-04)
 
-**Current state, for the record: there is NO save of any kind at the mission
-boundary.** Autosaves are battle-only — `SaveManager` writes on
+Shipped as decided: `KIND_AUTO_BASE`, written by SaveManager off
+CampaignManager's three boundary signals, GREEN placeholder colour
+(`GameColors.SAVE_AUTO_BASE`) pending Lawrence. The rest of this section is
+the decision record.
+
+**State before the build: there was NO save of any kind at the mission
+boundary.** Autosaves were battle-only — `SaveManager` writes on
 `player_phase_started` and early-returns when `capture_battle_snapshot()` is
 empty; `CampaignManager` never saves. Today's three rings:
 
@@ -126,11 +131,14 @@ two event types and cost mission-start history.
   exist today; manual renders as plain text. The base ring wants a fourth
   identity in the browser's legend — a Lawrence call, placeholder until then.
 
-### 2d. Manual saves — DECIDED 2026-08-04
+### 2d. Manual saves — BUILT 2026-09-10 (decided 2026-08-04)
 
-**Prompt only when the press would destroy something.**
+**Prompt only when the press would destroy something.** Shipped exactly per
+the table and port notes below (`find_free_manual_slot` /
+`write_manual_save_to` / `SaveBrowserPanel.show_overwrite_picker` →
+`slot_chosen`).
 
-Today `write_manual_save()` calls `write_autosave(KIND_MANUAL, …)` → `_pick_ring_slot`,
+Before the build `write_manual_save()` called `write_autosave(KIND_MANUAL, …)` → `_pick_ring_slot`,
 which is *"first empty slot wins; otherwise the oldest is overwritten."* Manual
 saves therefore rotate exactly like autosaves, and **the 5th manual save silently
 destroys the 1st.** Rotation is right for autosaves — unrequested, so evicting the

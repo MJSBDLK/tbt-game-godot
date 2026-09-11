@@ -39,7 +39,7 @@ func after_all() -> void:
 	_wipe_test_saves()
 	var dir := DirAccess.open("user://")
 	if dir != null and dir.dir_exists(TEST_SAVE_ROOT):
-		for kind: String in [SaveManager.KIND_AUTO_BATTLE, SaveManager.KIND_AUTO_TURN, SaveManager.KIND_MANUAL]:
+		for kind: String in SaveManager.ALL_KINDS:
 			dir.remove(TEST_SAVE_ROOT + "/" + kind)
 		dir.remove(TEST_SAVE_ROOT)
 
@@ -50,7 +50,7 @@ func _json_round_trip(data: Dictionary) -> Dictionary:
 
 
 func _wipe_test_saves() -> void:
-	for kind: String in [SaveManager.KIND_AUTO_BATTLE, SaveManager.KIND_AUTO_TURN, SaveManager.KIND_MANUAL]:
+	for kind: String in SaveManager.ALL_KINDS:
 		var dir_path: String = "%s/%s" % [TEST_SAVE_ROOT, kind]
 		var dir := DirAccess.open(dir_path)
 		if dir == null:
@@ -285,12 +285,102 @@ func test_list_saves_newest_first_with_battle_flag() -> void:
 	SaveManager.write_autosave(SaveManager.KIND_AUTO_BATTLE,
 		_stub_save(100, true, SaveManager.KIND_AUTO_BATTLE))
 	SaveManager.write_autosave(SaveManager.KIND_AUTO_TURN, _stub_save(200))
+	SaveManager.write_autosave(SaveManager.KIND_AUTO_BASE,
+		_stub_save(300, false, SaveManager.KIND_AUTO_BASE))
 	var rows: Array[Dictionary] = SaveManager.list_saves()
-	assert_eq(rows.size(), 2)
-	assert_eq(int(rows[0]["created_unix"]), 200, "newest first")
-	assert_eq(rows[1]["kind"], SaveManager.KIND_AUTO_BATTLE)
-	assert_true(rows[1]["has_battle"], "battle-bearing saves are flagged for the UI")
+	assert_eq(rows.size(), 3, "every ring is listed — a ring missing here is invisible to Load")
+	assert_eq(int(rows[0]["created_unix"]), 300, "newest first")
+	assert_eq(rows[0]["kind"], SaveManager.KIND_AUTO_BASE)
+	assert_eq(rows[2]["kind"], SaveManager.KIND_AUTO_BATTLE)
+	assert_true(rows[2]["has_battle"], "battle-bearing saves are flagged for the UI")
 	assert_false(rows[0]["has_battle"])
+
+
+func test_every_ring_is_enumerated_exactly_once() -> void:
+	# ALL_KINDS is what listing + test wipes iterate; a KIND_ constant that
+	# isn't in it is a ring the browser can never show.
+	assert_eq(SaveManager.ALL_KINDS.size(), 4)
+	for kind: String in [SaveManager.KIND_AUTO_BATTLE, SaveManager.KIND_AUTO_TURN,
+			SaveManager.KIND_AUTO_BASE, SaveManager.KIND_MANUAL]:
+		assert_eq(SaveManager.ALL_KINDS.count(kind), 1, "%s listed once" % kind)
+
+
+# =============================================================================
+# BASE AUTOSAVES (mission boundary → the hub)
+# =============================================================================
+
+func _with_active_campaign(mission_index: int = 0) -> void:
+	CampaignManager.restore_save_state({
+		"mission_paths": ["res://scenes/maps/map_a.tscn", "res://scenes/maps/map_b.tscn"],
+		"recruit_pool": [], "recruited_paths": [],
+		"current_mission_index": mission_index, "start_level": 5, "deployment_selection": [],
+	})
+
+
+func _base_ring_paths() -> Array[String]:
+	var out: Array[String] = []
+	for row: Dictionary in SaveManager.list_saves():
+		if str(row["kind"]) == SaveManager.KIND_AUTO_BASE:
+			out.append(str(row["path"]))
+	return out
+
+
+func test_every_mission_boundary_signal_writes_a_base_autosave() -> void:
+	# The three ways to arrive at the intermission hub. Quitting from the hub
+	# used to leave the newest save a mid-battle turn autosave from the mission
+	# just finished — Continue rewound into a won battle and every StatUp,
+	# move swap and bEXP pour made at the hub was gone.
+	_reset_turn_manager()
+	_with_active_campaign(1)
+	watch_signals(SaveManager)
+
+	CampaignManager.mission_advanced.emit(1)
+	assert_eq(_base_ring_paths().size(), 1, "advancing writes a base autosave")
+	assert_signal_emitted_with_parameters(SaveManager, "save_written",
+			[SaveManager.KIND_AUTO_BASE, _base_ring_paths()[0]])
+
+	CampaignManager.mission_restarted.emit(1)
+	assert_eq(_base_ring_paths().size(), 2, "a defeat's replay boundary writes one too")
+
+	CampaignManager.campaign_started.emit(5, ["res://scenes/maps/map_a.tscn"])
+	assert_eq(_base_ring_paths().size(), 3, "so does a fresh campaign's first arrival")
+
+	var snapshot: Dictionary = SaveManager.read_save_file(_base_ring_paths()[0])
+	assert_eq(str(snapshot["kind"]), SaveManager.KIND_AUTO_BASE)
+	assert_eq(str(snapshot["label"]), "Mission 2 · Prep",
+			"labelled for the mission the hub is preparing, matching its eyebrow")
+	assert_false(snapshot.has("battle"), "the board is gone at a boundary — never a battle section")
+	assert_true(snapshot.has("squad") and snapshot.has("campaign"),
+			"campaign + squad are exactly what the hub mutates and what must survive a quit")
+
+
+func test_a_base_autosave_is_the_newest_save_after_a_boundary() -> void:
+	# What Continue picks: list_saves()[0]. A stale turn autosave from the
+	# finished mission must lose to the boundary write.
+	_reset_turn_manager()
+	_with_active_campaign(0)
+	SaveManager.write_autosave(SaveManager.KIND_AUTO_TURN,
+			_stub_save(int(Time.get_unix_time_from_system()) - 60, true))
+	CampaignManager.mission_advanced.emit(1)
+	var newest: Dictionary = SaveManager.list_saves()[0]
+	assert_eq(str(newest["kind"]), SaveManager.KIND_AUTO_BASE, "Continue lands at the hub, not the battle")
+	assert_false(bool(newest["has_battle"]))
+
+
+func test_no_base_autosave_without_a_campaign() -> void:
+	_reset_turn_manager()
+	CampaignManager.restore_save_state({})
+	CampaignManager.mission_advanced.emit(0)
+	assert_eq(SaveManager.list_saves().size(), 0, "nothing to record, nothing written")
+
+
+func test_base_ring_rotates_like_the_other_autosave_rings() -> void:
+	_reset_turn_manager()
+	_with_active_campaign(0)
+	for _i: int in range(SaveManager.SLOT_COUNT + 1):
+		CampaignManager.mission_advanced.emit(0)
+	assert_eq(_base_ring_paths().size(), SaveManager.SLOT_COUNT,
+			"rule of 4 — base saves evict their own oldest, never another ring's")
 
 
 # =============================================================================
@@ -316,11 +406,7 @@ func test_manual_save_requires_active_campaign() -> void:
 
 func test_manual_save_writes_into_manual_ring() -> void:
 	_reset_turn_manager()
-	CampaignManager.restore_save_state({
-		"mission_paths": ["res://scenes/maps/map_a.tscn"],
-		"recruit_pool": [], "recruited_paths": [],
-		"current_mission_index": 0, "start_level": 5, "deployment_selection": [],
-	})
+	_with_active_campaign(0)
 	var path: String = SaveManager.write_manual_save()
 	assert_ne(path, "", "manual save lands")
 	assert_string_contains(path, "/%s/" % SaveManager.KIND_MANUAL)
@@ -328,6 +414,82 @@ func test_manual_save_writes_into_manual_ring() -> void:
 	assert_eq(str(snapshot["kind"]), SaveManager.KIND_MANUAL)
 	assert_eq(str(snapshot["label"]), "Mission 1", "no live battle → campaign-only label")
 	assert_false(snapshot.has("battle"), "no live board → no battle section")
+
+
+func _manual_slot(index: int) -> String:
+	return "%s/%s/slot_%d.json" % [TEST_SAVE_ROOT, SaveManager.KIND_MANUAL, index]
+
+
+func _created_at(path: String) -> int:
+	return int(SaveManager.read_save_file(path).get("created_unix", -1))
+
+
+func test_manual_saves_fill_free_slots_then_refuse_instead_of_evicting() -> void:
+	# The bug: the 5th manual save silently destroyed the 1st. A manual press
+	# is the intent to KEEP that state, so a full ring is a decision for the
+	# player (the overwrite picker), never the ring's.
+	_reset_turn_manager()
+	_with_active_campaign(0)
+	for i: int in range(SaveManager.SLOT_COUNT):
+		assert_eq(SaveManager.find_free_manual_slot(), _manual_slot(i), "slot %d is next" % i)
+		assert_eq(SaveManager.write_manual_save(), _manual_slot(i), "write %d lands there" % i)
+	# Backdate slot 0 so it would be the eviction victim under ring rotation.
+	var oldest: Dictionary = SaveManager.read_save_file(_manual_slot(0))
+	oldest["created_unix"] = 100
+	SaveManager.write_save_file(_manual_slot(0), oldest)
+
+	assert_eq(SaveManager.find_free_manual_slot(), "", "ring full — no free slot")
+	assert_eq(SaveManager.write_manual_save(), "", "the 5th press writes NOTHING")
+	assert_eq(_created_at(_manual_slot(0)), 100, "…and the oldest manual save is untouched")
+	assert_eq(SaveManager.list_saves().size(), SaveManager.SLOT_COUNT)
+
+
+func test_write_manual_save_to_lands_on_exactly_the_chosen_slot() -> void:
+	_reset_turn_manager()
+	_with_active_campaign(0)
+	for i: int in range(SaveManager.SLOT_COUNT):
+		SaveManager.write_manual_save()
+		var stamped: Dictionary = SaveManager.read_save_file(_manual_slot(i))
+		stamped["created_unix"] = 100 + i
+		SaveManager.write_save_file(_manual_slot(i), stamped)
+
+	var written: String = SaveManager.write_manual_save_to(_manual_slot(2))
+	assert_eq(written, _manual_slot(2), "the picker's answer is where it lands")
+	assert_true(_created_at(_manual_slot(2)) > 100 + 2, "slot 2 was overwritten")
+	for i: int in [0, 1, 3]:
+		assert_eq(_created_at(_manual_slot(i)), 100 + i, "slot %d untouched" % i)
+	assert_eq(_created_at(_manual_slot(2) + ".bak"), 102,
+			"the overwritten manual save is still recoverable as .bak")
+
+
+func test_write_manual_save_to_refuses_without_a_campaign() -> void:
+	_reset_turn_manager()
+	CampaignManager.restore_save_state({})
+	assert_eq(SaveManager.write_manual_save_to(_manual_slot(0)), "")
+	assert_false(FileAccess.file_exists(_manual_slot(0)))
+
+
+func test_list_manual_slots_reports_all_four_in_slot_order() -> void:
+	_reset_turn_manager()
+	_with_active_campaign(0)
+	SaveManager.write_manual_save_to(_manual_slot(1))
+	var vandal := FileAccess.open(_manual_slot(3), FileAccess.WRITE)
+	vandal.store_string("not a save")
+	vandal.close()
+
+	var slots: Array[Dictionary] = SaveManager.list_manual_slots()
+	assert_eq(slots.size(), SaveManager.SLOT_COUNT, "empty slots are rows too — the picker offers them")
+	for i: int in range(SaveManager.SLOT_COUNT):
+		assert_eq(int(slots[i]["slot_index"]), i, "slot order, not newest-first")
+		assert_eq(str(slots[i]["path"]), _manual_slot(i))
+	assert_true(bool(slots[0]["empty"]))
+	assert_false(bool(slots[1]["empty"]))
+	assert_eq(str(slots[1]["label"]), "Mission 1")
+	assert_eq(str(slots[1]["kind"]), SaveManager.KIND_MANUAL)
+	assert_true(bool(slots[3]["unreadable"]),
+			"a corrupt manual slot is shown as reclaimable, never silently reused")
+	assert_eq(SaveManager.find_free_manual_slot(), _manual_slot(0),
+			"a corrupt slot counts as TAKEN for the free-slot lookup")
 
 
 # =============================================================================

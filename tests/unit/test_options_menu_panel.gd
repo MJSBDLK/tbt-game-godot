@@ -50,7 +50,7 @@ func test_every_persisted_setting_lives_on_exactly_one_tab() -> void:
 	# The membership decision, pinned. Moving a row is editing this list.
 	assert_eq(_ids(OptionsMenuPanel.Tab.GAMEPLAY), ["click_attack", "auto_end_turn",
 			"move_confirm", "battle_animations", "seeded_reload",
-			"control_hints", "tooltip_hold"] as Array[String])
+			"control_hints", "tooltip_hold", "cursor_speed"] as Array[String])
 	assert_eq(_ids(OptionsMenuPanel.Tab.VIDEO), ["zoom_mode", "portrait_effects",
 			"ui_motion", "type_icons", "max_fps"] as Array[String])
 	assert_eq(_ids(OptionsMenuPanel.Tab.AUDIO), ["master_volume", "sfx_volume",
@@ -60,7 +60,7 @@ func test_every_persisted_setting_lives_on_exactly_one_tab() -> void:
 		for id: String in _ids(tab as OptionsMenuPanel.Tab):
 			assert_false(all_ids.has(id), "%s appears on two tabs" % id)
 			all_ids.append(id)
-	assert_eq(all_ids.size(), 15, "fifteen persisted settings, each on one tab")
+	assert_eq(all_ids.size(), 16, "sixteen persisted settings, each on one tab")
 
 
 # =============================================================================
@@ -160,6 +160,41 @@ func test_a_pill_press_writes_the_setting_and_lights_the_new_pill() -> void:
 	assert_true(Settings.click_to_attack_enabled, "the press persisted through the Settings setter")
 	assert_eq(on_pill.get_theme_stylebox("normal"), _panel._toggle_style_active, "On lights up")
 	assert_eq(off_pill.get_theme_stylebox("normal"), _panel._toggle_style_inactive, "Off dims")
+
+
+func _slider(row_id: String) -> HSlider:
+	for tab: int in OptionsMenuPanel.TAB_ORDER:
+		for row: Node in (_panel._tab_boxes[tab] as Control).get_children():
+			if String(row.get_meta("row_id", "")) != row_id:
+				continue
+			for child: Node in row.get_children():
+				if child is HSlider:
+					return child as HSlider
+	return null
+
+
+func test_slider_rows_wear_the_pill_palette_not_godots_default() -> void:
+	# RQD 2026-09-10: "sliders in the options menu need to be styled to match
+	# existing visual design." The stock HSlider was the last default-theme
+	# widget in the menu. Track = unlit pill, fill = lit pill, knob = a small
+	# pixel plate — nothing Godot-shaped.
+	_panel.show_panel()
+	for row_id: String in ["tooltip_hold", "cursor_speed", "max_fps", "master_volume"]:
+		var slider: HSlider = _slider(row_id)
+		assert_not_null(slider, row_id)
+		assert_eq(slider.get_theme_stylebox("slider"), _panel._slider_track_style,
+				"%s: the track is the unlit pill" % row_id)
+		assert_eq(slider.get_theme_stylebox("grabber_area"), _panel._slider_fill_style,
+				"%s: the fill is the lit pill" % row_id)
+		assert_eq(slider.get_theme_icon("grabber"), _panel._slider_knob, "%s: house knob" % row_id)
+		assert_eq(slider.get_theme_icon("grabber_highlight"), _panel._slider_knob_highlight)
+	assert_eq(_panel._slider_knob.get_size(), Vector2(OptionsMenuPanel.SLIDER_KNOB_SIZE),
+			"a %s px knob on a 14 px row, not the 16 px default disc" % OptionsMenuPanel.SLIDER_KNOB_SIZE)
+	assert_eq(_panel._slider_fill_style.border_color, GameColors.TEXT_SECONDARY,
+			"the fill's rim is the lit pill's gold — 'this is the current value'")
+	assert_eq(_panel._slider_track_style.border_color, GameColors.ACTION_BUTTON_BORDER,
+			"the track's rim is the unlit pill's gray")
+	assert_eq(_panel._slider_track_style.get_minimum_size().y, float(OptionsMenuPanel.SLIDER_TRACK_HEIGHT))
 
 
 func test_escape_closes_and_emits() -> void:
