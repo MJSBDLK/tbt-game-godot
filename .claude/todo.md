@@ -1,12 +1,5 @@
 # Resp
-elf_pirate: yes, this is Pica - Lawrence just removed the background on the highres art - should be properly transparent now.
-ex-gentry_swordsman - this guy has defected from his fiefdom after realizing the depth of the corruption among the nobility. Does not trust offworlders - reacts violently, but some series of events (TBD) wins him over to their cause
-ex-plant_cultist - NPC. He's a Creeper by design, and has some unique perspective for the player sometime in the midgame, after the first encounter with the plant cultists
-gentry_prince: Enemy, similar deal to Pierre: somewhat pompous, skilled. Better people skills - charming, studied - familiar with galactic affairs beyond his fiefdom.
-old_creature: probably an NPC as well. old, wise
-pica's_sister: Pica doesn't like people to know that she comes from nobility - all of her pirate friends turned to piracy because of poor material circumstances. Her sister finds her situation both amusing and concerning. Might be playable very late-game, but was conceived as an NPC.
-tipsy_goblin: Probably an ally. He's a goblin who enjoys a drink a little too much. Poor combat skills, gotta find some other use for him
-wooly_beast: enemy beast - similar to the Ogre, less strong, much more mobile - an extreme threat.
+Were those units cropped to non-square because the engine was dropping rows with whitespace? I think I liked the portraits from before - they were more centered around the units' eyes.
 
 # Quick Fixes
 - [~] Goblin Healer - not a mage, an... apothecary? I think that's the name of the store. What do you call them, an herbalist or something? What word am I looking for?
@@ -21,59 +14,6 @@ wooly_beast: enemy beast - similar to the Ogre, less strong, much more mobile - 
   and the tier-1 list in class-and-promotion.md §Tier 1 (15 → 16). Wants
   RQD's call first — it's the first class added since the enum was ported,
   and the class doc is still the design's open question.)
-
-  - [ ] Goblin Healer
-    Base class: Herbalist (Monster)
-    ├2A: Apothecary (Monster/Plant)
-    | ├3A: Plague Doc (Monster)
-    | └3B: Distiller (Monster/Plant)
-    └2B: Sawbones (Monster/Simple)
-      ├3C: Chirurgeon (Monster/Simple)
-      └3D: Thaumaturge (Monster/Occult)
-
-  - [ ] Plant Cultist
-    Base class: Cultist (Occult)
-    ├2A: Botanist (Occult/Plant)
-    | ├3A: Sage (Occult/Plant)
-    | └3B: Harvester (Occult/Plant)
-    └2B: Creeper (Occult/Plant)
-      ├3C: Abomination (Occult/Plant)
-      └3D: Topiary (Plant)
-
-   - [ ] Plant Healer
-		Base Class: Bulb (Plant)
-		├2A: Cactus (Plant)
-		|	├3A: Pyracantha (Plant/Fire)
-		|	└3B: Snowdrop (Plant/Cold)
-		└2B: Taproot (Plant)
-			├3C: Samara (Plant/Air)
-			└3D: Mandrake (Plant)
-		2B Taproot = the bulky storage-root class ("Tuber" fit; RQD found the
-		word ugly).
-		Moves + passives for this tree (Vines, Sunflower, Whirlicopter, Pod,
-		Turgor, Stolon, Clover) live in data/design/moves-and-passives.md with
-		the rest of the wishlist. Creeper is taken (Cultist 2B); "Host" is a
-		good name held in reserve.
-
-	- [ ] Base Class: Thief (Simple)
-		├2A: Assassin (Simple)
-		|	├3A: Hitman (Simple)
-		|	└3B: Fixer (Gentry)
-		└2B: Kleptomaniac (Simple)
-			├3C: Highwayman (Chivalric)
-			└3D: Infiltrator (Simple/Robo)	
-		Homeless on purpose: a design from Lawrence's new line-art batch
-		(art/lineart_fullres/assassin.png, finished, unwired; no idle sprite
-		yet, player-character status undecided). The classes sound
-		fun enough that the player should probably get his hands on them.
-
-	- [ ] Whirlicopter — Plant move, Samara's signature, late game, 2–3 uses:
-	  repositions the user 3 tiles in one direction, healing the tiles
-	  beneath (units on them, or a healing plant terrain status — ties to
-	  Pod). New move shape: self-displace along a line. "OP as fuck" by
-	  design. Waits on promotion (tier 3) and maybe terrain statuses.
-
-
 - [x] Reduce tooltip hold max from 1000ms -> 800ms (Done 2026-09-10:
   `Settings.TOOLTIP_HOLD_MAX_MS` 1000 → 800; the slider reads the const; the
   §14 style-guide range + test_settings ceiling assert updated.)
@@ -112,6 +52,70 @@ wooly_beast: enemy beast - similar to the Ogre, less strong, much more mobile - 
   cursor share). Not touched, flagging: the "move preview doesn't animate
   properly when a unit retreads its path" item in §6 is probably related
   (beacon phase on revisited tiles), not this.)
+- [ ] Still need to replace "B" and "8" in the small font with our own creations
+
+# Characters
+- [ ] Goblin Healer
+	Base class: Herbalist (Monster)
+	├2A: Apothecary (Monster/Plant)
+	|	├3A: Plague Doc (Monster)
+	|	└3B: Distiller (Monster/Plant)
+	└2B: Sawbones (Monster/Simple)
+		├3C: Chirurgeon (Monster/Simple)
+		└3D: Thaumaturge (Monster/Occult)
+
+- [ ] Plant Cultist
+	Base class: Cultist (Occult)
+	├2A: Botanist (Occult/Plant)
+	|	├3A: Sage (Occult/Plant)
+	|	└3B: Harvester (Occult/Plant)
+	└2B: Creeper (Occult/Plant)
+		├3C: Abomination (Occult/Plant)
+		└3D: Topiary (Plant)
+
+- [ ] Plant Healer
+	Base Class: Bulb (Plant)
+	├2A: Cactus (Plant)
+	|	├3A: Pyracantha (Plant/Fire)
+	|	└3B: Snowdrop (Plant/Cold)
+	└2B: Taproot (Plant)
+		├3C: Samara (Plant/Air)
+		└3D: Mandrake (Plant)
+	2B Taproot = the bulky storage-root class ("Tuber" fit; RQD found the
+	word ugly).
+	Moves + passives for this tree (Vines, Sunflower, Whirlicopter, Pod,
+	Turgor, Stolon, Clover) live in data/design/moves-and-passives.md with
+	the rest of the wishlist. Creeper is taken (Cultist 2B); "Host" is a
+	good name held in reserve.
+
+- [ ] Base Class: Thief (Simple)
+	├2A: Assassin (Simple)
+	|	├3A: Hitman (Simple)
+	|	└3B: Fixer (Gentry)
+	└2B: Kleptomaniac (Simple)
+		├3C: Highwayman (Chivalric)
+		└3D: Infiltrator (Simple/Robo)	
+	Homeless on purpose: a design from Lawrence's new line-art batch
+	(art/lineart_fullres/assassin.png, finished, unwired; no idle sprite
+	yet, player-character status undecided). The classes sound
+	fun enough that the player should probably get his hands on them.
+
+- [ ] Whirlicopter — Plant move, Samara's signature, late game, 2–3 uses:
+	repositions the user 3 tiles in one direction, healing the tiles
+	beneath (units on them, or a healing plant terrain status — ties to
+	Pod). New move shape: self-displace along a line. "OP as fuck" by
+	design. Waits on promotion (tier 3) and maybe terrain statuses.
+
+- [ ] Squash
+	- What elemental type is he?
+	- Base Class: [???]
+		├2A: 
+		|	├3A: 
+		|	└3B: 
+		└2B: 
+			├3C: 
+			└3D: 	
+
 - [ ] 
 
 # Todo
@@ -178,6 +182,12 @@ wooly_beast: enemy beast - similar to the Ogre, less strong, much more mobile - 
   (DONE 2026-09-10: `OptionsMenuPanel._dress_slider` — the pill palette as a
   bar, 5×9 knob. RQD: "knob looks good". Still no §14 slider design; this
   is the placeholder.)
+- [ ] In the unit detail panel, clicking any stat should display its modifications:
+	- Str 10+2
+		-> Base (10)\n+3 (Competitive)\n-1 (Some debuff)
+	- should also show base (10) alone if it's unmodified and the user brings up the tooltip
+	- should still show e.g. `Base (10)\n+2 (Some buff)\n-2 (Some debuff)` if there are modifications which bring it back to its base.
+- [ ] Victory screen popping up needs more dopamine - discuss
 - [ ] 
 
 **Answered + BUILT 2026-09-07 on `rqd--terrain-stack`** (3 commits, suite
@@ -271,6 +281,7 @@ those cells need repainting.
 
 
 # More stuff
+- [ ] Enemies hit too often. I'll position my highest AGL unit on good cover, and I don't think I've ever seen an enemy miss. I don't know if this is simply because we gave them all too much skill, or if there's a bug which gives enemies 100% accuracy.
 - [x] the default camera pan speed is way too low - probably speed up 3-5x
   (Done 2026-09-09: `CameraController.pan_speed` 120 → 480 screen px/s — 4x,
   the mid-point; it's an @export, tune in the inspector or the const.)
@@ -862,6 +873,7 @@ foundation shipped. What's left is **deliberate deferral, not loose ends**:
 ---
 
 ## 6. Bugs
+- [ ] Max S. leveled up on the move that won the level, and the victory screen showed before the level up screen (should wait on continue). Then the level up screen displays over the intermission screen. This seems like a class of bug which should be precluded by the transition to the intermission screen, but that would've made it hard to detect the early victory screen pop-up, so I'm glad we caught it.
 
 - [x] **Displacement arrows rendered under terrain modifiers and units**
   (Lawrence 2026-08-05) — **FIXED same day.** Root cause worth remembering: board
