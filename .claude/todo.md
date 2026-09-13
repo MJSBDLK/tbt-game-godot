@@ -874,6 +874,8 @@ foundation shipped. What's left is **deliberate deferral, not loose ends**:
 
 ## 6. Bugs
 - [ ] Max S. leveled up on the move that won the level, and the victory screen showed before the level up screen (should wait on continue). Then the level up screen displays over the intermission screen. This seems like a class of bug which should be precluded by the transition to the intermission screen, but that would've made it hard to detect the early victory screen pop-up, so I'm glad we caught it.
+- [ ] In the intermission/manage units screen, the VHS-distortion effect on portraits has disappeared. This is a regression, and should have a unit test.
+- [ ] 
 
 - [x] **Displacement arrows rendered under terrain modifiers and units**
   (Lawrence 2026-08-05) — **FIXED same day.** Root cause worth remembering: board
