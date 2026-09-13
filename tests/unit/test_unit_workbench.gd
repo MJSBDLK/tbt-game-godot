@@ -493,35 +493,6 @@ func test_both_marker_kinds_coexist_in_one_record() -> void:
 
 
 # =============================================================================
-# FRAME GEOMETRY — the ring hugs the drawn art
-# =============================================================================
-
-func test_a_wide_area_bottom_centers_the_art_at_full_height() -> void:
-	# Square art in a 100×50 area: height-constrained to 50×50, centered.
-	assert_eq(UnitWorkbench.portrait_rect_in_area(Vector2(100, 50), 1.0),
-			Rect2(25, 0, 50, 50))
-
-
-func test_a_tall_area_bottom_aligns_the_art_at_full_width() -> void:
-	# Square art in a 50×100 area: width-constrained to 50×50, on the floor.
-	assert_eq(UnitWorkbench.portrait_rect_in_area(Vector2(50, 100), 1.0),
-			Rect2(0, 50, 50, 50))
-
-
-func test_the_art_rect_is_pixel_snapped() -> void:
-	# 101-wide area centers a 50-wide rect at 25.5 — floored, never fractional
-	# (fractional rects shimmer in the pixel viewport).
-	var rect: Rect2 = UnitWorkbench.portrait_rect_in_area(Vector2(101, 50), 1.0)
-	assert_eq(rect.position.x, 25.0)
-	assert_eq(rect.size, Vector2(50, 50))
-
-
-func test_degenerate_areas_produce_an_empty_rect() -> void:
-	assert_eq(UnitWorkbench.portrait_rect_in_area(Vector2(0, 50), 1.0), Rect2())
-	assert_eq(UnitWorkbench.portrait_rect_in_area(Vector2(50, 50), 0.0), Rect2())
-
-
-# =============================================================================
 # ROUND 6 SHEET RULES (RQD 2026-08-11): DANGER voice, quiet injuries, bEXP row
 # =============================================================================
 

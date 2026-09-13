@@ -1,0 +1,66 @@
+{
+	"characterId": "wooly_beast",
+	"characterName": "Wooly Beast",
+	"primaryType": "Beast",
+	"secondaryType": "Cold",
+	"currentClass": "Heavy",
+	"specialization": "None",
+	"lineartPath": "res://art/lineart_fullres/wooly_beast.png",
+	"lineartAtlases": {
+		"portrait": "res://art/lineart_fullres/wooly_beast_portrait.tres"
+	},
+	"sprite": {
+		"sheetPath": "res://art/sprites/characters/placeholder_unit.png",
+		"atlasPath": "",
+		"frameIndex": 0
+	},
+	"baseStats": {
+		"maxHP": 28,
+		"strength": 8,
+		"special": 2,
+		"skill": 4,
+		"agility": 6,
+		"athleticism": 7,
+		"defense": 6,
+		"resistance": 5
+	},
+	"growthRates": {
+		"hp": 80,
+		"strength": 55,
+		"special": 5,
+		"skill": 30,
+		"agility": 50,
+		"athleticism": 60,
+		"defense": 45,
+		"resistance": 35
+	},
+	"physicalAttributes": {
+		"moveDistance": 6,
+		"constitution": 9,
+		"carry": 12
+	},
+	"level": 1,
+	"basePoolMoves": [
+		"Bonk",
+		"Club",
+		"Klunk",
+		"Hook Swipe",
+		"Roar",
+		"Bounce Out",
+		"Guard Break",
+		"Uppercut",
+		"Snap Freeze"
+	],
+	"basePoolPassives": [
+		"Reckless",
+		"Impetuous",
+		"Competitive",
+		"Capricious",
+		"Bravery",
+		"Extendo",
+		"Protector",
+		"Impulsive",
+		"Cavalier"
+	],
+	"serviceRecord": "Fauna record. Horned, shelled, fur-bearing.\nMass below the ogre's. Speed well above it.\nThreat rating: extreme. Closing distance to it is inadvisable; it closes the distance itself."
+}

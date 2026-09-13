@@ -456,3 +456,18 @@ func test_closing_releases_the_cursor() -> void:
 	assert_not_null(panel._focused_inspectable())
 	panel.hide_panel()
 	assert_null(panel._focused_inspectable(), "no focus owner left behind on a hidden sheet")
+
+
+func test_the_portrait_box_is_square() -> void:
+	# A wide box, like a wide crop, leaves the portrait floating mid-frame with
+	# a band underneath. The AspectRatioContainer's 1:1 is the box's contract;
+	# the crops' squareness is pinned in test_character_art_wiring.
+	var panel := _make_panel()
+	var box: AspectRatioContainer = panel.get_node(
+			"MainRow/LeftColumnMargin/LeftColumn/AspectRatioContainer")
+	assert_eq(box.ratio, 1.0, "square box")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var portrait: Control = box.get_node("PortraitInset/Portrait")
+	assert_gt(portrait.size.x, 0.0, "laid out")
+	assert_almost_eq(portrait.size.x, portrait.size.y, 0.5, "the portrait rect is square after layout")

@@ -1,0 +1,66 @@
+{
+	"characterId": "gentry_prince",
+	"characterName": "Gentry Prince",
+	"primaryType": "Gentry",
+	"secondaryType": "None",
+	"currentClass": "Noble",
+	"specialization": "None",
+	"lineartPath": "res://art/lineart_fullres/gentry_prince.png",
+	"lineartAtlases": {
+		"portrait": "res://art/lineart_fullres/gentry_prince_portrait.tres"
+	},
+	"sprite": {
+		"sheetPath": "res://art/sprites/characters/placeholder_unit.png",
+		"atlasPath": "",
+		"frameIndex": 0
+	},
+	"baseStats": {
+		"maxHP": 17,
+		"strength": 5,
+		"special": 6,
+		"skill": 9,
+		"agility": 7,
+		"athleticism": 5,
+		"defense": 4,
+		"resistance": 6
+	},
+	"growthRates": {
+		"hp": 50,
+		"strength": 35,
+		"special": 55,
+		"skill": 75,
+		"agility": 60,
+		"athleticism": 40,
+		"defense": 30,
+		"resistance": 50
+	},
+	"physicalAttributes": {
+		"moveDistance": 4,
+		"constitution": 4,
+		"carry": 6
+	},
+	"level": 1,
+	"basePoolMoves": [
+		"Lance",
+		"Feint",
+		"Backstab",
+		"Focus",
+		"Battle Cry",
+		"Sidearm",
+		"Guard Break",
+		"Uppercut",
+		"Laser"
+	],
+	"basePoolPassives": [
+		"Glib",
+		"Cavalier",
+		"Competitive",
+		"Reliable",
+		"Flippant",
+		"Low Profile",
+		"Impetuous",
+		"Protector",
+		"Capricious"
+	],
+	"serviceRecord": "Subject: heir of [[ NO DATA ]] house.\nFencing instruction: extensive. Correspondence with off-planet courts: extensive.\nAssessed charming. Assessed dangerous. Personnel are advised not to let him start a conversation."
+}

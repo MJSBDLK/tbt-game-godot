@@ -5,6 +5,10 @@
 	"secondaryType": "Chivalric",
 	"currentClass": "Duelist",
 	"specialization": "None",
+	"lineartPath": "res://art/lineart_fullres/pierre.png",
+	"lineartAtlases": {
+		"portrait": "res://art/lineart_fullres/pierre_portrait.tres"
+	},
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/pierre/idle.png",
 		"atlasPath": "",

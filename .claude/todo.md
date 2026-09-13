@@ -1,13 +1,12 @@
 # Resp
-+ For some reason I don't like the name "Tuber" for a class. I agree it fits perfectly; I find the word ugly. That's my only hangup.
-+ Turgor Root - make this 80%
-+ Stolon: if this unit starts its turn on a plant tile, all plant tiles within 3 spaces apply 10% health regen to player units.
-+ Creeper - I'm actually using this as the intermediary between Cultist and Abomination. We might reuse "Host" elsewhere - it's a good name.
-+ Vines - just the name of an early game workhorse plant damaging move
-+ Samara - not a move, it's a class. I do like the idea of a plant-typed move which repositions the user - "Whirlicopter" or something like that. Repositions unit 3 spaces in one direction, healing the tiles beneath - late game ability, extremely restrictive usages - 2 or 3 (this ability would be OP as fuck)
-+ Sunflower - ranged beam, medium power distributed to the Pyracantha, like you said. Huge reduction in power if the unit is positioned on a tile with the "rain" terrain status, if we're still doing those (Haven't thought about them in a while)
-+ Four-leaf clover: passive - boosts all dice rolls
-+ Pod - might apply a plant-based terrain status or something
+elf_pirate: yes, this is Pica - Lawrence just removed the background on the highres art - should be properly transparent now.
+ex-gentry_swordsman - this guy has defected from his fiefdom after realizing the depth of the corruption among the nobility. Does not trust offworlders - reacts violently, but some series of events (TBD) wins him over to their cause
+ex-plant_cultist - NPC. He's a Creeper by design, and has some unique perspective for the player sometime in the midgame, after the first encounter with the plant cultists
+gentry_prince: Enemy, similar deal to Pierre: somewhat pompous, skilled. Better people skills - charming, studied - familiar with galactic affairs beyond his fiefdom.
+old_creature: probably an NPC as well. old, wise
+pica's_sister: Pica doesn't like people to know that she comes from nobility - all of her pirate friends turned to piracy because of poor material circumstances. Her sister finds her situation both amusing and concerning. Might be playable very late-game, but was conceived as an NPC.
+tipsy_goblin: Probably an ally. He's a goblin who enjoys a drink a little too much. Poor combat skills, gotta find some other use for him
+wooly_beast: enemy beast - similar to the Ogre, less strong, much more mobile - an extreme threat.
 
 # Quick Fixes
 - [~] Goblin Healer - not a mage, an... apothecary? I think that's the name of the store. What do you call them, an herbalist or something? What word am I looking for?
@@ -63,8 +62,9 @@
 		└2B: Kleptomaniac (Simple)
 			├3C: Highwayman (Chivalric)
 			└3D: Infiltrator (Simple/Robo)	
-		Homeless on purpose: a design from Lawrence's new line-art batch (no
-		idle sprite yet, player-character status undecided). The classes sound
+		Homeless on purpose: a design from Lawrence's new line-art batch
+		(art/lineart_fullres/assassin.png, finished, unwired; no idle sprite
+		yet, player-character status undecided). The classes sound
 		fun enough that the player should probably get his hands on them.
 
 	- [ ] Whirlicopter — Plant move, Samara's signature, late game, 2–3 uses:
@@ -132,7 +132,10 @@
   membership + the height budget. EYEBALL: tab grouping, Q/E vs another
   key pair (E is also End Turn on the map — harmless, InputManager is off
   under the menu, but the double meaning may grate), glyph placement.)
-- [ ] Oh yeah, I forgot to mention - after our last meeting (9/7) I merged in a bunch of Lawrence's new line art. This provides some new line art for characters for whom there's no data yet.
+- [x] Oh yeah, I forgot to mention - after our last meeting (9/7) I merged in a bunch of Lawrence's new line art. This provides some new line art for characters for whom there's no data yet.
+  (REVIEWED 2026-09-12: 7 sheets wired, 4 JSON stubs in no spawn pool,
+  4 art-only. Roles + lore: data/design/ideas-and-brainstorming.md
+  "Line-art batch". Paper roughs: §4. Story in the commit.)
 - [x] Pull spry.md and the spry skill out of work's documents - then see how we can apply those principles here
   - [ ] Follow-up: Corporate have a more sophisticated SPRY workflow - would be very interested to pull any ideas from it which are applicable to our project. Should be ready to go by 9/14 - check back in after that.
 - [ ] I noticed the enemy AI will often move and not attack - definitely not a bug.
@@ -787,6 +790,14 @@ Nothing here is code-blocked; all have placeholders shipping today.
   `<tag>_shadow.png` strips and the runtime plays them verbatim when present.
   Deferred until Lawrence authors the first one.
 - [ ] **Grunt pivot non-compliance** — Lawrence redesigning the sprite.
+- [ ] **Ink pass on the 9/7 paper roughs.** `IMG_0154` Keener, `IMG_0203`
+  Phoenix Pirate, `IMG_0204` Robot, `IMG_0205` Squash, `IMG_0207` Thumps,
+  `IMG_0208` Bugler, `pirate_boss` (new). Opaque page photos, 11–15 MB each;
+  unwireable until they're transparent ink. Rename to the character name,
+  then drop or recompress the photos.
+- [ ] **Sprites for the new characters** once their kits settle: swordsman,
+  gentry prince, wooly beast, tipsy goblin (all on the 16px
+  `placeholder_unit` today), then the three NPCs and the Thief.
 
 ### LOD work list
 - [ ] Stylized arrows showing displacement.

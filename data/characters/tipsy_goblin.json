@@ -1,0 +1,66 @@
+{
+	"characterId": "tipsy_goblin",
+	"characterName": "Tipsy Goblin",
+	"primaryType": "Monster",
+	"secondaryType": "None",
+	"currentClass": "Engineer",
+	"specialization": "None",
+	"lineartPath": "res://art/lineart_fullres/tipsy_goblin.png",
+	"lineartAtlases": {
+		"portrait": "res://art/lineart_fullres/tipsy_goblin_portrait.tres"
+	},
+	"sprite": {
+		"sheetPath": "res://art/sprites/characters/placeholder_unit.png",
+		"atlasPath": "",
+		"frameIndex": 0
+	},
+	"baseStats": {
+		"maxHP": 16,
+		"strength": 3,
+		"special": 3,
+		"skill": 3,
+		"agility": 4,
+		"athleticism": 6,
+		"defense": 4,
+		"resistance": 5
+	},
+	"growthRates": {
+		"hp": 65,
+		"strength": 25,
+		"special": 25,
+		"skill": 30,
+		"agility": 35,
+		"athleticism": 55,
+		"defense": 40,
+		"resistance": 45
+	},
+	"physicalAttributes": {
+		"moveDistance": 4,
+		"constitution": 5,
+		"carry": 9
+	},
+	"level": 1,
+	"basePoolMoves": [
+		"First Aid",
+		"Steady",
+		"Bonk",
+		"Klunk",
+		"Sidearm",
+		"Battle Cry",
+		"Roar",
+		"Hook Swipe",
+		"Fortify"
+	],
+	"basePoolPassives": [
+		"Waste Not",
+		"Jury Rig",
+		"Capricious",
+		"Low Profile",
+		"Ghost",
+		"Impulsive",
+		"Flippant",
+		"Glib",
+		"Reliable"
+	],
+	"serviceRecord": "Asset [[ NO DATA: name undecided ]]. Combat aptitude: negligible. Blood alcohol: persistent.\nRetained pending identification of a role. Suggestions welcome."
+}

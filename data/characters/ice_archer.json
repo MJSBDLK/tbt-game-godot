@@ -5,6 +5,10 @@
 	"secondaryType": "None",
 	"currentClass": "Skulk",
 	"specialization": "None",
+	"lineartPath": "res://art/lineart_fullres/ice_archer.png",
+	"lineartAtlases": {
+		"portrait": "res://art/lineart_fullres/ice_archer_portrait.tres"
+	},
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/ice_archer/idle.png",
 		"atlasPath": "",

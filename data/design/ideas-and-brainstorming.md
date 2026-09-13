@@ -55,6 +55,57 @@
  - will cut you to get the treasure
  - gullible and/or anxious?
 
+## Line-art batch of 2026-09-07 (Lawrence), roles decided 2026-09-12
+Finished ink is in `art/lineart_fullres/`. Characters that fight have a JSON
+stub (provisional stats, 16px `placeholder_unit` sprite, in no spawn pool) and
+a `_portrait.tres` crop. NPCs are art only until ally/neutral spawn wiring and
+a dialogue system exist. Seven more sheets in that batch are opaque paper
+roughs of shipped characters, tracked in `.claude/todo.md` §4.
+
+### Thief (`assassin.png`)
+- Homeless on purpose: see the Thief class tree in `.claude/todo.md`. Player
+  status undecided, no sprite, no data.
+
+### Ex-gentry swordsman (`ex_gentry_swordsman.json`, placeholder name "Swordsman")
+- Defected from his fiefdom after realizing the depth of the corruption among
+  the nobility
+- Does not trust offworlders and reacts violently; some series of events (TBD)
+  wins him over to the squad's cause
+- Data: Gentry / Duelist. Starts hostile, recruitable later.
+
+### Ex-plant cultist (`ex-plant_cultist.png`), NPC
+- A Creeper by design (the Cultist tree's 2B)
+- Has a unique perspective for the player sometime in the midgame, after the
+  first encounter with the plant cultists
+- Suggestion: the reserved name "Host" fits a body that a plant moved into
+
+### Gentry prince (`gentry_prince.json`), enemy
+- Similar deal to Pierre: somewhat pompous, skilled
+- Better people skills: charming, studied, familiar with galactic affairs
+  beyond his fiefdom
+- Data: Gentry / Noble
+
+### Old creature (`old_creature.png`), NPC probably
+- Old, wise
+
+### Pica's sister (`pica's_sister.png`), NPC; might be playable very late
+- Pica doesn't like people to know that she comes from nobility; all of her
+  pirate friends turned to piracy because of poor material circumstances
+- Her sister finds her situation both amusing and concerning
+
+### Tipsy goblin (`tipsy_goblin.json`), ally probably
+- A goblin who enjoys a drink a little too much
+- Poor combat skills; gotta find some other use for him
+- Data: Monster / Engineer. Ally spawn wiring doesn't exist yet.
+
+### Wooly beast (`wooly_beast.json`), enemy
+- Similar to the Ogre, less strong, much more mobile: an extreme threat
+- Data: Beast / Cold, Heavy. Kept out of `enemy_spawn_pool` on purpose; it
+  would wreck the level-1 mix.
+
+### Pirate boss (`pirate_boss.png`, paper rough only)
+- Eyepatch, bandana, poncho, cutlass. Lore TBD. Pica's old captain?
+
 # Mechanics
 ## Primary Stats
 + HP (Heft? Size?)

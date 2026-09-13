@@ -28,7 +28,13 @@ art/
     <id>.png                   # Full-res line art (HD pipeline, HDLayer).
                                #   .import needs mipmaps/generate=true.
     <id>_portrait.tres         # AtlasTexture crop of the line art used as the
-                               #   HD portrait region.
+                               #   HD portrait region. SQUARE, always: the
+                               #   portrait boxes are square and a wide crop
+                               #   floats in them. Framing: top of the figure
+                               #   down past the shoulders, centred on the
+                               #   head (not the hat or the weapon).
+                               #   tests/unit/test_character_art_wiring.gd
+                               #   checks square + crops its own sheet.
 data/characters/
   <id>.json                    # All gameplay data (schema below).
 ```

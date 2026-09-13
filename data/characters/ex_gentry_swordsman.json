@@ -1,0 +1,66 @@
+{
+	"characterId": "ex_gentry_swordsman",
+	"characterName": "Swordsman",
+	"primaryType": "Gentry",
+	"secondaryType": "None",
+	"currentClass": "Duelist",
+	"specialization": "None",
+	"lineartPath": "res://art/lineart_fullres/ex-gentry_swordsman.png",
+	"lineartAtlases": {
+		"portrait": "res://art/lineart_fullres/ex_gentry_swordsman_portrait.tres"
+	},
+	"sprite": {
+		"sheetPath": "res://art/sprites/characters/placeholder_unit.png",
+		"atlasPath": "",
+		"frameIndex": 0
+	},
+	"baseStats": {
+		"maxHP": 17,
+		"strength": 7,
+		"special": 2,
+		"skill": 8,
+		"agility": 7,
+		"athleticism": 6,
+		"defense": 4,
+		"resistance": 3
+	},
+	"growthRates": {
+		"hp": 55,
+		"strength": 55,
+		"special": 15,
+		"skill": 70,
+		"agility": 60,
+		"athleticism": 45,
+		"defense": 35,
+		"resistance": 25
+	},
+	"physicalAttributes": {
+		"moveDistance": 4,
+		"constitution": 5,
+		"carry": 7
+	},
+	"level": 1,
+	"basePoolMoves": [
+		"Feint",
+		"Backstab",
+		"Guard Break",
+		"Lance",
+		"Uppercut",
+		"Klunk",
+		"Bonk",
+		"Focus",
+		"Sidearm"
+	],
+	"basePoolPassives": [
+		"Reliable",
+		"Competitive",
+		"Impetuous",
+		"Cavalier",
+		"Low Profile",
+		"Bravery",
+		"Flippant",
+		"Glib",
+		"Reckless"
+	],
+	"serviceRecord": "Asset [[ NO DATA: name undecided ]]. Formerly sworn to a fiefdom house; the oath was dissolved by the asset, not the house.\nStated motive: the extent of the nobility's corruption.\nDisposition toward offworld personnel: hostile. Engaged this crew on sight.\nRecruitment path: [[ NO DATA ]]"
+}
