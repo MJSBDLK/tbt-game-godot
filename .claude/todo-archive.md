@@ -176,7 +176,7 @@ Who's damaged (for lack of a better term) - does this hit all units in its AoE, 
 - [x] Get me the new character sprites that fit properly on the map (Berserker, healers, ice archer, etc)
 
 # Combat Effect Pipeline + consumers (move/passive system rework)
-*Captured 2026-06-21 from the move-template design pass ([scratch/move_and_passive_templates_simple.md](../scratch/move_and_passive_templates_simple.md)).*
+*Captured 2026-06-21 from the move-template design pass (scratch/move_and_passive_templates_simple.md, since folded into [data/design/moves-and-passives.md](../data/design/moves-and-passives.md)).*
 
 > **Living architecture map lives in code:** the header of [scripts/combat/combat_effect.gd](../scripts/combat/combat_effect.gd) — where every hook fires, the owner rule, where handlers live. This section is the plan/checklist (historical once shipped); the code header is the source of truth.
 
@@ -252,7 +252,7 @@ Follow-ups (polish, not blocking) — **still open, tracked in [todo.md](todo.md
 the banked-crit indicator, and the in-game eyeball of crit feedback.
 
 ## PHASE 2 — Passives as pipeline consumers
-**Why:** only 5 of 20 passives are coded, via scattered `has_equipped_passive("X")` checks (grid_manager, unit, damage_calculator, status_effect_system). Doesn't scale. Full status table + per-passive hook mapping in [scratch/move_and_passive_templates_simple.md](../scratch/move_and_passive_templates_simple.md) "Passive Implementation Status".
+**Why:** only 5 of 20 passives are coded, via scattered `has_equipped_passive("X")` checks (grid_manager, unit, damage_calculator, status_effect_system). Doesn't scale. The status table that lived in scratch/move_and_passive_templates_simple.md is gone; `PassiveRegistry` is the truth for what is coded.
 
 **Design:** passives ARE `CombatEffect` handlers (no separate `PassiveHandler` class). Registered per-unit from `equipped_passives`, gathered into the SAME pipeline as move-effects. A few passives also need non-combat hooks (`modify_range`, pathfinding) — add those phases to the base as needed.
 

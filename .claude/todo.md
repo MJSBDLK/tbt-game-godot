@@ -1,4 +1,13 @@
 # Resp
++ For some reason I don't like the name "Tuber" for a class. I agree it fits perfectly; I find the word ugly. That's my only hangup.
++ Turgor Root - make this 80%
++ Stolon: if this unit starts its turn on a plant tile, all plant tiles within 3 spaces apply 10% health regen to player units.
++ Creeper - I'm actually using this as the intermediary between Cultist and Abomination. We might reuse "Host" elsewhere - it's a good name.
++ Vines - just the name of an early game workhorse plant damaging move
++ Samara - not a move, it's a class. I do like the idea of a plant-typed move which repositions the user - "Whirlicopter" or something like that. Repositions unit 3 spaces in one direction, healing the tiles beneath - late game ability, extremely restrictive usages - 2 or 3 (this ability would be OP as fuck)
++ Sunflower - ranged beam, medium power distributed to the Pyracantha, like you said. Huge reduction in power if the unit is positioned on a tile with the "rain" terrain status, if we're still doing those (Haven't thought about them in a while)
++ Four-leaf clover: passive - boosts all dice rolls
++ Pod - might apply a plant-based terrain status or something
 
 # Quick Fixes
 - [~] Goblin Healer - not a mage, an... apothecary? I think that's the name of the store. What do you call them, an herbalist or something? What word am I looking for?
@@ -15,10 +24,55 @@
   and the class doc is still the design's open question.)
 
   - [ ] Goblin Healer
-    1. Base class: herbalist
-      2. Level 2: Apothecary *or* [something that can become a chirurgeon]
-        3A. Apothecary can class up into [a more badass apothecary] or [something else]
-        3B. [other ]
+    Base class: Herbalist (Monster)
+    ├2A: Apothecary (Monster/Plant)
+    | ├3A: Plague Doc (Monster)
+    | └3B: Distiller (Monster/Plant)
+    └2B: Sawbones (Monster/Simple)
+      ├3C: Chirurgeon (Monster/Simple)
+      └3D: Thaumaturge (Monster/Occult)
+
+  - [ ] Plant Cultist
+    Base class: Cultist (Occult)
+    ├2A: Botanist (Occult/Plant)
+    | ├3A: Sage (Occult/Plant)
+    | └3B: Harvester (Occult/Plant)
+    └2B: Creeper (Occult/Plant)
+      ├3C: Abomination (Occult/Plant)
+      └3D: Topiary (Plant)
+
+   - [ ] Plant Healer
+		Base Class: Bulb (Plant)
+		├2A: Cactus (Plant)
+		|	├3A: Pyracantha (Plant/Fire)
+		|	└3B: Snowdrop (Plant/Cold)
+		└2B: Taproot (Plant)
+			├3C: Samara (Plant/Air)
+			└3D: Mandrake (Plant)
+		2B Taproot = the bulky storage-root class ("Tuber" fit; RQD found the
+		word ugly).
+		Moves + passives for this tree (Vines, Sunflower, Whirlicopter, Pod,
+		Turgor, Stolon, Clover) live in data/design/moves-and-passives.md with
+		the rest of the wishlist. Creeper is taken (Cultist 2B); "Host" is a
+		good name held in reserve.
+
+	- [ ] Base Class: Thief (Simple)
+		├2A: Assassin (Simple)
+		|	├3A: Hitman (Simple)
+		|	└3B: Fixer (Gentry)
+		└2B: Kleptomaniac (Simple)
+			├3C: Highwayman (Chivalric)
+			└3D: Infiltrator (Simple/Robo)	
+		Homeless on purpose: a design from Lawrence's new line-art batch (no
+		idle sprite yet, player-character status undecided). The classes sound
+		fun enough that the player should probably get his hands on them.
+
+	- [ ] Whirlicopter — Plant move, Samara's signature, late game, 2–3 uses:
+	  repositions the user 3 tiles in one direction, healing the tiles
+	  beneath (units on them, or a healing plant terrain status — ties to
+	  Pod). New move shape: self-displace along a line. "OP as fuck" by
+	  design. Waits on promotion (tier 3) and maybe terrain statuses.
+
 
 - [x] Reduce tooltip hold max from 1000ms -> 800ms (Done 2026-09-10:
   `Settings.TOOLTIP_HOLD_MAX_MS` 1000 → 800; the slider reads the const; the

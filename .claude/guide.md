@@ -214,7 +214,8 @@ Formula: `z_index = (99 - row_index) * 10 + layer`
 ### Data Pipeline
 - `terrain_data.json` → `TerrainDataManager` (autoload) — terrain movement costs, properties
 - `data/characters/*.json` → `CharacterDataLoader` → `CharacterData` (Resource)
-- `data/moves/BasicMoveBank.json` → `MoveDatabase` — move definitions
+- `data/moves/basic_move_bank.json` → `MoveData` — move definitions (field reference: the `MoveData` class header; wishlist: `data/design/moves-and-passives.md`)
+- `data/passives.json` → `PassiveData` — passive names + descriptions; behaviour is a handler in `PassiveRegistry`
 - Type chart → `.tres` Resource file
 - All JSON uses Godot's native `JSON.parse_string()` — no custom parsers needed
 
