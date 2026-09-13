@@ -91,28 +91,58 @@ Top row (both cells) → `Wall` (impassable except fliers); bottom row →
 `Castle` (walkable, defensive bonus). A flier can perch on the keep; ground
 units must take the gate.
 
+**Render hints** also live in `by_sprite` entries and apply on either paint
+layer (they're keyed by sprite name, and the renderer is the same):
+
+- `occlude`: `"interleave"` (default) or `"solid"` — how a multi-row
+  sprite sorts against units standing on its body.
+- `casts_shadow`: default `true`. `false` means the sprite renders with
+  **no shadow at all** — its authored `_shadow.png` is skipped and nothing
+  is generated. This is the switch for floor elements (craters, the
+  bridge, anything lying flat: a hole casts nothing). `true` plays the
+  authored shadow if there is one, else generates a cast.
+
+**Wildcards**: a `by_sprite` key ending in `*` applies its render hints to
+every sprite with that prefix — `"piperoot_*": { "casts_shadow": false }`
+flags the whole family. The exact entry wins for any key it sets; the
+longest wildcard wins between wildcards. Wildcards never carry terrain
+(`rows`/`cells` on them are ignored — that's `by_prefix`'s job).
+
+An entry holding only render hints does **not** make an unprefixed sprite a
+gameplay modifier — `is_modifier` needs `rows`/`cells` or a prefix match.
+The editor preview re-reads this file when it changes, so flip a flag and
+watch the open map.
+
 ## Layer architecture
 
-A map scene has these TileMapLayers under `TilemapBuilder`, in z-order
-from bottom to top:
+A map scene has these TileMapLayers under `TilemapBuilder`. Board z is
+`(99 − row) × 10 + slot` with row 0 = the southernmost row (see
+`scripts/core/z_index_calculator.gd`), so the **row dominates** and the slot
+only orders things *within* a row. Slots, bottom to top:
 
-| Layer | z-index | Purpose |
+| Layer | z slot | Purpose |
 |---|---|---|
-| `TerrainTileLayer` (Floor) | `FLOOR_TILES` (0) | Base terrain. Always populated. Defines default tile properties (movement cost, defense, etc). |
-| **Shadow** (runtime-only, not in scene) | `TERRAIN_EFFECTS` (1) | Auto-spawned `Sprite2D` shadows for modifier tiles. Not painted by hand. |
-| `ModifierTileLayer` (Modifiers) | `TERRAIN_MODIFIERS` (2) | Tiles painted here **completely replace** the floor's gameplay properties (per `terrain_data.json`). |
-| `DecorationTileLayer` (Decorations) | `PURE_DECORATIONS` (3) | Pure visual overlay — no gameplay effect. |
-| `SpawnTileLayer` (metadata) | n/a | Marks spawn points and map boundaries. |
+| `TerrainTileLayer` (Floor) | `FLOOR_TILES` (0) | Base terrain. Always populated. Defines default tile properties (movement cost, defense, etc). Rendered by the TileMapLayer itself. |
+| Foot tracks (runtime-only) | `FOOT_TRACKS` (1) | Walk trails. See [foot_tracks.md](foot_tracks.md). |
+| Terrain effects (runtime-only) | `TERRAIN_EFFECTS` (2) | Unit cast shadows (`UnitShadow`). Terrain-sprite shadows drop here only when `TerrainSpriteRenderer.SHADOWS_ABOVE_MODIFIERS` is off. |
+| `ModifierTileLayer` (Modifiers) | `TERRAIN_MODIFIERS` (3) | Tiles painted here **completely replace** the floor's gameplay properties (per `terrain_data.json`). Hidden at runtime; drawn by a `TerrainSpriteRenderer` overlay. |
+| `DecorationTileLayer` (Decorations) | `TERRAIN_MODIFIERS` (3) | Same sprite library, **no gameplay effect**. Hidden at runtime; drawn by its own `TerrainSpriteRenderer`, added to the tree *after* the modifier one, so on a shared cell the decoration draws on top (tree order at equal z). |
+| Terrain-sprite shadows (runtime-only) | `TERRAIN_SHADOWS` (4) | Authored or generated shadows of *both* layers' sprites, one slot above the bodies so a shadow falls onto its east neighbor. |
+| `SpawnTileLayer` (metadata) | n/a | Marks spawn points and map boundaries. Hidden at runtime. |
 
-The same tile (e.g. a crater sprite) can land on either modifier or
-decoration layer:
+The same tile (e.g. a tree sprite) can land on either modifier or
+decoration layer, and **renders identically** on both — full PNG with
+overhang, per-row interleaving, shadow:
 - **Modifier layer**: gameplay rules apply (the unit standing on it gets
-  the crater's defense bonus, etc).
+  the terrain's defense bonus, movement cost, etc).
 - **Decoration layer**: no gameplay effect, purely visual flavor.
 
-Z-index per-tile is computed by `ZIndexCalculator` (see
-`scripts/core/z_index_calculator.gd`) so same-row sorting works across all
-layers consistently.
+The paint layer decides gameplay, never looks. (Before 2026-09-07 the
+decoration layer was a bare TileMapLayer at a flat z: it drew only the
+central 32×32 atlas chunk, cast nothing, and never occluded a unit behind
+it. Lawrence's test map has more cells on the decoration layer than the
+modifier layer, nearly all of them 96×96 trees — that's what the shared
+renderer fixed.)
 
 ## Asset authoring conventions
 
@@ -325,58 +355,120 @@ found, all tags export normally (no `_shadow.png` files).
 
 ## Tile registration
 
-After export, sprites get registered as tiles in `battle_tileset.tres`.
-For V1 this is a manual editor step (open the tileset, add a new
-TileSetAtlasSource pointing at the exported PNG, configure each tile).
+After export, sprites get registered as tiles in `battle_tileset.tres` by
+the registration tool — never by hand:
 
-Per-tile configuration:
-- `custom_data_0` (`terrain_type`) — string matching a key in
-  `terrain_data.json` (e.g. `"Crater"`). Required for tiles that should
-  carry gameplay properties; can be left empty for pure-decoration tiles.
-- `custom_data_1` (`is_modifier`) — boolean, `true` if the tile is
-  eligible to be painted on `ModifierTileLayer` for gameplay effect.
-- `texture_region_size = (32, 32)` — single-cell tiles use this.
-- `set_tile_size_in_atlas` for multi-cell tiles (e.g., `(2, 2)` for a 2×2
-  crater).
-- `texture_origin` offset for oversized canvas — shifts the visual so
-  the footprint aligns to the gameplay tile.
+```
+godot-4 --headless --path . --script tools/register_modifier_tiles.gd
+```
 
-A Phase 2 utility could auto-register tiles by reading the sidecar JSON
-and applying the right config. V1 is manual.
+It walks the export folder, reads each sidecar for the footprint, and
+mints one `TileSetAtlasSource` per main PNG (the `_shadow.png` files are
+runtime-only). Per source: `resource_name` = the sprite name (the PNG
+basename — this is the key every runtime lookup uses), the atlas tile at
+the centered footprint cell(s), `is_modifier = true` in custom data, and a
+`texture_origin` nudge on multi-cell tiles so painting looks right in the
+editor. It does **not** assign terrain — that's `modifier_terrain.json`.
 
-## Runtime shadow rendering
+**Source ids are stable.** Painted cells reference `(source_id,
+atlas_coords)`, so a sprite keeps the id it was first registered under
+forever; new sprites append above the highest id in use, in sorted-name
+order. The tool refuses to save if any existing id would change hands, and
+a run that changes nothing leaves the file untouched. (The original tool
+re-minted every source in sorted order on each run, which would have
+silently repainted every map the first time a new sprite sorted before an
+existing one.) `tests/unit/test_map_tileset_integrity.gd` walks every
+map's modifier + decoration cells and asserts each one still resolves.
+
+If a PNG is re-exported at a **different size**, its atlas tile moves and
+the tool warns loudly: every painted cell of that sprite needs repainting.
+Same-size re-exports are free.
+
+## Runtime rendering: `TerrainSpriteRenderer`
+
+[terrain_sprite_renderer.gd](../../scripts/grid/terrain_sprite_renderer.gd)
+is the single overlay for **both** paint layers; its header is the living
+doc. `TilemapGridBuilder` spawns one per layer after the grid bounds are
+final (modifier first, decoration second). Each renderer hides its
+TileMapLayer and, per painted cell, spawns:
+
+1. **The shadow**, first, so it sits behind everything else at that
+   position. `casts_shadow: false` → none at all. Otherwise:
+   - **Authored**: `<source_texture>_shadow.png` next to the source PNG
+     (what the exporter emits when the `.aseprite` has a shadow layer).
+     Played verbatim, centered on the sprite like the body.
+   - **Generated**: otherwise, unless `DebugConfig.terrain_generated_shadows`
+     is off, `generate_cast_shadow` rasterizes the sprite's own pixels
+     into a cast — the same rigid 90° tip-over + squash `UnitShadow` uses
+     for units (it literally calls `UnitShadow.project_silhouette`), so
+     the board has one sun. Feet line = one past the art's lowest opaque
+     row; pixels landing under the caster's own silhouette are erased,
+     mirroring the exporter's masking; the 40% ink
+     (`GameColors.CAST_SHADOW_INK`) is baked in. Cached once per texture.
+     The dials are `GENERATED_SMOOSH_*` on the renderer, currently
+     aliased to UnitShadow's — Lawrence's authored shelltree cast measured
+     ~0.85 of sprite height vs the units' 1.0, so if generated terrain
+     shadows read long, that's the knob to split.
+2. **The body**: the full PNG (overhang included) centered on the
+   footprint. Multi-row sprites split into one strip per footprint row
+   ("interleave", the default) so a unit on a back row draws in front of
+   the rows behind it; `occlude: "solid"` opts back to a single sprite.
+
+Z per sprite: bodies at `TERRAIN_MODIFIERS` of their (south) row, shadows
+at `TERRAIN_SHADOWS` — one slot up — while `SHADOWS_ABOVE_MODIFIERS` is
+true, so a shadow spills onto the east neighbor's body but never tints its
+own caster (masked) and is covered by anything one row south. Flip the
+const to drop shadows under every body (`TERRAIN_EFFECTS`). All sprites use
+`texture_filter = NEAREST`, absolute z, integer world positions, and share
+one out-of-bounds fade material (`shaders/modifier_oob_fade.gdshader`) so
+overhang past the map edge darkens with the floor. That shader reads the
+fragment's incoming `COLOR` (already texture × modulate) rather than
+sampling the texture again — sampling twice squares every channel, which
+darkened the buildings and thinned the shadows to 16% for a day on
+2026-09-07. `tools/diag/shader_parity_probe.gd` renders the four cases
+(plain sprite, fade material, 40% shadow through the material, UnitShadow's
+draw path) and checks they composite identically; run it after touching
+the shader.
+
+### Editor preview
+
+Both scripts are `@tool`. With a map scene open in the editor,
+`TilemapGridBuilder._ready` skips the grid build and instead spawns
+`ModifierPreview` + `DecorationPreview` renderers — **unowned**, so the
+scene tree dock doesn't list them and saving never writes them. They draw
+the same overlay the game will (full PNGs, per-row strips, authored or
+generated shadows, same z math with the front row derived from the floor
+layer's southernmost painted cell), keep the TileMapLayer visible so
+painting works, skip the out-of-bounds fade (no GridManager in the
+editor), and re-render about ten frames after any paint stroke by polling
+the layer's tile data. So Lawrence paints and sees; F5 is for units and
+gameplay, not for finding out what a tree looks like.
+
+### Making a new map (checklist)
+
+1. Run the wizard: open `scripts/editor/tilemap_setup_wizard.gd`, set
+   `map_name`, File → Run. It creates the scene with all four layers wired
+   to `battle_tileset.tres` and the builder script.
+2. Paint `TerrainTileLayer` with the terrain-set autotiles (floor is
+   required everywhere a unit can stand).
+3. Paint modifiers and decorations from the sprite sources — the layer
+   decides gameplay. Multi-cell sprites: the painted cell is the north-west
+   corner.
+4. On `SpawnTileLayer`: **Boundary** stamps on the map's corners/edges
+   (the grid is trimmed to their rect), **P** stamps for player deploy
+   slots, **E** stamps for enemy spawns (see `.claude/spawn-system.md`).
+5. Add the scene to `data/missions/mission_manifest.json` so it appears
+   in map select (display name, par turns, dawdle turns).
+6. F5. `tools/diag/map_shot_probe.gd` screenshots any map from the CLI
+   if you want a still to send around.
 
 > **Units cast shadows too** — generated, not authored: `UnitShadow`
 > (`scripts/units/unit_shadow.gd`) rasterizes the unit's live frame onto the
 > ground on the world pixel grid, speaking this section's visual language
 > exactly (cast right, squat, 40% black = `GameColors.CAST_SHADOW_INK` —
 > decoded from the baked `_shadow.png` decoration art). If the decoration
-> shadow look ever changes, retune UnitShadow's knobs in the same pass.
-
-Shadows are not painted onto the map. They're spawned at runtime:
-
-1. At scene load, `ShadowRenderer` (lives under TilemapBuilder) iterates
-   every used cell on `ModifierTileLayer`.
-2. For each modifier tile, the renderer looks up whether the tile has a
-   paired shadow. Resolution order:
-   - The tile's `custom_data` field `shadow_path` (set during tile
-     registration, derived from the sidecar JSON's `shadow_path`).
-   - Convention fallback: `<source_texture>_shadow.png` adjacent to the
-     source texture.
-3. If a shadow exists, a `Sprite2D` is spawned at the cell's world
-   position with:
-   - Texture: the shadow PNG
-   - `texture_filter = NEAREST`
-   - `z_index` computed via `ZIndexCalculator.calculate_sorting_order(
-     row, grid_height, ZIndexLayer.TERRAIN_EFFECTS)` so shadows render
-     above floor and below modifiers, with same-row sorting consistent
-     across layers
-   - Position offset matching the modifier tile's `texture_origin`
-
-Shadows on `DecorationTileLayer` are not auto-rendered in V1. Decorations
-are visual-only and meant to be lightweight; if Lawrence wants a
-decoration to cast a shadow, paint it on the modifier layer with a
-no-effect `terrain_type`.
+> shadow look ever changes, retune UnitShadow's knobs in the same pass —
+> the generated terrain shadows follow automatically.
 
 ## Behavior on unknown tile
 
@@ -407,19 +499,16 @@ These are out of V1 scope but worth capturing now so they don't get lost:
   The `Sprite2D`-based renderer architecture chosen for V1 directly
   supports this (per-sprite transforms), so it's an extension, not a
   rewrite.
-- **Editor auto-paint helper** — when painting a modifier tile in the
-  editor, automatically place the paired shadow on a dedicated shadow
-  layer. V1 uses runtime spawning instead, which doesn't need editor
-  tooling but does require a scene reload to see shadows after editing.
-- **Decoration-layer shadows** — currently only modifiers get shadows.
-  Easy to extend the renderer to scan decoration tiles too if we decide
-  they need them.
-- **Tile auto-registration utility** — read sidecar JSON and
-  programmatically register tiles into the tileset, eliminating the
-  manual editor step in tile registration.
-- **`stamp_tiles.png`** — currently loaded as an ExtResource in
-  `battle_tileset.tres` but never registered as a source. Either
-  repurpose for the new modifier source or remove.
+- ~~Editor preview~~ — done 2026-09-07: `TilemapGridBuilder` and
+  `TerrainSpriteRenderer` are `@tool`; see "Editor preview" above.
+- **Animated terrain sprites** — the exporter emits multi-frame tags as
+  horizontal strips and records `frame_durations_ms`, but the renderer
+  draws the whole texture as one static sprite. First animated asset
+  decides the runtime shape.
+- ~~Decoration-layer shadows~~ — done 2026-09-07 (shared renderer).
+- ~~Tile auto-registration utility~~ — done (`tools/register_modifier_tiles.gd`).
+- ~~`stamp_tiles.png`~~ — it *is* registered (source 7: the spawn +
+  boundary stamps).
 
 ## Open questions / verification needed at implementation time
 

@@ -178,8 +178,8 @@ func test_the_bexp_entry_goes_inert_on_an_empty_pool() -> void:
 
 
 func test_save_game_arrives_armed_and_latches_after_a_save() -> void:
-	# §2b. It arrives armed because autosaves are battle-only — nothing has
-	# written the campaign layer by the time the player reaches the hub.
+	# §2b. It arrives armed even though a base autosave landed on the way in:
+	# the autosave rotates, a manual save is a slot the player keeps.
 	var hub := _built_hub()
 	assert_eq(hub._save_entry.text, "Save Game", "arrives armed")
 	assert_false(hub._save_entry.inert)
@@ -201,6 +201,119 @@ func test_spending_bexp_re_arms_the_save_entry() -> void:
 	SquadManager.bonus_xp_changed.emit(SquadManager.bonus_xp_pool)
 	assert_false(hub._save_entry.inert, "a pool change re-arms Save Game")
 	assert_eq(hub._save_entry.text, "Save Game")
+
+
+# =============================================================================
+# SAVE GAME WITH A FULL MANUAL RING (§2d) — prompt only when the press would
+# destroy something. The picker is the SaveBrowserPanel's overwrite mode; the
+# hub's job is to open it instead of writing, and to latch only on a pick.
+# =============================================================================
+
+const TEST_SAVE_ROOT: String = "user://test_saves_hub"
+
+
+func _manual_slot(index: int) -> String:
+	return "%s/%s/slot_%d.json" % [TEST_SAVE_ROOT, SaveManager.KIND_MANUAL, index]
+
+
+## Points SaveManager at a scratch ring and fills every manual slot. Returns
+## the campaign capture to restore afterwards; _release_full_ring cleans up.
+func _with_full_manual_ring() -> Dictionary:
+	var saved: Dictionary = _with_campaign(["spaceman"], true)
+	SaveManager.save_root = TEST_SAVE_ROOT
+	for i: int in range(SaveManager.SLOT_COUNT):
+		assert_ne(SaveManager.write_manual_save_to(_manual_slot(i)), "", "slot %d filled" % i)
+	return saved
+
+
+func _release_full_ring(saved_campaign: Dictionary) -> void:
+	var dir := DirAccess.open("%s/%s" % [TEST_SAVE_ROOT, SaveManager.KIND_MANUAL])
+	if dir != null:
+		for file_name: String in dir.get_files():
+			dir.remove(file_name)
+	var root := DirAccess.open("user://")
+	if root != null and root.dir_exists(TEST_SAVE_ROOT):
+		root.remove(TEST_SAVE_ROOT + "/" + SaveManager.KIND_MANUAL)
+		root.remove(TEST_SAVE_ROOT)
+	SaveManager.save_root = SaveManager.DEFAULT_SAVE_ROOT
+	CampaignManager.restore_save_state(saved_campaign)
+
+
+func test_a_full_manual_ring_opens_the_picker_instead_of_writing() -> void:
+	var saved := _with_full_manual_ring()
+	var hub := _built_hub()
+	var before: Array[int] = []
+	for i: int in range(SaveManager.SLOT_COUNT):
+		before.append(int(SaveManager.read_save_file(_manual_slot(i)).get("created_unix", -1)))
+
+	hub._on_save_pressed()
+	assert_not_null(hub._save_browser, "the picker was built on demand")
+	assert_true(hub._save_browser.visible, "…and is up")
+	assert_eq(hub._save_browser.mode, SaveBrowserPanel.Mode.OVERWRITE)
+	assert_true(hub._dirty, "no write yet, so no latch")
+	assert_eq(hub._save_entry.text, "Save Game")
+	for i: int in range(SaveManager.SLOT_COUNT):
+		assert_eq(int(SaveManager.read_save_file(_manual_slot(i)).get("created_unix", -1)),
+				before[i], "slot %d untouched by the press" % i)
+	_release_full_ring(saved)
+
+
+func test_cancelling_the_picker_leaves_save_game_armed() -> void:
+	var saved := _with_full_manual_ring()
+	var hub := _built_hub()
+	hub._on_save_pressed()
+	hub._save_browser.hide_panel()  # what Cancel / Escape does
+	assert_false(hub._save_browser.visible)
+	assert_true(hub._dirty, "a cancel is not a save")
+	assert_eq(hub._save_entry.text, "Save Game")
+	assert_false(hub._save_entry.inert)
+	_release_full_ring(saved)
+
+
+func test_picking_a_slot_writes_there_and_latches() -> void:
+	var saved := _with_full_manual_ring()
+	var stale: Dictionary = SaveManager.read_save_file(_manual_slot(1))
+	stale["created_unix"] = 100
+	SaveManager.write_save_file(_manual_slot(1), stale)
+	var hub := _built_hub()
+	hub._on_save_pressed()
+
+	hub._save_browser.slot_chosen.emit(_manual_slot(1))
+	assert_false(hub._save_browser.visible, "the picker closes on a pick")
+	assert_false(hub._dirty, "a real write latches")
+	assert_eq(hub._save_entry.text, "Game saved!")
+	assert_true(hub._save_entry.inert)
+	assert_true(int(SaveManager.read_save_file(_manual_slot(1)).get("created_unix", -1)) > 100,
+			"slot 1 holds the new save")
+	_release_full_ring(saved)
+
+
+func test_a_free_slot_still_saves_silently() -> void:
+	# The common case keeps §2b intact: no picker, immediate latch.
+	var saved := _with_full_manual_ring()
+	DirAccess.remove_absolute(_manual_slot(2))
+	var hub := _built_hub()
+	hub._on_save_pressed()
+	assert_true(hub._save_browser == null or not hub._save_browser.visible, "no picker")
+	assert_false(hub._dirty)
+	assert_eq(hub._save_entry.text, "Game saved!")
+	assert_true(FileAccess.file_exists(_manual_slot(2)), "the free slot took it")
+	_release_full_ring(saved)
+
+
+func test_a_nav_press_never_summons_an_entry_under_the_open_picker() -> void:
+	var saved := _with_full_manual_ring()
+	InputSource.last_kind = InputSource.Kind.CURSOR
+	var hub := _built_hub()
+	hub._on_save_pressed()
+	var press := InputEventAction.new()
+	press.action = "ui_down"
+	press.pressed = true
+	hub._unhandled_input(press)
+	for entry: MainMenuEntry in hub._menu_entries:
+		assert_false(entry.has_focus(), "%s stayed unfocused under the picker" % entry.text)
+	InputSource.last_kind = InputSource.Kind.POINTER
+	_release_full_ring(saved)
 
 
 func test_mission_briefing_is_inert_rather_than_going_somewhere_else() -> void:

@@ -3,7 +3,7 @@
 ## Synthesizes the three square-wave ticks the HTML mockup used — hover
 ## ~2.4 kHz / 25 ms, press ~900 Hz + a bright transient, deny = low
 ## double-knock — plus the level-up ding: a sine chime (C6 + its octave,
-## fast attack, ~140 ms ring) that LevelUpReportPanel pitch-steps upward
+## fast attack, ~140 ms ring) that LevelUpStatBlock pitch-steps upward
 ## per revealed +1 — plus the on-map XP bar's fill (RQD 2026-08-21): a
 ## rising tick train over a soft upward chirp, ~0.4 s, the Pokémon
 ## "brrrrp" of a gauge filling. Writes to res://audio/ui/. The shape is

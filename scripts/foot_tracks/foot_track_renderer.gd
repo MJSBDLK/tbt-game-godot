@@ -1,5 +1,5 @@
 ## Runtime overlay that lays directional foot-track sprites along the path a
-## unit actually walked. Mirrors ModifierRenderer/PathVisualizer: per-cell
+## unit actually walked. Mirrors TerrainSpriteRenderer/PathVisualizer: per-cell
 ## Sprite2D nodes, NEAREST filter, per-row z via ZIndexCalculator (FOOT_TRACKS
 ## band, beneath terrain effects/modifiers). Tracks stack where paths cross,
 ## capped at `max_depth`; the newest renders on top (sibling draw order at

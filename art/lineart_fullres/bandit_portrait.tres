@@ -1,0 +1,7 @@
+[gd_resource type="AtlasTexture" format=3 uid="uid://vmdf527bvsj4"]
+
+[ext_resource type="Texture2D" uid="uid://678t6lkw4g3f" path="res://art/lineart_fullres/bandit.png" id="1_4ymoi"]
+
+[resource]
+atlas = ExtResource("1_4ymoi")
+region = Rect2(1011, 629, 1361, 1361)

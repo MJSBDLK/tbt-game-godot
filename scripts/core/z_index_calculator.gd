@@ -18,10 +18,17 @@ enum ZIndexLayer {
 	FOOT_TRACKS = 1,
 	## Terrain effects on floor (fire, rain, status effects on ground)
 	TERRAIN_EFFECTS = 2,
-	## TIER 2: Terrain Modifiers (gameplay-affecting: trees, rocks, walls)
+	## TIER 2 + TIER 3 bodies: terrain sprites from BOTH paint layers
+	## (modifiers AND decorations — same sprite library, the layer only
+	## decides gameplay). A decoration on a modifier's cell wins by tree
+	## order, not z. See TerrainSpriteRenderer.
 	TERRAIN_MODIFIERS = 3,
-	## TIER 3: Pure Decorations (visual-only: flowers, grass tufts)
-	PURE_DECORATIONS = 4,
+	## Cast shadows of terrain sprites — one slot ABOVE the bodies so a
+	## shadow falls onto its east neighbor's body (the caster's own pixels
+	## are masked out at export). When
+	## TerrainSpriteRenderer.SHADOWS_ABOVE_MODIFIERS is off, shadows drop to
+	## TERRAIN_EFFECTS instead and this slot is unused.
+	TERRAIN_SHADOWS = 4,
 	## Movement arrows, range indicators
 	PATH_INDICATORS = 5,
 	## Characters, enemies
@@ -105,11 +112,11 @@ static func debug_occlusion_scenario(scenario_name: String, grid_height: int = 1
 
 	# Test same-row layer sorting
 	var same_floor := calculate_sorting_order(5, grid_height, ZIndexLayer.FLOOR_TILES)
-	var same_decoration := calculate_sorting_order(5, grid_height, ZIndexLayer.PURE_DECORATIONS)
+	var same_shadow := calculate_sorting_order(5, grid_height, ZIndexLayer.TERRAIN_SHADOWS)
 	var same_unit := calculate_sorting_order(5, grid_height, ZIndexLayer.UNITS)
 
-	print("Row 5 - Floor: %d, Decoration: %d, Unit: %d" % [same_floor, same_decoration, same_unit])
-	print("Layer sorting (Unit > Decoration > Floor): %s" % str(same_unit > same_decoration and same_decoration > same_floor))
+	print("Row 5 - Floor: %d, Terrain shadow: %d, Unit: %d" % [same_floor, same_shadow, same_unit])
+	print("Layer sorting (Unit > Terrain shadow > Floor): %s" % str(same_unit > same_shadow and same_shadow > same_floor))
 
 	# Test decoding
 	print("Decode %d: %s" % [same_unit, decode_z_index(same_unit)])

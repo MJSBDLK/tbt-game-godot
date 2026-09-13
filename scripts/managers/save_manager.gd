@@ -10,7 +10,7 @@
 ## Schema (JSON, one file per save):
 ##   {
 ##     "save_version": 1,              // gate + migration hook
-##     "kind": "auto_battle" | "auto_turn" | "manual",
+##     "kind": "auto_battle" | "auto_turn" | "auto_base" | "manual",
 ##     "created_unix": 1784000000,
 ##     "label": "Mission 2 · Turn 5",  // display line for the load UI
 ##     "rng": {"seed": "...", "state": "..."},   // GameRng.capture_state()
@@ -19,14 +19,21 @@
 ##     "battle": {...}                 // mid-battle snapshot; ABSENT between missions
 ##   }
 ##
-## Slot rings (RQD 2026-08-01, rule of 4): two independent 4-slot rotating
-## rings under user://saves/ —
+## Slot rings (rule of 4): four independent 4-slot rings under user://saves/ —
 ##   auto_battle/slot_0..3  — written when a battle begins   (BLUE identity in UI)
 ##   auto_turn/slot_0..3    — written at player-phase start  (YELLOW identity in UI)
-## A write lands on the first EMPTY slot, else overwrites the OLDEST
+##   auto_base/slot_0..3    — written on arrival at the intermission hub, i.e.
+##                            every mission boundary (GREEN identity in UI —
+##                            placeholder until Lawrence picks)
+##   manual/slot_0..3       — the system menu's / hub's Save button (plain text)
+## An AUTOSAVE lands on the first EMPTY slot, else overwrites the OLDEST
 ## (created_unix; a corrupt/unreadable slot reads as oldest, so damaged slots
-## are reclaimed first). Manual saves (kind "manual") get their own directory
-## when the save UI lands.
+## are reclaimed first). Base and battlefield autosaves are separate rings on
+## purpose: they're different contexts and must not evict each other.
+## MANUAL saves never rotate — a press is the intent to KEEP that state. A
+## manual write takes a free slot or refuses; when the ring is full the UI
+## opens a picker and the player names the slot to overwrite
+## (write_manual_save_to). Autosave rings keep rotating regardless.
 ##
 ## Durability: writes are atomic — content goes to <path>.tmp, the previous
 ## good file rotates to <path>.bak, then tmp renames over the real path. A
@@ -53,7 +60,11 @@ const SAVE_VERSION: int = 1
 const SLOT_COUNT: int = 4
 const KIND_AUTO_BATTLE: String = "auto_battle"
 const KIND_AUTO_TURN: String = "auto_turn"
+const KIND_AUTO_BASE: String = "auto_base"
 const KIND_MANUAL: String = "manual"
+## Every ring, in browser-listing order. Iterate THIS wherever the rings are
+## enumerated (listing, test wipes) so a new ring can't be half-wired.
+const ALL_KINDS: Array[String] = [KIND_AUTO_BATTLE, KIND_AUTO_TURN, KIND_AUTO_BASE, KIND_MANUAL]
 
 const DEFAULT_SAVE_ROOT: String = "user://saves"
 
@@ -78,17 +89,34 @@ func _ready() -> void:
 	call_deferred("_connect_autosave_triggers")
 
 
-## The one autosave trigger: every player-phase start. Turn 1 is the battle's
-## first breath → blue ring (auto_battle); later turns → yellow (auto_turn).
-## Capturing at phase start means upkeep (status ticks, refreshes, control
-## locks) has ALREADY run — restore re-enters play without re-ticking it.
+## Two autosave triggers.
+## 1. Every player-phase start. Turn 1 is the battle's first breath → blue
+##    ring (auto_battle); later turns → yellow (auto_turn). Capturing at phase
+##    start means upkeep (status ticks, refreshes, control locks) has ALREADY
+##    run — restore re-enters play without re-ticking it.
+## 2. Every mission boundary → green ring (auto_base). CampaignManager emits
+##    campaign_started / mission_advanced / mission_restarted immediately
+##    before routing to the intermission hub, and those three are the only
+##    ways to arrive there. Without this write nothing lands between the last
+##    turn of mission N and turn 1 of mission N+1, so quitting from the hub
+##    would rewind Continue into a battle already won and discard every
+##    StatUp, move swap and bEXP pour made there. Leaving the hub needs no
+##    write of its own — the next mission's turn-1 autosave covers it.
 func _connect_autosave_triggers() -> void:
 	var turn_manager: Node = get_node_or_null("/root/TurnManager")
 	if turn_manager == null:
 		push_warning("SaveManager: TurnManager autoload not found — autosaves not wired")
-		return
-	if not turn_manager.player_phase_started.is_connected(_on_player_phase_started):
+	elif not turn_manager.player_phase_started.is_connected(_on_player_phase_started):
 		turn_manager.player_phase_started.connect(_on_player_phase_started)
+
+	var campaign_manager: Node = get_node_or_null("/root/CampaignManager")
+	if campaign_manager == null:
+		push_warning("SaveManager: CampaignManager autoload not found — base autosaves not wired")
+		return
+	for boundary_signal: Signal in [campaign_manager.campaign_started,
+			campaign_manager.mission_advanced, campaign_manager.mission_restarted]:
+		if not boundary_signal.is_connected(_on_mission_boundary):
+			boundary_signal.connect(_on_mission_boundary)
 
 
 func _on_player_phase_started(turn: int) -> void:
@@ -106,6 +134,19 @@ func _on_player_phase_started(turn: int) -> void:
 	var label: String = "Mission %d · Start" % mission_number if turn <= 1 \
 			else "Mission %d · Turn %d" % [mission_number, turn]
 	write_autosave(kind, build_snapshot(kind, label, battle))
+
+
+## Base autosave: campaign + squad, never a battle (the board is gone by the
+## time the boundary signals fire). The label names the mission the hub is
+## ABOUT to prepare for, matching the eyebrow the player sees on arrival.
+## Variadic-tolerant: the three boundary signals carry different payloads
+## (start level + paths / new index / index) and none of them matter here.
+func _on_mission_boundary(_first: Variant = null, _second: Variant = null) -> void:
+	if not CampaignManager.is_active():
+		return
+	var mission_number: int = CampaignManager.get_current_mission_index() + 1
+	var label: String = "Mission %d · Prep" % mission_number
+	write_autosave(KIND_AUTO_BASE, build_snapshot(KIND_AUTO_BASE, label))
 
 
 # =============================================================================
@@ -134,11 +175,26 @@ func build_snapshot(kind: String, label: String, battle: Dictionary = {}) -> Dic
 # WRITING
 # =============================================================================
 
-## Manual save (the system menu's Save button): campaign layer plus the live
-## battle when one is running. Manual saves get their own 4-slot ring — rule
-## of 4, same rotation as the autosave rings — until a real slot-management UI
-## exists. Returns the path written, or "" (no active campaign / disk failure).
+## Manual save (the Save button on the system menu and the hub): campaign
+## layer plus the live battle when one is running. Takes the first FREE
+## manual slot; when the ring is full it writes NOTHING and returns "" — the
+## caller checks find_free_manual_slot() first and opens the overwrite picker,
+## then lands the write through write_manual_save_to. Returns the path
+## written, or "" (no active campaign / ring full / disk failure).
 func write_manual_save() -> String:
+	var path: String = find_free_manual_slot()
+	if path.is_empty():
+		return ""
+	return write_manual_save_to(path)
+
+
+## Explicit-destination manual save: the picker's answer. `path` must be one
+## of the four manual slot paths — an occupied one is overwritten (that's the
+## player's stated intent), a free one is simply filled. Returns the path
+## written, or "" (no active campaign / disk failure).
+func write_manual_save_to(path: String) -> String:
+	assert(manual_slot_paths().has(path),
+			"write_manual_save_to: '%s' is not a manual slot" % path)
 	if not CampaignManager.is_active():
 		push_warning("SaveManager: manual save refused — no active campaign to record")
 		return ""
@@ -148,13 +204,65 @@ func write_manual_save() -> String:
 	var mission_number: int = CampaignManager.get_current_mission_index() + 1
 	var label: String = "Mission %d · Turn %d" % [mission_number, TurnManager.turn_count] \
 			if not battle.is_empty() else "Mission %d" % mission_number
-	return write_autosave(KIND_MANUAL, build_snapshot(KIND_MANUAL, label, battle))
+	var snapshot: Dictionary = build_snapshot(KIND_MANUAL, label, battle)
+	if not write_save_file(path, snapshot):
+		return ""
+	_capture_screenshot(screenshot_path_for(path))
+	save_written.emit(KIND_MANUAL, path)
+	DebugConfig.log_unit_init("SaveManager: manual save → %s" % path)
+	return path
 
 
-## Writes a snapshot into `kind`'s ring: first empty slot, else the oldest.
-## (Despite the name it serves all three rings — manual saves rotate the same
-## way.) Returns the path written, or "" on failure.
+## First empty manual slot, or "" when all four are taken. A slot holding an
+## unreadable file counts as TAKEN here (unlike the autosave rings): a manual
+## slot is the player's, and reclaiming a corrupt one silently would still be
+## an eviction they didn't ask for — the picker shows it and they decide.
+func find_free_manual_slot() -> String:
+	for path: String in manual_slot_paths():
+		if not FileAccess.file_exists(path):
+			return path
+	return ""
+
+
+## The four manual slot paths in slot order — the picker's row source.
+func manual_slot_paths() -> Array[String]:
+	var paths: Array[String] = []
+	for i: int in range(SLOT_COUNT):
+		paths.append(_slot_path(KIND_MANUAL, i))
+	return paths
+
+
+## Every manual slot in slot order, empty ones included — what the overwrite
+## picker renders. Occupied entries carry the list_saves() row shape plus
+## `slot_index`; empty ones are {path, slot_index, empty: true}. A slot whose
+## file exists but won't parse reads as occupied-but-unlabeled ("unreadable")
+## so the player can choose to reclaim it.
+func list_manual_slots() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for i: int in range(SLOT_COUNT):
+		var path: String = _slot_path(KIND_MANUAL, i)
+		if not FileAccess.file_exists(path):
+			out.append({"path": path, "slot_index": i, "empty": true})
+			continue
+		var snapshot: Dictionary = read_save_file(path)
+		out.append({
+			"path": path,
+			"slot_index": i,
+			"empty": false,
+			"unreadable": snapshot.is_empty(),
+			"kind": KIND_MANUAL,
+			"label": str(snapshot.get("label", "")),
+			"created_unix": int(snapshot.get("created_unix", 0)),
+			"has_battle": snapshot.has("battle"),
+		})
+	return out
+
+
+## Writes a snapshot into an AUTOSAVE ring: first empty slot, else the oldest.
+## Manual saves never come through here (they'd rotate) — see
+## write_manual_save_to. Returns the path written, or "" on failure.
 func write_autosave(kind: String, snapshot: Dictionary) -> String:
+	assert(kind != KIND_MANUAL, "write_autosave: manual saves don't rotate — use write_manual_save_to")
 	var path: String = _pick_ring_slot(kind)
 	if not write_save_file(path, snapshot):
 		return ""
@@ -251,7 +359,7 @@ func read_save_file(path: String) -> Dictionary:
 ## Each entry: {path, kind, label, created_unix, has_battle}.
 func list_saves() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
-	for kind: String in [KIND_AUTO_BATTLE, KIND_AUTO_TURN, KIND_MANUAL]:
+	for kind: String in ALL_KINDS:
 		for i: int in range(SLOT_COUNT):
 			var path: String = _slot_path(kind, i)
 			var snapshot: Dictionary = read_save_file(path)

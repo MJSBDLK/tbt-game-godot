@@ -392,6 +392,31 @@ func test_hold_to_repeat_steps_after_delay_then_interval() -> void:
 			"release disarms the repeat")
 
 
+func test_the_repeat_interval_is_the_cursor_speed_setting() -> void:
+	# The Options "Cursor Speed" slider IS the repeat rate: 5 tiles/s = a
+	# 200 ms step. Default restored after — Settings is a live autoload.
+	_open_grid(0, 6, 0, 6)
+	InputSource.last_kind = InputSource.Kind.CURSOR
+	InputManager._hovered_tile = GridManager.get_tile(0, 3)
+	InputManager._unhandled_input(_nav("ui_right"))
+	var previous_speed: float = Settings.cursor_speed
+	Settings.cursor_speed = 5.0
+
+	Input.action_press("ui_right")
+	InputManager._begin_nav_repeat(Vector2i(1, 0), 0.0)
+	InputManager._tick_nav_repeat(0.4)
+	assert_eq(GridManager.target_cursor_tile(), GridManager.get_tile(1, 3), "first step after the delay")
+	InputManager._tick_nav_repeat(0.5)
+	assert_eq(GridManager.target_cursor_tile(), GridManager.get_tile(1, 3),
+			"100 ms later: still inside a 200 ms step")
+	InputManager._tick_nav_repeat(0.61)
+	assert_eq(GridManager.target_cursor_tile(), GridManager.get_tile(2, 3), "the slower step lands")
+
+	Input.action_release("ui_right")
+	InputManager._tick_nav_repeat(0.9)
+	Settings.cursor_speed = previous_speed
+
+
 func test_action_for_direction_is_navigation_directions_inverse() -> void:
 	assert_eq(InputSource.action_for_direction(Vector2i(0, -1)), &"ui_up")
 	assert_eq(InputSource.action_for_direction(Vector2i(0, 1)), &"ui_down")

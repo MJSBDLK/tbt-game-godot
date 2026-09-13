@@ -2,9 +2,10 @@
 ## any UI that wants to render passive descriptions (equipment picker, unit
 ## detail panel, etc.).
 ##
-## Passives are simpler than Moves — for now they're just `{abbrev_name,
-## description}`. Effects are applied elsewhere (StatusEffectSystem,
-## EnemyAI, etc.) keyed by name.
+## Passives are simpler than Moves — the JSON is just `{abbrevName,
+## description}` under the display name. That entry is step 1 of 2: the
+## behaviour is a CombatEffect handler registered by name in PassiveRegistry,
+## and an entry without one is text only. Wishlist: data/design/moves-and-passives.md.
 class_name PassiveData
 extends RefCounted
 

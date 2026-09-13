@@ -63,7 +63,7 @@ var max_fps: int = 0
 ## opens. CORE input decision (ui-style-guide.md §14): long press = right click
 ## = Back/R3, all hold-to-peek. The 200ms FLOOR is a softlock guard — a
 ## threshold shorter than a player can reliably release would turn every tap
-## into a tooltip (RQD 2026-07-19). Options slider: 200–1000ms in 50ms steps.
+## into a tooltip (RQD 2026-07-19). Options slider: 200–800ms in 50ms steps (ceiling 1000 → 800, RQD 2026-09-10).
 var tooltip_hold_ms: int = 200
 
 ## When true (the default = today's behavior), the player phase hands off to
@@ -90,7 +90,7 @@ var show_control_hints: bool = true
 ## How a planned move is confirmed once a marker is on the board — the
 ## playtest toggle (RQD 2026-08-21). MARKER: press the marker again (the
 ## fluent path; the hint bar's step line wears the NOTICE border and stays a
-## label). BUTTON: the hint bar's step cluster becomes a pressable "Move here"
+## label). BUTTON: the hint bar's step cluster becomes a pressable "Confirm path"
 ## (parked-gold CTA) — clearer the first three times, clunkier the next three
 ## hundred. AUTO (default): BUTTON under touch (the corner cluster is already
 ## under the thumb and double-tapping a tile is the error-prone gesture),
@@ -98,25 +98,49 @@ var show_control_hints: bool = true
 enum MoveConfirmMode { AUTO, MARKER, BUTTON }
 var move_confirm_mode: int = MoveConfirmMode.AUTO
 
-## WHEN a confirmed move plan actually walks — the todo-4A playtest toggle
-## (RQD 2026-08-31). WALK_THEN_ACT (default, the shipped behavior): the unit
-## walks as soon as the plan is confirmed, then picks an action; cancel snaps
-## it back. ACT_THEN_WALK: game LOGIC moves exactly as in WALK_THEN_ACT
-## (current_tile, occupancy, ranges, previews all read the destination) but
-## the sprite stays at the origin behind the staged UnitGhost until the
-## action commits — then the walk plays and the action fires. Player units
-## only; the AI always walks immediately. Design note: ACT_THEN_WALK is the
-## commit model a future fog-of-war mission modifier requires (todo §9).
-enum MoveCommitMode { WALK_THEN_ACT, ACT_THEN_WALK }
-var move_commit_mode: int = MoveCommitMode.WALK_THEN_ACT
+## RETIRED 2026-09-10: `move_commit_mode`, the todo-4A Walk | Ghost playtest
+## toggle. Ghost — game LOGIC commits on plan-confirm while the sprite waits
+## at the origin behind the staged UnitGhost and walks when the action
+## commits (Unit.execute_planned_movement / play_deferred_walk) — is the only
+## commit model now; Walk was deleted (RQD: "works great", plus an
+## un-reproducible "both modes ghost" report). An older settings.cfg may
+## still carry `controls/move_commit_mode`; the key is ignored.
+
+## HOW an offensive exchange is shown (plan .claude/todo-archive.md ("Battle animations plan"),
+## D4 + D5). ALWAYS: the FE7-style combat scene for every exchange.
+## PLAYER_PHASE_ONLY: the scene when the player initiates, the in-place map
+## beats when the enemy does. MAP: the in-place presentation for everything
+## (boop nudge or side clip on the map unit — today's look). Friendly casts,
+## AoE and support never use the scene regardless (D3). Read once per
+## exchange by CombatPresenter.for_exchange. Default ALWAYS: the scene is
+## the intended look; the sandbox and the suite flip this explicitly.
+enum BattleAnimations { ALWAYS, PLAYER_PHASE_ONLY, MAP }
+var battle_animations: int = BattleAnimations.ALWAYS
 
 const TOOLTIP_HOLD_MIN_MS: int = 200
-const TOOLTIP_HOLD_MAX_MS: int = 1000
+const TOOLTIP_HOLD_MAX_MS: int = 800
 const TOOLTIP_HOLD_STEP_MS: int = 50
+
+## Board-cursor hold-to-repeat rate in tiles per second: once a held D-pad,
+## stick or arrow key has waited out the initial delay, this is how fast the
+## cursor travels. The Options slider offers CURSOR_SPEED_MIN–MAX in
+## CURSOR_SPEED_STEP steps; 12.5 is the tuned D-pad feel (an 80 ms step).
+var cursor_speed: float = 12.5
+const CURSOR_SPEED_MIN: float = 4.0
+const CURSOR_SPEED_MAX: float = 25.0
+const CURSOR_SPEED_STEP: float = 0.5
 
 ## The file settings load from / save to. Overridable so tests can point at a
 ## throwaway path instead of clobbering the player's real settings file.
 var settings_path: String = DEFAULT_SETTINGS_PATH
+
+## False = setters still apply in memory but _save() never touches disk.
+## The GUT pre-run hook turns this off: the suite forces battle_animations =
+## MAP for speed, and one persisting setter call in any test would otherwise
+## write that (and every other suite-time value) into the PLAYER's
+## user://settings.cfg — exactly how RQD's build lost the combat scene on
+## 2026-09-07 ("doesn't trigger at all").
+var persistence_enabled: bool = true
 
 
 func _ready() -> void:
@@ -149,6 +173,8 @@ func load_settings() -> void:
 				"display", "max_fps", max_fps)), 0, 1000)
 		tooltip_hold_ms = _snap_tooltip_hold(int(config.get_value(
 				"controls", "tooltip_hold_ms", tooltip_hold_ms)))
+		cursor_speed = _snap_cursor_speed(float(config.get_value(
+				"controls", "cursor_speed", cursor_speed)))
 		auto_end_turn = bool(config.get_value(
 				"gameplay", "auto_end_turn", auto_end_turn))
 		seeded_reload = bool(config.get_value(
@@ -158,9 +184,9 @@ func load_settings() -> void:
 		move_confirm_mode = clampi(int(config.get_value(
 				"controls", "move_confirm_mode", move_confirm_mode)),
 				MoveConfirmMode.AUTO, MoveConfirmMode.BUTTON)
-		move_commit_mode = clampi(int(config.get_value(
-				"controls", "move_commit_mode", move_commit_mode)),
-				MoveCommitMode.WALK_THEN_ACT, MoveCommitMode.ACT_THEN_WALK)
+		battle_animations = clampi(int(config.get_value(
+				"visuals", "battle_animations", battle_animations)),
+				BattleAnimations.ALWAYS, BattleAnimations.MAP)
 	# Engine-level prefs (fps cap, bus volumes) must apply even with no file —
 	# a fresh install still needs the buses minted and defaults pushed.
 	_apply_engine_settings()
@@ -256,7 +282,7 @@ func set_max_fps(value: int) -> void:
 	changed.emit()
 
 
-## Persists + notifies. Snapped to the 50ms slider grid and clamped 200–1000
+## Persists + notifies. Snapped to the 50ms slider grid and clamped 200–800
 ## (the 200 floor is the softlock guard — see the var doc).
 func set_tooltip_hold_ms(value: int) -> void:
 	value = _snap_tooltip_hold(value)
@@ -265,6 +291,22 @@ func set_tooltip_hold_ms(value: int) -> void:
 	tooltip_hold_ms = value
 	_save()
 	changed.emit()
+
+
+## Persists + notifies. Snapped to the slider grid and clamped to the range.
+func set_cursor_speed(value: float) -> void:
+	value = _snap_cursor_speed(value)
+	if is_equal_approx(value, cursor_speed):
+		return
+	cursor_speed = value
+	_save()
+	changed.emit()
+
+
+## The repeat engine's step, derived: seconds between cursor steps while a
+## direction is held (InputManager._tick_nav_repeat reads this every tick).
+func cursor_repeat_interval_seconds() -> float:
+	return 1.0 / cursor_speed
 
 
 ## Persists + notifies. No-ops when unchanged (see set_portrait_effects_enabled).
@@ -285,11 +327,11 @@ func set_move_confirm_mode(value: int) -> void:
 	changed.emit()
 
 
-func set_move_commit_mode(value: int) -> void:
-	value = clampi(value, MoveCommitMode.WALK_THEN_ACT, MoveCommitMode.ACT_THEN_WALK)
-	if value == move_commit_mode:
+func set_battle_animations(value: int) -> void:
+	value = clampi(value, BattleAnimations.ALWAYS, BattleAnimations.MAP)
+	if value == battle_animations:
 		return
-	move_commit_mode = value
+	battle_animations = value
 	_save()
 	changed.emit()
 
@@ -309,6 +351,11 @@ func set_seeded_reload(value: bool) -> void:
 	seeded_reload = value
 	_save()
 	changed.emit()
+
+
+func _snap_cursor_speed(value: float) -> float:
+	var snapped_value: float = roundf(value / CURSOR_SPEED_STEP) * CURSOR_SPEED_STEP
+	return clampf(snapped_value, CURSOR_SPEED_MIN, CURSOR_SPEED_MAX)
 
 
 func _snap_tooltip_hold(value: int) -> int:
@@ -353,6 +400,8 @@ func _apply_bus_volume(bus_name: String, linear: float) -> void:
 ## keys other systems may have written survive the round-trip (forward-
 ## compatible — we never blow away sections we don't know about).
 func _save() -> void:
+	if not persistence_enabled:
+		return
 	var config := ConfigFile.new()
 	config.load(settings_path)  # ignore error — a fresh file is fine
 	config.set_value("visuals", "portrait_effects_enabled", portrait_effects_enabled)
@@ -365,11 +414,12 @@ func _save() -> void:
 	config.set_value("audio", "music_volume", music_volume)
 	config.set_value("display", "max_fps", max_fps)
 	config.set_value("controls", "tooltip_hold_ms", tooltip_hold_ms)
+	config.set_value("controls", "cursor_speed", cursor_speed)
 	config.set_value("gameplay", "auto_end_turn", auto_end_turn)
 	config.set_value("gameplay", "seeded_reload", seeded_reload)
 	config.set_value("controls", "show_control_hints", show_control_hints)
 	config.set_value("controls", "move_confirm_mode", move_confirm_mode)
-	config.set_value("controls", "move_commit_mode", move_commit_mode)
+	config.set_value("visuals", "battle_animations", battle_animations)
 	var err: int = config.save(settings_path)
 	if err != OK:
 		push_warning("Settings: failed to save %s (error %d)" % [settings_path, err])

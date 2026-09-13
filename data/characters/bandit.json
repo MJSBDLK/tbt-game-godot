@@ -4,6 +4,10 @@
 	"secondaryType": "None",
 	"currentClass": "Bandit",
 	"specialization": "None",
+	"lineartPath": "res://art/lineart_fullres/bandit.png",
+	"lineartAtlases": {
+		"portrait": "res://art/lineart_fullres/bandit_portrait.tres"
+	},
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/bandit/idle.png",
 		"atlasPath": "",

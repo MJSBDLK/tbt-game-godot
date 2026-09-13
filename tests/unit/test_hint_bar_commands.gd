@@ -57,25 +57,27 @@ func test_waypoints_are_taught_one_click_at_a_time() -> void:
 	# leaves is the explanation and the next step line says what it's for.
 	var kb := HintBarCommands.Model.KEYBOARD_MOUSE
 	assert_eq(_verbs(Enums.InputState.UNIT_SELECTED, kb)[0], "Plot path",
-			"never promise 'Move here' for a click that only plots")
+			"never promise a confirm for a click that only plots")
 	assert_eq(HintBarCommands.step_text_for(Enums.InputState.UNIT_SELECTED, kb), "Choose a destination")
 	assert_eq(_verbs(Enums.InputState.MOVEMENT_PLANNING, kb)[0], "Add stop")
+	# "confirm", never "move": the press stages the plan (deferred walk), the
+	# sprite walks when the action commits.
 	assert_eq(HintBarCommands.step_text_for(Enums.InputState.MOVEMENT_PLANNING, kb),
-			"Select the marker again to move")
+			"Select the marker again to confirm")
 	assert_eq(HintBarCommands.step_text_for(Enums.InputState.MOVEMENT_PLANNING, HintBarCommands.Model.TOUCH),
-			"Tap the marker again to move")
+			"Tap the marker again to confirm")
 	# Same glyphs in both states — only the words change.
 	assert_eq(_glyphs(Enums.InputState.MOVEMENT_PLANNING, kb), _glyphs(Enums.InputState.UNIT_SELECTED, kb))
 
 
-func test_only_the_planning_step_is_a_notice_and_has_the_move_here_button() -> void:
+func test_only_the_planning_step_is_a_notice_and_has_the_confirm_path_button() -> void:
 	# §14 NOTICE (violet, static, not a button): ONE on screen. The planning
 	# line is it (so the change from "Choose a destination" registers — RQD
 	# 2026-08-21); nothing else in the table claims it, never in the enemy
-	# phase. The same state offers the playtest alternative, "Move here".
+	# phase. The same state offers the playtest alternative, "Confirm path".
 	assert_true(HintBarCommands.step_is_notice(Enums.InputState.MOVEMENT_PLANNING))
 	assert_false(HintBarCommands.step_is_notice(Enums.InputState.MOVEMENT_PLANNING, true))
-	assert_eq(HintBarCommands.confirm_label_for(Enums.InputState.MOVEMENT_PLANNING), "Move here")
+	assert_eq(HintBarCommands.confirm_label_for(Enums.InputState.MOVEMENT_PLANNING), "Confirm path")
 	assert_eq(HintBarCommands.confirm_label_for(Enums.InputState.UNIT_SELECTED), "")
 	var notice_states: Array = []
 	for state: Enums.InputState in HintBarCommands.states_with_entries():
@@ -112,6 +114,19 @@ func test_default_row_under_touch_is_only_the_buttons() -> void:
 	# no gesture become buttons.
 	assert_eq(_glyphs(Enums.InputState.DEFAULT, HintBarCommands.Model.TOUCH),
 			["End turn", "Threat", "Menu"])
+
+
+func test_unit_detail_row_says_what_the_press_does() -> void:
+	# RQD 2026-09-10: "all the controls bar reads, in this context, is 'B for
+	# close'". The sheet is a focus chain under the cursor model now, so A
+	# means something. Touch has no cursor — a tap IS the inspect — so only
+	# Close is a button there. Still no step line (mockup round 1).
+	assert_eq(_glyphs(Enums.InputState.UNIT_DETAIL, HintBarCommands.Model.CONTROLLER), ["A", "B"])
+	assert_eq(_verbs(Enums.InputState.UNIT_DETAIL, HintBarCommands.Model.CONTROLLER),
+			["Inspect", "Close"])
+	assert_eq(_glyphs(Enums.InputState.UNIT_DETAIL, HintBarCommands.Model.KEYBOARD_MOUSE),
+			["LMB", "Esc"])
+	assert_eq(_glyphs(Enums.InputState.UNIT_DETAIL, HintBarCommands.Model.TOUCH), ["Close"])
 
 
 func test_unit_selected_row() -> void:
@@ -211,3 +226,24 @@ func test_skin_override_drives_resolution() -> void:
 	HintBarCommands.joy_skin_override = HintBarCommands.JoySkin.PLAYSTATION
 	assert_eq(_glyphs(Enums.InputState.DEFAULT, HintBarCommands.Model.CONTROLLER),
 			["Cross", "Triangle", "Square", "L1", "Circle"])
+
+
+# --- the level-up reveal (manual advance, 2026-09-09) --------------------------
+
+func test_the_level_up_reveal_says_continue_in_both_phases() -> void:
+	# RQD 2026-09-09 manual advance: LevelUpStatPanel holds for a press. An
+	# enemy's hit can level our defender, so the row survives the enemy-phase
+	# blank every other state gets — phase_blind is that one exception.
+	var state := Enums.InputState.LEVEL_UP_CELEBRATION
+	for enemy: bool in [false, true]:
+		assert_eq(_glyphs(state, HintBarCommands.Model.CONTROLLER, enemy), ["A"],
+				"Continue on the pad (enemy phase: %s)" % enemy)
+		assert_eq(_glyphs(state, HintBarCommands.Model.KEYBOARD_MOUSE, enemy), ["LMB"])
+		assert_eq(_glyphs(state, HintBarCommands.Model.TOUCH, enemy), ["Continue"],
+				"touch gets a real button")
+		assert_eq(HintBarCommands.step_text_for(state, HintBarCommands.Model.KEYBOARD_MOUSE, enemy),
+				"", "no step line — the panel is the step")
+	for other: Enums.InputState in HintBarCommands.states_with_entries():
+		if other != state:
+			assert_eq(HintBarCommands.items_for(other, true).size(), 0,
+					"%s still blanks in the enemy phase" % Enums.InputState.keys()[other])

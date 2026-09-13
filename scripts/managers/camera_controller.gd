@@ -20,7 +20,10 @@ extends Camera2D
 
 
 @export_group("Pan")
-@export var pan_speed: float = 120.0
+## Keyboard / edge pan, in SCREEN px/s (the pan divides by zoom, so the
+## on-screen speed is the same at every zoom level). 120 read as far too slow
+## on F5 — RQD 2026-09-09: "speed up 3-5x"; 4x is the mid-point of the ask.
+@export var pan_speed: float = 480.0
 @export var pan_smooth_time: float = 0.1
 @export var pan_tween_duration: float = 0.35
 @export var enable_edge_panning: bool = false
@@ -263,7 +266,8 @@ func _is_input_blocked() -> bool:
 	return state == Enums.InputState.ACTION_MENU_OPEN or \
 		state == Enums.InputState.UNIT_DETAIL or \
 		state == Enums.InputState.DIALOGUE or \
-		state == Enums.InputState.PAUSED
+		state == Enums.InputState.PAUSED or \
+		state == Enums.InputState.LEVEL_UP_CELEBRATION
 
 
 func _cancel_tween() -> void:

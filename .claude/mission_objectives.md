@@ -164,21 +164,23 @@ have 450."* The anti-supersquad work is done by class/type diversity and injury
 attrition, not by XP math ([class-and-promotion.md](../data/design/class-and-promotion.md) §5).
 
 **Code consequences — APPLIED 2026-08-06.** `SquadManager.bexp_level_cost` and
-its three cost constants are gone, replaced by a single `BEXP_LEVEL_COST = 100`;
-`buy_bexp_level` charges it flat. The BonusXpPanel header note and its buy-button
-tooltip were rewritten to match. `CombatXpCalculator` moved to exponential decay
+its three cost constants are gone, replaced by a single `BEXP_LEVEL_COST = 100`.
+(`buy_bexp_level` and the post-battle BonusXpPanel were deleted 2026-09-09 —
+`commit_bexp_pour`, the intermission's, is the one way bEXP is spent and reads
+the same constant.) `CombatXpCalculator` moved to exponential decay
 in the same pass and `TIER_LEVEL_BOOST` was deleted. Pinned by
 `tests/unit/test_squad_manager.gd` and `test_combat_xp.gd`.
 
-One thing the flattening did **not** buy: `buy_bexp_level` still commits
-immediately and irreversibly — the growth rolls happen inside it. The mockup's
-refundable pouring (`[-1]` / `[-10]`) needs a staging layer holding uncommitted
-XP until the player confirms; those buttons can't wire straight through.
+One thing the flattening did **not** buy: the commit is still immediate and
+irreversible — the growth rolls happen inside `commit_bexp_pour`. The
+refundable pouring (`[-1]` / `[-10]`) therefore lives UPSTREAM as a staging
+layer: `BexpSpendPanel` stages pours as arithmetic and only calls the commit
+on CONFIRM (slice 4, 2026-08-13). The buttons never wire straight through.
 
 ## Open Questions
 
 - **Objective definition format**: JSON blob per map? Dedicated `Objective` resource class? Needs a design pass before implementation.
-- **UI display**: Objective checklist on the battle HUD (persistent? collapsible? only shown on map open?). See battle_result_overlay scope — objective status also appears there.
+- **UI display**: Objective checklist on the battle HUD (persistent? collapsible? only shown on map open?). See `BattleResultPanel` — objective status also appears there.
 - **Multi-objective missions**: How many per map? My gut says 1 primary (beat the mission) + 0–2 optional world-clock bEXP objectives.
 - **bEXP economy**: How much bEXP buys what? Needs to shake out alongside the XP/level-up system.
 - **Escalation telegraphing**: how does the player know a courier is faster now, or a storm is about to engulf a tile? Visual affordances (particles, sprite variations) vs. UI text.

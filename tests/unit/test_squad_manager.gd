@@ -186,7 +186,10 @@ func test_fast_victory_banks_both_par_bands_into_the_pool() -> void:
 # A level costs BEXP_LEVEL_COST for everyone at every level. The level-scaled
 # price tag that used to live here was deleted: catch-up belongs in the combat
 # award, and a second rubber band hidden in a shop price is a rule the player
-# can't see. These tests exist mainly to keep it from creeping back.
+# can't see. These tests exist mainly to keep it from creeping back. The
+# whole-level buy API (buy_bexp_level) retired with the post-battle bEXP
+# screen (2026-09-09); commit_bexp_pour — the intermission's — is the one
+# way bEXP is spent, so the invariants are pinned on it.
 
 func _bexp_subject(level: int) -> CharacterData:
 	var subject := CharacterData.new()
@@ -196,14 +199,15 @@ func _bexp_subject(level: int) -> CharacterData:
 
 
 func test_bexp_level_costs_the_same_at_every_level() -> void:
-	# The invariant, not the number: cost must not read `level` at all. If a
-	# scaling term ever comes back, these three stop agreeing.
+	# The invariant, not the number: the pour must not read `level` at all.
+	# If a scaling term ever comes back, these three stop agreeing.
 	_with_income_state_reset(func() -> void:
 		for level: int in [1, 30, 60]:
 			var subject := _bexp_subject(level)
 			SquadManager.bonus_xp_pool = SquadManager.BEXP_LEVEL_COST
-			assert_true(SquadManager.buy_bexp_level(subject),
+			assert_eq(SquadManager.commit_bexp_pour(subject, SquadManager.BEXP_LEVEL_COST), 1,
 					"exactly one level's worth of pool buys a level at Lv %d" % level)
+			assert_eq(subject.level, level + 1)
 			assert_eq(SquadManager.bonus_xp_pool, 0,
 					"a Lv %d unit is charged the same as a Lv 1 unit" % level))
 
@@ -214,28 +218,32 @@ func test_bexp_level_costs_what_a_level_costs_in_the_field() -> void:
 	# fails and tells you the two halves of the economy have drifted apart.
 	assert_eq(SquadManager.BEXP_LEVEL_COST, 100,
 			"bEXP charges the same 100 XP per level the combat bar does")
+	assert_eq(SquadManager.BEXP_LEVEL_COST, CharacterData.XP_PER_LEVEL,
+			"…and it is literally the field's threshold — the pour fills the same gauge")
 
 
-func test_buying_a_level_charges_the_pool_and_levels_once() -> void:
+func test_pouring_a_level_charges_the_pool_and_levels_once() -> void:
 	_with_income_state_reset(func() -> void:
 		var subject := _bexp_subject(60)
 		SquadManager.bonus_xp_pool = 250
 		subject.experience = 40
-		assert_true(SquadManager.buy_bexp_level(subject), "pool covers one level")
+		assert_eq(SquadManager.commit_bexp_pour(subject, SquadManager.BEXP_LEVEL_COST), 1,
+				"pool covers one level")
 		assert_eq(SquadManager.bonus_xp_pool, 150, "exactly one level's cost deducted")
-		assert_eq(subject.level, 61, "one whole level bought")
+		assert_eq(subject.level, 61, "one whole level poured")
 		assert_eq(subject.experience, 40,
-				"partial combat XP untouched — 40/100 carries into the new level"))
+				"partial combat XP carries — 40 + 100 crosses one threshold, 40 remains"))
 
 
-func test_buying_beyond_the_pool_is_refused() -> void:
+func test_pouring_beyond_the_pool_is_refused() -> void:
 	_with_income_state_reset(func() -> void:
 		var subject := _bexp_subject(60)
 		SquadManager.bonus_xp_pool = SquadManager.BEXP_LEVEL_COST - 1
-		assert_false(SquadManager.buy_bexp_level(subject), "one short can't buy a level")
+		assert_eq(SquadManager.commit_bexp_pour(subject, SquadManager.BEXP_LEVEL_COST), 0,
+				"one short can't pour a level")
 		assert_eq(SquadManager.bonus_xp_pool, SquadManager.BEXP_LEVEL_COST - 1,
-				"refused purchase deducts nothing")
-		assert_eq(subject.level, 60, "refused purchase levels nothing"))
+				"refused pour deducts nothing")
+		assert_eq(subject.level, 60, "refused pour levels nothing"))
 
 
 func test_defeat_banks_nothing_and_clears_the_award_lines() -> void:

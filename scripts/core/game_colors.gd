@@ -146,13 +146,17 @@ static var ACTION_BUTTON_BG_HOVERED: Color:
 static var ACTION_BUTTON_BG_PRESSED: Color:
 	get: return with_alpha(GameColorPalette.get_color("Gray", 1), 0.4)
 
-# Save-slot color identity (RQD 2026-08-01): turn autosaves read YELLOW,
-# battle-start autosaves read BLUE, everywhere save slots appear. Ramp steps
-# picked for text legibility on dark panels — tune here, not at call sites.
+# Save-slot color identity: turn autosaves read YELLOW, battle-start autosaves
+# read BLUE, base (mission-boundary) autosaves read GREEN, manual saves are
+# plain text — everywhere save slots appear. Ramp steps picked for text
+# legibility on dark panels — tune here, not at call sites. GREEN is a
+# placeholder pending Lawrence's pick (intermission.md §2c).
 static var SAVE_AUTO_TURN: Color:
 	get: return GameColorPalette.get_color("Yellow", 7)
 static var SAVE_AUTO_BATTLE: Color:
 	get: return GameColorPalette.get_color("Azure", 7)
+static var SAVE_AUTO_BASE: Color:
+	get: return GameColorPalette.get_color("Green", 7)
 
 
 # =============================================================================

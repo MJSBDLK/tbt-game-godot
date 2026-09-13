@@ -164,7 +164,7 @@ Internal scaling: all movement costs * 2 for half-tile precision. `MOVEMENT_SCAL
 - Layout: 140px left panel | 360x360 center play area | 140px right panel
 - Left: Unit info (220px) + Terrain info (140px)
 - Right: Action menu + Combat preview
-- Integer scaling only (no stretching). Black bars on ultrawide.
+- Integer scaling only (no stretching). No letterbox: the HUD canvas grows past 640×360 to fill the window's aspect (supported range 8:5 to 21:9; anchor to edges, never hardcode 640×360 positions).
 
 ### Progression
 - Growth rates (RNG stat increases on level up, Fire Emblem style)
@@ -214,7 +214,8 @@ Formula: `z_index = (99 - row_index) * 10 + layer`
 ### Data Pipeline
 - `terrain_data.json` → `TerrainDataManager` (autoload) — terrain movement costs, properties
 - `data/characters/*.json` → `CharacterDataLoader` → `CharacterData` (Resource)
-- `data/moves/BasicMoveBank.json` → `MoveDatabase` — move definitions
+- `data/moves/basic_move_bank.json` → `MoveData` — move definitions (field reference: the `MoveData` class header; wishlist: `data/design/moves-and-passives.md`)
+- `data/passives.json` → `PassiveData` — passive names + descriptions; behaviour is a handler in `PassiveRegistry`
 - Type chart → `.tres` Resource file
 - All JSON uses Godot's native `JSON.parse_string()` — no custom parsers needed
 

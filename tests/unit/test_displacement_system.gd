@@ -779,3 +779,84 @@ func test_never_in_range_defender_stays_silent() -> void:
 			callouts += 1
 	assert_eq(callouts, 0,
 		"a defender that never had the range doesn't shout about losing it")
+
+
+# =============================================================================
+# THE PRESENTER SEAM (RQD's first eyeball of the combat scene, 2026-09-08:
+# "instead of seeing units move, we come back to a scene where they're in
+# their new positions"). Occupancy commits at once — the counter's range
+# re-check depends on it — but the SLIDE is the presenter's `displace` beat.
+# =============================================================================
+
+func test_resolve_commits_occupancy_at_once_and_leaves_the_slide_to_the_presenter() -> void:
+	_open_grid(0, 5, 0, 0)
+	var caster := _spawn_scene_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 0, 0)
+	var target := _spawn_scene_unit(GRUNT_PATH, Enums.UnitFaction.ENEMY, 1, 0)
+	var origin: Vector2 = target.global_position
+	var recorder := RecordingPresenter.new()
+	await DisplacementSystem.resolve(caster, target, _displace_move(2), recorder)
+	assert_eq(recorder.count("displace"), 1, "one displace beat per resolve")
+	assert_eq(recorder.beats_named("displace")[0]["movers"], ["%s×2" % target.unit_name])
+	var landing := GridManager.get_tile(3, 0)
+	assert_eq(target.current_tile, landing, "occupancy committed before the beat")
+	assert_eq(landing.current_unit, target)
+	assert_null(GridManager.get_tile(1, 0).current_unit)
+	assert_eq(target.global_position, origin, "a presenter that shows nothing leaves the node where it stood")
+
+
+func test_under_the_scene_the_map_slide_waits_for_close() -> void:
+	_open_grid(0, 5, 0, 0)
+	var caster := _spawn_scene_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 0, 0)
+	var target := _spawn_scene_unit(GRUNT_PATH, Enums.UnitFaction.ENEMY, 1, 0)
+	var origin: Vector2 = target.global_position
+	var shove := _displace_move(2)
+	var presenter := ScenePresenter.new()
+	presenter.request_skip()  # instant wipes + snaps — this test is about ORDER
+	await presenter.open(caster, target, shove)
+	var puppet: CombatPuppet = presenter.scene.puppet_for(target)
+	var puppet_x_before: float = puppet.position.x
+	await DisplacementSystem.resolve(caster, target, shove, presenter)
+	var landing := GridManager.get_tile(3, 0)
+	assert_eq(target.current_tile, landing, "the tile moves at once — the counter range check needs it")
+	assert_eq(landing.current_unit, target)
+	assert_eq(target.global_position, origin, "but the map node has NOT moved under the stage")
+	assert_almost_eq(puppet_x_before - puppet.position.x, 2.0 * CombatScene.spread_for(1), 0.5,
+			"the left puppet is re-spaced outward by exactly the two tiles it was shoved")
+	assert_eq(presenter.scene.distance_tiles(), 3)
+	await presenter.close()
+	assert_eq(target.global_position, landing.global_position, "after the wipe-out the map catches up")
+
+
+func test_the_replay_slides_the_map_unit_along_its_path() -> void:
+	_open_grid(0, 5, 0, 0)
+	var caster := _spawn_scene_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 0, 0)
+	var target := _spawn_scene_unit(GRUNT_PATH, Enums.UnitFaction.ENEMY, 1, 0)
+	var origin: Vector2 = target.global_position
+	var shove := _displace_move(2)
+	var motion_before: bool = Settings.ui_motion_enabled
+	Settings.ui_motion_enabled = true
+	var presenter := ScenePresenter.new()
+	await presenter.open(caster, target, shove)
+	await DisplacementSystem.resolve(caster, target, shove, presenter)
+	assert_eq(target.global_position, origin, "still standing at the origin while the stage is up")
+	await presenter.close()
+	Settings.ui_motion_enabled = motion_before
+	var landing := GridManager.get_tile(3, 0)
+	assert_eq(target.global_position, landing.global_position, "the real slide ran after the stage closed")
+	assert_eq(landing.current_unit, target)
+
+
+func test_a_pull_echoes_the_puppet_inward() -> void:
+	_open_grid(0, 5, 0, 0)
+	var caster := _spawn_scene_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 0, 0)
+	var target := _spawn_scene_unit(GRUNT_PATH, Enums.UnitFaction.ENEMY, 3, 0)
+	var pull := _displace_move(2, "toward_attacker")
+	var presenter := ScenePresenter.new()
+	presenter.request_skip()
+	await presenter.open(caster, target, pull)
+	var puppet: CombatPuppet = presenter.scene.puppet_for(target)
+	var puppet_x_before: float = puppet.position.x
+	await DisplacementSystem.resolve(caster, target, pull, presenter)
+	assert_eq(target.current_tile, GridManager.get_tile(1, 0), "pulled to the tile before the attacker")
+	assert_true(puppet.position.x > puppet_x_before, "the left puppet slides inward, toward its opponent")
+	await presenter.close()

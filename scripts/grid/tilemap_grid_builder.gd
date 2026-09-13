@@ -6,14 +6,19 @@
 ## 1. Create a TileSet with custom data layers:
 ##    - "terrain_type" (String) — matches terrain_data.json keys
 ##    - "is_modifier" (bool) — if true, this is a Tier 2 modifier tile
-## 2. Add two TileMapLayer children to this node:
-##    - "FloorLayer" — Tier 1 base terrain
-##    - "ModifierLayer" — Tier 2 modifiers (COMPLETELY REPLACE floor properties)
-##    - "DecorationLayer" (optional) — Tier 3 visual-only (stays visible at runtime)
+## 2. Add these TileMapLayer children to this node:
+##    - "TerrainTileLayer" — Tier 1 base terrain
+##    - "ModifierTileLayer" — Tier 2 modifiers (COMPLETELY REPLACE floor properties)
+##    - "DecorationTileLayer" (optional) — Tier 3 visual-only. Same sprite
+##      library as the modifier layer; painting here is the "no gameplay"
+##      choice. Rendered by the same TerrainSpriteRenderer overlay (full
+##      visual with overhang + shadows), so the layer itself is hidden at
+##      runtime just like the modifier layer.
 ## 3. Paint tiles in the editor. Run the scene. Grid is built automatically.
 ##
 ## Three-tier rule: If a modifier exists at (x,y), its terrain_type COMPLETELY
 ## replaces the floor terrain_type. Never additive.
+@tool
 class_name TilemapGridBuilder
 extends Node2D
 
@@ -32,10 +37,25 @@ var _tile_container: Node2D = null
 
 
 func _ready() -> void:
+	# A scene saved while this script was mid-reload (the editor had a map
+	# open during a script edit, or a dependency failed to compile for a
+	# moment) can write the exported paths as null — test_map_02 caught it
+	# on 2026-09-07. An empty path means "the default", never "no layer".
+	floor_layer_path = _path_or_default(floor_layer_path, ^"TerrainTileLayer", "floor_layer_path")
+	modifier_layer_path = _path_or_default(modifier_layer_path, ^"ModifierTileLayer", "modifier_layer_path")
+	decoration_layer_path = _path_or_default(decoration_layer_path, ^"DecorationTileLayer", "decoration_layer_path")
+	spawn_layer_path = _path_or_default(spawn_layer_path, ^"SpawnTileLayer", "spawn_layer_path")
 	_floor_layer = get_node_or_null(floor_layer_path) as TileMapLayer
 	_modifier_layer = get_node_or_null(modifier_layer_path) as TileMapLayer
 	_decoration_layer = get_node_or_null(decoration_layer_path) as TileMapLayer
 	_spawn_layer = get_node_or_null(spawn_layer_path) as TileMapLayer
+
+	# EDITOR: no grid, no autoloads — just the paint-and-see previews.
+	# TerrainSpriteRenderer is @tool; unowned children never reach the .tscn,
+	# so the runtime path below starts clean every time.
+	if Engine.is_editor_hint():
+		_spawn_editor_previews()
+		return
 
 	if _floor_layer == null:
 		DebugConfig.log_error("TilemapGridBuilder: FloorLayer not found at '%s'" % str(floor_layer_path))
@@ -141,17 +161,18 @@ func _build_grid() -> void:
 		GridManager.register_tile(tile)
 		tile_count += 1
 
-	# Keep TileMapLayers visible — they display the actual tileset art.
-	# Tile nodes are invisible gameplay objects (selection, occupancy, terrain queries).
+	# The floor TileMapLayer stays visible — it displays the actual tileset
+	# art. Tile nodes are invisible gameplay objects (selection, occupancy,
+	# terrain queries). The modifier + decoration layers get a flat band base
+	# here as a fallback; the per-cell TerrainSpriteRenderer overlays spawned
+	# below do the real per-row sorting and hide the layers. Enum ref (not a
+	# magic number) so it tracks the band across renumbers (e.g. FOOT_TRACKS).
 	if _modifier_layer != null:
-		# Flat band base for the whole layer; the per-cell ModifierRenderer
-		# overlay does the real per-row sorting on top. Enum ref (not a magic
-		# number) so it tracks the band across renumbers (e.g. FOOT_TRACKS).
 		_modifier_layer.z_index = int(ZIndexCalculator.ZIndexLayer.TERRAIN_MODIFIERS)
+	if _decoration_layer != null:
+		_decoration_layer.z_index = int(ZIndexCalculator.ZIndexLayer.TERRAIN_MODIFIERS)
 	if _spawn_layer != null:
 		_spawn_layer.visible = false
-	if _decoration_layer != null:
-		_decoration_layer.z_index = int(ZIndexCalculator.ZIndexLayer.PURE_DECORATIONS)
 
 	# Apply boundary markers if any were placed
 	var boundary := get_boundary_rect()
@@ -165,19 +186,59 @@ func _build_grid() -> void:
 	else:
 		GridManager.set_grid_bounds(grid_width, grid_height, min_x, -max_y, tile_size)
 
-	# Spawn the modifier overlay AFTER set_grid_bounds — ModifierRenderer
+	# Spawn the sprite overlays AFTER set_grid_bounds — TerrainSpriteRenderer
 	# reads GridManager.grid_offset_y in its _ready to compute front-row z
-	# indices, so the bounds must be final first. The renderer draws each
-	# modifier's full PNG (including overhang above/around the gameplay
-	# tile) as Sprite2D overlays with occlusion-correct z, and hides the
-	# modifier tilemap layer to avoid double-rendering.
+	# indices, so the bounds must be final first. Each renderer draws its
+	# layer's full PNGs (including overhang above/around the gameplay tile)
+	# as Sprite2D overlays with occlusion-correct z, and hides its tilemap
+	# layer to avoid double-rendering. ORDER MATTERS: modifier first,
+	# decoration second — equal-z ties resolve by tree order, so a decoration
+	# painted on a modifier's cell draws on top of it.
 	if _modifier_layer != null:
-		var modifier_renderer := ModifierRenderer.new()
-		modifier_renderer.name = "ModifierRenderer"
-		modifier_renderer.modifier_layer_path = NodePath("../" + str(modifier_layer_path).get_file())
-		add_child(modifier_renderer)
+		_spawn_sprite_renderer(modifier_layer_path, "ModifierRenderer")
+	if _decoration_layer != null:
+		_spawn_sprite_renderer(decoration_layer_path, "DecorationRenderer")
 
 	DebugConfig.log_tilemap("TilemapGridBuilder: Created %d tile nodes" % tile_count)
+
+
+## Null/empty exported path → the conventional default (see _ready). `path`
+## is untyped on purpose: a `.tscn` saved with `floor_layer_path = null`
+## really does load a null Variant into the typed var, and a NodePath-typed
+## parameter would reject it before we could fall back. Warns once per scene
+## build so the nulled .tscn gets noticed and cleaned up.
+static func _path_or_default(path: Variant, default: NodePath, property_name: String) -> NodePath:
+	if path is NodePath and not (path as NodePath).is_empty():
+		return path
+	push_warning("TilemapGridBuilder: %s is empty in the scene (saved as null?) — using %s. Reset the property in the inspector to clear this." % [
+		property_name, default])
+	return default
+
+
+## One TerrainSpriteRenderer per paint layer, as a sibling of the layer.
+func _spawn_sprite_renderer(layer_path: NodePath, node_name: String) -> TerrainSpriteRenderer:
+	var renderer := TerrainSpriteRenderer.new()
+	renderer.name = node_name
+	renderer.layer_path = NodePath("../" + str(layer_path).get_file())
+	renderer.floor_layer_path = NodePath("../" + str(floor_layer_path).get_file())
+	add_child(renderer)
+	if not Engine.is_editor_hint():
+		assert(renderer.get_spawned_sprites().size() > 0 \
+				or (get_node(layer_path) as TileMapLayer).get_used_cells().is_empty(),
+				"TilemapGridBuilder: %s painted cells produced no overlay sprites" % node_name)
+	return renderer
+
+
+## Editor-only previews of both paint layers (see TerrainSpriteRenderer's
+## header). Same spawn order as the runtime — modifier first, decoration
+## second — so tree-order ties resolve the way the game will. Left unowned
+## on purpose: the scene tree dock doesn't show them and saving the scene
+## doesn't write them.
+func _spawn_editor_previews() -> void:
+	if _modifier_layer != null:
+		_spawn_sprite_renderer(modifier_layer_path, "ModifierPreview")
+	if _decoration_layer != null:
+		_spawn_sprite_renderer(decoration_layer_path, "DecorationPreview")
 
 
 func _get_terrain_type_from_layer(layer: TileMapLayer, cell: Vector2i) -> String:

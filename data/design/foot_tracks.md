@@ -13,7 +13,7 @@ doc. Sibling system:
 > **Naming.** The system is **foot_tracks** throughout (code, assets, this
 > doc). The word "footprint" is already taken — it means the W×H *gameplay
 > rectangle* of a modifier tile ([tile.gd](../../scripts/grid/tile.gd),
-> [modifier_renderer.gd](../../scripts/grid/modifier_renderer.gd)). Don't
+> [terrain_sprite_renderer.gd](../../scripts/grid/terrain_sprite_renderer.gd)). Don't
 > overload it.
 
 ---
@@ -156,7 +156,7 @@ FLOOR_TILES = 0
 FOOT_TRACKS = 1   # new
 TERRAIN_EFFECTS = 2
 TERRAIN_MODIFIERS = 3
-PURE_DECORATIONS = 4
+TERRAIN_SHADOWS = 4
 PATH_INDICATORS = 5
 UNITS = 6
 UNIT_EFFECTS = 7

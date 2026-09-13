@@ -1,5 +1,31 @@
 ## Loads move definitions from JSON and creates Move Resources.
 ## Usage: MoveData.get_move("Bonk") -> Move (fresh copy with own PP tracking)
+##
+## THE JSON SHAPE (data/moves/basic_move_bank.json). The top-level key is the
+## display name and the default moveId. Every field has a default, so an entry
+## can be a name plus a few fields. Wishlist and design notes live in
+## data/design/moves-and-passives.md; everything in the bank is castable.
+##
+##   abbrevName    short chip label, ≲9 chars        default: the name
+##   moveId        stable id                          default: name lowercased
+##   description   help text                          default: ""
+##   range / areaOfEffect / targetType                1 / 0 / Single
+##                 targetType: Single | Self | AOE | Ally | AllyNotSelf
+##   aoeAffects    enemies | all                      default: enemies
+##   basePower / damageType / elementType / accuracy  0 / Physical / None / 90
+##                 damageType: Physical | Special | Support
+##   usagesOffset  added to the PP tier derived from basePower
+##                 (≤3→30, ≤7→15, ≤11→8, else 5), clamped 1..99
+##   heal          true → heals (caster.special + basePower) instead of damaging
+##   immune        predicate name; matching targets take nothing ("brave")
+##   statusEffect  {effect, chance, stacks, replaces, target: target|self,
+##                  conditional: {predicate, then: {...}, else: {...}}}
+##   onHit         {cleanse: [names], displace: {...}, scheduled: {...}}
+##                 displace: {subject: target|self, shape, distance, vector,
+##                            on_blocked: stop|bonus_damage|swap|fall_through,
+##                            save: {contest, margin}}
+##                 scheduled: {effect, delay, marker, stacks, + effect params}
+##   animationClip / animationStyle                   "" / auto
 class_name MoveData
 extends RefCounted
 
@@ -32,6 +58,17 @@ static func load_move_bank(json_path: String = "res://data/moves/basic_move_bank
 
 
 ## Returns a fresh duplicate of the named move (per-unit PP tracking).
+## Every move name in the bank, sorted — for pickers (the combat sandbox).
+static func get_move_names() -> Array[String]:
+	if not _is_loaded:
+		load_move_bank()
+	var names: Array[String] = []
+	for key: Variant in _move_database.keys():
+		names.append(str(key))
+	names.sort()
+	return names
+
+
 static func get_move(move_name: String) -> Move:
 	if not _is_loaded:
 		load_move_bank()
@@ -54,6 +91,7 @@ static func _parse_move_entry(move_name: String, data: Dictionary) -> Move:
 	move.base_power = int(data.get("basePower", 0))
 	move.accuracy = int(data.get("accuracy", 90))
 	move.animation_style = String(data.get("animationStyle", "auto")).to_lower()
+	move.animation_clip = String(data.get("animationClip", "")).to_lower()
 
 	# PP from power tier + optional offset
 	var base_pp := Move.calculate_max_uses_from_power(move.base_power)

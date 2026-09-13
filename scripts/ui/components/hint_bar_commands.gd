@@ -109,23 +109,22 @@ static func _ensure_table() -> void:
 				{action = &"unit_info", verb = "Unit info", touch_label = "Unit info"},
 			],
 		},
-		# A marker is on the board. Pressing IT moves; pressing elsewhere in
-		# range adds a stop. One button, so the step line carries the "go" half
+		# A marker is on the board. Pressing IT confirms the plan; pressing
+		# elsewhere in range adds a stop. One button, so the step line carries the "go" half
 		# — and wears the NOTICE border so the change from "Choose a
 		# destination" registers (RQD 2026-08-21: "most players won't notice
 		# the text has changed"). Not the traveling border (= selection, and
 		# the unit already holds it), not the amber rings (= the only thing
 		# left to do), not pressable (a lit border would promise a press).
-		# Under Settings.move_confirm_mode BUTTON the cluster is a "Move here"
-		# button instead — the playtest alternative.
-		# Under Settings.move_commit_mode ACT_THEN_WALK the press doesn't walk
-		# — it stages the plan (ghost holds the spot, the unit moves when the
-		# action commits), so the copy must not promise movement (the *_act
-		# keys; step_text_for/confirm_label_for pick them when the flag says).
+		# Under Settings.move_confirm_mode BUTTON the cluster is a "Confirm
+		# path" button instead — the playtest alternative.
+		# The press doesn't walk — it stages the plan (the ghost holds the
+		# spot, the unit moves when the action commits: the deferred walk,
+		# the only commit model since 2026-09-10), so the copy must not
+		# promise movement — "confirm", never "move".
 		Enums.InputState.MOVEMENT_PLANNING: {
-			step = "Select the marker again to move", step_touch = "Tap the marker again to move",
-			step_act = "Select the marker again to confirm", step_touch_act = "Tap the marker again to confirm",
-			step_notice = true, confirm_label = "Move here", confirm_label_act = "Confirm path",
+			step = "Select the marker again to confirm", step_touch = "Tap the marker again to confirm",
+			step_notice = true, confirm_label = "Confirm path",
 			items = [
 				{action = &"ui_accept", verb = "Add stop", mouse_button = MOUSE_BUTTON_LEFT},
 				{action = &"ui_cancel", verb = "Cancel", mouse_button = MOUSE_BUTTON_RIGHT, touch_label = "Cancel"},
@@ -146,10 +145,25 @@ static func _ensure_table() -> void:
 				{action = &"ui_cancel", verb = "Back", mouse_button = MOUSE_BUTTON_RIGHT, touch_label = "Back"},
 			],
 		},
+		# The sheet is browsable under the cursor model (UnitDetailPanel wires
+		# every inspectable into a focus chain), so the bar says what the
+		# press does. Touch has no cursor — a tap on a chip IS the inspect —
+		# so only Close gets a button. No step line (mockup round 1).
 		Enums.InputState.UNIT_DETAIL: {
 			step = "", step_touch = "",
 			items = [
+				{action = &"ui_accept", verb = "Inspect", mouse_button = MOUSE_BUTTON_LEFT},
 				{action = &"ui_cancel", verb = "Close", touch_label = "Close"},
+			],
+		},
+		# The mid-battle level-up reveal (LevelUpStatPanel) holds until the
+		# player presses — one verb, no step (the panel IS the step). It shows
+		# in BOTH phases: an enemy's hit can level our defender, and the bar
+		# must still say how to move on (phase_blind — see items_for).
+		Enums.InputState.LEVEL_UP_CELEBRATION: {
+			step = "", step_touch = "", phase_blind = true,
+			items = [
+				{action = &"ui_accept", verb = "Continue", mouse_button = MOUSE_BUTTON_LEFT, touch_label = "Continue"},
 			],
 		},
 		# PAUSED / DIALOGUE / BATTLE_RESULT / POST_MISSION_REPORT / RECRUITING:
@@ -169,30 +183,31 @@ static func states_with_entries() -> Array:
 ## bar doesn't speak in, and during the enemy phase.
 static func items_for(state: Enums.InputState, enemy_phase: bool = false) -> Array:
 	_ensure_table()
-	if enemy_phase or not _table.has(state):
+	if not _table.has(state):
+		return []
+	if enemy_phase and not _phase_blind(state):
 		return []
 	return _table[state].items
 
 
-## The instruction line ("Select a unit"). Empty when the bar has no step for
-## this state; ENEMY_PHASE_STEP while the enemy owns the turn. act_then_walk
-## (Settings.move_commit_mode, sampled by HintBar) swaps in the *_act copy
-## where an entry carries it — the press stages instead of walking, and the
-## step must not promise movement.
-static func step_text_for(state: Enums.InputState, model: Model, enemy_phase: bool = false,
-		act_then_walk: bool = false) -> String:
+## True for rows that show regardless of whose phase it is — modal beats that
+## can interrupt the enemy's turn and still need the player's press.
+static func _phase_blind(state: Enums.InputState) -> bool:
 	_ensure_table()
-	if enemy_phase:
+	return _table.has(state) and bool(_table[state].get("phase_blind", false))
+
+
+## The instruction line ("Select a unit"). Empty when the bar has no step for
+## this state; ENEMY_PHASE_STEP while the enemy owns the turn.
+static func step_text_for(state: Enums.InputState, model: Model, enemy_phase: bool = false) -> String:
+	_ensure_table()
+	if enemy_phase and not _phase_blind(state):
 		return ENEMY_PHASE_STEP
 	if not _table.has(state):
 		return ""
 	var entry: Dictionary = _table[state]
 	if model == Model.TOUCH:
-		if act_then_walk and entry.has("step_touch_act"):
-			return entry.step_touch_act
 		return entry.step_touch
-	if act_then_walk and entry.has("step_act"):
-		return entry.step_act
 	return entry.step
 
 
@@ -206,17 +221,12 @@ static func step_is_notice(state: Enums.InputState, enemy_phase: bool = false) -
 
 
 ## The label of the pressable alternative to the step line (see
-## confirm_label), or "" when the state has none. act_then_walk: see
-## step_text_for.
-static func confirm_label_for(state: Enums.InputState, enemy_phase: bool = false,
-		act_then_walk: bool = false) -> String:
+## confirm_label), or "" when the state has none.
+static func confirm_label_for(state: Enums.InputState, enemy_phase: bool = false) -> String:
 	_ensure_table()
 	if enemy_phase or not _table.has(state):
 		return ""
-	var entry: Dictionary = _table[state]
-	if act_then_walk and entry.has("confirm_label_act"):
-		return String(entry.confirm_label_act)
-	return String(entry.get("confirm_label", ""))
+	return String(_table[state].get("confirm_label", ""))
 
 
 ## The renderable list for a state under a model: each entry is

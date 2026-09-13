@@ -1,11 +1,16 @@
-## Post-battle flow wiring (2026-07-07 regression). The legacy battle-result
-## overlay is dead UI — the post-mission chain suppresses it in the same frame
-## and nothing listens to its Continue button — so show_battle_result must
-## never show it. (The banner-first change briefly did, 3 seconds late: it
-## popped up as an undismissable zombie underneath the bEXP screen and
-## persisted into the intermission.) show_battle_result's remaining jobs are
-## the state push, map-panel teardown, and recording the outcome for the
-## banner played at the top of _on_post_mission_report_ready.
+## Post-battle flow wiring. The chain is banner → BattleResultPanel → conclude
+## (UIManager._on_post_mission_report_ready). show_battle_result's jobs are
+## the state push, map-panel teardown, and recording the outcome + stats for
+## the banner and the result panel — it SHOWS nothing (a legacy stats overlay
+## used to be shown from here and came back as an undismissable zombie under
+## the chain, 2026-07-07; deleted 2026-09-09).
+##
+## Trimmed 2026-09-09 (RQD: "Post-battle: remove a lot of these screens"):
+## the LevelUpReportPanel and BonusXpPanel steps that used to follow the
+## result panel are gone — level-ups celebrate mid-battle the moment they
+## happen (LevelUpStatPanel, test_level_up_stat_panel.gd) and bEXP is spent
+## in the intermission (BexpSpendPanel). The first tests pin that they stay
+## gone.
 extends GutTest
 
 
@@ -14,12 +19,38 @@ func after_each() -> void:
 	UIManager.hide_battle_result()
 
 
-func test_show_battle_result_does_not_resurrect_the_legacy_overlay() -> void:
-	assert_not_null(UIManager._battle_result_overlay, "overlay instantiated (dormant)")
-	UIManager.show_battle_result(true, 5, 0, 3, 4, 3)
-	assert_false(UIManager._battle_result_overlay.visible,
-			"legacy overlay stays hidden — its Continue button has no listeners")
+# =============================================================================
+# The chain is one screen long
+# =============================================================================
 
+func test_the_retired_post_battle_screens_stay_deleted() -> void:
+	# If a scene comes back, so does the double celebration this trimmed.
+	for path: String in ["res://scenes/ui/panels/bonus_xp_panel.tscn",
+			"res://scenes/ui/panels/level_up_report_panel.tscn",
+			"res://scenes/ui/overlays/battle_result_overlay.tscn"]:
+		assert_false(ResourceLoader.exists(path),
+				"%s was removed with the post-battle cleanup" % path)
+	assert_false("_bonus_xp_panel" in UIManager, "UIManager no longer hosts a bEXP screen")
+	assert_false("_level_up_report_panel" in UIManager,
+			"UIManager no longer hosts a level-up report")
+	assert_false("_battle_result_overlay" in UIManager,
+			"UIManager no longer instantiates the dormant stats overlay")
+
+
+func test_closing_the_result_panel_concludes_the_mission_directly() -> void:
+	assert_not_null(UIManager._battle_result_panel, "the one post-battle screen is instantiated")
+	assert_true(UIManager._battle_result_panel.closed.is_connected(
+			UIManager._on_battle_result_panel_closed),
+			"Continue on the result panel hands straight to the finisher")
+	assert_false(UIManager.has_method("_show_level_up_report"),
+			"no level-up report step between the result panel and conclude")
+	assert_false(UIManager.has_method("_show_bonus_xp_panel"),
+			"no bEXP step between the result panel and conclude")
+
+
+# =============================================================================
+# show_battle_result — records, never shows
+# =============================================================================
 
 func test_outcome_is_recorded_for_the_banner() -> void:
 	UIManager.show_battle_result(false, 5, 4, 1, 4, 3)
@@ -39,7 +70,7 @@ func test_full_stats_payload_is_stashed_for_the_result_panel() -> void:
 
 
 # =============================================================================
-# BattleResultPanel rendering (chain step 1, added 2026-08-03)
+# BattleResultPanel rendering (the one post-battle screen, added 2026-08-03)
 # =============================================================================
 
 func _fresh_result_panel() -> BattleResultPanel:
@@ -67,8 +98,8 @@ func test_result_panel_renders_itemized_income_with_total() -> void:
 
 
 func test_result_panel_shows_injuries_but_never_level_ups() -> void:
-	# Level-ups celebrate on the NEXT screen; repeating them here as text
-	# would deflate that reveal (the whole reason LevelUpReportPanel exists).
+	# Level-ups celebrated mid-battle as they happened (LevelUpStatPanel);
+	# repeating them here as text would deflate that reveal.
 	var injury := Injury.new()
 	injury.injury_id = "burn_scar"
 	injury.severity = Enums.InjurySeverity.MINOR
@@ -82,7 +113,7 @@ func test_result_panel_shows_injuries_but_never_level_ups() -> void:
 	var text: String = panel._result_label.get_parsed_text()
 	assert_string_contains(text, "Ernesto")
 	assert_string_contains(text, "injured")
-	assert_false(text.contains("Lv 3"), "level deltas reserved for the celebration screen")
+	assert_false(text.contains("Lv 3"), "level deltas belong to the mid-battle celebration")
 
 
 func test_result_panel_reports_empty_income_honestly() -> void:
@@ -97,33 +128,11 @@ func test_result_panel_reports_empty_income_honestly() -> void:
 			"a defeat says the mission replays with no income")
 
 
-# =============================================================================
-# Level-up ding (chain step 2 — the celebration finally makes noise)
-# =============================================================================
-
-func test_ding_sample_exists_and_pitch_climbs_per_reveal() -> void:
-	assert_true(ResourceLoader.exists(LevelUpReportPanel.DING_STREAM_PATH),
-			"generated placeholder chime is on disk (tools/godot/generate_ui_sfx.gd)")
-	var panel: LevelUpReportPanel = (load("res://scenes/ui/panels/level_up_report_panel.tscn")
-			as PackedScene).instantiate() as LevelUpReportPanel
-	add_child_autofree(panel)
-	panel._play_ding("STR")
-	panel._play_ding("AGL")
-	var pitches: Array[float] = []
-	for child: Node in panel.get_children():
-		if child is AudioStreamPlayer:
-			pitches.append((child as AudioStreamPlayer).pitch_scale)
-	assert_eq(pitches.size(), 2, "one fire-and-forget player per ding")
-	assert_almost_eq(pitches[0], 1.0, 0.001, "first +1 rings the root note")
-	assert_almost_eq(pitches[1], LevelUpReportPanel.DING_SEMITONE_RATIO, 0.001,
-			"each successive +1 rings a semitone higher — the ascending staircase")
-
-
 func test_result_panel_continue_emits_closed_and_hides() -> void:
 	var panel := _fresh_result_panel()
 	watch_signals(panel)
 	panel.show_result(_stats(true, 5), [], [])
 	assert_true(panel.visible, "panel visible while showing")
 	panel._on_continue_pressed()
-	assert_signal_emitted(panel, "closed", "UIManager chains the level-up report off this")
+	assert_signal_emitted(panel, "closed", "UIManager concludes the mission off this")
 	assert_false(panel.visible)

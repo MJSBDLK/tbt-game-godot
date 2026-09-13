@@ -16,7 +16,7 @@
 ## Player-only: the AI's walk is already animated and its beacons already
 ## show the route. Reduce-motion parks the ride at its landing state (ghost
 ## on the destination) and the shader freezes its static/tracking flicker. The STAGED ghost
-## (show_staged_ghost, ACT_THEN_WALK) never rides — a committed plan just
+## (show_staged_ghost, the deferred walk) never rides — a committed plan just
 ## marks where the unit will stand. Above the whole board (an informational
 ## overlay — same z rule as DisplacementPreviewRenderer.OVERLAY_Z_INDEX).
 class_name PathVisualizer
@@ -43,7 +43,7 @@ const _BEACON_RED: Texture2D = preload("res://art/sprites/ui/move_preview/path_b
 # park — it RIDES the plan, walking the path from the origin, holding at the
 # destination, then looping. Every plan edit restarts the ride. Reduce-motion
 # parks at the landing state: ghost on the destination. The staged ghost
-# (ACT_THEN_WALK, show_staged_ghost) never rides — rehearsal is planning-time;
+# (the deferred walk, show_staged_ghost) never rides — rehearsal is planning-time;
 # a committed plan just marks where the unit will stand. Tune at playtest.
 # WORLD px/s — tiles are 16 world px apart, so 135 ≈ 0.12 s/tile (RQD tune,
 # was 88). Window resolution, integer scale, and camera zoom rescale the
@@ -131,7 +131,7 @@ func has_destination_ghost() -> bool:
 	return _ghost != null and is_instance_valid(_ghost)
 
 
-## ACT_THEN_WALK (todo 4A): the plan is confirmed but the walk is deferred.
+## The deferred walk (todo 4A): the plan is confirmed but the walk waits.
 ## Beacons clear — the path is spent — while the ghost alone holds the
 ## destination until the action commits (play_deferred_walk clears it) or the
 ## plan cancels. Call BEFORE the unit's logic claims the destination:

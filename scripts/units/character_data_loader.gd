@@ -63,14 +63,25 @@ static func _parse_character_json(data: Dictionary) -> CharacterData:
 	# Optional blob-shadow override; absent → -1 sentinel → measured stance.
 	character.shadow_blob_radius = float(sprite_data.get("shadowBlobRadius", -1.0))
 
-	# Attack animation clips (optional). Keys are clip names like "melee",
-	# "melee_long", "shoot". See character_data.attack_animations docstring.
+	# Animation clips (optional), keyed by vocabulary name — see
+	# UnitAnimationResolver's header. Keys lower-cased so JSON casing can't
+	# split "Melee" from "melee". A legacy `use_when` block is ignored (the
+	# resolver is direction-free) and warned about once per character.
 	var animations_data: Variant = data.get("animations", {})
 	if animations_data is Dictionary:
 		for clip_name: Variant in animations_data.keys():
 			var clip_value: Variant = animations_data[clip_name]
 			if clip_value is Dictionary:
-				character.attack_animations[str(clip_name)] = clip_value
+				var clip: Dictionary = (clip_value as Dictionary).duplicate()
+				if clip.has("use_when"):
+					push_warning("CharacterDataLoader: %s clip '%s' carries a legacy use_when — ignored (clips are picked by intent now; see UnitAnimationResolver)" % [
+							character.character_id, clip_name])
+					clip.erase("use_when")
+				character.attack_animations[str(clip_name).to_lower()] = clip
+	var overrides_data: Variant = data.get("animation_overrides", {})
+	if overrides_data is Dictionary:
+		for override_key: Variant in overrides_data.keys():
+			character.animation_overrides[str(override_key).to_lower()] = str(overrides_data[override_key]).to_lower()
 
 	# Base stats
 	var stats: Dictionary = data.get("baseStats", {})

@@ -8,4 +8,4 @@ extends CombatEffect
 
 
 func on_hit(ctx: CombatHitContext) -> void:
-	await DisplacementSystem.resolve(ctx.attacker, ctx.defender, ctx.move)
+	await DisplacementSystem.resolve(ctx.attacker, ctx.defender, ctx.move, ctx.presenter)

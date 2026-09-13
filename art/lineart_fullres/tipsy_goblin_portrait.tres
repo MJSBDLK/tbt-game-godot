@@ -1,0 +1,7 @@
+[gd_resource type="AtlasTexture" format=3 uid="uid://1t2hbnyurhyyq"]
+
+[ext_resource type="Texture2D" uid="uid://dwgphegasqk6p" path="res://art/lineart_fullres/tipsy_goblin.png" id="1_a3vhl"]
+
+[resource]
+atlas = ExtResource("1_a3vhl")
+region = Rect2(658, 209, 1311, 1311)

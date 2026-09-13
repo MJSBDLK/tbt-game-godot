@@ -134,6 +134,13 @@ func _clear_icons() -> void:
 func _load_icon(path: String) -> Texture2D:
 	if _icon_cache.has(path):
 		return _icon_cache[path]
+	# A status whose art hasn't landed yet draws nothing rather than logging
+	# an engine resource error on every refresh; the warning names the file
+	# once. test_status_effect_data.gd pins that every shipped config has one.
+	if not ResourceLoader.exists(path):
+		push_warning("StatusEffectIndicator: missing status icon '%s'" % path)
+		_icon_cache[path] = null
+		return null
 	var texture := load(path) as Texture2D
 	if texture != null:
 		_icon_cache[path] = texture

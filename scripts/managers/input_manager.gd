@@ -33,9 +33,11 @@ var _board_cursor_tile: Tile = null
 # Hold-to-repeat for both board cursors. The initial press steps via the
 # event; holding keeps stepping on this timer. OS key echo is deliberately
 # ignored (navigation_direction filters it) — joypads never echo, so the
-# timer serves keyboard and d-pad identically.
+# timer serves keyboard, d-pad and stick identically (a stick press is
+# edge-detected in InputSource; its hold rides this same timer). The step
+# interval is the player's: Settings.cursor_speed, the Options "Cursor
+# Speed" slider.
 const NAV_REPEAT_DELAY_SECONDS: float = 0.35
-const NAV_REPEAT_INTERVAL_SECONDS: float = 0.08
 var _held_nav_direction: Vector2i = Vector2i.ZERO
 var _nav_repeat_at: float = 0.0
 
@@ -545,9 +547,17 @@ func _handle_movement_planning_press(clicked_tile: Tile) -> void:
 
 	# Click on empty tile with unit selected
 	if _selected_unit != null and _selected_unit.can_act and not _unit_has_moved:
-		# Click existing waypoint → execute movement
-		if _is_waypoint_tile(clicked_tile):
+		# Press the LAST marker → execute (the marker double-press confirm).
+		# Press an EARLIER marker → back the plan up to it; it is now the last
+		# marker, so pressing it again confirms. Until 2026-09-10 EVERY marker
+		# press executed, so a 3 → 2 → 3 plan walked 3 → 2 on the third press
+		# and stopped on 2 (RQD: "the game moves you to space 2").
+		if _is_last_waypoint_tile(clicked_tile):
 			_execute_movement()
+			return
+		if _is_waypoint_tile(clicked_tile):
+			if _selected_unit.truncate_waypoints_to(clicked_tile):
+				GridManager.display_movement_range(_selected_unit)
 			return
 
 		# Add waypoint if in movement range
@@ -802,7 +812,7 @@ func _tick_nav_repeat(now: float) -> void:
 		return
 	if now < _nav_repeat_at:
 		return
-	_nav_repeat_at = now + NAV_REPEAT_INTERVAL_SECONDS
+	_nav_repeat_at = now + Settings.cursor_repeat_interval_seconds()
 	if _is_selecting_attack_target:
 		_move_target_cursor(_held_nav_direction)
 	elif _is_map_view_state():
@@ -842,6 +852,14 @@ func _is_waypoint_tile(tile: Tile) -> bool:
 		if waypoint.tile == tile:
 			return true
 	return false
+
+
+## The marker whose second press confirms the plan (hint bar: "select the
+## marker again to move") — only ever the newest stop.
+func _is_last_waypoint_tile(tile: Tile) -> bool:
+	if _selected_unit == null or _selected_unit.planned_waypoints.is_empty():
+		return false
+	return _selected_unit.planned_waypoints.back().tile == tile
 
 
 ## The hint bar's CALL TO ACTION ("select the marker again to move"): pressing
@@ -926,8 +944,8 @@ func _execute_attack(target: Unit) -> void:
 		if cam:
 			cam.center_on((attacker.global_position + target.global_position) / 2.0)
 
-	# ACT_THEN_WALK: the staged walk plays now, then the swing. No-op in
-	# WALK_THEN_ACT (nothing staged).
+	# The staged walk plays now, then the swing. No-op when nothing is staged
+	# (the unit acted in place).
 	await attacker.play_deferred_walk()
 	await attacker.execute_combat_sequence(target, move)
 
@@ -978,9 +996,9 @@ func _show_action_menu_for_unit(unit: Unit) -> void:
 func _get_post_move_camera_target(unit: Unit) -> Vector2:
 	## After movement, pan to the bounding box center of the unit and all reachable targets.
 	## Falls back to the unit's own position if no targets are in range.
-	## Anchored on current_tile, not global_position: under ACT_THEN_WALK the
-	## sprite is still at the origin here — the tile is where the plan (ghost,
-	## ranges, the action about to be chosen) lives. Identical in WALK_THEN_ACT.
+	## Anchored on current_tile, not global_position: the sprite is still at
+	## the origin here (deferred walk) — the tile is where the plan (ghost,
+	## ranges, the action about to be chosen) lives.
 	var unit_anchor: Vector2 = unit.current_tile.global_position \
 			if unit.current_tile != null else unit.global_position
 	var positions: Array[Vector2] = [unit_anchor]

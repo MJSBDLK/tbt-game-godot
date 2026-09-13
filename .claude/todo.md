@@ -1,5 +1,290 @@
+# Resp
+Were those units cropped to non-square because the engine was dropping rows with whitespace? I think I liked the portraits from before - they were more centered around the units' eyes.
+
+# Quick Fixes
+- [~] Goblin Healer - not a mage, an... apothecary? I think that's the name of the store. What do you call them, an herbalist or something? What word am I looking for?
+  (ANSWERED 2026-09-10: **apothecary** — it names both the shop and the
+  person who keeps it; "herbalist" is the plants-only narrower word,
+  "chirurgeon" the period word for a cutter. NOT one-shottable as a class
+  change: `CharacterClass` has no healer/support class — `healer_goblin.json`
+  and `healer_plant.json` both sit on the shared Mage sheet (6 characters
+  use it). Adding APOTHECARY (tier 1) touches: the enum + `CLASS_INFO`
+  in enums.gd, a provisional cap row in class_stat_caps.gd (start from
+  Mage's, lift Skill/Res, drop Spc), both healer JSONs' `currentClass`,
+  and the tier-1 list in class-and-promotion.md §Tier 1 (15 → 16). Wants
+  RQD's call first — it's the first class added since the enum was ported,
+  and the class doc is still the design's open question.)
+- [x] Reduce tooltip hold max from 1000ms -> 800ms (Done 2026-09-10:
+  `Settings.TOOLTIP_HOLD_MAX_MS` 1000 → 800; the slider reads the const; the
+  §14 style-guide range + test_settings ceiling assert updated.)
+- [x] options menu: "walk" and "ghost" both apply "ghost" mode
+  (RESOLVED 2026-09-10 by DECREE, not diagnosis: RQD re-confirmed the bug
+  in-game after a headless investigation couldn't reproduce it (the tab
+  refactor's handler was line-for-line the old one, the setter persisted,
+  the 15 mode tests were green, and the real InputManager press path walked
+  the sprite under Walk) — and called it: **Ghost is canonical, Walk is
+  deleted.** "It works great", was leaning to nix Walk anyway; the
+  un-trackable bug decided it. Gone: `Settings.move_commit_mode` + its
+  setter/load/save (an old settings.cfg key is ignored), the Options "Move
+  Commit" row (GAMEPLAY is 7 rows now), the hint bar's mode flag — the
+  planning copy is the confirm copy only ("Select the marker again to
+  confirm" / "Tap the marker again to confirm" / BUTTON mode's "Confirm
+  path"). `Unit.execute_planned_movement` stages for EVERY player unit; the
+  AI still walks immediately (its walk is its telegraph). Tests:
+  test_move_commit_mode.gd → test_deferred_walk.gd (10 tests, incl. one
+  that pins the setting's absence); test_waypoint_replan.gd re-pinned to the
+  staged contract. Design consequence worth remembering: this is the commit
+  model fog missions need (§9), so nothing is foreclosed.)
+- [x] There's a bug when you try to take a nonsense path, e.g. move to space 3, then 2, then back to 3 - the game moves you to space 2. This is cancelable and therefore of low consequence, but I believe it's a real bug
+  (FIXED 2026-09-10. Cause: `_handle_movement_planning_press` executed on
+  ANY marker press — pressing 3 again after 3 → 2 confirmed the 3 → 2 plan.
+  Now only the LAST marker confirms (the marker double-press gesture, same
+  as the hint bar's copy); pressing an EARLIER marker backs the plan up to
+  it (`Unit.truncate_waypoints_to`, FE-style re-route — it becomes the last
+  stop, so pressing it again confirms). Costs stay cumulative-from-start so
+  nothing recomputes; beacons + ghost redraw from the shortened plan. This
+  doubles as the first plan UNDO — before, the only undo was right-click,
+  which deselects. The alternative reading (a third press APPENDS a revisit
+  so the unit literally walks 3 → 2 → 3) was rejected: a stop on a stop is
+  never a useful plan, self-crossing paths still work by routing THROUGH an
+  earlier tile, and the genre convention is truncate. 5 tests in
+  test_waypoint_replan.gd (drives the real press handler the mouse + board
+  cursor share). Not touched, flagging: the "move preview doesn't animate
+  properly when a unit retreads its path" item in §6 is probably related
+  (beacon phase on revisited tiles), not this.)
+- [ ] Still need to replace "B" and "8" in the small font with our own creations
+
+# Characters
+- [ ] Goblin Healer
+	Base class: Herbalist (Monster)
+	├2A: Apothecary (Monster/Plant)
+	|	├3A: Plague Doc (Monster)
+	|	└3B: Distiller (Monster/Plant)
+	└2B: Sawbones (Monster/Simple)
+		├3C: Chirurgeon (Monster/Simple)
+		└3D: Thaumaturge (Monster/Occult)
+
+- [ ] Plant Cultist
+	Base class: Cultist (Occult)
+	├2A: Botanist (Occult/Plant)
+	|	├3A: Sage (Occult/Plant)
+	|	└3B: Harvester (Occult/Plant)
+	└2B: Creeper (Occult/Plant)
+		├3C: Abomination (Occult/Plant)
+		└3D: Topiary (Plant)
+
+- [ ] Plant Healer
+	Base Class: Bulb (Plant)
+	├2A: Cactus (Plant)
+	|	├3A: Pyracantha (Plant/Fire)
+	|	└3B: Snowdrop (Plant/Cold)
+	└2B: Taproot (Plant)
+		├3C: Samara (Plant/Air)
+		└3D: Mandrake (Plant)
+	2B Taproot = the bulky storage-root class ("Tuber" fit; RQD found the
+	word ugly).
+	Moves + passives for this tree (Vines, Sunflower, Whirlicopter, Pod,
+	Turgor, Stolon, Clover) live in data/design/moves-and-passives.md with
+	the rest of the wishlist. Creeper is taken (Cultist 2B); "Host" is a
+	good name held in reserve.
+
+- [ ] Base Class: Thief (Simple)
+	├2A: Assassin (Simple)
+	|	├3A: Hitman (Simple)
+	|	└3B: Fixer (Gentry)
+	└2B: Kleptomaniac (Simple)
+		├3C: Highwayman (Chivalric)
+		└3D: Infiltrator (Simple/Robo)	
+	Homeless on purpose: a design from Lawrence's new line-art batch
+	(art/lineart_fullres/assassin.png, finished, unwired; no idle sprite
+	yet, player-character status undecided). The classes sound
+	fun enough that the player should probably get his hands on them.
+
+- [ ] Whirlicopter — Plant move, Samara's signature, late game, 2–3 uses:
+	repositions the user 3 tiles in one direction, healing the tiles
+	beneath (units on them, or a healing plant terrain status — ties to
+	Pod). New move shape: self-displace along a line. "OP as fuck" by
+	design. Waits on promotion (tier 3) and maybe terrain statuses.
+
+- [ ] Squash
+	- What elemental type is he?
+	- Base Class: [???]
+		├2A: 
+		|	├3A: 
+		|	└3B: 
+		└2B: 
+			├3C: 
+			└3D: 	
+
+- [ ] 
+
+# Todo
+- [x] Options menu has gotten too big for the screen. We'll need to tabulate and/or refactor
+  (DONE 2026-09-09 on `rqd--options-tabs`, eyeball-gated. Both: three tabs
+  — GAMEPLAY (Quick Attack, Auto End Turn, Move Confirm, [Move Commit — deleted 2026-09-10],
+  Battle Anims, Seeded Reload, Control Hints, Tooltip Hold) · VIDEO (Zoom
+  Mode, Portrait FX, UI Motion, Type Icons, FPS Cap) · AUDIO (three volumes)
+  — over a ROW REGISTRY (`_row_specs()`, one entry per setting; the panel
+  went 889 → 680 lines and adding a setting is adding an entry). The rows
+  area is pinned to the tallest tab so the strip and Close never jump.
+  Headers are InteractiveButtons (current tab wears the §14 brackets);
+  NEW actions `menu_tab_prev` / `menu_tab_next` = Q / E + LB / RB switch
+  from anywhere and wrap; the strip shows the glyph for the driving
+  device. Cursor model as the system menu: pad/keyboard opens land on the
+  first row's ACTIVE pill, pointer opens stay quiet. Measured ~265 px tall
+  vs ~420 before. 12 tests in test_options_menu_panel.gd pin tab
+  membership + the height budget. EYEBALL: tab grouping, Q/E vs another
+  key pair (E is also End Turn on the map — harmless, InputManager is off
+  under the menu, but the double meaning may grate), glyph placement.)
+- [x] Oh yeah, I forgot to mention - after our last meeting (9/7) I merged in a bunch of Lawrence's new line art. This provides some new line art for characters for whom there's no data yet.
+  (REVIEWED 2026-09-12: 7 sheets wired, 4 JSON stubs in no spawn pool,
+  4 art-only. Roles + lore: data/design/ideas-and-brainstorming.md
+  "Line-art batch". Paper roughs: §4. Story in the commit.)
+- [x] Pull spry.md and the spry skill out of work's documents - then see how we can apply those principles here
+  - [ ] Follow-up: Corporate have a more sophisticated SPRY workflow - would be very interested to pull any ideas from it which are applicable to our project. Should be ready to go by 9/14 - check back in after that.
+- [ ] I noticed the enemy AI will often move and not attack - definitely not a bug.
+- [ ] In spite of the above, default difficulty is substantially too high - this is fine for now because I've done minimal tuning of the difficulty, but we should discuss how to tune this without simply overleveling the player. The game should *feel* like an even playing field, or even slightly oppressive - we want to keep the player in that zone of proximal development, and never feel like they're coasting. Force them to learn, but make the on-raamp really gradual. Shouldn't feel like a tutorial either, though.
+  - [ ] We should discuss dynamic difficulty scaling, as well. This would be especially easy to implement near-imperceptibly in our game
+- [ ] Note on AI in general - this needs a complete rework. I want the AI to be smart. We're not there yet - I want to get the systems in a good place first. But this is a high priority task, when the time comes.
+- [x] Post-battle: remove a lot of these screens (DONE 2026-09-09 on
+  `rqd--post-battle-cleanup`, eyeball-gated — squash-merge once seen in a
+  build. The chain is now banner → BattleResultPanel → conclude; ~1,000
+  lines of scaffolding left with the two scenes + the dormant
+  `battle_result_overlay`. Pinned in test_post_battle_flow.gd.)
+  - [x] bEXP screen - completely remove. This system has moved to the intermission.
+    (`BonusXpPanel` + `SquadManager.buy_bexp_level` deleted; `commit_bexp_pour`
+    is the one spend API and now reads `BEXP_LEVEL_COST` too.)
+  - [x] level up summary: remove it from the post-battle, but the level up in-mission screen should behave more like this post-battle version (while keeping the visual design of the in-mission version)
+    - the post-battle version is better at being a dopamine factory, per the intended design
+    - I like needing to manually advance after viewing a level-up
+    - I like the smaller form-factor of the in-mission level-up screen, as well as its general visual design
+    (What moved into `LevelUpStatPanel`: the pitch-climbing DING per "+1"
+    — now `LevelUpStatBlock.play_ding`, so the intermission bEXP pour rings
+    too; the stat-up badge landing on its own beat after the last "+1"
+    with the next ding; the 0.35 s breath; then a blinking CONTINUE and
+    MANUAL ADVANCE — the panel never leaves on its own. Two-stage press
+    like a dialogue box: while revealing a press skips to the end (every
+    gain shown), once armed a press dismisses. Click/tap anywhere, or
+    A/Enter/B/Esc. Form factor + sheet chrome untouched. NEW
+    `InputState.LEVEL_UP_CELEBRATION` is pushed around the reveal so the
+    board goes quiet under the press, the camera holds, and the hint bar
+    says "[A] Continue" — in the ENEMY phase too (their hit can level our
+    defender; input stays off afterwards). Reduce-motion: everything at
+    once, armed immediately. FOUND + FIXED on the way (headless shot): the
+    panel's root was 0×0 (set_anchors_preset-on-a-parented-Control gotcha),
+    so it had been sitting TOP-LEFT and "click anywhere to skip" had never
+    had a hit target — it's centered now and the click works. 22 tests
+    across test_level_up_stat_panel / _block / hint_bar_commands + a runtime
+    assert on the root rect. EYEBALL: badge-beat timing, prompt blink rate,
+    whether the two-press skip feels right or should be one press; the
+    ding now also plays in the intermission pour — keep?)
+- [x] sliders in the options menu need to be styled to match existing visual design.
+  (DONE 2026-09-10: `OptionsMenuPanel._dress_slider` — the pill palette as a
+  bar, 5×9 knob. RQD: "knob looks good". Still no §14 slider design; this
+  is the placeholder.)
+- [ ] In the unit detail panel, clicking any stat should display its modifications:
+	- Str 10+2
+		-> Base (10)\n+3 (Competitive)\n-1 (Some debuff)
+	- should also show base (10) alone if it's unmodified and the user brings up the tooltip
+	- should still show e.g. `Base (10)\n+2 (Some buff)\n-2 (Some debuff)` if there are modifications which bring it back to its base.
+- [ ] Victory screen popping up needs more dopamine - discuss
+- [ ] 
+
+**Answered + BUILT 2026-09-07 on `rqd--terrain-stack`** (3 commits, suite
+1096 green; squash-merge once RQD/Lawrence have eyeballed a build):
+1. Generated-shadow fallback for terrain sprites — the shadow-meeting item
+   below, framed authored-wins / generated-fallback.
+2. Decoration layer now renders exactly like the modifier layer — §6.
+3. The third thing turned out to be **tile registration reshuffling source
+   ids**: `tools/register_modifier_tiles.gd` wiped every source ≥100 and
+   re-minted them in sorted-name order, so the first new sprite sorting
+   before an existing one (`bush_a` < `castle_a`) would have silently
+   repainted every map. Ids are now stable forever, newcomers append, a
+   drift assert refuses to save, a no-op run touches nothing, and headless
+   saves keep their `uid=`s. `tests/unit/test_map_tileset_integrity.gd`
+   walks every map's painted cells against the tileset.
+4. **Editor preview** (the map-week ergonomics win): `TilemapGridBuilder` +
+   `TerrainSpriteRenderer` are `@tool`. With a map open in the editor,
+   unowned `ModifierPreview` / `DecorationPreview` renderers draw the full
+   sprites + shadows on both layers and refresh ~10 frames after a paint
+   stroke. Verified in a headless editor session (spawn, +2 sprites on
+   paint, gone on erase, not written on save). EYEBALL in the real editor:
+   does the overlay fight the tile cursor / selection highlight?
+Also: `tools/diag/map_shot_probe.gd` screenshots any map from the CLI (the
+before/after came from running it in a `git worktree` of the old branch).
+Design doc rewritten: data/design/terrain_modifiers_and_decorations.md,
+including a new-map checklist (wizard → 4 layers → boundary + P/E stamps →
+`data/missions/mission_manifest.json` → F5; `lawrence_test_map` isn't in
+the manifest yet).
+**RQD build report, same day (all three resolved):**
+- *"Terrain shadows look a different opacity/color than unit shadows"* and
+  *"building_a darkened as a whole"* — ONE bug, mine: the OOB fade shader's
+  "honor modulate" edit sampled the texture a second time (canvas_item
+  `COLOR` already holds texture × modulate), squaring every channel — light
+  buildings darkened, 40 % shadows became 16 %. The PNGs were byte-identical
+  to the unit ink all along. Fixed; `tools/diag/shader_parity_probe.gd`
+  renders the four cases and checks parity (run it after any shader edit).
+- *"Some decorations need no shadow, floor elements"* — `casts_shadow: false`
+  in modifier_terrain.json now means NO shadow of any kind (the authored
+  `_shadow.png` is skipped too), and a wildcard key (`"piperoot_*"`) flags a
+  family. The editor preview re-reads the JSON on change, so flip a line and
+  watch the open map. I couldn't tell from the art WHICH ones RQD means (the
+  craters + bridge already have none; everything else reads as an upright
+  object on the contact sheet), so the list is RQD's to fill — one line per
+  sprite or family.
+**Content note for Lawrence:** every sprite except `castle_a` exports with a
+1×1 footprint — the 160×96 buildings and the 96×96 bridge included — so
+gameplay treats them as one cell (units walk up to / onto a single tile of a
+five-cell-wide building). If that's not intended, suffix the tags (`_3x2`)
+and re-export; the registration tool warns when an atlas tile moves and
+those cells need repainting.
+
+# Combat scene — follow-ups
+- [x] **FE7-style combat scene LANDED 2026-09-09** from `rqd--battle-animations`
+  (plan + decision log: [todo-archive.md](todo-archive.md) "Battle animations
+  plan"; pointer at [battle-animations.md](battle-animations.md); player-facing
+  description in `data/design/combat-system.md` §Combat Animations). Live by
+  default (Options → "Battle Anims": Scene / Player / Map). Sandbox:
+  `godot-4 --path . -- --map=scenes/debug/combat_sandbox.tscn`; every knob at
+  the top of `scripts/combat/scene/combat_scene.gd`.
+- [ ] **Lawrence: backdrop test scene** — template + brief in
+  `art/backdrops/combat_test/` (288×134 at sprite density; drop-in `sky.png`
+  / `floor.png`, the scene picks them up).
+- [ ] **Lawrence: reaction clips** — `dodge`, `hurt`, `death` (side view,
+  left-facing, tag names from the vocabulary); then `cast`; crit variants
+  last. Procedural stand-ins (hop, flash, fade) play until then.
+- [ ] Procedural projectile for ranged clips (needs an `fx_origin` slice from
+  Lawrence — muzzle / fist / wand tip).
+- [ ] Terrain tile strip: draw each puppet's REAL tile terrain under it
+  (defense bonus for free) instead of the flat palette tiles.
+- [ ] Enemy-phase pacing (the scene on the enemy's turn may want to run faster).
+- [ ] "Combat scene" tab on the battle-HUD mockup artifact for Lawrence's HUD
+  pass (contents locked — D7 rounds 3–4 in the archive).
+- [ ] Mirrored right-facing idles on the left puppet — art fix (RQD: "we'll
+  likely fix it later").
+- [x] Missing status icon `status_effect_icons_6x6_v2/hasted_0000.png` —
+  applying Hasted logs a resource error (unrelated to the scene, seen in RQD's log).
+  (DONE 2026-09-10: PLACEHOLDERS minted for Hasted, Fortified AND Regen —
+  none had a tag in the v2 .aseprite — via `tools/art/placeholder_status_icon.gd`;
+  Lawrence replaces same-name. test_status_effect_data.gd now fails the
+  suite on the next missing icon.)
+- [ ] Spin-off (mobile arc, NOT this feature): touch has no attack forecast
+  before the tap that attacks — the preview panel is hover-driven. Fix is
+  tap-to-preview then tap-again-to-attack (the marker double-press pattern).
+- [x] Spin-off (preview panel): STAB ×1.2 is applied silently —
+  `DamageCalculator.get_stab_multiplier` feeds the number but nothing
+  displays it. Show it on the panel. (DONE 2026-09-10: the multiplier column
+  shows type × STAB, coloured by the TYPE stage alone. RQD 2026-09-11:
+  not clear enough — the redesign is filed in §8, "STAB presentation
+  redesign + a damage-calc tooltip system".)
+
+
+
 # More stuff
-- [ ] the default camera pan speed is way too low - probably speed up 3-5x
+- [ ] Enemies hit too often. I'll position my highest AGL unit on good cover, and I don't think I've ever seen an enemy miss. I don't know if this is simply because we gave them all too much skill, or if there's a bug which gives enemies 100% accuracy.
+- [x] the default camera pan speed is way too low - probably speed up 3-5x
+  (Done 2026-09-09: `CameraController.pan_speed` 120 → 480 screen px/s — 4x,
+  the mid-point; it's an @export, tune in the inspector or the const.)
 - [x] For the Steam Deck glyphs, we also need L4-5 and R4-5. (Done 2026-09-02 on
   `rqd--controller-glyphs`: rounded-square chips for the Deck grips L4/L5/R4/R5
   AND Xbox Elite paddles P1–P4, labels wired for JOY_BUTTON_PADDLE1..4. CAVEAT:
@@ -18,12 +303,23 @@
   (Menu/Options → START, View/Share → SELECT); Switch keeps its printed +/−.
   The hardware-accurate ☰/⧉ sprites stay on disk unmapped for a re-audition.)
   - [ ] Also, "three lines" and "overlapping squares" have always made me look at the controller. Are there icons which universally represent "start" and "select" for us millenial (and older) gamers?
-- [ ] Just discovered I can't navigate the unit detail panel with a controller
-  - [ ] All the controls bar reads, in this context, is "B for close"
-- [ ] Default cursor speed is perfect with the D-pad, too fast on the control stick
-  - [ ] For the control stick, I was thinking more of a fairly quick acceleration to medium speed:
+- [x] Just discovered I can't navigate the unit detail panel with a controller
+  (DONE 2026-09-10: every inspectable is a focus stop; Up/Down walk
+  moves → passives → statuses → injuries, Left/Right jump families, A
+  inspects. Story in the commit. EYEBALL: the 1.6× tablet lift vs the chip
+  backlight; Left/Right as family-jump vs column geometry.)
+  - [x] All the controls bar reads, in this context, is "B for close"
+    (DONE same day: [A] Inspect · [B] Close; touch stays Close-only.)
+- [x] Default cursor speed is perfect with the D-pad, too fast on the control stick
+  (DONE 2026-09-10: stick presses are now EDGES in `InputSource` — one per
+  deadzone crossing; the hold rides the D-pad's repeat timer. Story in the
+  commit. Untested on a real pad.)
+  - [x] For the control stick, I was thinking more of a fairly quick acceleration to medium speed:
     - you can flick the stick repeatedly for navigaint a single tile at a time
     - if you hold the stick, it clicks to the nearest tile, but if you keep holding, it begins moving faster, but at a manageable speed - just like the D-pad (let's expose this variable though, so I can test. Might be an options menu "cursor speed")
+    (EXPOSED same day: Options → Gameplay → "Cursor Speed", 4–25 tiles/s,
+    default 12.5 = the old constant. The 0.35 s initial delay is still a
+    constant; a slow→fast ramp was NOT built — read as delay-then-repeat.)
 
 # Ideas
 - [x] 1. XP gain on map: When a unit gains XP on the map, we should have an XP bar fade in (quickly) right above/below their health bar (yellow fill, black bg), fill with a filling sound effect, and then fade back out (slowly) (Done 2026-08-21: `Unit._build_xp_bar` — 24×2 banana-on-black (YellowOrange 7 `#f5cd65`, the house gold — RQD correction 2026-08-21, was the olive Yellow 7) under `HealthBar`, 1px BENEATH the health bar (RQD: beneath reads more natural; `XP_BAR_OFFSET_Y` = -4 tries above). `_flush_xp_feedback` fires `_play_xp_bar(before, after, levels)` alongside the "+N XP" callout: fade in 0.1s → sweep (0.45s per full bar; a level wrap fills to full, flashes Yellow 8, restarts from 0) → hold 0.5s → fade out 0.6s; reduce-motion parks at the landing fraction. `xp_bar_fill_segments` is the pure sweep plan. SFX `audio/ui/xp_fill.wav` — placeholder rising tick train from generate_ui_sfx.gd, Lawrence replaces same-name. While there: `CharacterData.XP_PER_LEVEL` now owns the 100 that grant_xp / sheet / bEXP / unit sheet each hardcoded. 9 tests in test_combat_xp.gd. EYEBALL: the bar's bottom row kisses the top pixel of tall sprites' art for the ~1.7s it shows — fine in a static render; judge in motion.)
@@ -33,7 +329,7 @@
 - [x] 3. In the pause menu, we should move "close" to the top, right under "end turn" and above "options," and make that the default selection on controller (Done 2026-08-21: SystemMenuPanel order is END TURN, Close, Options, Save, Load, Main Menu, Quit; the cursor-model default landing AND the quiet-open "first nav press summons the cursor" target are both Close now — a stray controller A-A used to end the turn. 3 tests in test_system_menu_panel.gd.)
 - [~] 4. Since we added the arrow + phantom effect for displacement moves, should we use the same system when previewing a move with the move beacons? (FIRST CUT 2026-08-21 on branch `rqd--move-preview-ghost`, eyeball-gated: the beacons stay the path, and a `UnitGhost` projection (the displacement renderer's silhouette recipe, extracted into scripts/grid/unit_ghost.gd — renderer behavior unchanged) parks on the plan's last waypoint while a PLAYER unit is planning. Same material/shader as the displacement ghosts, absolute z above the board, player-only, freed with the plan. Did NOT replace the beacons with the polyline arrow — the beacons are shipped LOD art and already carry the path. 8 tests in test_path_ghost.gd. Squash-merge once RQD has seen it in a build.)
   (RIDE UPGRADE 2026-08-31, RQD ask, built on `rqd--move-commit-mode`: the ghost now RIDES the plan under motion — walks the tile-center polyline from the origin with the displacement arrow recipe (same ARROW_WIDTH, shared overlay_static material, Azure 7 neutral intent, Polygon2D head riding the tip) drawing behind it, holds `GHOST_HOLD_AT_DESTINATION_SECONDS` at the landing, loops; `GHOST_SPEED_PX_PER_SECOND` = 88 ≈ the displacement loop's 0.18 s/tile — both are the tinker knobs. Every plan edit restarts the ride. Beacons KEPT underneath (still the shipped path language). ARROW DISABLED SAME DAY (RQD: "that's what the beacons were for" — the trail double-marked the path): `RIDE_ARROW_ENABLED = false`, machinery + pure math kept and pinned for a cheap re-audition; the arrow had been retuned to Azure 5 first (the phantom's tint sits at the Azure 7 neighborhood — if re-enabled, keep the two apart). Ghost speed RQD-tuned 88 → 135 world-px/s. Reduce-motion parks at the landing state: ghost on the destination + arrow drawn full (the old parked contract survives as that state). The ACT_THEN_WALK staged ghost never rides — committed plans park. Pure ride math (walk_sample/trail_points/path_length) static + pinned; test_path_ghost.gd rewritten to the riding contract, 12 tests; suite 1040 green. EYEBALL: ride pacing/loop feel, arrow-over-beacon density, tip-over-silhouette read.)
-  - [~] 4A. need to decide if we hold off on actually moving the unit (just show the static/fuzzy phantom preview) to the spot before committing an action - would be a departure from current design but more accurate. We should solve the problem both ways and playtest both, and see what players prefer/find less confusing. (UNPARKED after the 2026-08-31 talk — the fog objection resolved in REVERSE: ACT_THEN_WALK is the only commit model a future fog modifier can work with, so building it forecloses nothing; fog itself is filed post-alpha in §9 below with the "clank" interception rule. BUILT 2026-08-31 on THIS branch (`rqd--move-commit-mode`, stacked on the #4 ghost), eyeball-gated: `Settings.move_commit_mode { WALK_THEN_ACT (default, shipped behavior), ACT_THEN_WALK }` — Options row "Move Commit" [Walk|Ghost] beside Move Confirm. ACT_THEN_WALK per the candidate shape: `Unit._stage_deferred_movement` commits LOGIC instantly (occupancy via `_claim_tile_keep_position`, which restores global_position around Tile.set_unit's snap — found by test; movement_completed still fires so auras/threat recompute) while the sprite keeps its origin position AND origin-row z; `PathVisualizer.show_staged_ghost` clears the spent beacons and parks the lone #4 ghost on the destination (anchored BEFORE the claim — anchor_offset measures sprite vs current_tile). Commit paths — `_execute_attack` pre-swing, `_on_wait` pre-set_acted — `await play_deferred_walk()`: sprite replays the captured path, restamping z per row, then the action fires; foot tracks stashed at stage time survive to set_acted (asserts guard both commit sites). Cancel is the honesty win: the sprite never moved, so Escape never teleports. Camera post-move target + UIManager panel side-pick re-anchored on current_tile (identical in WALK_THEN_ACT). Hint bar planning copy goes mode-aware ("…to confirm" / "Confirm path"). Player-only — the AI's walk is its telegraph. 14 tests in test_move_commit_mode.gd; suite 1036 green. EYEBALL: ghost-hold through the action menu, walk-then-strike pacing on commit, whether the deferred walk wants a skip input. Playtest Walk vs Ghost → delete the loser; squash-merge once seen in a build.)
+  - [x] 4A. need to decide if we hold off on actually moving the unit (just show the static/fuzzy phantom preview) to the spot before committing an action - would be a departure from current design but more accurate. We should solve the problem both ways and playtest both, and see what players prefer/find less confusing. (UNPARKED after the 2026-08-31 talk — the fog objection resolved in REVERSE: ACT_THEN_WALK is the only commit model a future fog modifier can work with, so building it forecloses nothing; fog itself is filed post-alpha in §9 below with the "clank" interception rule. BUILT 2026-08-31 on THIS branch (`rqd--move-commit-mode`, stacked on the #4 ghost), eyeball-gated: `Settings.move_commit_mode { WALK_THEN_ACT (default, shipped behavior), ACT_THEN_WALK }` — Options row "Move Commit" [Walk|Ghost] beside Move Confirm. ACT_THEN_WALK per the candidate shape: `Unit._stage_deferred_movement` commits LOGIC instantly (occupancy via `_claim_tile_keep_position`, which restores global_position around Tile.set_unit's snap — found by test; movement_completed still fires so auras/threat recompute) while the sprite keeps its origin position AND origin-row z; `PathVisualizer.show_staged_ghost` clears the spent beacons and parks the lone #4 ghost on the destination (anchored BEFORE the claim — anchor_offset measures sprite vs current_tile). Commit paths — `_execute_attack` pre-swing, `_on_wait` pre-set_acted — `await play_deferred_walk()`: sprite replays the captured path, restamping z per row, then the action fires; foot tracks stashed at stage time survive to set_acted (asserts guard both commit sites). Cancel is the honesty win: the sprite never moved, so Escape never teleports. Camera post-move target + UIManager panel side-pick re-anchored on current_tile (identical in WALK_THEN_ACT). Hint bar planning copy goes mode-aware ("…to confirm" / "Confirm path"). Player-only — the AI's walk is its telegraph. 14 tests in test_move_commit_mode.gd; suite 1036 green. EYEBALL: ghost-hold through the action menu, walk-then-strike pacing on commit, whether the deferred walk wants a skip input. Playtest Walk vs Ghost → delete the loser; squash-merge once seen in a build.) (RESOLVED 2026-09-10 — Ghost won, by decree: RQD "it works great", was leaning to nix Walk anyway, and an un-reproducible "both modes ghost" report (top-of-file Quick Fixes) decided it. The setting, the Options row and the hint bar's mode flag are gone; staging is unconditional for player units; test_move_commit_mode.gd → test_deferred_walk.gd. Loser deleted, as the plan said.)
 
 # Meeting Notes 2026/08/16
 ## RQD
@@ -122,11 +418,28 @@ see the mockup and §6. These three are the remainder.)*
   than the light moving. Currently `SMOOSH_X` is locked at 1.0 by RQD eyeball,
   so this is about making >1.0 *possible* and deciding whether X should be a
   dial at all.
-- [ ] **Try the dynamic shadow system on terrain modifiers and decorations.**
+- [~] **Try the dynamic shadow system on terrain modifiers and decorations.**
   When flipped on, suppress the hand-drawn shadows those sprites ship with —
   the export pipeline already masks shadow pixels under the object's own
   silhouette, so the two systems would otherwise double up. Experiment first;
   this could look wrong or could retire a whole authoring step.
+  (BUILT 2026-09-07 on `rqd--terrain-stack`, eyeball-gated, framed the
+  OTHER way per the 2026-09-07 talk: the authored `_shadow.png` WINS and the
+  generated cast is the FALLBACK for sprites without one.
+  `TerrainSpriteRenderer.generate_cast_shadow` runs the sprite's own pixels
+  through `UnitShadow.project_silhouette` (one sun for units + terrain),
+  feet = lowest opaque row, self-masked like the exporter so it can sit one
+  z slot above bodies, ink baked, cached per texture. Opt-out
+  `casts_shadow: false` in modifier_terrain.json (the five craters + the
+  bridge — flat ground casts nothing); kill switch
+  `DebugConfig.terrain_generated_shadows`. NOTE: today every non-flat sprite
+  already ships an authored shadow, so nothing on disk exercises the fallback
+  yet — the first shadow-less tree Lawrence exports will (a synthetic one is
+  pinned in test_terrain_sprite_renderer.gd). The "suppress authored,
+  generate everywhere" experiment is a two-line swap in `refresh()` if
+  wanted. EYEBALL: generated vs authored cast length — Lawrence's shelltree
+  measured ~0.85 of height vs the units' 1.0; `GENERATED_SMOOSH_*` alias
+  UnitShadow's dials, split them if the two disagree on screen.)
 - [ ] **`unit_cast_shadows` out of debug vars, made the default.** Already
   defaults true in `DebugConfig`, so nothing changes functionally — the ask is
   that it stop being a *dev* flag. Two ways: delete it and rely on the
@@ -282,8 +595,9 @@ see the mockup and §6. These three are the remainder.)*
   **tracking** (couriers/NPCs — the award side is already ready in MissionCatalog)
   + per-unit combat stats. See [mission_objectives.md](mission_objectives.md).
   Gated on the objective-authoring decision above.
-  - [ ] Delete the dormant `battle_result_overlay.tscn` once its slide-in
-    animation is either adopted or given up on.
+  - [x] Delete the dormant `battle_result_overlay.tscn` once its slide-in
+    animation is either adopted or given up on. (Deleted 2026-09-09 with the
+    post-battle cleanup; the slide-in was never adopted.)
 
 - [~] **Give all characters at least 9 moves and 9 passives.** Content pass.
   Gated in practice by the move-distribution bug in §6.
@@ -462,7 +776,10 @@ Nothing here is code-blocked; all have placeholders shipping today.
 - [ ] **Range icons**: range 1, range 2, range 1-2, range 2-3, range 3+.
   *(Any others needed here?)*
 - [ ] **Buff icons**: Rallied, Fortified, Hasted, Focused, Regen — plus the
-  long-missing **Bellows**.
+  long-missing **Bellows**. (Fortified / Hasted / Regen have PLACEHOLDERS as
+  of 2026-09-10 — `tools/art/placeholder_status_icon.gd`, same-name
+  replacement; the missing-art resource error is gone but the art is still
+  Lawrence's.)
 - [ ] A **broken-link / denied glyph** to sit beside the OUT OF RANGE callout, so
   the meaning isn't carried entirely by 5px type.
 - [ ] **Monster** and **Beast** type icons (both types shipped 2026-07-06; missing
@@ -484,6 +801,14 @@ Nothing here is code-blocked; all have placeholders shipping today.
   `<tag>_shadow.png` strips and the runtime plays them verbatim when present.
   Deferred until Lawrence authors the first one.
 - [ ] **Grunt pivot non-compliance** — Lawrence redesigning the sprite.
+- [ ] **Ink pass on the 9/7 paper roughs.** `IMG_0154` Keener, `IMG_0203`
+  Phoenix Pirate, `IMG_0204` Robot, `IMG_0205` Squash, `IMG_0207` Thumps,
+  `IMG_0208` Bugler, `pirate_boss` (new). Opaque page photos, 11–15 MB each;
+  unwireable until they're transparent ink. Rename to the character name,
+  then drop or recompress the photos.
+- [ ] **Sprites for the new characters** once their kits settle: swordsman,
+  gentry prince, wooly beast, tipsy goblin (all on the 16px
+  `placeholder_unit` today), then the three NPCs and the Thief.
 
 ### LOD work list
 - [ ] Stylized arrows showing displacement.
@@ -548,6 +873,9 @@ foundation shipped. What's left is **deliberate deferral, not loose ends**:
 ---
 
 ## 6. Bugs
+- [ ] Max S. leveled up on the move that won the level, and the victory screen showed before the level up screen (should wait on continue). Then the level up screen displays over the intermission screen. This seems like a class of bug which should be precluded by the transition to the intermission screen, but that would've made it hard to detect the early victory screen pop-up, so I'm glad we caught it.
+- [ ] In the intermission/manage units screen, the VHS-distortion effect on portraits has disappeared. This is a regression, and should have a unit test.
+- [ ] 
 
 - [x] **Displacement arrows rendered under terrain modifiers and units**
   (Lawrence 2026-08-05) — **FIXED same day.** Root cause worth remembering: board
@@ -568,28 +896,15 @@ foundation shipped. What's left is **deliberate deferral, not loose ends**:
 [intermission.md](intermission.md) §2c/§2d. These are live in the current build,
 independent of the intermission redesign.**
 
-- [ ] **No autosave at the mission boundary → intermission work is lost.**
-  Autosaves are battle-only (`SaveManager` writes on `player_phase_started`, and
-  early-returns when `capture_battle_snapshot()` is empty); `CampaignManager`
-  never saves. So nothing is written between the last turn of mission N and turn 1
-  of mission N+1 — quit from the intermission and "Continue" should rewind into
-  the battle you *already finished*, discarding every StatUp, move swap, and bEXP
-  purchase. **Fix: autosave on ENTERING the intermission** (leaving is already
-  covered by the next mission's turn-1 write). `build_snapshot()` already takes
-  `battle` as optional, so this is a trigger, not new machinery. Open sub-call:
-  which ring — recommendation is to widen the existing blue ring from
-  "battle-start" to "mission boundary" rather than mint a fourth color.
-  **Wants an in-game repro first** — this reads from the code path, unconfirmed.
-
-- [ ] **The 5th manual save silently destroys the 1st.** `write_manual_save()`
-  routes through `_pick_ring_slot` ("first empty wins, else overwrite oldest"), so
-  manual saves rotate exactly like autosaves. Rotation is correct for autosaves
-  (unrequested) and wrong for manual saves (the press *is* the intent to keep it).
-  **Fix: prompt only when the press would destroy** — silent write while a slot is
-  free, picker when all 4 are full, no write and no latch on cancel. Split
-  `find_free_manual_slot()` + `write_manual_save_to(path)` out of the eviction
-  path; the picker is `SaveBrowserPanel` in a second mode (render empty slots,
-  emit `slot_chosen`). Autosave rings unchanged.
+- [x] **No autosave at the mission boundary → intermission work is lost.**
+  (FIXED 2026-09-10 per §2c: a FOURTH ring, `KIND_AUTO_BASE`, written off
+  CampaignManager's three boundary signals; GREEN 7 placeholder colour for
+  Lawrence. Story in the commit. Open: the hub's Save Game still arrives
+  armed — §2b's "redundant?" question stands. Not in-game-verified.)
+- [x] **The 5th manual save silently destroys the 1st.** (FIXED 2026-09-10
+  per §2d: manual saves take a free slot or open `SaveBrowserPanel`'s
+  overwrite picker; never rotate. Both callers (system menu, hub). Story in
+  the commit. Not in-game-verified; UIManager's glue has no test.)
 
 - [ ] **Move distribution in the demo is wonky.** Characters get moves far too
   powerful at level 5; this is what makes the Ogre feel broken. *Deliberately
@@ -597,11 +912,23 @@ independent of the intermission redesign.**
 - [ ] **Tile seams at certain zoom levels + camera positions.** Hard to reproduce.
   The seam z-indexes at roughly the enemy-sprite level; it's a vertical line of
   subpixel resolution when the camera isn't centered. **Needs a screenshot.**
-- [ ] **Decorations layer lacks the modifier layer's sprite handling** — image is
-  cropped, no shadows.
+- [x] **Decorations layer lacks the modifier layer's sprite handling** — image is
+  cropped, no shadows. (FIXED 2026-09-07 on `rqd--terrain-stack`:
+  `ModifierRenderer` → `TerrainSpriteRenderer`, one per paint layer, modifier
+  spawned first so a decoration on a modifier's cell wins by tree order at
+  equal z; `PURE_DECORATIONS` z slot renamed `TERRAIN_SHADOWS` (it was
+  already where terrain shadows rendered). It was worse than "cropped": the
+  flat z also meant a decoration never occluded a unit behind it. Before/after
+  on lawrence_test_map: volcano cones went from flat-topped 32px chunks to
+  full cones with lava tips + cast shadows. Lawrence's map has 43 decoration
+  cells vs 31 modifier cells, so this was most of what he'd painted.)
 - [ ] **The move preview doesn't animate properly when a unit retreads its path.**
-- [ ] **Console errors on load.** Believed to be from Godot editor extensions no
-  longer in use — verify, then delete the addon or fix the scripts:
+- [x] **Console errors on load.** (Cleared 2026-09-09: the texturepacker addon
+  was not enabled and nothing referenced it — deleted; game_colors_demo now
+  reads the TEXT_WARNING pair; TEXT_WARNING already existed, so the terrain
+  test panel line had stopped erroring on its own.) Was: believed to be from
+  Godot editor extensions no longer in use — verify, then delete the addon or
+  fix the scripts:
   ```
   res://addons/codeandweb.texturepacker/texturepacker_import_spritesheet.gd:54
       Parse Error: Not all code paths return a value.
@@ -700,6 +1027,36 @@ Each of these is blocked on a decision, not on work.
 
 ## 8. Not started
 
+- [ ] **STAB presentation redesign + a damage-calc tooltip system** (RQD
+  2026-09-11, after seeing the x1.20 readout: "a simple multiplier isn't
+  clear enough — back to the drawing board"). The yellow multiplier stays, but
+  it can't carry the *why* on its own.
+  - **Idea 1 — show the MATCH, not just the number.** When STAB applies, the
+    unit's elemental type icon and the move's elemental type icon on the
+    combat preview both light up together — the §14 traveling-border orbit
+    (the assigned-marker recipe) or a shimmer — reading as "THESE MATCH,"
+    alongside the yellow multiplier. Needs a §14 ruling: the orbit currently
+    means *assigned*; a shimmer would be a new motion category, and the
+    scarcity rules cap animating things at two on screen. Decide which
+    channel, then mock it on the battle-HUD artifact before building.
+  - **Idea 2 — a tooltip system for the whole damage calculation.** Every
+    factor that modifies damage gets an explanation on demand: base (stat +
+    power − def), type effectiveness (with the two type icons and the stage
+    colour), STAB (matching icons), Bellows stacks, terrain on either side,
+    Reckless, crit, hit chance. Colour-coded to the same tiers the panel
+    uses, icons inline where a factor has one, so the tooltip *is* the
+    legend. Rides the existing hold-to-peek contract (§14 detail tooltips:
+    long press = right click = Back/R3). Presentation must be on point —
+    this is the "what can I click / what does this mean" answer for the
+    combat preview, which today looks interactible and isn't (§2).
+  - Related: the in-game legend / glossary ask in §2, the "combat preview:
+    indicate buffs/debuffs in play" item below, and the corruption misfire
+    chip in §7 — all of them are "explain the number" and should share one
+    tooltip surface rather than each growing a badge.
+  - Until then the shipped reading is colour-only: yellow x1.2 = STAB on a
+    neutral matchup, orange x1.2 = a type edge without STAB
+    (`CombatPreviewPanel.displayed_multiplier`).
+
 - [ ] **CLASS & PROMOTION SYSTEM** — design doc written 2026-08-05
   ([class-and-promotion.md](../data/design/class-and-promotion.md)), nothing
   implemented. **This is the largest unscoped commitment in the project**, and by
@@ -752,8 +1109,8 @@ Each of these is blocked on a decision, not on work.
   `character_data.strength` etc.
 - [ ] **Preview path on hover.** On controller/M&K, show the preview path while
   hovering the next node in the planned path.
-- [ ] **Options menu tabs.** It's cluttered. Gameplay / Video / Audio — anything
-  else yet?
+- [x] **Options menu tabs.** It's cluttered. Gameplay / Video / Audio — anything
+  else yet? (BUILT 2026-09-09 — see the top-of-file item; exactly those three.)
 - [ ] **Split `StatusEffectType` into `AfflictType` + `BoostType`.** Significant
   rewiring across the game logic, but there's no real alternative: units need to
   carry a boost and an affliction simultaneously.

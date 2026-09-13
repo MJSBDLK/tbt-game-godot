@@ -827,19 +827,6 @@ func _build_summary_lane() -> void:
 	stack.add_child(_service_record_block())
 
 
-## Where the art lands inside the inner area: fitted to its own aspect,
-## bottom-centered, pixel-snapped (fractional rects shimmer in the pixel
-## viewport). Tall areas leave headroom above; wide areas leave side room —
-## the frame ring absorbs both by hugging this rect instead of the area.
-static func portrait_rect_in_area(area_size: Vector2, aspect: float) -> Rect2:
-	if area_size.x <= 0.0 or area_size.y <= 0.0 or aspect <= 0.0:
-		return Rect2()
-	var drawn_width: float = roundf(minf(area_size.x, area_size.y * aspect))
-	var drawn_height: float = roundf(drawn_width / aspect)
-	return Rect2(floorf((area_size.x - drawn_width) / 2.0),
-			area_size.y - drawn_height, drawn_width, drawn_height)
-
-
 ## Positions the portrait at the art's own aspect ratio, bottom-centered in
 ## the area, so its lower edge sits on the frame's inner bottom edge — and
 ## wraps the frame ring around that exact rect. The area sits 3px inside the
@@ -854,7 +841,7 @@ func _frame_portrait(portrait: TextureRect, area: Control, ring: Control,
 	if aspect_source == null or aspect_source.get_height() <= 0 or area.size.y <= 0.0:
 		return
 	var aspect: float = float(aspect_source.get_width()) / float(aspect_source.get_height())
-	var rect: Rect2 = portrait_rect_in_area(area.size, aspect)
+	var rect: Rect2 = HDPortraitSlot.portrait_rect_in_area(area.size, aspect)
 	portrait.position = rect.position
 	portrait.size = rect.size
 	ring.position = rect.position

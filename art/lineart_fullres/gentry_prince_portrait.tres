@@ -1,0 +1,7 @@
+[gd_resource type="AtlasTexture" format=3 uid="uid://lsulcqbahmol"]
+
+[ext_resource type="Texture2D" uid="uid://bc04tifqnrmpa" path="res://art/lineart_fullres/gentry_prince.png" id="1_3g52v"]
+
+[resource]
+atlas = ExtResource("1_3g52v")
+region = Rect2(517, 309, 1704, 1704)

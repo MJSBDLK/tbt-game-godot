@@ -15,17 +15,27 @@ class_name LevelUpStatBlock
 extends VBoxContainer
 
 
-## Stagger between consecutive "+1" reveals — matches LevelUpReportPanel's
-## beat so every celebration in the game shares one rhythm.
+## Stagger between consecutive "+1" reveals — one rhythm for every
+## celebration in the game (this block is the only reveal there is).
 const REVEAL_STAGGER_SECONDS: float = 0.18
 const REVEAL_PUNCH_SECONDS: float = 0.28
 
 const STAT_BAR_WIDTH: float = 64.0
 const STAT_BAR_HEIGHT: int = 3
 
+## The ding (placeholder chime from tools/godot/generate_ui_sfx.gd; Lawrence
+## replaces the file, same name). Each successive ding on one build rings a
+## semitone higher — the ascending staircase IS the dopamine (2^(1/12) per
+## step); build() resets it so every character's reveal starts on the root.
+## Moved here from the retired post-battle LevelUpReportPanel (2026-09-09)
+## so the mid-battle reveal and the intermission bEXP pour both make noise.
+const DING_STREAM_PATH: String = "res://audio/ui/ding_level_up.wav"
+const DING_SEMITONE_RATIO: float = 1.059463
+
 
 var _plus_labels: Array[GlowLabel] = []
 var _reveal_aborted: bool = false
+var _dings_played: int = 0
 
 
 # =============================================================================
@@ -76,10 +86,15 @@ func _init() -> void:
 ## play_reveal gives each its beat.
 func build(character: CharacterData, before: Dictionary,
 		show_deltas_immediately: bool, show_modifiers: bool) -> void:
+	# remove_child BEFORE queue_free so a rebuild's row indices are exact in
+	# the same frame (hosts and tests address rows by index) — a queued-free
+	# child still counts as a child until the frame ends.
 	for child: Node in get_children():
+		remove_child(child)
 		child.queue_free()
 	_plus_labels.clear()
 	_reveal_aborted = false
+	_dings_played = 0
 	var grown: Array[String] = grown_stats(before, character)
 	for entry: Array in UnitSheet.STAT_ROWS:
 		add_child(_stat_row(character, str(entry[0]), str(entry[1]),
@@ -98,6 +113,7 @@ func play_reveal() -> void:
 		if _reveal_aborted or not is_instance_valid(plus):
 			return
 		plus.visible = true
+		play_ding()
 		plus.pivot_offset = plus.size / 2.0
 		plus.scale = Vector2(1.6, 1.6)
 		var tween := create_tween()
@@ -113,6 +129,25 @@ func abort_reveal() -> void:
 		if is_instance_valid(plus):
 			plus.visible = true
 			plus.scale = Vector2.ONE
+
+
+## One ding, one step up the staircase. Fire-and-forget player, same pattern
+## as InteractiveButton._play_sfx; overlapping ring-outs are intentional at
+## the 0.18 s stagger. Silent when the sample is missing (a stripped build
+## never errors) or off-tree. Public so a host can ring its own beat — the
+## battle panel's stat-up badge continues the climb after the last "+1".
+## Players are appended AFTER the rows, so row indices never shift.
+func play_ding() -> void:
+	if not is_inside_tree() or not ResourceLoader.exists(DING_STREAM_PATH):
+		return
+	var player := AudioStreamPlayer.new()
+	player.stream = load(DING_STREAM_PATH) as AudioStream
+	player.bus = &"SFX"
+	player.pitch_scale = pow(DING_SEMITONE_RATIO, _dings_played)
+	_dings_played += 1
+	player.finished.connect(player.queue_free)
+	add_child(player)
+	player.play()
 
 
 func _stat_row(character: CharacterData, stat_name: String, abbrev: String,

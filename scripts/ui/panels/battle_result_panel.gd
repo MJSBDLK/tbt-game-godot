@@ -2,13 +2,14 @@
 ## banner clears. Mission-scoped facts only: turns vs par, itemized bEXP
 ## income (MissionCatalog award lines rendered verbatim), kills/losses, and
 ## roster damage (injuries / recoveries / permadeath). Unit-scoped celebration
-## (level-ups, stat reveals) deliberately lives in the NEXT screen
-## (LevelUpReportPanel) — this screen answers "how did the mission go",
-## that one answers "how did my people grow".
+## (level-ups, stat reveals) deliberately does NOT repeat here — it already
+## played mid-battle, the moment the unit leveled (LevelUpStatPanel), and
+## bEXP is spent in the intermission (BexpSpendPanel). The post-battle
+## level-up report and bEXP screens that used to follow this one were
+## removed 2026-09-09.
 ##
-## Chain position (UIManager._on_post_mission_report_ready, reordered
-## 2026-08-03): banner → THIS → level-ups → bEXP spend → conclude. Continue
-## only emits `closed`; UIManager owns what comes next.
+## Chain position (UIManager._on_post_mission_report_ready): banner → THIS →
+## conclude. Continue only emits `closed`; UIManager owns what comes next.
 ##
 ## SCOPE — functionality-first scaffolding per [[feedback-ui-scope-order]]:
 ## contents are the locked part, visuals are placeholder until the mockup
@@ -100,8 +101,8 @@ func _format_result(stats: Dictionary, award_lines: Array, report: Array) -> Str
 
 
 ## Injuries / recoveries / permadeath only. Level-ups are deliberately absent
-## — they celebrate on the next screen, and repeating them here as text would
-## deflate that reveal.
+## — they celebrated mid-battle as they happened, and repeating them here as
+## text would deflate that reveal.
 func _roster_lines(report: Array) -> Array[String]:
 	var lines: Array[String] = []
 	for entry: Dictionary in report:

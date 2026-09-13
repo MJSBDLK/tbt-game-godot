@@ -28,7 +28,16 @@ extends Resource
 # attack_range (>= 2 reads as ranged); "melee"/"ranged" force the clip family
 # regardless of the distance the move is actually used at — e.g. a range-2
 # spear thrust that should still look like a stab tags itself "melee".
+# GAMEPLAY-RELEVANT: is_ranged_style() also feeds Crater's defense split.
 @export var animation_style: String = "auto"
+
+# Visual-only clip override (JSON key: animationClip): the clip KEY this move
+# wants to play, e.g. "ranged" for a melee special that should look like the
+# shot. Consulted by UnitAnimationResolver after character×move overrides
+# and before the intent chain; a character lacking that clip falls through.
+# Never touches combat math — that's what keeps it separate from
+# animation_style.
+@export var animation_clip: String = ""
 
 # Damage
 @export var base_power: int = 0

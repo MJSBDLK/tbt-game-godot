@@ -54,12 +54,15 @@ var _manage_entry: MainMenuEntry = null
 var _bexp_entry: MainMenuEntry = null
 var _briefing_entry: MainMenuEntry = null
 var _save_entry: MainMenuEntry = null
+## Overwrite picker for a full manual ring — lazily built, most visits never
+## need it (same pattern as StartScreen's Load browser).
+var _save_browser: SaveBrowserPanel = null
 
-## Save Game arrives ARMED. Verified 2026-08-04 and still true: autosaves are
-## battle-only — SaveManager writes on `player_phase_started` and early-returns
-## when capture_battle_snapshot() is empty, and CampaignManager never saves at
-## all. A base-autosave ring is decided but unbuilt (§2c), so arriving at the
-## hub genuinely means there is unsaved progress.
+## Save Game arrives ARMED even though a base autosave landed on the way in
+## (SaveManager's mission-boundary trigger, §2c). The autosave rotates; a
+## manual save is a slot the player KEEPS — a different intent, so the entry
+## stays pressable until they've made one. Whether that makes the entry
+## redundant is still an open §2b question, not this flag's call.
 var _dirty: bool = true
 
 
@@ -366,13 +369,51 @@ func _on_briefing_pressed() -> void:
 ## Only latches on an actual write. write_manual_save() returns "" when there
 ## is no active campaign or the disk write fails — latching regardless would
 ## put "Game saved!" on screen for a save that doesn't exist, which is the one
-## lie a save button must never tell.
+## lie a save button must never tell. A full manual ring routes through the
+## overwrite picker instead (§2d): the write, and the latch, wait for the
+## player to name a slot; a cancel leaves the entry armed.
 func _on_save_pressed() -> void:
 	if not _dirty:
+		return
+	if SaveManager.find_free_manual_slot().is_empty():
+		_open_overwrite_picker()
 		return
 	if SaveManager.write_manual_save() != "":
 		_dirty = false
 	_refresh_save_entry()
+
+
+func _open_overwrite_picker() -> void:
+	if _save_browser == null:
+		_save_browser = SaveBrowserPanel.new()
+		_save_browser.set_anchors_preset(Control.PRESET_CENTER)
+		_save_browser.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		_save_browser.grow_vertical = Control.GROW_DIRECTION_BOTH
+		add_child(_save_browser)
+		_save_browser.slot_chosen.connect(_on_overwrite_slot_chosen)
+		_save_browser.closed.connect(_on_overwrite_picker_closed)
+	_save_browser.show_overwrite_picker()
+
+
+func _on_overwrite_slot_chosen(path: String) -> void:
+	if SaveManager.write_manual_save_to(path) != "":
+		_dirty = false
+	# Refresh BEFORE hiding: the closed handler reads the entry's inert flag
+	# to decide where the cursor lands.
+	_refresh_save_entry()
+	_save_browser.hide_panel()
+
+
+## Cancel or a finished pick — either way the cursor comes home under the
+## cursor model so the pad isn't stranded on a hidden panel: to Save Game if
+## it's still armed, else to the default action.
+func _on_overwrite_picker_closed() -> void:
+	if not InputSource.is_cursor_driven():
+		return
+	var target: MainMenuEntry = _save_entry \
+			if _save_entry != null and not _save_entry.inert else _focus_target()
+	if target != null:
+		target.grab_focus.call_deferred()
 
 
 ## Deployment was materialized at _ready (_seed_deployment), so Begin just
@@ -400,6 +441,10 @@ func _on_quit_to_menu_pressed() -> void:
 ## two screens must not disagree about it.
 func _unhandled_input(event: InputEvent) -> void:
 	if not InputSource.is_navigation_press(event):
+		return
+	# The overwrite picker owns the cursor while it's up — summoning an entry
+	# underneath it would pull focus out of the picker mid-choice.
+	if _save_browser != null and _save_browser.visible:
 		return
 	for entry: MainMenuEntry in _menu_entries:
 		if entry.has_focus():

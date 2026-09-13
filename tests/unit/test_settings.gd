@@ -180,7 +180,27 @@ func test_tooltip_hold_defaults_snaps_and_clamps() -> void:
 			"the 200ms floor is a softlock guard — below it, ordinary taps"
 			+ " start reading as long-presses and pressing becomes impossible")
 	settings.set_tooltip_hold_ms(4000)
-	assert_eq(settings.tooltip_hold_ms, 1000, "1s ceiling")
+	assert_eq(settings.tooltip_hold_ms, 800, "0.8s ceiling (was 1s; RQD 2026-09-10)")
+
+
+func test_cursor_speed_defaults_snaps_and_clamps() -> void:
+	var settings := _make_settings()
+	assert_eq(settings.cursor_speed, 12.5, "default 12.5 tiles/s — the tuned 80 ms d-pad step")
+	assert_almost_eq(settings.cursor_repeat_interval_seconds(), 0.08, 0.0001)
+	settings.set_cursor_speed(9.3)
+	assert_eq(settings.cursor_speed, 9.5, "values snap to the 0.5 slider grid")
+	settings.set_cursor_speed(1.0)
+	assert_eq(settings.cursor_speed, Settings.CURSOR_SPEED_MIN, "floor")
+	settings.set_cursor_speed(99.0)
+	assert_eq(settings.cursor_speed, Settings.CURSOR_SPEED_MAX, "ceiling")
+
+
+func test_cursor_speed_persists_across_instances() -> void:
+	var writer := _make_settings()
+	writer.set_cursor_speed(20.0)
+	var reader := _make_settings()
+	reader.load_settings()
+	assert_eq(reader.cursor_speed, 20.0, "cursor speed persisted")
 
 
 func test_tooltip_hold_persists_across_instances() -> void:

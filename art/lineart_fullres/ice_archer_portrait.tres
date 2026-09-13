@@ -1,0 +1,7 @@
+[gd_resource type="AtlasTexture" format=3 uid="uid://e91vl04xov9h"]
+
+[ext_resource type="Texture2D" uid="uid://jbggkpxwtg5w" path="res://art/lineart_fullres/ice_archer.png" id="1_9ksnf"]
+
+[resource]
+atlas = ExtResource("1_9ksnf")
+region = Rect2(850, 358, 1350, 1350)

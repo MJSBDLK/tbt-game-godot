@@ -346,3 +346,128 @@ func test_selected_passive_row_border_has_rounded_antialiased_corners() -> void:
 	var unselected := panel._passive_rows[1].get_theme_stylebox("hover") as StyleBoxFlat
 	assert_eq(unselected.corner_radius_top_left, UnitSheet.SLOT_CORNER_RADIUS,
 			"the hover wash shares the shape so hover→selected doesn't jump")
+
+
+# =============================================================================
+# CURSOR MODEL — the pad can browse the sheet (RQD 2026-09-10: "can't navigate
+# the unit detail panel with a controller")
+# =============================================================================
+
+func _nav_press(action: String) -> InputEventAction:
+	var event := InputEventAction.new()
+	event.action = action
+	event.pressed = true
+	return event
+
+
+func _neighbor(control: Control, path: NodePath) -> Control:
+	return control.get_node(path) as Control
+
+
+func _panel_with_two_moves_and_a_passive() -> UnitDetailPanel:
+	var panel := _make_panel() as UnitDetailPanel
+	var data := CharacterData.new()
+	data.equipped_moves = [_make_move("Bonk"), _make_move("Zap")] as Array[Move]
+	data.equipped_passives.append("Bulwark")
+	panel.show_character(data)
+	return panel
+
+
+func before_each() -> void:
+	InputSource.last_kind = InputSource.Kind.POINTER
+
+
+func after_each() -> void:
+	InputSource.last_kind = InputSource.Kind.POINTER
+
+
+func test_the_chain_walks_moves_then_passives_and_wraps() -> void:
+	var panel := _panel_with_two_moves_and_a_passive()
+	assert_eq(panel._inspectables.size(), 3, "two chips + one passive; empties are skipped")
+	var bonk: Control = panel._move_rows[0]
+	var zap: Control = panel._move_rows[1]
+	var bulwark: Control = panel._passive_rows[0]
+	assert_eq(_neighbor(bonk, bonk.focus_neighbor_bottom), zap, "down: next chip")
+	assert_eq(_neighbor(zap, zap.focus_neighbor_bottom), bulwark, "down off the last chip: first passive")
+	assert_eq(_neighbor(bulwark, bulwark.focus_neighbor_bottom), bonk, "down off the end wraps")
+	assert_eq(_neighbor(bonk, bonk.focus_neighbor_top), bulwark, "up off the top wraps")
+	assert_eq(_neighbor(bonk, bonk.focus_neighbor_right), bulwark, "right: next family's first")
+	assert_eq(_neighbor(bulwark, bulwark.focus_neighbor_left), bonk, "left: previous family's first")
+	assert_eq(_neighbor(zap, zap.focus_neighbor_left), bulwark, "left from moves wraps to passives (two families)")
+
+
+func test_empty_slots_never_take_the_cursor() -> void:
+	var panel := _panel_with_two_moves_and_a_passive()
+	for i: int in range(2, panel._move_rows.size()):
+		assert_eq(panel._move_rows[i].focus_mode, Control.FOCUS_NONE, "empty move slot %d" % i)
+	for i: int in range(1, panel._passive_rows.size()):
+		assert_eq(panel._passive_rows[i].focus_mode, Control.FOCUS_NONE, "empty passive slot %d" % i)
+	for tablet: PanelContainer in panel._status_panels:
+		assert_eq(tablet.focus_mode, Control.FOCUS_NONE, "no status → its tablet is not a stop")
+	for tablet: PanelContainer in panel._injury_panels:
+		assert_eq(tablet.focus_mode, Control.FOCUS_NONE, "no injury → its tablet is not a stop")
+
+
+func test_a_cursor_driven_open_lands_on_the_first_chip() -> void:
+	InputSource.last_kind = InputSource.Kind.CURSOR
+	var panel := _panel_with_two_moves_and_a_passive()
+	assert_true(panel._move_rows[0].has_focus(), "the pad has a 'you are here' the moment the sheet opens")
+
+
+func test_a_pointer_open_stays_quiet_until_a_nav_press_summons() -> void:
+	var panel := _panel_with_two_moves_and_a_passive()
+	assert_null(panel._focused_inspectable(), "pointer open: no phantom cursor")
+	panel._unhandled_input(_nav_press("ui_down"))
+	assert_true(panel._move_rows[0].has_focus(), "the first nav press summons the cursor")
+
+
+func test_inspecting_a_passive_keeps_the_cursor_on_the_rebuilt_row() -> void:
+	# Selection rebuilds the passive rows; the cursor must not fall off the
+	# sheet with the freed one.
+	var panel := _panel_with_two_moves_and_a_passive()
+	panel._passive_rows[0].grab_focus()
+	panel._select(UnitDetailPanel.SelectionType.PASSIVE, 0)
+	assert_eq(panel._selection_type, UnitDetailPanel.SelectionType.PASSIVE)
+	assert_true(panel._passive_rows[0].has_focus(), "the rebuilt row took the cursor back")
+	assert_eq(panel._inspectables.size(), 3, "the chain was rewired over the new rows")
+
+
+func test_accept_on_a_focused_injury_tablet_inspects_it() -> void:
+	var panel := _make_panel() as UnitDetailPanel
+	var data := CharacterData.new()
+	data.current_injuries.append(_make_injury("burn_scar", Enums.InjurySeverity.MINOR))
+	panel.show_character(data)
+	var tablet: PanelContainer = panel._injury_panels[0]
+	assert_eq(tablet.focus_mode, Control.FOCUS_ALL, "a filled injury slot is a stop")
+	assert_eq(panel._injury_panels[1].focus_mode, Control.FOCUS_NONE, "its empty neighbour is not")
+
+	tablet.grab_focus()
+	assert_eq(tablet.self_modulate, UnitDetailPanel.TABLET_CURSOR_MODULATE, "the tablet lifts under the cursor")
+	tablet.gui_input.emit(_nav_press("ui_accept"))
+	assert_eq(panel._selection_type, UnitDetailPanel.SelectionType.INJURY, "accept inspects it")
+	assert_eq(panel._selection_index, 0)
+	tablet.release_focus()
+	assert_eq(tablet.self_modulate, Color.WHITE, "and settles when the cursor leaves")
+
+
+func test_closing_releases_the_cursor() -> void:
+	InputSource.last_kind = InputSource.Kind.CURSOR
+	var panel := _panel_with_two_moves_and_a_passive()
+	assert_not_null(panel._focused_inspectable())
+	panel.hide_panel()
+	assert_null(panel._focused_inspectable(), "no focus owner left behind on a hidden sheet")
+
+
+func test_the_portrait_box_is_square() -> void:
+	# A wide box, like a wide crop, leaves the portrait floating mid-frame with
+	# a band underneath. The AspectRatioContainer's 1:1 is the box's contract;
+	# the crops' squareness is pinned in test_character_art_wiring.
+	var panel := _make_panel()
+	var box: AspectRatioContainer = panel.get_node(
+			"MainRow/LeftColumnMargin/LeftColumn/AspectRatioContainer")
+	assert_eq(box.ratio, 1.0, "square box")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var portrait: Control = box.get_node("PortraitInset/Portrait")
+	assert_gt(portrait.size.x, 0.0, "laid out")
+	assert_almost_eq(portrait.size.x, portrait.size.y, 0.5, "the portrait rect is square after layout")

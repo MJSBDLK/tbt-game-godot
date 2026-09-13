@@ -1,0 +1,7 @@
+[gd_resource type="AtlasTexture" format=3 uid="uid://9gxyb37ozhsf"]
+
+[ext_resource type="Texture2D" uid="uid://b6xdprv0qb4c5" path="res://art/lineart_fullres/berzerker.png" id="1_x0j9x"]
+
+[resource]
+atlas = ExtResource("1_x0j9x")
+region = Rect2(980, 738, 1180, 1180)

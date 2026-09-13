@@ -18,6 +18,8 @@ var unit_init: bool = false
 
 # Combat
 var combat: bool = false
+var combat_scene_step_pauses: bool = false  # CombatScene: the 250 ms settles at open/close become indefinite pauses — the stage waits for a press (which ADVANCES, not skips) so it can be examined. RQD 2026-09-08.
+var battle_animations: bool = false  # Clip resolution per swing (UnitAnimationResolver: intent → clip or PROCEDURAL, override fall-throughs) — see .claude/todo-archive.md ("Battle animations plan")
 var ai: bool = false
 var status_effects: bool = false
 var testing_status_effects: bool = false  # Assign random status effects on unit spawn
@@ -35,6 +37,7 @@ var testing_phase4_moves: bool = false  # Fill every player unit's moves with th
 var debug_menu_badges: bool = true  # Etch each menu's class initials into its border (top-right, PanelBorderOverlay) — themed serial-tag so bug reports can name the misbehaving menu; looks intentional in screenshots. Flip false to hide. (RQD 2026-07-31)
 var debug_force_touch_hints: bool = false  # Force the hint/command bar into its TOUCH rendering (real buttons) on a desktop — eyeball the phone control surface without a phone. Alternative: project setting input_devices/pointing/emulate_touch_from_mouse, which also exercises InputSource's touch detection. (RQD 2026-08-20)
 var unit_cast_shadows: bool = true  # Generated ground shadows under units (UnitShadow, sheared live frame). Flip false to eyeball the board without them. (RQD 2026-07-31)
+var terrain_generated_shadows: bool = true  # Generated cast shadows under terrain sprites (modifiers + decorations) that ship NO authored _shadow.png (TerrainSpriteRenderer.generate_cast_shadow, same sun as UnitShadow). Authored shadows always render. Flip false to eyeball authored-only. (RQD 2026-09-07)
 
 # Input & State
 var input: bool = false
@@ -124,6 +127,9 @@ func log_unit_init(message: String) -> void:
 
 func log_combat(message: String) -> void:
 	log_if(combat, message)
+
+func log_battle_animations(message: String) -> void:
+	log_if(battle_animations, message)
 
 func log_ai(message: String) -> void:
 	log_if(ai, message)

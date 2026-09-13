@@ -43,7 +43,7 @@ extends Control
 
 ## Observed by tests; fired before the action is injected into Input.
 signal action_requested(action: StringName)
-## The "Move here" button (Settings.move_confirm_mode BUTTON) was pressed.
+## The "Confirm path" button (Settings.move_confirm_mode BUTTON) was pressed.
 ## Fired before InputManager is asked to confirm the plan.
 signal move_confirm_requested
 
@@ -273,13 +273,8 @@ func refresh() -> void:
 	if state_manager != null:
 		state = state_manager.current_state
 
-	# ACT_THEN_WALK swaps the planning copy — the marker press stages the plan
-	# instead of walking (todo 4A). Sampled here, at the same boundary as the
-	# model, never live.
-	var act_then_walk: bool = Settings != null \
-			and Settings.move_commit_mode == Settings.MoveCommitMode.ACT_THEN_WALK
-	var step_text := HintBarCommands.step_text_for(state, model, enemy_phase, act_then_walk)
-	var confirm_label := HintBarCommands.confirm_label_for(state, enemy_phase, act_then_walk)
+	var step_text := HintBarCommands.step_text_for(state, model, enemy_phase)
+	var confirm_label := HintBarCommands.confirm_label_for(state, enemy_phase)
 	var use_button: bool = not confirm_label.is_empty() and _confirm_mode_is_button(model)
 	if use_button:
 		last_step_form = StepForm.BUTTON
@@ -509,7 +504,7 @@ func _confirm_mode_is_button(model: HintBarCommands.Model) -> bool:
 	return model == HintBarCommands.Model.TOUCH
 
 
-## "Move here" — pressing the button is pressing the last marker.
+## "Confirm path" — pressing the button is pressing the last marker.
 func _on_confirm_button_pressed() -> void:
 	move_confirm_requested.emit()
 	var input_manager: Node = get_node_or_null("/root/InputManager")

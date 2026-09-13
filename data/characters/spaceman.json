@@ -17,25 +17,17 @@
 		"frameIndex": 0
 	},
 	"animations": {
-		"meleeside": {
+		"melee": {
 			"path": "res://art/sprites/characters/max/meleeside.png",
 			"frames": 8,
 			"fps": 5,
-			"hit_frame": 4,
-			"use_when": {
-				"direction": "horizontal",
-				"range": 1
-			}
+			"hit_frame": 4
 		},
-		"shootside": {
+		"ranged": {
 			"path": "res://art/sprites/characters/max/shootside.png",
 			"frames": 8,
 			"fps": 5,
-			"hit_frame": 4,
-			"use_when": {
-				"direction": "horizontal",
-				"range_min": 2
-			}
+			"hit_frame": 4
 		}
 	},
 	"baseStats": {

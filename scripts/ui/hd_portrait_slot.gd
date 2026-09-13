@@ -8,8 +8,10 @@
 ##   - On _ready, it asks SceneRouter for the root-level HDLayer CanvasLayer
 ##     and spawns a mirror TextureRect there.
 ##   - Every time this slot moves or resizes (or its texture changes, or the
-##     window is resized), the mirror is updated to overlay the same on-screen
-##     rectangle. HUD lives at 640×360; HDLayer renders in native pixels — so
+##     window is resized), the mirror is updated to overlay the art's rect
+##     inside the slot's on-screen rectangle: fitted to the art's own aspect,
+##     standing on the slot's bottom edge (`art_rect_in`). HUD lives at
+##     640×360; HDLayer renders in native pixels — so
 ##     we project through HUDDisplay's on-screen rect (position + integer
 ##     scale) to compute the mirror's native-pixel rect. See `_native_rect_for_slot()`.
 ##   - The pixel-side slot stays invisible by default; only the HD mirror is
@@ -30,15 +32,6 @@ extends Control
 	set(value):
 		hd_texture = value
 		_refresh_mirror_texture()
-
-## How the texture fits the slot — passed through to the mirror TextureRect's
-## `stretch_mode`. Defaults to KEEP_ASPECT_CENTERED so portraits don't squash
-## when the slot's aspect ratio doesn't match the source.
-@export var stretch_mode: TextureRect.StretchMode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED:
-	set(value):
-		stretch_mode = value
-		if _mirror != null:
-			_mirror.stretch_mode = value
 
 ## Bilinear with mipmaps is the right default for HD art being downscaled
 ## from a much larger source. The mirror's filter is what determines whether
@@ -186,17 +179,22 @@ func _ensure_mirror() -> void:
 		return
 	var hd_layer: CanvasLayer = SceneRouter.get_hd_layer()
 	if hd_layer == null:
-		# GameRoot hasn't registered yet — defer one frame and try again. This
-		# happens when the slot is part of the first scene loaded into the
-		# SubViewport: that scene's _ready can run before GameRoot finishes
-		# wiring SceneRouter.
-		call_deferred("_ensure_mirror")
+		# GameRoot hasn't registered yet (the first scene's _ready can run
+		# before GameRoot wires SceneRouter; headless tests never wire it).
+		# Wait for the registration signal. This used to call_deferred itself:
+		# a deferred call that re-defers runs again inside the SAME flush, so
+		# with no HDLayer ever coming it spun until "Message queue out of
+		# memory" and crashed the test runner (found 2026-09-07 when the
+		# combat scene bound HD portraits under GUT).
+		_wait_for_game_root()
 		return
 	_mirror_parent = hd_layer
 	_mirror = TextureRect.new()
 	_mirror.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_mirror.texture_filter = texture_filter_override
-	_mirror.stretch_mode = stretch_mode
+	# The slot hands the mirror a rect already at the art's aspect
+	# (art_rect_in), so plain SCALE never squashes and never letterboxes.
+	_mirror.stretch_mode = TextureRect.STRETCH_SCALE
 	# Without EXPAND_IGNORE_SIZE, TextureRect's minimum_size is the texture's
 	# native pixel size — a 3024×4032 line art would clamp the mirror to the
 	# whole HD texture even when we explicitly assign `size = (37, 37)`. The
@@ -234,9 +232,8 @@ func _ensure_overlay() -> void:
 		return
 	var hd_layer: CanvasLayer = SceneRouter.get_hd_layer()
 	if hd_layer == null:
-		# Mirrors the deferred-retry pattern in _ensure_mirror — GameRoot may
-		# not have registered yet on the first frame.
-		call_deferred("_ensure_overlay")
+		# Same wait as _ensure_mirror — the registration handler builds both.
+		_wait_for_game_root()
 		return
 	_overlay = ColorRect.new()
 	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -247,6 +244,20 @@ func _ensure_overlay() -> void:
 	_sync_mirror_visibility()
 
 
+## One connection per slot, however many callers asked; a slot that left the
+## tree before registration builds nothing.
+func _wait_for_game_root() -> void:
+	if not SceneRouter.game_root_registered.is_connected(_on_game_root_registered):
+		SceneRouter.game_root_registered.connect(_on_game_root_registered, CONNECT_ONE_SHOT)
+
+
+func _on_game_root_registered() -> void:
+	if not is_inside_tree():
+		return
+	_ensure_mirror()  # builds the overlay too, in draw order
+	_apply_effects_state()
+
+
 func _sync_mirror_geometry() -> void:
 	# The slot lives in HUDViewport's 640×360 design canvas; the mirror lives
 	# in HDLayer at the root viewport's native pixel resolution. Project the
@@ -254,8 +265,9 @@ func _sync_mirror_geometry() -> void:
 	# origin + integer scale) into native pixels.
 	var rect: Rect2 = _native_rect_for_slot()
 	if _mirror != null and is_instance_valid(_mirror):
-		_mirror.position = rect.position
-		_mirror.size = rect.size
+		var art_rect: Rect2 = art_rect_in(rect)
+		_mirror.position = art_rect.position
+		_mirror.size = art_rect.size
 	_sync_overlay_geometry()
 
 
@@ -277,6 +289,39 @@ func _native_rect_for_slot() -> Rect2:
 	return Rect2(native_pos, native_size)
 
 
+## Where the art lands inside a slot rect: fitted to its own aspect, never
+## squashed, centered horizontally, standing on the slot's bottom edge. A
+## square crop in a square box fills it exactly; a crop that disagrees with
+## its box leaves headroom above instead of floating mid-frame with a band
+## underneath. The glass overlay still covers the whole slot. No texture →
+## the whole rect.
+func art_rect_in(slot_rect: Rect2) -> Rect2:
+	if hd_texture == null or hd_texture.get_height() <= 0:
+		return slot_rect
+	var aspect: float = float(hd_texture.get_width()) / float(hd_texture.get_height())
+	var fitted: Rect2 = portrait_rect_in_area(slot_rect.size, aspect)
+	return Rect2(slot_rect.position + fitted.position, fitted.size)
+
+
+## The fit rule, pure: the largest rect of `aspect` that fits `area_size`,
+## bottom-centered and pixel-snapped (fractional rects shimmer in the pixel
+## viewport). The crew file frames its ring around this same rect.
+static func portrait_rect_in_area(area_size: Vector2, aspect: float) -> Rect2:
+	if area_size.x <= 0.0 or area_size.y <= 0.0 or aspect <= 0.0:
+		return Rect2()
+	var drawn_width: float
+	var drawn_height: float
+	if area_size.x / area_size.y > aspect:
+		# The area is wider than the art: height fills, width follows.
+		drawn_height = roundf(area_size.y)
+		drawn_width = roundf(drawn_height * aspect)
+	else:
+		drawn_width = roundf(area_size.x)
+		drawn_height = roundf(drawn_width / aspect)
+	return Rect2(floorf((area_size.x - drawn_width) / 2.0),
+			area_size.y - drawn_height, drawn_width, drawn_height)
+
+
 func _sync_mirror_visibility() -> void:
 	var visible_in_tree: bool = is_visible_in_tree()
 	if _mirror != null and is_instance_valid(_mirror):
@@ -291,6 +336,8 @@ func _refresh_mirror_texture() -> void:
 	if _mirror == null or not is_instance_valid(_mirror):
 		return
 	_mirror.texture = hd_texture
+	# A new texture can mean a new aspect; the rect follows it.
+	_sync_mirror_geometry()
 
 
 func _destroy_mirror() -> void:

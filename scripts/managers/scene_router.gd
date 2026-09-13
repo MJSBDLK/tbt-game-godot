@@ -27,6 +27,11 @@ const _START_SCENE_PATH: String = "res://scenes/ui/start_screen.tscn"
 # references so an in-flight scene change doesn't race with viewport-getter
 # callers — the references stay valid for the lifetime of GameRoot (the whole
 # app session).
+## Fired once GameRoot has handed over its render targets. HDPortraitSlot
+## waits on this when it is readied before registration (a scene's _ready can
+## run first; headless tests never register at all) instead of polling.
+signal game_root_registered
+
 var _world_root: Node2D = null
 var _hud_viewport: SubViewport = null
 var _hud_display: TextureRect = null
@@ -41,6 +46,7 @@ func register_game_root(world_root: Node2D, hud_viewport: SubViewport, hud_displ
 	_hud_viewport = hud_viewport
 	_hud_display = hud_display
 	_hd_layer = hd_layer
+	game_root_registered.emit()
 	if _current_scene == null:
 		_load_initial_scene()
 
