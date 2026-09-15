@@ -25,7 +25,8 @@
     "building": "StoneEdifice",
     "arch": "StoneEdifice",
     "castle": "Castle",
-    "bridge": "Bridge"
+    "bridge": "Bridge",
+    "mountain": "Rock"
   },
   "by_sprite": {
     "castle_a": { "rows": ["Wall", "Castle"] },

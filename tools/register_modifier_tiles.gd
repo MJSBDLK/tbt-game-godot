@@ -1,6 +1,6 @@
-## Registration tool: walks the exported modifier/decoration sprites at
-## SOURCE_DIR and makes sure every main PNG is a TileSetAtlasSource in the
-## target TileSet. Reads the sidecar JSON to size multi-cell tiles.
+## Registration tool: walks the exported modifier/decoration sprites in every
+## export_dirs() folder and makes sure every main PNG is a TileSetAtlasSource
+## in the target TileSet. Reads the sidecar JSON to size multi-cell tiles.
 ##
 ## SOURCE IDS ARE STABLE. Painted cells in every map .tscn reference tiles
 ## by (source_id, atlas_coords), so a source id is a contract with the maps:
@@ -35,7 +35,9 @@
 extends SceneTree
 
 
-const SOURCE_DIR := "res://art/sprites/decorations/decorations_and_modifiers/"
+const BUNDLE_EXPORT_DIR := "res://art/sprites/decorations/decorations_and_modifiers/"
+## One-sprite .aseprite files live here; each subfolder is one file's export.
+const STANDALONE_SOURCE_ROOT := "res://art/sprites/terrain_modifiers/"
 const TILESET_PATH := "res://resources/battle_tileset.tres"
 const MODIFIER_SOURCE_ID_BASE := 100
 const TILE_SIZE := 32
@@ -97,26 +99,67 @@ static func sprite_name_from_filename(filename: String) -> String:
 	return filename.substr(0, filename.length() - 4)
 
 
+## Every folder the tag exporter writes terrain sprites into. The exporter puts
+## `<file>.aseprite`'s PNGs in a sibling `<file>/` folder, so a one-sprite
+## file under STANDALONE_SOURCE_ROOT gets its own export dir.
+static func export_dirs() -> Array[String]:
+	var dirs: Array[String] = [BUNDLE_EXPORT_DIR]
+	var subdirs := DirAccess.get_directories_at(STANDALONE_SOURCE_ROOT)
+	subdirs.sort()
+	for subdir in subdirs:
+		dirs.append(STANDALONE_SOURCE_ROOT + subdir + "/")
+	return dirs
+
+
+## Pure: sprite name -> PNG path, from each export dir's file listing
+## ({dir: [filenames]}). The paired _shadow.png is runtime-only, never a tile.
+## The sprite name is the tileset key, so a name exported into two folders
+## lands in `duplicates` instead of one silently winning.
+static func plan_sprite_paths(listings: Dictionary) -> Dictionary:
+	var paths: Dictionary = {}
+	var duplicates: Array = []
+	var dirs: Array = listings.keys()
+	dirs.sort()
+	for dir: Variant in dirs:
+		for filename: Variant in listings[dir]:
+			var file := str(filename)
+			if not file.ends_with(".png") or file.ends_with("_shadow.png"):
+				continue
+			var sprite_name := sprite_name_from_filename(file)
+			if paths.has(sprite_name):
+				if not duplicates.has(sprite_name):
+					duplicates.append(sprite_name)
+				continue
+			paths[sprite_name] = str(dir) + file
+	duplicates.sort()
+	return {"paths": paths, "duplicates": duplicates}
+
+
+## Disk half of plan_sprite_paths. test_map_tileset_integrity calls this too,
+## so the test checks exactly the folders the tool registers.
+static func find_sprite_paths() -> Dictionary:
+	var listings: Dictionary = {}
+	for dir in export_dirs():
+		listings[dir] = Array(DirAccess.get_files_at(dir))
+	return plan_sprite_paths(listings)
+
+
 func _register_all() -> int:
 	var tileset: TileSet = load(TILESET_PATH)
 	if tileset == null:
 		push_error("register_modifier_tiles: cannot load %s" % TILESET_PATH)
 		return 1
 
-	var dir := DirAccess.open(SOURCE_DIR)
-	if dir == null:
-		push_error("register_modifier_tiles: cannot open %s" % SOURCE_DIR)
+	if not DirAccess.dir_exists_absolute(BUNDLE_EXPORT_DIR):
+		push_error("register_modifier_tiles: cannot open %s" % BUNDLE_EXPORT_DIR)
 		return 1
 
-	var names: Array = []
-	dir.list_dir_begin()
-	var entry := dir.get_next()
-	while entry != "":
-		if entry.ends_with(".png") and not entry.ends_with("_shadow.png"):
-			# The paired _shadow.png is runtime-only, never a tile.
-			names.append(sprite_name_from_filename(entry))
-		entry = dir.get_next()
-	dir.list_dir_end()
+	var found: Dictionary = find_sprite_paths()
+	if not found["duplicates"].is_empty():
+		push_error("register_modifier_tiles: sprite name(s) %s exported into more than one folder — rename a tag; the sprite name is the tileset key" % str(found["duplicates"]))
+		return 1
+	var sprite_paths: Dictionary = found["paths"]
+	var names: Array = sprite_paths.keys()
 
 	# Existing sprite sources, keyed by resource_name (== sprite name == PNG
 	# basename; the tool sets that on every source it mints). Sources below
@@ -155,12 +198,12 @@ func _register_all() -> int:
 	names.sort()
 	for name: Variant in names:
 		var sprite_name := str(name)
-		var png_path: String = SOURCE_DIR + sprite_name + ".png"
+		var png_path: String = sprite_paths[sprite_name]
 		var tex: Texture2D = load(png_path)
 		if tex == null:
 			push_error("register_modifier_tiles: cannot load %s" % png_path)
 			return 1
-		var footprint: Vector2i = _read_footprint(SOURCE_DIR + sprite_name + ".json")
+		var footprint: Vector2i = _read_footprint(png_path.get_basename() + ".json")
 		var source_id: int = int(ids[sprite_name])
 		var is_new: bool = not existing.has(sprite_name)
 

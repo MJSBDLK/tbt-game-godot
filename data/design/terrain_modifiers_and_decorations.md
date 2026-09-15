@@ -261,18 +261,28 @@ landed.
 
 ### Folder layout
 
-New `.aseprite` source files live under `art/sprites/decorations/`. The
-folder name is historical — it covers both modifier and decoration
-sprites since the distinction is paint-time, not authoring-time.
+Two places, both registered:
 
-A single `.aseprite` may bundle many tags (= many sprites). Lawrence's
-current source `decorations_and_modifiers.aseprite` is one of these
-bundle files.
+- **The bundle**: `art/sprites/decorations/decorations_and_modifiers.aseprite`
+  (many tags = many sprites) exports to `decorations_and_modifiers/`. The
+  folder name `decorations` is historical — it covers both modifier and
+  decoration sprites since the distinction is paint-time.
+- **One-sprite files**: `art/sprites/terrain_modifiers/<file>.aseprite`
+  (e.g. `mountain_1x1.aseprite`, tag `mountain_a_1x1`) each export to their
+  own sibling folder, `terrain_modifiers/<file>/`.
 
-The old `art/sprites/terrain_modifiers/` folder (with
-`crater_small.png`, `crater_large.png`, `tree_01.png`) is legacy —
-those files predate this system and will be either replaced by Lawrence's
-new assets or kept as placeholder fallbacks. TBD which.
+The registration tool scans the bundle's export folder plus every subfolder
+of `terrain_modifiers/` (`export_dirs()` in
+[register_modifier_tiles.gd](../../tools/register_modifier_tiles.gd)).
+**Sprite names must be unique across all of them** — the tool refuses to run
+on a clash. Because the `_WxH` suffix is stripped, a file still needs a
+real tag with a distinct base name: two tags `mountain_1x1` and
+`mountain_2x2` would both export as `mountain.png`. A file with no tags
+exports nothing.
+
+The loose `crater_small.png`, `crater_large.png`, `tree_01.png` in the
+`terrain_modifiers/` root are legacy placeholders from before this system;
+they aren't in a subfolder, so they're never registered.
 
 ## Export pipeline
 
@@ -362,7 +372,7 @@ the registration tool — never by hand:
 godot-4 --headless --path . --script tools/register_modifier_tiles.gd
 ```
 
-It walks the export folder, reads each sidecar for the footprint, and
+It walks the export folders (see "Folder layout"), reads each sidecar for the footprint, and
 mints one `TileSetAtlasSource` per main PNG (the `_shadow.png` files are
 runtime-only). Per source: `resource_name` = the sprite name (the PNG
 basename — this is the key every runtime lookup uses), the atlas tile at

@@ -109,6 +109,40 @@ func test_sprite_name_strips_png() -> void:
 
 
 # =============================================================================
+# plan_sprite_paths — sprites come from the bundle export AND one folder per
+# standalone .aseprite; the sprite name must stay unique across all of them.
+# =============================================================================
+
+func test_sprite_paths_skip_shadows_sidecars_and_imports() -> void:
+	var plan: Dictionary = Registrar.plan_sprite_paths({
+		"res://bundle/": ["arch_a.png", "arch_a_shadow.png", "arch_a.json", "arch_a.png.import"],
+	})
+	assert_eq(plan["paths"], {"arch_a": "res://bundle/arch_a.png"},
+			"only the main PNG is a tile")
+
+
+func test_sprite_paths_join_across_folders() -> void:
+	var plan: Dictionary = Registrar.plan_sprite_paths({
+		"res://bundle/": ["castle_a.png"],
+		"res://terrain_modifiers/mountain_1x1/": ["mountain_a.png"],
+	})
+	assert_eq(plan["paths"]["castle_a"], "res://bundle/castle_a.png")
+	assert_eq(plan["paths"]["mountain_a"], "res://terrain_modifiers/mountain_1x1/mountain_a.png",
+			"a standalone file's export folder is kept in the path")
+	assert_eq(plan["duplicates"], [])
+
+
+func test_sprite_name_in_two_folders_is_a_duplicate() -> void:
+	# Two tags `mountain_1x1` + `mountain_2x2` both strip to `mountain` — the
+	# tool must refuse rather than register whichever folder sorts first.
+	var plan: Dictionary = Registrar.plan_sprite_paths({
+		"res://terrain_modifiers/mountain_2x2/": ["mountain.png"],
+		"res://terrain_modifiers/mountain_1x1/": ["mountain.png"],
+	})
+	assert_eq(plan["duplicates"], ["mountain"])
+
+
+# =============================================================================
 # restore_uids_in_text — headless ResourceSaver drops uid="..." attributes;
 # the tool re-inserts them so a run's diff shows only real changes.
 # =============================================================================
