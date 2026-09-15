@@ -206,8 +206,10 @@ func _on_battle_ended(is_victory: bool) -> void:
 		if not permadead:
 			# Reset transient battle state so the next spawn starts clean —
 			# otherwise stale status_modifier_* values (from buffs/debuffs active
-			# at battle end) leak into the next mission and can zero out HP.
+			# at battle end) leak into the next mission and can zero out HP, and
+			# aura bonuses (Competitive) show on the intermission sheet's bars.
 			character.reset_status_modifiers()
+			character.reset_passive_bonuses()
 
 			if is_victory:
 				# Optional freebie roll (LEVELS_PER_VICTORY) runs on top of

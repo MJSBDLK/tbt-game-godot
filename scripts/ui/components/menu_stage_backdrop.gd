@@ -23,7 +23,9 @@ var _base: ColorRect = null
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# AND offsets: _ready runs already parented, where set_anchors_preset alone
+	# leaves the rect 0×0 and the whole stage draws nothing.
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	# The absolute last fallback: opaque dark eggshell (the glass color the

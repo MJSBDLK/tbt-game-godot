@@ -39,22 +39,29 @@ func test_the_resource_is_called_a_statup() -> void:
 	assert_false(line.to_lower().contains("point"), "'points' was retired")
 
 
-func test_the_bexp_sub_line_is_just_the_number() -> void:
-	# The parent label already says "Allocate Bonus EXP" — repeating the noun
-	# in the sub-line is width spent on nothing.
-	assert_eq(IntermissionHub.bexp_sub_line(340), "340")
-	assert_false(IntermissionHub.bexp_sub_line(340).to_lower().contains("bexp"))
+func test_bexp_and_briefing_rows_carry_no_sub_line() -> void:
+	# Only rows with something to report (deployment, the launch gate) keep one.
+	var hub := _built_hub()
+	assert_eq(hub._bexp_entry.sub_text, "", "bEXP is bare, funded or not")
+	assert_eq(hub._briefing_entry.sub_text, "", "Mission Briefing is bare")
 
 
-func test_an_empty_pool_says_so_in_words() -> void:
-	# "0" would read as a value; the empty state should read as a state.
-	assert_eq(IntermissionHub.bexp_sub_line(0), "nothing banked yet")
-
-
-func test_the_briefing_line_pluralises() -> void:
-	assert_eq(IntermissionHub.briefing_sub_line(1), "1 objective")
-	assert_eq(IntermissionHub.briefing_sub_line(2), "2 objectives")
-	assert_eq(IntermissionHub.briefing_sub_line(0), "no objectives listed")
+func test_an_inert_entry_dims_its_label_and_sub_line_together() -> void:
+	# A dark row must never carry a lit gold line under it.
+	var saved := _with_campaign([], true)
+	var hub := _built_hub()
+	var entry: MainMenuEntry = hub._default_entry
+	assert_true(entry.inert)
+	assert_eq(entry._main_label.get_theme_color("font_color"), GameColors.MENU_TEXT_INERT)
+	assert_eq(entry._main_label.glow_color, GameColors.MENU_TEXT_INERT_GLOW,
+			"a faint halo, not none — legible while unlit")
+	assert_eq(entry._sub_label.get_theme_color("font_color"), GameColors.MENU_SUB_TEXT_INERT)
+	assert_eq(entry._sub_label.glow_color, GameColors.MENU_SUB_TEXT_INERT_GLOW)
+	entry.inert = false
+	assert_eq(entry._main_label.get_theme_color("font_color"), GameColors.TEXT_PRIMARY,
+			"re-arming restores the primary voice")
+	assert_eq(entry._sub_label.get_theme_color("font_color"), GameColors.TEXT_INFO)
+	CampaignManager.restore_save_state(saved)
 
 
 # =============================================================================
@@ -173,7 +180,6 @@ func test_the_bexp_entry_goes_inert_on_an_empty_pool() -> void:
 	SquadManager.bonus_xp_pool = 250
 	hub._refresh_entries()
 	assert_false(hub._bexp_entry.inert, "a funded pool re-arms it")
-	assert_eq(hub._bexp_entry.sub_text, "250", "and the sub-line follows the pool")
 	SquadManager.bonus_xp_pool = saved_pool
 
 
@@ -326,14 +332,6 @@ func test_mission_briefing_is_inert_rather_than_going_somewhere_else() -> void:
 			"and unreachable by cursor navigation")
 
 
-func test_the_briefing_sub_line_is_never_empty_on_a_live_mission() -> void:
-	# The count comes from briefing_objectives(), not the award list, so an
-	# undeclared map reports 1 rather than 0.
-	var hub := _built_hub()
-	assert_ne(hub._briefing_entry.sub_text, "",
-			"the row stays informative even while it's unpressable")
-
-
 func test_inert_entries_stay_out_of_the_focus_chain() -> void:
 	# Cursor navigation must not stop on something it can't press.
 	var hub := _built_hub()
@@ -384,6 +382,36 @@ func _with_campaign(deployment: Array[String], chosen: bool) -> Dictionary:
 		"deployment_selection": deployment, "deployment_chosen": chosen,
 	})
 	return saved
+
+
+func test_a_recruit_takes_an_open_seat() -> void:
+	# Recruits deploy themselves when there's room; players shouldn't have to
+	# find the bench to fill an open slot.
+	var saved := _with_campaign(["spaceman"], true)
+	CampaignManager._seat_recruit("new_recruit")
+	var deployment: Array[String] = CampaignManager.get_deployment()
+	assert_eq(deployment.size(), 2)
+	assert_eq(deployment[1], "new_recruit", "appended — roster order puts recruits last")
+	CampaignManager._seat_recruit("new_recruit")
+	assert_eq(CampaignManager.get_deployment().size(), 2, "seating twice is a no-op")
+	CampaignManager.restore_save_state(saved)
+
+
+func test_a_recruit_joins_a_squad_benched_to_nobody() -> void:
+	var saved := _with_campaign([], true)
+	CampaignManager._seat_recruit("new_recruit")
+	assert_eq(CampaignManager.get_deployment(), ["new_recruit"] as Array[String])
+	CampaignManager.restore_save_state(saved)
+
+
+func test_a_recruit_leaves_an_unset_deployment_unset() -> void:
+	# Unset = the hub seeds the first `cap` on arrival, which already
+	# includes the recruit if there's room. Writing here would pin a choice
+	# the player never made.
+	var saved := _with_campaign([], false)
+	CampaignManager._seat_recruit("new_recruit")
+	assert_false(CampaignManager.has_deployment())
+	CampaignManager.restore_save_state(saved)
 
 
 func test_dynamic_sub_lines_actually_render() -> void:

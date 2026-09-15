@@ -102,7 +102,7 @@ func recompute_all() -> void:
 func recompute_faction(units: Array[Unit]) -> void:
 	for unit: Unit in units:
 		if _is_live(unit):
-			_zero_passive_bonuses(unit.character_data)
+			unit.character_data.reset_passive_bonuses()
 	for unit: Unit in units:
 		if _is_live(unit):
 			for handler: CombatEffect in PassiveRegistry.get_handlers_for(unit.character_data, unit):
@@ -118,19 +118,6 @@ func recompute_faction(units: Array[Unit]) -> void:
 
 func _is_live(unit: Unit) -> bool:
 	return unit != null and not unit.is_defeated() and unit.character_data != null
-
-
-func _zero_passive_bonuses(data: CharacterData) -> void:
-	data.passive_bonus_hp = 0
-	data.passive_bonus_strength = 0
-	data.passive_bonus_special = 0
-	data.passive_bonus_skill = 0
-	data.passive_bonus_agility = 0
-	data.passive_bonus_athleticism = 0
-	data.passive_bonus_defense = 0
-	data.passive_bonus_resistance = 0
-	data.passive_bonus_avoid = 0
-	data.maximum_from_aura = false
 
 
 # Stat-aura passives (Competitive, Glib, and future Stellar / Zone Control) live as

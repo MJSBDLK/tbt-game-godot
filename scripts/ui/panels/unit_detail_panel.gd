@@ -906,10 +906,9 @@ func _update_stats() -> void:
 				if modifier_container:
 					modifier_container.visible = false
 
-		# Color ladder (DANGER rung added RQD 2026-08-11): wounded-below-
-		# default outranks even the cap story — a capped-but-injured stat
-		# reading SUCCESS would be a lie. Same precedence as the sheet's
-		# UnitSheet.stat_number_voice.
+		# Color ladder: wounded-below-default outranks even the cap story — a capped-but-injured stat
+		# reading "maxed" would be a lie. Same precedence as the sheet's
+		# UnitSheet.stat_number_voice. Cap is cyan, boosted is green.
 		var name_label: Label = row["name_label"]
 		if bonus_value < 0:
 			if value_label:
@@ -918,9 +917,9 @@ func _update_stats() -> void:
 				_reset_label_color(name_label)
 		elif at_cap:
 			if value_label:
-				_set_label_color(value_label, GameColors.TEXT_SUCCESS, GameColors.TEXT_SUCCESS_GLOW)
+				_set_label_color(value_label, GameColors.TEXT_AT_CAP, GameColors.TEXT_AT_CAP_GLOW)
 			if name_label:
-				_set_label_color(name_label, GameColors.TEXT_SUCCESS, GameColors.TEXT_SUCCESS_GLOW)
+				_set_label_color(name_label, GameColors.TEXT_AT_CAP, GameColors.TEXT_AT_CAP_GLOW)
 		elif bonus_value > 0:
 			if value_label:
 				_set_label_color(value_label, GameColors.TEXT_SUCCESS, GameColors.TEXT_SUCCESS_GLOW)

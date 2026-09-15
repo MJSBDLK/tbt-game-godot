@@ -1,7 +1,65 @@
 # Resp
-Were those units cropped to non-square because the engine was dropping rows with whitespace? I think I liked the portraits from before - they were more centered around the units' eyes.
+Ah, so I didn't express this to you perhaps: our dynamic shadow system is almost comically poorly-suited to these mountain tiles. That's what I just tried.
+I'm not sure if that's what you meant, but our existing shadow system won't work for these mountains.
+The end problem I'm trying to solve is less work for Lawrence. He can indeed hand-draw shadows, and they'll look great - but we have exactly one artist, and this game needs a ton of art.
+In this case, it's autotiled mountain tiles on the right edge which have shadows that fail to protrude into the cell to the right.
+If Lawrence weren't staunchly against this, I'd say "just have an AI do them" but he's dead set on zero AI-generated art.
+
+# Lawrence playtest feedback
+- [~] "this right here is a little cluttered" - in reference to the intermission main screen - talking about the subtitles
+  (Group A, branch `rqd--playtest-0913`, eyeball-gated. Plan for the whole
+  list: A = small fixes now · stat readability (#8 + the stat-tooltip item)
+  own branch · C = pacing/end-turn warning/veteran preset · D = tutorial arc.)
+	- [x] get rid of subtitle on bEXP
+	- [x] get rid of subtitle on mission briefing
+	- [~] the "grayed out" font color/glow doesn't look great - need a better pair of colors for "grayed out" that still looks non-interactive, but is more legible and appealing
+	  (Cause: the label went Gray 6 with NO glow while its sub-line kept the
+	  glowing gold. Now `MENU_TEXT_INERT` Gray 7/3 + sub-line YO 5/2, dimming
+	  together; dimmed azure auditioned and read as pressable. EYEBALL.
+	  FOUND ON THE WAY: `MenuStageBackdrop` sat at 0×0 (set_anchors_preset
+	  in an already-parented _ready), so the hub, main menu and Manage Units
+	  never drew the stage — players saw Godot's default gray. Fixed; the
+	  save-screenshot "Black Mesa" backdrop now actually shows.)
+- [ ] When it's time to implement tutorials, the sexy robot will appear over the screen, explaining the intermission functions, with CTA effect over whatever's being explained, and the tutorialized element being the only interactible element on-screen.
+	- [ ] I think I want a brief cutscene in the beginning, then to plonk the player into a very simple first battle, tutorialize the basic mechanics, and then tutorialize the intermission screen. We may not even introduce the iontermission screen until 3-4 missions in, once the mechanics are suf
+	ficiently tutorialized - it's just a lot to take in for a new player.
+- [~] new player experience - user gets plonked onto the map, and their first instruction says "select a unit." new player might select an enemy unit and be confused about why they can't command those units
+  (Interim, pre-tutorial: step reads "Select one of your units"; pressing an
+  enemy / ally / spent unit swaps the line to "Enemy unit · select one of
+  yours" etc. in the NOTICE border until the next state/phase boundary —
+  `HintBarCommands.InspectNotice`. Contradicts §2's "nobody failed at select
+  a unit" note.)
+- [~] The grayout applied to a character sprite to indicate they can't move again this turn is slightly too dark.
+  (Two darkening lifts still read dark in RQD's build. RQD's call: FULL
+  GRAYSCALE, NO DARKENING — `shaders/unit_acted.gdshader` on the sprite while
+  acted (`Unit.ACTED_DESATURATION` 1.0), faction-blind; the three
+  `*_UNIT_ACTED` tints are deleted. The hit flash drops the material for its
+  length so a Bellows warm flash stays warm.)
+  - [ ] Known gap, accepted: an already-gray unit (Gentry, Robo palettes)
+    barely changes when it acts. Fix when it bites.
+- [ ] For a new player, the battle scene goes by really quickly. I think it's appropriate for a veteran, but this should be a toggle in the settings. For a new player, the battle scene goes by too fast to understand what's happening.
+	- [ ] what we can do: apply a ~0.8-second wait before, between, and after attack animations. The user can skip the wait by pressing any button.
+- [ ] When hitting end turn, if there are player units which still have not acted, display a warning. The user can toggle this warning off in the gameplay options if they wish. 
+- [ ] Maybe add an "advanced player defaults" option which speeds the game up, removes confirmations, etc
+- [~] The phantom previews are hard to see agianst certain backgrounds - let's apply a near-white outline.
+  (1px `GHOST_OUTLINE` Azure 10 rim in ghost_projection.gdshader, steady,
+  blinks with modulate — move-plan AND displacement ghosts. EYEBALL.)
+- [~] The green from being at the class max on a stat is the same green as "this stat has been boosted by some effect" no semantic difference between the colors is confusing.
+  (At-cap is now `TEXT_AT_CAP` Cyan 7/4 — the full-HP hue — in all six
+  venues; buffs keep Green 6. Style guide §3 updated. EYEBALL.)
+- [ ] StatUps - new player was confused at the percentage-based stat-ups. 4+ computes to 4, and 15+ computes to 17. If you don't understand these are a 10% buff, this appears broken. The system is working correctly - it's the presentation that needs improvement.
+  (Next branch: "stat readability" — `15 → 17` preview on the [+] hover,
+  the per-source stat tooltip from §Todo, then a tutorial beat. OPEN: min +1
+  per StatUp? Move buffs already floor at ±1, StatUps round plainly.)
+- [x] New player didn't add a unit from the bench, despite a slot being open in the squad. He thought recruits were added automatically, which actually should  be how it works if there's room.
+  (`CampaignManager._seat_recruit`: a recruit joins the chosen deployment;
+  the hub's cap trim benches it when the squad is full. Also joins a squad
+  benched to zero.)
+- [ ] 
 
 # Quick Fixes
+- [ ] "show range" box in the unit preview panel is funtionally non-interactible when using M&K, so it should not display if touchscreen input is not active.
+- [ ] There is too much vertical gap between the unit preview panel and the terrain preview panel when both are onscreen at once - the terrain preview panel is pushed 1-2 pixels off the bottom of the screen.
 - [~] Goblin Healer - not a mage, an... apothecary? I think that's the name of the store. What do you call them, an herbalist or something? What word am I looking for?
   (ANSWERED 2026-09-10: **apothecary** — it names both the shop and the
   person who keeps it; "herbalist" is the plants-only narrower word,
@@ -188,6 +246,7 @@ Were those units cropped to non-square because the engine was dropping rows with
 	- should also show base (10) alone if it's unmodified and the user brings up the tooltip
 	- should still show e.g. `Base (10)\n+2 (Some buff)\n-2 (Some debuff)` if there are modifications which bring it back to its base.
 - [ ] Victory screen popping up needs more dopamine - discuss
+- [ ] The finalized icons for the terrain preview panel are actually finished - we should use those over the placeholders we're currently using.
 - [ ] 
 
 **Answered + BUILT 2026-09-07 on `rqd--terrain-stack`** (3 commits, suite
@@ -875,7 +934,15 @@ foundation shipped. What's left is **deliberate deferral, not loose ends**:
 ## 6. Bugs
 - [ ] Max S. leveled up on the move that won the level, and the victory screen showed before the level up screen (should wait on continue). Then the level up screen displays over the intermission screen. This seems like a class of bug which should be precluded by the transition to the intermission screen, but that would've made it hard to detect the early victory screen pop-up, so I'm glad we caught it.
 - [ ] In the intermission/manage units screen, the VHS-distortion effect on portraits has disappeared. This is a regression, and should have a unit test.
-- [ ] 
+- [ ] When we switched to the phantom move preview, when targeting with a move with a displacement effect, the red arrow correctly displays the displacement, but the phantom being displaced is animating relative to the character sprite, not the phantom preview.
+- [x] In the first intermission screen after the first mission, I click on Max, and the bar for his stength and skill appear modified. However, the numerals have no modifiers, and nothing (at least in the intermission) should be modifying these stats.
+	- what I think happened is, he ended the battle with the Focused boost, and had a bonus from the competitive ability - I believe these carried over into the intermission screen when they shouldn't have.
+	(FIXED on `rqd--playtest-0913`: Competitive, not Focused — status
+	modifiers were already cleared at battle end, `passive_bonus_*` never was
+	(and isn't saved, so a reload hid it). `CharacterData.reset_passive_bonuses`
+	now runs beside `reset_status_modifiers`; test_squad_manager pins it.)
+- [ ] The mountain tiles - is it possible to make these as terrain modifier tiles, while also keeping their dynamic shadows?
+- [ ] We can't paint tilesets on the modifier/decoration layers. We were hoping to include some auto-tileable modifier/decos which could take advantage of the dynamic shadows system. How would we go about designing that?
 
 - [x] **Displacement arrows rendered under terrain modifiers and units**
   (Lawrence 2026-08-05) — **FIXED same day.** Root cause worth remembering: board

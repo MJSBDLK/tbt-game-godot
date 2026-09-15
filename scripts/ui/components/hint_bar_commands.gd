@@ -56,6 +56,11 @@ const MAX_ITEMS_PER_STATE: int = 5
 ## Step text when the enemy owns the turn (no InputState for it).
 const ENEMY_PHASE_STEP: String = "Enemy phase"
 
+## Why the last DEFAULT press selected nothing. The press still opens the
+## unit's info panel; the step line says why it isn't a command, so a new
+## player who clicks an enemy first learns which units are theirs.
+enum InspectNotice { NONE, ENEMY, NOT_YOURS, ALREADY_ACTED }
+
 ## Test hook: force a skin instead of reading the connected joypad's name.
 ## -1 = read the real pad.
 static var joy_skin_override: int = -1
@@ -89,7 +94,7 @@ static func _ensure_table() -> void:
 		return
 	_table = {
 		Enums.InputState.DEFAULT: {
-			step = "Select a unit", step_touch = "Tap a unit",
+			step = "Select one of your units", step_touch = "Tap one of your units",
 			items = [
 				{action = &"ui_accept", verb = "Select", mouse_button = MOUSE_BUTTON_LEFT},
 				{action = &"unit_info", verb = "Unit info"},
@@ -197,14 +202,18 @@ static func _phase_blind(state: Enums.InputState) -> bool:
 	return _table.has(state) and bool(_table[state].get("phase_blind", false))
 
 
-## The instruction line ("Select a unit"). Empty when the bar has no step for
-## this state; ENEMY_PHASE_STEP while the enemy owns the turn.
-static func step_text_for(state: Enums.InputState, model: Model, enemy_phase: bool = false) -> String:
+## The instruction line ("Select one of your units"). Empty when the bar has
+## no step for this state; ENEMY_PHASE_STEP while the enemy owns the turn; the
+## inspect notice's line in DEFAULT when one is up.
+static func step_text_for(state: Enums.InputState, model: Model, enemy_phase: bool = false,
+		notice: InspectNotice = InspectNotice.NONE) -> String:
 	_ensure_table()
 	if enemy_phase and not _phase_blind(state):
 		return ENEMY_PHASE_STEP
 	if not _table.has(state):
 		return ""
+	if _notice_applies(state, notice):
+		return inspect_notice_text(notice, model)
 	var entry: Dictionary = _table[state]
 	if model == Model.TOUCH:
 		return entry.step_touch
@@ -212,12 +221,43 @@ static func step_text_for(state: Enums.InputState, model: Model, enemy_phase: bo
 
 
 ## True when the step line wears the NOTICE border (see step_notice). Never
-## during the enemy phase — there is nothing to point at.
-static func step_is_notice(state: Enums.InputState, enemy_phase: bool = false) -> bool:
+## during the enemy phase — there is nothing to point at. An inspect notice
+## wears it too: the line changed under a press that did nothing else.
+static func step_is_notice(state: Enums.InputState, enemy_phase: bool = false,
+		notice: InspectNotice = InspectNotice.NONE) -> bool:
 	_ensure_table()
 	if enemy_phase or not _table.has(state):
 		return false
+	if _notice_applies(state, notice):
+		return true
 	return bool(_table[state].get("step_notice", false))
+
+
+static func _notice_applies(state: Enums.InputState, notice: InspectNotice) -> bool:
+	return state == Enums.InputState.DEFAULT and notice != InspectNotice.NONE
+
+
+## Which notice a DEFAULT press on this unit earns. NONE = it's a commandable
+## player unit (the press selects it).
+static func inspect_notice_for(faction: Enums.UnitFaction, can_act: bool) -> InspectNotice:
+	match faction:
+		Enums.UnitFaction.PLAYER:
+			return InspectNotice.NONE if can_act else InspectNotice.ALREADY_ACTED
+		Enums.UnitFaction.ENEMY:
+			return InspectNotice.ENEMY
+	return InspectNotice.NOT_YOURS
+
+
+static func inspect_notice_text(notice: InspectNotice, model: Model) -> String:
+	var touch: bool = model == Model.TOUCH
+	match notice:
+		InspectNotice.ENEMY:
+			return "Enemy unit · tap one of yours" if touch else "Enemy unit · select one of yours"
+		InspectNotice.NOT_YOURS:
+			return "Not your unit · tap one of yours" if touch else "Not your unit · select one of yours"
+		InspectNotice.ALREADY_ACTED:
+			return "Already acted · tap another unit" if touch else "Already acted · select another unit"
+	return ""
 
 
 ## The label of the pressable alternative to the step line (see

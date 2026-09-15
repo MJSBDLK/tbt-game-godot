@@ -93,6 +93,8 @@ func test_unit_ghost_clones_the_live_frame_and_wears_the_projection_shader() -> 
 	assert_eq(ghost.material, material, "the owner's shared material")
 	assert_eq(material.shader, UnitGhost.GHOST_SHADER)
 	assert_almost_eq(float(material.get_shader_parameter("animate")), 1.0, 0.001, "motion on → animated")
+	assert_eq(material.get_shader_parameter("outline_color"), GameColors.GHOST_OUTLINE,
+			"the rim color comes from GameColors, not the shader default")
 
 
 func test_unit_ghost_needs_a_textured_sprite() -> void:

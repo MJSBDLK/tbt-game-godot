@@ -195,6 +195,16 @@ func test_a_chosen_empty_selection_stays_empty() -> void:
 			"unset + empty still seeds — nobody asked for zero there")
 
 
+func test_a_recruit_on_a_full_squad_waits_on_the_bench() -> void:
+	# CampaignManager seats every recruit into a chosen deployment; this trim
+	# is what keeps a full lineup intact. Recruits register last in the roster.
+	var selection: Array[String] = ["maam", "ernesto", "elf"]
+	assert_eq(RosterRail.resolved_deployment(_squad(), selection, 2, true),
+			["maam", "ernesto"] as Array[String], "no room: the recruit stays benched")
+	assert_eq(RosterRail.resolved_deployment(_squad(), selection, 3, true),
+			["maam", "ernesto", "elf"] as Array[String], "an open seat: the recruit deploys")
+
+
 func test_a_chosen_selection_pruned_to_nothing_reseeds() -> void:
 	# The player picked people; permadeath took them all. They never asked
 	# for zero, so the fallback seeds rather than hands them an empty hub.

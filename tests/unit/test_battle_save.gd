@@ -125,14 +125,15 @@ func test_restored_acted_latch_repaints_the_gray_out() -> void:
 	# units came back from a load in fresh full color and read as ready.
 	var acted: Unit = _spawn_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 2, 2)
 	SaveManager.apply_unit_state(acted, {"can_act": false})
-	assert_eq(acted._sprite.modulate, GameColors.PLAYER_UNIT_ACTED,
+	assert_eq(acted._sprite.material, Unit.acted_material(),
 		"an expended unit comes back GRAYED, matching set_acted's paint")
 
 	var fresh: Unit = _spawn_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 3, 3)
-	fresh._sprite.modulate = GameColors.PLAYER_UNIT_ACTED  # stale gray
+	fresh._sprite.material = Unit.acted_material()  # stale gray
 	SaveManager.apply_unit_state(fresh, {"can_act": true})
-	assert_eq(fresh._sprite.modulate, Color.WHITE,
+	assert_null(fresh._sprite.material,
 		"a ready unit restores to full color even from a stale-gray sprite")
+	assert_eq(fresh._sprite.modulate, Color.WHITE)
 
 
 func test_restored_hp_clamps_to_max() -> void:

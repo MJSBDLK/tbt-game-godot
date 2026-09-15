@@ -18,7 +18,8 @@
 ##
 ## Optional `sub_text` renders in the semantic INFO voice (banana gold) —
 ## Continue wears "Mission N, Turn N" there. `inert` styles the entry as
-## unlit glass: dim, unfocusable, tickless (the locked start-level row).
+## unlit glass: dim, unfocusable, tickless (the locked start-level row) —
+## label and sub-line dim together, so a dark row never carries a lit line.
 class_name MainMenuEntry
 extends MarginContainer
 
@@ -34,12 +35,11 @@ const TICK_ARM_PIXELS: float = 4.0
 
 var text: String = ""
 ## SETTABLE AT ANY TIME, like `inert`. The sub label is built lazily on the
-## first non-empty value — the hub's live sub-lines ("4/5 deployed", the bEXP
-## number, "deploy at least one unit") all arrive AFTER _ready(), through
-## refresh passes, and every entry that starts with an empty sub-line used
-## to stay bare forever (found 2026-08-16: none of the hub's dynamic
-## sub-lines had ever rendered). Empty hides the label rather than freeing
-## it, so a line can come and go without re-layout churn.
+## first non-empty value — the hub's live sub-lines ("4/5 deployed",
+## "deploy at least one unit") all arrive AFTER _ready(), through
+## refresh passes, so building only at _ready would leave them bare forever.
+## Empty hides the label rather than freeing it, so a line can come and go
+## without re-layout churn.
 var sub_text: String = "":
 	set(value):
 		sub_text = value
@@ -120,6 +120,7 @@ func _sync_sub_label() -> void:
 		_sub_label = _make_glow_label(sub_text, UIManager.font_8px, 8,
 				GameColors.TEXT_INFO, GameColors.TEXT_INFO_GLOW)
 		_label_column.add_child(_sub_label)
+		_apply_inert_style()
 	_sub_label.text = sub_text
 	_sub_label.visible = true
 
@@ -130,11 +131,16 @@ func _apply_inert_style() -> void:
 	if _main_label == null:
 		return
 	if inert:
-		_main_label.add_theme_color_override("font_color", GameColors.INTERACTIVE_TEXT_DISABLED)
-		_main_label.glow_color = Color.TRANSPARENT
+		_main_label.add_theme_color_override("font_color", GameColors.MENU_TEXT_INERT)
+		_main_label.glow_color = GameColors.MENU_TEXT_INERT_GLOW
 	else:
 		_main_label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
 		_main_label.glow_color = GameColors.TEXT_PRIMARY_GLOW
+	if _sub_label == null:
+		return
+	_sub_label.add_theme_color_override("font_color",
+			GameColors.MENU_SUB_TEXT_INERT if inert else GameColors.TEXT_INFO)
+	_sub_label.glow_color = GameColors.MENU_SUB_TEXT_INERT_GLOW if inert else GameColors.TEXT_INFO_GLOW
 
 
 ## The one-aim-one-model verdict: does the mark belong on THIS entry now?

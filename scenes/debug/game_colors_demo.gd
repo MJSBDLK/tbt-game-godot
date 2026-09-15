@@ -272,25 +272,21 @@ func _build_faction_colors(parent: Control) -> void:
 		{
 			"name": "PLAYER",
 			"unit": GameColors.PLAYER_UNIT,
-			"acted": GameColors.PLAYER_UNIT_ACTED,
 			"healthbar": GameColors.FACTION_HEALTHBAR_PLAYER,
 		},
 		{
 			"name": "ENEMY",
 			"unit": GameColors.ENEMY_UNIT,
-			"acted": GameColors.ENEMY_UNIT_ACTED,
 			"healthbar": GameColors.FACTION_HEALTHBAR_ENEMY,
 		},
 		{
 			"name": "ALLY",
 			"unit": GameColors.ALLY_UNIT,
-			"acted": GameColors.ALLY_UNIT_ACTED,
 			"healthbar": GameColors.FACTION_HEALTHBAR_ALLY,
 		},
 		{
 			"name": "NEUTRAL",
 			"unit": GameColors.NEUTRAL_UNIT,
-			"acted": Color.TRANSPARENT,
 			"healthbar": GameColors.FACTION_HEALTHBAR_NEUTRAL,
 		},
 	]
@@ -299,14 +295,8 @@ func _build_faction_colors(parent: Control) -> void:
 		var hbox := _make_hbox(6)
 		vbox.add_child(hbox)
 
-		# Unit color swatch
+		# Unit color swatch (the acted look is a shader now — Unit.ACTED_SHADER)
 		hbox.add_child(_make_swatch(faction["unit"]))
-
-		# Acted color swatch
-		if faction["acted"] != Color.TRANSPARENT:
-			hbox.add_child(_make_swatch(faction["acted"]))
-		else:
-			hbox.add_child(_make_swatch(Color(0.35, 0.35, 0.35), SWATCH_SIZE))
 
 		# Health bar background swatch
 		hbox.add_child(_make_swatch(faction["healthbar"], Vector2(30, 12)))

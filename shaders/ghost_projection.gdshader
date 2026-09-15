@@ -12,9 +12,19 @@
 //
 // Blink rides the node's modulate alpha (COLOR.a here = texture.a × modulate.a),
 // so one shared material serves every ghost.
+//
+// OUTLINE: a steady 1px rim on the transparent pixels bordering the
+// silhouette, so the ghost separates from busy ground. It skips the
+// scanline/static passes on purpose — it is the legibility layer. Rim pixels
+// have texture alpha 0, so their blink comes from the vertex-stage modulate
+// alpha instead. Art touching its frame edge loses the rim on that side.
 shader_type canvas_item;
 
 uniform vec4 tint_color : source_color = vec4(0.42, 0.76, 0.87, 0.6);
+
+// UnitGhost.make_material sets this from GameColors.GHOST_OUTLINE.
+uniform vec4 outline_color : source_color = vec4(0.93, 0.98, 1.0, 1.0);
+uniform float outline_alpha : hint_range(0.0, 1.0) = 0.8;
 
 uniform float static_strength : hint_range(0.0, 1.0) = 0.6;
 uniform float static_rate : hint_range(1.0, 60.0) = 8.0;
@@ -38,6 +48,7 @@ uniform float animate : hint_range(0.0, 1.0) = 1.0;
 const float REFERENCE_WIDTH = 640.0;
 
 varying vec2 world_px;
+varying float modulate_alpha;
 
 
 void vertex() {
@@ -45,6 +56,8 @@ void vertex() {
 	// pixels come from the model matrix — unlike the decal renderers, whose
 	// identity parents let VERTEX stand in for world coords.
 	world_px = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
+	// Vertex COLOR already carries modulate × self_modulate.
+	modulate_alpha = COLOR.a;
 }
 
 
@@ -56,6 +69,20 @@ float hash_seeded(vec2 p, float seed) {
 
 
 void fragment() {
+	// Sampled inline: canvas_item fragment() can't early-return, and TEXTURE
+	// can't be handed to a helper function. The silhouette passes below run
+	// for rim pixels too (at alpha 0) and the rim wins at the end.
+	float rim = 0.0;
+	if (outline_alpha > 0.0 && texture(TEXTURE, UV).a < 0.5) {
+		vec2 texel = TEXTURE_PIXEL_SIZE;
+		float neighbor = max(
+				max(texture(TEXTURE, UV + vec2(0.0, -texel.y)).a,
+					texture(TEXTURE, UV + vec2(0.0, texel.y)).a),
+				max(texture(TEXTURE, UV + vec2(-texel.x, 0.0)).a,
+					texture(TEXTURE, UV + vec2(texel.x, 0.0)).a));
+		rim = step(0.5, neighbor);
+	}
+
 	// Silhouette flatten: COLOR.a at entry = texture alpha × modulate alpha
 	// (blink), COLOR.rgb is discarded — the ghost is pure tint.
 	vec4 tint = vec4(tint_color.rgb, COLOR.a * tint_color.a);
@@ -96,5 +123,5 @@ void fragment() {
 		tint.a *= 1.0 + band_influence * tracking_strength * 0.5;
 	}
 
-	COLOR = tint;
+	COLOR = rim > 0.0 ? vec4(outline_color.rgb, outline_alpha * modulate_alpha) : tint;
 }

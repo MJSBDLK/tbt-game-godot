@@ -33,8 +33,12 @@ const MOVE_SPEED: float = 600.0  # Pixels per second
 const HIT_DELAY: float = 0.3  # Seconds between combat hits (a presenter hold; skip → 0)
 # A Bellows-boosted fire hit never lands soft: impact weight floors here so the
 # flash/shake/hitlag sell the boost (crits floor at 0.8 — this is the lesser
-# beat). RQD 2026-08-21, todo #2A.
+# beat).
 const BELLOWS_IMPACT_FLOOR: float = 0.6
+## The acted look: full grayscale, no darkening (see the shader). Faction-blind
+## on purpose — the health bar already carries faction.
+const ACTED_SHADER: Shader = preload("res://shaders/unit_acted.gdshader")
+const ACTED_DESATURATION: float = 1.0
 
 
 # =============================================================================
@@ -655,9 +659,9 @@ func _stop_selection_pulse() -> void:
 		_selection_tween.kill()
 		_selection_tween = null
 	if can_act:
-		_apply_active_modulate()
+		_apply_active_look()
 	else:
-		_apply_acted_modulate()
+		_apply_acted_look()
 
 
 # =============================================================================
@@ -669,7 +673,7 @@ func refresh_unit() -> void:
 	can_move = true
 	attacks_this_turn = 0
 	_start_tile_before_move = current_tile
-	_apply_active_modulate()
+	_apply_active_look()
 
 
 func set_acted() -> void:
@@ -684,7 +688,7 @@ func set_acted() -> void:
 	if _pending_track_tiles.size() > 1:
 		path_traversed.emit(self, _pending_track_tiles)
 	_pending_track_tiles = []
-	_apply_acted_modulate()
+	_apply_acted_look()
 
 
 # =============================================================================
@@ -2123,26 +2127,33 @@ func _apply_debug_hypoesthesia() -> void:
 	InjurySystem.recalculate_injury_modifiers(character_data)
 
 
-## Reset sprite modulate to full color (active unit).
-func _apply_active_modulate() -> void:
+## Full color: the unit can still act.
+func _apply_active_look() -> void:
 	if _sprite == null:
 		return
 	_sprite.modulate = Color.WHITE
+	_sprite.material = null
 
 
-## Darken and desaturate sprite to show the unit has acted.
-func _apply_acted_modulate() -> void:
+## The unit has acted this turn (see ACTED_SHADER). Modulate stays free for
+## the hit flash and death fade, which ride on top of the material.
+func _apply_acted_look() -> void:
 	if _sprite == null:
 		return
-	match faction:
-		Enums.UnitFaction.PLAYER:
-			_sprite.modulate = GameColors.PLAYER_UNIT_ACTED
-		Enums.UnitFaction.ENEMY:
-			_sprite.modulate = GameColors.ENEMY_UNIT_ACTED
-		Enums.UnitFaction.ALLY:
-			_sprite.modulate = GameColors.ALLY_UNIT_ACTED
-		_:
-			_sprite.modulate = Color(0.5, 0.5, 0.5, 1.0)
+	_sprite.modulate = Color.WHITE
+	_sprite.material = acted_material()
+
+
+static var _acted_material: ShaderMaterial = null
+
+
+## One material shared by every acted unit.
+static func acted_material() -> ShaderMaterial:
+	if _acted_material == null:
+		_acted_material = ShaderMaterial.new()
+		_acted_material.shader = ACTED_SHADER
+		_acted_material.set_shader_parameter("desaturation", ACTED_DESATURATION)
+	return _acted_material
 
 
 func _update_z_index() -> void:

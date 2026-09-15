@@ -10,7 +10,7 @@
 ## far each is allowed to go. Nothing is drawn past the class cap, so the
 ## track ENDING is what reads as "this is as far as this class gets".
 ##
-## At the cap the bar goes success-green and [is_at_cap] returns true, which
+## At the cap the bar goes cap-cyan and [is_at_cap] returns true, which
 ## callers use to recolour the number beside it. A colour on the number alone
 ## is easy to miss in a block of eight rows; the bar is what the eye scans.
 ##
@@ -56,8 +56,9 @@ const GLOW_MATERIAL_PATH: String = "res://resources/hud_glow.tres"
 ##   track    Azure 3 body / Azure 1 halo — the old StatBarBackground pair.
 ##            Dim enough to read as "not yet", lit enough to clear the panel.
 ##   fill     the PRIMARY voice — this is the unit's actual stat, i.e. content.
-##   at cap   the SUCCESS voice, bar and number together (a color on the
-##            number alone is easy to miss in a block of eight rows).
+##   at cap   the AT_CAP voice, bar and number together (a color on the
+##            number alone is easy to miss in a block of eight rows). Not
+##            SUCCESS green — that one means "boosted by an effect".
 ##   bonus    the SECONDARY voice — the same pale-gold/violet pair the old
 ##            panel's "+N" modifier text wore. Applied StatUps are modifiers,
 ##            so segment and tally share one voice.
@@ -71,9 +72,9 @@ static var COLOR_FILL: Color:
 static var COLOR_FILL_GLOW: Color:
 	get: return GameColors.TEXT_PRIMARY_GLOW
 static var COLOR_AT_CAP: Color:
-	get: return GameColors.TEXT_SUCCESS
+	get: return GameColors.TEXT_AT_CAP
 static var COLOR_AT_CAP_GLOW: Color:
-	get: return GameColors.TEXT_SUCCESS_GLOW
+	get: return GameColors.TEXT_AT_CAP_GLOW
 ## Positive bonus rides past the fill; negative is carved back out of it.
 static var COLOR_BONUS: Color:
 	get: return GameColors.TEXT_SECONDARY

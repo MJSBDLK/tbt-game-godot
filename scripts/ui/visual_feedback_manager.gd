@@ -72,6 +72,8 @@ func apply_hit_flash(target: Node2D, impact_weight: float, tint: Color = Color.T
 	# final color)
 	var flash_color := GameColorPalette.get_color("Gray", 10) if tint.a <= 0.0 else tint
 	sprite.modulate = flash_color * 3.0  # Overbright for intensity
+	# The acted desaturate would gray a tinted flash; the callback restores it.
+	sprite.material = null
 	var tween := create_tween()
 	tween.tween_property(sprite, "modulate", flash_color, duration).set_ease(Tween.EASE_OUT)
 	tween.finished.connect(func() -> void:
@@ -80,10 +82,10 @@ func apply_hit_flash(target: Node2D, impact_weight: float, tint: Color = Color.T
 		# arrives as null; bail instead of calling into it.
 		if target == null or not is_instance_valid(target):
 			return
-		if target.has_method("_apply_acted_modulate") and not target.can_act:
-			target._apply_acted_modulate()
-		elif target.has_method("_apply_active_modulate"):
-			target._apply_active_modulate()
+		if target.has_method("_apply_acted_look") and not target.can_act:
+			target._apply_acted_look()
+		elif target.has_method("_apply_active_look"):
+			target._apply_active_look()
 	)
 
 

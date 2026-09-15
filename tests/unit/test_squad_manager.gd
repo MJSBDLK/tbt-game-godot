@@ -119,6 +119,22 @@ func _roster_character_with_pending_injury(battles_remaining: int) -> CharacterD
 	return data
 
 
+func test_battle_end_clears_aura_bonuses() -> void:
+	# Auras are positional: off the board nothing holds them, or the
+	# intermission sheet draws one as a standing modifier.
+	var data := _roster_character_with_pending_injury(1)
+	data.pending_injuries.clear()
+	data.passive_bonus_strength = 3
+	data.passive_bonus_skill = 2
+	data.passive_bonus_avoid = 20
+	data.maximum_from_aura = true
+	SquadManager._on_battle_ended(false)
+	assert_eq(data.get_bonus_total("strength"), 0, "no aura off the board")
+	assert_eq(data.get_bonus_total("skill"), 0)
+	assert_eq(data.passive_bonus_avoid, 0)
+	assert_false(data.maximum_from_aura, "Stellar's grant is positional too")
+
+
 func test_fresh_injury_is_not_ticked_in_the_battle_it_was_earned() -> void:
 	var data := _roster_character_with_pending_injury(1)
 

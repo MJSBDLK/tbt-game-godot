@@ -96,8 +96,19 @@ All text in HUD panels uses `GlowLabel` (custom Label with `glow_color`).
 | Primary text         | Azure 9 (`#dbf3ff`)          | Azure 5 (`#4c8cbb`)           |
 | Secondary text       | YellowOrange 8               | Magenta 4                     |
 | Success / buffs      | Green 6                      | Green 3                       |
+| At class cap         | Cyan 7 (`TEXT_AT_CAP`)       | Cyan 4                        |
 | Danger / debuffs     | Red 5                        | Red 2                         |
+| Inert menu entry     | Gray 7 (`MENU_TEXT_INERT`)   | Gray 3                        |
+| Inert menu sub-line  | YellowOrange 5               | YellowOrange 2                |
 | Status text          | YellowOrange 7 (`#f5cd65`)   | Red 4 (`#8e2518`)             |
+
+- **Cap is not success.** "At the class cap" and "boosted by an effect" were
+  both Green 6 and a playtester read them as one thing. Cap shares Cyan 7 with
+  the full end of the health ramp — both mean "full".
+- **Inert bare-text entries dim, they don't go dark.** A glass button carries
+  "disabled" in its border; bare menu text has none, so the label goes neutral
+  gray with a faint halo, and its sub-line steps down with it. Dimmed azure was
+  auditioned and read as pressable beside the lit entries.
 
 Status-specific accents (current set; see §4 for the full per-effect rule):
 - Burn = Orange 6 `#c98d47`

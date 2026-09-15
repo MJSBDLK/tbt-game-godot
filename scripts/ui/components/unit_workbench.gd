@@ -634,14 +634,14 @@ func _build_stat_lane() -> void:
 			str(STAT_BLURBS.get(stat_name, "")))
 
 	if level_value >= cap:
-		# The at-cap consequence wears SUCCESS — same voice as the bar's fill
+		# The at-cap consequence wears AT_CAP — same voice as the bar's fill
 		# and the number on the sheet row, so "maxed" is one color everywhere.
 		var capped_copy := _body_copy(
 				("At the class ceiling. Level-ups can't raise it, so bEXP growths " +
 				"concentrate into this unit's remaining %d open stats. StatUps " +
 				"still work — they're allowed past the cap.") % open_stat_count(_character))
-		capped_copy.add_theme_color_override("font_color", GameColors.TEXT_SUCCESS)
-		capped_copy.glow_color = GameColors.TEXT_SUCCESS_GLOW
+		capped_copy.add_theme_color_override("font_color", GameColors.TEXT_AT_CAP)
+		capped_copy.glow_color = GameColors.TEXT_AT_CAP_GLOW
 		var margin := _margins(5, 5, 0, 0)
 		margin.add_child(capped_copy)
 		_body.add_child(margin)

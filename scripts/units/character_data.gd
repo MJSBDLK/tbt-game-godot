@@ -497,6 +497,22 @@ func reset_status_modifiers() -> void:
 	status_modifier_resistance = 0
 
 
+## Stat auras (Competitive, Glib, Stellar's Maximum) are re-derived from board
+## positions on every recompute, so off the board nothing holds them. Battle
+## end clears them, or the intermission shows an aura as a standing bonus.
+func reset_passive_bonuses() -> void:
+	passive_bonus_hp = 0
+	passive_bonus_strength = 0
+	passive_bonus_special = 0
+	passive_bonus_skill = 0
+	passive_bonus_agility = 0
+	passive_bonus_athleticism = 0
+	passive_bonus_defense = 0
+	passive_bonus_resistance = 0
+	passive_bonus_avoid = 0
+	maximum_from_aura = false
+
+
 func reset_injury_modifiers() -> void:
 	injury_modifier_hp = 0
 	injury_modifier_strength = 0

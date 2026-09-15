@@ -20,10 +20,12 @@
 ## and the spreadsheet. Role compression into Manage Units is still the goal,
 ## but it compresses within the workspace, never by eating the hub.
 ##
-## SUB-LINES ARE LIVE, NOT DECORATION. Deploy someone, spend a StatUp, buy a
-## level, and they follow. Deployment always reads `deployed/cap`, never a bare
-## count — the cap is half the information. The resource is a "StatUp", never
-## "unspent stat-up points" (RQD round 11); `★N` survives only as the compact
+## SUB-LINES ARE LIVE, NOT DECORATION. Deploy someone or spend a StatUp and
+## they follow. Only rows with something to report carry one — bEXP and
+## Mission Briefing stay bare; extra lines there read as clutter.
+## Deployment always reads `deployed/cap`, never a bare count — the cap is
+## half the information. The resource is a "StatUp", never
+## "unspent stat-up points"; `★N` survives only as the compact
 ## roster-card glyph where the word doesn't fit.
 ##
 ## UNFINISHED BUSINESS IS ADVERTISED, NEVER ENFORCED. Begin Mission is never
@@ -119,17 +121,6 @@ static func begin_sub_line(can_launch: bool) -> String:
 	return ""
 
 
-## The bare number — the parent label already carries the noun (RQD round 11).
-static func bexp_sub_line(pool: int) -> String:
-	return str(pool) if pool > 0 else "nothing banked yet"
-
-
-static func briefing_sub_line(objective_count: int) -> String:
-	if objective_count <= 0:
-		return "no objectives listed"
-	return "%d objective%s" % [objective_count, "" if objective_count == 1 else "s"]
-
-
 ## `Mission 2 of 3`. Index is 0-based coming in; players count from one.
 static func eyebrow_text(mission_index: int, mission_count: int) -> String:
 	if mission_count <= 0:
@@ -179,15 +170,6 @@ func _unspent_statups() -> int:
 	return total
 
 
-## Reads the BRIEFING list, not the award list — a map that declares no
-## objectives still has one to show ("Eliminate the enemy"), so this never
-## returns 0 for a live mission.
-func _objective_count() -> int:
-	if not CampaignManager.is_active():
-		return 0
-	return MissionCatalog.briefing_objectives(CampaignManager.get_current_mission_path()).size()
-
-
 # =============================================================================
 # BUILD
 # =============================================================================
@@ -225,10 +207,8 @@ func _build_content() -> void:
 	_bexp_entry = _add_entry(column, "Allocate Bonus EXP", "", _on_bexp_pressed)
 	# INERT until §5 is built. It previously opened Manage Units, which is a
 	# worse failure than a dead entry: a button that silently goes somewhere
-	# else teaches the player the labels can't be trusted. Its sub-line still
-	# reports the real objective count, so the row is informative while unbuilt.
-	_briefing_entry = _add_entry(column, "Mission Briefing",
-			briefing_sub_line(_objective_count()), _on_briefing_pressed)
+	# else teaches the player the labels can't be trusted.
+	_briefing_entry = _add_entry(column, "Mission Briefing", "", _on_briefing_pressed)
 	_briefing_entry.inert = true
 	_default_entry = _add_entry(column, "Begin Mission", "", _on_begin_pressed)
 	_default_entry.is_default_action = true
@@ -297,7 +277,6 @@ func _refresh_entries() -> void:
 		_set_sub_text(_default_entry, begin_sub_line(_can_begin()))
 	if _bexp_entry != null:
 		var pool: int = SquadManager.bonus_xp_pool
-		_set_sub_text(_bexp_entry, bexp_sub_line(pool))
 		# Inert at zero — there is nothing to allocate, and §14 says an entry
 		# whose press would do nothing shouldn't look pressable. Styling and
 		# focusability ride the setter.

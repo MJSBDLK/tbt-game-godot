@@ -27,6 +27,7 @@ const GHOST_SHADER: Shader = preload("res://shaders/ghost_projection.gdshader")
 static func make_material() -> ShaderMaterial:
 	var material := ShaderMaterial.new()
 	material.shader = GHOST_SHADER
+	material.set_shader_parameter("outline_color", GameColors.GHOST_OUTLINE)
 	set_animated(material, Settings == null or Settings.ui_motion_enabled)
 	return material
 
