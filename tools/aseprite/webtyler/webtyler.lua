@@ -412,19 +412,154 @@ local function createTempImage(w, h, colorMode)
     return img
 end
 
--- Render the wareya sample scene from the 12×4 autotile region of dstImg
--- into a 12×9 region starting at sceneStartY.
-local function drawPreviewScene(dstImg, tileW, tileH, sceneStartY)
-    for row = 1, #preview_data do
-        local rowData = preview_data[row]
-        for col = 1, #rowData do
-            local tileIndex = rowData[col]
-            if tileIndex >= 0 then
-                -- preview_data uses a compacted index space that skips
-                -- godot position (10,1) = index 22 (the empty slot).
-                if tileIndex >= 22 then
-                    tileIndex = tileIndex + 1
+----------------------------------------------------------------------
+-- OVERFLOW (rpgmaker only)
+----------------------------------------------------------------------
+
+-- The template's third column holds whatever spills past the 2×2 block's right
+-- edge into the east neighbor cell (a mountain's shadow). Only minitiles 0
+-- (outer corners) and 1 (left/right edges) ever form an east edge, so only they
+-- get an overflow; each half is read from column 2 beside the block row that
+-- minitile's right half comes from in the rpgmaker conversion.
+-- Entries: {minitile, source tile for the top half, source tile for the bottom half}
+local overflow_minitile_sources = {
+    {{0,0}, {2,1}, {2,2}},
+    {{1,0}, {2,2}, {2,1}},
+}
+-- The overflow atlas sits right under the 12×4 autotile: the overflow of the
+-- tile at (x, y) is at (x, y + OVERFLOW_ROW_OFFSET).
+local OVERFLOW_ROW_OFFSET = 4
+-- A plain tile of the ground the overflow falls on.
+local GROUND_SWATCH_TILE = {2, 0}
+-- Overlay alpha below this is ground texture, not shadow (5/255 ≈ 2%).
+local OVERLAY_MIN_ALPHA = 5
+
+-- Writes the overflow atlas into dstImg. Each output tile's rightmost section
+-- decides its east edge per row, so the overflow copies that row from the same
+-- minitile's overflow; rows whose edge is closed (minitiles 2-4) stay empty.
+local function buildOverflowAtlas(srcImg, dstImg, tileW, tileH, offsets)
+    local overflowMinitiles = createTempImage(tileW * 2, tileH, srcImg.colorMode)
+    for _, entry in ipairs(overflow_minitile_sources) do
+        for sx = 0, 1 do
+            copyTileQuadRaw(srcImg, overflowMinitiles, entry[1], {sx, 0}, entry[2], tileW, tileH, offsets)
+            copyTileQuadRaw(srcImg, overflowMinitiles, entry[1], {sx, 1}, entry[3], tileW, tileH, offsets)
+        end
+    end
+    for _, entry in ipairs(minitiles_data) do
+        local target = entry[1]
+        local data = entry[2]
+        for sy = 0, 2 do
+            local edgeSource = data[sy * 3 + 3]
+            if edgeSource[2] == 0 and (edgeSource[1] == 0 or edgeSource[1] == 1) then
+                for sx = 0, 2 do
+                    copyTileSectionRaw(overflowMinitiles, dstImg,
+                        {target[1], target[2] + OVERFLOW_ROW_OFFSET}, {sx, sy},
+                        edgeSource, tileW, tileH, offsets)
                 end
+            end
+        end
+    end
+end
+
+-- Most common opaque color in the ground swatch tile; nil when the swatch is
+-- empty or the sprite isn't RGB (the overlay needs real alpha).
+local function groundSwatchColor(srcImg, tileW, tileH)
+    if not ColorMode or srcImg.colorMode ~= ColorMode.RGB then return nil end
+    local counts, best, bestCount = {}, nil, 0
+    for y = 0, tileH - 1 do
+        for x = 0, tileW - 1 do
+            local px = safeGetPixel(srcImg,
+                GROUND_SWATCH_TILE[1] * tileW + x, GROUND_SWATCH_TILE[2] * tileH + y)
+            if app.pixelColor.rgbaA(px) == 255 then
+                local n = (counts[px] or 0) + 1
+                counts[px] = n
+                if n > bestCount then best, bestCount = px, n end
+            end
+        end
+    end
+    return best
+end
+
+local function luminance(px)
+    local pc = app.pixelColor
+    return 0.299 * pc.rgbaR(px) + 0.587 * pc.rgbaG(px) + 0.114 * pc.rgbaB(px)
+end
+
+-- Turns the painted overflow into a shadow overlay: pixels matching the ground
+-- vanish, darker ones become black at the opacity that darkens the ground to
+-- them, so the overflow reads right over whatever floor the game puts there.
+-- Pixels brighter than the ground aren't shadow and vanish too.
+local function convertOverflowToOverlay(dstImg, ground, tileW, tileH)
+    local pc = app.pixelColor
+    local groundLuminance = luminance(ground)
+    if groundLuminance <= 0 then return end
+    local top = OVERFLOW_ROW_OFFSET * tileH
+    for y = top, top + 4 * tileH - 1 do
+        for x = 0, 12 * tileW - 1 do
+            local px = safeGetPixel(dstImg, x, y)
+            if pc.rgbaA(px) > 0 then
+                local alpha = math.floor((1 - luminance(px) / groundLuminance) * 255 + 0.5)
+                if alpha < OVERLAY_MIN_ALPHA then
+                    safeDrawPixel(dstImg, x, y, pc.rgba(0, 0, 0, 0))
+                else
+                    safeDrawPixel(dstImg, x, y, pc.rgba(0, 0, 0, math.min(alpha, 255)))
+                end
+            end
+        end
+    end
+end
+
+local function tileHasInk(img, tx, ty, tileW, tileH)
+    for y = 0, tileH - 1 do
+        for x = 0, tileW - 1 do
+            if app.pixelColor.rgbaA(safeGetPixel(img, tx * tileW + x, ty * tileH + y)) > 0 then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+-- Composite one overlay pixel onto dstImg; drawPixel alone replaces.
+local function blendOver(dstImg, x, y, overlay)
+    local pc = app.pixelColor
+    local alpha = pc.rgbaA(overlay)
+    if alpha == 0 then return end
+    local under = safeGetPixel(dstImg, x, y)
+    if alpha == 255 or pc.rgbaA(under) == 0 then
+        safeDrawPixel(dstImg, x, y, overlay)
+        return
+    end
+    local t = alpha / 255
+    local function mix(o, u) return math.floor(o * t + u * (1 - t) + 0.5) end
+    safeDrawPixel(dstImg, x, y, pc.rgba(
+        mix(pc.rgbaR(overlay), pc.rgbaR(under)),
+        mix(pc.rgbaG(overlay), pc.rgbaG(under)),
+        mix(pc.rgbaB(overlay), pc.rgbaB(under)),
+        pc.rgbaA(under)))
+end
+
+-- Godot atlas index of a sample-scene cell, or -1 when the cell is empty.
+local function previewTileIndex(row, col)
+    local rowData = preview_data[row]
+    local tileIndex = rowData and rowData[col] or -1
+    -- preview_data uses a compacted index space that skips
+    -- godot position (10,1) = index 22 (the empty slot).
+    if tileIndex >= 22 then
+        tileIndex = tileIndex + 1
+    end
+    return tileIndex
+end
+
+-- Render the wareya sample scene from the 12×4 autotile region of dstImg
+-- into a 12×9 region starting at sceneStartY. With an overflow source (the
+-- rpgmaker template), each east-open tile then spills its overflow into its
+-- empty east neighbor, over the ground swatch when the template has one.
+local function drawPreviewScene(dstImg, tileW, tileH, sceneStartY, overflowSource)
+    for row = 1, #preview_data do
+        for col = 1, #preview_data[row] do
+            local tileIndex = previewTileIndex(row, col)
+            if tileIndex >= 0 then
                 local tx = tileIndex % 12
                 local ty = math.floor(tileIndex / 12)
                 for py = 0, tileH - 1 do
@@ -434,6 +569,34 @@ local function drawPreviewScene(dstImg, tileW, tileH, sceneStartY)
                             (col - 1) * tileW + px,
                             sceneStartY + (row - 1) * tileH + py,
                             pixel)
+                    end
+                end
+            end
+        end
+    end
+
+    if not overflowSource or not ColorMode or overflowSource.colorMode ~= ColorMode.RGB then
+        return
+    end
+    local hasGround = groundSwatchColor(overflowSource, tileW, tileH) ~= nil
+    for row = 1, #preview_data do
+        for col = 1, 11 do
+            local tileIndex = previewTileIndex(row, col)
+            if tileIndex >= 0 and previewTileIndex(row, col + 1) < 0 then
+                local tx = tileIndex % 12
+                local ty = math.floor(tileIndex / 12) + OVERFLOW_ROW_OFFSET
+                if tileHasInk(dstImg, tx, ty, tileW, tileH) then
+                    local cellX = col * tileW
+                    local cellY = sceneStartY + (row - 1) * tileH
+                    for py = 0, tileH - 1 do
+                        for px = 0, tileW - 1 do
+                            if hasGround then
+                                safeDrawPixel(dstImg, cellX + px, cellY + py, safeGetPixel(overflowSource,
+                                    GROUND_SWATCH_TILE[1] * tileW + px, GROUND_SWATCH_TILE[2] * tileH + py))
+                            end
+                            blendOver(dstImg, cellX + px, cellY + py,
+                                safeGetPixel(dstImg, tx * tileW + px, ty * tileH + py))
+                        end
                     end
                 end
             end
@@ -658,17 +821,21 @@ updatePreviews = function(activeFrameOnly)
         bottom = settings.bottomOffset,
     }
 
-    local autotileH = 4 * tileH
+    -- rpgmaker stacks the overflow atlas under the 12×4 autotile, so the scene
+    -- and fill preview start OVERFLOW_ROW_OFFSET rows lower there.
+    local overflowActive = (mode == "rpgmaker")
+    local tileBlocksH = (overflowActive and 4 + OVERFLOW_ROW_OFFSET or 4) * tileH
+    local sceneStartY = tileBlocksH + tileH
     local sceneH = settings.showPreviewScene and (1 + 9) * tileH or 0
-    -- 3×3 seamless-fill preview lives at output (5.5·tileW, 4.5·tileH) — for the
-    -- 32px default that's the [176,144]–[271,239] block. Only the rpgmaker 2×3
-    -- reference has a meaningful centre tile to sample, so gate on that mode and
-    -- make sure the canvas is tall enough to contain the block.
+    -- 3×3 seamless-fill preview lives at output (5.5·tileW, tile blocks + ½·tileH)
+    -- — for the 32px rpgmaker default that's the [176,272]–[271,367] block. Only
+    -- the rpgmaker reference has a meaningful centre tile to sample, so gate on
+    -- that mode and make sure the canvas is tall enough to contain the block.
     local fillActive = (mode == "rpgmaker")
     local fillStartX = math.floor(11 * tileW / 2)
-    local fillStartY = math.floor(9 * tileH / 2)
+    local fillStartY = tileBlocksH + math.floor(tileH / 2)
     local outW = 12 * tileW
-    local outH = autotileH + sceneH
+    local outH = tileBlocksH + sceneH
     if fillActive then
         outH = math.max(outH, fillStartY + 3 * tileH)
     end
@@ -863,13 +1030,21 @@ updatePreviews = function(activeFrameOnly)
         copyTileQuadRaw(srcImg, tempImg, {4, 0}, {0, 1}, {1, 1}, tileW, tileH, offsets)
         copyTileQuadRaw(srcImg, tempImg, {4, 0}, {1, 0}, {0, 2}, tileW, tileH, offsets)
         copyTileQuadRaw(srcImg, tempImg, {4, 0}, {0, 0}, {1, 2}, tileW, tileH, offsets)
+
+        -- Template column 2 → overflow atlas, as a shadow overlay when (2,0)
+        -- holds a ground swatch.
+        buildOverflowAtlas(srcImg, dstImg, tileW, tileH, offsets)
+        local ground = groundSwatchColor(srcImg, tileW, tileH)
+        if ground then
+            convertOverflowToOverlay(dstImg, ground, tileW, tileH)
+        end
         
         updateMinitiles(tempImg, dstImg, tileW, tileH, offsets)
     end
     
     -- Draw the sample-scene region from the freshly-generated autotile
     if settings.showPreviewScene then
-        drawPreviewScene(dstImg, tileW, tileH, 5 * tileH)
+        drawPreviewScene(dstImg, tileW, tileH, sceneStartY, overflowActive and srcImg or nil)
     end
 
     -- Stamp the 3×3 seamless-fill preview (rpgmaker only)
