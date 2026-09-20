@@ -39,6 +39,8 @@
 [ext_resource type="Texture2D" uid="uid://clnqgtosf2iq7" path="res://art/sprites/decorations/decorations_and_modifiers/volcano_d.png" id="30_t6rrm"]
 [ext_resource type="Texture2D" uid="uid://drsihtp3n8htp" path="res://art/sprites/decorations/decorations_and_modifiers/volcano_e.png" id="31_1lx3e"]
 [ext_resource type="Texture2D" uid="uid://duk4ygcxq7fjq" path="res://art/sprites/decorations/decorations_and_modifiers/volcano_f.png" id="32_j1cq7"]
+[ext_resource type="Texture2D" uid="uid://dgp24vwdf3xdt" path="res://art/sprites/terrain_modifiers/mountain_1x1/mountain_a.png" id="34_imfo2"]
+[ext_resource type="Texture2D" uid="uid://544qucolb73t" path="res://art/sprites/terrain_modifiers/mountain_2x2/mountain_b.png" id="35_twjnu"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_oowi2"]
 texture = ExtResource("1_oowi2")
@@ -1018,6 +1020,22 @@ texture = ExtResource("32_j1cq7")
 texture_region_size = Vector2i(32, 32)
 1:1/0 = 0
 1:1/0/custom_data_1 = true
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_1gavc"]
+resource_name = "mountain_a"
+texture = ExtResource("34_imfo2")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/custom_data_1 = true
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_yq7qs"]
+resource_name = "mountain_b"
+texture = ExtResource("35_twjnu")
+texture_region_size = Vector2i(32, 32)
+0:0/size_in_atlas = Vector2i(2, 2)
+0:0/0 = 0
+0:0/0/texture_origin = Vector2i(-16, -16)
+0:0/0/custom_data_1 = true
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_lfpqc"]
 texture = ExtResource("3_oowi2")
@@ -3016,3 +3034,5 @@ sources/127 = SubResource("TileSetAtlasSource_1lx3e")
 sources/128 = SubResource("TileSetAtlasSource_j1cq7")
 sources/129 = SubResource("TileSetAtlasSource_rxx1s")
 sources/130 = SubResource("TileSetAtlasSource_4jktq")
+sources/131 = SubResource("TileSetAtlasSource_1gavc")
+sources/132 = SubResource("TileSetAtlasSource_yq7qs")

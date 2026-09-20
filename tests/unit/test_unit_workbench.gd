@@ -507,8 +507,8 @@ func test_a_stat_below_its_default_speaks_danger() -> void:
 	assert_eq(UnitSheet.stat_number_voice(unit, "strength")[0], GameColors.TEXT_DANGER)
 	unit.injury_modifier_strength = 0
 	unit.base_defense = unit.get_stat_cap("defense")
-	assert_eq(UnitSheet.stat_number_voice(unit, "defense")[0], GameColors.TEXT_SUCCESS,
-			"healthy at the ceiling stays SUCCESS")
+	assert_eq(UnitSheet.stat_number_voice(unit, "defense")[0], GameColors.TEXT_AT_CAP,
+			"healthy at the ceiling wears AT_CAP")
 	unit.injury_modifier_defense = -1
 	assert_eq(UnitSheet.stat_number_voice(unit, "defense")[0], GameColors.TEXT_DANGER,
 			"wounded outranks capped")

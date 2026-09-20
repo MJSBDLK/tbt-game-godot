@@ -493,6 +493,9 @@ func _handle_default_press(clicked_tile: Tile) -> void:
 		if clicked_unit.faction == Enums.UnitFaction.PLAYER and clicked_unit.can_act:
 			select_unit(clicked_unit)
 		else:
+			# Set before the detail push: that state change releases the notice.
+			_set_inspect_notice(HintBarCommands.inspect_notice_for(
+					clicked_unit.faction, clicked_unit.can_act))
 			var ui_manager: Node = _get_ui_manager()
 			if ui_manager != null:
 				if ui_manager.get_previewed_unit() == clicked_unit:
@@ -500,9 +503,19 @@ func _handle_default_press(clicked_tile: Tile) -> void:
 				else:
 					ui_manager.show_unit_info(clicked_unit)
 	else:
+		_set_inspect_notice(HintBarCommands.InspectNotice.NONE)
 		var ui_manager: Node = _get_ui_manager()
 		if ui_manager != null:
 			ui_manager.hide_unit_info()
+
+
+func _set_inspect_notice(notice: HintBarCommands.InspectNotice) -> void:
+	var ui_manager: Node = _get_ui_manager()
+	if ui_manager == null:
+		return
+	var hint_bar: HintBar = ui_manager.get_hint_bar()
+	if hint_bar != null:
+		hint_bar.set_inspect_notice(notice)
 
 
 ## Press semantics for UNIT_SELECTED / MOVEMENT_PLANNING — shared verbatim by

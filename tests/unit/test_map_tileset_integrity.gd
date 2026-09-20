@@ -6,14 +6,15 @@
 ##
 ## Also pins the registration invariants the runtime relies on: every sprite
 ## source's resource_name matches its PNG basename (the renderer and the
-## terrain map resolve by that name), and its texture lives in the export
-## directory the registration tool scans.
+## terrain map resolve by that name), and its texture lives in one of the
+## export directories the registration tool scans.
 extends GutTest
 
 
+const Registrar = preload("res://tools/register_modifier_tiles.gd")
+
 const MAPS_DIR := "res://scenes/battle/maps/"
 const TILESET_PATH := "res://resources/battle_tileset.tres"
-const EXPORT_DIR := "res://art/sprites/decorations/decorations_and_modifiers/"
 const SPRITE_SOURCE_ID_BASE := 100
 const SPRITE_LAYERS := ["ModifierTileLayer", "DecorationTileLayer"]
 
@@ -78,6 +79,7 @@ func test_every_painted_sprite_cell_resolves_to_a_registered_tile() -> void:
 func test_sprite_sources_are_named_after_their_png() -> void:
 	var tileset: TileSet = load(TILESET_PATH)
 	assert_not_null(tileset, "tileset loads")
+	var export_dirs := Registrar.export_dirs()
 	var sprite_sources: int = 0
 	for i in range(tileset.get_source_count()):
 		var source_id: int = tileset.get_source_id(i)
@@ -89,8 +91,8 @@ func test_sprite_sources_are_named_after_their_png() -> void:
 			continue
 		sprite_sources += 1
 		var texture_path: String = source.texture.resource_path
-		assert_true(texture_path.begins_with(EXPORT_DIR),
-				"source %d texture lives in the export dir (%s)" % [source_id, texture_path])
+		assert_true(export_dirs.has(texture_path.get_base_dir() + "/"),
+				"source %d texture lives in an export dir (%s)" % [source_id, texture_path])
 		assert_eq(source.resource_name, texture_path.get_file().get_basename(),
 				"source %d resource_name matches its PNG basename" % source_id)
 		assert_eq(source.get_tiles_count(), 1,
@@ -110,17 +112,14 @@ func test_every_exported_sprite_is_registered() -> void:
 			continue
 		var source := tileset.get_source(source_id) as TileSetAtlasSource
 		if source != null:
-			registered[source.resource_name] = source_id
-	var dir := DirAccess.open(EXPORT_DIR)
-	assert_not_null(dir, "export dir opens")
-	if dir == null:
-		return
-	dir.list_dir_begin()
-	var entry := dir.get_next()
-	while entry != "":
-		if entry.ends_with(".png") and not entry.ends_with("_shadow.png"):
-			var name := entry.get_basename()
-			assert_true(registered.has(name),
-					"'%s' is exported but not registered — run tools/register_modifier_tiles.gd" % name)
-		entry = dir.get_next()
-	dir.list_dir_end()
+			registered[source.resource_name] = source.texture.resource_path if source.texture != null else ""
+	var found: Dictionary = Registrar.find_sprite_paths()
+	assert_eq(found["duplicates"], [], "no sprite name is exported into two folders")
+	var sprite_paths: Dictionary = found["paths"]
+	assert_gt(sprite_paths.size(), 0, "exported sprites found on disk")
+	for name: Variant in sprite_paths:
+		assert_true(registered.has(name),
+				"'%s' is exported but not registered — run tools/register_modifier_tiles.gd" % name)
+		if registered.has(name):
+			assert_eq(registered[name], sprite_paths[name],
+					"'%s' is registered against the PNG it was exported to" % name)

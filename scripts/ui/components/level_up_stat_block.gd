@@ -170,8 +170,8 @@ func _stat_row(character: CharacterData, stat_name: String, abbrev: String,
 	row.add_child(bar)
 
 	var capped: bool = StatCapBar.is_at_cap(character, stat_name)
-	var value_color: Color = GameColors.TEXT_SUCCESS if capped else GameColors.TEXT_PRIMARY
-	var value_glow: Color = GameColors.TEXT_SUCCESS_GLOW if capped else GameColors.TEXT_PRIMARY_GLOW
+	var value_color: Color = GameColors.TEXT_AT_CAP if capped else GameColors.TEXT_PRIMARY
+	var value_glow: Color = GameColors.TEXT_AT_CAP_GLOW if capped else GameColors.TEXT_PRIMARY_GLOW
 	var shown_value: int = character.get(stat_name) if show_modifiers \
 			else character.get_base_plus_growth(stat_name)
 	var value := GlowLabel.styled(str(shown_value),

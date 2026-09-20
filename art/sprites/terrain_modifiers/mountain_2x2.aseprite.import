@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://b0arphs5mqnrl"
+path="res://.godot/imported/mountain_2x2.aseprite-5086ed15cfb5107461c6914a84761a78.res"
+
+[deps]
+
+source_file="res://art/sprites/terrain_modifiers/mountain_2x2.aseprite"
+dest_files=["res://.godot/imported/mountain_2x2.aseprite-5086ed15cfb5107461c6914a84761a78.res"]
+
+[params]
+

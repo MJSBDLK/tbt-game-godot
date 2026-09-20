@@ -259,9 +259,11 @@ func test_the_bar_speaks_the_text_voices() -> void:
 	assert_eq(StatCapBar.COLOR_FILL, GameColors.TEXT_PRIMARY,
 			"the fill is the unit's actual stat — content, so PRIMARY")
 	assert_eq(StatCapBar.COLOR_FILL_GLOW, GameColors.TEXT_PRIMARY_GLOW)
-	assert_eq(StatCapBar.COLOR_AT_CAP, GameColors.TEXT_SUCCESS,
-			"maxed wears SUCCESS, bar and number together")
-	assert_eq(StatCapBar.COLOR_AT_CAP_GLOW, GameColors.TEXT_SUCCESS_GLOW)
+	assert_eq(StatCapBar.COLOR_AT_CAP, GameColors.TEXT_AT_CAP,
+			"maxed wears AT_CAP, bar and number together")
+	assert_eq(StatCapBar.COLOR_AT_CAP_GLOW, GameColors.TEXT_AT_CAP_GLOW)
+	assert_ne(StatCapBar.COLOR_AT_CAP, GameColors.TEXT_SUCCESS,
+			"never the buff green — 'maxed' and 'boosted' must read differently")
 	assert_eq(StatCapBar.COLOR_BONUS, GameColors.TEXT_SECONDARY,
 			"applied StatUps are modifiers — the old UnitDetailPanel '+N' pair")
 	assert_eq(StatCapBar.COLOR_BONUS_GLOW, GameColors.TEXT_SECONDARY_GLOW)
@@ -271,7 +273,7 @@ func test_the_bar_speaks_the_text_voices() -> void:
 
 func test_the_built_bar_recolors_at_the_cap() -> void:
 	# The rendering layer, not just the statics: a bar whose unit reaches the
-	# ceiling must flip its fill segment to the SUCCESS pair.
+	# ceiling must flip its fill segment to the AT_CAP pair.
 	var heavy := _unit(Enums.CharacterClass.HEAVY)
 	heavy.base_defense = 10
 	var bar := StatCapBar.new("defense", 3)

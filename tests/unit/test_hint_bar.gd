@@ -117,7 +117,7 @@ func test_keyboard_renders_glyph_verb_pairs() -> void:
 	assert_eq((items[0].get_node("Glyph") as Label).text, "[LMB]")
 	assert_eq((items[0].get_node("Verb") as Label).text, "Select")
 	assert_eq((items[4].get_node("Glyph") as Label).text, "[Esc]")
-	assert_eq(bar._step_label.text, "Select a unit")
+	assert_eq(bar._step_label.text, "Select one of your units")
 
 
 func test_joypad_renders_controller_glyphs() -> void:
@@ -188,7 +188,7 @@ func test_touch_renders_buttons() -> void:
 		assert_eq((item as Button).focus_mode, Control.FOCUS_NONE,
 				"taps must not steal menu focus")
 	assert_eq((items[0] as Button).text, "End turn")
-	assert_eq(bar._step_label.text, "Tap a unit")
+	assert_eq(bar._step_label.text, "Tap one of your units")
 
 
 func test_debug_force_touch_overrides_the_device() -> void:
@@ -238,6 +238,21 @@ func test_enemy_phase_shows_step_only() -> void:
 	assert_true(bar.visible)
 	bar._on_player_phase_started(2)
 	assert_eq(_items(bar).size(), 5)
+
+
+func test_an_inspect_notice_shows_until_the_next_boundary() -> void:
+	var bar := _make_bar()
+	bar.set_inspect_notice(HintBarCommands.InspectNotice.ENEMY)
+	assert_string_contains(bar._step_label.text, "Enemy unit")
+	assert_eq(bar.last_step_form, HintBar.StepForm.NOTICE, "the line changed under a press — point at it")
+	GameStateManager.change_state(Enums.InputState.UNIT_SELECTED)
+	assert_eq(bar.inspect_notice, HintBarCommands.InspectNotice.NONE, "a state change releases it")
+	GameStateManager.change_state(Enums.InputState.DEFAULT)
+	assert_eq(bar._step_label.text, "Select one of your units", "and it doesn't come back")
+	bar.set_inspect_notice(HintBarCommands.InspectNotice.ALREADY_ACTED)
+	bar._on_enemy_phase_started()
+	bar._on_player_phase_started(2)
+	assert_eq(bar._step_label.text, "Select one of your units", "a phase change releases it too")
 
 
 # --- the planning step: NOTICE border, or the "Confirm path" button --------------

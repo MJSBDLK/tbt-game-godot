@@ -57,6 +57,31 @@ In **rpgmaker** mode the preview also stamps the seamless interior tile (the
 **3×3 grid** below the autotile output, so you can eyeball whether the interior
 tiles without visible seams.
 
+### Overflow column (rpgmaker)
+
+Art that should spill past a tile's east edge (a mountain's shadow falling into
+the next cell) goes in a **third template column**, making the template 3×3
+tiles:
+
+| Tile | Holds |
+|------|-------|
+| (2,0) | Ground swatch: a plain tile of the ground the overflow falls on |
+| (2,1)–(2,2) | The overflow, painted as a continuation of the 2×2 block's right edge |
+
+Paint it like the rest of the template. It follows the block's half-tile rows
+(at 32px): y 32–47 is the top cap (nothing to the north), y 48–79 the middle,
+y 80–95 the bottom cap (nothing to the south).
+
+The output gains a second 12×4 grid right under the autotile: the overflow of
+the tile at (x, y) sits at (x, y + 4), filled only for the 13 tiles open to the
+east. With a swatch, pixels matching the ground vanish and darker ones become
+black at the opacity that darkens the ground to them, so the overlay reads
+right over any floor. Without one they're copied as painted. The sample scene
+draws each overflow into its tile's east neighbor, and is 13 tiles wide so its
+last column spills too. **Export the top-left 12×8 tiles.**
+
+`overflow_probe.lua` checks the conversion headlessly (usage in its header).
+
 ### Animation
 
 If your source has multiple **timeline frames** (e.g. animated water/lava, each

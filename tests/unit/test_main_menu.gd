@@ -154,3 +154,14 @@ func test_backdrop_final_fallback_is_flat_glass() -> void:
 	assert_eq(backdrop._base.color,
 			GameColors.with_alpha(GameColors.HUD_PANEL_BACKGROUND, 1.0),
 			"the stage floor is always the glass color — dark eggshell, opaque")
+
+
+func test_the_backdrop_fills_its_parent() -> void:
+	# Its _ready runs already parented, where anchors alone left the rect 0×0 —
+	# every menu screen drew the engine's default gray instead of the stage.
+	var screen := Control.new()
+	screen.size = Vector2(640, 360)
+	add_child_autofree(screen)
+	var backdrop := MenuStageBackdrop.new()
+	screen.add_child(backdrop)
+	assert_eq(backdrop.size, screen.size, "the stage covers the whole screen")

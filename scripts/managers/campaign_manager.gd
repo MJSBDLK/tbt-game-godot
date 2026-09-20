@@ -255,8 +255,23 @@ func _register_recruit(json_path: String) -> void:
 	if not _recruited_paths.has(json_path):
 		_recruited_paths.append(json_path)
 	_auto_level_to_start(character)
+	_seat_recruit(character.character_id)
 	recruit_added.emit(character)
 	DebugConfig.log_unit_init("CampaignManager: Recruited %s (level %d)" % [character.character_name, character.level])
+
+
+## A recruit joins the chosen deployment. The hub trims the selection to the
+## map's spawn count in roster order on arrival and recruits register last, so
+## a full squad keeps its lineup and the recruit waits on the bench. An unset
+## deployment needs nothing: the hub seeds the first `cap` units anyway.
+func _seat_recruit(character_id: String) -> void:
+	if not has_deployment():
+		return
+	var selection: Array[String] = get_deployment()
+	if selection.has(character_id):
+		return
+	selection.append(character_id)
+	set_deployment(selection)
 
 
 ## Simulates growth rolls on a character until they reach their target level.

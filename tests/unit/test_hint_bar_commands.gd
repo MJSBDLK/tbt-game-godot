@@ -140,13 +140,49 @@ func test_unit_selected_row() -> void:
 
 func test_step_text_per_model() -> void:
 	assert_eq(HintBarCommands.step_text_for(Enums.InputState.DEFAULT,
-			HintBarCommands.Model.KEYBOARD_MOUSE), "Select a unit")
+			HintBarCommands.Model.KEYBOARD_MOUSE), "Select one of your units")
 	assert_eq(HintBarCommands.step_text_for(Enums.InputState.DEFAULT,
-			HintBarCommands.Model.CONTROLLER), "Select a unit")
+			HintBarCommands.Model.CONTROLLER), "Select one of your units")
 	assert_eq(HintBarCommands.step_text_for(Enums.InputState.DEFAULT,
-			HintBarCommands.Model.TOUCH), "Tap a unit")
+			HintBarCommands.Model.TOUCH), "Tap one of your units")
 	assert_eq(HintBarCommands.step_text_for(Enums.InputState.UNIT_DETAIL,
 			HintBarCommands.Model.TOUCH), "", "unit detail has no step line")
+
+
+# --- inspect notice: a DEFAULT press on a unit you can't command ---------------
+
+func test_inspect_notice_per_unit() -> void:
+	assert_eq(HintBarCommands.inspect_notice_for(Enums.UnitFaction.PLAYER, true),
+			HintBarCommands.InspectNotice.NONE, "a commandable unit just gets selected")
+	assert_eq(HintBarCommands.inspect_notice_for(Enums.UnitFaction.PLAYER, false),
+			HintBarCommands.InspectNotice.ALREADY_ACTED)
+	assert_eq(HintBarCommands.inspect_notice_for(Enums.UnitFaction.ENEMY, true),
+			HintBarCommands.InspectNotice.ENEMY)
+	assert_eq(HintBarCommands.inspect_notice_for(Enums.UnitFaction.ALLY, true),
+			HintBarCommands.InspectNotice.NOT_YOURS)
+	assert_eq(HintBarCommands.inspect_notice_for(Enums.UnitFaction.NEUTRAL, true),
+			HintBarCommands.InspectNotice.NOT_YOURS)
+
+
+func test_inspect_notice_replaces_the_default_step_and_wears_notice() -> void:
+	var enemy := HintBarCommands.InspectNotice.ENEMY
+	var line := HintBarCommands.step_text_for(Enums.InputState.DEFAULT,
+			HintBarCommands.Model.KEYBOARD_MOUSE, false, enemy)
+	assert_string_contains(line, "Enemy")
+	assert_string_contains(line, "select one of yours")
+	assert_string_contains(HintBarCommands.step_text_for(Enums.InputState.DEFAULT,
+			HintBarCommands.Model.TOUCH, false, enemy), "tap one of yours", "touch verb")
+	assert_true(HintBarCommands.step_is_notice(Enums.InputState.DEFAULT, false, enemy))
+	assert_false(HintBarCommands.step_is_notice(Enums.InputState.DEFAULT))
+
+
+func test_inspect_notice_is_default_only_and_yields_to_the_enemy_phase() -> void:
+	var enemy := HintBarCommands.InspectNotice.ENEMY
+	assert_eq(HintBarCommands.step_text_for(Enums.InputState.UNIT_SELECTED,
+			HintBarCommands.Model.KEYBOARD_MOUSE, false, enemy), "Choose a destination")
+	assert_eq(HintBarCommands.step_text_for(Enums.InputState.DEFAULT,
+			HintBarCommands.Model.KEYBOARD_MOUSE, true, enemy), HintBarCommands.ENEMY_PHASE_STEP)
+	assert_false(HintBarCommands.step_is_notice(Enums.InputState.DEFAULT, true, enemy))
 
 
 func test_enemy_phase_is_step_only() -> void:

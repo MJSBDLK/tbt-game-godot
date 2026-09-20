@@ -113,12 +113,11 @@ static func is_empty_move(move: Move) -> bool:
 			or move.move_name == "—"
 
 
-## The stat NUMBER's voice ladder — [body, glow] (RQD 2026-08-10, DANGER rung
-## added 2026-08-11):
+## The stat NUMBER's voice ladder — [body, glow]:
 ##   DANGER    effective below the unit's earned (base+growth) value — a
 ##             wound is showing, and that outranks even the cap story: a
-##             capped-but-injured stat reading SUCCESS would be a lie
-##   SUCCESS   at the class ceiling — cap beats the modifier stories (Q4)
+##             capped-but-injured stat reading "maxed" would be a lie
+##   AT_CAP    at the class ceiling — cap beats the modifier stories (Q4)
 ##   SECONDARY StatUps invested — the same pale-gold/violet pair the bar's
 ##             bonus segment wears, so "modified" is one voice everywhere (Q3)
 ##   PRIMARY   otherwise — it's just content
@@ -126,7 +125,7 @@ static func stat_number_voice(character: CharacterData, stat_name: String) -> Ar
 	if int(character.get(stat_name)) < character.get_base_plus_growth(stat_name):
 		return [GameColors.TEXT_DANGER, GameColors.TEXT_DANGER_GLOW]
 	if character.is_at_stat_cap(stat_name):
-		return [GameColors.TEXT_SUCCESS, GameColors.TEXT_SUCCESS_GLOW]
+		return [GameColors.TEXT_AT_CAP, GameColors.TEXT_AT_CAP_GLOW]
 	if character.get_allocated_points(stat_name) > 0:
 		return [GameColors.TEXT_SECONDARY, GameColors.TEXT_SECONDARY_GLOW]
 	return [GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW]

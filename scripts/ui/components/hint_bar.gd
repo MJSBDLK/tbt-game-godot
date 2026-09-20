@@ -83,6 +83,9 @@ enum Placement { CORNERS, FULL_WIDTH }
 var battle_active: bool = false
 ## True between enemy_phase_started and the next player_phase_started.
 var enemy_phase: bool = false
+## Set by InputManager when a DEFAULT press lands on a unit the player can't
+## command. Released at the next state or phase boundary.
+var inspect_notice: HintBarCommands.InspectNotice = HintBarCommands.InspectNotice.NONE
 
 ## The model the last refresh rendered for — readable by tests and by the
 ## future visual pass (corner clusters look different under touch).
@@ -273,12 +276,12 @@ func refresh() -> void:
 	if state_manager != null:
 		state = state_manager.current_state
 
-	var step_text := HintBarCommands.step_text_for(state, model, enemy_phase)
+	var step_text := HintBarCommands.step_text_for(state, model, enemy_phase, inspect_notice)
 	var confirm_label := HintBarCommands.confirm_label_for(state, enemy_phase)
 	var use_button: bool = not confirm_label.is_empty() and _confirm_mode_is_button(model)
 	if use_button:
 		last_step_form = StepForm.BUTTON
-	elif HintBarCommands.step_is_notice(state, enemy_phase) and not step_text.is_empty():
+	elif HintBarCommands.step_is_notice(state, enemy_phase, inspect_notice) and not step_text.is_empty():
 		last_step_form = StepForm.NOTICE
 	else:
 		last_step_form = StepForm.LABEL
@@ -516,18 +519,28 @@ func _on_confirm_button_pressed() -> void:
 # BOUNDARIES
 # =============================================================================
 
+func set_inspect_notice(notice: HintBarCommands.InspectNotice) -> void:
+	if notice == inspect_notice:
+		return
+	inspect_notice = notice
+	refresh()
+
+
 func _on_state_changed(_old_state: Enums.InputState, _new_state: Enums.InputState) -> void:
+	inspect_notice = HintBarCommands.InspectNotice.NONE
 	refresh()
 
 
 func _on_battle_started(_player_units: Array[Unit]) -> void:
 	battle_active = true
 	enemy_phase = false
+	inspect_notice = HintBarCommands.InspectNotice.NONE
 	refresh()
 
 
 func _on_battle_ended(_is_victory: bool) -> void:
 	battle_active = false
+	inspect_notice = HintBarCommands.InspectNotice.NONE
 	refresh()
 
 
@@ -537,12 +550,14 @@ func _on_battle_ended(_is_victory: bool) -> void:
 func _on_player_phase_started(_turn_count: int) -> void:
 	battle_active = true
 	enemy_phase = false
+	inspect_notice = HintBarCommands.InspectNotice.NONE
 	refresh()
 
 
 func _on_enemy_phase_started() -> void:
 	battle_active = true
 	enemy_phase = true
+	inspect_notice = HintBarCommands.InspectNotice.NONE
 	refresh()
 
 

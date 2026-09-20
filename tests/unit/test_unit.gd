@@ -65,6 +65,26 @@ func test_foot_tracks_cancelled_move_lays_none() -> void:
 			"a cancelled move lays nothing even after a later commit")
 
 
+func test_acting_desaturates_the_sprite_and_a_new_turn_restores_it() -> void:
+	var unit := Unit.new()
+	autofree(unit)
+	unit._sprite = Sprite2D.new()
+	autofree(unit._sprite)
+	unit.set_acted()
+	assert_eq(unit._sprite.material, Unit.acted_material(), "acted: the desaturate material")
+	assert_eq(unit._sprite.modulate, Color.WHITE,
+			"modulate stays free for the hit flash and death fade")
+	unit.refresh_unit()
+	assert_null(unit._sprite.material, "a fresh turn restores full color")
+
+
+func test_the_acted_look_is_full_grayscale() -> void:
+	var material := Unit.acted_material()
+	assert_eq(material.shader, Unit.ACTED_SHADER)
+	assert_almost_eq(float(material.get_shader_parameter("desaturation")), 1.0, 0.001,
+			"full grayscale")
+
+
 func _make_loose_tile() -> Tile:
 	var tile := Tile.new()
 	autofree(tile)

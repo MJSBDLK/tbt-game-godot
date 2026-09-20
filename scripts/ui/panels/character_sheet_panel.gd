@@ -141,11 +141,11 @@ func _update_hp(data: CharacterData) -> void:
 	var at_cap: bool = data.is_at_stat_cap("max_hp")
 
 	_hp_bar_fill.size.x = int(fill_ratio * _hp_bar_background.size.x)
-	_hp_bar_fill.color = GameColors.TEXT_SUCCESS if at_cap else GameColors.get_health_color(1.0)
+	_hp_bar_fill.color = GameColors.TEXT_AT_CAP if at_cap else GameColors.get_health_color(1.0)
 
 	if at_cap:
 		_hp_label.text = "HP: %d/%d  MAX" % [current_hp, max_hp]
-		_hp_label.add_theme_color_override("font_color", GameColors.TEXT_SUCCESS)
+		_hp_label.add_theme_color_override("font_color", GameColors.TEXT_AT_CAP)
 	else:
 		_hp_label.text = "HP: %d/%d" % [current_hp, max_hp]
 		_hp_label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
@@ -171,11 +171,11 @@ func _update_stats(data: CharacterData) -> void:
 		else:
 			value_label.text = "%d" % total_value
 
-		# Color: green at cap, red for negative bonus, green for positive, default otherwise
+		# Color: cyan at cap, red for negative bonus, green for positive, default otherwise
 		var name_label: Label = row["name_label"]
 		if at_cap:
-			value_label.add_theme_color_override("font_color", GameColors.TEXT_SUCCESS)
-			name_label.add_theme_color_override("font_color", GameColors.TEXT_SUCCESS)
+			value_label.add_theme_color_override("font_color", GameColors.TEXT_AT_CAP)
+			name_label.add_theme_color_override("font_color", GameColors.TEXT_AT_CAP)
 		elif bonus_value > 0:
 			value_label.add_theme_color_override("font_color", GameColors.TEXT_SUCCESS)
 			name_label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)

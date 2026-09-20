@@ -36,13 +36,6 @@ static var NEUTRAL_UNIT: Color:
 static var ALLY_UNIT: Color:
 	get: return Color(1.0, 0.95, 0.4)  # Bright yellow
 
-# Dimmed versions for units that have acted (desaturated + darker)
-static var PLAYER_UNIT_ACTED: Color:
-	get: return Color(0.3, 0.35, 0.45)  # Dark muted blue
-static var ENEMY_UNIT_ACTED: Color:
-	get: return Color(0.45, 0.28, 0.28)  # Dark muted red
-static var ALLY_UNIT_ACTED: Color:
-	get: return Color(0.4, 0.4, 0.28)  # Dark muted yellow
 
 # =============================================================================
 # PHASE TRANSITION BANNER COLORS
@@ -189,6 +182,20 @@ static var INTERACTIVE_BORDER_DISABLED: Color:
 	get: return GameColorPalette.get_color("Gray", 4)
 static var INTERACTIVE_TEXT_DISABLED: Color:
 	get: return GameColorPalette.get_color("Gray", 6)
+## Inert bare-text menu entries (MainMenuEntry.inert). A glass button says
+## "disabled" with its dark border; bare menu text has no border, so the label
+## itself must read unlit yet stay legible — neutral gray with a faint halo
+## rather than none (ui-style-guide §3).
+static var MENU_TEXT_INERT: Color:
+	get: return GameColorPalette.get_color("Gray", 7)
+static var MENU_TEXT_INERT_GLOW: Color:
+	get: return GameColorPalette.get_color("Gray", 3)
+## The inert entry's sub-line: the INFO gold stepped down with its label, so a
+## dark row never carries a lit line under it.
+static var MENU_SUB_TEXT_INERT: Color:
+	get: return GameColorPalette.get_color("YellowOrange", 5)
+static var MENU_SUB_TEXT_INERT_GLOW: Color:
+	get: return GameColorPalette.get_color("YellowOrange", 2)
 ## Flat dark border for STATIC surfaces (§14: "panels, labels — flat dark
 ## border, never moves"). One step above the disabled tier so a dead button
 ## still reads darker than furniture, and well below every lit border.
@@ -204,6 +211,11 @@ static var STATIC_BORDER: Color:
 ## Lawrence's to eyeball (4–6 candidates); 5 for 1 px legibility on dark glass.
 static var NOTICE_BORDER: Color:
 	get: return GameColorPalette.get_color("Magenta", 5)
+
+## 1px rim around every UnitGhost silhouette (move plan + displacement) so a
+## translucent projection still separates from busy ground.
+static var GHOST_OUTLINE: Color:
+	get: return GameColorPalette.get_color("Azure", 10)
 
 ## Cast-shadow ink — ONE ink for every shadow thrown on the board. Not a
 ## palette ramp color: decoded from Lawrence's baked decoration shadow PNGs
@@ -234,6 +246,13 @@ static var TEXT_DANGER: Color:
 	get: return GameColorPalette.get_color("Red", 5)
 static var TEXT_DANGER_GLOW: Color:
 	get: return GameColorPalette.get_color("Red", 2)
+## At the class cap — "topped out". Deliberately NOT the success green, which
+## means "boosted by an effect". Cyan 7 is also HEALTH_RAMP's full end; both
+## say "full", so the shared hue is agreement, not collision.
+static var TEXT_AT_CAP: Color:
+	get: return GameColorPalette.get_color("Cyan", 7)
+static var TEXT_AT_CAP_GLOW: Color:
+	get: return GameColorPalette.get_color("Cyan", 4)
 # Semantic INFO/WARNING — locked with SUCCESS/DANGER as the four-voice set
 # (RQD 2026-08-03, main-menu design session; ui-style-guide §2 "Semantic
 # colors"). Info is DELIBERATELY yellow, not blue: azure + gold is the house

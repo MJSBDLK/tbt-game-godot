@@ -546,9 +546,9 @@ func apply_unit_state(unit: Unit, entry: Dictionary) -> void:
 	# and resume_battle skips the phase upkeep that would repaint it. Without
 	# this, a mid-phase save restores expended units in fresh full color.
 	if unit.can_act:
-		unit._apply_active_modulate()
+		unit._apply_active_look()
 	else:
-		unit._apply_acted_modulate()
+		unit._apply_acted_look()
 	unit.pending_crit = bool(entry.get("pending_crit", false))
 	unit.last_used_move_index = int(entry.get("last_used_move_index", -1))
 
