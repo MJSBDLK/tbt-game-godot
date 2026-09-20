@@ -14,6 +14,7 @@ local PLUGIN_PATH = params.plugin or "tools/aseprite/webtyler/webtyler.lua"
 local TEMPLATE_PATH = params.template or "art/sprites/tilesets/2x3_source_tiles/2x3_source_tiles.aseprite"
 local MOUNTAIN_TAG = "mountain__regolith"
 local TILE = 32
+local OVERFLOW_ROWS = 4
 local SHADOW_EXTENSION = 8
 
 local pc = app.pixelColor
@@ -49,6 +50,7 @@ handle:close()
 local plugin = assert(load(pluginText .. [[
 
 return { updatePreviews = updatePreviews, settings = settings,
+         previewData = preview_data, previewTileIndex = previewTileIndex,
          preview = function() return previewSprite end }
 ]]))()
 
@@ -127,7 +129,7 @@ end
 for ty = 0, 3 do
     for tx = 0, 11 do
         local entry = openAt[tx .. "," .. ty]
-        local originX, originY = tx * TILE, (ty + 4) * TILE
+        local originX, originY = tx * TILE, (ty + OVERFLOW_ROWS) * TILE
         local where = string.format("overflow (%d,%d)", tx, ty)
         local wrong = 0
         local badAlpha = 0
@@ -153,6 +155,41 @@ for ty = 0, 3 do
         end
     end
 end
+
+-- Sample scene: a tile with no east neighbor is east-open by construction, so
+-- every such tile must spill its overflow over the swatch in the cell beside
+-- it. The scene is 12 wide, so the last-column tile needs the canvas's 13th
+-- column; that cell is the regression pin.
+local sceneStartY = (4 + OVERFLOW_ROWS + 1) * TILE
+check(preview.width >= 13 * TILE,
+    "preview keeps a 13th scene column for spills (" .. preview.width .. ")")
+local spills, lastColumnSpilled = 0, false
+for row = 1, #plugin.previewData do
+    for col = 1, #plugin.previewData[row] do
+        local index = plugin.previewTileIndex(row, col)
+        if index >= 0 and plugin.previewTileIndex(row, col + 1) < 0 then
+            local tx, ty = index % 12, math.floor(index / 12)
+            local where = string.format("scene cell (%d,%d) east of atlas (%d,%d)", col, row - 1, tx, ty)
+            check(openAt[tx .. "," .. ty] ~= nil, where .. " is east-open")
+            local cellX, cellY = col * TILE, sceneStartY + (row - 1) * TILE
+            local wrong = 0
+            for ly = 0, TILE - 1 do
+                for lx = 0, TILE - 1 do
+                    local inked = pc.rgbaA(out:getPixel(tx * TILE + lx, (ty + OVERFLOW_ROWS) * TILE + ly)) > 0
+                    local px = out:getPixel(cellX + lx, cellY + ly)
+                    if inked == (px == GROUND) then
+                        wrong = wrong + 1
+                    end
+                end
+            end
+            check(wrong == 0, where .. " carries its overflow over the swatch; " .. wrong .. " pixels off")
+            spills = spills + 1
+            if col == 12 then lastColumnSpilled = true end
+        end
+    end
+end
+check(spills > 0, "the scene has tiles with an empty east neighbor")
+check(lastColumnSpilled, "the scene's last-column tile spills into the 13th column")
 
 check(preview.height == (8 + 10) * TILE,
     "preview height makes room for the overflow block (" .. preview.height .. ")")

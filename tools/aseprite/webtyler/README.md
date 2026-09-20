@@ -77,8 +77,8 @@ the tile at (x, y) sits at (x, y + 4), filled only for the 13 tiles open to the
 east. With a swatch, pixels matching the ground vanish and darker ones become
 black at the opacity that darkens the ground to them, so the overlay reads
 right over any floor. Without one they're copied as painted. The sample scene
-draws each overflow into its tile's east neighbor. **Export the top-left 12×8
-tiles.**
+draws each overflow into its tile's east neighbor, and is 13 tiles wide so its
+last column spills too. **Export the top-left 12×8 tiles.**
 
 `overflow_probe.lua` checks the conversion headlessly (usage in its header).
 

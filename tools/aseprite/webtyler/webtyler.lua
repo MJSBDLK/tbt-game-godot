@@ -554,7 +554,8 @@ end
 -- Render the wareya sample scene from the 12×4 autotile region of dstImg
 -- into a 12×9 region starting at sceneStartY. With an overflow source (the
 -- rpgmaker template), each east-open tile then spills its overflow into its
--- empty east neighbor, over the ground swatch when the template has one.
+-- empty east neighbor, over the ground swatch when the template has one; the
+-- canvas keeps a 13th column so a tile in the scene's last column spills too.
 local function drawPreviewScene(dstImg, tileW, tileH, sceneStartY, overflowSource)
     for row = 1, #preview_data do
         for col = 1, #preview_data[row] do
@@ -580,7 +581,7 @@ local function drawPreviewScene(dstImg, tileW, tileH, sceneStartY, overflowSourc
     end
     local hasGround = groundSwatchColor(overflowSource, tileW, tileH) ~= nil
     for row = 1, #preview_data do
-        for col = 1, 11 do
+        for col = 1, #preview_data[row] do
             local tileIndex = previewTileIndex(row, col)
             if tileIndex >= 0 and previewTileIndex(row, col + 1) < 0 then
                 local tx = tileIndex % 12
@@ -834,7 +835,8 @@ updatePreviews = function(activeFrameOnly)
     local fillActive = (mode == "rpgmaker")
     local fillStartX = math.floor(11 * tileW / 2)
     local fillStartY = tileBlocksH + math.floor(tileH / 2)
-    local outW = 12 * tileW
+    -- rpgmaker keeps a 13th column so the scene's last-column tiles can spill.
+    local outW = (overflowActive and 13 or 12) * tileW
     local outH = tileBlocksH + sceneH
     if fillActive then
         outH = math.max(outH, fillStartY + 3 * tileH)
@@ -845,7 +847,7 @@ updatePreviews = function(activeFrameOnly)
     local inputActive = settings.showInput
     local inputStartX, inputStartY = 0, 0
     if inputActive then
-        inputStartX = 12 * tileW + tileW      -- 1-tile gap right of the output
+        inputStartX = outW + tileW            -- 1-tile gap right of the output
         inputStartY = 0
         outW = inputStartX + source.width
         outH = math.max(outH, source.height)
