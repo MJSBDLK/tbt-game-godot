@@ -190,7 +190,7 @@
     "attackMultiplier": { "default": 1 },
     "terrainStatusImmunity": ["Electric", "Scorch"],
     "defenseMultiplier": { "default": 1.2 },
-    "avoidMultiplier": { "default": 1.1, "Air": 1.0 }
+    "avoidMultiplier": { "default": 1.2, "Air": 1.0 }
   },
   "Runes": {},
   "Sky": {},
