@@ -159,14 +159,17 @@ func test_nothing_casts_returns_empty() -> void:
 			"A fully transparent frame casts nothing.")
 
 
-func test_shadow_sits_in_the_terrain_effects_slot_of_its_row() -> void:
+func test_shadow_sits_in_the_terrain_shadow_slot_of_its_row() -> void:
 	var shadow := UnitShadow.new()
 	add_child_autofree(shadow)
 	assert_true(shadow.z_as_relative)
 	assert_eq(shadow.z_index,
-			ZIndexCalculator.ZIndexLayer.TERRAIN_EFFECTS
+			ZIndexCalculator.ZIndexLayer.TERRAIN_SHADOWS
 			- ZIndexCalculator.ZIndexLayer.UNITS,
-			"Relative slot must land in the decoration-shadow band of the unit's own row.")
+			"One band with terrain shadows: a unit's shadow falls ON a modifier beside it.")
+	assert_gt(ZIndexCalculator.ZIndexLayer.TERRAIN_SHADOWS,
+			ZIndexCalculator.ZIndexLayer.TERRAIN_MODIFIERS,
+			"which is only true while shadows outrank same-row bodies")
 	assert_eq(shadow.texture_filter, CanvasItem.TEXTURE_FILTER_NEAREST)
 
 

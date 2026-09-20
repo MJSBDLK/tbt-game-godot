@@ -48,11 +48,12 @@
 ## flip_h mirrors the silhouette before turning; the cast direction is the
 ## global sun and never flips with facing.
 ##
-## Z: relative child slot TERRAIN_EFFECTS − UNITS (−4) lands the shadow in
-## the decoration-shadow band of the unit's OWN row, tracking _update_z_index
-## with zero extra bookkeeping. Shadows of DIFFERENT units double-darken
-## where they overlap; Lawrence eyeballed the decoration equivalent and
-## shrugged (RQD 2026-07-31 — decorations even triple-cast fine).
+## Z: relative child slot TERRAIN_SHADOWS − UNITS (−2) puts the shadow in the
+## same band terrain shadows use, so it falls ON a modifier beside the unit
+## exactly like a mountain's shadow does, and still sits under the unit itself.
+## It tracks _update_z_index with zero extra bookkeeping. Shadows of DIFFERENT
+## units double-darken where they overlap; Lawrence eyeballed the decoration
+## equivalent and shrugged (decorations even triple-cast fine).
 ##
 ## Future (deliberately not built until an asset exists): per-clip authored
 ## override — the tag exporter already emits <tag>_shadow.png strips when a
@@ -171,7 +172,7 @@ static var _warned_unreadable: Dictionary = {}
 func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	z_as_relative = true
-	z_index = ZIndexCalculator.ZIndexLayer.TERRAIN_EFFECTS \
+	z_index = ZIndexCalculator.ZIndexLayer.TERRAIN_SHADOWS \
 			- ZIndexCalculator.ZIndexLayer.UNITS
 
 
