@@ -5,6 +5,10 @@ The end problem I'm trying to solve is less work for Lawrence. He can indeed han
 In this case, it's autotiled mountain tiles on the right edge which have shadows that fail to protrude into the cell to the right.
 If Lawrence weren't staunchly against this, I'd say "just have an AI do them" but he's dead set on zero AI-generated art.
 
+# Meeting Notes 2026/09/20
+- [ ] Star twinkle shader
+- [ ] 
+
 # Lawrence playtest feedback
 - [~] "this right here is a little cluttered" - in reference to the intermission main screen - talking about the subtitles
   (Group A, branch `rqd--playtest-0913`, eyeball-gated. Plan for the whole

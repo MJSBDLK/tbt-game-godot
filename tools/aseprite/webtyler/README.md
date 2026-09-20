@@ -52,6 +52,11 @@ Tilemap layers are rasterized automatically, so they work as input too.
 
 The preview generates a **12×4 tile** output in Godot's autotile format, which can be used directly or converted for other engines.
 
+**Sprite → Webtyler Export Tileset** writes that block to a PNG: the top-left
+12×4 tiles, or 12×8 in rpgmaker mode (overflow atlas included). The dialog
+prefills `<tag>_12x4.png` / `<tag>_12x8.png` beside the source file, matching
+the shipped tilesets in `art/sprites/tilesets/`.
+
 In **rpgmaker** mode the preview also stamps the seamless interior tile (the
 "NESW full tile" — the square straddling the centre of the 2×3 reference) as a
 **3×3 grid** below the autotile output, so you can eyeball whether the interior
@@ -78,7 +83,8 @@ east. With a swatch, pixels matching the ground vanish and darker ones become
 black at the opacity that darkens the ground to them, so the overlay reads
 right over any floor. Without one they're copied as painted. The sample scene
 draws each overflow into its tile's east neighbor, and is 13 tiles wide so its
-last column spills too. **Export the top-left 12×8 tiles.**
+last column spills too. **Webtyler Export Tileset** writes the top-left 12×8
+tiles.
 
 `overflow_probe.lua` checks the conversion headlessly (usage in its header).
 

@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+#
+# prepare-commit-msg hook — keeps feature branches out of the shared mains.
+#
+# Branch flow: feature branches (rqd--*, lod--*) land on rqd--main. lod--main
+# and master take merges from rqd--main / master / lod--main ONLY. Merging a
+# feature branch straight into lod--main is the mistake this guards against.
+#
+# Fires on merge commits and squash commits, whether made by `git merge` or by
+# a later `git commit` (state files, not just git's $2 label, decide). Pairs
+# with `branch.<main>.mergeOptions=--no-ff`, which turns a would-be
+# fast-forward into a real merge so the hook gets a say at all. A refusal
+# leaves the merge staged but uncommitted — back out with `git merge --abort`.
+#
+# Install (or re-install after a fresh clone):   tools/hooks/install.sh
+# One-off override:   ALLOW_MAIN_MERGE=1 git merge <branch>
+# Skip all hooks:     git merge --no-verify <branch>
+
+set -u
+message_file="${1:-}"
+kind="${2:-}"
+
+target=$(git symbolic-ref --short -q HEAD || true)
+case "$target" in lod--main|master) ;; *) exit 0 ;; esac
+
+git_dir=$(git rev-parse --git-dir)
+if [ "$kind" = merge ] || [ -f "$git_dir/MERGE_HEAD" ]; then
+	# MERGE_MSG keeps git's own "Merge branch 'x' ..." line even when the user
+	# supplies -m; during `git merge` itself $1 is that file.
+	[ -f "$git_dir/MERGE_MSG" ] && message_file="$git_dir/MERGE_MSG"
+	source=$(sed -nE "1s/^Merge (remote-tracking )?branch '([^']+)'.*/\2/p" "$message_file" 2>/dev/null)
+	case "$source" in
+		rqd--main|lod--main|master|origin/rqd--main|origin/lod--main|origin/master) exit 0 ;;
+	esac
+	[ -n "$source" ] || source="(unrecognised merge message)"
+elif [ "$kind" = squash ] || [ -f "$git_dir/SQUASH_MSG" ]; then
+	source="(squash merge)"
+else
+	exit 0
+fi
+
+[ "${ALLOW_MAIN_MERGE:-}" = "1" ] && exit 0
+
+cat >&2 <<MSG
+
+  [guard] Not committing $source into '$target'.
+          '$target' is a shared main branch. Feature branches land on
+          rqd--main; only rqd--main, master and lod--main merge into it.
+
+          Back out now:   git merge --abort
+          Really do it:   ALLOW_MAIN_MERGE=1 git merge <branch>
+
+MSG
+exit 1

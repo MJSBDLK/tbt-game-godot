@@ -6,8 +6,7 @@
 # proceeds. Once the suite has been stable for a couple of weeks, change
 # `exit 0` at the bottom to `exit 1` to make failing tests block commits.
 #
-# Install (or re-install after a fresh clone):
-#   ln -sf ../../tools/hooks/pre-commit .git/hooks/pre-commit
+# Install (or re-install after a fresh clone):   tools/hooks/install.sh
 #
 # Bypass for a single commit:    git commit --no-verify
 # Override Godot binary path:    GODOT_BIN=/path/to/godot git commit ...

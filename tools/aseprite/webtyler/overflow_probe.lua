@@ -51,6 +51,7 @@ local plugin = assert(load(pluginText .. [[
 
 return { updatePreviews = updatePreviews, settings = settings,
          previewData = preview_data, previewTileIndex = previewTileIndex,
+         exportTileset = exportTileset, defaultExportPath = defaultExportPath,
          preview = function() return previewSprite end }
 ]]))()
 
@@ -190,6 +191,26 @@ for row = 1, #plugin.previewData do
 end
 check(spills > 0, "the scene has tiles with an empty east neighbor")
 check(lastColumnSpilled, "the scene's last-column tile spills into the 13th column")
+
+-- Export: the plugin's own writer must hand Godot exactly the preview's
+-- top-left 12×8 block, named after the tag.
+local exportPath = app.fs.joinPath(app.fs.tempPath, "webtyler_probe_export.png")
+plugin.exportTileset(exportPath)
+local exported = Image{ fromFile = exportPath }
+check(exported ~= nil and exported.width == 12 * TILE and exported.height == (4 + OVERFLOW_ROWS) * TILE,
+    "export is 12×8 tiles (" .. (exported and (exported.width .. "x" .. exported.height) or "nil") .. ")")
+local exportDiff = 0
+if exported then
+    for y = 0, exported.height - 1 do
+        for x = 0, exported.width - 1 do
+            if exported:getPixel(x, y) ~= out:getPixel(x, y) then exportDiff = exportDiff + 1 end
+        end
+    end
+end
+check(exportDiff == 0, "export matches the preview's top-left block; " .. exportDiff .. " pixels differ")
+check(plugin.defaultExportPath():match("mountain__regolith_12x8%.png$") ~= nil,
+    "default export name is <tag>_12x8.png (" .. plugin.defaultExportPath() .. ")")
+os.remove(exportPath)
 
 check(preview.height == (8 + 10) * TILE,
     "preview height makes room for the overflow block (" .. preview.height .. ")")
