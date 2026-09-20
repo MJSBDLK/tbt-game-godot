@@ -42,6 +42,15 @@ Commits happen only when RQD asks for one. When a commit is requested:
    three-step recipe.
 2. Sweep editor stragglers (`.import`, `.uid`) so the commit doesn't orphan them.
 
+## Branch Flow
+
+Feature branches (`rqd--<feature>`, `lod--<feature>`) land on `rqd--main`.
+`lod--main` and `master` take merges from `rqd--main`, `master`, `lod--main`
+only, never a fast-forward. A `prepare-commit-msg` hook refuses anything
+else (`ALLOW_MAIN_MERGE=1 git merge <branch>` for the deliberate exception),
+and `pull.ff=only` makes `git pull` stop instead of inventing a merge. Hooks
+and config are per clone: run `tools/hooks/install.sh` after a fresh clone.
+
 ## Project Structure
 
 ```

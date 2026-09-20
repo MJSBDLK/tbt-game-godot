@@ -1268,6 +1268,79 @@ local function showDialog()
 end
 
 ----------------------------------------------------------------------
+-- EXPORT
+----------------------------------------------------------------------
+-- The Godot-facing tileset is the preview's top-left 12×4 tiles, or 12×8 in
+-- rpgmaker mode where the overflow atlas rides underneath. The rest of the
+-- canvas (sample scene, fill stamp, input copy) is for eyes only.
+local function exportRows()
+    return settings.mode == "rpgmaker" and (4 + OVERFLOW_ROW_OFFSET) or 4
+end
+
+-- The preview frame to export and the source frame it was rendered from.
+local function exportFrames()
+    local frame = (app.activeSprite == previewSprite and app.activeFrame)
+        or previewSprite.frames[1]
+    return frame, (previewStartFrame or 1) + frame.frameNumber - 1
+end
+
+local function tagNameForFrame(sprite, frameNumber)
+    for _, tag in ipairs(sprite.tags) do
+        if frameNumber >= tag.fromFrame.frameNumber
+                and frameNumber <= tag.toFrame.frameNumber then
+            return tag.name
+        end
+    end
+    return nil
+end
+
+-- Beside the source file, named after the previewed tag — the shipped
+-- convention is <tag>_12x4.png — or after the file when the frame has no tag.
+local function defaultExportPath()
+    local _, sourceFrameNumber = exportFrames()
+    local stem, dir = "webtyler", ""
+    if isSpriteValid(sourceSprite) then
+        stem = tagNameForFrame(sourceSprite, sourceFrameNumber)
+            or app.fs.fileTitle(sourceSprite.filename)
+        dir = app.fs.filePath(sourceSprite.filename)
+    end
+    stem = stem:gsub("[^%w_%-]", "_")
+    return app.fs.joinPath(dir, string.format("%s_12x%d.png", stem, exportRows()))
+end
+
+-- Writes the tileset block of the preview's current frame to `path`.
+local function exportTileset(path)
+    local frame = exportFrames()
+    local cel = previewSprite.layers[1]:cel(frame)
+    local out = Image(12 * settings.tileW, exportRows() * settings.tileH,
+        previewSprite.colorMode)
+    out:clear()
+    if cel then
+        out:drawImage(cel.image, cel.position)
+    end
+    out:saveAs{ filename = path, palette = previewSprite.palettes[1] }
+    return path
+end
+
+local function showExportDialog()
+    if not isSpriteValid(previewSprite) then
+        app.alert("No Webtyler preview yet. Run Webtyler Refresh Preview first.")
+        return
+    end
+    local d = Dialog{ title = "Webtyler Export Tileset" }
+    d:label{ text = string.format("Writes the preview's top-left 12×%d tiles.", exportRows()) }
+    d:file{ id = "path", label = "PNG", save = true, filename = defaultExportPath(),
+            filetypes = { "png" } }
+    d:button{ id = "ok", text = "Export", focus = true }
+    d:button{ id = "cancel", text = "Cancel" }
+    d:show()
+    if d.data.ok and d.data.path and d.data.path ~= "" then
+        local ok, err = pcall(exportTileset, d.data.path)
+        app.alert(ok and ("Exported " .. d.data.path) or ("Export failed: " .. tostring(err)))
+    end
+end
+
+----------------------------------------------------------------------
 -- PLUGIN INIT
 ----------------------------------------------------------------------
 
@@ -1286,6 +1359,13 @@ function init(plugin)
         -- Wrapped so no command arg leaks in as activeFrameOnly — manual
         -- Refresh always does the full multi-frame rebuild.
         onclick = function() updatePreviews(false) end
+    }
+
+    plugin:newCommand{
+        id = "WebtylerExport",
+        title = "Webtyler Export Tileset",
+        group = "sprite_properties",
+        onclick = showExportDialog
     }
 
     -- Listen for active-frame/sprite changes so the preview can follow the
