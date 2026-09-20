@@ -7,7 +7,9 @@ If Lawrence weren't staunchly against this, I'd say "just have an AI do them" bu
 
 # Meeting Notes 2026/09/20
 - [ ] Star twinkle shader
-- [ ] 
+- [x] Mountains 12x8 is on Lawrence's branch - let's try to implement it!
+- [ ] Error: /home/l/.var/app/com.valvesoftware.Steam/config/aseprite/extensions/webtyler/webtyler.lua:861: index out of bounds 256
+	-> This happens every time you first run the Webtyler script, and then you can run it again after that and everything works fine. Would be great for an error not to mean "all's well," because seeing this error is just part of standard procedure at present.
 
 # Lawrence playtest feedback
 - [~] "this right here is a little cluttered" - in reference to the intermission main screen - talking about the subtitles

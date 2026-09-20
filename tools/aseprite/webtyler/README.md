@@ -53,8 +53,8 @@ Tilemap layers are rasterized automatically, so they work as input too.
 The preview generates a **12×4 tile** output in Godot's autotile format, which can be used directly or converted for other engines.
 
 **Sprite → Webtyler Export Tileset** writes that block to a PNG: the top-left
-12×4 tiles, or 12×8 in rpgmaker mode (overflow atlas included). The dialog
-prefills `<tag>_12x4.png` / `<tag>_12x8.png` beside the source file, matching
+12×4 tiles, or 12×12 when the frame carries shadow blocks (see below). The
+dialog prefills `<tag>_12x4.png` / `<tag>_12x12.png` beside the source file, matching
 the shipped tilesets in `art/sprites/tilesets/`.
 
 In **rpgmaker** mode the preview also stamps the seamless interior tile (the
@@ -62,31 +62,42 @@ In **rpgmaker** mode the preview also stamps the seamless interior tile (the
 **3×3 grid** below the autotile output, so you can eyeball whether the interior
 tiles without visible seams.
 
-### Overflow column (rpgmaker)
+### Shadows and the overflow column (rpgmaker)
 
-Art that should spill past a tile's east edge (a mountain's shadow falling into
-the next cell) goes in a **third template column**, making the template 3×3
-tiles:
+Shadows are exported as their own blocks rather than baked into the tiles, so
+the game can draw them over whatever floor and modifiers sit in the neighboring
+cells. Two layer names carry roles:
 
-| Tile | Holds |
-|------|-------|
-| (2,0) | Ground swatch: a plain tile of the ground the overflow falls on |
-| (2,1)–(2,2) | The overflow, painted as a continuation of the 2×2 block's right edge |
+| Layer | Role |
+|-------|------|
+| `bg` | Reference ground. Never exported; it's only what "darker than the ground" is measured against. |
+| `shadows` | The shadow, painted in whatever shade reads well over `bg`. Exported as a two-color mask: flat black where it darkens the ground, transparent elsewhere. |
+| anything else | The tile art. |
 
-Paint it like the rest of the template. It follows the block's half-tile rows
-(at 32px): y 32–47 is the top cap (nothing to the north), y 48–79 the middle,
-y 80–95 the bottom cap (nothing to the south).
+Only the shadow's SHAPE is exported. The game draws it at the board's one
+shadow opacity — the same value unit shadows use — so every shadow moves
+together from one number, and the shade Lawrence paints with is his own choice.
 
-The output gains a second 12×4 grid right under the autotile: the overflow of
-the tile at (x, y) sits at (x, y + 4), filled only for the 13 tiles open to the
-east. With a swatch, pixels matching the ground vanish and darker ones become
-black at the opacity that darkens the ground to them, so the overlay reads
-right over any floor. Without one they're copied as painted. The sample scene
-draws each overflow into its tile's east neighbor, and is 13 tiles wide so its
-last column spills too. **Webtyler Export Tileset** writes the top-left 12×8
-tiles.
+Shadow that should fall past a tile's east edge, into the next cell, goes in a
+**third template column**, making the template 3×3 tiles. Paint it as a
+continuation of the 2×2 block's right edge; it follows the block's half-tile
+rows (at 32px): y 32–47 is the top cap (nothing to the north), y 48–79 the
+middle, y 80–95 the bottom cap (nothing to the south). The column beside the
+inner-corners tile (2,0) is never read — that tile can't sit at an east edge.
 
-`overflow_probe.lua` checks the conversion headlessly (usage in its header).
+The output then stacks three 12×4 blocks: the body at rows 0–3, each tile's own
+shadow at rows 4–7, and its east spill at rows 8–11, the spill filled only for
+the 13 tiles open to the east. Shadow is erased where it lands on the caster's
+own art, the way the tag exporter masks decoration shadows — so shading ON the
+rock is part of the tile art, painted where it belongs, not something the
+shadow layer can bleed onto. The sample scene draws the blocks the way the game
+will — shadow over its own cell, spill into the east neighbor, all over a
+ground fill — and is 13 tiles wide so its last column spills too.
+**Webtyler Export Tileset** writes the top-left 12×12 tiles; a frame with no
+shadow exports the plain 12×4 body.
+
+`overflow_probe.lua` checks the pipeline headlessly against the real mountain
+template (usage in its header).
 
 ### Animation
 

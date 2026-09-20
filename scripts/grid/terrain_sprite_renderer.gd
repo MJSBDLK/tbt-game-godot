@@ -73,6 +73,15 @@ const SHADOWS_ABOVE_MODIFIERS := true
 
 const _OOB_FADE_SHADER: Shader = preload("res://shaders/modifier_oob_fade.gdshader")
 
+## Autotile sheet blocks, in atlas rows (see
+## art/sprites/tilesets/modifier_autotiles/README.md): the body block is what
+## gets painted, the tile's own shadow sits BODY_BLOCK_ROWS below it, and the
+## shadow falling into the cell to the east another block down. Nothing paints
+## those rows — they are texture regions read under the painted tile.
+const BODY_BLOCK_ROWS: int = 4
+const SHADOW_BLOCK_ROWS: int = 4
+const SPILL_BLOCK_ROWS: int = 8
+
 ## Generated-shadow dials. Shared with UnitShadow so the board has ONE sun:
 ## the same rigid 90° tip-over (canvas-up → screen-right) and the same
 ## squash. If generated terrain shadows read longer than Lawrence's authored
@@ -116,6 +125,10 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if _layer == null:
 		return
+	# The Scene dock's eye toggles the LAYER; this overlay is unowned, so it has
+	# no eye of its own and must follow the layer's — otherwise hiding the
+	# modifier layer to see the floor underneath hides nothing.
+	visible = _layer.visible
 	_editor_poll_countdown -= 1
 	if _editor_poll_countdown > 0:
 		return
@@ -227,6 +240,15 @@ func refresh() -> void:
 		# the same world position. casts_shadow=false → none at all;
 		# otherwise authored wins and generated is the fallback.
 		var casts_shadow: bool = ModifierTerrainMap.casts_shadow(sprite_name)
+
+		# An autotile sheet is one source holding many tiles, so a cell draws
+		# its own atlas region rather than the whole texture, and its shadow is
+		# authored in the blocks below the body.
+		if source.get_tiles_count() > 1:
+			_spawn_autotile_cell(source, atlas_coords, visual_center,
+					south_row_index, tile_size, casts_shadow, fade_material)
+			continue
+
 		var shadow_path: String = _shadow_path_for(source.texture.resource_path)
 		if not casts_shadow:
 			pass
@@ -297,6 +319,91 @@ func refresh() -> void:
 	# visible — painting needs it — and the overlay simply covers its chunk.
 	if not in_editor:
 		_layer.visible = false
+
+
+## One painted cell of an autotile sheet: the body at its own cell, plus — when
+## the sheet carries shadow blocks — the tile's own shadow over that same cell
+## and its spill one cell east, both in the shadow slot so they fall onto
+## whatever the neighbors are. Authored blocks replace the generated cast
+## entirely: these sheets are mounds, and the rigid tip-over doesn't suit them.
+func _spawn_autotile_cell(source: TileSetAtlasSource, atlas_coords: Vector2i,
+		visual_center: Vector2, row_index: int, tile_size: Vector2i,
+		casts_shadow: bool, fade_material: ShaderMaterial) -> void:
+	var body_region: Rect2i = source.get_tile_texture_region(atlas_coords, 0)
+	_add_region_sprite(source.texture, body_region, visual_center,
+			body_z(row_index), fade_material)
+	if not casts_shadow or not has_shadow_blocks(source.texture, tile_size):
+		return
+	# The blocks are a two-color MASK: shape only, drawn at the board's one
+	# shadow opacity, the same ink the unit shadows bake in. (Authored
+	# <sprite>_shadow.png files are NOT masks — their opacity is already baked,
+	# so they draw unmodulated.)
+	var shadow_region := block_region(body_region, SHADOW_BLOCK_ROWS, tile_size)
+	if region_has_ink(source.texture, shadow_region):
+		_add_region_sprite(source.texture, shadow_region, visual_center,
+				shadow_z(row_index), fade_material, GameColors.CAST_SHADOW_INK)
+	# Only tiles open to the east carry a spill, so the ink check IS the
+	# "is there a cell to spill into" check.
+	var spill_region := block_region(body_region, SPILL_BLOCK_ROWS, tile_size)
+	if region_has_ink(source.texture, spill_region):
+		_add_region_sprite(source.texture, spill_region,
+				visual_center + Vector2(float(tile_size.x), 0.0),
+				shadow_z(row_index), fade_material, GameColors.CAST_SHADOW_INK)
+
+
+func _add_region_sprite(texture: Texture2D, region: Rect2i, position: Vector2,
+		z: int, fade_material: ShaderMaterial, modulate_color: Color = Color.WHITE) -> void:
+	var sprite := Sprite2D.new()
+	sprite.texture = texture
+	sprite.centered = true
+	sprite.region_enabled = true
+	sprite.region_rect = Rect2(region)
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	sprite.position = position
+	sprite.z_index = z
+	sprite.z_as_relative = false
+	sprite.modulate = modulate_color
+	sprite.material = fade_material
+	add_child(sprite)
+	_sprites.append(sprite)
+
+
+## Pure: the same atlas cell `rows` rows further down the sheet.
+static func block_region(body_region: Rect2i, rows: int, tile_size: Vector2i) -> Rect2i:
+	return Rect2i(body_region.position + Vector2i(0, rows * tile_size.y), body_region.size)
+
+
+## A sheet carries authored shadows when it stands three body blocks tall.
+static func has_shadow_blocks(texture: Texture2D, tile_size: Vector2i) -> bool:
+	if texture == null:
+		return false
+	return texture.get_height() >= (SPILL_BLOCK_ROWS + BODY_BLOCK_ROWS) * tile_size.y
+
+
+# Shadow blocks are mostly empty, and an empty region must not spawn a sprite.
+# Keyed by texture RID + region origin, so each block is scanned once a session.
+static var _region_ink_cache: Dictionary = {}
+
+
+static func region_has_ink(texture: Texture2D, region: Rect2i) -> bool:
+	if texture == null:
+		return false
+	var key := "%s|%d,%d" % [texture.get_rid(), region.position.x, region.position.y]
+	if _region_ink_cache.has(key):
+		return _region_ink_cache[key]
+	var image: Image = texture.get_image()
+	var found := false
+	if image != null:
+		var clipped := region.intersection(Rect2i(Vector2i.ZERO, image.get_size()))
+		for y in range(clipped.position.y, clipped.end.y):
+			for x in range(clipped.position.x, clipped.end.x):
+				if image.get_pixel(x, y).a > 0.0:
+					found = true
+					break
+			if found:
+				break
+	_region_ink_cache[key] = found
+	return found
 
 
 ## Sprites spawned by the last refresh (tests / diagnostics).

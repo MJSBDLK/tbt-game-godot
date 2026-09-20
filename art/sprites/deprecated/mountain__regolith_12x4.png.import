@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dpo3poj5hua6c"
-path="res://.godot/imported/mountain__regolith_12x4.png-941f1085c4793be8c656f224dbaca5c0.ctex"
+path="res://.godot/imported/mountain__regolith_12x4.png-a8f3dfc0133d3fe9a04de4b78a49fc2c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/sprites/tilesets/12x4_terrains/mountain__regolith_12x4.png"
-dest_files=["res://.godot/imported/mountain__regolith_12x4.png-941f1085c4793be8c656f224dbaca5c0.ctex"]
+source_file="res://art/sprites/deprecated/mountain__regolith_12x4.png"
+dest_files=["res://.godot/imported/mountain__regolith_12x4.png-a8f3dfc0133d3fe9a04de4b78a49fc2c.ctex"]
 
 [params]
 

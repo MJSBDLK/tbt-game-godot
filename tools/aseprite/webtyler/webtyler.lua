@@ -412,6 +412,75 @@ local function createTempImage(w, h, colorMode)
     return img
 end
 
+-- Erase shadow that lands on the caster's OWN art. Terrain shadows draw one
+-- slot above the bodies so they fall onto the neighbors, which means an
+-- unmasked shadow would darken the very rock that casts it — with a hard seam
+-- at the tile edge. The spill block is deliberately NOT masked: falling on the
+-- east neighbor is its whole job. (The tag exporter masks decoration shadows
+-- the same way.)
+local function maskShadowByBody(dstImg, tileW, tileH, shadowRowOffset)
+    local pc = app.pixelColor
+    local clear = pc.rgba(0, 0, 0, 0)
+    for ty = 0, 3 do
+        for tx = 0, 11 do
+            for ly = 0, tileH - 1 do
+                for lx = 0, tileW - 1 do
+                    local bodyX, bodyY = tx * tileW + lx, ty * tileH + ly
+                    if pc.rgbaA(safeGetPixel(dstImg, bodyX, bodyY)) > 0 then
+                        safeDrawPixel(dstImg, bodyX, bodyY + shadowRowOffset * tileH, clear)
+                    end
+                end
+            end
+        end
+    end
+end
+
+
+-- Any non-transparent pixel in the region (the whole image when none given).
+local function imageHasInk(img, x0, y0, w, h)
+    if not img then return false end
+    x0, y0 = x0 or 0, y0 or 0
+    w = w or (img.width - x0)
+    h = h or (img.height - y0)
+    for y = y0, y0 + h - 1 do
+        for x = x0, x0 + w - 1 do
+            if app.pixelColor.rgbaA(safeGetPixel(img, x, y)) > 0 then return true end
+        end
+    end
+    return false
+end
+
+-- The rpgmaker 2×3 reference → one 12×4 autotile block. Run once for the art
+-- and again for the shadow, which share the template's geometry.
+local function convertRpgmakerBlock(srcImg, tileW, tileH, offsets)
+    local minitiles = createTempImage(tileW * 5, tileH, srcImg.colorMode)
+    copyTileQuadRaw(srcImg, minitiles, {0, 0}, {0, 0}, {0, 1}, tileW, tileH, offsets)
+    copyTileQuadRaw(srcImg, minitiles, {0, 0}, {1, 0}, {1, 1}, tileW, tileH, offsets)
+    copyTileQuadRaw(srcImg, minitiles, {0, 0}, {0, 1}, {0, 2}, tileW, tileH, offsets)
+    copyTileQuadRaw(srcImg, minitiles, {0, 0}, {1, 1}, {1, 2}, tileW, tileH, offsets)
+
+    copyTileQuadRaw(srcImg, minitiles, {1, 0}, {0, 1}, {0, 1}, tileW, tileH, offsets)
+    copyTileQuadRaw(srcImg, minitiles, {1, 0}, {1, 1}, {1, 1}, tileW, tileH, offsets)
+    copyTileQuadRaw(srcImg, minitiles, {1, 0}, {0, 0}, {0, 2}, tileW, tileH, offsets)
+    copyTileQuadRaw(srcImg, minitiles, {1, 0}, {1, 0}, {1, 2}, tileW, tileH, offsets)
+
+    copyTileQuadRaw(srcImg, minitiles, {2, 0}, {1, 0}, {0, 1}, tileW, tileH, offsets)
+    copyTileQuadRaw(srcImg, minitiles, {2, 0}, {0, 0}, {1, 1}, tileW, tileH, offsets)
+    copyTileQuadRaw(srcImg, minitiles, {2, 0}, {1, 1}, {0, 2}, tileW, tileH, offsets)
+    copyTileQuadRaw(srcImg, minitiles, {2, 0}, {0, 1}, {1, 2}, tileW, tileH, offsets)
+
+    copyTile(srcImg, minitiles, 3, 0, 1, 0, tileW, tileH)
+
+    copyTileQuadRaw(srcImg, minitiles, {4, 0}, {1, 1}, {0, 1}, tileW, tileH, offsets)
+    copyTileQuadRaw(srcImg, minitiles, {4, 0}, {0, 1}, {1, 1}, tileW, tileH, offsets)
+    copyTileQuadRaw(srcImg, minitiles, {4, 0}, {1, 0}, {0, 2}, tileW, tileH, offsets)
+    copyTileQuadRaw(srcImg, minitiles, {4, 0}, {0, 0}, {1, 2}, tileW, tileH, offsets)
+
+    local block = createTempImage(tileW * 12, tileH * 4, srcImg.colorMode)
+    updateMinitiles(minitiles, block, tileW, tileH, offsets)
+    return block
+end
+
 ----------------------------------------------------------------------
 -- OVERFLOW (rpgmaker only)
 ----------------------------------------------------------------------
@@ -426,18 +495,27 @@ local overflow_minitile_sources = {
     {{0,0}, {2,1}, {2,2}},
     {{1,0}, {2,2}, {2,1}},
 }
--- The overflow atlas sits right under the 12×4 autotile: the overflow of the
--- tile at (x, y) is at (x, y + OVERFLOW_ROW_OFFSET).
-local OVERFLOW_ROW_OFFSET = 4
--- A plain tile of the ground the overflow falls on.
-local GROUND_SWATCH_TILE = {2, 0}
--- Overlay alpha below this is ground texture, not shadow (5/255 ≈ 2%).
-local OVERLAY_MIN_ALPHA = 5
+-- Output blocks, 4 rows each: the body at row 0, the tile's own shadow at
+-- SHADOW_ROW_OFFSET, and the part of the shadow that falls into the east
+-- neighbor at SPILL_ROW_OFFSET. No shadow layer → just the body block.
+local SHADOW_ROW_OFFSET = 4
+local SPILL_ROW_OFFSET = 8
+-- Layer roles, matched on name (case-insensitive). `bg` is reference ground:
+-- never exported, its flat color is what shadow opacity is measured against.
+-- `shadows` becomes the shadow and spill blocks.
+local BG_LAYER_NAME = "bg"
+local SHADOW_LAYER_NAME = "shadows"
+-- Darkening below this is ground texture, not shadow (5/255 ≈ 2%).
+local SHADOW_MIN_DARKENING = 5
+-- The game applies the real shadow opacity at draw time from one shared value
+-- (GameColors.CAST_SHADOW_INK), so the sheet carries only the SHAPE. The
+-- preview stands in that value purely so the sample scene reads true.
+local PREVIEW_SHADOW_ALPHA = 102
 
 -- Writes the overflow atlas into dstImg. Each output tile's rightmost section
 -- decides its east edge per row, so the overflow copies that row from the same
 -- minitile's overflow; rows whose edge is closed (minitiles 2-4) stay empty.
-local function buildOverflowAtlas(srcImg, dstImg, tileW, tileH, offsets)
+local function buildOverflowAtlas(srcImg, dstImg, tileW, tileH, offsets, rowOffset)
     local overflowMinitiles = createTempImage(tileW * 2, tileH, srcImg.colorMode)
     for _, entry in ipairs(overflow_minitile_sources) do
         for sx = 0, 1 do
@@ -453,7 +531,7 @@ local function buildOverflowAtlas(srcImg, dstImg, tileW, tileH, offsets)
             if edgeSource[2] == 0 and (edgeSource[1] == 0 or edgeSource[1] == 1) then
                 for sx = 0, 2 do
                     copyTileSectionRaw(overflowMinitiles, dstImg,
-                        {target[1], target[2] + OVERFLOW_ROW_OFFSET}, {sx, sy},
+                        {target[1], target[2] + rowOffset}, {sx, sy},
                         edgeSource, tileW, tileH, offsets)
                 end
             end
@@ -461,15 +539,14 @@ local function buildOverflowAtlas(srcImg, dstImg, tileW, tileH, offsets)
     end
 end
 
--- Most common opaque color in the ground swatch tile; nil when the swatch is
--- empty or the sprite isn't RGB (the overlay needs real alpha).
-local function groundSwatchColor(srcImg, tileW, tileH)
-    if not ColorMode or srcImg.colorMode ~= ColorMode.RGB then return nil end
+-- Most common opaque color in an image; nil when it has none or the sprite
+-- isn't RGB (the shadow overlay needs real alpha).
+local function dominantOpaqueColor(img)
+    if not img or not ColorMode or img.colorMode ~= ColorMode.RGB then return nil end
     local counts, best, bestCount = {}, nil, 0
-    for y = 0, tileH - 1 do
-        for x = 0, tileW - 1 do
-            local px = safeGetPixel(srcImg,
-                GROUND_SWATCH_TILE[1] * tileW + x, GROUND_SWATCH_TILE[2] * tileH + y)
+    for y = 0, img.height - 1 do
+        for x = 0, img.width - 1 do
+            local px = img:getPixel(x, y)
             if app.pixelColor.rgbaA(px) == 255 then
                 local n = (counts[px] or 0) + 1
                 counts[px] = n
@@ -485,26 +562,25 @@ local function luminance(px)
     return 0.299 * pc.rgbaR(px) + 0.587 * pc.rgbaG(px) + 0.114 * pc.rgbaB(px)
 end
 
--- Turns the painted overflow into a shadow overlay: pixels matching the ground
--- vanish, darker ones become black at the opacity that darkens the ground to
--- them, so the overflow reads right over whatever floor the game puts there.
--- Pixels brighter than the ground aren't shadow and vanish too.
-local function convertOverflowToOverlay(dstImg, ground, tileW, tileH)
+-- Turns shadow painted in the shade color into a two-color MASK: flat black
+-- where the paint darkens `ground`, transparent everywhere else. Only the
+-- shape is exported — the game draws it at the board's one shadow opacity, the
+-- same value unit shadows use — so Lawrence can paint in whatever shade reads
+-- well in Aseprite.
+local function convertToShadowMask(img, ground)
     local pc = app.pixelColor
     local groundLuminance = luminance(ground)
     if groundLuminance <= 0 then return end
-    local top = OVERFLOW_ROW_OFFSET * tileH
-    for y = top, top + 4 * tileH - 1 do
-        for x = 0, 12 * tileW - 1 do
-            local px = safeGetPixel(dstImg, x, y)
+    local ink = pc.rgba(0, 0, 0, 255)
+    local clear = pc.rgba(0, 0, 0, 0)
+    for y = 0, img.height - 1 do
+        for x = 0, img.width - 1 do
+            local px = img:getPixel(x, y)
+            local darkening = 0
             if pc.rgbaA(px) > 0 then
-                local alpha = math.floor((1 - luminance(px) / groundLuminance) * 255 + 0.5)
-                if alpha < OVERLAY_MIN_ALPHA then
-                    safeDrawPixel(dstImg, x, y, pc.rgba(0, 0, 0, 0))
-                else
-                    safeDrawPixel(dstImg, x, y, pc.rgba(0, 0, 0, math.min(alpha, 255)))
-                end
+                darkening = (1 - luminance(px) / groundLuminance) * 255
             end
+            img:drawPixel(x, y, darkening >= SHADOW_MIN_DARKENING and ink or clear)
         end
     end
 end
@@ -539,6 +615,21 @@ local function blendOver(dstImg, x, y, overlay)
         pc.rgbaA(under)))
 end
 
+-- Draw one mask tile at the board's shadow opacity — the preview's stand-in
+-- for what the game does with GameColors.CAST_SHADOW_INK.
+local function blendMaskTile(dstImg, tx, ty, destX, destY, tileW, tileH)
+    local pc = app.pixelColor
+    local ink = pc.rgba(0, 0, 0, PREVIEW_SHADOW_ALPHA)
+    for py = 0, tileH - 1 do
+        for px = 0, tileW - 1 do
+            if pc.rgbaA(safeGetPixel(dstImg, tx * tileW + px, ty * tileH + py)) > 0 then
+                blendOver(dstImg, destX + px, destY + py, ink)
+            end
+        end
+    end
+end
+
+
 -- Godot atlas index of a sample-scene cell, or -1 when the cell is empty.
 local function previewTileIndex(row, col)
     local rowData = preview_data[row]
@@ -551,54 +642,47 @@ local function previewTileIndex(row, col)
     return tileIndex
 end
 
--- Render the wareya sample scene from the 12×4 autotile region of dstImg
--- into a 12×9 region starting at sceneStartY. With an overflow source (the
--- rpgmaker template), each east-open tile then spills its overflow into its
--- empty east neighbor, over the ground swatch when the template has one; the
--- canvas keeps a 13th column so a tile in the scene's last column spills too.
-local function drawPreviewScene(dstImg, tileW, tileH, sceneStartY, overflowSource)
+-- Render the wareya sample scene from the freshly built blocks into a 12×9
+-- region starting at sceneStartY, over a ground fill when the template has a
+-- `bg` layer. With shadows, each tile's shadow goes over its own cell and its
+-- spill into the empty cell east of it; the canvas keeps a 13th column so a
+-- tile in the scene's last column spills too.
+local function drawPreviewScene(dstImg, tileW, tileH, sceneStartY, withShadow, ground)
+    if ground then
+        for y = sceneStartY, sceneStartY + 9 * tileH - 1 do
+            for x = 0, 13 * tileW - 1 do
+                safeDrawPixel(dstImg, x, y, ground)
+            end
+        end
+    end
     for row = 1, #preview_data do
         for col = 1, #preview_data[row] do
             local tileIndex = previewTileIndex(row, col)
             if tileIndex >= 0 then
-                local tx = tileIndex % 12
-                local ty = math.floor(tileIndex / 12)
+                local tx, ty = tileIndex % 12, math.floor(tileIndex / 12)
                 for py = 0, tileH - 1 do
                     for px = 0, tileW - 1 do
-                        local pixel = safeGetPixel(dstImg, tx * tileW + px, ty * tileH + py)
-                        safeDrawPixel(dstImg,
-                            (col - 1) * tileW + px,
+                        blendOver(dstImg, (col - 1) * tileW + px,
                             sceneStartY + (row - 1) * tileH + py,
-                            pixel)
+                            safeGetPixel(dstImg, tx * tileW + px, ty * tileH + py))
                     end
                 end
             end
         end
     end
 
-    if not overflowSource or not ColorMode or overflowSource.colorMode ~= ColorMode.RGB then
-        return
-    end
-    local hasGround = groundSwatchColor(overflowSource, tileW, tileH) ~= nil
+    if not withShadow then return end
     for row = 1, #preview_data do
         for col = 1, #preview_data[row] do
             local tileIndex = previewTileIndex(row, col)
-            if tileIndex >= 0 and previewTileIndex(row, col + 1) < 0 then
-                local tx = tileIndex % 12
-                local ty = math.floor(tileIndex / 12) + OVERFLOW_ROW_OFFSET
-                if tileHasInk(dstImg, tx, ty, tileW, tileH) then
-                    local cellX = col * tileW
-                    local cellY = sceneStartY + (row - 1) * tileH
-                    for py = 0, tileH - 1 do
-                        for px = 0, tileW - 1 do
-                            if hasGround then
-                                safeDrawPixel(dstImg, cellX + px, cellY + py, safeGetPixel(overflowSource,
-                                    GROUND_SWATCH_TILE[1] * tileW + px, GROUND_SWATCH_TILE[2] * tileH + py))
-                            end
-                            blendOver(dstImg, cellX + px, cellY + py,
-                                safeGetPixel(dstImg, tx * tileW + px, ty * tileH + py))
-                        end
-                    end
+            if tileIndex >= 0 then
+                local tx, ty = tileIndex % 12, math.floor(tileIndex / 12)
+                local cellY = sceneStartY + (row - 1) * tileH
+                blendMaskTile(dstImg, tx, ty + SHADOW_ROW_OFFSET,
+                    (col - 1) * tileW, cellY, tileW, tileH)
+                if previewTileIndex(row, col + 1) < 0 then
+                    blendMaskTile(dstImg, tx, ty + SPILL_ROW_OFFSET,
+                        col * tileW, cellY, tileW, tileH)
                 end
             end
         end
@@ -686,21 +770,54 @@ local function compositeLayerInto(layer, frameNumber, dst)
     end
 end
 
--- Build a canvas-sized composite of all VISIBLE layers, each placed at its true
--- canvas position. This is the critical difference from Image:drawSprite, which
--- flushes rendered content to the image origin and so DROPS a transparent margin
--- around the art — shifting every tile read by the margin width and producing
--- seams in every output tile. Manual placement preserves the margin, so the tile
--- grid stays aligned to (0,0) exactly like the web tool's PNG input.
-local function renderSourceComposite(source, frame)
-    local img = Image(source.spec)
-    img:clear()
+-- Layer roles by name; see BG_LAYER_NAME / SHADOW_LAYER_NAME.
+local function layerRole(layer)
+    local name = (layer.name or ""):lower()
+    if name == BG_LAYER_NAME then return "bg" end
+    if name == SHADOW_LAYER_NAME then return "shadow" end
+    return "art"
+end
+
+-- Does this file carry a shadow layer at all? Decides the preview's height; a
+-- frame that leaves it empty simply exports the body block.
+local function sourceHasShadowLayer(source)
+    for _, layer in ipairs(source.layers) do
+        if layerRole(layer) == "shadow" then return true end
+    end
+    return false
+end
+
+-- Build this frame's composites, each layer placed at its TRUE canvas position.
+-- (Image:drawSprite flushes content to the origin, DROPPING a transparent
+-- margin around the art and shifting every tile read, which seams every output
+-- tile.) Roles split the result: `bg` never reaches the output — it is only the
+-- reference the shadow's opacity is measured against — `shadows` becomes a
+-- black overlay, and everything else is the art.
+-- Returns art, shadow (nil when empty), ground color (nil without a bg layer).
+local function renderSourceComposites(source, frame)
     local frameNumber = frame
     pcall(function() frameNumber = frame.frameNumber end)
+    local art = Image(source.spec)
+    art:clear()
+    local shadow, ground = nil, nil
     for _, layer in ipairs(source.layers) do
-        compositeLayerInto(layer, frameNumber, img)
+        local role = layerRole(layer)
+        if role == "bg" then
+            local bg = Image(source.spec)
+            bg:clear()
+            compositeLayerInto(layer, frameNumber, bg)
+            ground = dominantOpaqueColor(bg)
+        elseif role == "shadow" then
+            shadow = Image(source.spec)
+            shadow:clear()
+            compositeLayerInto(layer, frameNumber, shadow)
+        else
+            compositeLayerInto(layer, frameNumber, art)
+        end
     end
-    return img
+    if shadow and not imageHasInk(shadow) then shadow = nil end
+    if shadow and ground then convertToShadowMask(shadow, ground) end
+    return art, shadow, ground
 end
 
 -- Stamp the raw source tileset (this frame's composite) into the preview canvas
@@ -822,10 +939,11 @@ updatePreviews = function(activeFrameOnly)
         bottom = settings.bottomOffset,
     }
 
-    -- rpgmaker stacks the overflow atlas under the 12×4 autotile, so the scene
-    -- and fill preview start OVERFLOW_ROW_OFFSET rows lower there.
-    local overflowActive = (mode == "rpgmaker")
-    local tileBlocksH = (overflowActive and 4 + OVERFLOW_ROW_OFFSET or 4) * tileH
+    -- rpgmaker with a `shadows` layer stacks two more blocks under the autotile
+    -- (the tile's own shadow, then its east spill), so everything below starts
+    -- that much lower.
+    local shadowActive = (mode == "rpgmaker") and sourceHasShadowLayer(source)
+    local tileBlocksH = (shadowActive and SPILL_ROW_OFFSET + 4 or 4) * tileH
     local sceneStartY = tileBlocksH + tileH
     local sceneH = settings.showPreviewScene and (1 + 9) * tileH or 0
     -- 3×3 seamless-fill preview lives at output (5.5·tileW, tile blocks + ½·tileH)
@@ -836,7 +954,7 @@ updatePreviews = function(activeFrameOnly)
     local fillStartX = math.floor(11 * tileW / 2)
     local fillStartY = tileBlocksH + math.floor(tileH / 2)
     -- rpgmaker keeps a 13th column so the scene's last-column tiles can spill.
-    local outW = (overflowActive and 13 or 12) * tileW
+    local outW = (shadowActive and 13 or 12) * tileW
     local outH = tileBlocksH + sceneH
     if fillActive then
         outH = math.max(outH, fillStartY + 3 * tileH)
@@ -857,8 +975,16 @@ updatePreviews = function(activeFrameOnly)
     if not isSpriteValid(previewSprite) then
         previewSprite = Sprite(outW, outH, source.colorMode)
         previewSprite.filename = "Webtyler Preview"
-        for i = 0, #source.palettes[1] - 1 do
-            previewSprite.palettes[1]:setColor(i, source.palettes[1]:getColor(i))
+        -- A new Sprite starts with a 256-color palette, so a bigger source
+        -- palette walks setColor off its end ("index out of bounds 256" on the
+        -- first run of every session, harmless on the retry because the preview
+        -- sprite already exists by then). Grow it first, and never index past
+        -- whichever is shorter.
+        local sourcePalette = source.palettes[1]
+        local previewPalette = previewSprite.palettes[1]
+        pcall(function() previewPalette:resize(#sourcePalette) end)
+        for i = 0, math.min(#sourcePalette, #previewPalette) - 1 do
+            previewPalette:setColor(i, sourcePalette:getColor(i))
         end
     elseif previewSprite.width ~= outW or previewSprite.height ~= outH then
         previewSprite:resize(outW, outH)
@@ -908,9 +1034,9 @@ updatePreviews = function(activeFrameOnly)
 
     for _, job in ipairs(jobs) do
         local srcFrame = source.frames[job.src]
-        local srcImg
+        local srcImg, shadowImg, groundColor
         if not srcFrame or not pcall(function()
-                srcImg = renderSourceComposite(source, srcFrame)
+                srcImg, shadowImg, groundColor = renderSourceComposites(source, srcFrame)
             end) or not srcImg then
             renderOk = false
             break
@@ -1009,44 +1135,18 @@ updatePreviews = function(activeFrameOnly)
         copyTile(srcImg, dstImg, 3, 3, 4, 2, tileW, tileH)
         
     elseif mode == "rpgmaker" then
-        local tempImg = createTempImage(tileW * 5, tileH, srcImg.colorMode)
-        -- RPGMaker MV format conversion
-        copyTileQuadRaw(srcImg, tempImg, {0, 0}, {0, 0}, {0, 1}, tileW, tileH, offsets)
-        copyTileQuadRaw(srcImg, tempImg, {0, 0}, {1, 0}, {1, 1}, tileW, tileH, offsets)
-        copyTileQuadRaw(srcImg, tempImg, {0, 0}, {0, 1}, {0, 2}, tileW, tileH, offsets)
-        copyTileQuadRaw(srcImg, tempImg, {0, 0}, {1, 1}, {1, 2}, tileW, tileH, offsets)
-        
-        copyTileQuadRaw(srcImg, tempImg, {1, 0}, {0, 1}, {0, 1}, tileW, tileH, offsets)
-        copyTileQuadRaw(srcImg, tempImg, {1, 0}, {1, 1}, {1, 1}, tileW, tileH, offsets)
-        copyTileQuadRaw(srcImg, tempImg, {1, 0}, {0, 0}, {0, 2}, tileW, tileH, offsets)
-        copyTileQuadRaw(srcImg, tempImg, {1, 0}, {1, 0}, {1, 2}, tileW, tileH, offsets)
-        
-        copyTileQuadRaw(srcImg, tempImg, {2, 0}, {1, 0}, {0, 1}, tileW, tileH, offsets)
-        copyTileQuadRaw(srcImg, tempImg, {2, 0}, {0, 0}, {1, 1}, tileW, tileH, offsets)
-        copyTileQuadRaw(srcImg, tempImg, {2, 0}, {1, 1}, {0, 2}, tileW, tileH, offsets)
-        copyTileQuadRaw(srcImg, tempImg, {2, 0}, {0, 1}, {1, 2}, tileW, tileH, offsets)
-        
-        copyTile(srcImg, tempImg, 3, 0, 1, 0, tileW, tileH)
-        
-        copyTileQuadRaw(srcImg, tempImg, {4, 0}, {1, 1}, {0, 1}, tileW, tileH, offsets)
-        copyTileQuadRaw(srcImg, tempImg, {4, 0}, {0, 1}, {1, 1}, tileW, tileH, offsets)
-        copyTileQuadRaw(srcImg, tempImg, {4, 0}, {1, 0}, {0, 2}, tileW, tileH, offsets)
-        copyTileQuadRaw(srcImg, tempImg, {4, 0}, {0, 0}, {1, 2}, tileW, tileH, offsets)
-
-        -- Template column 2 → overflow atlas, as a shadow overlay when (2,0)
-        -- holds a ground swatch.
-        buildOverflowAtlas(srcImg, dstImg, tileW, tileH, offsets)
-        local ground = groundSwatchColor(srcImg, tileW, tileH)
-        if ground then
-            convertOverflowToOverlay(dstImg, ground, tileW, tileH)
+        dstImg:drawImage(convertRpgmakerBlock(srcImg, tileW, tileH, offsets), Point(0, 0))
+        if shadowImg then
+            dstImg:drawImage(convertRpgmakerBlock(shadowImg, tileW, tileH, offsets),
+                Point(0, SHADOW_ROW_OFFSET * tileH))
+            maskShadowByBody(dstImg, tileW, tileH, SHADOW_ROW_OFFSET)
+            buildOverflowAtlas(shadowImg, dstImg, tileW, tileH, offsets, SPILL_ROW_OFFSET)
         end
-        
-        updateMinitiles(tempImg, dstImg, tileW, tileH, offsets)
     end
-    
+
     -- Draw the sample-scene region from the freshly-generated autotile
     if settings.showPreviewScene then
-        drawPreviewScene(dstImg, tileW, tileH, sceneStartY, overflowActive and srcImg or nil)
+        drawPreviewScene(dstImg, tileW, tileH, sceneStartY, shadowImg ~= nil, groundColor)
     end
 
     -- Stamp the 3×3 seamless-fill preview (rpgmaker only)
@@ -1057,6 +1157,14 @@ updatePreviews = function(activeFrameOnly)
         -- Stamp the raw source tileset alongside the output (optional).
         if inputActive then
             drawSourceInput(srcImg, dstImg, inputStartX, inputStartY)
+            -- Shadow on top at the board's opacity, so the stamp shows what
+            -- the game will draw rather than the bare mask.
+            if shadowImg then
+                pcall(function()
+                    dstImg:drawImage(shadowImg, Point(inputStartX, inputStartY),
+                        PREVIEW_SHADOW_ALPHA)
+                end)
+            end
         end
 
         -- Write this frame into the matching preview frame.
@@ -1270,18 +1378,24 @@ end
 ----------------------------------------------------------------------
 -- EXPORT
 ----------------------------------------------------------------------
--- The Godot-facing tileset is the preview's top-left 12×4 tiles, or 12×8 in
--- rpgmaker mode where the overflow atlas rides underneath. The rest of the
--- canvas (sample scene, fill stamp, input copy) is for eyes only.
-local function exportRows()
-    return settings.mode == "rpgmaker" and (4 + OVERFLOW_ROW_OFFSET) or 4
-end
-
 -- The preview frame to export and the source frame it was rendered from.
 local function exportFrames()
     local frame = (app.activeSprite == previewSprite and app.activeFrame)
         or previewSprite.frames[1]
     return frame, (previewStartFrame or 1) + frame.frameNumber - 1
+end
+
+-- The Godot-facing tileset is the preview's top-left 12×4 tiles, or 12×12 when
+-- this frame carries shadow blocks. The rest of the canvas (sample scene, fill
+-- stamp, input copy) is for eyes only.
+local function exportRows()
+    local frame = exportFrames()
+    local cel = previewSprite.layers[1]:cel(frame)
+    if cel and imageHasInk(cel.image, 0, SHADOW_ROW_OFFSET * settings.tileH,
+            12 * settings.tileW, 8 * settings.tileH) then
+        return SPILL_ROW_OFFSET + 4
+    end
+    return 4
 end
 
 local function tagNameForFrame(sprite, frameNumber)

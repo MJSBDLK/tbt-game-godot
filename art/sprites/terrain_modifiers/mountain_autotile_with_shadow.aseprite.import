@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://bxtlw3lem7cpx"
+path="res://.godot/imported/mountain_autotile_with_shadow.aseprite-9f3eb72db6fb7b58827a9d4d0b5f6d74.res"
+
+[deps]
+
+source_file="res://art/sprites/terrain_modifiers/mountain_autotile_with_shadow.aseprite"
+dest_files=["res://.godot/imported/mountain_autotile_with_shadow.aseprite-9f3eb72db6fb7b58827a9d4d0b5f6d74.res"]
+
+[params]
+

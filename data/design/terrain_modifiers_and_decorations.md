@@ -284,6 +284,26 @@ The loose `crater_small.png`, `crater_large.png`, `tree_01.png` in the
 `terrain_modifiers/` root are legacy placeholders from before this system;
 they aren't in a subfolder, so they're never registered.
 
+### Autotile modifier sheets
+
+A modifier can also be an **autotile sheet** rather than a stamped sprite:
+one atlas holding the 47 Webtyler variants, painted with Godot's terrain
+brush on `ModifierTileLayer` so a range shapes itself. Mountains are the
+first. These differ from the sprites above in three ways:
+
+- **One source, many tiles.** Registered by
+  [register_autotile_modifier.gd](../../tools/register_autotile_modifier.gd)
+  below source id 100, so the single-sprite invariants (one tile per source,
+  texture in an export dir) keep holding. Terrain still resolves through
+  `modifier_terrain.json` by the source's `resource_name`.
+- **Shadows are authored in blocks**, not generated: the sheet stacks body,
+  the tile's own shadow, and the shadow that falls into the cell east of it.
+  The renderer draws the two shadow blocks at the board's shared
+  `CAST_SHADOW_INK`, so they darken with everything else. The rigid tip-over
+  cast never runs for these — it suits tall casters, not mounds.
+- **Art and layout** live in
+  [modifier_autotiles/README.md](../../art/sprites/tilesets/modifier_autotiles/README.md).
+
 ## Export pipeline
 
 Right-click a `.aseprite` file in the FileSystem dock → **Export Tags as
