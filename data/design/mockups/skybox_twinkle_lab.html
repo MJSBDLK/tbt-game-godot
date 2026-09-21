@@ -140,7 +140,7 @@
       </div>
       <div class="group">
         <h3>Look</h3>
-        <div class="lever"><div class="row"><label for="tail_end_alpha">Outer tail pixel</label><span id="v-tail_end_alpha"></span></div><input type="range" id="tail_end_alpha" min="0" max="1" step="0.05"></div>
+        <div class="lever"><div class="row"><label for="tail_tip_alpha">Tail tip pixel</label><span id="v-tail_tip_alpha"></span></div><input type="range" id="tail_tip_alpha" min="0" max="1" step="0.05"></div>
         <div class="lever"><div class="row"><label for="rest_alpha_min">Dimmest star at rest</label><span id="v-rest_alpha_min"></span></div><input type="range" id="rest_alpha_min" min="0" max="1" step="0.05"></div>
         <div class="lever"><div class="row"><label for="twinkle_amount">Overall twinkle</label><span id="v-twinkle_amount"></span></div><input type="range" id="twinkle_amount" min="0" max="1" step="0.05"></div>
         <div class="colors">
@@ -176,6 +176,7 @@
       </table>
       <ul class="hint">
         <li>Each star's footprint is 7×7 at full reach. Stars closer than that overlap their tails, which is allowed but busy.</li>
+        <li>A tail's newest pixel is always the dimmest (the "tail tip pixel" lever). Pixels behind it brighten one step per pixel as the tail grows, and dim the same way as it retracts.</li>
         <li>A dimmer painted star also rests dimmer (the "dimmest star at rest" lever sets the floor). Set that lever to 1 if every core should sit at full brightness.</li>
         <li>Near-black or transparent pixels are empty sky. The dark background is its own layer underneath this one.</li>
       </ul>
@@ -234,8 +235,10 @@ vec2 flash_state(ivec2 cell, float cadence, float t) {
 }
 
 
-float tail_alpha(int k) {
-	return mix(1.0, tail_end_alpha, float(k - 1) * 0.5);
+// k = distance from the core, reach = the tail's current length.
+float tail_alpha(int k, int reach) {
+	float depth = float(reach - k) / float(MAX_REACH - 1);
+	return mix(tail_tip_alpha, 1.0, depth);
 }
 
 
@@ -260,12 +263,12 @@ float star_alpha(ivec2 cell, vec3 channels, ivec2 offset, float t) {
 	bool odd_flash = mod(state.y, 2.0) >= 1.0;
 	if (has_x && !(has_plus && odd_flash) && a.x == a.y) {
 		int reach = int(round(swell * channels.r * float(MAX_REACH) * twinkle_amount));
-		return a.x <= reach ? tail_alpha(a.x) : 0.0;
+		return a.x <= reach ? tail_alpha(a.x, reach) : 0.0;
 	}
 	if (has_plus && !(has_x && !odd_flash) && min(a.x, a.y) == 0) {
 		int k = max(a.x, a.y);
 		int reach = int(round(swell * channels.g * float(MAX_REACH) * twinkle_amount));
-		return k <= reach ? tail_alpha(k) : 0.0;
+		return k <= reach ? tail_alpha(k, reach) : 0.0;
 	}
 	return 0.0;
 }
@@ -300,12 +303,12 @@ float sky_alpha(sampler2D star_map, ivec2 cell, float t) {
   var DEFAULTS = {
     flash_seconds: 0.6, hold_seconds: 0.0, frame_rate: 12,
     period_slow_seconds: 8, period_fast_seconds: 1.5, period_jitter: 0.2,
-    tail_end_alpha: 0.35, rest_alpha_min: 0.6, twinkle_amount: 1,
+    tail_tip_alpha: 0.35, rest_alpha_min: 0.6, twinkle_amount: 1,
     star_color: '#edede3', background: '#06070c',
     speed: 1, scale: 3, density: 220
   };
   var SHADER_KEYS = ['flash_seconds', 'hold_seconds', 'frame_rate', 'period_slow_seconds', 'period_fast_seconds',
-                     'period_jitter', 'tail_end_alpha', 'rest_alpha_min', 'twinkle_amount'];
+                     'period_jitter', 'tail_tip_alpha', 'rest_alpha_min', 'twinkle_amount'];
   var STORAGE = 'skybox-twinkle-lab';
   var MAP_W = 320, MAP_H = 180;
 
@@ -335,7 +338,7 @@ float sky_alpha(sampler2D star_map, ivec2 cell, float t) {
     'uniform sampler2D star_map;',
     'uniform vec4 star_color;',
     'uniform float twinkle_amount, flash_seconds, hold_seconds, period_slow_seconds, period_fast_seconds,',
-    '              period_jitter, frame_rate, tail_end_alpha, rest_alpha_min, u_time;',
+    '              period_jitter, frame_rate, tail_tip_alpha, rest_alpha_min, u_time;',
     'uniform int map_height, show_source;',
     'out vec4 frag_color;',
     shared,

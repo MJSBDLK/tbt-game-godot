@@ -3,14 +3,16 @@
 ##   DISPLAY=:1 godot-4 --path . --resolution 1280x720 -s tools/diag/star_twinkle_probe.gd
 ## Freezes the shader clock (time_scale 0), pins the cadence range to 8 s / 2 s
 ## with no jitter, and steps time_offset through 8 s at 12 ticks/s, so the 96
-## frames loop for every star the demo paints. Renders on a TRANSPARENT
-## viewport once per star KIND so a preview can layer them independently.
-## Writes to res://_twinkle_out/:
-##   frames_x.png / _plus.png / _alt.png / _blink.png
-##                     12×8 grids of 1:1 frames (320×180 each, row-major),
-##                     only that kind's stars
-##   anatomy.png       flipbook of the full map: one row per anatomy-strip
-##                     star, one column per frame, the 7×7 footprint at 6×
+## frames loop for every star the demo paints. Writes to res://_twinkle_out/:
+##   frames.png    12×8 grid of 1:1 frames (320×180 each, row-major)
+##   anatomy.png   flipbook: one row per anatomy-strip star, one column per
+##                 frame, the 7×7 footprint at 6×
+## Also asserts the tail rule on the #FF0000 anatomy star (exit 1 on FAIL):
+## the tip pixel arrives dim, inner pixels are never dimmer than outer ones,
+## and the innermost reaches full only at full extension.
+## Captures are opaque over the demo's sky color on purpose: a transparent
+## viewport comes back premultiplied, and blit_rect/blend_rect read that as
+## straight alpha, which squares every tail's apparent brightness.
 extends SceneTree
 
 const SCALE := 4
@@ -18,14 +20,9 @@ const FRAME_RATE := 12.0
 const CAPTURE_SECONDS := 8.0
 const FRAME_COUNT := int(CAPTURE_SECONDS * FRAME_RATE)
 const GRID_COLUMNS := 12
-## Star kinds by which of R/G are painted: [has_red, has_green, file token].
-const KINDS: Array = [[true, false, "x"], [false, true, "plus"], [true, true, "alt"], [false, false, "blink"]]
 const OUT_DIR := "res://_twinkle_out"
 const FOOT := 7
 const FLIP_SCALE := 6
-
-var _sky: TextureRect = null
-var _material: ShaderMaterial = null
 
 
 func _initialize() -> void:
@@ -36,66 +33,80 @@ func _run() -> void:
 	var demo_script: GDScript = load("res://scenes/debug/star_twinkle_demo.gd")
 	var map_size: Vector2i = demo_script.MAP_SIZE
 	var root := get_root()
-	root.transparent_bg = true
+	var bg := ColorRect.new()
+	bg.color = demo_script.BACKGROUND
+	bg.size = Vector2(map_size * SCALE)
+	root.add_child(bg)
 
-	_material = demo_script.make_material()
-	_material.set_shader_parameter("time_scale", 0.0)
-	_material.set_shader_parameter("frame_rate", FRAME_RATE)
-	_material.set_shader_parameter("period_slow_seconds", CAPTURE_SECONDS)
-	_material.set_shader_parameter("period_fast_seconds", CAPTURE_SECONDS / 4.0)
-	_material.set_shader_parameter("period_jitter", 0.0)
-	_sky = TextureRect.new()
-	_sky.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_sky.material = _material
-	_sky.scale = Vector2(SCALE, SCALE)
-	root.add_child(_sky)
+	var material: ShaderMaterial = demo_script.make_material()
+	material.set_shader_parameter("time_scale", 0.0)
+	material.set_shader_parameter("frame_rate", FRAME_RATE)
+	material.set_shader_parameter("period_slow_seconds", CAPTURE_SECONDS)
+	material.set_shader_parameter("period_fast_seconds", CAPTURE_SECONDS / 4.0)
+	material.set_shader_parameter("period_jitter", 0.0)
+	var sky := TextureRect.new()
+	sky.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	sky.texture = ImageTexture.create_from_image(demo_script.make_star_map(1))
+	sky.material = material
+	sky.scale = Vector2(SCALE, SCALE)
+	root.add_child(sky)
 
 	DirAccess.make_dir_recursive_absolute(OUT_DIR)
-	var full_map: Image = demo_script.make_star_map(1)
-	var all_frames: Array[Image] = await _capture(full_map, map_size)
-	_save_anatomy(all_frames, demo_script.anatomy_positions())
-	for kind in KINDS:
-		var frames: Array[Image] = await _capture(_only_kind(full_map, kind[0], kind[1]), map_size)
-		_save_grid(frames, map_size, "frames_%s.png" % kind[2])
-	print("wrote %d frames × %d kinds to %s" % [FRAME_COUNT, KINDS.size(), OUT_DIR])
-	quit()
-
-
-func _capture(star_map: Image, map_size: Vector2i) -> Array[Image]:
-	_sky.texture = ImageTexture.create_from_image(star_map)
 	var frames: Array[Image] = []
 	for k in FRAME_COUNT:
-		_material.set_shader_parameter("time_offset", float(k) / FRAME_RATE)
+		material.set_shader_parameter("time_offset", float(k) / FRAME_RATE)
 		await process_frame
 		await process_frame
-		var shot: Image = get_root().get_texture().get_image()
+		var shot: Image = root.get_texture().get_image()
 		shot = shot.get_region(Rect2i(Vector2i.ZERO, map_size * SCALE))
 		shot.convert(Image.FORMAT_RGBA8)
 		shot.resize(map_size.x, map_size.y, Image.INTERPOLATE_NEAREST)
 		frames.append(shot)
-	return frames
+
+	_save_grid(frames, map_size)
+	_save_anatomy(frames, demo_script.anatomy_positions())
+	print("wrote %d frames to %s" % [FRAME_COUNT, OUT_DIR])
+	var rule_ok := _tail_rule_holds(frames, demo_script.anatomy_positions()[0], demo_script.BACKGROUND.r)
+	print("tail rule: %s" % ("PASS" if rule_ok else "FAIL"))
+	quit(0 if rule_ok else 1)
 
 
-## The map keeping only stars whose painted R/G presence matches.
-func _only_kind(star_map: Image, has_red: bool, has_green: bool) -> Image:
-	var out := Image.create(star_map.get_width(), star_map.get_height(), false, Image.FORMAT_RGBA8)
-	out.fill(Color(0, 0, 0, 0))
-	for y in star_map.get_height():
-		for x in star_map.get_width():
-			var color := star_map.get_pixel(x, y)
-			if color.a > 0.5 and (color.r > 0.0) == has_red and (color.g > 0.0) == has_green:
-				out.set_pixel(x, y, color)
-	return out
+## The X tail of `star` (painted #FF0000) read along one diagonal, frame by
+## frame. Red channel stands in for alpha: the star color is one flat tone.
+func _tail_rule_holds(frames: Array[Image], star: Vector2i, ground: float) -> bool:
+	var lit_floor := ground + 0.05
+	var seen_tip_first := false
+	var seen_full := false
+	var previous_lit := false
+	for frame in frames:
+		var core := frame.get_pixelv(star).r
+		var k1 := frame.get_pixelv(star + Vector2i(1, 1)).r
+		var k2 := frame.get_pixelv(star + Vector2i(2, 2)).r
+		var k3 := frame.get_pixelv(star + Vector2i(3, 3)).r
+		if k1 < k2 - 0.01 or k2 < k3 - 0.01:
+			push_error("inner tail pixel dimmer than outer: %s" % [[k1, k2, k3]])
+			return false
+		var lit := k1 > lit_floor
+		if lit and not previous_lit:
+			seen_tip_first = k1 < core - 0.2
+			if not seen_tip_first:
+				push_error("first tail pixel arrived at %.2f of core %.2f, not dim" % [k1, core])
+				return false
+		if k3 > lit_floor and absf(k1 - core) < 0.05:
+			seen_full = true
+		previous_lit = lit
+	if not seen_tip_first or not seen_full:
+		push_error("never saw a full flash (tip-first %s, full %s)" % [seen_tip_first, seen_full])
+	return seen_tip_first and seen_full
 
 
-func _save_grid(frames: Array[Image], map_size: Vector2i, file_name: String) -> void:
-	var columns := GRID_COLUMNS
-	var rows := ceili(float(frames.size()) / columns)
-	var grid := Image.create(map_size.x * columns, map_size.y * rows, false, Image.FORMAT_RGBA8)
+func _save_grid(frames: Array[Image], map_size: Vector2i) -> void:
+	var rows := ceili(float(frames.size()) / GRID_COLUMNS)
+	var grid := Image.create(map_size.x * GRID_COLUMNS, map_size.y * rows, false, Image.FORMAT_RGBA8)
 	for k in frames.size():
-		var at := Vector2i((k % columns) * map_size.x, (k / columns) * map_size.y)
+		var at := Vector2i((k % GRID_COLUMNS) * map_size.x, (k / GRID_COLUMNS) * map_size.y)
 		grid.blit_rect(frames[k], Rect2i(Vector2i.ZERO, map_size), at)
-	grid.save_png("%s/%s" % [OUT_DIR, file_name])
+	grid.save_png("%s/frames.png" % OUT_DIR)
 
 
 func _save_anatomy(frames: Array[Image], stars: Array[Vector2i]) -> void:
@@ -105,6 +116,6 @@ func _save_anatomy(frames: Array[Image], stars: Array[Vector2i]) -> void:
 	for row in stars.size():
 		var origin := stars[row] - Vector2i(FOOT / 2, FOOT / 2)
 		for k in frames.size():
-			sheet.blend_rect(frames[k], Rect2i(origin, Vector2i(FOOT, FOOT)), Vector2i(k * cell, row * cell))
+			sheet.blit_rect(frames[k], Rect2i(origin, Vector2i(FOOT, FOOT)), Vector2i(k * cell, row * cell))
 	sheet.resize(sheet.get_width() * FLIP_SCALE, sheet.get_height() * FLIP_SCALE, Image.INTERPOLATE_NEAREST)
 	sheet.save_png("%s/anatomy.png" % OUT_DIR)

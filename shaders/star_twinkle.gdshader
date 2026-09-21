@@ -34,8 +34,10 @@ uniform float period_jitter : hint_range(0.0, 0.5) = 0.2;
 // Time is stepped to this many ticks per second so the motion reads as
 // hand-animated pixel art. 0 = smooth.
 uniform float frame_rate : hint_range(0.0, 60.0) = 12.0;
-// Alpha of the outermost (3rd) tail pixel; the 1st is always 1, the 2nd halfway.
-uniform float tail_end_alpha : hint_range(0.0, 1.0) = 0.35;
+// Alpha of a tail's TIP pixel. Pixels behind the tip brighten one step per
+// pixel of depth, so a tail fades in from the outside as it grows instead of
+// popping in at full — and dims the same way as it retracts.
+uniform float tail_tip_alpha : hint_range(0.0, 1.0) = 0.35;
 // Core alpha at rest runs from this (dimmest painted star) up to 1 (#FF).
 uniform float rest_alpha_min : hint_range(0.0, 1.0) = 0.6;
 
@@ -91,8 +93,10 @@ vec2 flash_state(ivec2 cell, float cadence, float t) {
 }
 
 
-float tail_alpha(int k) {
-	return mix(1.0, tail_end_alpha, float(k - 1) * 0.5);
+// k = distance from the core, reach = the tail's current length.
+float tail_alpha(int k, int reach) {
+	float depth = float(reach - k) / float(MAX_REACH - 1);
+	return mix(tail_tip_alpha, 1.0, depth);
 }
 
 
@@ -117,12 +121,12 @@ float star_alpha(ivec2 cell, vec3 channels, ivec2 offset, float t) {
 	bool odd_flash = mod(state.y, 2.0) >= 1.0;
 	if (has_x && !(has_plus && odd_flash) && a.x == a.y) {
 		int reach = int(round(swell * channels.r * float(MAX_REACH) * twinkle_amount));
-		return a.x <= reach ? tail_alpha(a.x) : 0.0;
+		return a.x <= reach ? tail_alpha(a.x, reach) : 0.0;
 	}
 	if (has_plus && !(has_x && !odd_flash) && min(a.x, a.y) == 0) {
 		int k = max(a.x, a.y);
 		int reach = int(round(swell * channels.g * float(MAX_REACH) * twinkle_amount));
-		return k <= reach ? tail_alpha(k) : 0.0;
+		return k <= reach ? tail_alpha(k, reach) : 0.0;
 	}
 	return 0.0;
 }
