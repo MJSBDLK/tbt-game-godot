@@ -1,9 +1,4 @@
 # Resp
-Ah, so I didn't express this to you perhaps: our dynamic shadow system is almost comically poorly-suited to these mountain tiles. That's what I just tried.
-I'm not sure if that's what you meant, but our existing shadow system won't work for these mountains.
-The end problem I'm trying to solve is less work for Lawrence. He can indeed hand-draw shadows, and they'll look great - but we have exactly one artist, and this game needs a ton of art.
-In this case, it's autotiled mountain tiles on the right edge which have shadows that fail to protrude into the cell to the right.
-If Lawrence weren't staunchly against this, I'd say "just have an AI do them" but he's dead set on zero AI-generated art.
 
 # Meeting Notes 2026/09/20
 - [ ] Star twinkle shader

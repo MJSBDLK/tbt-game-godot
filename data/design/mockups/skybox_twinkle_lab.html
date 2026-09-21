@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skybox Twinkle Lab</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Silkscreen&display=swap">
+<style>
+  :root {
+    --ground: #0a0b12;
+    --surface: #13151f;
+    --surface-2: #1a1d2a;
+    --line: #262a3a;
+    --text: #e8e6dc;
+    --muted: #8d90a0;
+    --accent: #f5cd65;
+    --accent-ink: #1a1405;
+    --star-r: #e0605a;
+    --star-g: #6fc46e;
+    --star-b: #6f9fe6;
+    --star-y: #e3d15c;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--text);
+    font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    padding-inline: 16px;
+    padding-block: 28px 64px;
+  }
+  .wrap { max-width: 1280px; margin: 0 auto; display: grid; gap: 28px; }
+  .eyebrow {
+    font-family: "Silkscreen", "IBM Plex Mono", monospace;
+    font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent);
+  }
+  h1 { font-size: 28px; font-weight: 600; margin: 4px 0 6px; letter-spacing: -0.01em; text-wrap: balance; }
+  h2 { font-size: 15px; font-weight: 600; margin: 0 0 8px; }
+  h3 { font-size: 12px; font-weight: 500; margin: 0; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; }
+  p { margin: 0; max-width: 64ch; }
+  .lede { color: var(--muted); }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+
+  .lab { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; }
+  @media (max-width: 960px) { .lab { grid-template-columns: 1fr; } }
+
+  .sky-frame { display: grid; gap: 10px; min-width: 0; }
+  .sky {
+    border: 1px solid var(--line); background: #06070c; overflow: auto;
+    position: relative; min-height: 120px;
+  }
+  .sky canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; max-width: 100%; }
+  .sky .fail {
+    position: absolute; inset: 0; padding: 16px; color: var(--star-r);
+    font: 13px "IBM Plex Mono", monospace; white-space: pre-wrap; overflow: auto;
+  }
+  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+  .bar .spacer { flex: 1; }
+  .readout { color: var(--muted); font-size: 13px; }
+  .hover { min-height: 1.4em; font-size: 13px; }
+  .hover b { color: var(--text); font-weight: 500; }
+
+  button, .file-btn {
+    font: 500 13px "IBM Plex Mono", ui-monospace, monospace;
+    background: var(--surface); color: var(--text);
+    border: 1px solid var(--line); padding: 6px 12px; cursor: pointer; line-height: 1.3;
+  }
+  button:hover, .file-btn:hover { background: var(--surface-2); }
+  button:focus-visible, .file-btn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .file-btn { display: inline-block; position: relative; }
+  .file-btn input { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; }
+
+  .panel { display: grid; gap: 18px; border: 1px solid var(--line); background: var(--surface); padding: 16px; }
+  .group { display: grid; gap: 10px; }
+  .lever { display: grid; gap: 4px; }
+  .lever .row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; }
+  .lever .row span:last-child { color: var(--muted); }
+  .lever .row label { cursor: pointer; }
+  input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
+  input[type="color"] { width: 44px; height: 26px; padding: 0; border: 1px solid var(--line); background: none; cursor: pointer; }
+  .colors { display: flex; gap: 18px; flex-wrap: wrap; }
+  .colors .lever { grid-template-columns: auto 1fr; align-items: center; gap: 10px; }
+  .colors .lever .row { font-size: 13px; }
+  .hint { font-size: 12px; color: var(--muted); }
+
+  .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; align-items: start; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; }
+  td.mono { white-space: nowrap; }
+  .swatch { display: inline-block; width: 10px; height: 10px; vertical-align: -1px; margin-right: 7px; border: 1px solid #0006; }
+  pre.numbers {
+    margin: 0; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line);
+    font: 13px/1.5 "IBM Plex Mono", ui-monospace, monospace; overflow-x: auto; user-select: all;
+  }
+  .stack { display: grid; gap: 10px; }
+  ul { margin: 0; padding-left: 18px; }
+  li { margin: 4px 0; max-width: 64ch; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Attitude Control · night sky</div>
+    <h1>Skybox Twinkle Lab</h1>
+    <p class="lede">The twinkle shader, live, with every lever exposed. Move a slider and the sky changes at once. When it looks right, copy the numbers at the bottom and send them back. Load your own <span class="mono">skybox_twinkle</span> PNG to see your actual stars.</p>
+  </header>
+
+  <div class="lab">
+    <div class="sky-frame">
+      <div class="sky" id="sky-holder"><canvas id="sky" width="320" height="180" aria-label="Live star field"></canvas></div>
+      <div class="bar">
+        <button id="play" type="button" aria-pressed="true">Pause</button>
+        <button id="step" type="button" title="Advance one tick while paused">Step</button>
+        <span class="readout mono" id="clock">0.00 s</span>
+        <span class="spacer"></span>
+        <button id="source" type="button" aria-pressed="false">Show painted dots</button>
+        <label class="file-btn">Load PNG<input id="file" type="file" accept="image/png"></label>
+        <button id="reroll" type="button">Random sky</button>
+      </div>
+      <div class="hover mono" id="hover">Hover a star to read what's painted there.</div>
+    </div>
+
+    <aside class="panel" aria-label="Levers">
+      <div class="group">
+        <h3>Flash</h3>
+        <div class="lever"><div class="row"><label for="flash_seconds">Out and back</label><span id="v-flash_seconds"></span></div><input type="range" id="flash_seconds" min="0.1" max="3" step="0.05"></div>
+        <div class="lever"><div class="row"><label for="hold_seconds">Hold at full reach</label><span id="v-hold_seconds"></span></div><input type="range" id="hold_seconds" min="0" max="3" step="0.05"></div>
+        <div class="lever"><div class="row"><label for="frame_rate">Ticks per second</label><span id="v-frame_rate"></span></div><input type="range" id="frame_rate" min="0" max="60" step="1"></div>
+      </div>
+      <div class="group">
+        <h3>Cadence (painted blue)</h3>
+        <div class="lever"><div class="row"><label for="period_slow_seconds">Blue 0 · seconds between flashes</label><span id="v-period_slow_seconds"></span></div><input type="range" id="period_slow_seconds" min="0.5" max="30" step="0.5"></div>
+        <div class="lever"><div class="row"><label for="period_fast_seconds">Blue 255 · seconds between flashes</label><span id="v-period_fast_seconds"></span></div><input type="range" id="period_fast_seconds" min="0.5" max="30" step="0.1"></div>
+        <div class="lever"><div class="row"><label for="period_jitter">Per-star timing spread</label><span id="v-period_jitter"></span></div><input type="range" id="period_jitter" min="0" max="0.5" step="0.05"></div>
+      </div>
+      <div class="group">
+        <h3>Look</h3>
+        <div class="lever"><div class="row"><label for="tail_end_alpha">Outer tail pixel</label><span id="v-tail_end_alpha"></span></div><input type="range" id="tail_end_alpha" min="0" max="1" step="0.05"></div>
+        <div class="lever"><div class="row"><label for="rest_alpha_min">Dimmest star at rest</label><span id="v-rest_alpha_min"></span></div><input type="range" id="rest_alpha_min" min="0" max="1" step="0.05"></div>
+        <div class="lever"><div class="row"><label for="twinkle_amount">Overall twinkle</label><span id="v-twinkle_amount"></span></div><input type="range" id="twinkle_amount" min="0" max="1" step="0.05"></div>
+        <div class="colors">
+          <div class="lever"><input type="color" id="star_color"><div class="row"><label for="star_color">Star</label></div></div>
+          <div class="lever"><input type="color" id="background"><div class="row"><label for="background">Sky</label></div></div>
+        </div>
+      </div>
+      <div class="group">
+        <h3>View</h3>
+        <div class="lever"><div class="row"><label for="speed">Playback speed</label><span id="v-speed"></span></div><input type="range" id="speed" min="0" max="4" step="0.25"></div>
+        <div class="lever"><div class="row"><label for="scale">Pixel scale</label><span id="v-scale"></span></div><input type="range" id="scale" min="1" max="6" step="1"></div>
+        <div class="lever"><div class="row"><label for="density">Random sky · star count</label><span id="v-density"></span></div><input type="range" id="density" min="40" max="800" step="20"></div>
+      </div>
+      <div class="bar"><button id="reset" type="button">Reset levers</button></div>
+    </aside>
+  </div>
+
+  <div class="two">
+    <section class="stack">
+      <h2>How to paint the twinkle layer</h2>
+      <p class="lede">One pixel per star on a transparent layer. The pixel's color is instructions, not a color: every star renders in the star color above.</p>
+      <table>
+        <thead><tr><th>Paint</th><th>Result</th></tr></thead>
+        <tbody>
+          <tr><td class="mono"><span class="swatch" style="background:var(--star-r)"></span>#FF0000</td><td>X-shaped twinkle, tails reach 3 px</td></tr>
+          <tr><td class="mono">#880000</td><td>X, tails reach 2 px. Darker = shorter reach; #440000 reaches 1 px</td></tr>
+          <tr><td class="mono"><span class="swatch" style="background:var(--star-g)"></span>#00FF00</td><td>+-shaped twinkle, same brightness rule</td></tr>
+          <tr><td class="mono"><span class="swatch" style="background:var(--star-y)"></span>#FFFF00</td><td>Alternates: X on one flash, + on the next</td></tr>
+          <tr><td class="mono">#FF00AA</td><td>Any star plus blue = flashes more often. Blue 0 is the slow end, 255 the fast end (the cadence sliders)</td></tr>
+          <tr><td class="mono">#FFFFFF</td><td>Alternating at the fastest cadence. White is a valid star</td></tr>
+          <tr><td class="mono"><span class="swatch" style="background:var(--star-b)"></span>#0000FF</td><td>Blue alone: no tails, the core just blinks</td></tr>
+        </tbody>
+      </table>
+      <ul class="hint">
+        <li>Each star's footprint is 7×7 at full reach. Stars closer than that overlap their tails, which is allowed but busy.</li>
+        <li>A dimmer painted star also rests dimmer (the "dimmest star at rest" lever sets the floor). Set that lever to 1 if every core should sit at full brightness.</li>
+        <li>Near-black or transparent pixels are empty sky. The dark background is its own layer underneath this one.</li>
+      </ul>
+    </section>
+    <section class="stack">
+      <h2>Send these numbers back</h2>
+      <p class="lede">They're the shader's actual settings. Copy the block, or note which lever you moved and where it felt right.</p>
+      <pre class="numbers" id="numbers"></pre>
+      <div class="bar"><button id="copy" type="button">Copy numbers</button><span class="readout" id="copied"></span></div>
+    </section>
+  </div>
+</div>
+
+<script type="x-shader/x-fragment" id="shared-glsl">
+// [shared-begin]
+const int MAX_REACH = 3;
+const float STAR_THRESHOLD = 0.02;
+
+
+// Stable per-star random in [0, 1) from the texel coordinate.
+float star_hash(ivec2 cell, uint salt) {
+	uint h = uint(cell.x + 4096) * 374761393u
+			+ uint(cell.y + 4096) * 668265263u
+			+ salt * 2246822519u;
+	h = (h ^ (h >> 13u)) * 1274126177u;
+	h ^= h >> 16u;
+	return float(h & 0x00FFFFFFu) / 16777215.0;
+}
+
+
+// Steps time to frame_rate ticks per second; 0 leaves it smooth.
+float quantize_time(float t) {
+	return frame_rate > 0.0 ? floor(t * frame_rate) / frame_rate : t;
+}
+
+
+// x: the star's swell — 0 → 1 rising, 1 through the hold, 1 → 0 falling —
+//    or -1 while it rests.
+// y: the flash's ordinal; its parity alternates a two-shape star.
+vec2 flash_state(ivec2 cell, float cadence, float t) {
+	float period = mix(period_slow_seconds, period_fast_seconds, cadence)
+			* mix(1.0 - period_jitter, 1.0 + period_jitter, star_hash(cell, 1u));
+	float clock = t + star_hash(cell, 2u) * period;
+	float index = floor(clock / period);
+	float local_time = clock - index * period;
+	float half_flash = flash_seconds * 0.5;
+	float swell = -1.0;
+	if (local_time < half_flash) {
+		swell = sin(0.5 * PI * local_time / half_flash);
+	} else if (local_time < half_flash + hold_seconds) {
+		swell = 1.0;
+	} else if (local_time < flash_seconds + hold_seconds) {
+		swell = sin(0.5 * PI * (1.0 - (local_time - half_flash - hold_seconds) / half_flash));
+	}
+	return vec2(swell, index);
+}
+
+
+float tail_alpha(int k) {
+	return mix(1.0, tail_end_alpha, float(k - 1) * 0.5);
+}
+
+
+// Alpha this star contributes at `offset` (fragment texel − star texel).
+float star_alpha(ivec2 cell, vec3 channels, ivec2 offset, float t) {
+	vec2 state = flash_state(cell, channels.b, t);
+	bool resting = state.x < 0.0;
+	float swell = max(state.x, 0.0);
+	float intensity = max(channels.r, channels.g);
+	ivec2 a = abs(offset);
+
+	if (offset == ivec2(0)) {
+		// A blue-only star has no reach, so its whole twinkle is this flare.
+		float rest = mix(rest_alpha_min, 1.0, intensity);
+		return mix(rest, 1.0, swell * twinkle_amount);
+	}
+	if (resting) {
+		return 0.0;
+	}
+	bool has_x = channels.r > STAR_THRESHOLD;
+	bool has_plus = channels.g > STAR_THRESHOLD;
+	bool odd_flash = mod(state.y, 2.0) >= 1.0;
+	if (has_x && !(has_plus && odd_flash) && a.x == a.y) {
+		int reach = int(round(swell * channels.r * float(MAX_REACH) * twinkle_amount));
+		return a.x <= reach ? tail_alpha(a.x) : 0.0;
+	}
+	if (has_plus && !(has_x && !odd_flash) && min(a.x, a.y) == 0) {
+		int k = max(a.x, a.y);
+		int reach = int(round(swell * channels.g * float(MAX_REACH) * twinkle_amount));
+		return k <= reach ? tail_alpha(k) : 0.0;
+	}
+	return 0.0;
+}
+
+
+// Alpha of the star layer at `cell`: the strongest contribution from any
+// star within reach. Transparent and near-black texels are not stars.
+float sky_alpha(sampler2D star_map, ivec2 cell, float t) {
+	ivec2 map_size = textureSize(star_map, 0);
+	float alpha = 0.0;
+	for (int dy = -MAX_REACH; dy <= MAX_REACH; dy++) {
+		for (int dx = -MAX_REACH; dx <= MAX_REACH; dx++) {
+			ivec2 star = cell + ivec2(dx, dy);
+			if (any(lessThan(star, ivec2(0))) || any(greaterThanEqual(star, map_size))) {
+				continue;
+			}
+			vec4 texel = texelFetch(star_map, star, 0);
+			if (texel.a < 0.5 || max(texel.r, max(texel.g, texel.b)) < STAR_THRESHOLD) {
+				continue;
+			}
+			alpha = max(alpha, star_alpha(star, texel.rgb, -ivec2(dx, dy), t));
+		}
+	}
+	return alpha;
+}
+// [shared-end]
+</script>
+
+<script>
+(function () {
+  'use strict';
+  var DEFAULTS = {
+    flash_seconds: 0.6, hold_seconds: 0.0, frame_rate: 12,
+    period_slow_seconds: 8, period_fast_seconds: 1.5, period_jitter: 0.2,
+    tail_end_alpha: 0.35, rest_alpha_min: 0.6, twinkle_amount: 1,
+    star_color: '#edede3', background: '#06070c',
+    speed: 1, scale: 3, density: 220
+  };
+  var SHADER_KEYS = ['flash_seconds', 'hold_seconds', 'frame_rate', 'period_slow_seconds', 'period_fast_seconds',
+                     'period_jitter', 'tail_end_alpha', 'rest_alpha_min', 'twinkle_amount'];
+  var STORAGE = 'skybox-twinkle-lab';
+  var MAP_W = 320, MAP_H = 180;
+
+  var state = Object.assign({}, DEFAULTS);
+  try {
+    var saved = JSON.parse(localStorage.getItem(STORAGE) || '{}');
+    Object.keys(DEFAULTS).forEach(function (k) { if (k in saved) state[k] = saved[k]; });
+  } catch (e) { /* per-viewer convenience only */ }
+
+  var holder = document.getElementById('sky-holder');
+  var canvas = document.getElementById('sky');
+  var gl = canvas.getContext('webgl2', { alpha: false, premultipliedAlpha: false, antialias: false });
+  function fail(text) {
+    var el = document.createElement('div');
+    el.className = 'fail';
+    el.textContent = text;
+    holder.appendChild(el);
+  }
+  if (!gl) { fail('This page needs WebGL2. Chrome, Firefox, Edge or Safari 15+ all have it.'); return; }
+
+  var shared = document.getElementById('shared-glsl').textContent;
+  var VERT = '#version 300 es\nvoid main(){vec2 p=vec2((gl_VertexID<<1)&2,gl_VertexID&2);gl_Position=vec4(p*2.0-1.0,0.0,1.0);}';
+  var FRAG = [
+    '#version 300 es',
+    'precision highp float; precision highp int; precision highp sampler2D;',
+    'const float PI = 3.14159265358979;',
+    'uniform sampler2D star_map;',
+    'uniform vec4 star_color;',
+    'uniform float twinkle_amount, flash_seconds, hold_seconds, period_slow_seconds, period_fast_seconds,',
+    '              period_jitter, frame_rate, tail_end_alpha, rest_alpha_min, u_time;',
+    'uniform int map_height, show_source;',
+    'out vec4 frag_color;',
+    shared,
+    'void main() {',
+    '  ivec2 cell = ivec2(int(gl_FragCoord.x), map_height - 1 - int(gl_FragCoord.y));',
+    '  if (show_source == 1) {',
+    '    vec4 texel = texelFetch(star_map, cell, 0);',
+    '    frag_color = texel.a > 0.5 ? vec4(texel.rgb, 1.0) : vec4(0.0);',
+    '    return;',
+    '  }',
+    '  frag_color = vec4(star_color.rgb, star_color.a * sky_alpha(star_map, cell, quantize_time(u_time)));',
+    '}'
+  ].join('\n');
+
+  function compile(type, src) {
+    var sh = gl.createShader(type);
+    gl.shaderSource(sh, src);
+    gl.compileShader(sh);
+    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) { throw new Error(gl.getShaderInfoLog(sh)); }
+    return sh;
+  }
+  var program;
+  try {
+    program = gl.createProgram();
+    gl.attachShader(program, compile(gl.VERTEX_SHADER, VERT));
+    gl.attachShader(program, compile(gl.FRAGMENT_SHADER, FRAG));
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) { throw new Error(gl.getProgramInfoLog(program)); }
+  } catch (e) { fail('Shader failed to compile. Send this to RQD:\n\n' + e.message); return; }
+  gl.useProgram(program);
+  var U = {};
+  SHADER_KEYS.concat(['star_color', 'u_time', 'map_height', 'show_source', 'star_map']).forEach(function (k) { U[k] = gl.getUniformLocation(program, k); });
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+
+  var texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.uniform1i(U.star_map, 0);
+
+  var source = null;  // ImageData of the loaded map, for the hover readout
+  function setMap(imageData) {
+    source = imageData;
+    MAP_W = imageData.width; MAP_H = imageData.height;
+    canvas.width = MAP_W; canvas.height = MAP_H;
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, MAP_W, MAP_H, 0, gl.RGBA, gl.UNSIGNED_BYTE, imageData.data);
+    gl.viewport(0, 0, MAP_W, MAP_H);
+    gl.uniform1i(U.map_height, MAP_H);
+    applyScale();
+  }
+
+  // The stand-in sky: a fixed reference strip along the top (each shape at
+  // #FF, #DD, #88, #44, then cadence and alternation examples), random below.
+  var STRIP = ['#FF0000', '#DD0000', '#880000', '#440000', '#00FF00', '#00DD00', '#008800', '#004400',
+               '#FFFFAA', '#FFFFFF', '#FF00AA', '#00FFFF', '#0000FF'];
+  var seed = 1;
+  function randomSky(count) {
+    var c = document.createElement('canvas');
+    c.width = 320; c.height = 180;
+    var ctx = c.getContext('2d');
+    var img = ctx.createImageData(320, 180);
+    var d = img.data;
+    function put(x, y, r, g, b) { var i = (y * 320 + x) * 4; d[i] = r; d[i + 1] = g; d[i + 2] = b; d[i + 3] = 255; }
+    STRIP.forEach(function (hex, i) {
+      put(8 + i * 12, 8, parseInt(hex.substr(1, 2), 16), parseInt(hex.substr(3, 2), 16), parseInt(hex.substr(5, 2), 16));
+    });
+    var s = seed * 2654435761 >>> 0;
+    function rnd() { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }
+    var placed = [], tries = 0;
+    var cadences = [0, 0, 0, 170, 170, 255];
+    while (placed.length < count && tries < count * 40) {
+      tries++;
+      var x = 3 + Math.floor(rnd() * (320 - 7)), y = 20 + Math.floor(rnd() * (180 - 24));
+      var crowded = placed.some(function (p) { return Math.max(Math.abs(p[0] - x), Math.abs(p[1] - y)) < 4; });
+      if (crowded) continue;
+      placed.push([x, y]);
+      var bright = 40 + Math.floor(rnd() * 216), roll = rnd(), cad = cadences[Math.floor(rnd() * cadences.length)];
+      var r = bright, g = 0, b = 0;
+      if (roll > 0.42) { r = 0; g = bright; }
+      if (roll > 0.84) { r = bright; g = bright; }
+      if (roll > 0.94) { r = 0; g = 0; b = 255; }
+      put(x, y, r, g, Math.max(b, cad));
+    }
+    return img;
+  }
+
+  function loadFile(file) {
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function () {
+      var c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      var ctx = c.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0);
+      setMap(ctx.getImageData(0, 0, c.width, c.height));
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  }
+
+  // ---- levers ----
+  function hexToRgb(hex) { return [1, 3, 5].map(function (i) { return parseInt(hex.substr(i, 2), 16) / 255; }); }
+  function fmt(k, v) {
+    if (k === 'frame_rate') return v === 0 ? 'smooth' : v + ' /s';
+    if (k === 'scale') return v + '×';
+    if (k === 'density') return String(v);
+    if (k === 'speed') return v + '×';
+    if (/seconds/.test(k)) return Number(v).toFixed(2) + ' s';
+    return Number(v).toFixed(2);
+  }
+  function pushUniforms() {
+    SHADER_KEYS.forEach(function (k) { gl.uniform1f(U[k], state[k]); });
+    var sc = hexToRgb(state.star_color);
+    gl.uniform4f(U.star_color, sc[0], sc[1], sc[2], 1);
+    var bg = hexToRgb(state.background);
+    gl.clearColor(bg[0], bg[1], bg[2], 1);
+  }
+  function applyScale() {
+    canvas.style.width = (MAP_W * state.scale) + 'px';
+    canvas.style.height = (MAP_H * state.scale) + 'px';
+  }
+  function renderNumbers() {
+    var lines = SHADER_KEYS.map(function (k) { return k + ' = ' + Number(state[k]).toFixed(k === 'frame_rate' ? 0 : 2); });
+    lines.push('star_color = ' + state.star_color.toUpperCase());
+    lines.push('sky background = ' + state.background.toUpperCase());
+    document.getElementById('numbers').textContent = lines.join('\n');
+  }
+  function persist() { try { localStorage.setItem(STORAGE, JSON.stringify(state)); } catch (e) { /* ignore */ } }
+  function syncUI() {
+    Object.keys(DEFAULTS).forEach(function (k) {
+      var input = document.getElementById(k);
+      input.value = state[k];
+      var v = document.getElementById('v-' + k);
+      if (v) v.textContent = fmt(k, state[k]);
+    });
+    pushUniforms();
+    applyScale();
+    renderNumbers();
+  }
+  Object.keys(DEFAULTS).forEach(function (k) {
+    document.getElementById(k).addEventListener('input', function (e) {
+      state[k] = e.target.type === 'color' ? e.target.value : Number(e.target.value);
+      if (k === 'density') { setMap(randomSky(state.density)); }
+      syncUI();
+      persist();
+      if (!playing) draw();
+    });
+  });
+  document.getElementById('reset').addEventListener('click', function () {
+    Object.keys(DEFAULTS).forEach(function (k) { if (k !== 'density') state[k] = DEFAULTS[k]; });
+    syncUI(); persist(); if (!playing) draw();
+  });
+  document.getElementById('copy').addEventListener('click', function () {
+    var text = document.getElementById('numbers').textContent;
+    var done = function () { document.getElementById('copied').textContent = 'Copied.'; };
+    if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(done, function () { done(); }); }
+    else { var range = document.createRange(); range.selectNodeContents(document.getElementById('numbers')); var sel = getSelection(); sel.removeAllRanges(); sel.addRange(range); }
+  });
+
+  // ---- clock and drawing ----
+  var playing = !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var simTime = 0, last = 0, showSource = false;
+  var playBtn = document.getElementById('play'), sourceBtn = document.getElementById('source');
+  function setPlaying(on) { playing = on; playBtn.textContent = on ? 'Pause' : 'Play'; playBtn.setAttribute('aria-pressed', String(on)); }
+  function draw() {
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.uniform1f(U.u_time, simTime);
+    gl.uniform1i(U.show_source, showSource ? 1 : 0);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    document.getElementById('clock').textContent = simTime.toFixed(2) + ' s';
+  }
+  function frame(now) {
+    if (playing) { simTime += Math.min(now - last, 100) / 1000 * state.speed; draw(); }
+    last = now;
+    requestAnimationFrame(frame);
+  }
+  playBtn.addEventListener('click', function () { setPlaying(!playing); });
+  document.getElementById('step').addEventListener('click', function () {
+    setPlaying(false);
+    simTime += state.frame_rate > 0 ? 1 / state.frame_rate : 1 / 60;
+    draw();
+  });
+  sourceBtn.addEventListener('click', function () { showSource = !showSource; sourceBtn.setAttribute('aria-pressed', String(showSource)); if (!playing) draw(); });
+  document.getElementById('reroll').addEventListener('click', function () { seed++; setMap(randomSky(state.density)); if (!playing) draw(); });
+  document.getElementById('file').addEventListener('change', function (e) { if (e.target.files[0]) loadFile(e.target.files[0]); });
+
+  // ---- hover readout ----
+  var hover = document.getElementById('hover');
+  function describe(r, g, b) {
+    var hex = '#' + [r, g, b].map(function (v) { return v.toString(16).padStart(2, '0'); }).join('').toUpperCase();
+    var hasX = r > 5, hasPlus = g > 5;
+    var kind = hasX && hasPlus ? 'alternating X / +' : hasX ? 'X' : hasPlus ? '+' : b > 5 ? 'blink only' : 'empty';
+    if (kind === 'empty') return null;
+    var reach = Math.round(Math.max(r, g) / 255 * 3);
+    var period = state.period_slow_seconds + (state.period_fast_seconds - state.period_slow_seconds) * b / 255;
+    return '<b>' + hex + '</b> · ' + kind + (kind === 'blink only' ? '' : ' · reach ' + reach + ' px') + ' · every ~' + period.toFixed(1) + ' s';
+  }
+  canvas.addEventListener('mousemove', function (e) {
+    if (!source) return;
+    var rect = canvas.getBoundingClientRect();
+    var x = Math.floor((e.clientX - rect.left) / rect.width * MAP_W), y = Math.floor((e.clientY - rect.top) / rect.height * MAP_H);
+    var best = null;
+    for (var dy = -3; dy <= 3 && !best; dy++) for (var dx = -3; dx <= 3 && !best; dx++) {
+      var sx = x + dx, sy = y + dy;
+      if (sx < 0 || sy < 0 || sx >= MAP_W || sy >= MAP_H) continue;
+      var i = (sy * MAP_W + sx) * 4;
+      if (source.data[i + 3] > 127) { best = describe(source.data[i], source.data[i + 1], source.data[i + 2]); }
+    }
+    hover.innerHTML = best || ('(' + x + ', ' + y + ') empty sky');
+  });
+  canvas.addEventListener('mouseleave', function () { hover.textContent = "Hover a star to read what's painted there."; });
+
+  setMap(randomSky(state.density));
+  syncUI();
+  setPlaying(playing);
+  draw();
+  requestAnimationFrame(function (now) { last = now; frame(now); });
+})();
+</script>
+</body>
+</html>
