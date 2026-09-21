@@ -300,6 +300,8 @@ func _build_vignette() -> void:
 	mat.shader = _vignette_shader
 	mat.set_shader_parameter("map_min", map_min)
 	mat.set_shader_parameter("map_max", map_max)
+	mat.set_shader_parameter("fade_width", ArtVariables.MAP_EDGE_FADE_WIDTH)
+	mat.set_shader_parameter("fade_color", ArtVariables.MAP_EDGE_FADE_COLOR)
 	poly.material = mat
 	add_child(poly)
 

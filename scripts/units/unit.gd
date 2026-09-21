@@ -38,7 +38,7 @@ const BELLOWS_IMPACT_FLOOR: float = 0.6
 ## The acted look: full grayscale, no darkening (see the shader). Faction-blind
 ## on purpose — the health bar already carries faction.
 const ACTED_SHADER: Shader = preload("res://shaders/unit_acted.gdshader")
-const ACTED_DESATURATION: float = 1.0
+const ACTED_DESATURATION: float = ArtVariables.ACTED_GREYSCALE
 
 
 # =============================================================================

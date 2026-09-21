@@ -40,7 +40,8 @@
 ## (exact or wildcard entry — craters, the bridge, any floor element) gets
 ## NO shadow of any kind. Otherwise, in order: (1) the authored
 ## `<sprite>_shadow.png` next to the source texture, when Lawrence drew one —
-## played verbatim; (2) else a GENERATED cast of the sprite's own pixels
+## a MASK, drawn at GameColors.CAST_SHADOW_INK like every other shadow on the
+## board; (2) else a GENERATED cast of the sprite's own pixels
 ## (generate_cast_shadow, built on UnitShadow.project_silhouette so terrain
 ## and units share one sun), unless DebugConfig.terrain_generated_shadows is
 ## off. Authored wins; the generator is the fallback for art that hasn't had
@@ -61,15 +62,13 @@ extends Node2D
 ## changes. A PackedByteArray hash of ~50 cells is microseconds.
 const EDITOR_POLL_FRAMES: int = 10
 
-# EXPERIMENT (issue: "shadows protrude against elements to the right"):
-# when true, shadows render one z-slot ABOVE same-row bodies instead of
-# below all of them (TERRAIN_EFFECTS). Combined with the export-time masking
-# (shadow pixels under the caster's own silhouette are erased), this makes a
-# shadow spill onto the east-neighbor sprite's pixels — reading as the
-# shadow falling ON the neighbor — while the caster itself stays unshaded.
-# Southern neighbors (lower row index, +10 z band) still cover the shadow.
-# Flip to false to restore shadows-under-everything.
-const SHADOWS_ABOVE_MODIFIERS := true
+# When true, shadows render one z-slot ABOVE same-row bodies instead of below
+# all of them (TERRAIN_EFFECTS). With the export-time masking (shadow pixels
+# under the caster's own silhouette erased), a shadow spills onto the east
+# neighbor's pixels — reading as the shadow falling ON it — while the caster
+# stays unshaded. Southern neighbors (+10 z band) still cover the shadow.
+# The knob is Lawrence's: ArtVariables.SHADOWS_FALL_ON_NEIGHBORS.
+const SHADOWS_ABOVE_MODIFIERS := ArtVariables.SHADOWS_FALL_ON_NEIGHBORS
 
 const _OOB_FADE_SHADER: Shader = preload("res://shaders/modifier_oob_fade.gdshader")
 
@@ -93,7 +92,7 @@ const GENERATED_SHEAR: float = UnitShadow.SHADOW_SHEAR
 ## Flat vertical nudge for the generated smear, in pixels, positive =
 ## down-screen. UnitShadow carries −2 for boots; terrain art's feet line is
 ## its lowest opaque row, which already IS the ground. 0 = none.
-const GENERATED_OFFSET_Y: float = 0.0
+const GENERATED_OFFSET_Y: float = ArtVariables.TERRAIN_SHADOW_NUDGE_Y
 
 # Generated shadows are pure functions of (texture, dials) — cached across
 # renderers so each sprite rasterizes once per session. Values are
@@ -192,6 +191,8 @@ func refresh() -> void:
 		fade_material.shader = _OOB_FADE_SHADER
 		fade_material.set_shader_parameter("map_min", map_rect.position)
 		fade_material.set_shader_parameter("map_max", map_rect.end)
+		fade_material.set_shader_parameter("fade_width", ArtVariables.MAP_EDGE_FADE_WIDTH)
+		fade_material.set_shader_parameter("fade_color", ArtVariables.MAP_EDGE_FADE_COLOR)
 	# Generated-shadow gate: a dev kill switch at runtime; always on in the
 	# editor preview (no DebugConfig there).
 	var generated_enabled: bool = true if in_editor else DebugConfig.terrain_generated_shadows
@@ -262,6 +263,9 @@ func refresh() -> void:
 				shadow_sprite.position = visual_center
 				shadow_sprite.z_index = shadow_z(south_row_index)
 				shadow_sprite.z_as_relative = false
+				# Authored shadows ship as masks, like the autotile blocks, so
+				# every shadow on the board answers to one opacity.
+				shadow_sprite.modulate = GameColors.CAST_SHADOW_INK
 				shadow_sprite.material = fade_material
 				add_child(shadow_sprite)
 				_sprites.append(shadow_sprite)

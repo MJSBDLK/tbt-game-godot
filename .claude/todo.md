@@ -8,6 +8,22 @@ If Lawrence weren't staunchly against this, I'd say "just have an AI do them" bu
 # Meeting Notes 2026/09/20
 - [ ] Star twinkle shader
 - [x] Mountains 12x8 is on Lawrence's branch - let's try to implement it!
+- [ ] Runtime-editable art knobs ("cvars"): let `ArtVariables` values change
+	while the game runs, so Lawrence tunes and watches instead of edit → F5.
+	-> Cheap route, no GUI: `const` → `static var` in art_variables.gd (one
+	word per line; his file still reads the same), and the alias sites
+	(UnitShadow, TerrainSpriteRenderer, GameColors, Unit — ~13) read at use
+	instead of copying into their own consts. Then a debug panel, a console
+	command or a test can set one live.
+	-> Two shadow paths BAKE the ink into cached images (generated terrain
+	casts, unit projections) — a live change needs those caches dropped. The
+	mask-based ones (mountains, decorations) update instantly.
+	-> Doubles as a UNIT TEST AUDIT, which may be the better reason to do it: a
+	test that hardcodes 0.4 breaks, a test that reads the knob or takes the
+	dials as arguments doesn't. One found and fixed already
+	(test_terrain_sprite_renderer's ink assertion).
+	-> Inspector sliders (a .tres Resource with @export_range) are the GUI half
+	if he ever wants one; the same const → runtime change is what unlocks it.
 - [ ] Error: /home/l/.var/app/com.valvesoftware.Steam/config/aseprite/extensions/webtyler/webtyler.lua:861: index out of bounds 256
 	-> This happens every time you first run the Webtyler script, and then you can run it again after that and everything works fine. Would be great for an error not to mean "all's well," because seeing this error is just part of standard procedure at present.
 

@@ -223,7 +223,7 @@ static var GHOST_OUTLINE: Color:
 ## Decorations bake it into their _shadow.png; UnitShadow modulates the
 ## mirrored unit frame with it. Change here and hand-authored art drifts —
 ## coordinate with Lawrence.
-const CAST_SHADOW_INK: Color = Color(0.0, 0.0, 0.0, 0.4)
+const CAST_SHADOW_INK: Color = Color(0.0, 0.0, 0.0, ArtVariables.SHADOW_INK_ALPHA)
 
 
 # =============================================================================
