@@ -36,9 +36,9 @@ const HIT_DELAY: float = 0.3  # Seconds between combat hits (a presenter hold; s
 # beat).
 const BELLOWS_IMPACT_FLOOR: float = 0.6
 ## The acted look: full grayscale, no darkening (see the shader). Faction-blind
-## on purpose — the health bar already carries faction.
+## on purpose — the health bar already carries faction. How grey is
+## ArtVariables.ACTED_GREYSCALE, pushed into the shared material live.
 const ACTED_SHADER: Shader = preload("res://shaders/unit_acted.gdshader")
-const ACTED_DESATURATION: float = ArtVariables.ACTED_GREYSCALE
 
 
 # =============================================================================
@@ -2152,8 +2152,16 @@ static func acted_material() -> ShaderMaterial:
 	if _acted_material == null:
 		_acted_material = ShaderMaterial.new()
 		_acted_material.shader = ACTED_SHADER
-		_acted_material.set_shader_parameter("desaturation", ACTED_DESATURATION)
+		refresh_acted_material()
+		# One material, one connection, for the life of the process.
+		DebugConfig.art_knobs_changed.connect(refresh_acted_material)
 	return _acted_material
+
+
+## Push the current knob into the shared material.
+static func refresh_acted_material() -> void:
+	if _acted_material != null:
+		_acted_material.set_shader_parameter("desaturation", ArtVariables.ACTED_GREYSCALE)
 
 
 func _update_z_index() -> void:

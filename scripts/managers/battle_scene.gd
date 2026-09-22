@@ -37,6 +37,7 @@ extends Node2D
 
 var _unit_scene: PackedScene = preload("res://scenes/battle/unit.tscn")
 var _vignette_shader: Shader = preload("res://shaders/vignette.gdshader")
+var _vignette_material: ShaderMaterial = null
 var _units_container: Node2D = null
 var _foot_track_renderer: FootTrackRenderer = null
 var _threat_overlay: ThreatOverlayController = null
@@ -300,10 +301,19 @@ func _build_vignette() -> void:
 	mat.shader = _vignette_shader
 	mat.set_shader_parameter("map_min", map_min)
 	mat.set_shader_parameter("map_max", map_max)
-	mat.set_shader_parameter("fade_width", ArtVariables.MAP_EDGE_FADE_WIDTH)
-	mat.set_shader_parameter("fade_color", ArtVariables.MAP_EDGE_FADE_COLOR)
+	_vignette_material = mat
+	_refresh_vignette_knobs()
+	DebugConfig.art_knobs_changed.connect(_refresh_vignette_knobs)
 	poly.material = mat
 	add_child(poly)
+
+
+## The edge fade reads its knobs once at build; re-push when one changes.
+func _refresh_vignette_knobs() -> void:
+	if _vignette_material == null:
+		return
+	_vignette_material.set_shader_parameter("fade_width", ArtVariables.MAP_EDGE_FADE_WIDTH)
+	_vignette_material.set_shader_parameter("fade_color", ArtVariables.MAP_EDGE_FADE_COLOR)
 
 
 # =============================================================================

@@ -35,6 +35,8 @@ func _ready() -> void:
 
 	_reparent_ui_autoloads()
 	SceneRouter.register_game_root(world_root, hud_viewport, hud_display, hd_layer)
+	if DebugConfig.cheats_enabled:
+		DevConsole.mount(hud_viewport)  # ` — live ArtVariables
 	_dump_diagnostics.call_deferred()
 
 

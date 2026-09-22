@@ -86,6 +86,74 @@ var debug_portrait_effects_disabled: bool = false
 signal debug_portrait_effects_changed
 
 
+# ===== ART KNOBS, LIVE =====
+# ArtVariables (Lawrence's file) is plain data; this is the one write path
+# for changing a knob while the game runs. Consumers read the knob at use
+# and re-render on the signal, so a console, a test or a panel can all
+# drive it the same way.
+signal art_knobs_changed
+
+# The class name can't take get()/set() by name (the analyzer refuses
+# instance calls on a class); the script resource can, and static vars live
+# on it.
+const _ART_KNOBS: GDScript = preload("res://scripts/core/art_variables.gd")
+
+# What the file said at boot — the values `reset` goes back to and `dump`
+# diffs against.
+var _art_knob_defaults: Dictionary = {}
+
+
+func _ready() -> void:
+	for name in art_knob_names():
+		_art_knob_defaults[name] = _ART_KNOBS.get(name)
+
+
+## Every knob in ArtVariables, by name.
+func art_knob_names() -> PackedStringArray:
+	var names := PackedStringArray()
+	for property in _ART_KNOBS.get_property_list():
+		var name: String = property.name
+		if name == name.to_upper() and not name.begins_with("_"):
+			names.append(name)
+	return names
+
+
+func get_art_knob(name: String) -> Variant:
+	return _ART_KNOBS.get(name)
+
+
+## The value the file carried at boot.
+func art_knob_default(name: String) -> Variant:
+	return _art_knob_defaults.get(name)
+
+
+## Every knob back to the file's value, one announcement.
+func reset_art_knobs() -> void:
+	for name in _art_knob_defaults:
+		_ART_KNOBS.set(name, _art_knob_defaults[name])
+	art_knobs_changed.emit()
+
+
+## Set one knob and tell the board. Refuses an unknown name or a value of the
+## wrong type (a float for a bool, a string for a Color) so a typo in a
+## console line can't poison the file's contract.
+func set_art_knob(name: String, value: Variant) -> bool:
+	if not art_knob_names().has(name):
+		push_warning("ArtVariables has no knob '%s'" % name)
+		return false
+	var current: Variant = _ART_KNOBS.get(name)
+	if typeof(value) != typeof(current):
+		if typeof(current) == TYPE_FLOAT and typeof(value) == TYPE_INT:
+			value = float(value)
+		else:
+			push_warning("%s takes a %s, got %s" % [name,
+					type_string(typeof(current)), type_string(typeof(value))])
+			return false
+	_ART_KNOBS.set(name, value)
+	art_knobs_changed.emit()
+	return true
+
+
 # ===== HELPER METHODS =====
 
 ## Log only if the specified flag is enabled.

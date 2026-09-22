@@ -172,7 +172,9 @@ func cancel_attack_targeting() -> void:
 # =============================================================================
 
 func _process(_delta: float) -> void:
-	if not input_enabled or not GridManager.is_grid_ready():
+	# The dev console gate is here, not just in InputRouter: hover and the
+	# repeats POLL the mouse and Input, which don't care what was handled.
+	if not input_enabled or not GridManager.is_grid_ready() or DevConsole.is_open():
 		return
 	_update_hover()
 	_check_long_press()

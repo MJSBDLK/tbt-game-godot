@@ -149,6 +149,11 @@ length/squash/lean, the acted-unit greyscale. Everything else reads from it.
 Never hardcode one of these values elsewhere, never let a second copy exist
 (the Webtyler preview's copy is pinned by a test), and keep the comments there
 in plain language — an artist edits this file directly, without Godot open.
+The knobs are `static var`s: read `ArtVariables.X` at the point of use, never
+into a `const` (a copy is a knob that stops turning). `DebugConfig.set_art_knob`
+is the one runtime write path — it fires `art_knobs_changed`, which the ` dev
+console (`DevConsole`) and tests drive; a consumer that bakes a knob into a
+cache or a shader param re-reads on that signal.
 
 ## Terrain Modifiers & Decorations
 

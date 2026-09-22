@@ -4,6 +4,13 @@
 ## value, save, press F5 in Godot, look at it. Nothing else needs touching:
 ## the rest of the code reads these.
 ##
+## Or turn one WHILE THE GAME RUNS: press ` (the key under Esc) for the
+## console, type `shadow_ink_alpha 0.3`, look. `list` shows every knob. When
+## it looks right, `dump` copies what you changed to the clipboard as lines in
+## this file's own words — paste them over the matching lines here. `help` has
+## the rest. Nothing you type there touches this file by itself; the file is
+## what sticks.
+##
 ## Editing rules:
 ##   - Only change what comes after the `=`. Leave the rest of the line alone.
 ##   - Decimals need a leading zero: 0.4, never .4
@@ -40,46 +47,46 @@ class_name ArtVariables
 ## preview draws with (Lua can't read this file). It's this number × 255, so
 ## 0.4 → 102. Change both and they stay honest; change one and a test tells
 ## you which you missed.
-const SHADOW_INK_ALPHA: float = 0.4
+static var SHADOW_INK_ALPHA: float = 0.4
 
 ## How far a shadow reaches, as a fraction of the caster's height. 1.0 lays
 ## the whole sprite flat on the ground; 0.5 is a shorter, higher-sun shadow.
 ## Sane range: 0.3 to 2.0.
-const SHADOW_LENGTH: float = 1.0
+static var SHADOW_LENGTH: float = 1.0
 
 ## How squat the shadow is. 1.0 is the full tip-over; 0.25 presses it down
 ## toward the ground so it reads as lying flat.
 ## Sane range: 0.1 to 1.0.
-const SHADOW_SQUASH: float = 0.25
+static var SHADOW_SQUASH: float = 0.25
 
 ## Leans the shadow sideways. 0.0 casts due east (right); positive numbers
 ## drag it toward the south-east.
 ## Sane range: -0.5 to 0.5.
-const SHADOW_LEAN: float = 0.0
+static var SHADOW_LEAN: float = 0.0
 
 ## Moves the drawn shadow up or down by this many pixels without changing its
 ## shape. Negative lifts it toward the feet.
 ## Sane range: -8 to 8.
-const SHADOW_NUDGE_Y: float = -2.0
+static var SHADOW_NUDGE_Y: float = -2.0
 
 ## The contact blob: a disc under a unit's feet that welds a wide stance into
 ## one grounded mass. false draws the bare silhouette instead.
-const SHADOW_BLOB: bool = true
+static var SHADOW_BLOB: bool = true
 
 ## Blob size, as a multiple of the unit's measured stance width. 1.0 spans
 ## exactly as wide as the feet do. Sane range: 0.5 to 2.0.
-const SHADOW_BLOB_WIDTH: float = 1.0
+static var SHADOW_BLOB_WIDTH: float = 1.0
 
 ## true lets a shadow fall ON the thing beside it — a mountain's shadow lands
 ## on the next mountain, a unit's lands on the tree it stands beside. false
 ## tucks every shadow under the sprites instead, so nothing is ever shaded by
 ## its neighbour.
-const SHADOWS_FALL_ON_NEIGHBORS: bool = true
+static var SHADOWS_FALL_ON_NEIGHBORS: bool = true
 
 ## Moves the GENERATED terrain shadows (the ones the game invents for art that
 ## ships no shadow of its own) up or down by this many pixels. Units have
 ## their own nudge above, because their art hangs differently in the cell.
-const TERRAIN_SHADOW_NUDGE_Y: float = 0.0
+static var TERRAIN_SHADOW_NUDGE_Y: float = 0.0
 
 
 # =============================================================================
@@ -90,8 +97,8 @@ const TERRAIN_SHADOW_NUDGE_Y: float = 0.0
 ## what it fades to. Both the ground and anything overhanging it (a tree's
 ## canopy past the last tile) use these, so the edge darkens as one piece.
 ## Sane range for the width: 8 to 128.
-const MAP_EDGE_FADE_WIDTH: float = 32.0
-const MAP_EDGE_FADE_COLOR: Color = Color(0.0, 0.0, 0.0, 1.0)
+static var MAP_EDGE_FADE_WIDTH: float = 32.0
+static var MAP_EDGE_FADE_COLOR: Color = Color(0.0, 0.0, 0.0, 1.0)
 
 
 # =============================================================================
@@ -101,4 +108,4 @@ const MAP_EDGE_FADE_COLOR: Color = Color(0.0, 0.0, 0.0, 1.0)
 ## How grey a unit goes once it has acted this turn. 1.0 drains the colour
 ## completely; 0.0 leaves it untouched. It never darkens — a darkening tint
 ## sank the dark sprites into the ground. Sane range: 0.0 to 1.0.
-const ACTED_GREYSCALE: float = 1.0
+static var ACTED_GREYSCALE: float = 1.0
