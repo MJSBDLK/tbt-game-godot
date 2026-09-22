@@ -39,7 +39,7 @@ uniform float frame_rate : hint_range(0.0, 60.0) = 12.0;
 // popping in at full — and dims the same way as it retracts.
 uniform float tail_tip_alpha : hint_range(0.0, 1.0) = 0.35;
 // Core alpha at rest runs from this (dimmest painted star) up to 1 (#FF).
-uniform float rest_alpha_min : hint_range(0.0, 1.0) = 0.6;
+uniform float rest_alpha_min : hint_range(0.0, 1.0) = 0.1;
 
 varying vec4 vertex_modulate;
 
