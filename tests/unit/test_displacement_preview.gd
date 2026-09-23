@@ -376,3 +376,66 @@ func test_arrow_width_stays_legible() -> void:
 	# revert; raise the expectation deliberately if the art direction changes.
 	assert_gte(DisplacementPreviewRenderer.ARROW_WIDTH, 2.0,
 		"displacement arrows need visible weight on the board")
+
+
+# =============================================================================
+# STAGED CASTER — the ghost departs from the phantom, not the sprite
+# =============================================================================
+# RQD 2026-09-22: with the deferred walk the caster's logic tile moves to the
+# staged destination while its sprite waits at the origin, and a self-
+# displacing move (Compressed Air, Switcheroo) showed its ghost setting off
+# from the sprite — offset from the phantom by the whole plan.
+
+func _self_move(distance: int = 1) -> Move:
+	return _displace_move(distance, "away_from_target", "self")
+
+
+## A row with a real 16px spread — the file's default grid stacks every tile
+## at the origin, where "the phantom" and "the sprite" are the same point.
+func _open_spread_row(max_x: int) -> void:
+	_open_grid(0, max_x, 0, 0)
+	for x: int in range(max_x + 1):
+		GridManager.get_tile(x, 0).position = Vector2(x * 16, 0)
+
+
+func _sole_track(renderer: DisplacementPreviewRenderer) -> Dictionary:
+	assert_eq(renderer._ghost_tracks.size(), 1, "one mover, one track")
+	return renderer._ghost_tracks[0] if not renderer._ghost_tracks.is_empty() else {}
+
+
+func test_a_staged_caster_ghost_departs_from_its_phantom() -> void:
+	_open_spread_row(5)
+	var attacker := _spawn_scene_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 0, 0)
+	var target := _spawn_scene_unit(GRUNT_PATH, Enums.UnitFaction.ENEMY, 4, 0)
+	# The deferred walk: logic claims (3,0), the sprite stays on (0,0).
+	attacker._claim_tile_keep_position(GridManager.get_tile(3, 0))
+	var sprite := attacker.get_node("Sprite2D") as Sprite2D
+	var body_offset: Vector2 = sprite.global_position - attacker.global_position
+	var renderer := _make_renderer()
+	renderer.show_preview(attacker, target, _self_move(1))
+	var track := _sole_track(renderer)
+	if track.is_empty():
+		return
+	var phantom: Vector2 = GridManager.get_tile(3, 0).global_position + body_offset
+	assert_lt((track.start as Vector2).distance_to(phantom), 0.5,
+			"the recoil starts where the phantom stands")
+	assert_gt((track.start as Vector2).distance_to(sprite.global_position), 1.0,
+			"not from the sprite still parked at the origin")
+	var stops: Array[Vector2] = track.stops
+	assert_eq(stops.size(), 1)
+	assert_lt(stops[0].distance_to(GridManager.get_tile(2, 0).global_position + body_offset), 0.5,
+			"one tile back from the phantom, body anchor kept")
+
+
+func test_an_unstaged_caster_ghost_still_departs_from_its_sprite() -> void:
+	_open_spread_row(5)
+	var attacker := _spawn_scene_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 2, 0)
+	var target := _spawn_scene_unit(GRUNT_PATH, Enums.UnitFaction.ENEMY, 3, 0)
+	var sprite := attacker.get_node("Sprite2D") as Sprite2D
+	var renderer := _make_renderer()
+	renderer.show_preview(attacker, target, _self_move(1))
+	var track := _sole_track(renderer)
+	if track.is_empty():
+		return
+	assert_lt((track.start as Vector2).distance_to(sprite.global_position), 0.5,
+			"nothing staged: the projection IS the sprite")

@@ -147,10 +147,13 @@ func _add_ghost(unit: Node2D, path: Array[Tile], start_step: int, is_primary: bo
 
 	# The ghost travels in "sprite space": each stop keeps the sprite's own
 	# anchor offset relative to its unit, so mid-body-anchored casts project
-	# correctly onto their destination cells.
+	# correctly onto their destination cells. It departs from the unit's
+	# PROJECTED spot, not its sprite: a caster with a staged walk aims from
+	# its phantom, and a self-displacing move (Compressed Air's recoil,
+	# Switcheroo) has to show that phantom moving — not the sprite still
+	# standing at the origin.
 	var anchor_offset: Vector2 = UnitGhost.anchor_offset(unit)
-	var source: Sprite2D = unit.get_node("Sprite2D") as Sprite2D
-	var start: Vector2 = source.global_position
+	var start: Vector2 = UnitGhost.projected_position(unit)
 	var stops: Array[Vector2] = []
 	for tile: Tile in path:
 		stops.append(tile.global_position + anchor_offset)

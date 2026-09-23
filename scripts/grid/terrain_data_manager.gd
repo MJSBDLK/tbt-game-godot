@@ -157,9 +157,14 @@ func get_attack_multiplier(terrain_type: String, unit_type: String = "") -> floa
 	return terrain.attack_multiplier.get_value(unit_type)
 
 
+## Unknown terrain is NEUTRAL (1.0) here and in get_avoid_multiplier, like
+## every other multiplier getter. These two used to return 0.0, which is not
+## a loud failure but a silent gift to the attacker: DEF × 0 and, through
+## hit_chance_pct's (2 − avoid) dodge term, a doubled hit chance that clamps
+## to a guaranteed 100%. Walkability is where an unknown name fails loud.
 func get_defense_multiplier(terrain_type: String, unit_type: String = "") -> float:
 	if not _is_loaded or not _terrains.has(terrain_type):
-		return 0.0
+		return 1.0
 	var terrain: TerrainDefinition = _terrains[terrain_type]
 	return terrain.defense_multiplier.get_value(unit_type)
 
@@ -183,7 +188,7 @@ func get_defense_multiplier_vs_ranged(terrain_type: String, unit_type: String = 
 
 func get_avoid_multiplier(terrain_type: String, unit_type: String = "") -> float:
 	if not _is_loaded or not _terrains.has(terrain_type):
-		return 0.0
+		return 1.0
 	var terrain: TerrainDefinition = _terrains[terrain_type]
 	return terrain.avoid_multiplier.get_value(unit_type)
 

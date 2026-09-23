@@ -248,3 +248,17 @@ func test_enemy_plans_keep_beacons_but_spawn_no_ghost() -> void:
 	assert_false(visualizer._beacon_sprites.is_empty(), "the AI's route still shows")
 	assert_false(visualizer.has_destination_ghost(),
 			"player-only: the AI's walk is already animated — the ghost is a planning aid")
+
+
+func test_anchor_offset_survives_a_staged_walk() -> void:
+	# The deferred walk moves current_tile without moving the node. The
+	# anchor is the sprite's offset from the NODE, so it doesn't swing by the
+	# length of the plan when the logic tile jumps ahead.
+	_open_row(4)
+	var unit := _spawn_scene_unit(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 0, 0)
+	var before: Vector2 = UnitGhost.anchor_offset(unit)
+	unit._claim_tile_keep_position(GridManager.get_tile(3, 0))
+	assert_eq(UnitGhost.anchor_offset(unit), before, "same body anchor, staged or not")
+	assert_lt(UnitGhost.projected_position(unit).distance_to(
+			GridManager.get_tile(3, 0).global_position + before), 0.5,
+			"the projection stands on the staged tile")

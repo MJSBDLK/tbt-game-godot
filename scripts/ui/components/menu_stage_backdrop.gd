@@ -1,15 +1,28 @@
 ## The shared intermission STAGE — locked identity (RQD 2026-08-03): the main
 ## menu and the between-mission screens are separate screens wearing the same
-## backdrop + glass chrome, and the backdrop is SAVE-AWARE ("Black Mesa
-## mode"). Resolution order (RQD 2026-08-03, round 8):
+## backdrop + glass chrome. Two resolution orders, one per role:
+##
+## OUT OF FICTION — the main menu (mission_path empty). SAVE-AWARE ("Black
+## Mesa mode", RQD 2026-08-03, round 8):
 ##   1. newest save's screenshot (captured by SaveManager at save time)
 ##   2. Lawrence's reference-res fullscreen art at SHIP_INTERIOR_PATH
 ##      (not painted yet — drops in with zero code changes)
 ##   3. flat glass — the dark-eggshell HUD panel color. No programmer-art
 ##      placeholder: an honest flat beats a crude scene.
-## Under 2 and 3 sits Lawrence's night sky (SKYBOX_TWINKLE_PATH through
-## StarSky, not painted yet — drops in with zero code changes): it shows
-## through the interior's windows, and a save screenshot covers it.
+##
+## IN FICTION — the hub and Manage Units (mission_path set to the mission
+## being prepared for; RQD 2026-09-22):
+##   1. the ship interior art, same file
+##   2. THAT map as a living diorama (MissionPreview): the board as the
+##      battle will first see it, the deployed squad on its spawns, no HUD —
+##      the art speaking for itself, at the game's own scale
+##   3. flat glass
+## No save screenshot here: every save's picture is a frame of this same
+## diorama, so there is nothing a screenshot could add.
+##
+## Under the art and the flat sits Lawrence's night sky (SKYBOX_TWINKLE_PATH
+## through StarSky, not painted yet — drops in with zero code changes): it
+## shows through the interior's windows; a screenshot or a map covers it.
 ## Dim + hint-strength vignette ride on top so free-floating menu text stays
 ## legible over any backdrop.
 class_name MenuStageBackdrop
@@ -22,8 +35,13 @@ const SKYBOX_TWINKLE_PATH: String = "res://art/backgrounds/skybox_twinkle.png"
 const DIM_COLOR: Color = Color(0.016, 0.02, 0.031, 0.35)
 const VIGNETTE_STRENGTH: float = 0.58
 
+## The mission the stage stands in front of. Empty = out of fiction (the
+## main menu). Set before the node enters the tree; _ready resolves once.
+var mission_path: String = ""
+
 var _backdrop: TextureRect = null
 var _base: ColorRect = null
+var _preview: SubViewport = null
 
 
 func _ready() -> void:
@@ -77,16 +95,47 @@ func _ready() -> void:
 	refresh()
 
 
-## Re-resolves what the stage shows per the resolution order in the header.
+## Re-resolves what the stage shows per the two orders in the header.
 func refresh() -> void:
-	var screenshot := _newest_save_screenshot()
-	if screenshot != null:
-		_backdrop.texture = screenshot
-		return
+	_drop_preview()
+	_backdrop.stretch_mode = TextureRect.STRETCH_SCALE
+	if mission_path.is_empty():
+		var screenshot := _newest_save_screenshot()
+		if screenshot != null:
+			_backdrop.texture = screenshot
+			return
 	if ResourceLoader.exists(SHIP_INTERIOR_PATH):
 		_backdrop.texture = load(SHIP_INTERIOR_PATH) as Texture2D
 		return
+	if not mission_path.is_empty():
+		_preview = MissionPreview.build(mission_path, _canvas_size(), BattleScene.deployed_roster())
+		if _preview != null:
+			add_child(_preview)
+			# Rendered at this canvas's size, so the map lands 1:1 — world
+			# pixels at the HUD's integer scale, the battle's own look. A
+			# later resize crops a little rather than stretching pixels.
+			_backdrop.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+			_backdrop.texture = _preview.get_texture()
+			return
 	_backdrop.texture = null  # flat eggshell base shows through
+
+
+## The stage's rect once anchored, or the reference canvas before layout
+## has sized it (a bare test tree).
+func _canvas_size() -> Vector2i:
+	if size.x >= 1.0 and size.y >= 1.0:
+		return Vector2i(size)
+	return MissionPreview.REFERENCE_SIZE
+
+
+func is_showing_mission_preview() -> bool:
+	return _preview != null and _backdrop.texture == _preview.get_texture()
+
+
+func _drop_preview() -> void:
+	if _preview != null:
+		_preview.queue_free()
+		_preview = null
 
 
 func _newest_save_screenshot() -> Texture2D:

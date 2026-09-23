@@ -252,6 +252,7 @@
 - [ ] 
 
 # Todo
+- [ ] We should have fullres line art for the Keener enemy - name is either "cultist" or "blood mage," not to be confused with the plant cultist.
 - [x] Options menu has gotten too big for the screen. We'll need to tabulate and/or refactor
   (DONE 2026-09-09 on `rqd--options-tabs`, eyeball-gated. Both: three tabs
   — GAMEPLAY (Quick Attack, Auto End Turn, Move Confirm, [Move Commit — deleted 2026-09-10],
@@ -423,7 +424,24 @@ those cells need repainting.
 
 
 # More stuff
-- [ ] Enemies hit too often. I'll position my highest AGL unit on good cover, and I don't think I've ever seen an enemy miss. I don't know if this is simply because we gave them all too much skill, or if there's a bug which gives enemies 100% accuracy.
+- [~] Enemies hit too often. I'll position my highest AGL unit on good cover, and I don't think I've ever seen an enemy miss. I don't know if this is simply because we gave them all too much skill, or if there's a bug which gives enemies 100% accuracy.
+  (AUDITED 2026-09-22 — the roll is honest; the numbers aren't kind. Hit%
+  = (accuracy + 1.5×(SKL − AGL)) × (2 − terrain avoid), one path for the
+  preview, the scene and the AI (`_execute_single_hit`). Three things make
+  it feel like 100%: **every Grunt spawns with Reliable (+50 flat)** — the
+  loader equips the first four pool passives and Reliable is the Grunt's
+  second, so Bonk 95 + 50 = 145, ×0.8 on a mountain is still 100% (the
+  Ogre's pool lists it fifth, so Ogres skip it); **forests aren't cover** — Plant avoid is 1.01, only Rock (the
+  mountains) / Castle reach 1.2, StoneEdifice / SpaceShip / Tarpit 1.1,
+  Crater 0.9 (worse); and **Air units get no cover at all** on Rock /
+  SpaceShip / Plant (per-type 1.0 exemption — Pica is Air). Without
+  Reliable a Grunt on a mountain target lands ~72%; with it, never misses.
+  MISS reads as Gray 5 text, easy to miss itself. FOUND + FIXED on the way:
+  an unknown terrain name returned avoid/defense 0.0 — DEF × 0 and a
+  doubled hit chance clamped to 100%. Latent (every painted name resolves
+  today), now neutral 1.0 with tests. TUNING CALL (RQD): Reliable's size,
+  whether Grunts should lead with it (reorder grunt.json's pool is a
+  one-line change), forest cover.)
 - [x] the default camera pan speed is way too low - probably speed up 3-5x
   (Done 2026-09-09: `CameraController.pan_speed` 120 → 480 screen px/s — 4x,
   the mid-point; it's an @export, tune in the inspector or the const.)
@@ -1015,9 +1033,46 @@ foundation shipped. What's left is **deliberate deferral, not loose ends**:
 ---
 
 ## 6. Bugs
-- [ ] Max S. leveled up on the move that won the level, and the victory screen showed before the level up screen (should wait on continue). Then the level up screen displays over the intermission screen. This seems like a class of bug which should be precluded by the transition to the intermission screen, but that would've made it hard to detect the early victory screen pop-up, so I'm glad we caught it.
-- [ ] In the intermission/manage units screen, the VHS-distortion effect on portraits has disappeared. This is a regression, and should have a unit test.
-- [ ] When we switched to the phantom move preview, when targeting with a move with a displacement effect, the red arrow correctly displays the displacement, but the phantom being displaced is animating relative to the character sprite, not the phantom preview.
+- [x] Max S. leveled up on the move that won the level, and the victory screen showed before the level up screen (should wait on continue). Then the level up screen displays over the intermission screen. This seems like a class of bug which should be precluded by the transition to the intermission screen, but that would've made it hard to detect the early victory screen pop-up, so I'm glad we caught it.
+  (RQD 2026-09-22: no longer reproduces as described. What DID show: pick a
+  recruit and the hub arrives with the "Choose a recruit" panel still
+  painted under its menu. FIXED on `rqd--playtest-0922`, eyeball-gated. It
+  was never the picker — the mission-boundary autosave grabbed the
+  viewport's LAST RENDERED FRAME the instant the pick emitted (the picker
+  hides and emits in the same frame), and MenuStageBackdrop showed the
+  newest save's screenshot first, so the hub wore that frozen frame. Same
+  for New Game (a main-menu frame) and a defeat (the result panel). RQD's
+  call (2026-09-22, on seeing the hint bar in that frame): beneath the
+  intermission it should be the map itself, no HUD whatsoever, the art
+  speaking for itself — and never mid-battle carnage on the main menu
+  after a ragequit. Now: in fiction the stage is ship art → the mission
+  being prepared for as a LIVING DIORAMA → flat (`MenuStageBackdrop
+  .mission_path`, set by the hub and Manage Units); the main menu keeps
+  Black Mesa mode. `MissionPreview` = the map's TilemapBuilder in a
+  SubViewport with its script dropped (no grid, GridManager untouched),
+  real TerrainSpriteRenderer overlays in `standalone` mode, the deployed
+  squad seated on the player spawns in the battle's own order
+  (`BattleScene.deployed_roster`, now static and shared) with health bars /
+  level / pips / type icons hidden (`Unit.hide_battle_chrome`), integer
+  cover-zoom camera at the HUD canvas size — zoom 1 on every map we ship,
+  i.e. the game's own scale. Enemies aren't rolled until the battle, so
+  their spawns stay empty. EVERY save's PNG is one frame of that same
+  diorama (the viewport frame-grab is gone), so Continue shows the mission
+  as it began. EYEBALL: how it reads under the hub's dim + vignette,
+  whether empty enemy spawns feel wrong, the Continue picture.
+  test_menu_stage_backdrop ×12, hub + roster pins.)
+- [x] In the intermission/manage units screen, the VHS-distortion effect on portraits has disappeared. This is a regression, and should have a unit test.
+  (RQD 2026-09-22: confirmed fixed in a build.)
+- [x] When we switched to the phantom move preview, when targeting with a move with a displacement effect, the red arrow correctly displays the displacement, but the phantom being displaced is animating relative to the character sprite, not the phantom preview.
+  (FIXED 2026-09-22 on `rqd--playtest-0922`. The deferred walk moves the
+  caster's `current_tile` to the staged destination while the sprite stays
+  home, and `UnitGhost.anchor_offset` measured the sprite against that
+  tile — so a self-displacing move (Compressed Air, Switcheroo) departed
+  from the sprite with every stop dragged back by the length of the plan.
+  The anchor is now sprite-minus-NODE and ghosts depart from
+  `UnitGhost.projected_position` (logic tile + anchor = the phantom when
+  staged, the sprite when not). Pushes and pulls on the target were never
+  affected. Pinned in test_displacement_preview + test_path_ghost.)
 - [x] In the first intermission screen after the first mission, I click on Max, and the bar for his stength and skill appear modified. However, the numerals have no modifiers, and nothing (at least in the intermission) should be modifying these stats.
 	- what I think happened is, he ended the battle with the Focused boost, and had a bonus from the competitive ability - I believe these carried over into the intermission screen when they shouldn't have.
 	(FIXED on `rqd--playtest-0913`: Competitive, not Focused — status

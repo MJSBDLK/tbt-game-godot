@@ -261,3 +261,22 @@ func test_fliers_hover_above_the_crater_split() -> void:
 			DamageCalculator.calculate_damage(attacker, flier_in_crater, _ranged_move()),
 			DamageCalculator.calculate_damage(attacker, flier_in_open, _ranged_move()),
 			"flier takes normal ranged damage in a crater")
+
+
+# =============================================================================
+# A misnamed tile is neutral ground, not free hits
+# =============================================================================
+
+func test_unknown_terrain_neither_guarantees_the_hit_nor_strips_the_defense() -> void:
+	# The two terrain getters used to answer 0.0 for a name terrain_data.json
+	# doesn't know. Through (2 − avoid) that doubled the hit chance to a
+	# clamped 100%, and DEF × 0 made every strike land at full might.
+	var attacker := _unit()
+	var on_plains := _unit(Enums.ElementalType.NONE, Enums.ElementalType.NONE, [], "Plains")
+	var on_bogus := _unit(Enums.ElementalType.NONE, Enums.ElementalType.NONE, [], "BogusTypeForTest")
+	assert_eq(DamageCalculator.hit_chance_pct(attacker, on_bogus, _move()),
+			DamageCalculator.hit_chance_pct(attacker, on_plains, _move()),
+			"unknown terrain hits like plains, never 100%")
+	assert_eq(DamageCalculator.calculate_damage(attacker, on_bogus, _move()),
+			DamageCalculator.calculate_damage(attacker, on_plains, _move()),
+			"unknown terrain defends like plains, never DEF 0")
