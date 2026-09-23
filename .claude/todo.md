@@ -2,12 +2,18 @@
 
 # BUGZ
 - [x] I overwrote a save once, and now the "overwrite save" screen will show up unexpectedly where it shouldn't: ![alt text](image-5.png)
-  (FIXED 2026-09-22, uncommitted. Not the hub's picker — UIManager's, opened
+  (FIXED 2026-09-22 in 319f72a, on rqd--main. Not the hub's picker — UIManager's, opened
   from the battle system menu (Load, or Save on a full ring), living in the
   overlay that outlives scenes. The state handler hid the system menu on
   every exit from PAUSED but never the browser, so a phase start or a
   stack-clearing cancel under it left it floating, and it rode into the hub.
   `UIManager.hide_save_browser` now goes with the menu. test_hud_overlay_orphans.)
+- [x] Save browser rows stamp the save in UTC, not local time — a 20:36 save reads as tomorrow: ![alt text](image-4.png)
+  (FIXED 2026-09-22. The screenshot rode into 319f72a with no item under it;
+  this is the item. `SaveBrowserPanel._format_timestamp` fed the raw unix
+  stamp to Godot's from_unix_time formatter, which is UTC-only; it now shifts
+  by the system zone bias first. test_save_browser_panel pins it against the
+  OS clock. Delete image-4.png once seen in a build.)
 
 
 # Meeting Notes 2026/09/20
@@ -1082,7 +1088,8 @@ independent of the intermission redesign.**
       Parse Error: Cannot find member "TEXT_WARNING" in base "GameColors".
   ```
   *(The latter two are stale references to renamed `GameColors` members — cheap fixes.)*
-- [ ] **Font size 5: the numeral "8" is very hard to read.** Replacement sprite is
+- [x] **Font size 5: the numeral "8" is very hard to read.** (DONE 2026-09-22 —
+  see Quick Fixes: B and 8 redrawn via tools/fonts/patch_pixel_glyphs.py.) Replacement sprite is
   already drawn — open question is how best to implement it. Note the replacement's
   bottom pixel drops below the baseline, like g/j/p/q/y.
 - [ ] **Preview panels don't reposition on touchscreen.** They swap sides correctly

@@ -168,3 +168,20 @@ func test_cursor_driven_open_lands_the_cursor_on_the_first_row() -> void:
 	panel.show_panel()
 	await wait_frames(1)
 	assert_true(panel._row_buttons[0].has_focus(), "cursor open: the first row takes focus")
+
+
+## The row stamp reads as the player's wall clock. Godot's from_unix_time
+## formatters are UTC, which once put a 20:36 PDT save on the next calendar
+## day. Captured twice so a second boundary can't split "now" in two.
+func test_row_timestamp_is_local_time_not_utc() -> void:
+	var now_unix: int = 0
+	var local_now: Dictionary = {}
+	for _attempt in range(5):
+		now_unix = int(Time.get_unix_time_from_system())
+		local_now = Time.get_datetime_dict_from_system(false)
+		if int(Time.get_unix_time_from_system()) == now_unix:
+			break
+	var expected: String = "%02d-%02d %02d:%02d" % [
+			local_now["month"], local_now["day"], local_now["hour"], local_now["minute"]]
+	assert_eq(SaveBrowserPanel._format_timestamp(now_unix), expected)
+	assert_eq(SaveBrowserPanel._format_timestamp(0), "", "no stamp for an unset save")

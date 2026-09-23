@@ -228,9 +228,15 @@ static func _kind_display_name(kind: String) -> String:
 	return "Manual save"
 
 
-## "YYYY-MM-DDTHH:MM:SS" → "MM-DD HH:MM". Year and seconds are noise at the
-## row scale; the full stamp lives in the file if anyone needs it.
+## "YYYY-MM-DDTHH:MM:SS" → "MM-DD HH:MM" in the player's local time. Year and
+## seconds are noise at the row scale; the full stamp lives in the file if
+## anyone needs it. Godot's from_unix_time formatters are UTC-only, so the
+## stamp is shifted by the system zone first (today's bias, not the save
+## day's — a DST flip between save and load is an hour off, fine at this scale).
 static func _format_timestamp(unix: int) -> String:
 	if unix <= 0:
 		return ""
-	return Time.get_datetime_string_from_unix_time(unix).substr(5, 11).replace("T", " ")
+	var local_unix: int = unix + int(Time.get_time_zone_from_system().get("bias", 0)) * 60
+	var stamp: String = Time.get_datetime_string_from_unix_time(local_unix).substr(5, 11).replace("T", " ")
+	assert(stamp.length() == 11, "timestamp shape drifted: %s" % stamp)
+	return stamp
