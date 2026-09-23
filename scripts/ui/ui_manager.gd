@@ -36,7 +36,7 @@ const BORDER_MARGIN: int = 10             # All borders are 10px on each side
 
 # Layout containers
 var _main_layout: Control = null
-var _left_panel: VBoxContainer = null
+var _left_panel: Control = null
 var _center_area: Control = null
 var _right_panel: VBoxContainer = null
 
@@ -466,12 +466,15 @@ func _build_layout() -> void:
 	_main_layout.theme = battle_theme
 	add_child(_main_layout)
 
-	# Left panel (anchored left, 140px wide, full height)
-	_left_panel = VBoxContainer.new()
+	# Left panel (anchored left, 140px wide, full height). Not a stack: the
+	# unit preview hugs the top and the terrain preview is locked to the
+	# BOTTOM corner, each by its own anchors (see _instantiate_panels). Both
+	# frames are fixed art (218 + 140), and stacked they ran 2px off a 360
+	# canvas.
+	_left_panel = Control.new()
 	_left_panel.name = "LeftPanel"
 	_left_panel.custom_minimum_size = Vector2(140, 0)
 	_left_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_left_panel.add_theme_constant_override("separation", 4)
 	_main_layout.add_child(_left_panel)
 	_left_panel.anchor_left = 0.0
 	_left_panel.anchor_right = 0.0
@@ -532,17 +535,23 @@ func get_overlay_layer() -> CanvasLayer:
 # =============================================================================
 
 func _instantiate_panels() -> void:
-	# Unit info panel (left, top)
+	# Unit info panel (left column, pinned to the top)
 	var unit_info_scene := load("res://scenes/ui/panels/unit_preview_panel/unit_preview_panel.tscn")
 	if unit_info_scene != null:
 		_unit_info_panel = unit_info_scene.instantiate() as UnitPreviewPanel
 		_left_panel.add_child(_unit_info_panel)
+		_unit_info_panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 
-	# Terrain preview panel (left, bottom)
+	# Terrain preview panel (left column, locked to the bottom corner). A
+	# terrain with extra override rows raises its minimum height, and the
+	# BEGIN grow direction makes that growth go UP, so the bottom edge never
+	# leaves the screen edge.
 	var terrain_info_scene := load("res://scenes/ui/panels/terrain_preview_panel/terrain_preview_panel.tscn")
 	if terrain_info_scene != null:
 		_terrain_info_panel = terrain_info_scene.instantiate() as TerrainPreviewPanel
 		_left_panel.add_child(_terrain_info_panel)
+		_terrain_info_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		_terrain_info_panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 
 	# Action menu panel (right, top)
 	var action_menu_scene := load("res://scenes/ui/panels/action_menu_panel.tscn")

@@ -14,6 +14,14 @@
 ##   - Otherwise the event continues through the root viewport's normal input
 ##     cycle (Controls at root, then `_unhandled_input` for autoloads like
 ##     InputManager).
+##   - The root's mouse ENTER / EXIT notifications are mirrored into
+##     HUDViewport too (see _notification). Godot never propagates them into a
+##     nested viewport — a SubViewportContainer is expected to do that, and
+##     this HUD has none — and a viewport that has never been told the mouse
+##     is inside it never starts a tooltip timer. Every native `tooltip_text`
+##     in the HUD was dead for exactly that reason. The
+##     scene's `gui_embed_subwindows` on HUDViewport is the other half: it
+##     keeps the tooltip popup INSIDE the HUD, at HUD scale, beside the cursor.
 ##
 ## See `.claude/zoom-arch.md` for the architecture rationale.
 class_name InputRouter
@@ -23,6 +31,12 @@ extends Node
 @onready var _hud_viewport: SubViewport = $"../HUDViewport"
 @onready var _hud_display: TextureRect = $"../HUDLayer/HUDDisplay"
 @onready var _tap_feedback: TapFeedbackLayer = $"../TapFeedbackLayer"
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_VP_MOUSE_ENTER or what == NOTIFICATION_VP_MOUSE_EXIT:
+		if _hud_viewport != null:
+			_hud_viewport.propagate_notification(what)
 
 
 func _input(event: InputEvent) -> void:

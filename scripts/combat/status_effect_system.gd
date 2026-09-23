@@ -395,16 +395,20 @@ func _recalculate_stat_modifiers(unit: Node2D) -> void:
 	if active_effects == null:
 		return
 
-	# Sum percentages per affected stat
-	var stat_pcts: Dictionary = {}  # stat_name → summed pct
+	# Per stat, [chip name, pct] in application order: the order the breakdown
+	# tooltip attributes the one rounded total in (StatBreakdown.pct_lines).
+	var stat_contributions: Dictionary = {}  # stat_name → Array of [label, pct]
 	for effect: StatusEffect in active_effects:
 		if effect.affected_stat == "":
 			continue
 		var config: StatusEffectData = _default_configs.get(effect.effect_type_name, null)
 		if config == null or config.pct_per_stack == 0.0:
 			continue
-		var contribution: float = config.pct_per_stack * effect.stacks
-		stat_pcts[effect.affected_stat] = stat_pcts.get(effect.affected_stat, 0.0) + contribution
+		var label: String = config.abbrev_name if config.abbrev_name != "" \
+				else effect.effect_type_name.capitalize()
+		var contributions: Array = stat_contributions.get(effect.affected_stat, [])
+		contributions.append([label, config.pct_per_stack * effect.stacks])
+		stat_contributions[effect.affected_stat] = contributions
 
 	# Maximum (passive or Stellar aura): status debuffs can't lower stats below
 	# base — floor any negative modifier at 0. Buffs are unaffected.
@@ -413,19 +417,22 @@ func _recalculate_stat_modifiers(unit: Node2D) -> void:
 	# their status modifier is forced to 0 regardless of sign.
 	var cavalier: bool = character_data.has_equipped_passive("Cavalier")
 
-	# Apply each summed % to the unmodified stat
-	for stat_name: String in stat_pcts.keys():
-		var pct: float = stat_pcts[stat_name]
-		if is_zero_approx(pct):
-			continue
+	# The summed % lands on the unmodified stat as ONE rounded modifier; a
+	# protecting passive then goes in the ledger as the line that undid it.
+	for stat_name: String in stat_contributions.keys():
 		var unmodified: int = character_data.get_unmodified_stat(stat_name)
-		var modifier: int = _apply_pct_with_floor(unmodified, pct)
+		var entries: Array[Dictionary] = StatBreakdown.pct_lines(unmodified,
+				stat_contributions[stat_name], _apply_pct_with_floor)
+		var modifier: int = StatBreakdown.total_of(entries)
 		if cavalier and stat_name in CAVALIER_PROTECTED_STATS:
+			if modifier != 0:
+				entries.append({"label": "Cavalier", "amount": -modifier})
 			modifier = 0
 		elif maximum_protected and modifier < 0:
+			entries.append({"label": "Maximum", "amount": -modifier})
 			modifier = 0
-		var field: String = "status_modifier_%s" % stat_name
-		character_data.set(field, modifier)
+		character_data.set(CharacterData.modifier_field("status_modifier_", stat_name), modifier)
+		character_data.status_modifier_sources[stat_name] = entries
 
 
 ## Public entry point to recompute a unit's status stat modifiers. Called by

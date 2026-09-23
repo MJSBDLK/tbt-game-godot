@@ -206,6 +206,32 @@ var status_modifier_athleticism: int = 0
 var status_modifier_defense: int = 0
 var status_modifier_resistance: int = 0
 
+# Who put each modifier there, for the stat breakdown tooltips (StatBreakdown):
+# stat_name -> Array of {"label": String, "amount": int}. The system that
+# writes a modifier field writes its lines in the same breath, so each list
+# sums to its field. Cleared with the fields by the reset_* functions below.
+var passive_bonus_sources: Dictionary = {}
+var injury_modifier_sources: Dictionary = {}
+var status_modifier_sources: Dictionary = {}
+
+
+## The field holding `stat_name`'s modifier under `prefix` ("status_modifier_",
+## "injury_modifier_", "passive_bonus_", "bond_bonus_"). The HP fields drop the
+## "max_": a caller that formats "%s_max_hp" names a property that doesn't
+## exist, and Object.set() on a missing property is silent — HP injuries did
+## nothing for exactly that reason.
+static func modifier_field(prefix: String, stat_name: String) -> String:
+	return prefix + ("hp" if stat_name == "max_hp" else stat_name)
+
+
+## The one write path for stat auras: bumps passive_bonus_<stat> and records
+## who did it. Writing the field directly leaves the breakdown blind to it.
+func add_passive_bonus(stat_name: String, amount: int, source_label: String) -> void:
+	var field: String = modifier_field("passive_bonus_", stat_name)
+	assert(field in self, "CharacterData: no passive bonus field for '%s'" % stat_name)
+	set(field, int(get(field)) + amount)
+	StatBreakdown.record(passive_bonus_sources, stat_name, source_label, amount)
+
 
 # =============================================================================
 # INJURIES (semi-permanent, from past missions)
@@ -495,6 +521,7 @@ func reset_status_modifiers() -> void:
 	status_modifier_athleticism = 0
 	status_modifier_defense = 0
 	status_modifier_resistance = 0
+	status_modifier_sources.clear()
 
 
 ## Stat auras (Competitive, Glib, Stellar's Maximum) are re-derived from board
@@ -511,6 +538,7 @@ func reset_passive_bonuses() -> void:
 	passive_bonus_resistance = 0
 	passive_bonus_avoid = 0
 	maximum_from_aura = false
+	passive_bonus_sources.clear()
 
 
 func reset_injury_modifiers() -> void:
@@ -524,6 +552,7 @@ func reset_injury_modifiers() -> void:
 	injury_modifier_resistance = 0
 	luck_penalty_pct = 0.0
 	healing_reduction_pct = 0.0
+	injury_modifier_sources.clear()
 
 
 # =============================================================================

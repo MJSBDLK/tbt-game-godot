@@ -35,7 +35,7 @@ func apply_stat_aura(unit: Unit, faction_units: Array[Unit]) -> void:
 				best_stat_name = stat_name
 
 	if best_stat_name != "":
-		_add_passive_bonus(unit.character_data, best_stat_name, BONUS)
+		unit.character_data.add_passive_bonus(best_stat_name, BONUS, "Competitive")
 
 
 func _allies_within_range(unit: Unit, faction_units: Array[Unit]) -> Array[Unit]:
@@ -66,13 +66,3 @@ func _read_stat(data: CharacterData, stat_name: String) -> int:
 		"resistance": return data.resistance
 		_: return 0
 
-
-func _add_passive_bonus(data: CharacterData, stat_name: String, amount: int) -> void:
-	match stat_name:
-		"strength": data.passive_bonus_strength += amount
-		"special": data.passive_bonus_special += amount
-		"skill": data.passive_bonus_skill += amount
-		"agility": data.passive_bonus_agility += amount
-		"athleticism": data.passive_bonus_athleticism += amount
-		"defense": data.passive_bonus_defense += amount
-		"resistance": data.passive_bonus_resistance += amount
