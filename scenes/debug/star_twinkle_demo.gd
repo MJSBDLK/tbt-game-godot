@@ -1,6 +1,6 @@
-## Debug harness for shaders/star_twinkle.gdshader. Run this scene (F6).
+## Debug harness for StarSky / shaders/star_twinkle.gdshader. Run this scene
+## (F6). Dials come from ArtVariables, so edit that file and F5 to compare.
 ##   R    — re-roll the random star field
-##   M    — toggle twinkle_amount 0/1 (the reduce-motion look)
 ##   ESC  — quit
 ## Stands in for Lawrence's skybox_twinkle layer: a near-black canvas with
 ## single-pixel dots — red X, green +, yellow alternating, blue-only blinkers,
@@ -31,8 +31,7 @@ const ANATOMY_COLORS: Array[Color] = [
 ## Cadence levels the random field paints into blue (see above for why these).
 const FIELD_CADENCES: Array[int] = [0, 0, 0, 170, 170, 255]
 
-var _sky: TextureRect = null
-var _material: ShaderMaterial = null
+var _sky: StarSky = null
 var _seed: int = 1
 var _label: Label = null
 
@@ -84,12 +83,6 @@ static func make_star_map(seed_value: int) -> Image:
 	return image
 
 
-static func make_material() -> ShaderMaterial:
-	var material := ShaderMaterial.new()
-	material.shader = load("res://shaders/star_twinkle.gdshader")
-	return material
-
-
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	var bg := ColorRect.new()
@@ -98,23 +91,19 @@ func _ready() -> void:
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
 
-	_material = make_material()
-	_sky = TextureRect.new()
-	_sky.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_sky.material = _material
+	_sky = StarSky.new()
 	_sky.scale = Vector2(SCALE, SCALE)
-	_sky.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_sky)
 	_reroll()
 
 	_label = Label.new()
 	_label.position = Vector2(16, MAP_SIZE.y * SCALE - 28)
-	_label.text = "R re-roll   M motion on/off   ESC quit"
+	_label.text = "R re-roll   ESC quit"
 	add_child(_label)
 
 
 func _reroll() -> void:
-	_sky.texture = ImageTexture.create_from_image(make_star_map(_seed))
+	_sky.set_star_map(ImageTexture.create_from_image(make_star_map(_seed)))
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -124,8 +113,5 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_R:
 			_seed += 1
 			_reroll()
-		KEY_M:
-			var amount: float = _material.get_shader_parameter("twinkle_amount")
-			_material.set_shader_parameter("twinkle_amount", 0.0 if amount > 0.5 else 1.0)
 		KEY_ESCAPE:
 			get_tree().quit()

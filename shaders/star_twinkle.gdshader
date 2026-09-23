@@ -15,6 +15,10 @@ shader_type canvas_item;
 // data/design/mockups/skybox_twinkle_lab.html embeds it verbatim so Lawrence
 // tunes the real shader. Keep TEXTURE / UV / TIME / COLOR / hints outside.
 
+// The node's own texture again, as a uniform: built-ins can't be read inside
+// a function, and handing TEXTURE in as an argument fails on the headless
+// renderer. StarSky sets it; a bare material draws nothing.
+uniform sampler2D star_map : filter_nearest, repeat_disable;
 uniform vec4 star_color : source_color = vec4(0.93, 0.93, 0.89, 1.0);
 // 0 parks every star at rest (the ui_motion_enabled hook); 1 = as painted.
 uniform float twinkle_amount : hint_range(0.0, 1.0) = 1.0;
@@ -134,7 +138,7 @@ float star_alpha(ivec2 cell, vec3 channels, ivec2 offset, float t) {
 
 // Alpha of the star layer at `cell`: the strongest contribution from any
 // star within reach. Transparent and near-black texels are not stars.
-float sky_alpha(sampler2D star_map, ivec2 cell, float t) {
+float sky_alpha(ivec2 cell, float t) {
 	ivec2 map_size = textureSize(star_map, 0);
 	float alpha = 0.0;
 	for (int dy = -MAX_REACH; dy <= MAX_REACH; dy++) {
@@ -158,5 +162,5 @@ float sky_alpha(sampler2D star_map, ivec2 cell, float t) {
 void fragment() {
 	ivec2 cell = ivec2(floor(UV / TEXTURE_PIXEL_SIZE));
 	float t = quantize_time(TIME * time_scale + time_offset);
-	COLOR = vec4(star_color.rgb, star_color.a * sky_alpha(TEXTURE, cell, t)) * vertex_modulate;
+	COLOR = vec4(star_color.rgb, star_color.a * sky_alpha(cell, t)) * vertex_modulate;
 }

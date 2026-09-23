@@ -38,7 +38,8 @@ func _run() -> void:
 	bg.size = Vector2(map_size * SCALE)
 	root.add_child(bg)
 
-	var material: ShaderMaterial = demo_script.make_material()
+	# Loaded at runtime: naming StarSky here would compile it before the autoloads exist.
+	var material: ShaderMaterial = load("res://scripts/ui/components/star_sky.gd").build_material()
 	material.set_shader_parameter("time_scale", 0.0)
 	material.set_shader_parameter("frame_rate", FRAME_RATE)
 	material.set_shader_parameter("period_slow_seconds", CAPTURE_SECONDS)
@@ -47,6 +48,7 @@ func _run() -> void:
 	var sky := TextureRect.new()
 	sky.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	sky.texture = ImageTexture.create_from_image(demo_script.make_star_map(1))
+	material.set_shader_parameter("star_map", sky.texture)
 	sky.material = material
 	sky.scale = Vector2(SCALE, SCALE)
 	root.add_child(sky)

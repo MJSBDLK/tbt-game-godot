@@ -7,6 +7,9 @@
 ##      (not painted yet — drops in with zero code changes)
 ##   3. flat glass — the dark-eggshell HUD panel color. No programmer-art
 ##      placeholder: an honest flat beats a crude scene.
+## Under 2 and 3 sits Lawrence's night sky (SKYBOX_TWINKLE_PATH through
+## StarSky, not painted yet — drops in with zero code changes): it shows
+## through the interior's windows, and a save screenshot covers it.
 ## Dim + hint-strength vignette ride on top so free-floating menu text stays
 ## legible over any backdrop.
 class_name MenuStageBackdrop
@@ -14,6 +17,7 @@ extends Control
 
 
 const SHIP_INTERIOR_PATH: String = "res://art/backgrounds/ship_interior.png"
+const SKYBOX_TWINKLE_PATH: String = "res://art/backgrounds/skybox_twinkle.png"
 
 const DIM_COLOR: Color = Color(0.016, 0.02, 0.031, 0.35)
 const VIGNETTE_STRENGTH: float = 0.58
@@ -35,6 +39,18 @@ func _ready() -> void:
 	_base.color = GameColors.with_alpha(GameColors.HUD_PANEL_BACKGROUND, 1.0)
 	_base.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_base)
+
+	if ResourceLoader.exists(SKYBOX_TWINKLE_PATH):
+		var sky_color := ColorRect.new()
+		sky_color.set_anchors_preset(Control.PRESET_FULL_RECT)
+		sky_color.color = GameColors.NIGHT_SKY
+		sky_color.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(sky_color)
+		var sky := StarSky.new()
+		sky.set_anchors_preset(Control.PRESET_FULL_RECT)
+		sky.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED  # the shader needs 1:1 texels
+		sky.set_star_map(load(SKYBOX_TWINKLE_PATH) as Texture2D)
+		add_child(sky)
 
 	_backdrop = TextureRect.new()
 	_backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)

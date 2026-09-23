@@ -183,7 +183,7 @@
     </section>
     <section class="stack">
       <h2>Send these numbers back</h2>
-      <p class="lede">They're the shader's actual settings. Copy the block, or note which lever you moved and where it felt right.</p>
+      <p class="lede">These are lines for <span class="mono">art_variables.gd</span>, the file the game reads. Copy the block and paste each line over its match there, or just say which lever moved and where it felt right.</p>
       <pre class="numbers" id="numbers"></pre>
       <div class="bar"><button id="copy" type="button">Copy numbers</button><span class="readout" id="copied"></span></div>
     </section>
@@ -276,7 +276,7 @@ float star_alpha(ivec2 cell, vec3 channels, ivec2 offset, float t) {
 
 // Alpha of the star layer at `cell`: the strongest contribution from any
 // star within reach. Transparent and near-black texels are not stars.
-float sky_alpha(sampler2D star_map, ivec2 cell, float t) {
+float sky_alpha(ivec2 cell, float t) {
 	ivec2 map_size = textureSize(star_map, 0);
 	float alpha = 0.0;
 	for (int dy = -MAX_REACH; dy <= MAX_REACH; dy++) {
@@ -349,7 +349,7 @@ float sky_alpha(sampler2D star_map, ivec2 cell, float t) {
     '    frag_color = texel.a > 0.5 ? vec4(texel.rgb, 1.0) : vec4(0.0);',
     '    return;',
     '  }',
-    '  frag_color = vec4(star_color.rgb, star_color.a * sky_alpha(star_map, cell, quantize_time(u_time)));',
+    '  frag_color = vec4(star_color.rgb, star_color.a * sky_alpha(cell, quantize_time(u_time)));',
     '}'
   ].join('\n');
 
@@ -466,10 +466,19 @@ float sky_alpha(sampler2D star_map, ivec2 cell, float t) {
     canvas.style.width = (MAP_W * state.scale) + 'px';
     canvas.style.height = (MAP_H * state.scale) + 'px';
   }
+  // Slider → the knob's name in art_variables.gd. twinkle_amount is the
+  // player's motion setting, not a knob, so it has no line.
+  var KNOB_NAMES = {
+    flash_seconds: 'STAR_FLASH_SECONDS', hold_seconds: 'STAR_HOLD_SECONDS', frame_rate: 'STAR_TICKS_PER_SECOND',
+    period_slow_seconds: 'STAR_PERIOD_SLOW_SECONDS', period_fast_seconds: 'STAR_PERIOD_FAST_SECONDS',
+    period_jitter: 'STAR_PERIOD_JITTER', tail_tip_alpha: 'STAR_TAIL_TIP_ALPHA', rest_alpha_min: 'STAR_REST_ALPHA_MIN'
+  };
+  function knobLiteral(v) { var s = String(Math.round(v * 100) / 100); return s.indexOf('.') < 0 ? s + '.0' : s; }
   function renderNumbers() {
-    var lines = SHADER_KEYS.map(function (k) { return k + ' = ' + Number(state[k]).toFixed(k === 'frame_rate' ? 0 : 2); });
-    lines.push('star_color = ' + state.star_color.toUpperCase());
-    lines.push('sky background = ' + state.background.toUpperCase());
+    var lines = SHADER_KEYS.filter(function (k) { return KNOB_NAMES[k]; }).map(function (k) {
+      return 'static var ' + KNOB_NAMES[k] + ': float = ' + knobLiteral(state[k]);
+    });
+    lines.push('# star ' + state.star_color.toUpperCase() + ' · sky ' + state.background.toUpperCase() + ' (palette picks, not knobs)');
     document.getElementById('numbers').textContent = lines.join('\n');
   }
   function persist() { try { localStorage.setItem(STORAGE, JSON.stringify(state)); } catch (e) { /* ignore */ } }

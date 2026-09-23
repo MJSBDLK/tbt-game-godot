@@ -1,7 +1,7 @@
 # Resp
 
 # Meeting Notes 2026/09/20
-- [ ] Star twinkle shader
+- [x] Star twinkle shader
 - [x] Mountains 12x8 is on Lawrence's branch - let's try to implement it!
 - [~] Runtime-editable art knobs ("cvars"): let `ArtVariables` values change
 	while the game runs, so Lawrence tunes and watches instead of edit → F5.
@@ -14,7 +14,8 @@
 	drop. TRIGGER = a ` dev console (`DevConsole`, CanvasLayer 100 in
 	HUDViewport, gated on cheats_enabled): `shadow_ink_alpha 0.3`, `list`,
 	`reset [name]`, `dump` = the changed knobs as `static var` lines to paste
-	into his file, Tab/Up/Down. OPEN = THE GAME IS DEAF (RQD 2026-09-21): the
+	into his file, Tab/Up/Down. WHILE OPEN the game is deaf, BY DESIGN (RQD
+	2026-09-21, shipped in fc87f16): the
 	console root spans the canvas and stops the mouse, keys/joypad die in
 	the HUD, and `DevConsole.is_open()` gates InputRouter (nothing reaches
 	the world, motion included) plus the two POLLERS handled flags can't

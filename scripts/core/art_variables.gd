@@ -109,3 +109,45 @@ static var MAP_EDGE_FADE_COLOR: Color = Color(0.0, 0.0, 0.0, 1.0)
 ## completely; 0.0 leaves it untouched. It never darkens — a darkening tint
 ## sank the dark sprites into the ground. Sane range: 0.0 to 1.0.
 static var ACTED_GREYSCALE: float = 1.0
+
+
+# =============================================================================
+# NIGHT SKY
+# =============================================================================
+# The twinkle over the ship. Every dot on your skybox_twinkle layer is a star:
+# red twinkles as an X, green as a +, red and green together take turns, blue
+# says how often (0 rarely, 255 nearly always), and how bright you paint the
+# dot is how far its tails reach (up to 3 px). The lab page
+# (data/design/mockups/skybox_twinkle_lab.html) has these same dials as
+# sliders; its "Send these numbers back" block prints them as lines for here.
+
+## One flash, out and back, in seconds — not counting the hold below.
+## Sane range: 0.2 to 3.0.
+static var STAR_FLASH_SECONDS: float = 0.6
+
+## How long a flash sits at full stretch before pulling back, in seconds.
+## 0.0 turns straight around. Sane range: 0.0 to 2.0.
+static var STAR_HOLD_SECONDS: float = 0.0
+
+## The twinkle steps at this many frames per second so it reads as
+## hand-animated. 0 is smooth. Sane range: 6 to 24.
+static var STAR_TICKS_PER_SECOND: float = 12.0
+
+## Seconds between flashes for a star painted with NO blue …
+static var STAR_PERIOD_SLOW_SECONDS: float = 8.0
+
+## … and for one painted with FULL blue (255). Sane range: 0.5 to 30 for both.
+static var STAR_PERIOD_FAST_SECONDS: float = 1.5
+
+## How far each star's own timing strays from those two numbers, so neighbours
+## never flash in step. 0.2 means up to 20% either way. Sane range: 0.0 to 0.5.
+static var STAR_PERIOD_JITTER: float = 0.2
+
+## How bright a tail's newest pixel is when it appears (1.0 = as bright as the
+## star). The pixels behind it brighten a step each as the tail grows.
+## Sane range: 0.1 to 1.0.
+static var STAR_TAIL_TIP_ALPHA: float = 0.35
+
+## How bright the DIMMEST painted star sits between flashes. Bright ones rest
+## at full; this is the floor the faint ones rest at. Sane range: 0.0 to 1.0.
+static var STAR_REST_ALPHA_MIN: float = 0.1
