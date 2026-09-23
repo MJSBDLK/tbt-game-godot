@@ -52,7 +52,10 @@ var _hp_name_label: Label = null  # The scene's "HP" key — the /max voice sour
 var _hp_label: Label = null
 var _hp_max_label: Label = null  # Reuses StatModifier node to show "/max_hp"
 var _hp_censor: StaticCensorOverlay = null
-var _stat_rows: Dictionary = {}  # display_key -> { cap_bar, value_label, modifier_label, name_label }
+var _stat_rows: Dictionary = {}  # display_key -> { row, cap_bar, value_label, modifier_label, name_label, description, tap_targets }
+var _hp_row: Control = null
+var _hp_description: String = ""  # the scene's HP copy; the breakdown rides under it
+var _hp_tap_targets: Array[Control] = []
 # XP moved off the class line into a sheet-style row (RQD 2026-08-11 — the
 # "SKULK Lv.11 · 0/100 XP" one-liner overflowed and widened the whole column).
 var _xp_row: Control = null
@@ -268,6 +271,12 @@ func _cache_node_references() -> void:
 	_anchor_center_bar(_hp_cap_bar, int(hp_scene_base.size.y))
 	hp_bar_container.add_child(_hp_cap_bar)
 	_hp_name_label = _find_label_in_node(hp_hbox.get_node("MarginContainer"))
+	_hp_row = hp_container
+	_hp_description = _hp_name_label.tooltip_text if _hp_name_label != null else ""
+	_hp_tap_targets = [hp_hbox.get_node("StatValue") as Control,
+			hp_hbox.get_node("StatModifier") as Control]
+	for target: Control in _hp_tap_targets:
+		target.add_child(TapTooltip.new())
 	_hp_label = _find_label_in_node(hp_hbox.get_node("StatValue"))
 	_hp_max_label = _find_label_in_node(hp_hbox.get_node("StatModifier"))  # Repurposed as "/max_hp"
 	if _hp_label != null and _hp_label.material != null:
@@ -309,11 +318,22 @@ func _cache_node_references() -> void:
 		_anchor_center_bar(cap_bar, int(scene_base.size.y))
 		bar_container.add_child(cap_bar)
 
+		var name_label: Label = _find_label_in_node(hbox.get_node("MarginContainer"))
+		# The number and the "+2" open the breakdown on a click/tap like the
+		# name does — the HUD's convention is press-for-why (TapTooltip).
+		var tap_targets: Array[Control] = [hbox.get_node("StatValue") as Control,
+				hbox.get_node("StatModifier") as Control]
+		for target: Control in tap_targets:
+			target.add_child(TapTooltip.new())
 		_stat_rows[display_key] = {
-			"name_label": _find_label_in_node(hbox.get_node("MarginContainer")),
+			"row": stat_container,
+			"name_label": name_label,
 			"value_label": _find_label_in_node(hbox.get_node("StatValue")),
 			"modifier_label": _find_label_in_node(hbox.get_node("StatModifier")),
 			"cap_bar": cap_bar,
+			# The scene's what-it-does copy; the breakdown rides under it.
+			"description": name_label.tooltip_text if name_label != null else "",
+			"tap_targets": tap_targets,
 		}
 
 	# Center column — moves and passives adopt the Manage Units sheet's slot-row
@@ -870,6 +890,10 @@ func _update_hp() -> void:
 	if _hp_censor != null and _character_data != null:
 		_hp_censor.set_censored(_character_data.is_health_bar_hidden(current_hp))
 
+	_set_stat_tooltip({"row": _hp_row, "name_label": _hp_name_label,
+			"description": _hp_description, "tap_targets": _hp_tap_targets},
+			StatBreakdown.text(_character_data, "max_hp"))
+
 
 func _update_stats() -> void:
 	for display_key: String in STAT_DISPLAY_MAP:
@@ -940,6 +964,36 @@ func _update_stats() -> void:
 		var cap_bar: StatCapBar = row.get("cap_bar")
 		if cap_bar:
 			cap_bar.set_stat(_character_data, stat_name)
+
+		_set_stat_tooltip(row, StatBreakdown.text(_character_data, stat_name))
+
+
+## Hover or click a stat for the arithmetic behind its number ("Str 10+2 →
+## Base (10) / +3 (Competitive) / -1 (debuff)"). The
+## name label keeps the scene's what-it-does copy with the breakdown under it;
+## the number and the modifier carry the bare breakdown. Each has a TapTooltip
+## child, which is what makes a click or tap open it (the HUD convention);
+## the child's own tooltip_text is set too because a STOP child is where a
+## native hover tooltip lookup stops. The row itself carries the breakdown
+## for hovers over the empty space (the gauge keeps its own three-number tip).
+func _set_stat_tooltip(row: Dictionary, breakdown: String) -> void:
+	var name_label: Label = row.get("name_label")
+	if name_label != null:
+		var description: String = str(row.get("description", ""))
+		_set_tap_tooltip(name_label, breakdown if description.is_empty() \
+				else description + "\n\n" + breakdown)
+	for target: Control in row.get("tap_targets", []):
+		_set_tap_tooltip(target, breakdown)
+	var row_control: Control = row.get("row")
+	if row_control != null:
+		row_control.tooltip_text = breakdown
+
+
+func _set_tap_tooltip(target: Control, text: String) -> void:
+	target.tooltip_text = text
+	for child: Node in target.get_children():
+		if child is TapTooltip:
+			(child as Control).tooltip_text = text
 
 
 ## Moves are REAL MoveChipButtons again (RQD 2026-08-11 round 3): the chip is

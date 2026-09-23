@@ -115,15 +115,18 @@ func show_tile(tile: Tile) -> void:
 
 
 ## 140x140 is the design size, but terrains with several per-type override rows
-## (a 4-entry modifier) need more. Grow the panel downward so the icon+title
-## stay pinned at the top and the anchored background stretches with the rows —
+## (a 4-entry modifier) need more. Raising the MINIMUM height (not `size`) is
+## what lets the host decide which way the extra rows go: UIManager pins this
+## panel to the bottom corner with an upward grow direction, so the bottom
+## edge stays put and the header rises; a standalone (F6) instance grows
+## down. Either way the anchored background stretches with the rows —
 ## previously the full-rect containers grew in BOTH directions and shoved the
 ## header off the panel's top edge.
 func _fit_height_to_rows() -> void:
 	var content: Control = get_node_or_null("ContentMargin")
 	if content == null:
 		return
-	size = Vector2(140.0, maxf(140.0, content.get_combined_minimum_size().y))
+	custom_minimum_size = Vector2(140.0, maxf(140.0, content.get_combined_minimum_size().y))
 
 
 func hide_panel() -> void:

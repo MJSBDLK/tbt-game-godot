@@ -558,3 +558,170 @@ func test_the_xp_row_asks_for_the_bexp_view() -> void:
 	xp_slot.pressed.emit()
 	assert_signal_emitted(sheet, "bexp_requested",
 			"the screen swaps the sheet for the spend view on this")
+
+
+# =============================================================================
+# THE [+] HOVER PREVIEW — "4+ is still 4" (RQD 2026-09-13)
+# =============================================================================
+
+func _stat_row(sheet: UnitSheet, stat_name: String) -> Button:
+	return sheet._stack.find_child("StatRow_" + stat_name, false, false) as Button
+
+
+func test_hovering_plus_previews_the_number_after_the_press() -> void:
+	var unit := _unit()
+	unit.base_strength = 15
+	unit.available_stat_ups = 2
+	var sheet := _built_sheet(unit)
+	var row := _stat_row(sheet, "strength")
+	var number: Label = row.find_child("Number", true, false)
+	var plus: Button = row.find_child("Plus", true, false)
+	assert_eq(number.text, "15")
+	plus.mouse_entered.emit()
+	assert_eq(number.text, "15→17", "one StatUp is +10%: 16.5 rounds to 17")
+	plus.mouse_exited.emit()
+	assert_eq(number.text, "15", "leaving restores the real number")
+
+
+func test_the_preview_is_honest_when_a_point_rounds_to_nothing() -> void:
+	var unit := _unit()
+	unit.base_strength = 4
+	unit.available_stat_ups = 2
+	var sheet := _built_sheet(unit)
+	var row := _stat_row(sheet, "strength")
+	var plus: Button = row.find_child("Plus", true, false)
+	plus.mouse_entered.emit()
+	assert_eq((row.find_child("Number", true, false) as Label).text, "4→4",
+			"the preview shows the truth: this point changes nothing yet")
+	assert_string_contains(plus.tooltip_text, "4→4")
+	assert_string_contains(plus.tooltip_text, "point 2 lifts it to 5",
+			"and the tooltip says when it will: 4 × 1.2 = 4.8 rounds to 5")
+
+
+func test_hovering_minus_previews_the_refund_and_parks_the_tally() -> void:
+	var unit := _unit()
+	unit.base_strength = 15
+	unit.available_stat_ups = 1
+	unit.set_allocated_points("strength", 1)
+	var sheet := _built_sheet(unit)
+	var row := _stat_row(sheet, "strength")
+	var number: Label = row.find_child("Number", true, false)
+	var tally: Label = row.find_child("Tally", true, false)
+	var minus: Button = row.find_child("Minus", true, false)
+	assert_eq(number.text, "17")
+	assert_true(tally.visible)
+	minus.mouse_entered.emit()
+	assert_eq(number.text, "17→15")
+	assert_false(tally.visible, "the tally steps aside for the preview")
+	assert_string_contains(minus.tooltip_text, "17→15")
+	minus.mouse_exited.emit()
+	assert_eq(number.text, "17")
+	assert_true(tally.visible)
+
+
+func test_the_preview_rides_the_units_other_bonuses() -> void:
+	var unit := _unit()
+	unit.base_strength = 15
+	unit.add_passive_bonus("strength", 3, "Competitive")
+	assert_eq(UnitSheet.alloc_preview_value(unit, "strength", 1), 20,
+			"15 → 17 from the point, +3 aura on top: the number the row will actually show")
+	assert_eq(UnitSheet.alloc_preview_value(unit, "strength", 0), 18)
+
+
+func test_the_value_cluster_is_sized_for_the_preview() -> void:
+	# `120→132` is wider than the 28px the cluster used to claim; sizing it
+	# up front is what keeps the gauge from jumping under the cursor.
+	var unit := _unit()
+	unit.base_max_hp = 120
+	unit.available_stat_ups = 1
+	var sheet := _built_sheet(unit)
+	var row := _stat_row(sheet, "max_hp")
+	var cluster: Control = row.find_child("Value", true, false)
+	assert_true(cluster.custom_minimum_size.x >= UnitSheet.text_width("120→132"))
+	var narrow := _stat_row(sheet, "strength")
+	assert_eq((narrow.find_child("Value", true, false) as Control).custom_minimum_size.x, 28.0,
+			"two-digit rows keep the old width")
+
+
+func test_the_row_tooltip_is_the_stat_breakdown() -> void:
+	var unit := _unit()
+	unit.base_strength = 10
+	unit.add_passive_bonus("strength", 3, "Competitive")
+	var sheet := _built_sheet(unit)
+	assert_eq(_stat_row(sheet, "strength").tooltip_text, "Base (10)\n+3 (Competitive)")
+
+
+# =============================================================================
+# TOUCH HOLD-TO-PEEK ON [+]/[−] — no hover on a phone (RQD 2026-09-22)
+# =============================================================================
+
+func _touch_press(pressed: bool) -> InputEventMouseButton:
+	var event := InputEventMouseButton.new()
+	event.button_index = MOUSE_BUTTON_LEFT
+	event.pressed = pressed
+	event.device = InputEvent.DEVICE_ID_EMULATION
+	return event
+
+
+func test_a_held_touch_on_plus_previews_without_spending() -> void:
+	var unit := _unit()
+	unit.base_strength = 15
+	unit.available_stat_ups = 2
+	var sheet := _built_sheet(unit)
+	var row := _stat_row(sheet, "strength")
+	var number: Label = row.find_child("Number", true, false)
+	var plus: Button = row.find_child("Plus", true, false)
+	var saved_hold_ms: int = Settings.tooltip_hold_ms
+	Settings.tooltip_hold_ms = 200
+
+	plus.gui_input.emit(_touch_press(true))
+	assert_eq(number.text, "15", "nothing before the hold matures")
+	await wait_seconds(0.35)
+	assert_eq(number.text, "15→17", "the matured hold shows the hover preview")
+	assert_eq(unit.get_allocated_points("strength"), 0, "peeking never spends")
+	plus.gui_input.emit(_touch_press(false))
+	assert_eq(number.text, "15", "release restores the number")
+	assert_eq(unit.get_allocated_points("strength"), 0, "and the swallowed release doesn't spend either")
+
+	Settings.tooltip_hold_ms = saved_hold_ms
+	DenyTooltip.dismiss()
+
+
+func test_a_quick_tap_does_not_peek() -> void:
+	var unit := _unit()
+	unit.base_strength = 15
+	unit.available_stat_ups = 2
+	var sheet := _built_sheet(unit)
+	var row := _stat_row(sheet, "strength")
+	var number: Label = row.find_child("Number", true, false)
+	var plus: Button = row.find_child("Plus", true, false)
+	var saved_hold_ms: int = Settings.tooltip_hold_ms
+	Settings.tooltip_hold_ms = 200
+
+	plus.gui_input.emit(_touch_press(true))
+	plus.gui_input.emit(_touch_press(false))
+	await wait_seconds(0.35)
+	assert_eq(number.text, "15", "a released press never matures — the tap is a tap")
+
+	Settings.tooltip_hold_ms = saved_hold_ms
+
+
+func test_a_real_mouse_press_never_arms_the_hold() -> void:
+	var unit := _unit()
+	unit.base_strength = 15
+	unit.available_stat_ups = 2
+	var sheet := _built_sheet(unit)
+	var row := _stat_row(sheet, "strength")
+	var number: Label = row.find_child("Number", true, false)
+	var plus: Button = row.find_child("Plus", true, false)
+	var saved_hold_ms: int = Settings.tooltip_hold_ms
+	Settings.tooltip_hold_ms = 200
+
+	var mouse_press := InputEventMouseButton.new()
+	mouse_press.button_index = MOUSE_BUTTON_LEFT
+	mouse_press.pressed = true
+	plus.gui_input.emit(mouse_press)
+	await wait_seconds(0.35)
+	assert_eq(number.text, "15", "desktop clicks have no tap/hold ambiguity: hover is the preview there")
+
+	Settings.tooltip_hold_ms = saved_hold_ms

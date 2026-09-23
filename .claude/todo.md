@@ -1,5 +1,15 @@
 # Resp
 
+# BUGZ
+- [x] I overwrote a save once, and now the "overwrite save" screen will show up unexpectedly where it shouldn't: ![alt text](image-5.png)
+  (FIXED 2026-09-22, uncommitted. Not the hub's picker — UIManager's, opened
+  from the battle system menu (Load, or Save on a full ring), living in the
+  overlay that outlives scenes. The state handler hid the system menu on
+  every exit from PAUSED but never the browser, so a phase start or a
+  stack-clearing cancel under it left it floating, and it rode into the hub.
+  `UIManager.hide_save_browser` now goes with the menu. test_hud_overlay_orphans.)
+
+
 # Meeting Notes 2026/09/20
 - [x] Star twinkle shader
 - [x] Mountains 12x8 is on Lawrence's branch - let's try to implement it!
@@ -93,10 +103,14 @@
 - [~] The green from being at the class max on a stat is the same green as "this stat has been boosted by some effect" no semantic difference between the colors is confusing.
   (At-cap is now `TEXT_AT_CAP` Cyan 7/4 — the full-HP hue — in all six
   venues; buffs keep Green 6. Style guide §3 updated. EYEBALL.)
-- [ ] StatUps - new player was confused at the percentage-based stat-ups. 4+ computes to 4, and 15+ computes to 17. If you don't understand these are a 10% buff, this appears broken. The system is working correctly - it's the presentation that needs improvement.
-  (Next branch: "stat readability" — `15 → 17` preview on the [+] hover,
-  the per-source stat tooltip from §Todo, then a tutorial beat. OPEN: min +1
-  per StatUp? Move buffs already floor at ±1, StatUps round plainly.)
+- [~] StatUps - new player was confused at the percentage-based stat-ups. 4+ computes to 4, and 15+ computes to 17. If you don't understand these are a 10% buff, this appears broken. The system is working correctly - it's the presentation that needs improvement.
+  (BUILT 2026-09-22 on `rqd--stat-readability` with the §Todo stat tooltip
+  and three Quick Fixes; story in that branch's first commit. Hover [+]/[−]
+  on the sheet → `15→17` on the number, `4→4` when a point rounds away and
+  the tooltip names the point that moves it; touch = hold-to-peek, never
+  spends. RQD: "working great, feels totally natural". NOT built: the
+  tutorial beat (no tutorial system yet, group D). STILL OPEN: min +1 per
+  StatUp? The honest +0 may be enough. EYEBALL on a phone: hold timing.)
 - [x] New player didn't add a unit from the bench, despite a slot being open in the squad. He thought recruits were added automatically, which actually should  be how it works if there's room.
   (`CampaignManager._seat_recruit`: a recruit joins the chosen deployment;
   the hub's cap trim benches it when the squad is full. Also joins a squad
@@ -104,8 +118,13 @@
 - [ ] 
 
 # Quick Fixes
-- [ ] "show range" box in the unit preview panel is funtionally non-interactible when using M&K, so it should not display if touchscreen input is not active.
-- [ ] There is too much vertical gap between the unit preview panel and the terrain preview panel when both are onscreen at once - the terrain preview panel is pushed 1-2 pixels off the bottom of the screen.
+- [x] "show range" box in the unit preview panel is funtionally non-interactible when using M&K, so it should not display if touchscreen input is not active.
+  (DONE 2026-09-22: touch-only — a mouse can't reach it, a pad has no pointer.)
+- [x] There is too much vertical gap between the unit preview panel and the terrain preview panel when both are onscreen at once - the terrain preview panel is pushed 1-2 pixels off the bottom of the screen.
+  (DONE 2026-09-22: the left column is no longer a stack — unit preview
+  pinned top, terrain preview locked to the bottom corner and growing
+  upward; the two fixed frames (218 + 140 + 4) overran a 360 canvas. RQD:
+  "flawless". Pinned in test_hud_side_columns.)
 - [~] Goblin Healer - not a mage, an... apothecary? I think that's the name of the store. What do you call them, an herbalist or something? What word am I looking for?
   (ANSWERED 2026-09-10: **apothecary** — it names both the shop and the
   person who keeps it; "herbalist" is the plants-only narrower word,
@@ -156,7 +175,11 @@
   cursor share). Not touched, flagging: the "move preview doesn't animate
   properly when a unit retreads its path" item in §6 is probably related
   (beacon phase on revisited tiles), not this.)
-- [ ] Still need to replace "B" and "8" in the small font with our own creations
+- [x] Still need to replace "B" and "8" in the small font with our own creations
+  (DONE 2026-09-22. They were the only 4-wide glyphs in a 3-wide font, with
+  outlines that rendered as noise. Redrawn — B 3×4, 8 3×5 on the descender
+  row — by tools/fonts/patch_pixel_glyphs.py, where the grids are text an
+  artist can edit; the same tool added → to the 8px font. RQD: "looks great".)
 
 # Characters
 - [ ] Goblin Healer
@@ -286,11 +309,19 @@
   (DONE 2026-09-10: `OptionsMenuPanel._dress_slider` — the pill palette as a
   bar, 5×9 knob. RQD: "knob looks good". Still no §14 slider design; this
   is the placeholder.)
-- [ ] In the unit detail panel, clicking any stat should display its modifications:
+- [x] In the unit detail panel, clicking any stat should display its modifications:
 	- Str 10+2
 		-> Base (10)\n+3 (Competitive)\n-1 (Some debuff)
 	- should also show base (10) alone if it's unmodified and the user brings up the tooltip
 	- should still show e.g. `Base (10)\n+2 (Some buff)\n-2 (Some debuff)` if there are modifications which bring it back to its base.
+  (DONE 2026-09-22 on `rqd--stat-readability`, exactly this shape —
+  `StatBreakdown` + per-source ledgers on CharacterData; lines always sum to
+  the number on screen. Click/tap the name, the number or the "+2"; hover
+  the row. Sheet rows too. NOT built: a pad path. FOUND ON THE WAY (story in
+  the commit): HP injuries never applied (`injury_modifier_max_hp` isn't a
+  property; set() is silent) — fixed; and every native tooltip in the HUD
+  was dead (mouse-enter never reaches a nested SubViewport) — InputRouter
+  mirrors it now, so ~29 authored hover tooltips light up. EYEBALL those.)
 - [ ] Victory screen popping up needs more dopamine - discuss
 - [ ] The finalized icons for the terrain preview panel are actually finished - we should use those over the placeholders we're currently using.
 - [ ] 

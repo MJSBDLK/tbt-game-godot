@@ -251,8 +251,9 @@ func recalculate_injury_modifiers(character_data: CharacterData) -> void:
 
 	character_data.reset_injury_modifiers()
 
-	# Sum percentages per affected stat across all stat-pct injuries
-	var stat_pcts: Dictionary = {}  # stat_name → summed pct
+	# Per stat, [injury name, pct] in slot order: the order the breakdown
+	# tooltip attributes the one rounded total in (StatBreakdown.pct_lines).
+	var stat_contributions: Dictionary = {}  # stat_name → Array of [label, pct]
 	var luck_total: float = 0.0
 	var healing_total: float = 0.0
 
@@ -264,9 +265,9 @@ func recalculate_injury_modifiers(character_data: CharacterData) -> void:
 		match data.mechanic:
 			Enums.InjuryMechanic.STAT_PCT:
 				if data.affected_stat != "":
-					stat_pcts[data.affected_stat] = stat_pcts.get(data.affected_stat, 0.0) - mag
+					_add_contribution(stat_contributions, data.affected_stat, data.display_name, -mag)
 			Enums.InjuryMechanic.MAX_HP_PCT:
-				stat_pcts["max_hp"] = stat_pcts.get("max_hp", 0.0) - mag
+				_add_contribution(stat_contributions, "max_hp", data.display_name, -mag)
 			Enums.InjuryMechanic.LUCK_PCT:
 				luck_total += mag
 			Enums.InjuryMechanic.HEALING_REDUCED:
@@ -277,15 +278,17 @@ func recalculate_injury_modifiers(character_data: CharacterData) -> void:
 			_:
 				pass
 
-	# Apply each summed % to the raw passive stat
-	for stat_name: String in stat_pcts.keys():
-		var pct: float = stat_pcts[stat_name]
-		if is_zero_approx(pct):
-			continue
+	# Each summed % lands on the raw passive stat as ONE rounded modifier.
+	# The field name goes through modifier_field: "injury_modifier_max_hp" is
+	# not a property, and set() on a missing one is silent (HP injuries were
+	# silent no-ops for exactly that reason).
+	for stat_name: String in stat_contributions.keys():
 		var raw: int = character_data.get_raw_passive_stat(stat_name)
-		var modifier: int = _apply_pct_with_floor(raw, pct)
-		var field: String = "injury_modifier_%s" % stat_name
-		character_data.set(field, modifier)
+		var entries: Array[Dictionary] = StatBreakdown.pct_lines(raw,
+				stat_contributions[stat_name], _apply_pct_with_floor)
+		character_data.set(CharacterData.modifier_field("injury_modifier_", stat_name),
+				StatBreakdown.total_of(entries))
+		character_data.injury_modifier_sources[stat_name] = entries
 
 	# Cache aggregate luck and healing-reduction values
 	character_data.luck_penalty_pct = clampf(luck_total, 0.0, 100.0)
@@ -295,6 +298,13 @@ func recalculate_injury_modifiers(character_data: CharacterData) -> void:
 # =============================================================================
 # HELPERS
 # =============================================================================
+
+static func _add_contribution(stat_contributions: Dictionary, stat_name: String,
+		label: String, pct: float) -> void:
+	var contributions: Array = stat_contributions.get(stat_name, [])
+	contributions.append([label, pct])
+	stat_contributions[stat_name] = contributions
+
 
 ## Apply a percentage to a base value with floor-toward-zero rounding and a
 ## minimum non-zero magnitude. Mirrors StatusEffectSystem._apply_pct_with_floor.
