@@ -5,6 +5,8 @@ shader_type canvas_item;
 // Applied to a world-space Polygon2D covering a large area around the map.
 uniform vec2 map_min;                 // world-space top-left corner of the map
 uniform vec2 map_max;                 // world-space bottom-right corner of the map
+// Defaults only: the code pushes ArtVariables.MAP_EDGE_FADE_WIDTH /
+// MAP_EDGE_FADE_COLOR, so tune the knob there, not here.
 uniform float fade_width = 32.0;      // pixels from map edge to full opacity
 uniform vec4 fade_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
 

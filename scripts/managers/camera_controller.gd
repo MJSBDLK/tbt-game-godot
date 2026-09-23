@@ -259,6 +259,8 @@ func _update_bounds_for_zoom() -> void:
 
 
 func _is_input_blocked() -> bool:
+	if DevConsole.is_open():
+		return true  # the pan polls Input; typing "shadow" would scroll the map
 	var state_manager: Node = get_node_or_null("/root/GameStateManager")
 	if state_manager == null:
 		return false

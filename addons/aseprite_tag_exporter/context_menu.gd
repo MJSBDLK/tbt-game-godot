@@ -321,6 +321,7 @@ func _export_file(aseprite_file_path: String, lowercase_names: bool) -> void:
 					if _content_bbox(shadow_frames[fi]).size.x > 0:
 						any_shadow = true
 				if any_shadow:
+					_flatten_shadow_to_mask(shadow_strip)
 					var shadow_save_err := shadow_strip.save_png(shadow_output_path)
 					if shadow_save_err == OK:
 						shadow_emitted = true
@@ -1196,6 +1197,20 @@ static func _crop_rect_around_pivot_for_footprint(
 ## ABOVE same-row modifiers (so a shadow spills onto an east neighbor); the
 ## masking keeps the caster's own base from being tinted by its own shadow
 ## in that mode. Mutates `shadow` in place.
+## The shipped shadow PNG is a MASK: flat black where Lawrence painted shadow,
+## transparent everywhere else. The game draws it at the board's one shadow
+## opacity (ArtVariables.SHADOW_INK_ALPHA), so his paint decides the SHAPE and
+## the knob decides how dark every shadow is — trees, buildings and units
+## together.
+static func _flatten_shadow_to_mask(image: Image) -> void:
+	var ink := Color(0.0, 0.0, 0.0, 1.0)
+	var clear := Color(0.0, 0.0, 0.0, 0.0)
+	var opaque_floor: float = float(SHADOW_ALPHA_MIN_OPAQUE) / 255.0
+	for y in range(image.get_height()):
+		for x in range(image.get_width()):
+			image.set_pixel(x, y, ink if image.get_pixel(x, y).a > opaque_floor else clear)
+
+
 static func _mask_shadow_by_object(shadow: Image, object: Image) -> void:
 	if shadow == null or object == null:
 		return

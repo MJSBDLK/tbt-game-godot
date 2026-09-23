@@ -8,13 +8,14 @@
 ## clockwise on the feet pivot — a rigid tip-over, head pointing screen-right
 ## — then three distortion dials, all identity by default so the untouched
 ## baseline renders undistorted:
-##   SHADOW_SMOOSH_X — length/reach scale (sun elevation). 1.0 = none.
-##   SHADOW_SMOOSH_Y — vertical body scale about the feet line. 1.0 = none.
-##   SHADOW_SHEAR    — lean (RQD's "parallelogramization"). 0.0 = none.
-##   SHADOW_OFFSET_Y — flat vertical placement nudge. 0.0 = none.
-##   SHADOW_BLOB_*   — contact-shadow disc unioned under the cast (see the
-##                     blob consts below). Off = pure silhouette cast.
-## Tinker in F5 loops; when values lock they become the sun parameters.
+##   SHADOW_LENGTH  — length/reach scale (sun elevation). 1.0 = none.
+##   SHADOW_SQUASH  — vertical body scale about the feet line. 1.0 = none.
+##   SHADOW_LEAN    — lean (RQD's "parallelogramization"). 0.0 = none.
+##   SHADOW_NUDGE_Y — flat vertical placement nudge. 0.0 = none.
+##   SHADOW_BLOB*   — contact-shadow disc unioned under the cast (see the
+##                    dials block below). Off = pure silhouette cast.
+## All live in ArtVariables (Lawrence's file) and are read at use, so a
+## change lands on the next tick — no restart.
 ##
 ## The rendering is RASTERIZED, not transformed (first eyeball round: a
 ## transformed Node2D renders its diagonal/rotated edges at NATIVE
@@ -63,67 +64,56 @@ class_name UnitShadow
 extends Node2D
 
 
-## RQD's three dials (2026-08-01), all at identity defaults.
+## The sun's dials all live in ArtVariables — Lawrence's file — read at use,
+## never copied into a const, so he can turn one while the game runs and
+## every shadow follows. Mechanics, by knob:
+##   SHADOW_LENGTH  — horizontal reach of the smear per pixel of sprite
+##                    height, about the feet point. The sun-ELEVATION knob:
+##                    lower sun = longer shadow.
+##   SHADOW_SQUASH  — vertical scale about the feet line. 1.0 = the full
+##                    rigid turn; 0.0 collapses it to a 1px line.
+##   SHADOW_LEAN    — shear, the standard term for "parallelogramization":
+##                    rows slide sideways by their distance from the feet
+##                    line. Also the compass dial: any lean drags the cast
+##                    off due-east toward a diagonal.
+##   SHADOW_NUDGE_Y — flat vertical nudge for the DRAWN smear, on top of the
+##                    per-character feet_drop. Placement only.
+##   SHADOW_BLOB / SHADOW_BLOB_WIDTH — the contact disc, below.
 ##
-## Horizontal scale of the smear — rightward reach per pixel of sprite
-## height, about the feet point. 1.0 = full height lies down; the decoration
-## shelltree ratio was 0.85. This is the sun-ELEVATION knob: lower sun =
-## longer shadow.
-const SHADOW_SMOOSH_X: float = 1.0
-
-## Vertical scale of the smear about the feet line. 1.0 = the full rigid
-## turn; ~0.2-0.35 approximates the decoration smears; 0.0 collapses to a
-## 1px line.
-const SHADOW_SMOOSH_Y: float = 0.25
-
-## Shear — the standard term for RQD's "parallelogramization" (rows slide
-## sideways proportionally to their distance from the feet line; rectangles
-## become parallelograms). 0.0 = none. Positive shifts below-feet rows right
-## and above-feet rows left; flip the sign to taste. NOTE: this is also the
-## compass dial — any nonzero shear drags the cast off due-east toward a
-## diagonal (see RQD's east-southeast question, 2026-08-01).
-const SHADOW_SHEAR: float = 0
-
-## Flat vertical nudge for the DRAWN smear, in pixels, on top of the
-## per-character feet_drop. Positive = down-screen. Placement only — the
-## projection shape is untouched.
-const SHADOW_OFFSET_Y: float = -2
-
-## Blob (contact) shadow — RQD's "COMPOSITE_DROP_SHADOW" (2026-08-01): a
-## disc centered where the feet meet the ground, unioned UNDER the cast
-## silhouette. Wide-stance sprites cast two disconnected leg-strips; the
-## blob welds them into one grounded mass (Ma'am, feet together, never
-## needed it). The disc goes through the SAME dial pipeline as body pixels
-## — smoosh_x / smoosh_y / shear — so it renders as an ellipse matching the
-## cast's distortion, and feet_drop + SHADOW_OFFSET_Y place it via the
-## shared anchor. Flip off to return to the pure silhouette cast.
+## Blob (contact) shadow: a disc centered where the feet meet the ground,
+## unioned UNDER the cast silhouette. Wide-stance sprites cast two disconnected
+## leg-strips; the blob welds them into one grounded mass. The disc runs
+## through the SAME dials as body pixels, so it lands as a matching ellipse.
 ##
 ## Sizing: measured ONCE from the idle frame at spawn (measure_stance_radius,
 ## injected by Unit as blob_radius) — a feet-band percentile width, NOT the
 ## sprite's widest points, and constant across every animation frame so the
 ## blob never breathes mid-attack. Atlas-path characters measure through
-## AtlasTexture.get_image() (region readback works in Godot 4.7 — the Blood
-## Mage's cast proved it). Escape hatch: the character JSON's
+## AtlasTexture.get_image(). Escape hatch: the character JSON's
 ## `sprite.shadowBlobRadius` (CharacterData.shadow_blob_radius; 0 = casts no
 ## blob) is BUILT and wired but deliberately unused in authoring — a fixed
-## authored radius fights animated clips, so it's only safe for characters
-## with idle-only sprites (RQD 2026-08-01). Prefer the measurement.
-const SHADOW_BLOB_ENABLED: bool = true
+## authored radius fights animated clips, so it is only safe for characters
+## with idle-only sprites. Prefer the measurement.
 
-## Blob size: taste multiplier on the measured stance radius. 1.0 = the
-## disc spans the measured stance.
-const SHADOW_BLOB_WIDTH_FACTOR: float = 1.0
 
-## Stance measurement (RQD 2026-08-01: "size the drop shadow to the unit's
-## FEET rather than the widest points"): only pixels within this many rows
-## of the art's lowest opaque row count — feet are, by definition, the
-## pixels near the ground; arms and rifles are higher.
+## Every knob the projection or its draw depends on, as one comparable
+## snapshot: sync_to_source rebuilds when it changes, the same way it does
+## for a frame change.
+static func sun_dials() -> Array:
+	return [ArtVariables.SHADOW_LENGTH, ArtVariables.SHADOW_SQUASH,
+			ArtVariables.SHADOW_LEAN, ArtVariables.SHADOW_NUDGE_Y,
+			ArtVariables.SHADOW_BLOB, ArtVariables.SHADOW_BLOB_WIDTH,
+			ArtVariables.SHADOW_INK_ALPHA]
+
+## Stance measurement: only pixels within this many rows of the art's lowest
+## opaque row count — feet are, by definition, the pixels near the ground;
+## arms and rifles are higher.
 const SHADOW_BLOB_FEET_BAND_PIXELS: int = 4
 
-## Robustness trim: this fraction of the band's opaque pixels is shed from
-## each side of the x-distribution before measuring width, so a 1px cape or
-## blade tip can't balloon the disc (percentile width, the standard trick —
-## extremes lie, distributions don't).
+## Robustness trim: this fraction of the band's opaque pixels is shed from each
+## side of the x-distribution before measuring width, so a 1px cape or blade
+## tip can't balloon the disc (percentile width — extremes lie, distributions
+## don't).
 const SHADOW_BLOB_STANCE_TRIM: float = 0.1
 
 ## Source pixels at or below this alpha don't cast (guards against stray
@@ -155,6 +145,7 @@ var _frame_region: Rect2
 var _frame_flip_h: bool = false
 var _frame_offset: Vector2
 var _ground_offset: Vector2
+var _dials: Array = []
 
 # The rasterized shadow image and its top-left in node space (feet at origin).
 var _projection: ImageTexture = null
@@ -192,13 +183,16 @@ func sync_to_source() -> void:
 	visible = true
 	var region := source_sprite.region_rect if source_sprite.region_enabled \
 			else Rect2(Vector2.ZERO, source_sprite.texture.get_size())
+	var dials := sun_dials()
 	if source_sprite.texture != _frame_texture or region != _frame_region \
 			or source_sprite.flip_h != _frame_flip_h \
-			or source_sprite.offset != _frame_offset:
+			or source_sprite.offset != _frame_offset \
+			or dials != _dials:
 		_frame_texture = source_sprite.texture
 		_frame_region = region
 		_frame_flip_h = source_sprite.flip_h
 		_frame_offset = source_sprite.offset
+		_dials = dials
 		_rebuild_projection()
 		queue_redraw()
 	if source_sprite.position != _ground_offset:
@@ -225,9 +219,9 @@ func _draw() -> void:
 ## "anchor": Vector2 — the image's top-left in feet-origin node space}, or {}
 ## when nothing casts. Draw modulate supplies the shadow color.
 static func project_silhouette(silhouette: Image, pivot: Vector2,
-		smoosh_x: float = SHADOW_SMOOSH_X,
-		smoosh_y: float = SHADOW_SMOOSH_Y,
-		shear: float = SHADOW_SHEAR,
+		smoosh_x: float = ArtVariables.SHADOW_LENGTH,
+		smoosh_y: float = ArtVariables.SHADOW_SQUASH,
+		shear: float = ArtVariables.SHADOW_LEAN,
 		blob_disc_radius: float = 0.0) -> Dictionary:
 	if silhouette == null:
 		return {}
@@ -275,11 +269,12 @@ static func project_silhouette(silhouette: Image, pivot: Vector2,
 func _rebuild_projection() -> void:
 	_projection = null
 	var blob_disc_radius: float = \
-			blob_radius * SHADOW_BLOB_WIDTH_FACTOR if SHADOW_BLOB_ENABLED else 0.0
+			blob_radius * ArtVariables.SHADOW_BLOB_WIDTH if ArtVariables.SHADOW_BLOB else 0.0
 	var cache_key := "%s|%s|%s|%s|%.1f|%.3f|%.3f|%.3f|%.2f" % [
 			_frame_texture.get_rid(), _frame_region, _frame_flip_h,
 			_frame_offset, feet_drop,
-			SHADOW_SMOOSH_X, SHADOW_SMOOSH_Y, SHADOW_SHEAR, blob_disc_radius]
+			ArtVariables.SHADOW_LENGTH, ArtVariables.SHADOW_SQUASH,
+			ArtVariables.SHADOW_LEAN, blob_disc_radius]
 	if not _projection_cache.has(cache_key):
 		var frame := _extract_frame()
 		if frame == null:
@@ -289,8 +284,8 @@ func _rebuild_projection() -> void:
 		var pivot := _frame_region.size / 2.0 - _frame_offset \
 				+ Vector2(0.0, feet_drop)
 		var projected := project_silhouette(frame, pivot,
-				SHADOW_SMOOSH_X, SHADOW_SMOOSH_Y, SHADOW_SHEAR,
-				blob_disc_radius)
+				ArtVariables.SHADOW_LENGTH, ArtVariables.SHADOW_SQUASH,
+				ArtVariables.SHADOW_LEAN, blob_disc_radius)
 		if projected.is_empty():
 			return
 		_projection_cache[cache_key] = {
@@ -303,9 +298,9 @@ func _rebuild_projection() -> void:
 	# The feet sit feet_drop below the node origin — translate, or the whole
 	# shadow renders at the waist (RQD 2026-08-01: "originating from the
 	# waist", measured the miss at −12 from tile center — this exact term).
-	# SHADOW_OFFSET_Y rides on top as the global placement fudge.
+	# SHADOW_NUDGE_Y rides on top as the global placement fudge.
 	_projection_anchor = cached["anchor"] \
-			+ Vector2(0.0, feet_drop + SHADOW_OFFSET_Y)
+			+ Vector2(0.0, feet_drop + ArtVariables.SHADOW_NUDGE_Y)
 
 
 ## Stance radius for the blob disc, measured from a character's idle

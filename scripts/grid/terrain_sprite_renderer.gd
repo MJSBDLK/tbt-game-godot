@@ -18,11 +18,11 @@
 ## the TERRAIN_MODIFIERS slot of their SOUTHERN footprint row (or, in
 ## "interleave" mode, one strip per row at that row's slot — see
 ## compute_row_strips). Shadows go one slot above the body
-## (TERRAIN_SHADOWS) when SHADOWS_ABOVE_MODIFIERS, so a shadow spills onto
-## the east neighbor's body; the caster itself stays clean because the
-## exporter erased shadow pixels under the caster's own silhouette. Anything
-## on a more-southern row (+10 per row) covers both. Units in the same row
-## (UNITS slot) draw over everything terrain.
+## (TERRAIN_SHADOWS) when ArtVariables.SHADOWS_FALL_ON_NEIGHBORS, so a
+## shadow spills onto the east neighbor's body; the caster itself stays
+## clean because the exporter erased shadow pixels under the caster's own
+## silhouette. Anything on a more-southern row (+10 per row) covers both.
+## Units in the same row (UNITS slot) draw over everything terrain.
 ##
 ## EDITOR PREVIEW: this script is @tool. TilemapGridBuilder (also @tool)
 ## spawns unowned preview renderers while a map scene is open in the editor,
@@ -40,7 +40,8 @@
 ## (exact or wildcard entry — craters, the bridge, any floor element) gets
 ## NO shadow of any kind. Otherwise, in order: (1) the authored
 ## `<sprite>_shadow.png` next to the source texture, when Lawrence drew one —
-## played verbatim; (2) else a GENERATED cast of the sprite's own pixels
+## a MASK, drawn at GameColors.CAST_SHADOW_INK like every other shadow on the
+## board; (2) else a GENERATED cast of the sprite's own pixels
 ## (generate_cast_shadow, built on UnitShadow.project_silhouette so terrain
 ## and units share one sun), unless DebugConfig.terrain_generated_shadows is
 ## off. Authored wins; the generator is the fallback for art that hasn't had
@@ -61,16 +62,6 @@ extends Node2D
 ## changes. A PackedByteArray hash of ~50 cells is microseconds.
 const EDITOR_POLL_FRAMES: int = 10
 
-# EXPERIMENT (issue: "shadows protrude against elements to the right"):
-# when true, shadows render one z-slot ABOVE same-row bodies instead of
-# below all of them (TERRAIN_EFFECTS). Combined with the export-time masking
-# (shadow pixels under the caster's own silhouette are erased), this makes a
-# shadow spill onto the east-neighbor sprite's pixels — reading as the
-# shadow falling ON the neighbor — while the caster itself stays unshaded.
-# Southern neighbors (lower row index, +10 z band) still cover the shadow.
-# Flip to false to restore shadows-under-everything.
-const SHADOWS_ABOVE_MODIFIERS := true
-
 const _OOB_FADE_SHADER: Shader = preload("res://shaders/modifier_oob_fade.gdshader")
 
 ## Autotile sheet blocks, in atlas rows (see
@@ -82,22 +73,20 @@ const BODY_BLOCK_ROWS: int = 4
 const SHADOW_BLOCK_ROWS: int = 4
 const SPILL_BLOCK_ROWS: int = 8
 
-## Generated-shadow dials. Shared with UnitShadow so the board has ONE sun:
+## Generated shadows read the unit sun straight from ArtVariables
+## (SHADOW_LENGTH / SHADOW_SQUASH / SHADOW_LEAN) so the board has ONE sun —
 ## the same rigid 90° tip-over (canvas-up → screen-right) and the same
-## squash. If generated terrain shadows read longer than Lawrence's authored
-## ones (his shelltree cast measured ~0.85 of sprite height against the
-## units' 1.0), split these off and dial them separately.
-const GENERATED_SMOOSH_X: float = UnitShadow.SHADOW_SMOOSH_X
-const GENERATED_SMOOSH_Y: float = UnitShadow.SHADOW_SMOOSH_Y
-const GENERATED_SHEAR: float = UnitShadow.SHADOW_SHEAR
-## Flat vertical nudge for the generated smear, in pixels, positive =
-## down-screen. UnitShadow carries −2 for boots; terrain art's feet line is
-## its lowest opaque row, which already IS the ground. 0 = none.
-const GENERATED_OFFSET_Y: float = 0.0
+## squash. Their own nudge is TERRAIN_SHADOW_NUDGE_Y, positive = down-screen:
+## UnitShadow carries −2 for boots; terrain art's feet line is its lowest
+## opaque row, which already IS the ground. If generated casts read longer
+## than Lawrence's authored ones (his shelltree measured ~0.85 of sprite
+## height against the units' 1.0), give them a length knob of their own.
 
-# Generated shadows are pure functions of (texture, dials) — cached across
-# renderers so each sprite rasterizes once per session. Values are
-# {"texture": ImageTexture, "anchor": Vector2} or {} when nothing casts.
+# Generated shadows are pure functions of (texture, dials, ink) — cached
+# across renderers so each sprite rasterizes once per session, and keyed on
+# the knobs so a live change re-rasterizes instead of serving a stale bake.
+# Values are {"texture": ImageTexture, "anchor": Vector2} or {} when nothing
+# casts.
 static var _generated_cache: Dictionary = {}
 
 # Grid height arg to ZIndexCalculator is ignored by the formula (per the
@@ -117,6 +106,11 @@ func _ready() -> void:
 		push_error("TerrainSpriteRenderer: couldn't resolve layer_path: %s" % layer_path)
 		return
 	set_process(Engine.is_editor_hint())
+	# A knob change re-renders: ink, sun, z band and the edge fade are all
+	# read inside refresh. No autoloads in the editor preview — its poll
+	# covers paint strokes instead.
+	if not Engine.is_editor_hint():
+		DebugConfig.art_knobs_changed.connect(refresh)
 	refresh()
 
 
@@ -192,6 +186,8 @@ func refresh() -> void:
 		fade_material.shader = _OOB_FADE_SHADER
 		fade_material.set_shader_parameter("map_min", map_rect.position)
 		fade_material.set_shader_parameter("map_max", map_rect.end)
+		fade_material.set_shader_parameter("fade_width", ArtVariables.MAP_EDGE_FADE_WIDTH)
+		fade_material.set_shader_parameter("fade_color", ArtVariables.MAP_EDGE_FADE_COLOR)
 	# Generated-shadow gate: a dev kill switch at runtime; always on in the
 	# editor preview (no DebugConfig there).
 	var generated_enabled: bool = true if in_editor else DebugConfig.terrain_generated_shadows
@@ -262,6 +258,9 @@ func refresh() -> void:
 				shadow_sprite.position = visual_center
 				shadow_sprite.z_index = shadow_z(south_row_index)
 				shadow_sprite.z_as_relative = false
+				# Authored shadows ship as masks, like the autotile blocks, so
+				# every shadow on the board answers to one opacity.
+				shadow_sprite.modulate = GameColors.CAST_SHADOW_INK
 				shadow_sprite.material = fade_material
 				add_child(shadow_sprite)
 				_sprites.append(shadow_sprite)
@@ -429,15 +428,18 @@ static func _shadow_path_for(texture_path: String) -> String:
 ## {"texture": ImageTexture, "anchor": Vector2} or {} when nothing casts /
 ## the texture's pixels can't be read back.
 static func _generated_shadow_for(texture: Texture2D) -> Dictionary:
-	var key := "%s|%.3f|%.3f|%.3f|%.1f" % [texture.get_rid(),
-			GENERATED_SMOOSH_X, GENERATED_SMOOSH_Y, GENERATED_SHEAR, GENERATED_OFFSET_Y]
+	var key := "%s|%.3f|%.3f|%.3f|%.1f|%.3f" % [texture.get_rid(),
+			ArtVariables.SHADOW_LENGTH, ArtVariables.SHADOW_SQUASH,
+			ArtVariables.SHADOW_LEAN, ArtVariables.TERRAIN_SHADOW_NUDGE_Y,
+			ArtVariables.SHADOW_INK_ALPHA]
 	if _generated_cache.has(key):
 		return _generated_cache[key]
 	var result: Dictionary = {}
 	var image: Image = UnitShadow._readable_sheet(texture)
 	if image != null:
 		var cast := generate_cast_shadow(image,
-				GENERATED_SMOOSH_X, GENERATED_SMOOSH_Y, GENERATED_SHEAR, GENERATED_OFFSET_Y)
+				ArtVariables.SHADOW_LENGTH, ArtVariables.SHADOW_SQUASH,
+				ArtVariables.SHADOW_LEAN, ArtVariables.TERRAIN_SHADOW_NUDGE_Y)
 		if not cast.is_empty():
 			result = {
 				"texture": ImageTexture.create_from_image(cast["image"]),
@@ -515,11 +517,14 @@ static func body_z(row_index: int) -> int:
 			row_index, _GRID_HEIGHT_FOR_Z, ZIndexCalculator.ZIndexLayer.TERRAIN_MODIFIERS)
 
 
-## Absolute z for a sprite's shadow sorting at `row_index`: one slot above
-## the body (TERRAIN_SHADOWS) so it falls onto east neighbors, or down in
-## TERRAIN_EFFECTS under every body when the experiment is off.
+## Absolute z for a sprite's shadow sorting at `row_index`. With
+## ArtVariables.SHADOWS_FALL_ON_NEIGHBORS, one slot above the body
+## (TERRAIN_SHADOWS): the exporter erased shadow pixels under the caster's
+## own silhouette, so the smear spills onto the east neighbor's pixels and
+## reads as falling ON it while the caster stays clean. Southern neighbors
+## (+10 z band) still cover it. Off: TERRAIN_EFFECTS, under every body.
 static func shadow_z(row_index: int) -> int:
-	if SHADOWS_ABOVE_MODIFIERS:
+	if ArtVariables.SHADOWS_FALL_ON_NEIGHBORS:
 		return ZIndexCalculator.calculate_sorting_order(
 				row_index, _GRID_HEIGHT_FOR_Z, ZIndexCalculator.ZIndexLayer.TERRAIN_SHADOWS)
 	return ZIndexCalculator.calculate_sorting_order(

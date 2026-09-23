@@ -30,6 +30,11 @@ func _input(event: InputEvent) -> void:
 	# it must appear whether or not the press hit something interactible.
 	_pulse_tap_feedback(event)
 	_forward_to_hud(event)
+	# A dev console up: the HUD had its look (the console's own controls, or
+	# its full-canvas root); the world gets nothing, motion included.
+	if DevConsole.is_open():
+		get_viewport().set_input_as_handled()
+		return
 	# Mouse motion is broadcast (HUD wants hover state, world wants tile preview);
 	# never consume at root for motion.
 	if event is InputEventMouseMotion:

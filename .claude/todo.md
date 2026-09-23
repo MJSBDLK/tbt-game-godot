@@ -3,7 +3,51 @@
 # Meeting Notes 2026/09/20
 - [ ] Star twinkle shader
 - [x] Mountains 12x8 is on Lawrence's branch - let's try to implement it!
-- [ ] Error: /home/l/.var/app/com.valvesoftware.Steam/config/aseprite/extensions/webtyler/webtyler.lua:861: index out of bounds 256
+- [~] Runtime-editable art knobs ("cvars"): let `ArtVariables` values change
+	while the game runs, so Lawrence tunes and watches instead of edit → F5.
+	(BUILT 2026-09-21 on `rqd--art-cvars`, eyeball-gated. The Carmack shape:
+	knobs are `static var`s read at use (every `const X := ArtVariables.Y`
+	alias is gone — 13 sites); `DebugConfig.set_art_knob` is the one write
+	path and fires `art_knobs_changed`; UnitShadow polls the dials each tick
+	like it polls the frame, TerrainSpriteRenderer/Unit's acted material/the
+	vignette re-push on the signal; both bake caches key on the knobs, so no
+	drop. TRIGGER = a ` dev console (`DevConsole`, CanvasLayer 100 in
+	HUDViewport, gated on cheats_enabled): `shadow_ink_alpha 0.3`, `list`,
+	`reset [name]`, `dump` = the changed knobs as `static var` lines to paste
+	into his file, Tab/Up/Down. OPEN = THE GAME IS DEAF (RQD 2026-09-21): the
+	console root spans the canvas and stops the mouse, keys/joypad die in
+	the HUD, and `DevConsole.is_open()` gates InputRouter (nothing reaches
+	the world, motion included) plus the two POLLERS handled flags can't
+	stop — InputManager's hover and CameraController's key pan (typing
+	"shadow" was WASD). No pause, no InputState: a state pushed for as long
+	as a console stays open would outlive turn changes. Tests: test_art_variables rewritten from "alias
+	equals knob" to "turn knob, consumer follows" (+ a live terrain refresh
+	in test_terrain_sprite_renderer, test_unit's 1.0 now reads the knob),
+	test_dev_console ×10; suite 1302. EYEBALL: console size/colors on the
+	HUD canvas, whether ` collides with anything, the Steam Deck (no
+	keyboard — a pad path is a later ask). NOT built: file-watch reload,
+	sliders. GOTCHA for later: a class name won't take get()/set() by name —
+	the analyzer refuses instance calls on a class; preload the script
+	resource and call them on that.)
+	-> Cheap route, no GUI: `const` → `static var` in art_variables.gd (one
+	word per line; his file still reads the same), and the alias sites
+	(UnitShadow, TerrainSpriteRenderer, GameColors, Unit — ~13) read at use
+	instead of copying into their own consts. Then a debug panel, a console
+	command or a test can set one live.
+	-> Two shadow paths BAKE the ink into cached images (generated terrain
+	casts, unit projections) — a live change needs those caches dropped. The
+	mask-based ones (mountains, decorations) update instantly.
+	-> Doubles as a UNIT TEST AUDIT, which may be the better reason to do it: a
+	test that hardcodes 0.4 breaks, a test that reads the knob or takes the
+	dials as arguments doesn't. One found and fixed already
+	(test_terrain_sprite_renderer's ink assertion).
+	-> Inspector sliders (a .tres Resource with @export_range) are the GUI half
+	if he ever wants one; the same const → runtime change is what unlocks it.
+- [~] Error: /home/l/.var/app/com.valvesoftware.Steam/config/aseprite/extensions/webtyler/webtyler.lua:861: index out of bounds 256
+	(FIXED in 8f897f2 — the preview palette grows before the source's is
+	copied. Lawrence's installed copy is the OLD one until the extension is
+	rebuilt and re-installed; the webtyler install workflow note has the
+	three copies to sync.)
 	-> This happens every time you first run the Webtyler script, and then you can run it again after that and everything works fine. Would be great for an error not to mean "all's well," because seeing this error is just part of standard procedure at present.
 
 # Lawrence playtest feedback
