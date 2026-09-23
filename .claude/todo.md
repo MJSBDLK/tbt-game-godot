@@ -1,11 +1,17 @@
 # Resp
 
 # BUGZ
-- [ ] I overwrote a save once, and now the "overwrite save" screen will show up unexpectedly where it shouldn't: ![alt text](image-5.png)
+- [x] I overwrote a save once, and now the "overwrite save" screen will show up unexpectedly where it shouldn't: ![alt text](image-5.png)
+  (FIXED 2026-09-22, uncommitted. Not the hub's picker — UIManager's, opened
+  from the battle system menu (Load, or Save on a full ring), living in the
+  overlay that outlives scenes. The state handler hid the system menu on
+  every exit from PAUSED but never the browser, so a phase start or a
+  stack-clearing cancel under it left it floating, and it rode into the hub.
+  `UIManager.hide_save_browser` now goes with the menu. test_hud_overlay_orphans.)
 
 
 # Meeting Notes 2026/09/20
-- [ ] Star twinkle shader
+- [done?] Star twinkle shader
 - [x] Mountains 12x8 is on Lawrence's branch - let's try to implement it!
 - [~] Runtime-editable art knobs ("cvars"): let `ArtVariables` values change
 	while the game runs, so Lawrence tunes and watches instead of edit → F5.

@@ -828,7 +828,20 @@ func _is_map_view_active() -> bool:
 # STATE MACHINE — panel visibility driven by GameStateManager
 # =============================================================================
 
+## The save browser is opened FROM the system menu (Load, or Save on a full
+## ring) and rides in the persistent overlay, so it must leave with the menu
+## on every transition out of PAUSED that isn't its own close — a player
+## phase starting under the menu, a cancel that clears the stack. Left
+## behind, it followed the player into the hub as a picker nobody opened.
+## Hidden without `closed`: the menu it would resurrect is already gone.
+func hide_save_browser() -> void:
+	if _save_browser_panel != null:
+		_save_browser_panel.visible = false
+
+
 func _on_state_changed(_old_state: Enums.InputState, new_state: Enums.InputState) -> void:
+	if new_state != Enums.InputState.PAUSED:
+		hide_save_browser()
 	match new_state:
 		Enums.InputState.DEFAULT, Enums.InputState.UNIT_SELECTED, Enums.InputState.MOVEMENT_PLANNING:
 			hide_action_menu()
