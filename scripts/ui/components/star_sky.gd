@@ -23,9 +23,9 @@ static func build_material() -> ShaderMaterial:
 ## Every STAR_* dial, the star colour and the motion setting onto the material.
 static func push_knobs(material: ShaderMaterial) -> void:
 	material.set_shader_parameter("star_color", GameColors.STAR_TWINKLE)
-	material.set_shader_parameter("flash_seconds", ArtVariables.STAR_FLASH_SECONDS)
+	material.set_shader_parameter("step_seconds", ArtVariables.STAR_STEP_SECONDS)
 	material.set_shader_parameter("hold_seconds", ArtVariables.STAR_HOLD_SECONDS)
-	material.set_shader_parameter("frame_rate", ArtVariables.STAR_TICKS_PER_SECOND)
+	material.set_shader_parameter("dim_hold_seconds", ArtVariables.STAR_DIM_HOLD_SECONDS)
 	material.set_shader_parameter("period_slow_seconds", ArtVariables.STAR_PERIOD_SLOW_SECONDS)
 	material.set_shader_parameter("period_fast_seconds", ArtVariables.STAR_PERIOD_FAST_SECONDS)
 	material.set_shader_parameter("period_jitter", ArtVariables.STAR_PERIOD_JITTER)

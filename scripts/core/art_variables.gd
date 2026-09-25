@@ -121,17 +121,19 @@ static var ACTED_GREYSCALE: float = 1.0
 # (data/design/mockups/skybox_twinkle_lab.html) has these same dials as
 # sliders; its "Send these numbers back" block prints them as lines for here.
 
-## One flash, out and back, in seconds — not counting the hold below.
-## Sane range: 0.2 to 3.0.
-static var STAR_FLASH_SECONDS: float = 0.6
+## How long each frame of a flash lasts, in seconds. The tails grow a pixel
+## per frame and pull back the same way (1, 2, 3, 2, 1), every frame this
+## long. Sane range: 0.05 to 0.5.
+static var STAR_STEP_SECONDS: float = 0.1
 
-## How long a flash sits at full stretch before pulling back, in seconds.
-## 0.0 turns straight around. Sane range: 0.0 to 2.0.
+## Extra time on the full-stretch frame before the tails pull back, in
+## seconds. 0.0 turns straight around. Sane range: 0.0 to 2.0.
 static var STAR_HOLD_SECONDS: float = 0.0
 
-## The twinkle steps at this many frames per second so it reads as
-## hand-animated. 0 is smooth. Sane range: 6 to 24.
-static var STAR_TICKS_PER_SECOND: float = 12.0
+## Extra time on the 1 px frames, the first and last of each flash, in
+## seconds. A star whose tails only reach 1 px uses the hold above instead.
+## Sane range: 0.0 to 2.0.
+static var STAR_DIM_HOLD_SECONDS: float = 0.0
 
 ## Seconds between flashes for a star painted with NO blue …
 static var STAR_PERIOD_SLOW_SECONDS: float = 8.0
