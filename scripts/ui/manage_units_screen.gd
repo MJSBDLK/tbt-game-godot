@@ -208,7 +208,7 @@ func _on_workbench_changed() -> void:
 # =============================================================================
 
 func _build_content() -> void:
-	add_child(MenuStageBackdrop.new())
+	add_child(IntermissionHub._stage())
 	var workspace_dim := ColorRect.new()
 	workspace_dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	workspace_dim.color = GameColors.with_alpha(MenuStageBackdrop.DIM_COLOR, WORKSPACE_DIM_ALPHA)

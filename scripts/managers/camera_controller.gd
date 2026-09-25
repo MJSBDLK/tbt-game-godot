@@ -28,6 +28,8 @@ extends Camera2D
 @export var pan_tween_duration: float = 0.35
 @export var enable_edge_panning: bool = false
 @export var edge_pan_border: float = 20.0
+## How far inside the view edge `follow_target` is kept, in tiles.
+@export var follow_margin_tiles: float = 1.5
 
 @export_group("Zoom")
 ## Smooth-mode zoom: each scroll notch scales zoom by (1 + zoom_step), so a
@@ -77,6 +79,11 @@ var _shake_offset: Vector2 = Vector2.ZERO
 var target_position: Vector2:
 	get: return _target_position
 
+## Kept on screen every frame while set — ensure_point_visible's minimal pan,
+## so a follow never yanks a view that already shows the node. The enemy phase
+## hands it each walking enemy; whoever sets it clears it.
+var follow_target: Node2D = null
+
 # Map pixel-space rect — set once from grid, used to recompute bounds on zoom change.
 var _map_pixel_origin: Vector2 = Vector2.ZERO
 var _map_pixel_size: Vector2 = Vector2.ZERO
@@ -108,6 +115,9 @@ func _process(delta: float) -> void:
 		_handle_keyboard_pan(delta)
 		if enable_edge_panning:
 			_handle_edge_pan(delta)
+	if is_instance_valid(follow_target):
+		ensure_point_visible(follow_target.global_position,
+				follow_margin_tiles * GridManager.tile_size)
 
 	_apply_smooth_movement(delta)
 	_apply_screenshake(delta)

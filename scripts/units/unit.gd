@@ -270,6 +270,14 @@ func _ready() -> void:
 	Settings.changed.connect(_update_type_icons)
 
 
+## A picture of the unit, not a combatant (MissionPreview's diorama): the
+## sprite and its cast shadow stay; the health bar and everything parented
+## to it — level, status pips, type icons — go.
+func hide_battle_chrome() -> void:
+	if _health_bar != null:
+		_health_bar.visible = false
+
+
 func initialize(starting_tile: Tile) -> void:
 	# If character_data was injected before initialize() (BattleScene route for
 	# persistent player units via SquadManager), skip the JSON load. Otherwise
@@ -481,10 +489,8 @@ func execute_planned_movement() -> void:
 ## The deferred walk: commit the LOGIC of the plan instantly — occupancy, ranges,
 ## previews and every movement_completed listener (auras, threat) read the
 ## destination — while the sprite stays at the origin behind the staged ghost.
-## Ghost parks BEFORE the claim: UnitGhost.anchor_offset measures the sprite
-## against current_tile, so both must still agree on the origin here. z is
-## deliberately NOT restamped — the visual row hasn't changed; the deferred
-## walk restamps it row by row as the sprite actually passes.
+## z is deliberately NOT restamped — the visual row hasn't changed; the
+## deferred walk restamps it row by row as the sprite actually passes.
 func _stage_deferred_movement(full_path: Array[Tile], traversed_tiles: Array[Tile]) -> void:
 	var destination: Tile = full_path.back() if not full_path.is_empty() else current_tile
 	if _path_visualizer != null and _path_visualizer.has_method("show_staged_ghost"):

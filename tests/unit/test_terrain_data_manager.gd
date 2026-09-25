@@ -81,3 +81,13 @@ func test_wall_impassable_except_fliers() -> void:
 			"Wall blocks a normal grounded type")
 	assert_true(TerrainDataManager.can_unit_walk_on_terrain("Wall", "AIR"),
 			"Wall is passable to Air-types (fliers)")
+
+
+func test_unknown_terrain_is_neutral_for_defense_and_avoid() -> void:
+	# 0.0 here was never loud: DEF × 0 and, through the (2 − avoid) dodge
+	# term, a doubled hit chance clamped to 100% — a silent buff to whoever
+	# attacks a unit standing on a misnamed tile. Impassable is the loud path.
+	assert_almost_eq(TerrainDataManager.get_defense_multiplier("BogusTypeForTest"), 1.0, 0.001)
+	assert_almost_eq(TerrainDataManager.get_avoid_multiplier("BogusTypeForTest"), 1.0, 0.001)
+	assert_almost_eq(TerrainDataManager.get_defense_multiplier("BogusTypeForTest", "Air"), 1.0, 0.001,
+			"per-type lookups on an unknown terrain are neutral too")

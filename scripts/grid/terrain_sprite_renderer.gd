@@ -57,6 +57,10 @@ extends Node2D
 ## Editor preview only: the floor layer that defines the map's southernmost
 ## row (front row zero). At runtime GridManager owns that number.
 @export var floor_layer_path: NodePath = ^"../TerrainTileLayer"
+## No GridManager behind this layer — MissionPreview renders a map
+## offscreen with no battle. The front row is derived from the floor layer
+## (the editor's path) and the out-of-bounds fade is skipped.
+@export var standalone: bool = false
 
 ## Editor preview only: how often (in frames) to check the layer for paint
 ## changes. A PackedByteArray hash of ~50 cells is microseconds.
@@ -140,7 +144,7 @@ func _process(_delta: float) -> void:
 ## it — the floor layer's southernmost painted cell is row 0 — so the
 ## preview sorts like the game will.
 func _grid_offset_y() -> int:
-	if not Engine.is_editor_hint():
+	if not Engine.is_editor_hint() and not standalone:
 		return GridManager.grid_offset_y
 	var floor_layer := get_node_or_null(floor_layer_path) as TileMapLayer
 	var reference: TileMapLayer = floor_layer if floor_layer != null else _layer
@@ -180,7 +184,7 @@ func refresh() -> void:
 	# brightness over the faded border. One shared material — the params are
 	# identical for every sprite. Editor preview: no GridManager, no fade.
 	var fade_material: ShaderMaterial = null
-	if not in_editor:
+	if not in_editor and not standalone:
 		var map_rect: Rect2 = GridManager.get_map_world_rect()
 		fade_material = ShaderMaterial.new()
 		fade_material.shader = _OOB_FADE_SHADER

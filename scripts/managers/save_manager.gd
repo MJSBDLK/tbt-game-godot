@@ -207,7 +207,7 @@ func write_manual_save_to(path: String) -> String:
 	var snapshot: Dictionary = build_snapshot(KIND_MANUAL, label, battle)
 	if not write_save_file(path, snapshot):
 		return ""
-	_capture_screenshot(screenshot_path_for(path))
+	_capture_mission_preview(screenshot_path_for(path))
 	save_written.emit(KIND_MANUAL, path)
 	DebugConfig.log_unit_init("SaveManager: manual save → %s" % path)
 	return path
@@ -266,35 +266,49 @@ func write_autosave(kind: String, snapshot: Dictionary) -> String:
 	var path: String = _pick_ring_slot(kind)
 	if not write_save_file(path, snapshot):
 		return ""
-	_capture_screenshot(screenshot_path_for(path))
+	_capture_mission_preview(screenshot_path_for(path))
 	save_written.emit(kind, path)
 	DebugConfig.log_unit_init("SaveManager: %s autosave → %s" % [kind, path])
 	return path
 
 
-## Sibling screenshot for a save file: same basename, .png. The main menu's
+## Sibling picture for a save file: same basename, .png. The main menu's
 ## save-aware backdrop ("Black Mesa mode" — MenuStageBackdrop) shows the
-## newest save's frame; ring-slot reuse overwrites the sibling too, so stale
-## screenshots self-heal.
+## newest save's picture; ring-slot reuse overwrites the sibling too, so
+## stale pictures self-heal.
 func screenshot_path_for(save_path: String) -> String:
 	return save_path.get_basename() + ".png"
 
 
-## Grabs the composed frame (world + HUD) at save time, downscaled to the
-## 640×360 reference so backdrop files stay small and consistent across
-## window sizes. Headless runs (GUT, CI) have no frame to grab — skip
-## silently so tests stay fast. Best-effort: a failed capture never fails
-## the save.
-func _capture_screenshot(path: String) -> void:
+## Every save's picture: the mission it belongs to as the battle first saw
+## it — the map with the deployed squad on its spawns, no HUD (MissionPreview,
+## the same diorama the hub stands in front of). Never the frame on screen:
+## that frame carries the hint bar, and mid-battle it carries the carnage a
+## player who just ragequit doesn't want waiting on the main menu (RQD
+## 2026-09-22); at a mission boundary it isn't even the right screen (the
+## recruit picker, the main menu, the result panel). Headless runs (GUT, CI)
+## draw nothing — skip silently so tests stay fast. A coroutine — the
+## viewport needs a frame — that the save doesn't wait on; the PNG lands a
+## frame later and the main menu, the only reader, is never up that soon.
+## Best-effort: a failed capture never fails the save, and a map that won't
+## render leaves NO sibling rather than the slot's previous occupant's,
+## which would be a picture of some other mission.
+func _capture_mission_preview(path: String) -> void:
 	if DisplayServer.get_name() == "headless":
 		return
-	var viewport := get_viewport()
-	if viewport == null:
+	var preview: SubViewport = MissionPreview.build(CampaignManager.get_current_mission_path(),
+			MissionPreview.REFERENCE_SIZE, BattleScene.deployed_roster())
+	if preview == null:
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(path)
 		return
-	var image: Image = viewport.get_texture().get_image()
+	add_child(preview)
+	await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	var image: Image = preview.get_texture().get_image()
+	preview.queue_free()
 	if image == null or image.is_empty():
 		return
-	image.resize(640, 360, Image.INTERPOLATE_BILINEAR)
 	image.save_png(path)
 
 

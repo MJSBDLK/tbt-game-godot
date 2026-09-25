@@ -134,9 +134,7 @@ func has_destination_ghost() -> bool:
 ## The deferred walk (todo 4A): the plan is confirmed but the walk waits.
 ## Beacons clear — the path is spent — while the ghost alone holds the
 ## destination until the action commits (play_deferred_walk clears it) or the
-## plan cancels. Call BEFORE the unit's logic claims the destination:
-## UnitGhost.anchor_offset measures the sprite against current_tile, so both
-## must still agree on the origin.
+## plan cancels.
 func show_staged_ghost(unit: Node2D, tile: Tile) -> void:
 	_path_tiles.clear()
 	_rebuild_beacon_nodes()

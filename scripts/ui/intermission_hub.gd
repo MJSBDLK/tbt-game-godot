@@ -175,7 +175,7 @@ func _unspent_statups() -> int:
 # =============================================================================
 
 func _build_content() -> void:
-	add_child(MenuStageBackdrop.new())
+	add_child(_stage())
 
 	var column_margin := MarginContainer.new()
 	column_margin.set_anchors_preset(Control.PRESET_LEFT_WIDE)
@@ -222,6 +222,15 @@ func _build_content() -> void:
 
 	if InputSource.is_cursor_driven():
 		_focus_target().grab_focus.call_deferred()
+
+
+## The stage in its in-fiction role: it stands in front of the mission the
+## crew is about to deploy to (see MenuStageBackdrop's header). Manage Units
+## wears the same one.
+static func _stage() -> MenuStageBackdrop:
+	var stage := MenuStageBackdrop.new()
+	stage.mission_path = CampaignManager.get_current_mission_path()
+	return stage
 
 
 func _spacer(height: int) -> Control:
