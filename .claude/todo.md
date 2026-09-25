@@ -1,6 +1,13 @@
 # Resp
 
 # BUGZ
+- [~] Threat zones should disable during the enemy turn
+  (BUILT 2026-09-23 on `rqd--playtest-0922`, eyeball-gated; story in the commit.)
+- [~] Camera doesn't follow enemy unit movement during the enemy's turn
+  (BUILT 2026-09-23, eyeball-gated. EYEBALL: does the minimal pan read as
+  "following", or does it want a hard center on each enemy?)
+- [~] It looks like enemies are still too dumb to use their attacking moves if their top, equipped move is a non-attacking move. They just move toward you and end their turn. The enemies need to be smarter in general - maybe this calls for the full AI pass and a design session? Or should we get a significantly larger move pool first?
+  (FIXED 2026-09-23 — a bug, not the AI pass, which still stands; story in the commit.)
 - [x] I overwrote a save once, and now the "overwrite save" screen will show up unexpectedly where it shouldn't: ![alt text](image-5.png)
   (FIXED 2026-09-22 in 319f72a, on rqd--main. Not the hub's picker — UIManager's, opened
   from the battle system menu (Load, or Save on a full ring), living in the
@@ -252,6 +259,7 @@
 - [ ] 
 
 # Todo
+- [ ] We still haven't implimented single enemy unit threat zones - should be a distinct "danger" or "warning" color. Might make the "all enemies" threat zone "warning," and a specific enemy threat zone "danger," the more I think about it.
 - [ ] We should have fullres line art for the Keener enemy - name is either "cultist" or "blood mage," not to be confused with the plant cultist.
 - [x] Options menu has gotten too big for the screen. We'll need to tabulate and/or refactor
   (DONE 2026-09-09 on `rqd--options-tabs`, eyeball-gated. Both: three tabs

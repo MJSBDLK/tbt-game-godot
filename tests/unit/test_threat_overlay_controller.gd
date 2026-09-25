@@ -130,3 +130,66 @@ func test_changed_signal_fires_on_state_transitions() -> void:
 	controller.toggle_all_enemies()  # show-all path
 	assert_signal_emit_count(controller, "changed", 3,
 			"pin, clear-all, and show-all each notify UI chips")
+
+
+# =============================================================================
+# Enemy phase — the zone stands down, mode and pins survive
+# =============================================================================
+
+## One armed enemy standing still on a 3×3 grid, so its zone has cells to draw.
+func _armed_enemy_on_grid() -> Unit:
+	GridManager.clear_grid()
+	for x: int in range(3):
+		for y: int in range(3):
+			var tile := Tile.new()
+			var sprite := Sprite2D.new()
+			sprite.name = "Sprite2D"
+			tile.add_child(sprite)
+			add_child_autofree(tile)
+			tile.grid_x = x
+			tile.grid_y = y
+			tile.terrain_type_name = "Plains"
+			GridManager.register_tile(tile)
+	var enemy := _enemy()
+	enemy.can_move = false
+	var bonk := Move.new()
+	bonk.damage_type = Enums.DamageType.PHYSICAL
+	bonk.attack_range = 1
+	var moves: Array[Move] = [bonk]
+	enemy.character_data.equipped_moves = moves
+	var tile: Tile = GridManager.get_tile(1, 1)
+	enemy.current_tile = tile
+	tile.current_unit = enemy
+	return enemy
+
+
+func test_the_zone_stands_down_for_the_enemy_phase() -> void:
+	var controller := _controller()
+	var renderer: ThreatOverlayRenderer = controller.get_node("ThreatOverlayRenderer")
+	var enemy := _armed_enemy_on_grid()
+	controller.toggle_unit(enemy)
+	assert_false(renderer._centers.is_empty(), "precondition: the pinned zone is drawn")
+	controller._on_enemy_phase_started()
+	assert_true(renderer._centers.is_empty(), "nothing drawn on the enemy's turn")
+	controller._on_board_changed(enemy)
+	assert_true(renderer._centers.is_empty(), "an enemy step mid-phase doesn't repaint it")
+	assert_true(controller.is_unit_shown(enemy), "the pin survives the enemy phase")
+	controller._on_player_phase_started(2)
+	assert_false(renderer._centers.is_empty(), "and the zone is back for the player's turn")
+	GridManager.clear_grid()
+
+
+func test_phase_handlers_ride_the_turn_manager_signals() -> void:
+	var controller := _controller()
+	assert_true(TurnManager.enemy_phase_started.is_connected(controller._on_enemy_phase_started))
+	assert_true(TurnManager.player_phase_started.is_connected(controller._on_player_phase_started))
+
+
+func test_the_toggle_key_is_ignored_on_the_enemy_turn() -> void:
+	var controller := _controller()
+	controller._on_enemy_phase_started()
+	var press := InputEventAction.new()
+	press.action = "toggle_threat_zones"
+	press.pressed = true
+	controller._unhandled_input(press)
+	assert_false(controller.is_showing(), "V on the enemy's turn changes a zone nobody could see")
