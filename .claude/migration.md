@@ -90,7 +90,7 @@ Unity's approach was a 1253-line `TilemapToGameObjectSync` using reflection hack
 | `GridZIndexHandler.cs` | `scripts/grid/grid_z_index_handler.gd` | Sets node.z_index |
 | *(new)* | `scripts/grid/tilemap_grid_builder.gd` | Reads TileMapLayer → Tile nodes |
 
-**Copy**: `terrain_data.json` from `../tbt-game/Assets/StreamingAssets/` to `data/`
+**Copy**: `terrain_data.json` from `../tbt-game-unity/Assets/StreamingAssets/` to `data/`
 
 **Editor tool**: `z_index_inspector.gd` (@tool) — decode z_index values in inspector
 

@@ -2,7 +2,7 @@
 
 **Tactical Battle RPG** (Pokemon meets Fire Emblem) being ported from Unity 6.3 to Godot 4.x with GDScript.
 
-**Unity source project**: `../tbt-game/` — reference for porting but never modify it.
+**Unity source project**: `../tbt-game-unity/` — reference for porting but never modify it.
 
 ## Current Focus
 
@@ -50,6 +50,11 @@ only, never a fast-forward. A `prepare-commit-msg` hook refuses anything
 else (`ALLOW_MAIN_MERGE=1 git merge <branch>` for the deliberate exception),
 and `pull.ff=only` makes `git pull` stop instead of inventing a merge. Hooks
 and config are per clone: run `tools/hooks/install.sh` after a fresh clone.
+
+Worktrees sit beside this checkout in the `tbt-game/` container, full name
+kept so a folder read without context still says which project it is:
+`git worktree add ../tbt-game-godot--<name> -b rqd--<name>`. VS Code opens
+`../tbt-game.code-workspace`; Claude sessions start in `tbt-game-godot/`.
 
 ## Project Structure
 
@@ -127,12 +132,12 @@ the full HUD on non-1080p monitors.
 ## Key Reference Files
 
 When porting a system, read the Unity source first:
-- Grid: `../tbt-game/Assets/Scripts/Grid/GridManagerV2.cs`
-- Units: `../tbt-game/Assets/Scripts/Units/Unit.cs`
-- Combat: `../tbt-game/Assets/Scripts/Units/Unit.cs` (lines 874-1615)
-- Turns: `../tbt-game/Assets/Scripts/Managers/TurnManager.cs`
-- UI: `../tbt-game/Assets/Scripts/UI/UIManager.cs`
-- Design docs: `../tbt-game/Assets/Docs/`
+- Grid: `../tbt-game-unity/Assets/Scripts/Grid/GridManagerV2.cs`
+- Units: `../tbt-game-unity/Assets/Scripts/Units/Unit.cs`
+- Combat: `../tbt-game-unity/Assets/Scripts/Units/Unit.cs` (lines 874-1615)
+- Turns: `../tbt-game-unity/Assets/Scripts/Managers/TurnManager.cs`
+- UI: `../tbt-game-unity/Assets/Scripts/UI/UIManager.cs`
+- Design docs: `../tbt-game-unity/Assets/Docs/`
 
 ## UI Style
 

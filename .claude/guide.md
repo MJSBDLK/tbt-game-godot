@@ -8,7 +8,7 @@ Quick reference for AI agents working on this codebase.
 
 **READ FIRST**: [alpha.md](alpha.md) and [migration.md](migration.md)
 
-The project is being ported from Unity 6.3 to Godot 4.x with GDScript. The migration plan has 9 phases (0-8). We're porting all existing systems AND building missing Alpha features. The Unity source lives at `../tbt-game/` for reference.
+The project is being ported from Unity 6.3 to Godot 4.x with GDScript. The migration plan has 9 phases (0-8). We're porting all existing systems AND building missing Alpha features. The Unity source lives at `../tbt-game-unity/` for reference.
 
 ---
 
@@ -22,7 +22,7 @@ position = Vector2(tile_x, tile_y)
 # WRONG — breaks everything
 position = Vector2(tile_x + 0.5, tile_y + 0.5)
 ```
-Reference: `../tbt-game/Assets/Docs/Standards/coordinate-system.md`
+Reference: `../tbt-game-unity/Assets/Docs/Standards/coordinate-system.md`
 
 ### 2. Three-Tier Sprite System
 - **Floor Tiles** (Tier 1) = Base terrain properties
@@ -36,7 +36,7 @@ var properties = modifier_properties if modifier_exists else floor_properties
 # WRONG — never combine/add properties
 var properties = floor_properties + modifier_properties
 ```
-Reference: `../tbt-game/Assets/Docs/Implementation/three-tier-sprite-system.md`
+Reference: `../tbt-game-unity/Assets/Docs/Implementation/three-tier-sprite-system.md`
 
 ### 3. Moves, Not Weapons
 - Units equip **4 moves** (Pokemon-style, not Fire Emblem weapons)
@@ -44,15 +44,15 @@ Reference: `../tbt-game/Assets/Docs/Implementation/three-tier-sprite-system.md`
 - Move type is independent of unit type (Fire unit can use Water moves)
 - **No weapon inventory system**
 
-Reference: `../tbt-game/Assets/Docs/Design/character-system.md`
+Reference: `../tbt-game-unity/Assets/Docs/Design/character-system.md`
 
 ---
 
 ## Porting Workflow
 
 ### When porting a Unity script:
-1. **Read the Unity source** in `../tbt-game/Assets/Scripts/`
-2. **Read related design docs** in `../tbt-game/Assets/Docs/`
+1. **Read the Unity source** in `../tbt-game-unity/Assets/Scripts/`
+2. **Read related design docs** in `../tbt-game-unity/Assets/Docs/`
 3. **Check the migration plan** in `.claude/migration.md` for architectural decisions
 4. **Write GDScript** following the translation patterns below
 5. **Preserve game logic exactly** — formulas, constants, algorithms should be 1:1
@@ -258,8 +258,8 @@ tile.position = Vector2(x, y)
 
 ## When Uncertain
 
-- **Game design**: Check `../tbt-game/Assets/Docs/Design/`
-- **Implementation details**: Check `../tbt-game/Assets/Docs/Implementation/`
+- **Game design**: Check `../tbt-game-unity/Assets/Docs/Design/`
+- **Implementation details**: Check `../tbt-game-unity/Assets/Docs/Implementation/`
 - **Coordinates**: Integer only. Period.
 - **Migration approach**: Check `.claude/migration.md`
 - **What's done vs pending**: Check `.claude/alpha.md`

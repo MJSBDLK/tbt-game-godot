@@ -1,4 +1,44 @@
 # Resp
+1. Let's delete that stray file.
+2. 
+
+# Reparent worktree directories
+One container for every checkout of the game plus the Unity source, so
+worktrees sit beside the main checkout instead of loose in ~/Documents/Projects:
+
+    ~/Documents/Projects/tbt-game/          container
+      tbt-game-godot/                       main checkout
+      tbt-game-godot--twinkle-steps/        worktree
+      tbt-game-unity/                       Unity source
+      tbt-game.code-workspace               open THIS in VS Code
+
+Full names kept inside the container, so a folder read without context still
+says which project it is. Claude keys memory by path, so the memory folder is
+renamed in the move below. Claude sessions must start in tbt-game-godot/ (it
+holds CLAUDE.md); one opened at the container root gets no project memory.
+
+- [x] Layout and names (RQD: full names), Unity moves in.
+- [x] Twinkle shader comments folded into the branch's one commit (d68c2b6).
+- [x] Unity path fixed → `../tbt-game-unity/` (CLAUDE.md ×7, guide.md ×8, migration.md ×1; `../tbt-game/` pointed at nothing). Resolves before and after the move.
+- [x] .claude/settings.local.json: absolute-path rules rewritten to the new roots (same scope).
+- [x] Memory: the 3 files with absolute links + the twinkle note point at the new paths.
+- [x] tbt-game/ created with tbt-game.code-workspace (tbt-game-godot first); CLAUDE.md Branch Flow names the worktree convention.
+- [ ] Close Godot (both projects), Unity + Unity Hub, every VS Code window on these folders, and every Claude session in them. Then, from a plain terminal (not VS Code's):
+
+      cd ~/Documents/Projects
+      mv tbt-game-godot tbt-game-godot--twinkle-steps tbt-game-unity tbt-game/
+      cd tbt-game/tbt-game-godot
+      git worktree repair ../tbt-game-godot--twinkle-steps
+      git worktree list
+      mv ~/.claude/projects/-home-mjsbdlk-Documents-Projects-tbt-game-godot \
+         ~/.claude/projects/-home-mjsbdlk-Documents-Projects-tbt-game-tbt-game-godot
+
+  (The main checkout can't `git worktree move`, hence mv + repair with the
+  worktree's new path. Hooks are relative symlinks and move along.)
+- [ ] Open tbt-game/tbt-game.code-workspace. Check a Claude session starts in tbt-game-godot/ and loads CLAUDE.md + memory.
+- [ ] Godot Project Manager: remove the stale entries, Import tbt-game-godot/project.godot (and the worktree's if wanted). user:// (saves, settings, logs) is keyed on the project name, so it's untouched.
+- [ ] Unity Hub: re-add tbt-game-unity/.
+- [ ] Verify: `git status` in both checkouts, GUT suite, F5.
 
 # BUGZ
 - [x] I overwrote a save once, and now the "overwrite save" screen will show up unexpectedly where it shouldn't: ![alt text](image-5.png)
