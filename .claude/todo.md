@@ -1,6 +1,5 @@
 # Resp
-1. Let's delete that stray file.
-2. 
+
 
 # Reparent worktree directories
 One container for every checkout of the game plus the Unity source, so
