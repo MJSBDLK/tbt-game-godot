@@ -1,42 +1,44 @@
 # Resp
-More stuff I found in the options menu:
-+ I think we need even more padding on the options menu. Let's start with "half the width of the border," which I think is 10/2=5px (reference res)
-+ on tooltips which describe different modes, we should linedown before each setting, e.g.
-	On: this thing
-	Off: other thing
-+ Re: audio - music volume - I think all sliders should just start at 80%, and we mix the audio correctly
-+ 
+- [x] Just noticed a problem. The "6 units haven't acted" warning doesn't have the orthogonal glow applied. We also probably want to center that text.
+  (DONE on `rqd--end-turn-framing`: primary voice + glow, centered; every count fits one line.)
+The camera stuff you did works flawlessly - just feels natural off the bat.
+You said you made edits to the # Claude section, but I'm not seeing them. I coincidentally deleted the "any button" item, before I read your reply.
 
 # Claude
-Things Claude found while working on something else — not asked for, not yet
-acted on. RQD triages (promote, answer, or strike); Claude deletes an entry
-once it's fixed or moved into a real section.
-- [ ] End Turn warning: a waiting unit that's off-screen gets pointed at by
-  nothing — the camera doesn't move. Pan to the first one? An edge arrow?
-	- if possible, we should fit them all on-screen by panning/zooming.
-	- this leaves an open quesion about what we want the camera to do once it gives control back to the player. If they were panned to some obscure corner of the map, that's frustrating, but so is having the camera moved without input of the player.
-	- is there a game that handles this really well, that we can draw inspiration from?
-- [ ] "Any button" isn't quite true on the combat stage: keyboard/pad presses
-  there are only accept/cancel (click/tap is anything), while a map breath
-  takes any button. The stage hint still says "any button: skip" (the Battle
-  Pacing description now says "a press").
-	- this is fine.
-	- is there a reason  not to allow any button to advance the combat?
-	- don't just go changing stuff, the current implementation works well, I'm just curious what the reasoning was behind the decision
+Things Claude found while working on something else that need doing — not
+asked for, not yet acted on. RQD triages (promote, answer, or strike);
+Claude deletes an entry once it's fixed or moved into a real section.
+Observations with nothing to do go in "Claude FYI" below.
+- [ ] The mouse wheel skips the combat stage: its `_gui_input` takes any
+  mouse-button press, and a wheel notch is one. Scrolling the camera as a
+  fight opens skips it. Fix if it bites: ignore wheel buttons there.
+	-> Good catch, we should disable zooming in/out when the combat scene starts
+		and re-enable it when done.
+	-> Speaking of, did you imply that scrollwheel is hardcoded in the code?
+		Because the exact keybinds should be abstracted. Please create a todo
+		to address this if this is a real gap. [ready]
+	(Claude: zoom isn't hardcoded — it's the `zoom_in`/`zoom_out` actions,
+	which happen to be bound to the wheel. The stage just treats every mouse
+	button as a click. Fix: while the stage is up, zoom presses do nothing —
+	no skip, no zoom — matched by action, not by button. A real gap nearby:
+	three mouse commands skip the InputMap — filed in # Todo, "Mouse commands
+	that bypass the InputMap".) [ready]
 - [ ] `ui_manager.gd` is 1161 lines (cap ~1000). Split proposal: the
   `_on_system_menu_*` handlers move into SystemMenuPanel (~100 lines out). The
   spry over-cap table (`.claude/skills/spry/principles.md`) is stale:
   ui_manager 1101→1161, input_manager 1096→1111, unit.gd 2164→2189.
-	- Per policy, if there's a good reason for a long file, 
+	-> analysis: no good reason for UI Manager to be this long. The extra lines just pass the system menu's button presses along,
+	and the policy says that code belongs in SystemMenuPanel anyway. [ready-to-implement]
 - [ ] 5× "Lambda capture at index 0 was freed" in test_displacement_system's
   counter/knockback tests, on a clean HEAD too. A lambda outlives the unit it
   captured; harmless today, noise in every run.
-- [ ] Lawrence's terrain icon file has three icons with nowhere to go yet:
-  `healing_modifier` (no terrain heals — the Pod / healing-plant idea), and
-  `movement_penalty_b` / `defense_modifier_b` (the old placeholder designs,
-  kept as his b-list). Exported beside the four in use.
-- [ ] `origin/lod--main` has two commits `rqd--main` doesn't: "combat regolith
-  backdrop" (the combat-scene backdrop ask?) and "Mountains shadow 12x8".
+	- I straight up don't understand what you're talking about here. Let's discuss
+- [ ] 
+
+# Claude FYI
+Observations with no action item: worth knowing, nothing to do. No
+checkboxes. RQD deletes an entry once read; if one grows an action, it moves
+up to # Claude.
 
 # [ ] TRACKING ART AND ANIMATION WORK
 We need something like a Kanban board or a checklist which lists each character, which highres/pixel art is still needed for that character, and the system needs to be extensible as we add features. For example, we might decide that highres line art needs each character to have a "determined face" (I'm not saying we're doing this) and then that would need to appear in the checklist for Lawrence for all relevant characters. It should live somewhere super convenient and be tracked on Lawrence's branch.
@@ -65,7 +67,7 @@ holds CLAUDE.md); one opened at the container root gets no project memory.
 - [x] .claude/settings.local.json: absolute-path rules rewritten to the new roots (same scope).
 - [x] Memory: the 3 files with absolute links + the twinkle note point at the new paths.
 - [x] tbt-game/ created with tbt-game.code-workspace (tbt-game-godot first); CLAUDE.md Branch Flow names the worktree convention.
-- [ ] Close Godot (both projects), Unity + Unity Hub, every VS Code window on these folders, and every Claude session in them. Then, from a plain terminal (not VS Code's):
+- [x] Close Godot (both projects), Unity + Unity Hub, every VS Code window on these folders, and every Claude session in them. Then, from a plain terminal (not VS Code's):
 
       cd ~/Documents/Projects
       mv tbt-game-godot tbt-game-godot--twinkle-steps tbt-game-unity tbt-game/
@@ -78,8 +80,8 @@ holds CLAUDE.md); one opened at the container root gets no project memory.
   (The main checkout can't `git worktree move`, hence mv + repair with the
   worktree's new path. Hooks are relative symlinks and move along.)
 - [x] Open tbt-game/tbt-game.code-workspace. Check a Claude session starts in tbt-game-godot/ and loads CLAUDE.md + memory.
-- [ ] Godot Project Manager: remove the stale entries, Import tbt-game-godot/project.godot (and the worktree's if wanted). user:// (saves, settings, logs) is keyed on the project name, so it's untouched.
-- [ ] Unity Hub: re-add tbt-game-unity/.
+- [x] Godot Project Manager: remove the stale entries, Import tbt-game-godot/project.godot (and the worktree's if wanted). user:// (saves, settings, logs) is keyed on the project name, so it's untouched.
+- [-] Unity Hub: re-add tbt-game-unity/.
 - [~] Verify: `git status` in both checkouts, GUT suite, F5. (git + GUT checked by Claude 9/25; F5 is yours.)
 
 # BUGZ
@@ -197,7 +199,10 @@ holds CLAUDE.md); one opened at the container root gets no project memory.
   (BUILT, same commit. `UIManager.request_end_turn` → the system menu's
   confirm page; waiting units wear the Silhouette CTA (style guide §14,
   knobs `ArtVariables.UNIT_CALL_TO_ACTION_*`). RQD: "looking great".
-  EYEBALL: a waiting unit OFF-SCREEN — nothing points at it.)
+  OFF-SCREEN units: BUILT on `rqd--end-turn-framing` — the camera frames
+  every waiting unit beside the menu, zooming out only if they won't fit;
+  Cancel glides back to the old view, End Turn leaves it
+  (`CameraController.frame_points`). RQD: "feels natural off the bat".)
 - [~] Maybe add an "advanced player defaults" option which speeds the game up, removes confirmations, etc
   (BUILT, same commit: Options → "Preset: Newcomer / Veteran",
   `Settings.PRESETS`. Battle Anims left out on purpose — taste, not speed.)
@@ -350,7 +355,22 @@ holds CLAUDE.md); one opened at the container root gets no project memory.
 - [ ] 
 
 # Todo
+- [ ] Mouse commands that bypass the InputMap. Keys, pad and the wheel all go
+  through actions (project.godot), but three mouse commands check the
+  physical button: right-click = back on the board
+  (`InputManager._handle_right_click`), middle-drag = camera pan
+  (CameraController), right-hold = move peek (MoveChipButton). A rebind
+  screen couldn't reach them, and the hint bar can't name a rebound one.
+  Fix: an action each (`ui_cancel` may already fit right-click). Left-click
+  as "press the thing under the pointer" stays raw — that's what a pointer
+  is, same as Godot's own Button. Blocks nothing until a rebind screen exists.
+- [ ] Add a next/prev unit button.
+	- M&K: Probably Q/E on keyboard (careful to make sure this is contextual because these do other things in the menus). LMK if you have a better idea or if there's a game that does this well I should be aware of.
+	- Controller: are the bumpers in use? If we need to, these can just be B (east) on the controller, but I think I prefer having both Prev and Next
+	- Touchscreen: the controls at the bottom are already getting cluttered. What are your thoughts? Just a next button? Next/Prev in the top corners? (don't love this idea but it could work well) Just add them to the control strip anyway?
 - [ ] We still haven't implimented single enemy unit threat zones - should be a distinct "danger" or "warning" color. Might make the "all enemies" threat zone "warning," and a specific enemy threat zone "danger," the more I think about it.
+	- I hold a controller in my hands, and think "what button press brings up the enemy threat zone?" and that button is A or X (face button west or south). If both are already taken, can it be contextual? Let's discuss.
+	- I think we probably want to toggle the threat zone off with the same button as well - LMK if you can think of any disadvantages to that.
 - [ ] We should have fullres line art for the Keener enemy - name is either "cultist" or "blood mage," not to be confused with the plant cultist.
 - [x] Options menu has gotten too big for the screen. We'll need to tabulate and/or refactor
   (DONE 2026-09-09 on `rqd--options-tabs`, eyeball-gated. Both: three tabs
@@ -442,9 +462,9 @@ holds CLAUDE.md); one opened at the container root gets no project memory.
 - [ ] For the FPS cap, we should have it go from 60 to the monitor's refresh rate, with a  "higher?" button to the right, which, when clicked, lets them pick values up to 1000.
 	- the reason for this is that most people don't know their monitor's refresh rate
 	- tooltip explaining why
-	- is there any reason to go have the bottom lower than 60?
-	- if the reported refresh rate *is* the bottom, should we remove the "higher" option?
-	- is this just a dumb feature in general?
+	- Claude recommends off/30/60/refresh. I agree this is user-friendly but I don't want to leave out people with less common refresh rates. I am a framerate princess. 75, 90, 120, 144, 165, 200, 240, higher - I like the idea of a slider that accommodates everyone, but for people who have the "basic bitch fixed 60" monitor, it's a lot of wasted screen real estate, or worse, confusing. 25 year old Quinn didn't know about screen refresh rates, microstutter, etc, so when I saw a knob that let me increase my frame rate beyond the refresh rate, I cranked that up and got confused at the tearing.
+	- If we can design around this, great, but if not, maybe we just leave as-is.
+
 
 **Answered + BUILT 2026-09-07 on `rqd--terrain-stack`** (3 commits, suite
 1096 green; squash-merge once RQD/Lawrence have eyeballed a build):

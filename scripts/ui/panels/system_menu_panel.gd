@@ -10,7 +10,9 @@
 ## UIManager.request_end_turn when units can still act). "N units haven't
 ## acted." over End Turn / Cancel, Cancel the landing for the same A-A
 ## reason. Cancel goes back where the player came from: the menu list if it
-## was open, the board if the E key / hint bar asked.
+## was open, the board if the E key / hint bar asked. The camera frames the
+## waiting units beside the panel; Cancel glides it back to the view it had —
+## the press asked the question, backing out undoes what it moved.
 class_name SystemMenuPanel
 extends PanelContainer
 
@@ -43,6 +45,8 @@ var _save_flash_serial: int = 0
 var _confirming_end_turn: bool = false
 var _cancel_returns_to_menu: bool = false
 var _waiting_flashes: Array[SilhouetteCallToAction] = []
+# CameraController.current_view() from before the framing; empty = nothing to undo.
+var _view_before_question: Dictionary = {}
 
 
 func _ready() -> void:
@@ -112,8 +116,7 @@ func _unhandled_input(event: InputEvent) -> void:
 # =============================================================================
 
 func show_menu() -> void:
-	_confirming_end_turn = false
-	_stop_waiting_flashes()
+	_end_question()
 	_populate_menu()
 	visible = true
 	_ensure_border_overlay()
@@ -121,8 +124,7 @@ func show_menu() -> void:
 
 func hide_menu() -> void:
 	visible = false
-	_confirming_end_turn = false
-	_stop_waiting_flashes()
+	_end_question()
 	_clear_items()
 	closed.emit()
 
@@ -132,19 +134,19 @@ func hide_menu() -> void:
 ## up: show_menu and hide_menu — every way off this page — stop them.
 func show_end_turn_confirm(waiting: Array[Unit]) -> void:
 	_cancel_returns_to_menu = visible and not _confirming_end_turn
+	_end_question()
 	_confirming_end_turn = true
-	_stop_waiting_flashes()
 	for unit: Unit in waiting:
 		var flash := SilhouetteCallToAction.play_on(unit.get_node_or_null("Sprite2D") as Sprite2D)
 		if flash != null:
 			_waiting_flashes.append(flash)
 	_clear_items()
-	var message := Label.new()
-	message.text = ("1 unit hasn't acted." if waiting.size() == 1
-			else "%d units haven't acted." % waiting.size())
+	var message := GlowLabel.styled(("1 unit hasn't acted." if waiting.size() == 1
+			else "%d units haven't acted." % waiting.size()),
+			UIManager.font_8px, 8, GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW)
 	message.custom_minimum_size = Vector2(BUTTON_WIDTH, 0)
 	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	message.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
+	message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_content_container.add_child(message)
 	_create_spacer()
 	_create_button("End Turn", func() -> void: end_turn_confirmed.emit())
@@ -152,18 +154,43 @@ func show_end_turn_confirm(waiting: Array[Unit]) -> void:
 	_resize_panel()
 	visible = true
 	_ensure_border_overlay()
+	_frame_waiting(waiting)
 	if InputSource.is_cursor_driven():
 		_focus_default_item()
 
 
+## Every waiting unit on screen, clear of this panel's column. Called once
+## the panel is placed and sized — the column is its footprint.
+func _frame_waiting(waiting: Array[Unit]) -> void:
+	var camera := SceneRouter.get_world_camera() as CameraController
+	if camera == null or waiting.is_empty():
+		return
+	var points := PackedVector2Array()
+	for unit: Unit in waiting:
+		points.append(unit.global_position)
+	var view_size := camera.get_viewport_rect().size
+	var column := maxf(size.x, custom_minimum_size.x) * SceneRouter.get_hud_scale()
+	var on_left := anchor_left < 0.5
+	var free_region := Rect2(column if on_left else 0.0, 0.0, view_size.x - column, view_size.y)
+	_view_before_question = camera.current_view()
+	camera.frame_points(points, free_region)
+
+
 func _cancel_end_turn_confirm() -> void:
+	var camera := SceneRouter.get_world_camera() as CameraController
+	if camera != null and not _view_before_question.is_empty():
+		camera.return_to_view(_view_before_question)
 	if _cancel_returns_to_menu:
 		show_menu()
 	else:
 		hide_menu()
 
 
-func _stop_waiting_flashes() -> void:
+## Every way off the question comes through here: the flashes stop and the
+## framing's view is forgotten — only Cancel goes back to it, before this runs.
+func _end_question() -> void:
+	_confirming_end_turn = false
+	_view_before_question = {}
 	# Untyped on purpose: a unit freed mid-question leaves a freed flash here,
 	# and a typed loop variable refuses a freed instance.
 	for flash: Variant in _waiting_flashes:

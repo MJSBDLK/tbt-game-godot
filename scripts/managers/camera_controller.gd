@@ -2,6 +2,8 @@
 ## Attached to the Camera2D node in the battle scene.
 ## Player-driven panning: exponential decay lerp (responsive).
 ## Programmatic center_on(): Tween with EASE_IN_OUT (cinematic).
+## frame_points() / return_to_view(): the same tween, zooming out when a group
+## won't fit — the End Turn warning's look at the units still waiting.
 ##
 ## Under the dual-pipeline rendering architecture (see `.claude/zoom-arch.md`),
 ## the camera renders directly to the root viewport at native window resolution.
@@ -245,8 +247,16 @@ func _set_bounds_from_grid() -> void:
 ## Recomputes _min_bounds/_max_bounds so the viewport edge never exceeds the map
 ## boundary by more than the configured buffer. Called on grid ready and on zoom change.
 func _update_bounds_for_zoom() -> void:
+	var bounds := _bounds_at_zoom(zoom.x)
+	_min_bounds = bounds.position
+	_max_bounds = bounds.end
+
+
+## Where the camera's center may sit at `zoom_level` — frame_points asks for
+## the zoom it is headed to, before the lerp gets there.
+func _bounds_at_zoom(zoom_level: float) -> Rect2:
 	var viewport_size := get_viewport_rect().size
-	var half_view := viewport_size / (2.0 * zoom.x)
+	var half_view := viewport_size / (2.0 * zoom_level)
 	var map_center := _map_pixel_origin + _map_pixel_size / 2.0
 
 	# Camera must be far enough from the map edge that the viewport edge stays within
@@ -264,8 +274,7 @@ func _update_bounds_for_zoom() -> void:
 		min_y = map_center.y
 		max_y = map_center.y
 
-	_min_bounds = Vector2(min_x, min_y)
-	_max_bounds = Vector2(max_x, max_y)
+	return Rect2(min_x, min_y, max_x - min_x, max_y - min_y)
 
 
 func _is_input_blocked() -> bool:
@@ -291,19 +300,95 @@ func _cancel_tween() -> void:
 func center_on(world_position: Vector2, smooth: bool = true) -> void:
 	var clamped := world_position
 	if constrain_to_bounds:
-		clamped.x = clampf(clamped.x, _min_bounds.x, _max_bounds.x)
-		clamped.y = clampf(clamped.y, _min_bounds.y, _max_bounds.y)
-	_target_position = clamped
-	if not smooth:
-		_cancel_tween()
-		global_position = clamped
+		clamped = clamped.clamp(_min_bounds, _max_bounds)
+	if smooth:
+		_glide_to(clamped)
 		return
+	# Cancel first: a killed tween resets the target to where the camera stood.
+	_cancel_tween()
+	_target_position = clamped
+	global_position = clamped
+
+
+## The programmatic move: a sine-eased tween to `world_position`, already
+## clamped by the caller. A zoom change rides _target_zoom's lerp beside it.
+func _glide_to(world_position: Vector2) -> void:
 	if _pan_tween != null and _pan_tween.is_running():
 		_pan_tween.kill()
+	_target_position = world_position
 	_pan_tween = create_tween()
 	_pan_tween.set_trans(Tween.TRANS_SINE)
 	_pan_tween.set_ease(Tween.EASE_IN_OUT)
-	_pan_tween.tween_property(self, "global_position", clamped, pan_tween_duration)
+	_pan_tween.tween_property(self, "global_position", world_position, pan_tween_duration)
+
+
+# =============================================================================
+# FRAMING — the End Turn warning's look at the units still waiting
+# =============================================================================
+
+## A view to come back to: where the camera is headed, and how far in.
+func current_view() -> Dictionary:
+	return {"position": _target_position, "zoom": _target_zoom}
+
+
+## Glides back to a view current_view() handed out.
+func return_to_view(view: Dictionary) -> void:
+	assert(view.has("position") and view.has("zoom"), "not a current_view(): %s" % view)
+	_target_zoom = view.zoom
+	_glide_to(view.position)
+
+
+## Puts every point inside `free_region` — screen px, the part of the view no
+## panel covers — follow_margin_tiles clear of its edges. Moves as little as
+## it can: not at all when they already show, a pan when a pan will do, and a
+## zoom OUT (never in) only when the group won't fit at this zoom.
+func frame_points(points: PackedVector2Array, free_region: Rect2) -> void:
+	var framed := framing(points, follow_margin_tiles * GridManager.tile_size,
+			get_viewport_rect().size, free_region, _target_position, _target_zoom,
+			min_zoom, integer_zoom_mode)
+	var destination: Vector2 = framed.position
+	if constrain_to_bounds and _map_pixel_size != Vector2.ZERO:
+		var bounds := _bounds_at_zoom(framed.zoom)
+		destination = destination.clamp(bounds.position, bounds.end)
+	_target_zoom = framed.zoom
+	if destination != _target_position:
+		_glide_to(destination)
+
+
+## Pure math for frame_points (static for GUT): {"position", "zoom"} for a
+## camera at `center` / `zoom_level` that puts the points' box, grown by
+## `margin` world px, inside `free_region` (screen px of a `view_size` view).
+## Zoom only drops, to whole steps when `whole_steps`, never below
+## `lowest_zoom`; an axis the box still outgrows there centers on it.
+static func framing(points: PackedVector2Array, margin: float, view_size: Vector2,
+		free_region: Rect2, center: Vector2, zoom_level: float, lowest_zoom: float,
+		whole_steps: bool) -> Dictionary:
+	assert(not points.is_empty(), "framing needs something to frame")
+	assert(margin > 0.0 and free_region.has_area(), "framing needs a margin and a region")
+	var box := Rect2(points[0], Vector2.ZERO)
+	for point: Vector2 in points:
+		box = box.expand(point)
+	box = box.grow(margin)
+	var fit := minf(free_region.size.x / box.size.x, free_region.size.y / box.size.y)
+	var new_zoom := zoom_level
+	if fit < zoom_level:
+		new_zoom = maxf(lowest_zoom, floorf(fit) if whole_steps else fit)
+	var region := Rect2(center + (free_region.position - view_size / 2.0) / new_zoom,
+			free_region.size / new_zoom)
+	var shift := Vector2(
+			_axis_shift(box.position.x, box.end.x, region.position.x, region.end.x),
+			_axis_shift(box.position.y, box.end.y, region.position.y, region.end.y))
+	return {"position": center + shift, "zoom": new_zoom}
+
+
+static func _axis_shift(low: float, high: float, region_low: float, region_high: float) -> float:
+	if high - low > region_high - region_low:
+		return (low + high - region_low - region_high) / 2.0
+	if low < region_low:
+		return low - region_low
+	if high > region_high:
+		return high - region_high
+	return 0.0
 
 
 func set_zoom_level(new_zoom: float, smooth: bool = true) -> void:
