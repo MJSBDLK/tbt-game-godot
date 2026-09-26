@@ -47,3 +47,46 @@ func test_margin_caps_at_half_the_half_extent() -> void:
 					Vector2.ZERO, Vector2(20, 20), Vector2(15, 0), 16.0),
 			Vector2(5, 0),
 			"deep zoom-in: margin capped to 10 so opposite edges can't both claim the point")
+
+
+# =============================================================================
+# follow_target — the enemy phase's walking-unit follow
+# =============================================================================
+
+func _free_camera() -> CameraController:
+	var camera := CameraController.new()
+	camera.constrain_to_bounds = false
+	add_child_autofree(camera)
+	return camera
+
+
+func test_follow_pans_toward_an_off_screen_node() -> void:
+	var camera := _free_camera()
+	var walker := Node2D.new()
+	add_child_autofree(walker)
+	walker.global_position = Vector2(100000, 100000)
+	camera.follow_target = walker
+	camera._process(0.016)
+	assert_gt(camera.target_position.x, 0.0, "the camera heads for the walker")
+	assert_gt(camera.target_position.y, 0.0, "the camera heads for the walker")
+
+
+func test_follow_leaves_a_view_that_already_shows_the_node() -> void:
+	var camera := _free_camera()
+	var walker := Node2D.new()
+	add_child_autofree(walker)
+	walker.global_position = camera.target_position
+	camera.follow_target = walker
+	var before := camera.target_position
+	camera._process(0.016)
+	assert_eq(camera.target_position, before, "minimal pan: an on-screen walker drags nothing")
+
+
+func test_a_freed_follow_target_is_ignored() -> void:
+	var camera := _free_camera()
+	var walker := Node2D.new()
+	camera.follow_target = walker
+	walker.free()
+	var before := camera.target_position
+	camera._process(0.016)
+	assert_eq(camera.target_position, before, "a freed walker is dropped, not dereferenced")

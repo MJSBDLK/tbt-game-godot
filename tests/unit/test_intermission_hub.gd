@@ -489,3 +489,19 @@ func test_the_launch_gate_is_the_players_own_empty_choice() -> void:
 	assert_true(hub._can_begin(),
 			"unset stays launchable — the legacy everyone-fallback, never a dead end")
 	CampaignManager.restore_save_state(saved)
+
+
+func test_the_hub_stage_stands_in_front_of_the_upcoming_mission() -> void:
+	# In fiction the stage previews where the crew is going (art first when
+	# it exists) — never the newest save's frame, which at the hub is
+	# whatever was on screen when the boundary autosave fired.
+	var saved := _with_campaign(["spaceman"], true)
+	var hub := _built_hub()
+	var stage: MenuStageBackdrop = null
+	for child: Node in hub.get_children():
+		if child is MenuStageBackdrop:
+			stage = child
+	assert_not_null(stage, "the hub wears the shared stage")
+	if stage != null:
+		assert_eq(stage.mission_path, CampaignManager.get_current_mission_path())
+	CampaignManager.restore_save_state(saved)

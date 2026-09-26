@@ -205,6 +205,9 @@ func start_enemy_phase() -> void:
 		return
 	current_phase = Enums.TurnPhase.ENEMY_PHASE
 	_is_processing_phase = true
+	# Fired at the flip, not after the banner: listeners that stand down for the
+	# enemy's turn (the threat overlay) must be gone before the banner shows.
+	enemy_phase_started.emit()
 
 	var input_manager: Node = get_node_or_null("/root/InputManager")
 	if input_manager != null:
@@ -232,7 +235,6 @@ func start_enemy_phase() -> void:
 	_process_injury_turn_effects(_enemy_units)
 	_process_passive_turn_start(_enemy_units)
 
-	enemy_phase_started.emit()
 	await _process_enemy_phase()
 
 	if not _battle_ended:

@@ -12,6 +12,10 @@
 ##     (pins or the army zone), it clears everything; otherwise it shows the
 ##     whole army. One button, no third state to remember.
 ## UI reflecting pin state (the preview-panel chip) listens on `changed`.
+##
+## The zone is a player-phase planning tool: it stands down for the enemy phase
+## (redrawn under every enemy step it reads as the enemy's own move range) and
+## comes back at the next player phase. Mode and pins survive the gap.
 class_name ThreatOverlayController
 extends Node
 
@@ -27,6 +31,7 @@ const GROUP_NAME: StringName = &"threat_overlay_controller"
 var _mode: int = Mode.OFF
 var _shown: Array[Unit] = []  # INDIVIDUAL mode: the specific enemies being shown
 var _renderer: ThreatOverlayRenderer = null
+var _enemy_phase: bool = false
 
 
 func _ready() -> void:
@@ -35,14 +40,28 @@ func _ready() -> void:
 	_renderer.name = "ThreatOverlayRenderer"
 	add_child(_renderer)
 	assert(_renderer != null, "ThreatOverlayController: renderer failed to create")
-	# Enemies move/die during their phase; recompute when control returns to the
-	# player so the zone reflects their new positions.
 	var turn_manager: Node = get_node_or_null("/root/TurnManager")
 	if turn_manager != null and turn_manager.has_signal("player_phase_started"):
-		turn_manager.player_phase_started.connect(func(_turn_count: int) -> void: refresh())
+		turn_manager.player_phase_started.connect(_on_player_phase_started)
+		turn_manager.enemy_phase_started.connect(_on_enemy_phase_started)
+
+
+func _on_enemy_phase_started() -> void:
+	_enemy_phase = true
+	refresh()
+
+
+## Enemies moved and died while the zone was down; recompute from where they
+## stand now.
+func _on_player_phase_started(_turn_count: int) -> void:
+	_enemy_phase = false
+	refresh()
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Not the player's turn: the key would change a zone nobody can see.
+	if _enemy_phase:
+		return
 	if event.is_action_pressed("toggle_threat_zones"):
 		toggle_all_enemies()
 		get_viewport().set_input_as_handled()
@@ -118,7 +137,7 @@ func refresh() -> void:
 	if _renderer == null:
 		return
 	_prune_invalid_pins()
-	if _mode == Mode.OFF:
+	if _mode == Mode.OFF or _enemy_phase:
 		_renderer.clear()
 		return
 	var style: int = ThreatOverlayRenderer.Style.ARMY if _mode == Mode.ALL_ENEMIES \
