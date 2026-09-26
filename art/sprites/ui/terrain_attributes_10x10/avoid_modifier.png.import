@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://h0qtj6ne51n6"
-path="res://.godot/imported/avoid_modifier.png-9404150ec37f52f0941f9b5a36ad703a.ctex"
+path="res://.godot/imported/avoid_modifier.png-02c36d484d6f4f23e8a7f191597cd0a0.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/sprites/ui/terrain_attribute_icons_placeholder/avoid_modifier.png"
-dest_files=["res://.godot/imported/avoid_modifier.png-9404150ec37f52f0941f9b5a36ad703a.ctex"]
+source_file="res://art/sprites/ui/terrain_attributes_10x10/avoid_modifier.png"
+dest_files=["res://.godot/imported/avoid_modifier.png-02c36d484d6f4f23e8a7f191597cd0a0.ctex"]
 
 [params]
 

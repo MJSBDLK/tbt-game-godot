@@ -31,6 +31,12 @@ once it's fixed or moved into a real section.
 - [ ] 5× "Lambda capture at index 0 was freed" in test_displacement_system's
   counter/knockback tests, on a clean HEAD too. A lambda outlives the unit it
   captured; harmless today, noise in every run.
+- [ ] Lawrence's terrain icon file has three icons with nowhere to go yet:
+  `healing_modifier` (no terrain heals — the Pod / healing-plant idea), and
+  `movement_penalty_b` / `defense_modifier_b` (the old placeholder designs,
+  kept as his b-list). Exported beside the four in use.
+- [ ] `origin/lod--main` has two commits `rqd--main` doesn't: "combat regolith
+  backdrop" (the combat-scene backdrop ask?) and "Mountains shadow 12x8".
 
 # [ ] TRACKING ART AND ANIMATION WORK
 We need something like a Kanban board or a checklist which lists each character, which highres/pixel art is still needed for that character, and the system needs to be extensible as we add features. For example, we might decide that highres line art needs each character to have a "determined face" (I'm not saying we're doing this) and then that would need to appear in the checklist for Lawrence for all relevant characters. It should live somewhere super convenient and be tracked on Lawrence's branch.
@@ -423,7 +429,10 @@ holds CLAUDE.md); one opened at the container root gets no project memory.
   was dead (mouse-enter never reaches a nested SubViewport) — InputRouter
   mirrors it now, so ~29 authored hover tooltips light up. EYEBALL those.)
 - [ ] Victory screen popping up needs more dopamine - discuss
-- [ ] The finalized icons for the terrain preview panel are actually finished - we should use those over the placeholders we're currently using.
+- [~] The finalized icons for the terrain preview panel are actually finished - we should use those over the placeholders we're currently using.
+  (BUILT on `rqd--terrain-icons`: exported from his
+  `art/sprites/ui/terrain_attributes_10x10/terrain_attributes_10x10.aseprite`
+  — the folder was `terrain_attribute_icons_placeholder/`. EYEBALL.)
 - [~] Allow for tooltips in the options menu, explaining what options do.
   (BUILT on `rqd--options-tooltips`; story in the commit. RQD: "looks great".
   EYEBALL on other devices: the pane on touch (tap a name), on the Deck.)
