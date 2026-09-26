@@ -234,6 +234,112 @@ func test_slider_rows_wear_the_pill_palette_not_godots_default() -> void:
 	assert_eq(_panel._slider_track_style.get_minimum_size().y, float(OptionsMenuPanel.SLIDER_TRACK_HEIGHT))
 
 
+# =============================================================================
+# DESCRIPTION PANE — every input can read what a row does
+# =============================================================================
+
+func _row(row_id: String) -> HBoxContainer:
+	for tab: int in OptionsMenuPanel.TAB_ORDER:
+		for row: Node in (_panel._tab_boxes[tab] as Control).get_children():
+			if String(row.get_meta("row_id", "")) == row_id:
+				return row as HBoxContainer
+	return null
+
+
+func _spec(row_id: String) -> Dictionary:
+	for spec: Dictionary in _panel._row_specs():
+		if spec.id == row_id:
+			return spec
+	return {}
+
+
+func _assert_explains(row_id: String, note: String) -> void:
+	assert_eq(_panel._description_heading.text, String(_spec(row_id).label), note)
+	assert_eq(_panel._description_body.text, String(_spec(row_id).description), note)
+
+
+func test_every_row_has_something_to_say() -> void:
+	for spec: Dictionary in _panel._row_specs():
+		assert_false(String(spec.get("description", "")).is_empty(), "%s explains itself" % spec.id)
+
+
+func test_each_mode_a_description_walks_through_gets_its_own_line() -> void:
+	# "On: this thing" / "Off: other thing" — a line per choice, never a run-on.
+	for spec: Dictionary in _panel._row_specs():
+		if int(spec.kind) != OptionsMenuPanel.RowKind.CHOICE:
+			continue
+		var description: String = spec.description
+		for choice: Array in spec.choices:
+			var at: int = description.find("%s:" % choice[1])
+			if at > 0:
+				assert_eq(description[at - 1], "\n", "%s: '%s:' starts a line" % [spec.id, choice[1]])
+
+
+func test_no_row_carries_a_native_tooltip() -> void:
+	# The pane is the explanation; a native tooltip on top would say it twice.
+	_panel.show_panel()
+	var stack: Array[Node] = [_panel]
+	while not stack.is_empty():
+		var node: Node = stack.pop_back()
+		if node is Control:
+			assert_eq((node as Control).tooltip_text, "", "%s has no native tooltip" % node)
+		stack.append_array(node.get_children())
+
+
+func test_a_pointer_open_starts_on_the_placeholder() -> void:
+	InputSource.last_kind = InputSource.Kind.POINTER
+	_panel.show_panel()
+	assert_eq(_panel._description_heading.text, "", "no row yet")
+	assert_eq(_panel._description_body.text, OptionsMenuPanel.DESCRIPTION_FLAVOR, "…just the flavor line")
+
+
+func test_hovering_a_rows_name_explains_it() -> void:
+	_panel.show_panel()
+	(_row("seeded_reload").get_child(0) as Label).mouse_entered.emit()
+	_assert_explains("seeded_reload", "mouse: hover the name")
+
+
+func test_tapping_a_rows_name_explains_it() -> void:
+	_panel.show_panel()
+	var tap := InputEventMouseButton.new()
+	tap.button_index = MOUSE_BUTTON_LEFT
+	tap.pressed = true
+	(_row("battle_pacing").get_child(0) as Label).gui_input.emit(tap)
+	_assert_explains("battle_pacing", "touch: tap the name (no hover, no cursor)")
+
+
+func test_the_cursor_explains_the_row_it_lands_on() -> void:
+	InputSource.last_kind = InputSource.Kind.CURSOR
+	_panel.show_panel()
+	await get_tree().process_frame
+	_assert_explains("click_attack", "the open lands on the first row, and says what it is")
+	(_panel._choice_buttons["move_confirm"][Settings.move_confirm_mode] as Button).grab_focus()
+	_assert_explains("move_confirm", "the cursor moved, the pane followed")
+
+
+func test_hovering_or_pressing_a_pill_explains_its_row() -> void:
+	_panel.show_panel()
+	var pills: Dictionary = _panel._choice_buttons["end_turn_warning"]
+	(pills[true] as Button).mouse_entered.emit()
+	_assert_explains("end_turn_warning", "hover a pill")
+	(_panel._choice_buttons["preset"]["newcomer"] as Button).pressed.emit()
+	_assert_explains("preset", "press a pill")
+
+
+func test_a_slider_explains_its_row() -> void:
+	_panel.show_panel()
+	_slider("cursor_speed").mouse_entered.emit()
+	_assert_explains("cursor_speed", "sliders too")
+
+
+func test_switching_tabs_clears_a_row_the_new_tab_does_not_have() -> void:
+	InputSource.last_kind = InputSource.Kind.POINTER
+	_panel.show_panel()
+	(_row("seeded_reload").get_child(0) as Label).mouse_entered.emit()
+	_panel.select_tab(OptionsMenuPanel.Tab.AUDIO)
+	assert_eq(_panel._description_heading.text, "", "Seeded Reload isn't on Audio")
+
+
 func test_escape_closes_and_emits() -> void:
 	_panel.show_panel()
 	watch_signals(_panel)
