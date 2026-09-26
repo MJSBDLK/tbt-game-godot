@@ -38,6 +38,14 @@ const DIAGONAL_USES_SIDE_ANIMATION: bool = true
 var _clips_in_flight: Dictionary = {}
 
 
+## The result sits for a breath before XP and the next action. FAST pacing
+## passes 0 (the shipped snap). No breath at open: on the map it would only
+## read as lag between the player's confirm and the swing.
+func close() -> void:
+	super.close()
+	await breath(0.0)
+
+
 # =============================================================================
 # STRIKE
 # =============================================================================

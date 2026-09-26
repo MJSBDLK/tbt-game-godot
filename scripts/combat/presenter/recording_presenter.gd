@@ -61,6 +61,12 @@ func hold(seconds: float) -> void:
 	_record("hold", { "seconds": seconds, "skipped": is_skipping() })
 
 
+## A RELAXED breath records as a hold too, so beat order reads the same under
+## either pacing; `press_ends` tells the two apart.
+func hold_until_press(seconds: float) -> void:
+	_record("hold", { "seconds": seconds, "skipped": is_skipping(), "press_ends": true })
+
+
 func strike_to_contact(actor: Node2D, target: Node2D, strike_move: Move) -> void:
 	_record("strike", { "actor": _name_of(actor), "target": _name_of(target),
 			"move": strike_move.move_name if strike_move != null else "" })

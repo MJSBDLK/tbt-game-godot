@@ -1,17 +1,24 @@
 ## Right-side system menu panel (like the action menu but for game-level actions).
 ## Appears when pressing Escape in DEFAULT state or tapping the menu button.
 ## Contains: End Turn, then Close, Options, Save, Load, Main Menu, Quit.
-## Close sits FIRST under End Turn and is the cursor's default landing (RQD
-## 2026-08-21): the most common reason to open this menu is to peek and leave,
-## and a default on End Turn meant controller A-A ended your turn by accident.
-## Wears the border vocabulary (§14) since the 2026-07-19 adoption — all
-## buttons are InteractiveButtons, focus is the cursor.
+## Close sits FIRST under End Turn and is the cursor's default landing: the
+## most common reason to open this menu is to peek and leave, and a default on
+## End Turn let controller A-A end the turn by accident. Wears the border
+## vocabulary (§14) — all buttons are InteractiveButtons, focus is the cursor.
+##
+## Second page: the End Turn warning (show_end_turn_confirm, opened by
+## UIManager.request_end_turn when units can still act). "N units haven't
+## acted." over End Turn / Cancel, Cancel the landing for the same A-A
+## reason. Cancel goes back where the player came from: the menu list if it
+## was open, the board if the E key / hint bar asked.
 class_name SystemMenuPanel
 extends PanelContainer
 
 
 signal options_selected()
 signal end_turn_selected()
+## End Turn pressed on the warning page — the player meant it.
+signal end_turn_confirmed()
 signal save_selected()
 signal load_selected()
 ## Leave the battle for the start screen (RQD 2026-08-16). Sits beside Quit
@@ -33,6 +40,9 @@ var _save_button: InteractiveButton = null
 var _close_button: InteractiveButton = null
 # Bumped on every flash so an older restore-timer can't clobber a newer flash.
 var _save_flash_serial: int = 0
+var _confirming_end_turn: bool = false
+var _cancel_returns_to_menu: bool = false
+var _waiting_flashes: Array[SilhouetteCallToAction] = []
 
 
 func _ready() -> void:
@@ -82,7 +92,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
 		return
 	if event.is_action_pressed("ui_cancel"):
-		hide_menu()
+		if _confirming_end_turn:
+			_cancel_end_turn_confirm()
+		else:
+			hide_menu()
 		get_viewport().set_input_as_handled()
 		return
 	# Quiet-open adoption (InputSource, RQD 2026-07-29): a pointer-opened
@@ -99,6 +112,8 @@ func _unhandled_input(event: InputEvent) -> void:
 # =============================================================================
 
 func show_menu() -> void:
+	_confirming_end_turn = false
+	_stop_waiting_flashes()
 	_populate_menu()
 	visible = true
 	_ensure_border_overlay()
@@ -106,8 +121,55 @@ func show_menu() -> void:
 
 func hide_menu() -> void:
 	visible = false
+	_confirming_end_turn = false
+	_stop_waiting_flashes()
 	_clear_items()
 	closed.emit()
+
+
+## The page names how many can still act, and each of them flashes its
+## outline (SilhouetteCallToAction) for exactly as long as the question is
+## up: show_menu and hide_menu — every way off this page — stop them.
+func show_end_turn_confirm(waiting: Array[Unit]) -> void:
+	_cancel_returns_to_menu = visible and not _confirming_end_turn
+	_confirming_end_turn = true
+	_stop_waiting_flashes()
+	for unit: Unit in waiting:
+		var flash := SilhouetteCallToAction.play_on(unit.get_node_or_null("Sprite2D") as Sprite2D)
+		if flash != null:
+			_waiting_flashes.append(flash)
+	_clear_items()
+	var message := Label.new()
+	message.text = ("1 unit hasn't acted." if waiting.size() == 1
+			else "%d units haven't acted." % waiting.size())
+	message.custom_minimum_size = Vector2(BUTTON_WIDTH, 0)
+	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	message.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
+	_content_container.add_child(message)
+	_create_spacer()
+	_create_button("End Turn", func() -> void: end_turn_confirmed.emit())
+	_close_button = _create_button("Cancel", _cancel_end_turn_confirm)
+	_resize_panel()
+	visible = true
+	_ensure_border_overlay()
+	if InputSource.is_cursor_driven():
+		_focus_default_item()
+
+
+func _cancel_end_turn_confirm() -> void:
+	if _cancel_returns_to_menu:
+		show_menu()
+	else:
+		hide_menu()
+
+
+func _stop_waiting_flashes() -> void:
+	# Untyped on purpose: a unit freed mid-question leaves a freed flash here,
+	# and a typed loop variable refuses a freed instance.
+	for flash: Variant in _waiting_flashes:
+		if is_instance_valid(flash):
+			flash.queue_free()
+	_waiting_flashes.clear()
 
 
 # =============================================================================

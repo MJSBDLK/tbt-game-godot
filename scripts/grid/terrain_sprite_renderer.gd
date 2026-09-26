@@ -439,7 +439,7 @@ static func _generated_shadow_for(texture: Texture2D) -> Dictionary:
 	if _generated_cache.has(key):
 		return _generated_cache[key]
 	var result: Dictionary = {}
-	var image: Image = UnitShadow._readable_sheet(texture)
+	var image: Image = UnitShadow.readable_sheet(texture)
 	if image != null:
 		var cast := generate_cast_shadow(image,
 				ArtVariables.SHADOW_LENGTH, ArtVariables.SHADOW_SQUASH,

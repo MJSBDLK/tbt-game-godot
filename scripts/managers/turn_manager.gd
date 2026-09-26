@@ -129,10 +129,16 @@ func check_end_player_turn() -> void:
 
 ## True when no living player unit can still act — the phase is spent.
 func all_player_units_acted() -> bool:
+	return unacted_player_units().is_empty()
+
+
+## Living player units that can still act — who the End Turn warning names.
+func unacted_player_units() -> Array[Unit]:
+	var waiting: Array[Unit] = []
 	for unit: Unit in _player_units:
 		if not unit.is_defeated() and unit.can_act:
-			return false
-	return true
+			waiting.append(unit)
+	return waiting
 
 
 func force_end_player_turn() -> void:

@@ -1,5 +1,10 @@
 # Resp
 
+# [ ] TRACKING ART AND ANIMATION WORK
+We need something like a Kanban board or a checklist which lists each character, which highres/pixel art is still needed for that character, and the system needs to be extensible as we add features. For example, we might decide that highres line art needs each character to have a "determined face" (I'm not saying we're doing this) and then that would need to appear in the checklist for Lawrence for all relevant characters. It should live somewhere super convenient and be tracked on Lawrence's branch.
+This will also need to extend to other art other than character work.
+Basically it should be a dashboard where Lawrence can come in, see what work is most pressing, and work on that. We might include an AI agentic skill to scan for updates Lawrence has done, and to sync the progress on his dashboard with the art that's actually in place. Flag anomalies. Stuff like that.
+The goal is to make Lawrence's life as easy as possible - so let's make sure we're not adding unnecessary process. We shouldn't even really need to teach Lawrence how to access the todo list. Him bookmarking it should be enough, and the utility should be super obvious. Needs a careful design session.
 
 # Reparent worktree directories
 One container for every checkout of the game plus the Unity source, so
@@ -145,10 +150,19 @@ holds CLAUDE.md); one opened at the container root gets no project memory.
   length so a Bellows warm flash stays warm.)
   - [ ] Known gap, accepted: an already-gray unit (Gentry, Robo palettes)
     barely changes when it acts. Fix when it bites.
-- [ ] For a new player, the battle scene goes by really quickly. I think it's appropriate for a veteran, but this should be a toggle in the settings. For a new player, the battle scene goes by too fast to understand what's happening.
-	- [ ] what we can do: apply a ~0.8-second wait before, between, and after attack animations. The user can skip the wait by pressing any button.
-- [ ] When hitting end turn, if there are player units which still have not acted, display a warning. The user can toggle this warning off in the gameplay options if they wish. 
-- [ ] Maybe add an "advanced player defaults" option which speeds the game up, removes confirmations, etc
+- [~] For a new player, the battle scene goes by really quickly. I think it's appropriate for a veteran, but this should be a toggle in the settings. For a new player, the battle scene goes by too fast to understand what's happening.
+	- [~] what we can do: apply a ~0.8-second wait before, between, and after attack animations. The user can skip the wait by pressing any button.
+  (Group C, BUILT on `rqd--playtest-0913`; story in the commit. Options →
+  "Battle Pacing", `CombatPresenter.breath`. EYEBALL: the 0.8 s feel; whether
+  the map wants a breath before the ENEMY's swing (it has none).)
+- [~] When hitting end turn, if there are player units which still have not acted, display a warning. The user can toggle this warning off in the gameplay options if they wish. 
+  (BUILT, same commit. `UIManager.request_end_turn` → the system menu's
+  confirm page; waiting units wear the Silhouette CTA (style guide §14,
+  knobs `ArtVariables.UNIT_CALL_TO_ACTION_*`). RQD: "looking great".
+  EYEBALL: a waiting unit OFF-SCREEN — nothing points at it.)
+- [~] Maybe add an "advanced player defaults" option which speeds the game up, removes confirmations, etc
+  (BUILT, same commit: Options → "Preset: Newcomer / Veteran",
+  `Settings.PRESETS`. Battle Anims left out on purpose — taste, not speed.)
 - [~] The phantom previews are hard to see agianst certain backgrounds - let's apply a near-white outline.
   (1px `GHOST_OUTLINE` Azure 10 rim in ghost_projection.gdshader, steady,
   blinks with modulate — move-plan AND displacement ghosts. EYEBALL.)
@@ -378,7 +392,13 @@ holds CLAUDE.md); one opened at the container root gets no project memory.
   mirrors it now, so ~29 authored hover tooltips light up. EYEBALL those.)
 - [ ] Victory screen popping up needs more dopamine - discuss
 - [ ] The finalized icons for the terrain preview panel are actually finished - we should use those over the placeholders we're currently using.
-- [ ] 
+- [ ] Allow for tooltips in the options menu, explaining what options do.
+- [ ] For the FPS cap, we should have it go from 60 to the monitor's refresh rate, with a  "higher?" button to the right, which, when clicked, lets them pick values up to 1000.
+	- the reason for this is that most people don't know their monitor's refresh rate
+	- tooltip explaining why
+	- is there any reason to go have the bottom lower than 60?
+	- if the reported refresh rate *is* the bottom, should we remove the "higher" option?
+	- is this just a dumb feature in general?
 
 **Answered + BUILT 2026-09-07 on `rqd--terrain-stack`** (3 commits, suite
 1096 green; squash-merge once RQD/Lawrence have eyeballed a build):

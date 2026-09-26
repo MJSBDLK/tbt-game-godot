@@ -14,6 +14,10 @@ func run() -> void:
 	# scene "never triggered". test_settings_persistence.gd pins this.
 	Settings.persistence_enabled = false
 	Settings.battle_animations = Settings.BattleAnimations.MAP
+	# RELAXED (the player default) stretches every seam of every exchange to
+	# 0.8 s; the suite asserts beat order and the FAST timings. Pacing tests
+	# flip it on for themselves.
+	Settings.battle_pacing = Settings.BattlePacing.FAST
 	# Dev flags that would STALL a headless run must be off no matter what the
 	# working tree says: with combat_scene_step_pauses flipped on locally (RQD,
 	# 2026-09-08, examining the stage) every scene test parked forever waiting

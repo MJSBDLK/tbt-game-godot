@@ -31,6 +31,12 @@
 ##   nudge_to_contact(actor, target)    the friendly contact (heal, buff):
 ##                                      a lunge, never a swing. AWAITED.
 ##   hold(seconds)                      hitlag. Skip → returns at once.
+##   breath(fast_seconds)               a SEAM of the exchange — before the
+##                                      first swing, between strikes, after
+##                                      the last. FAST pacing: a plain hold.
+##                                      RELAXED: RELAXED_BREATH_SECONDS that
+##                                      any press cuts short (that breath
+##                                      only — skip is still skip).
 ##   release_contact(actor)             tail frames / snap back. Fire-and-
 ##                                      forget: popups + shake play over it.
 ##   impact(target, weight, tint)       hit flash + shake, presenter-owned.
@@ -80,6 +86,8 @@ extends RefCounted
 ## hits. Shared by every presenter so the scene and the map feel the same.
 const HITLAG_MIN: float = 0.05  # Minimum freeze on any hit (seconds)
 const HITLAG_MAX: float = 0.25  # Maximum freeze on a devastating hit (seconds)
+## Every breath under Settings.BattlePacing.RELAXED, in seconds. Eyeball knob.
+const RELAXED_BREATH_SECONDS: float = 0.8
 
 ## The exchange this presenter is showing. Set by open(); read by beats
 ## that need to know which side is which (the scene's HUD).
@@ -174,6 +182,37 @@ func hold(seconds: float) -> void:
 	if tree == null:
 		return
 	await tree.create_timer(seconds).timeout
+
+
+## A seam of the exchange: `fast_seconds` under FAST pacing, the relaxed
+## breath (cut short by a press) under RELAXED. Read per call, so an Options
+## change lands on the next seam.
+func breath(fast_seconds: float) -> void:
+	if Settings.battle_pacing == Settings.BattlePacing.RELAXED:
+		await hold_until_press(RELAXED_BREATH_SECONDS)
+	else:
+		await hold(fast_seconds)
+
+
+## A hold that a fresh press ends early. The map has no stage to catch a
+## click, so this watches the Input state for a press edge — a button still
+## held from the confirm that started the attack doesn't count until it's let
+## go and pressed again. ScenePresenter routes it through the stage instead,
+## where the press would otherwise skip the whole exchange.
+func hold_until_press(seconds: float) -> void:
+	if _skip_requested or seconds <= 0.0:
+		return
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null:
+		return
+	var deadline_ms: int = Time.get_ticks_msec() + int(seconds * 1000.0)
+	var was_down: bool = Input.is_anything_pressed()
+	while Time.get_ticks_msec() < deadline_ms and not _skip_requested:
+		await tree.process_frame
+		var down: bool = Input.is_anything_pressed()
+		if down and not was_down:
+			return
+		was_down = down
 
 
 # =============================================================================

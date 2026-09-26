@@ -110,6 +110,25 @@ static var MAP_EDGE_FADE_COLOR: Color = Color(0.0, 0.0, 0.0, 1.0)
 ## sank the dark sprites into the ground. Sane range: 0.0 to 1.0.
 static var ACTED_GREYSCALE: float = 1.0
 
+## The outline flash when End Turn points at the units that can still act:
+## amber rings closing in on each one's outline. It plays a few times in a
+## row, rests, and repeats until the player answers.
+##
+## One flash, in seconds. Sane range: 0.2 to 2.0.
+static var UNIT_CALL_TO_ACTION_SECONDS: float = 0.5
+
+## How many flashes in a set before the rest. Whole numbers. Sane range: 1 to 5.
+static var UNIT_CALL_TO_ACTION_PASSES: int = 3
+
+## How far into one flash the next one starts, as a fraction of a flash.
+## 1.0 waits for it to finish; 0.5 starts halfway, so two rings are closing
+## in at once; 0.33 gets three. Sane range: 0.2 to 1.0.
+static var UNIT_CALL_TO_ACTION_STAGGER: float = 0.5
+
+## The quiet gap after a set's last flash ends and before the next set, in
+## seconds. Sane range: 0.0 to 3.0.
+static var UNIT_CALL_TO_ACTION_REST_SECONDS: float = 1.0
+
 
 # =============================================================================
 # NIGHT SKY

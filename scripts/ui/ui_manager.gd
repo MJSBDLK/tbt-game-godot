@@ -245,6 +245,30 @@ func hide_system_menu() -> void:
 	_system_menu_panel.hide_menu()
 
 
+## Every End Turn press lands here: E / the hint bar (InputManager) and the
+## menu's button. Units still able to act + Settings.end_turn_warning → the
+## menu asks first (SystemMenuPanel.show_end_turn_confirm); otherwise it ends.
+func request_end_turn() -> void:
+	if not TurnManager.is_player_phase():
+		return
+	var waiting: Array[Unit] = TurnManager.unacted_player_units()
+	if waiting.is_empty() or not Settings.end_turn_warning or _system_menu_panel == null:
+		_end_player_turn()
+		return
+	if GameStateManager.current_state != Enums.InputState.PAUSED:
+		GameStateManager.push_state(Enums.InputState.PAUSED)
+	_place_system_menu()
+	_system_menu_panel.show_end_turn_confirm(waiting)
+
+
+## Also the confirm's End Turn — the phase check covers a stale press.
+func _end_player_turn() -> void:
+	if _system_menu_panel != null and _system_menu_panel.visible:
+		hide_system_menu()
+	if TurnManager.is_player_phase():
+		TurnManager.force_end_player_turn()
+
+
 # =============================================================================
 # PUBLIC API — OPTIONS MENU
 # =============================================================================
@@ -577,7 +601,8 @@ func _instantiate_panels() -> void:
 	_main_layout.add_child(_system_menu_panel)
 	_place_system_menu()
 	_system_menu_panel.closed.connect(_on_system_menu_closed)
-	_system_menu_panel.end_turn_selected.connect(_on_system_menu_end_turn)
+	_system_menu_panel.end_turn_selected.connect(request_end_turn)
+	_system_menu_panel.end_turn_confirmed.connect(_end_player_turn)
 	_system_menu_panel.options_selected.connect(_on_system_menu_options)
 	_system_menu_panel.save_selected.connect(_on_system_menu_save)
 	_system_menu_panel.load_selected.connect(_on_system_menu_load)
@@ -899,13 +924,6 @@ func _on_system_menu_closed() -> void:
 	var state_manager := get_node_or_null("/root/GameStateManager")
 	if state_manager != null and state_manager.current_state == Enums.InputState.PAUSED:
 		state_manager.pop_state()
-
-
-func _on_system_menu_end_turn() -> void:
-	hide_system_menu()
-	var turn_manager := get_node_or_null("/root/TurnManager")
-	if turn_manager != null and turn_manager.is_player_phase():
-		turn_manager.force_end_player_turn()
 
 
 func _on_system_menu_options() -> void:

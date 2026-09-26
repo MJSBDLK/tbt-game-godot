@@ -227,13 +227,18 @@ func _row_specs() -> Array[Dictionary]:
 			tooltip = "Clicking an enemy with a unit selected attacks immediately.",
 			choices = on_off, current = Settings.click_to_attack_enabled,
 			write = Settings.set_click_to_attack_enabled},
-		# Auto end turn (meeting ask 2026-06-28): ON = the phase hands off the
-		# moment every unit has acted. OFF = the phase waits and the system
-		# menu's End Turn wears the call-to-action.
+		# Auto end turn: ON = the phase hands off the moment every unit has
+		# acted. OFF = the phase waits and the menu's End Turn wears the CTA.
 		{id = "auto_end_turn", tab = Tab.GAMEPLAY, kind = RowKind.CHOICE, label = "Auto End Turn",
 			tooltip = "End your turn automatically once every unit has acted.",
 			choices = on_off, current = Settings.auto_end_turn,
 			write = _write_auto_end_turn},
+		# End Turn with units still able to act asks first and lights them
+		# (UIManager.request_end_turn).
+		{id = "end_turn_warning", tab = Tab.GAMEPLAY, kind = RowKind.CHOICE, label = "End Turn Warn",
+			tooltip = "Ask before ending your turn while units can still act, and point them out.",
+			choices = on_off, current = Settings.end_turn_warning,
+			write = Settings.set_end_turn_warning},
 		# Move Confirm — the playtest toggle (RQD 2026-08-21). Auto = button on
 		# touch, marker elsewhere; Marker = press the marker again (fluent);
 		# Button = the hint bar offers "Confirm path" (clear, clunkier).
@@ -251,6 +256,12 @@ func _row_specs() -> Array[Dictionary]:
 					[Settings.BattleAnimations.PLAYER_PHASE_ONLY, "Player"],
 					[Settings.BattleAnimations.MAP, "Map"]],
 			current = Settings.battle_animations, write = Settings.set_battle_animations},
+		# Battle Pacing: Relaxed = a skippable breath at every seam of an
+		# exchange (CombatPresenter.breath).
+		{id = "battle_pacing", tab = Tab.GAMEPLAY, kind = RowKind.CHOICE, label = "Battle Pacing",
+			tooltip = "Relaxed: attacks pause before, between and after each strike so you can read the results. Any button moves on. Fast: no pauses.",
+			choices = [[Settings.BattlePacing.RELAXED, "Relaxed"], [Settings.BattlePacing.FAST, "Fast"]],
+			current = Settings.battle_pacing, write = Settings.set_battle_pacing},
 		# Seeded Reload: On = loading a save restores the dice exactly (same
 		# actions, same outcomes — Fire-Emblem-fair). Off = every load re-rolls
 		# fate. Saves always record the dice, so flipping this never
@@ -282,6 +293,13 @@ func _row_specs() -> Array[Dictionary]:
 			min_value = Settings.CURSOR_SPEED_MIN, max_value = Settings.CURSOR_SPEED_MAX,
 			step = Settings.CURSOR_SPEED_STEP, current = Settings.cursor_speed,
 			format = _format_tiles_per_second, write = Settings.set_cursor_speed},
+		# Preset: one press sets the group in Settings.PRESETS; every row
+		# stays editable. Lit only while the values still match one — a
+		# hand change above un-lights it (_refresh_choice_pills).
+		{id = "preset", tab = Tab.GAMEPLAY, kind = RowKind.CHOICE, label = "Preset",
+			tooltip = "Newcomer: relaxed pacing, the end-turn warning, attacks through the menu.\nVeteran: fast pacing, no warning, Quick Attack, marker move confirm.\nEach setting stays adjustable.",
+			choices = [["newcomer", "Newcomer"], ["veteran", "Veteran"]],
+			current = Settings.matching_preset(), write = Settings.apply_preset},
 		# --- VIDEO ---------------------------------------------------------
 		# Zoom mode: the camera mirrors Settings on spawn, and a live camera
 		# is nudged by _write_zoom_mode.
@@ -537,10 +555,19 @@ func _create_choice_row(spec: Dictionary) -> HBoxContainer:
 
 func _on_choice_pressed(spec: Dictionary, value: Variant) -> void:
 	(spec.write as Callable).call(value)
-	_choice_values[spec.id] = value
-	var buttons: Dictionary = _choice_buttons.get(spec.id, {})
-	for key: Variant in buttons:
-		_apply_toggle_state(buttons[key], key == value)
+	_refresh_choice_pills()
+
+
+## Relight every choice row from Settings. One press can move several rows
+## (a preset sets four; a hand change un-lights the preset).
+func _refresh_choice_pills() -> void:
+	for spec: Dictionary in _row_specs():
+		if int(spec.kind) != RowKind.CHOICE or not _choice_buttons.has(spec.id):
+			continue
+		_choice_values[spec.id] = spec.current
+		var buttons: Dictionary = _choice_buttons[spec.id]
+		for key: Variant in buttons:
+			_apply_toggle_state(buttons[key], key == spec.current)
 
 
 ## LABEL · slider · readout. The readout label is captured by the closure;

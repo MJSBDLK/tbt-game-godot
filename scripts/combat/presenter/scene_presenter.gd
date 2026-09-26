@@ -17,8 +17,8 @@ extends CombatPresenter
 
 const OUT_OF_RANGE_READ_SECONDS: float = 0.4
 ## Settle beats: the stage sits still after the wipe-in before the first
-## swing, and after the last beat before the wipe-out (RQD 2026-09-08: "it
-## whips by before my brain can process it" — 250 ms each end to start).
+## swing, and after the last beat before the wipe-out. These are the
+## FAST-pacing lengths; RELAXED breathes longer (breath()).
 ## Eyeball knobs; skip removes both. Under DebugConfig.combat_scene_step_pauses
 ## each settle is instead an indefinite wait for a press (see _settle).
 const OPEN_SETTLE_SECONDS: float = 0.25
@@ -65,7 +65,18 @@ func _settle(seconds: float) -> void:
 	if DebugConfig.combat_scene_step_pauses and scene != null:
 		await scene.wait_for_press()
 		return
-	await hold(seconds)
+	await breath(seconds)
+
+
+## On the stage a press is the scene's to read: parked, it advances the
+## breath instead of skipping the exchange (CombatScene._on_press).
+func hold_until_press(seconds: float) -> void:
+	if is_skipping() or seconds <= 0.0:
+		return
+	if scene == null:
+		await super.hold_until_press(seconds)
+		return
+	await scene.wait_for_press(seconds)
 
 
 ## The map half of every shove this exchange deferred, in order, now that the
