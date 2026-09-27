@@ -352,13 +352,18 @@ holds CLAUDE.md); one opened at the container root gets no project memory.
 	- (Already there: the Range chip on an enemy's info panel pins its zone.
 	  Missing: the danger color, and a button.)
 - [ ] Context-sensitive button map — spell it out, then build the two items
-  above on it. DECIDED (RQD 9/26): A on an enemy toggles its zone; Y on a
-  unit opens unit info, never the zone too; Y on an empty tile toggles the
-  type-icon layer (breakable terrain could join it later); tooltip peek
-  moves onto Y, freeing Back and R3. PROPOSED, unanswered: LB/RB = prev/next
-  unit, all-enemy zones to a trigger, Tab / Shift+Tab on keyboard, one
-  touch "Next". OPEN: in the action menu Y already opens unit info and the
-  move chips peek — Claude suggests tap Y = unit info, hold Y = peek.
+  above on it. DECIDED (RQD 9/26):
+  - RT (keyboard V): over an enemy, pin/unpin its zone; anywhere else, all
+    enemies on / everything off. The controller already works this way.
+  - Y on a unit = unit info, never the zone too. Y on an empty tile = the
+    type-icon layer (breakable terrain could join it later).
+  - Peek moves onto Y, freeing Back and R3. Action menu: tap Y = unit info,
+    hold Y = peek.
+  - LB / RB = prev / next unit (LB gives up the zones); keyboard Q / E, as
+    in menus. Touch: one "Next".
+  - End Turn moves from E (beside WASD) to Backspace, XCOM's key.
+  - A on an enemy keeps the info panel; the zone is RT's alone. RT over
+    your own unit = the all-enemies toggle. (Playtest both.)
   Home for the map: HintBarCommands' table (the bar must name each context's
   verb anyway).
 - [ ] We should have fullres line art for the Keener enemy - name is either "cultist" or "blood mage," not to be confused with the plant cultist.
@@ -450,7 +455,7 @@ holds CLAUDE.md); one opened at the container root gets no project memory.
 - [ ] Mix the audio so every bus sounds right at 80% — the default for all
   three volume sliders (already true in code; a settings.cfg that saved
   another value keeps it).
-- [ ] For the FPS cap, we should have it go from 60 to the monitor's refresh rate, with a  "higher?" button to the right, which, when clicked, lets them pick values up to 1000.
+- [~] For the FPS cap, we should have it go from 60 to the monitor's refresh rate, with a  "higher?" button to the right, which, when clicked, lets them pick values up to 1000.
 	- the reason for this is that most people don't know their monitor's refresh rate
 	- tooltip explaining why
 	- Claude recommends off/30/60/refresh. I agree this is user-friendly but I don't want to leave out people with less common refresh rates. I am a framerate princess. 75, 90, 120, 144, 165, 200, 240, higher - I like the idea of a slider that accommodates everyone, but for people who have the "basic bitch fixed 60" monitor, it's a lot of wasted screen real estate, or worse, confusing. 25 year old Quinn didn't know about screen refresh rates, microstutter, etc, so when I saw a knob that let me increase my frame rate beyond the refresh rate, I cranked that up and got confused at the tearing.
@@ -458,6 +463,23 @@ holds CLAUDE.md); one opened at the container root gets no project memory.
 	- DECIDED (RQD 9/26) [ready]: detect the monitor's refresh rate; slider
 	  30–refresh; a "Higher?" button unlocks it to 1000. Tooltip says why.
 	  Fallback 60 when the OS won't report a rate.
+	- BUILT on `rqd--fps-slider`, with a VSync row (RQD: a separate row).
+	  VSync on + a cap past the display = mailbox (RQD 9/26: less lag, no
+	  tearing). Story in the commit. EYEBALL: the stop list, the row at 94 px.
+- [ ] Renderer on Bazzite / SteamOS (gamescope): make sure it plays nice.
+  Probed on RQD's laptop (240 Hz, NVIDIA, Wayland session), cap 300:
+  Godot's default X11 driver runs through XWayland — no mailbox (falls back
+  to plain VSync, 240 fps), VSync off works (301). `--display-driver wayland`:
+  mailbox works (301, no tearing), VSync off is refused (tearing not allowed).
+  To decide / check:
+  - Prefer native Wayland on Linux (project setting
+    `display/display_server/driver.linuxbsd`)? It's the no-tearing world RQD
+    wants; Godot's Wayland driver is the younger one.
+  - What gamescope (Deck gaming mode, Bazzite) offers: present modes, the
+    refresh rate Godot reads, the Deck's 40–60 / 90 Hz modes.
+  - A mode the system refuses is detectable (`window_get_vsync_mode` reports
+    the fallback a frame later). The Options pane could say "not on this
+    system" instead of Higher? / VSync Off silently doing nothing.
 
 
 **Answered + BUILT 2026-09-07 on `rqd--terrain-stack`** (3 commits, suite
@@ -974,6 +996,7 @@ features.
   visual pass (functionality-first scaffold, Lawrence styling later).
 - [ ] **Controller peek button.** `tooltip_peek` is mapped to BOTH Back and R3 —
   playtest and cull one.
+  (Superseded: peek moves onto Y, so both go. See the button map in # Todo.)
 - [~] **STAB.** Mechanic shipped (1.2× `STAB_MULTIPLIER`). Open: in-game eyeball,
   and whether STAB deserves its own callout/badge beyond just a bigger number.
 

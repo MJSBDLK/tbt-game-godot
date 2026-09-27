@@ -8,9 +8,10 @@
 ##
 ## ROW REGISTRY: every persisted setting is ONE entry in _row_specs() — tab,
 ## label, description, kind (CHOICE = the toggle pills, SLIDER = HSlider +
-## live readout), current value, write callable. Adding a setting is adding an
-## entry; test_options_menu_panel.gd pins which tab each one lives on and
-## that the tallest tab fits the canvas.
+## live readout, FPS_CAP = the one slider with a Higher?/Lower? pill), current
+## value, write callable. Adding a setting is adding an entry;
+## test_options_menu_panel.gd pins which tab each one lives on and that the
+## tallest tab fits the canvas.
 ##
 ## DESCRIPTION PANE: the column right of the rows explains the row the player
 ## is on — hovered, focused (the cursor), pressed, or its name tapped — so
@@ -36,7 +37,7 @@ extends PanelContainer
 signal closed()
 
 enum Tab { GAMEPLAY, VIDEO, AUDIO }
-enum RowKind { CHOICE, SLIDER }
+enum RowKind { CHOICE, SLIDER, FPS_CAP }
 
 const GLOW_MATERIAL: ShaderMaterial = preload("res://resources/hud_glow.tres")
 
@@ -77,6 +78,18 @@ var _choice_values: Dictionary = {}   # row id → the value currently active
 var _description_heading: Label = null
 var _description_body: Label = null
 var _border_overlay: PanelBorderOverlay = null
+
+# FPS Cap: its slider walks _fps_stops by index, so 144 and 165 are each
+# one press apart. Higher? opens the stops past the display's rate; open, the
+# same pill reads Lower? and closes them.
+const HIGHER_LABEL: String = "Higher?"
+const LOWER_LABEL: String = "Lower?"
+var _display_rate: int = Settings.FALLBACK_REFRESH_RATE
+var _fps_cap_unlocked: bool = false
+var _fps_stops: Array[int] = []
+var _fps_slider: HSlider = null
+var _fps_readout: Label = null
+var _higher_pill: Button = null
 
 # Style caches
 var _toggle_style_active: StyleBoxFlat = null
@@ -344,12 +357,14 @@ func _row_specs() -> Array[Dictionary]:
 			description = "Show units' elemental types beside their health bars on the map.",
 			choices = on_off, current = Settings.unit_type_icons_enabled,
 			write = Settings.set_unit_type_icons_enabled},
-		# FPS cap: the leftmost notch (below 30) reads as "Off" → Engine.max_fps 0.
-		{id = "max_fps", tab = Tab.VIDEO, kind = RowKind.SLIDER, label = "FPS Cap",
-			description = "Cap the framerate.\nOff: uncapped (VSync still applies).",
-			min_value = 20.0, max_value = 1000.0, step = 10.0,
-			current = float(Settings.max_fps) if Settings.max_fps >= 30 else 20.0,
-			format = _format_fps, write = _write_max_fps},
+		# On past the display's rate is mailbox (Settings.vsync_mode).
+		{id = "vsync", tab = Tab.VIDEO, kind = RowKind.CHOICE, label = "VSync",
+			description = "On: the picture never tears.\nOff: frames show as soon as they're drawn, and the picture can tear.",
+			choices = on_off, current = Settings.vsync_enabled, write = Settings.set_vsync_enabled},
+		# The slider's range is built by _create_fps_cap_row; the top of the
+		# locked range is the display's rate, stored as 0.
+		{id = "max_fps", tab = Tab.VIDEO, kind = RowKind.FPS_CAP, label = "FPS Cap",
+			description = "The most frames a second the game draws. Your display shows %d, so the slider stops there.\nHigher?: past your display's rate, for less input lag. With VSync on it still never tears, where your system supports that.\nLower?: back to stopping at your display's rate." % _display_rate},
 		# --- AUDIO ---------------------------------------------------------
 		# Volume buses are minted by Settings at load.
 		{id = "master_volume", tab = Tab.AUDIO, kind = RowKind.SLIDER, label = "Master Vol.",
@@ -391,8 +406,11 @@ func _write_tooltip_hold(value: float) -> void:
 	Settings.set_tooltip_hold_ms(roundi(value))
 
 
-func _write_max_fps(value: float) -> void:
-	Settings.set_max_fps(0 if value < 30.0 else roundi(value))
+## A stop → Settings. The display's own stop stores 0, so the cap follows the
+## display onto another monitor.
+func _write_max_fps(index: float) -> void:
+	var stop: int = _fps_stops[roundi(index)]
+	Settings.set_max_fps(0 if stop == _display_rate else stop)
 
 
 # --- slider readouts ---------------------------------------------------------
@@ -405,8 +423,8 @@ func _format_tiles_per_second(value: float) -> String:
 	return "%.1f/s" % value
 
 
-func _format_fps(value: float) -> String:
-	return "Off" if value < 30.0 else "%d" % roundi(value)
+func _format_fps(index: float) -> String:
+	return "%d" % _fps_stops[roundi(index)]
 
 
 func _format_percent(value: float) -> String:
@@ -419,6 +437,10 @@ func _format_percent(value: float) -> String:
 
 func _populate() -> void:
 	_clear_items()
+	_display_rate = Settings.display_refresh_rate()
+	# A cap already past the display means Higher? was pressed in an earlier
+	# session; open on the range that can show it.
+	_fps_cap_unlocked = Settings.max_fps > _display_rate
 	_create_title("OPTIONS")
 	_create_tab_strip()
 	_create_separator()
@@ -534,6 +556,8 @@ func _create_rows_area() -> void:
 				box.add_child(_create_choice_row(spec))
 			RowKind.SLIDER:
 				box.add_child(_create_slider_row(spec))
+			RowKind.FPS_CAP:
+				box.add_child(_create_fps_cap_row(spec))
 	var largest := Vector2.ZERO
 	for tab: int in _tab_boxes:
 		var minimum: Vector2 = (_tab_boxes[tab] as Control).get_combined_minimum_size()
@@ -641,6 +665,67 @@ func _create_slider_row(spec: Dictionary) -> HBoxContainer:
 		value_label.text = str(format.call(value))
 		write.call(value))
 	return row
+
+
+## LABEL · slider · readout · [Higher?]. The slider's values are stop indices.
+func _create_fps_cap_row(spec: Dictionary) -> HBoxContainer:
+	_fps_stops = Settings.fps_cap_stops(_display_rate, _fps_cap_unlocked)
+	var row := _create_slider_row(spec.merged({min_value = 0.0,
+			max_value = float(_fps_stops.size() - 1), step = 1.0,
+			current = float(_fps_stop_index()), format = _format_fps, write = _write_max_fps}))
+	_fps_slider = row.get_child(1) as HSlider
+	_fps_readout = row.get_child(2) as Label
+	assert(_fps_slider != null and _fps_readout != null,
+			"OptionsMenuPanel: the slider row's layout moved; the FPS row reads it by index")
+	# The slider eats left/right, so a cursor at the top stop presses on
+	# into Higher? — the pill sits where the next stop would be.
+	_fps_slider.gui_input.connect(func(event: InputEvent) -> void:
+		if event.is_action_pressed("ui_right") and _fps_slider.value >= _fps_slider.max_value:
+			_higher_pill.grab_focus()
+			_fps_slider.accept_event())
+	_higher_pill = _create_toggle_button(LOWER_LABEL, false)
+	# As wide as the wider label, so the slider doesn't shift when it flips.
+	_higher_pill.custom_minimum_size.x = 0
+	var lower_width: float = _higher_pill.get_minimum_size().x
+	_higher_pill.text = HIGHER_LABEL
+	_higher_pill.custom_minimum_size.x = maxf(lower_width, _higher_pill.get_minimum_size().x)
+	_higher_pill.pressed.connect(_on_higher_pressed.bind(spec))
+	_explain_on_arrival(_higher_pill, spec)
+	row.add_child(_higher_pill)
+	_refresh_fps_cap_row()
+	return row
+
+
+## Re-seat the FPS row on the current range: its stops, the knob on the stored
+## cap, the readout, and the pill (Lower? and lit while open). Writes nothing:
+## a range change that moves the cap writes it first.
+func _refresh_fps_cap_row() -> void:
+	_fps_stops = Settings.fps_cap_stops(_display_rate, _fps_cap_unlocked)
+	_fps_slider.max_value = _fps_stops.size() - 1
+	_fps_slider.set_value_no_signal(_fps_stop_index())
+	_fps_readout.text = _format_fps(_fps_slider.value)
+	_higher_pill.text = LOWER_LABEL if _fps_cap_unlocked else HIGHER_LABEL
+	_apply_toggle_state(_higher_pill, _fps_cap_unlocked)
+
+
+## The stop nearest the stored cap; 0 sits on the display's own stop.
+func _fps_stop_index() -> int:
+	var target: int = _display_rate if Settings.max_fps <= 0 else Settings.max_fps
+	var nearest: int = 0
+	for index: int in _fps_stops.size():
+		if absi(_fps_stops[index] - target) < absi(_fps_stops[nearest] - target):
+			nearest = index
+	return nearest
+
+
+## Opens the stops past the display's rate, or closes them: a cap left past
+## the display drops back to it.
+func _on_higher_pressed(spec: Dictionary) -> void:
+	_show_description(spec)
+	_fps_cap_unlocked = not _fps_cap_unlocked
+	if not _fps_cap_unlocked and Settings.max_fps > _display_rate:
+		Settings.set_max_fps(0)
+	_refresh_fps_cap_row()
 
 
 # =============================================================================
@@ -845,6 +930,9 @@ func _clear_items() -> void:
 	_choice_values.clear()
 	_description_heading = null
 	_description_body = null
+	_fps_slider = null
+	_fps_readout = null
+	_higher_pill = null
 
 
 func _ensure_border_overlay() -> void:
