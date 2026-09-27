@@ -11,6 +11,10 @@ More stuff I found in the options menu:
 Things Claude found while working on something else — not asked for, not yet
 acted on. RQD triages (promote, answer, or strike); Claude deletes an entry
 once it's fixed or moved into a real section.
+- [ ] Twinkle lab: the published artifact
+  (https://claude.ai/artifact/6KnNAarmzsRbTbwdXvD9FE) still runs the pre-fix
+  shader; republish it before sending Lawrence the link. The three presets
+  (RQD / Lawrence / geometric middle) aren't built yet; values in Claude's memory.
 - [ ] End Turn warning: a waiting unit that's off-screen gets pointed at by
   nothing — the camera doesn't move. Pan to the first one? An edge arrow?
 	- if possible, we should fit them all on-screen by panning/zooming.

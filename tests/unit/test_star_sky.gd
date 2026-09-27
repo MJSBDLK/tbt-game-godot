@@ -10,9 +10,9 @@ const SHADER_PATH := "res://shaders/star_twinkle.gdshader"
 const LAB_PATH := "res://data/design/mockups/skybox_twinkle_lab.html"
 ## shader uniform (and lab slider) → the knob it mirrors
 const UNIFORM_KNOBS := {
-	"flash_seconds": "STAR_FLASH_SECONDS",
+	"step_seconds": "STAR_STEP_SECONDS",
 	"hold_seconds": "STAR_HOLD_SECONDS",
-	"frame_rate": "STAR_TICKS_PER_SECOND",
+	"dim_hold_seconds": "STAR_DIM_HOLD_SECONDS",
 	"period_slow_seconds": "STAR_PERIOD_SLOW_SECONDS",
 	"period_fast_seconds": "STAR_PERIOD_FAST_SECONDS",
 	"period_jitter": "STAR_PERIOD_JITTER",

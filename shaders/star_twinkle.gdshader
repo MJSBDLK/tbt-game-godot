@@ -26,18 +26,19 @@ uniform float twinkle_amount : hint_range(0.0, 1.0) = 1.0;
 // offset — deterministic frames for probes and tests.
 uniform float time_scale : hint_range(0.0, 4.0) = 1.0;
 uniform float time_offset = 0.0;
-// A flash rises over half of flash_seconds, holds full reach for
-// hold_seconds, then falls over the other half. The painted blue picks the
-// period between flashes (slow at 0, fast at 255); period_jitter spreads it
-// ± per star so neighbors never sync.
-uniform float flash_seconds : hint_range(0.1, 3.0) = 0.6;
+// A flash is hand-animated frames: tails grow one pixel per frame and pull
+// back the same way (1, 2, 3, 2, 1), every frame step_seconds long; the two
+// holds add time at full reach and at 1 px (see flash_reach). Frame lengths
+// come straight from time — rounding an eased curve to whole pixels leaves
+// the full-reach frame lingering. The painted blue picks the period between
+// flashes (slow at 0, fast at 255) and the rest is whatever the flash leaves
+// of it; period_jitter spreads it ± per star so neighbors never sync.
+uniform float step_seconds : hint_range(0.03, 1.0) = 0.1;
 uniform float hold_seconds : hint_range(0.0, 3.0) = 0.0;
+uniform float dim_hold_seconds : hint_range(0.0, 3.0) = 0.0;
 uniform float period_slow_seconds : hint_range(0.5, 30.0) = 8.0;
 uniform float period_fast_seconds : hint_range(0.5, 30.0) = 1.5;
 uniform float period_jitter : hint_range(0.0, 0.5) = 0.2;
-// Time is stepped to this many ticks per second so the motion reads as
-// hand-animated pixel art. 0 = smooth.
-uniform float frame_rate : hint_range(0.0, 60.0) = 12.0;
 // Alpha of a tail's TIP pixel. Pixels behind the tip brighten one step per
 // pixel of depth, so a tail fades in from the outside as it grows instead of
 // popping in at full — and dims the same way as it retracts.
@@ -69,31 +70,54 @@ float star_hash(ivec2 cell, uint salt) {
 }
 
 
-// Steps time to frame_rate ticks per second; 0 leaves it smooth.
-float quantize_time(float t) {
-	return frame_rate > 0.0 ? floor(t * frame_rate) / frame_rate : t;
+// A console 0 would divide by zero below.
+float frame_seconds() {
+	return max(step_seconds, 0.01);
 }
 
 
-// x: the star's swell — 0 → 1 rising, 1 through the hold, 1 → 0 falling —
-//    or -1 while it rests.
-// y: the flash's ordinal; its parity alternates a two-shape star.
-vec2 flash_state(ivec2 cell, float cadence, float t) {
+// x: seconds since this star's latest flash began.
+// y: that flash's ordinal; its parity alternates a two-shape star.
+// The period never undercuts the longest flash plus one frame of rest, so a
+// fast star can't start a new flash before the last one has pulled its tails
+// back in and settled.
+vec2 flash_clock(ivec2 cell, float cadence, float t) {
 	float period = mix(period_slow_seconds, period_fast_seconds, cadence)
 			* mix(1.0 - period_jitter, 1.0 + period_jitter, star_hash(cell, 1u));
+	float longest_flash = float(2 * MAX_REACH - 1) * frame_seconds()
+			+ hold_seconds + 2.0 * dim_hold_seconds;
+	period = max(period, longest_flash + frame_seconds());
 	float clock = t + star_hash(cell, 2u) * period;
 	float index = floor(clock / period);
-	float local_time = clock - index * period;
-	float half_flash = flash_seconds * 0.5;
-	float swell = -1.0;
-	if (local_time < half_flash) {
-		swell = sin(0.5 * PI * local_time / half_flash);
-	} else if (local_time < half_flash + hold_seconds) {
-		swell = 1.0;
-	} else if (local_time < flash_seconds + hold_seconds) {
-		swell = sin(0.5 * PI * (1.0 - (local_time - half_flash - hold_seconds) / half_flash));
+	return vec2(clock - index * period, index);
+}
+
+
+// Tail length `elapsed` seconds into a flash that peaks at `peak` px: 1, 2, …,
+// peak, …, 2, 1, a frame each. The peak frame holds hold_seconds more; the
+// 1 px frames either side of it hold dim_hold_seconds more (a 1 px star's one
+// frame IS its peak). A 0 peak is one frame of bare core flare. -1 once the
+// flash is over.
+int flash_reach(float elapsed, int peak) {
+	float frame = frame_seconds();
+	int side_frames = max(peak - 1, 0);
+	float dim_hold = side_frames > 0 ? dim_hold_seconds : 0.0;
+	float side_length = float(side_frames) * frame + dim_hold;
+	if (elapsed < side_length) {
+		// Growing, the held 1 px frame first.
+		float grown = elapsed - dim_hold;
+		return grown < frame ? 1 : 1 + int(grown / frame);
 	}
-	return vec2(swell, index);
+	elapsed -= side_length;
+	if (elapsed < frame + hold_seconds) {
+		return peak;
+	}
+	elapsed -= frame + hold_seconds;
+	if (elapsed >= side_length) {
+		return -1;
+	}
+	// Shrinking, the held 1 px frame last.
+	return max(side_frames - int(elapsed / frame), 1);
 }
 
 
@@ -106,33 +130,35 @@ float tail_alpha(int k, int reach) {
 
 // Alpha this star contributes at `offset` (fragment texel − star texel).
 float star_alpha(ivec2 cell, vec3 channels, ivec2 offset, float t) {
-	vec2 state = flash_state(cell, channels.b, t);
-	bool resting = state.x < 0.0;
-	float swell = max(state.x, 0.0);
-	float intensity = max(channels.r, channels.g);
+	vec2 cycle = flash_clock(cell, channels.b, t);
+	// One shape plays per flash; a two-shape star takes turns, X first.
+	bool has_x = channels.r > STAR_THRESHOLD;
+	bool has_plus = channels.g > STAR_THRESHOLD;
+	bool odd_flash = mod(cycle.y, 2.0) >= 1.0;
+	bool x_plays = has_x && !(has_plus && odd_flash);
+	bool plus_plays = has_plus && !x_plays;
+	float level = x_plays ? channels.r : (plus_plays ? channels.g : 0.0);
+	int peak = int(round(level * float(MAX_REACH) * twinkle_amount));
+	int reach = flash_reach(cycle.x, peak);
 	ivec2 a = abs(offset);
 
 	if (offset == ivec2(0)) {
-		// A blue-only star has no reach, so its whole twinkle is this flare.
-		float rest = mix(rest_alpha_min, 1.0, intensity);
+		// The core brightens a step with each tail frame, full at the peak. A
+		// blue-only star has no tails, so its whole twinkle is this flare.
+		float rest = mix(rest_alpha_min, 1.0, max(channels.r, channels.g));
+		if (reach < 0) {
+			return rest;
+		}
+		float swell = peak > 0 ? float(reach) / float(peak) : 1.0;
 		return mix(rest, 1.0, swell * twinkle_amount);
 	}
-	if (resting) {
-		return 0.0;
+	int k = 0;
+	if (x_plays && a.x == a.y) {
+		k = a.x;
+	} else if (plus_plays && min(a.x, a.y) == 0) {
+		k = max(a.x, a.y);
 	}
-	bool has_x = channels.r > STAR_THRESHOLD;
-	bool has_plus = channels.g > STAR_THRESHOLD;
-	bool odd_flash = mod(state.y, 2.0) >= 1.0;
-	if (has_x && !(has_plus && odd_flash) && a.x == a.y) {
-		int reach = int(round(swell * channels.r * float(MAX_REACH) * twinkle_amount));
-		return a.x <= reach ? tail_alpha(a.x, reach) : 0.0;
-	}
-	if (has_plus && !(has_x && !odd_flash) && min(a.x, a.y) == 0) {
-		int k = max(a.x, a.y);
-		int reach = int(round(swell * channels.g * float(MAX_REACH) * twinkle_amount));
-		return k <= reach ? tail_alpha(k, reach) : 0.0;
-	}
-	return 0.0;
+	return k > 0 && k <= reach ? tail_alpha(k, reach) : 0.0;
 }
 
 
@@ -161,6 +187,9 @@ float sky_alpha(ivec2 cell, float t) {
 
 void fragment() {
 	ivec2 cell = ivec2(floor(UV / TEXTURE_PIXEL_SIZE));
-	float t = quantize_time(TIME * time_scale + time_offset);
+	// Smooth time on purpose: the frames are already stepped. Don't snap t to
+	// a fixed fps — any frame that isn't a whole number of ticks gets re-chopped
+	// unevenly (300 ms frames at 12 fps play 250/333).
+	float t = TIME * time_scale + time_offset;
 	COLOR = vec4(star_color.rgb, star_color.a * sky_alpha(cell, t)) * vertex_modulate;
 }
