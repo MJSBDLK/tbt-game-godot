@@ -193,3 +193,20 @@ func test_framing_stops_at_the_map_edge() -> void:
 			Rect2(Vector2.ZERO, camera.get_viewport_rect().size))
 	assert_eq(camera.target_position.x, camera._bounds_at_zoom(2.0).position.x,
 			"a unit on the map's edge: the camera stops at the bound, not past it")
+
+
+func test_the_camera_sits_out_a_fight() -> void:
+	var camera := _free_camera()
+	var fighter := Node2D.new()
+	add_child_autofree(fighter)
+	Unit._fighters.append(fighter)
+	assert_true(camera._is_input_blocked(), "no zoom, no pan while a fight runs")
+	Unit._fighters.erase(fighter)
+
+
+func test_a_fighter_freed_mid_fight_does_not_lock_the_camera() -> void:
+	var fighter := Node2D.new()
+	Unit._fighters.append(fighter)
+	fighter.free()
+	assert_false(Unit.is_fight_running(), "a coroutine that never resumes can't hold the gate shut")
+	Unit._fighters.clear()

@@ -998,6 +998,21 @@ func resolve_friendly_fire_victim(original_defender: Unit, move: Move) -> Unit:
 # the living map): scripts/combat/presenter/combat_presenter.gd.
 # =============================================================================
 
+# Units mid-fight; untyped so a freed one can sit here without a crash.
+static var _fighters: Array = []
+
+
+## True from a fight's first beat to its last result beat (XP bars, a
+## level-up reveal): the map camera sits the whole fight out
+## (CameraController._is_input_blocked). A fighter freed mid-fight stops
+## counting, so a coroutine that never resumes can't lock the camera.
+static func is_fight_running() -> bool:
+	for fighter: Variant in _fighters:
+		if is_instance_valid(fighter):
+			return true
+	return false
+
+
 ## Run one full exchange: the attacker's move against `defender`, counters,
 ## multi-hits, and everything that rides on them. LOGIC lives here — rolls,
 ## damage, the pipeline, live range re-checks, XP banking. Every visual
@@ -1007,6 +1022,13 @@ func resolve_friendly_fire_victim(original_defender: Unit, move: Move) -> Unit:
 ## CombatPresenter.for_exchange decide.
 func execute_combat_sequence(defender: Unit, attacker_move: Move,
 		presenter: CombatPresenter = null) -> void:
+	_fighters.append(self)
+	await _run_combat_sequence(defender, attacker_move, presenter)
+	_fighters.erase(self)
+
+
+func _run_combat_sequence(defender: Unit, attacker_move: Move,
+		presenter: CombatPresenter) -> void:
 	if defender == null or attacker_move == null:
 		return
 	# Deferred walk: the sprite must have walked before it swings — commit

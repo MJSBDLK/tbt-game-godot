@@ -280,6 +280,8 @@ func _bounds_at_zoom(zoom_level: float) -> Rect2:
 func _is_input_blocked() -> bool:
 	if DevConsole.is_open():
 		return true  # the pan polls Input; typing "shadow" would scroll the map
+	if Unit.is_fight_running():
+		return true  # the stage, then the XP bars and a level-up: no zoom or slide under a fight
 	var state_manager: Node = get_node_or_null("/root/GameStateManager")
 	if state_manager == null:
 		return false

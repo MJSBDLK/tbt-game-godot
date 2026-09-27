@@ -30,7 +30,9 @@
 ## debug step-pause (DebugConfig.combat_scene_step_pauses, whose hint says
 ## so): then the press ends the wait instead.
 ## The Control stops mouse events, so the map never sees a press meant for
-## the stage (InputRouter blocks the world when the HUD consumes).
+## the stage (InputRouter blocks the world when the HUD consumes). Zoom is
+## neither a skip nor a zoom here: the camera sits out the fight
+## (Unit.is_fight_running gates CameraController), so a wheel notch does nothing.
 class_name CombatScene
 extends Control
 
@@ -902,6 +904,11 @@ func _on_press() -> void:
 
 
 func _gui_input(event: InputEvent) -> void:
+	# By action, not by button: whatever zoom is bound to. Swallowed, so the
+	# map under the stage never hears it either.
+	if event.is_action("zoom_in") or event.is_action("zoom_out"):
+		accept_event()
+		return
 	if (event is InputEventMouseButton and event.pressed) \
 			or (event is InputEventScreenTouch and event.pressed):
 		_on_press()

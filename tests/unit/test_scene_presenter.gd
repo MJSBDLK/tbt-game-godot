@@ -516,6 +516,36 @@ func test_the_debug_step_pause_parks_the_stage_until_a_press() -> void:
 	DebugConfig.combat_scene_step_pauses = flag_before
 
 
+func test_a_zoom_notch_on_stage_is_not_a_skip() -> void:
+	var scene := CombatScene.new()
+	add_child_autofree(scene)
+	var skips: Array[int] = [0]
+	scene.skip_requested.connect(func() -> void: skips[0] += 1)
+	var notch := InputEventMouseButton.new()
+	notch.pressed = true
+	notch.button_index = MOUSE_BUTTON_WHEEL_UP
+	assert_true(notch.is_action(&"zoom_in"), "precondition: the wheel is bound to zoom")
+	scene._gui_input(notch)
+	assert_eq(skips[0], 0, "scrolling as a fight opens doesn't skip it")
+	_press(scene)
+	assert_eq(skips[0], 1, "a click still does")
+
+
+func test_the_fight_runs_from_the_first_beat_past_the_stage() -> void:
+	var attacker := _spawn(GRUNT_PATH, Enums.UnitFaction.ENEMY, 0, 0)
+	var defender := _spawn(GRUNT_PATH, Enums.UnitFaction.ENEMY, 1, 0)
+	var presenter := ScenePresenter.new()
+	var done: Array[bool] = [false]
+	var fight := func() -> void:
+		await attacker.execute_combat_sequence(defender, _strike_move(), presenter)
+		done[0] = true
+	fight.call()
+	assert_true(Unit.is_fight_running(), "the camera's gate is shut from the first beat")
+	while not done[0]:
+		await get_tree().process_frame
+	assert_false(Unit.is_fight_running(), "…and opens once every result beat has played")
+
+
 func test_the_suite_hook_disarms_the_step_pause() -> void:
 	# The working tree may carry combat_scene_step_pauses = true (it is a dev
 	# toggle); the hook must neutralize it or every scene test parks forever.
