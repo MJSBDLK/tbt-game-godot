@@ -2,6 +2,7 @@
 ## The formatter tests pin the movement-cost display that used to ceil Road's
 ## 0.5 into a misleading "1"; the split tests pin that a style-split terrain
 ## (Crater) shows BOTH defense numbers instead of a single misleading "—".
+## The header icons are pinned to Lawrence's 10×10 set.
 extends GutTest
 
 const PANEL_SCENE: String = "res://scenes/ui/panels/terrain_preview_panel/terrain_preview_panel.tscn"
@@ -73,3 +74,16 @@ func test_unsplit_terrain_keeps_the_single_defense_cell() -> void:
 	panel.show_tile(_tile("Plains"))
 	var cell: Node = _default_row_defense_cell(panel)
 	assert_false(cell is VBoxContainer, "no style split → the familiar single cell")
+
+
+func test_the_attribute_headers_wear_lawrences_icons() -> void:
+	# His finished set lives in terrain_attributes_10x10.aseprite; the PNGs are
+	# exported from it untrimmed, on the 10×10 grid every icon set shares.
+	var panel := _panel()
+	for header: String in ["MovementPenaltyIcon", "DefenseModifierIcon", "AvoidModifierIcon",
+			"AttackModifierIcon"]:
+		var icon: TextureRect = panel.get_node(
+				"ContentMargin/VBoxContainer/MarginContainer/GridContainer/%s/TextureRect" % header)
+		assert_string_starts_with(icon.texture.resource_path, "res://art/sprites/ui/terrain_attributes_10x10/",
+				"%s comes from Lawrence's set" % header)
+		assert_eq(icon.texture.get_size(), Vector2(10, 10), "%s is a whole 10×10 icon" % header)

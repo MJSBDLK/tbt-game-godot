@@ -2,7 +2,7 @@
 
 **Tactical Battle RPG** (Pokemon meets Fire Emblem) being ported from Unity 6.3 to Godot 4.x with GDScript.
 
-**Unity source project**: `../tbt-game/` — reference for porting but never modify it.
+**Unity source project**: `../tbt-game-unity/` — reference for porting but never modify it.
 
 ## Current Focus
 
@@ -50,6 +50,11 @@ only, never a fast-forward. A `prepare-commit-msg` hook refuses anything
 else (`ALLOW_MAIN_MERGE=1 git merge <branch>` for the deliberate exception),
 and `pull.ff=only` makes `git pull` stop instead of inventing a merge. Hooks
 and config are per clone: run `tools/hooks/install.sh` after a fresh clone.
+
+Worktrees sit beside this checkout in the `tbt-game/` container, full name
+kept so a folder read without context still says which project it is:
+`git worktree add ../tbt-game-godot--<name> -b rqd--<name>`. VS Code opens
+`../tbt-game.code-workspace`; Claude sessions start in `tbt-game-godot/`.
 
 ## Project Structure
 
@@ -127,12 +132,12 @@ the full HUD on non-1080p monitors.
 ## Key Reference Files
 
 When porting a system, read the Unity source first:
-- Grid: `../tbt-game/Assets/Scripts/Grid/GridManagerV2.cs`
-- Units: `../tbt-game/Assets/Scripts/Units/Unit.cs`
-- Combat: `../tbt-game/Assets/Scripts/Units/Unit.cs` (lines 874-1615)
-- Turns: `../tbt-game/Assets/Scripts/Managers/TurnManager.cs`
-- UI: `../tbt-game/Assets/Scripts/UI/UIManager.cs`
-- Design docs: `../tbt-game/Assets/Docs/`
+- Grid: `../tbt-game-unity/Assets/Scripts/Grid/GridManagerV2.cs`
+- Units: `../tbt-game-unity/Assets/Scripts/Units/Unit.cs`
+- Combat: `../tbt-game-unity/Assets/Scripts/Units/Unit.cs` (lines 874-1615)
+- Turns: `../tbt-game-unity/Assets/Scripts/Managers/TurnManager.cs`
+- UI: `../tbt-game-unity/Assets/Scripts/UI/UIManager.cs`
+- Design docs: `../tbt-game-unity/Assets/Docs/`
 
 ## UI Style
 
@@ -140,6 +145,20 @@ Before any UI work, read [data/design/ui-style-guide.md](data/design/ui-style-gu
 source of truth for palette use, typography, panel components, icon sizes, and the
 TBD/LOCK status of every visual decision. Don't hardcode hex values — reach for
 `GameColorPalette`. Don't introduce non-integer pixel sizing in gameplay UI.
+
+## Art Knobs
+
+[scripts/core/art_variables.gd](scripts/core/art_variables.gd) is Lawrence's
+file: the numbers that decide how the board LOOKS — shadow opacity, the sun's
+length/squash/lean, the acted-unit greyscale. Everything else reads from it.
+Never hardcode one of these values elsewhere, never let a second copy exist
+(the Webtyler preview's copy is pinned by a test), and keep the comments there
+in plain language — an artist edits this file directly, without Godot open.
+The knobs are `static var`s: read `ArtVariables.X` at the point of use, never
+into a `const` (a copy is a knob that stops turning). `DebugConfig.set_art_knob`
+is the one runtime write path — it fires `art_knobs_changed`, which the ` dev
+console (`DevConsole`) and tests drive; a consumer that bakes a knob into a
+cache or a shader param re-reads on that signal.
 
 ## Terrain Modifiers & Decorations
 

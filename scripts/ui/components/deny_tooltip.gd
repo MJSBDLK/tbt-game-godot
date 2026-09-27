@@ -26,8 +26,11 @@ static var _active: PanelContainer = null
 
 
 ## Float `reason` just above `source`. Empty reasons fall back to a generic
-## refusal so a press never dies silently.
-static func show_above(source: Control, reason: String) -> void:
+## refusal so a press never dies silently. `linger_seconds` <= 0 means the
+## popup stays until dismiss() — a touch hold-to-peek owns the lifetime
+## (the sheet's [+]/[−] preview); a deny keeps the default and fades itself.
+static func show_above(source: Control, reason: String,
+		linger_seconds: float = LINGER_SECONDS) -> void:
 	if source == null or not source.is_inside_tree():
 		return
 	dismiss()
@@ -67,7 +70,9 @@ static func show_above(source: Control, reason: String) -> void:
 	popup.position = Vector2(
 			rect.position.x + (rect.size.x - popup.size.x) / 2.0,
 			rect.position.y - popup.size.y - 2.0).floor()
-	var timer := source.get_tree().create_timer(LINGER_SECONDS)
+	if linger_seconds <= 0.0:
+		return
+	var timer := source.get_tree().create_timer(linger_seconds)
 	# Same auto-disconnect rationale as the tree_exiting hookup above.
 	timer.timeout.connect(popup.queue_free)
 

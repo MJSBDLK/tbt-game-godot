@@ -1,15 +1,13 @@
-## Battle result screen — the first thing shown after the VICTORY/DEFEAT
-## banner clears. Mission-scoped facts only: turns vs par, itemized bEXP
-## income (MissionCatalog award lines rendered verbatim), kills/losses, and
-## roster damage (injuries / recoveries / permadeath). Unit-scoped celebration
-## (level-ups, stat reveals) deliberately does NOT repeat here — it already
-## played mid-battle, the moment the unit leveled (LevelUpStatPanel), and
-## bEXP is spent in the intermission (BexpSpendPanel). The post-battle
-## level-up report and bEXP screens that used to follow this one were
-## removed 2026-09-09.
-##
-## Chain position (UIManager._on_post_mission_report_ready): banner → THIS →
-## conclude. Continue only emits `closed`; UIManager owns what comes next.
+## Battle result screen, and the post-mission chain it sits in:
+##   TurnManager._end_battle → hold_outcome: map frozen, stats kept
+##   SquadManager.post_mission_report_ready → play_post_mission:
+##     banner ("VICTORY"/"DEFEAT", no numbers) → THIS screen → conclude
+##     (CampaignManager: victory advances, defeat replays)
+## Mission-scoped facts only: turns vs par, itemized bEXP income
+## (MissionCatalog award lines rendered verbatim), kills/losses, and roster
+## damage (injuries / recoveries / permadeath). Level-ups don't repeat here —
+## they celebrated mid-battle (LevelUpStatPanel) — and bEXP is spent in the
+## intermission (BexpSpendPanel).
 ##
 ## SCOPE — functionality-first scaffolding per [[feedback-ui-scope-order]]:
 ## contents are the locked part, visuals are placeholder until the mockup
@@ -25,15 +23,60 @@ signal closed
 @onready var _result_label: RichTextLabel = %ResultLabel
 @onready var _continue_button: Button = %ContinueButton
 
+# hold_outcome's stats, for the banner and this screen.
+var _outcome: Dictionary = {}
+var _is_playing: bool = false
+
 
 func _ready() -> void:
 	visible = false
 	_continue_button.pressed.connect(_on_continue_pressed)
 
 
-## stats keys (from TurnManager via UIManager.show_battle_result):
-##   is_victory, turn_count, player_units_lost, enemies_defeated,
-##   total_players, total_enemies
+## TurnManager._end_battle, before battle_ended. stats keys: is_victory,
+## turn_count, player_units_lost, enemies_defeated, total_players,
+## total_enemies. Shows nothing: the banner comes first, off the report.
+func hold_outcome(stats: Dictionary) -> void:
+	assert(stats.has("is_victory"), "BattleResultPanel: the banner needs the outcome")
+	if GameStateManager.current_state != Enums.InputState.BATTLE_RESULT:
+		GameStateManager.push_state(Enums.InputState.BATTLE_RESULT)
+	# Again, for a state already on the stack: no change, no handler teardown.
+	UIManager.hide_map_panels()
+	_outcome = stats
+
+
+## Unwinds the BATTLE_RESULT hold_outcome pushed.
+func release_outcome_hold() -> void:
+	if GameStateManager.current_state == Enums.InputState.BATTLE_RESULT:
+		GameStateManager.pop_state()
+
+
+## report: SquadManager's per-unit injuries / recoveries / permadeath.
+func play_post_mission(report: Array) -> void:
+	# Two chains awaiting one Continue would conclude the mission twice.
+	assert(not _is_playing, "BattleResultPanel: a post-mission chain is already running")
+	_is_playing = true
+	release_outcome_hold()
+	if GameStateManager.current_state != Enums.InputState.POST_MISSION_REPORT:
+		GameStateManager.push_state(Enums.InputState.POST_MISSION_REPORT)
+	UIManager.hide_map_panels()
+	var is_victory: bool = _outcome.get("is_victory", true)
+	# The banner plays here, not in hold_outcome: anywhere else races the chain.
+	await UIManager.show_phase_transition("VICTORY" if is_victory else "DEFEAT",
+			GameColors.PLAYER_UNIT if is_victory else GameColors.ENEMY_UNIT)
+	show_result(_outcome, SquadManager.last_mission_award_lines, report)
+	await closed
+	_is_playing = false
+	if GameStateManager.current_state == Enums.InputState.POST_MISSION_REPORT:
+		GameStateManager.pop_state()
+	if CampaignManager.is_active():
+		CampaignManager.conclude_mission(is_victory)
+	else:
+		# A map launched straight from the editor: no campaign to conclude.
+		SceneRouter.change_scene_to(CampaignManager.START_SCREEN_PATH)
+
+
+## stats: hold_outcome's keys.
 ## award_lines: MissionCatalog.compute_award_lines output ({label, amount}).
 ## report: SquadManager's post_mission_report_ready payload (injuries etc.).
 func show_result(stats: Dictionary, award_lines: Array, report: Array) -> void:

@@ -2,24 +2,31 @@
 ## registry. Opened from the system menu's Options button, the start screen,
 ## and the intermission hub (UIManager.show_options_menu).
 ##
-## WHY TABS (RQD 2026-09-09: "Options menu has gotten too big for the
-## screen"): sixteen rows in one column ran ~420 px on the 360 px HUD canvas,
-## so the title and Close clipped on 16:9 and only just fit the Deck's 8:5.
+## WHY TABS: one column of every row ran ~420 px on the 360 px HUD canvas.
 ## Tabs cap the column at the tallest tab, and the rows area is pinned to
 ## that height so the strip and Close never jump between tabs.
 ##
 ## ROW REGISTRY: every persisted setting is ONE entry in _row_specs() — tab,
-## label, tooltip, kind (CHOICE = the toggle pills, SLIDER = HSlider + live
-## readout), current value, write callable. Adding a setting is adding an
-## entry; test_options_menu_panel.gd pins which tab each one lives on and
-## that the tallest tab fits the canvas. The choice pills stay hand-rolled ON
+## label, description, kind (CHOICE = the toggle pills, SLIDER = HSlider +
+## live readout, FPS_CAP = the one slider with a Higher?/Lower? pill), current
+## value, write callable. Adding a setting is adding an entry;
+## test_options_menu_panel.gd pins which tab each one lives on and that the
+## tallest tab fits the canvas.
+##
+## DESCRIPTION PANE: the column right of the rows explains the row the player
+## is on — hovered, focused (the cursor), pressed, or its name tapped — so
+## every input reads it with no gesture to learn (the unit detail panel's live
+## pane, not a hold-to-peek card). It keeps the last row shown until another
+## takes over. Height is the tight budget, so it widens the panel instead.
+##
+## The choice pills stay hand-rolled ON
 ## PURPOSE — the §14 border vocabulary has no toggle/segmented design yet
 ## (ui-style-guide §14 note); the tab headers and Close are InteractiveButtons
 ## (lit border = pressable; the current tab wears `selected`, the brackets).
 ##
 ## INPUT: tab headers are focusable and pressable; menu_tab_prev/menu_tab_next
 ## (Q / E, LB / RB — project.godot) switch from anywhere in the panel and wrap.
-## Cursor model (InputSource, RQD 2026-07-29): a cursor-driven open lands
+## Cursor model (InputSource): a cursor-driven open lands
 ## focus on the current tab's first row (on its ACTIVE pill — "you are here"
 ## is the current value); a pointer open stays quiet and the first navigation
 ## press summons the cursor there. Escape / B closes.
@@ -30,18 +37,27 @@ extends PanelContainer
 signal closed()
 
 enum Tab { GAMEPLAY, VIDEO, AUDIO }
-enum RowKind { CHOICE, SLIDER }
+enum RowKind { CHOICE, SLIDER, FPS_CAP }
 
 const GLOW_MATERIAL: ShaderMaterial = preload("res://resources/hud_glow.tres")
 
 const OPTION_LABEL_WIDTH: int = 80
 const OPTION_HEIGHT: int = 14
 const PANEL_MIN_WIDTH: int = 220
+## Panel edge to content on every side: the 10 px border + 9 px of air.
+## Tinker knob.
+const PANEL_MARGIN: int = 19
 const ROW_SEPARATION: int = 6
 const TAB_BUTTON_WIDTH: int = 60
 ## Width reserved on each side of the strip for the "[Q]" / "[LB]" glyph, so
 ## the headers sit centered whether or not a glyph is showing.
 const TAB_GLYPH_WIDTH: int = 24
+## The description pane's column: the side columns' 140, less their margins.
+const DESCRIPTION_WIDTH: int = 132
+const DESCRIPTION_GAP: int = 10
+## What the pane says before any row is picked. Flavor, not instructions:
+## hovering, tapping a name or pressing anything fills the pane on its own.
+const DESCRIPTION_FLAVOR: String = "Every commander fights differently."
 
 const TAB_ORDER: Array[int] = [Tab.GAMEPLAY, Tab.VIDEO, Tab.AUDIO]
 const TAB_LABELS: Dictionary = {Tab.GAMEPLAY: "Gameplay", Tab.VIDEO: "Video", Tab.AUDIO: "Audio"}
@@ -59,7 +75,21 @@ var _tab_boxes: Dictionary = {}       # Tab → VBoxContainer; only the current 
 var _tab_buttons: Dictionary = {}     # Tab → InteractiveButton
 var _choice_buttons: Dictionary = {}  # row id → {choice value → Button}
 var _choice_values: Dictionary = {}   # row id → the value currently active
+var _description_heading: Label = null
+var _description_body: Label = null
 var _border_overlay: PanelBorderOverlay = null
+
+# FPS Cap: its slider walks _fps_stops by index, so 144 and 165 are each
+# one press apart. Higher? opens the stops past the display's rate; open, the
+# same pill reads Lower? and closes them.
+const HIGHER_LABEL: String = "Higher?"
+const LOWER_LABEL: String = "Lower?"
+var _display_rate: int = Settings.FALLBACK_REFRESH_RATE
+var _fps_cap_unlocked: bool = false
+var _fps_stops: Array[int] = []
+var _fps_slider: HSlider = null
+var _fps_readout: Label = null
+var _higher_pill: Button = null
 
 # Style caches
 var _toggle_style_active: StyleBoxFlat = null
@@ -116,10 +146,10 @@ func _ready() -> void:
 
 	# Margins
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 12)
-	margin.add_theme_constant_override("margin_right", 12)
-	margin.add_theme_constant_override("margin_top", 12)
-	margin.add_theme_constant_override("margin_bottom", 12)
+	margin.add_theme_constant_override("margin_left", PANEL_MARGIN)
+	margin.add_theme_constant_override("margin_right", PANEL_MARGIN)
+	margin.add_theme_constant_override("margin_top", PANEL_MARGIN)
+	margin.add_theme_constant_override("margin_bottom", PANEL_MARGIN)
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(margin)
 
@@ -187,6 +217,7 @@ func select_tab(tab: Tab) -> void:
 		(_tab_boxes[key] as Control).visible = (key == tab)
 	for key: int in _tab_buttons:
 		(_tab_buttons[key] as InteractiveButton).selected = (key == tab)
+	_show_description_placeholder()
 	if cursor_was_in_rows:
 		_focus_first_row()
 
@@ -224,21 +255,26 @@ func _row_specs() -> Array[Dictionary]:
 		# Click-to-attack shortcut. Off by default — new players kept attacking
 		# enemies they meant to inspect.
 		{id = "click_attack", tab = Tab.GAMEPLAY, kind = RowKind.CHOICE, label = "Quick Attack",
-			tooltip = "Clicking an enemy with a unit selected attacks immediately.",
+			description = "Clicking an enemy with a unit selected attacks immediately.",
 			choices = on_off, current = Settings.click_to_attack_enabled,
 			write = Settings.set_click_to_attack_enabled},
-		# Auto end turn (meeting ask 2026-06-28): ON = the phase hands off the
-		# moment every unit has acted. OFF = the phase waits and the system
-		# menu's End Turn wears the call-to-action.
+		# Auto end turn: ON = the phase hands off the moment every unit has
+		# acted. OFF = the phase waits and the menu's End Turn wears the CTA.
 		{id = "auto_end_turn", tab = Tab.GAMEPLAY, kind = RowKind.CHOICE, label = "Auto End Turn",
-			tooltip = "End your turn automatically once every unit has acted.",
+			description = "End your turn automatically once every unit has acted.",
 			choices = on_off, current = Settings.auto_end_turn,
 			write = _write_auto_end_turn},
+		# End Turn with units still able to act asks first and lights them
+		# (UIManager.request_end_turn).
+		{id = "end_turn_warning", tab = Tab.GAMEPLAY, kind = RowKind.CHOICE, label = "End Turn Warn",
+			description = "Ask before ending your turn while units can still act, and point them out.",
+			choices = on_off, current = Settings.end_turn_warning,
+			write = Settings.set_end_turn_warning},
 		# Move Confirm — the playtest toggle (RQD 2026-08-21). Auto = button on
 		# touch, marker elsewhere; Marker = press the marker again (fluent);
 		# Button = the hint bar offers "Confirm path" (clear, clunkier).
 		{id = "move_confirm", tab = Tab.GAMEPLAY, kind = RowKind.CHOICE, label = "Move Confirm",
-			tooltip = "How a planned move is confirmed. Marker: press the marker again. Button: a Confirm Path button in the hint bar. Auto: button on touch screens, marker otherwise.",
+			description = "How a planned move is confirmed.\nMarker: press the marker again.\nButton: a Confirm Path button in the hint bar.\nAuto: button on touch screens, marker otherwise.",
 			choices = [[Settings.MoveConfirmMode.AUTO, "Auto"], [Settings.MoveConfirmMode.MARKER, "Marker"],
 					[Settings.MoveConfirmMode.BUTTON, "Button"]],
 			current = Settings.move_confirm_mode, write = Settings.set_move_confirm_mode},
@@ -246,86 +282,101 @@ func _row_specs() -> Array[Dictionary]:
 		# Scene = the FE7-style cutaway always; Player = cutaway on the
 		# player's turn, in-place beats on the enemy's; Map = in-place always.
 		{id = "battle_animations", tab = Tab.GAMEPLAY, kind = RowKind.CHOICE, label = "Battle Anims",
-			tooltip = "How attacks are shown. Scene: a side-view combat scene for every attack. Player: the scene on your turn only, quick map animations on the enemy's. Map: quick map animations always.",
+			description = "How attacks are shown.\nScene: a side-view combat scene for every attack.\nPlayer: the scene on your turn only, quick map animations on the enemy's.\nMap: quick map animations always.",
 			choices = [[Settings.BattleAnimations.ALWAYS, "Scene"],
 					[Settings.BattleAnimations.PLAYER_PHASE_ONLY, "Player"],
 					[Settings.BattleAnimations.MAP, "Map"]],
 			current = Settings.battle_animations, write = Settings.set_battle_animations},
+		# Battle Pacing: Relaxed = a skippable breath at every seam of an
+		# exchange (CombatPresenter.breath).
+		{id = "battle_pacing", tab = Tab.GAMEPLAY, kind = RowKind.CHOICE, label = "Battle Pacing",
+			description = "Relaxed: attacks pause before, between and after each strike so you can read the results. A press moves on.\nFast: no pauses.",
+			choices = [[Settings.BattlePacing.RELAXED, "Relaxed"], [Settings.BattlePacing.FAST, "Fast"]],
+			current = Settings.battle_pacing, write = Settings.set_battle_pacing},
 		# Seeded Reload: On = loading a save restores the dice exactly (same
 		# actions, same outcomes — Fire-Emblem-fair). Off = every load re-rolls
 		# fate. Saves always record the dice, so flipping this never
 		# invalidates one.
 		{id = "seeded_reload", tab = Tab.GAMEPLAY, kind = RowKind.CHOICE, label = "Seeded Reload",
-			tooltip = "On: loading a save keeps the dice — same choices, same results.\nOff: every load re-rolls fate.",
-			choices = on_off, current = Settings.seeded_reload,
+			description = "On: loading a save keeps the dice — same choices, same results.\nSave Scum Mode: every load re-rolls fate.",
+			choices = [[true, "On"], [false, "Save Scum Mode"]], current = Settings.seeded_reload,
 			write = Settings.set_seeded_reload},
 		# Control Hints: the battle HUD's hint / command bar. Under TOUCH the
 		# bar is the only End turn / Menu / Threat zones control, so the
-		# tooltip says so — a phone player who turns it off is choosing the
+		# description says so — a phone player who turns it off is choosing the
 		# pause menu as their only exit.
 		{id = "control_hints", tab = Tab.GAMEPLAY, kind = RowKind.CHOICE, label = "Control Hints",
-			tooltip = "Show the bottom bar of button hints for the current step. On touch screens it is also the End Turn / Menu / Threat Zones control.",
+			description = "Show the bottom bar of button hints for the current step. On touch screens it is also the End Turn / Menu / Threat Zones control.",
 			choices = on_off, current = Settings.show_control_hints,
 			write = Settings.set_show_control_hints},
 		# Hold-to-peek delay for move detail tooltips (ui-style-guide §14). The
 		# 200 ms floor is a softlock guard: shorter than a player can reliably
 		# release would open a tooltip on every tap (RQD 2026-07-19).
 		{id = "tooltip_hold", tab = Tab.GAMEPLAY, kind = RowKind.SLIDER, label = "Tooltip Hold",
-			tooltip = "How long to hold a move chip before its detail card opens.",
+			description = "How long to hold a move chip before its detail card opens.",
 			min_value = float(Settings.TOOLTIP_HOLD_MIN_MS), max_value = float(Settings.TOOLTIP_HOLD_MAX_MS),
 			step = float(Settings.TOOLTIP_HOLD_STEP_MS), current = float(Settings.tooltip_hold_ms),
 			format = _format_milliseconds, write = _write_tooltip_hold},
 		# Board-cursor travel rate while a direction is held (d-pad, stick or
 		# arrow key). Tinker knob; 12.5/s = an 80 ms step.
 		{id = "cursor_speed", tab = Tab.GAMEPLAY, kind = RowKind.SLIDER, label = "Cursor Speed",
-			tooltip = "How fast the board cursor travels while a direction is held on a controller or keyboard.",
+			description = "How fast the board cursor travels while a direction is held on a controller or keyboard.",
 			min_value = Settings.CURSOR_SPEED_MIN, max_value = Settings.CURSOR_SPEED_MAX,
 			step = Settings.CURSOR_SPEED_STEP, current = Settings.cursor_speed,
 			format = _format_tiles_per_second, write = Settings.set_cursor_speed},
+		# Preset: one press sets the group in Settings.PRESETS; every row
+		# stays editable. Lit only while the values still match one — a
+		# hand change above un-lights it (_refresh_choice_pills).
+		{id = "preset", tab = Tab.GAMEPLAY, kind = RowKind.CHOICE, label = "Preset",
+			description = "Newcomer: relaxed pacing, the end-turn warning, attacks through the menu.\nVeteran: fast pacing, no warning, Quick Attack, marker move confirm.\nEach setting stays adjustable.",
+			choices = [["newcomer", "Newcomer"], ["veteran", "Veteran"]],
+			current = Settings.matching_preset(), write = Settings.apply_preset},
 		# --- VIDEO ---------------------------------------------------------
 		# Zoom mode: the camera mirrors Settings on spawn, and a live camera
 		# is nudged by _write_zoom_mode.
 		{id = "zoom_mode", tab = Tab.VIDEO, kind = RowKind.CHOICE, label = "Zoom Mode",
-			tooltip = "Smooth: any zoom level, slight shimmer. Integer: whole pixel multiples, always crisp.",
+			description = "Smooth: any zoom level, slight shimmer.\nInteger: whole pixel multiples, always crisp.",
 			choices = [[false, "Smooth"], [true, "Integer"]],
 			current = Settings.integer_zoom_mode, write = _write_zoom_mode},
 		# HD line-art portrait distortion / glass shaders. Accessibility
 		# (motion / flicker); every HDPortraitSlot re-applies off Settings.changed.
 		{id = "portrait_effects", tab = Tab.VIDEO, kind = RowKind.CHOICE, label = "Portrait FX",
-			tooltip = "Distortion and glass effects on the line-art portraits.",
+			description = "Distortion and glass effects on the line-art portraits.",
 			choices = on_off, current = Settings.portrait_effects_enabled,
 			write = Settings.set_portrait_effects_enabled},
 		# Border-vocabulary animations (brackets, rings, backlight fade).
 		# Colors always stay — only motion stops. InteractiveButton reads the
 		# flag live every frame, so this applies instantly.
 		{id = "ui_motion", tab = Tab.VIDEO, kind = RowKind.CHOICE, label = "UI Motion",
-			tooltip = "Animated button borders. Off keeps the colors but stops the movement.",
+			description = "Animated button borders.\nOff: the colors stay, the movement stops.",
 			choices = on_off, current = Settings.ui_motion_enabled,
 			write = Settings.set_ui_motion_enabled},
 		# On-map type icons beside unit health bars. Off by default (noisy);
 		# units re-apply live off Settings.changed.
 		{id = "type_icons", tab = Tab.VIDEO, kind = RowKind.CHOICE, label = "Type Icons",
-			tooltip = "Show units' elemental types beside their health bars on the map.",
+			description = "Show units' elemental types beside their health bars on the map.",
 			choices = on_off, current = Settings.unit_type_icons_enabled,
 			write = Settings.set_unit_type_icons_enabled},
-		# FPS cap: the leftmost notch (below 30) reads as "Off" → Engine.max_fps 0.
-		{id = "max_fps", tab = Tab.VIDEO, kind = RowKind.SLIDER, label = "FPS Cap",
-			tooltip = "Cap the framerate. Off = uncapped (VSync still applies).",
-			min_value = 20.0, max_value = 1000.0, step = 10.0,
-			current = float(Settings.max_fps) if Settings.max_fps >= 30 else 20.0,
-			format = _format_fps, write = _write_max_fps},
+		# On past the display's rate is mailbox (Settings.vsync_mode).
+		{id = "vsync", tab = Tab.VIDEO, kind = RowKind.CHOICE, label = "VSync",
+			description = "On: the picture never tears.\nOff: frames show as soon as they're drawn, and the picture can tear.",
+			choices = on_off, current = Settings.vsync_enabled, write = Settings.set_vsync_enabled},
+		# The slider's range is built by _create_fps_cap_row; the top of the
+		# locked range is the display's rate, stored as 0.
+		{id = "max_fps", tab = Tab.VIDEO, kind = RowKind.FPS_CAP, label = "FPS Cap",
+			description = "The most frames a second the game draws. Your display shows %d, so the slider stops there.\nHigher?: past your display's rate, for less input lag. With VSync on it still never tears, where your system supports that.\nLower?: back to stopping at your display's rate." % _display_rate},
 		# --- AUDIO ---------------------------------------------------------
 		# Volume buses are minted by Settings at load.
 		{id = "master_volume", tab = Tab.AUDIO, kind = RowKind.SLIDER, label = "Master Vol.",
-			tooltip = "Overall game volume.", min_value = 0.0, max_value = 1.0, step = 0.05,
+			description = "Overall game volume.", min_value = 0.0, max_value = 1.0, step = 0.05,
 			current = Settings.master_volume, format = _format_percent,
 			write = Settings.set_master_volume},
 		{id = "sfx_volume", tab = Tab.AUDIO, kind = RowKind.SLIDER, label = "SFX Vol.",
-			tooltip = "Sound effect volume.", min_value = 0.0, max_value = 1.0, step = 0.05,
+			description = "Sound effect volume.", min_value = 0.0, max_value = 1.0, step = 0.05,
 			current = Settings.sfx_volume, format = _format_percent,
 			write = Settings.set_sfx_volume},
 		{id = "music_volume", tab = Tab.AUDIO, kind = RowKind.SLIDER, label = "Music Vol.",
-			tooltip = "Music volume.", min_value = 0.0, max_value = 1.0, step = 0.05,
+			description = "Music volume.", min_value = 0.0, max_value = 1.0, step = 0.05,
 			current = Settings.music_volume, format = _format_percent,
 			write = Settings.set_music_volume},
 	]
@@ -355,8 +406,11 @@ func _write_tooltip_hold(value: float) -> void:
 	Settings.set_tooltip_hold_ms(roundi(value))
 
 
-func _write_max_fps(value: float) -> void:
-	Settings.set_max_fps(0 if value < 30.0 else roundi(value))
+## A stop → Settings. The display's own stop stores 0, so the cap follows the
+## display onto another monitor.
+func _write_max_fps(index: float) -> void:
+	var stop: int = _fps_stops[roundi(index)]
+	Settings.set_max_fps(0 if stop == _display_rate else stop)
 
 
 # --- slider readouts ---------------------------------------------------------
@@ -369,8 +423,8 @@ func _format_tiles_per_second(value: float) -> String:
 	return "%.1f/s" % value
 
 
-func _format_fps(value: float) -> String:
-	return "Off" if value < 30.0 else "%d" % roundi(value)
+func _format_fps(index: float) -> String:
+	return "%d" % _fps_stops[roundi(index)]
 
 
 func _format_percent(value: float) -> String:
@@ -383,6 +437,10 @@ func _format_percent(value: float) -> String:
 
 func _populate() -> void:
 	_clear_items()
+	_display_rate = Settings.display_refresh_rate()
+	# A cap already past the display means Higher? was pressed in an earlier
+	# session; open on the range that can show it.
+	_fps_cap_unlocked = Settings.max_fps > _display_rate
 	_create_title("OPTIONS")
 	_create_tab_strip()
 	_create_separator()
@@ -473,9 +531,14 @@ func _tab_glyph_text(action: StringName) -> String:
 ## strip / Close stay put under the pointer. Only the current tab's box is
 ## visible; hidden boxes take no focus and no clicks.
 func _create_rows_area() -> void:
+	var columns := HBoxContainer.new()
+	columns.add_theme_constant_override("separation", DESCRIPTION_GAP)
+	columns.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_content_container.add_child(columns)
 	_rows_area = Control.new()
 	_rows_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_content_container.add_child(_rows_area)
+	columns.add_child(_rows_area)
+	columns.add_child(_create_description_pane())
 	_tab_boxes.clear()
 	_choice_buttons.clear()
 	_choice_values.clear()
@@ -493,6 +556,8 @@ func _create_rows_area() -> void:
 				box.add_child(_create_choice_row(spec))
 			RowKind.SLIDER:
 				box.add_child(_create_slider_row(spec))
+			RowKind.FPS_CAP:
+				box.add_child(_create_fps_cap_row(spec))
 	var largest := Vector2.ZERO
 	for tab: int in _tab_boxes:
 		var minimum: Vector2 = (_tab_boxes[tab] as Control).get_combined_minimum_size()
@@ -501,16 +566,29 @@ func _create_rows_area() -> void:
 	_rows_area.custom_minimum_size = largest
 
 
-func _create_row_label(text: String, tooltip: String) -> Label:
+## Hovering the name, or clicking / tapping it, explains the row — the tap is
+## touch's way in (it has no hover and no cursor).
+func _create_row_label(spec: Dictionary) -> Label:
 	var label := Label.new()
-	label.text = text
-	label.tooltip_text = tooltip
+	label.text = spec.label
 	label.custom_minimum_size = Vector2(OPTION_LABEL_WIDTH, 0)
+	label.mouse_filter = Control.MOUSE_FILTER_PASS
 	label.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
 	var glow: ShaderMaterial = GLOW_MATERIAL.duplicate()
 	glow.set_shader_parameter("glow_color", GameColors.TEXT_PRIMARY_GLOW)
 	label.material = glow
+	label.mouse_entered.connect(_show_description.bind(spec))
+	label.gui_input.connect(func(event: InputEvent) -> void:
+		if event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
+			_show_description(spec))
 	return label
+
+
+## Every control a row owns explains the row when the cursor or the pointer
+## lands on it.
+func _explain_on_arrival(control: Control, spec: Dictionary) -> void:
+	control.focus_entered.connect(_show_description.bind(spec))
+	control.mouse_entered.connect(_show_description.bind(spec))
 
 
 ## LABEL · [pill][pill](…) — one pill per choice, the current one lit.
@@ -518,7 +596,7 @@ func _create_choice_row(spec: Dictionary) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
 	row.set_meta("row_id", spec.id)
-	row.add_child(_create_row_label(spec.label, spec.get("tooltip", "")))
+	row.add_child(_create_row_label(spec))
 
 	var pills := HBoxContainer.new()
 	pills.add_theme_constant_override("separation", 2)
@@ -527,6 +605,7 @@ func _create_choice_row(spec: Dictionary) -> HBoxContainer:
 		var value: Variant = choice[0]
 		var button := _create_toggle_button(String(choice[1]), value == spec.current)
 		button.pressed.connect(_on_choice_pressed.bind(spec, value))
+		_explain_on_arrival(button, spec)
 		buttons[value] = button
 		pills.add_child(button)
 	_choice_buttons[spec.id] = buttons
@@ -537,10 +616,20 @@ func _create_choice_row(spec: Dictionary) -> HBoxContainer:
 
 func _on_choice_pressed(spec: Dictionary, value: Variant) -> void:
 	(spec.write as Callable).call(value)
-	_choice_values[spec.id] = value
-	var buttons: Dictionary = _choice_buttons.get(spec.id, {})
-	for key: Variant in buttons:
-		_apply_toggle_state(buttons[key], key == value)
+	_refresh_choice_pills()
+	_show_description(spec)
+
+
+## Relight every choice row from Settings. One press can move several rows
+## (a preset sets four; a hand change un-lights the preset).
+func _refresh_choice_pills() -> void:
+	for spec: Dictionary in _row_specs():
+		if int(spec.kind) != RowKind.CHOICE or not _choice_buttons.has(spec.id):
+			continue
+		_choice_values[spec.id] = spec.current
+		var buttons: Dictionary = _choice_buttons[spec.id]
+		for key: Variant in buttons:
+			_apply_toggle_state(buttons[key], key == spec.current)
 
 
 ## LABEL · slider · readout. The readout label is captured by the closure;
@@ -549,9 +638,10 @@ func _create_slider_row(spec: Dictionary) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
 	row.set_meta("row_id", spec.id)
-	row.add_child(_create_row_label(spec.label, spec.get("tooltip", "")))
+	row.add_child(_create_row_label(spec))
 
 	var slider := HSlider.new()
+	_explain_on_arrival(slider, spec)
 	slider.min_value = float(spec.min_value)
 	slider.max_value = float(spec.max_value)
 	slider.step = float(spec.step)
@@ -575,6 +665,106 @@ func _create_slider_row(spec: Dictionary) -> HBoxContainer:
 		value_label.text = str(format.call(value))
 		write.call(value))
 	return row
+
+
+## LABEL · slider · readout · [Higher?]. The slider's values are stop indices.
+func _create_fps_cap_row(spec: Dictionary) -> HBoxContainer:
+	_fps_stops = Settings.fps_cap_stops(_display_rate, _fps_cap_unlocked)
+	var row := _create_slider_row(spec.merged({min_value = 0.0,
+			max_value = float(_fps_stops.size() - 1), step = 1.0,
+			current = float(_fps_stop_index()), format = _format_fps, write = _write_max_fps}))
+	_fps_slider = row.get_child(1) as HSlider
+	_fps_readout = row.get_child(2) as Label
+	assert(_fps_slider != null and _fps_readout != null,
+			"OptionsMenuPanel: the slider row's layout moved; the FPS row reads it by index")
+	# The slider eats left/right, so a cursor at the top stop presses on
+	# into Higher? — the pill sits where the next stop would be.
+	_fps_slider.gui_input.connect(func(event: InputEvent) -> void:
+		if event.is_action_pressed("ui_right") and _fps_slider.value >= _fps_slider.max_value:
+			_higher_pill.grab_focus()
+			_fps_slider.accept_event())
+	_higher_pill = _create_toggle_button(LOWER_LABEL, false)
+	# As wide as the wider label, so the slider doesn't shift when it flips.
+	_higher_pill.custom_minimum_size.x = 0
+	var lower_width: float = _higher_pill.get_minimum_size().x
+	_higher_pill.text = HIGHER_LABEL
+	_higher_pill.custom_minimum_size.x = maxf(lower_width, _higher_pill.get_minimum_size().x)
+	_higher_pill.pressed.connect(_on_higher_pressed.bind(spec))
+	_explain_on_arrival(_higher_pill, spec)
+	row.add_child(_higher_pill)
+	_refresh_fps_cap_row()
+	return row
+
+
+## Re-seat the FPS row on the current range: its stops, the knob on the stored
+## cap, the readout, and the pill (Lower? and lit while open). Writes nothing:
+## a range change that moves the cap writes it first.
+func _refresh_fps_cap_row() -> void:
+	_fps_stops = Settings.fps_cap_stops(_display_rate, _fps_cap_unlocked)
+	_fps_slider.max_value = _fps_stops.size() - 1
+	_fps_slider.set_value_no_signal(_fps_stop_index())
+	_fps_readout.text = _format_fps(_fps_slider.value)
+	_higher_pill.text = LOWER_LABEL if _fps_cap_unlocked else HIGHER_LABEL
+	_apply_toggle_state(_higher_pill, _fps_cap_unlocked)
+
+
+## The stop nearest the stored cap; 0 sits on the display's own stop.
+func _fps_stop_index() -> int:
+	var target: int = _display_rate if Settings.max_fps <= 0 else Settings.max_fps
+	var nearest: int = 0
+	for index: int in _fps_stops.size():
+		if absi(_fps_stops[index] - target) < absi(_fps_stops[nearest] - target):
+			nearest = index
+	return nearest
+
+
+## Opens the stops past the display's rate, or closes them: a cap left past
+## the display drops back to it.
+func _on_higher_pressed(spec: Dictionary) -> void:
+	_show_description(spec)
+	_fps_cap_unlocked = not _fps_cap_unlocked
+	if not _fps_cap_unlocked and Settings.max_fps > _display_rate:
+		Settings.set_max_fps(0)
+	_refresh_fps_cap_row()
+
+
+# =============================================================================
+# DESCRIPTION PANE — see the header
+# =============================================================================
+
+func _create_description_pane() -> VBoxContainer:
+	var pane := VBoxContainer.new()
+	pane.custom_minimum_size = Vector2(DESCRIPTION_WIDTH, 0)
+	pane.add_theme_constant_override("separation", 4)
+	pane.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_description_heading = Label.new()
+	_description_heading.add_theme_color_override("font_color", GameColors.TEXT_SECONDARY)
+	var glow: ShaderMaterial = GLOW_MATERIAL.duplicate()
+	glow.set_shader_parameter("glow_color", GameColors.TEXT_SECONDARY_GLOW)
+	_description_heading.material = glow
+	pane.add_child(_description_heading)
+	_description_body = Label.new()
+	_description_body.custom_minimum_size = Vector2(DESCRIPTION_WIDTH, 0)
+	_description_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	pane.add_child(_description_body)
+	_show_description_placeholder()
+	return pane
+
+
+func _show_description(spec: Dictionary) -> void:
+	if _description_body == null:
+		return
+	_description_heading.text = String(spec.label)
+	_description_body.text = String(spec.description)
+	_description_body.add_theme_color_override("font_color", GameColors.TEXT_PRIMARY)
+
+
+func _show_description_placeholder() -> void:
+	if _description_body == null:
+		return
+	_description_heading.text = ""
+	_description_body.text = DESCRIPTION_FLAVOR
+	_description_body.add_theme_color_override("font_color", GameColors.TEXT_MUTED)
 
 
 func _create_close_button() -> void:
@@ -738,6 +928,11 @@ func _clear_items() -> void:
 	_tab_buttons.clear()
 	_choice_buttons.clear()
 	_choice_values.clear()
+	_description_heading = null
+	_description_body = null
+	_fps_slider = null
+	_fps_readout = null
+	_higher_pill = null
 
 
 func _ensure_border_overlay() -> void:

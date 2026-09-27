@@ -65,13 +65,29 @@ static func build(unit: Node2D, material: ShaderMaterial) -> Sprite2D:
 	return ghost
 
 
-## The sprite's offset from its unit's tile — add to any tile position to park
-## a ghost where the unit would stand on that tile.
+## The sprite's offset from its unit's NODE — add to any tile position to park
+## a ghost where the unit would stand on that tile. Measured against the node,
+## not current_tile: a staged walk (Unit._stage_deferred_movement) moves the
+## logic tile to the destination while the node and sprite stay home, and an
+## offset taken from that tile would drag every projection back toward the
+## origin by the length of the plan.
 static func anchor_offset(unit: Node2D) -> Vector2:
 	if unit == null:
 		return Vector2.ZERO
 	var source: Sprite2D = unit.get_node_or_null("Sprite2D") as Sprite2D
-	var tile: Tile = unit.get("current_tile") as Tile
-	if source == null or tile == null:
+	if source == null:
 		return Vector2.ZERO
-	return source.global_position - tile.global_position
+	return source.global_position - unit.global_position
+
+
+## Where the unit's projection stands right now, in sprite space: its logic
+## tile plus the anchor offset. Equals the live sprite when nothing is staged
+## and the staged ghost's spot when a deferred walk is pending — the origin a
+## displacement ghost should depart from either way.
+static func projected_position(unit: Node2D) -> Vector2:
+	if unit == null:
+		return Vector2.ZERO
+	var tile: Tile = unit.get("current_tile") as Tile
+	if tile == null:
+		return unit.global_position
+	return tile.global_position + anchor_offset(unit)

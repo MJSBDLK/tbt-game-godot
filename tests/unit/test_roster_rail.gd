@@ -400,11 +400,11 @@ func test_an_unset_deployment_spawns_everyone_a_chosen_one_is_verbatim() -> void
 	var scene := BattleScene.new()
 	add_child_autofree(scene)
 	var roster_size: int = SquadManager.get_active_roster().size()
-	assert_eq(scene._get_deployed_roster().size(), roster_size,
+	assert_eq(BattleScene.deployed_roster().size(), roster_size,
 			"unset = the legacy everyone fallback (F6 on a map)")
 	CampaignManager.set_deployment(["spaceman"])
-	assert_eq(scene._get_deployed_roster().size(), 1, "chosen: exactly who was picked")
+	assert_eq(BattleScene.deployed_roster().size(), 1, "chosen: exactly who was picked")
 	CampaignManager.set_deployment([])
-	assert_eq(scene._get_deployed_roster().size(), 0,
+	assert_eq(BattleScene.deployed_roster().size(), 0,
 			"chosen + empty = nobody, NOT everyone — the hub gates this before spawn")
 	CampaignManager.restore_save_state(saved)

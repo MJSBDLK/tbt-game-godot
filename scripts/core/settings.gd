@@ -55,9 +55,25 @@ var master_volume: float = 0.8
 var sfx_volume: float = 0.8
 var music_volume: float = 0.8
 
-## Framerate cap, applied to Engine.max_fps. 0 = uncapped (VSync still applies
-## on top). The Options slider offers Off / 30–1000.
+## Framerate cap, applied to Engine.max_fps. 0 = the display's own rate: VSync
+## holds frames there by itself, and without it the engine is capped there.
 var max_fps: int = 0
+const FPS_CAP_MIN: int = 30
+const FPS_CAP_MAX: int = 1000
+## The Options FPS Cap slider's stops: the rates screens actually run, plus
+## halves (45 = the Deck OLED's 90 halved, 72 = 144's). fps_cap_stops adds
+## the display's own rate when it isn't one of these.
+const FPS_CAP_STOPS: Array[int] = [30, 40, 45, 50, 60, 72, 75, 90, 100, 120, 144,
+		165, 180, 200, 240, 280, 300, 360, 480, 500, 600, 750, 1000]
+## Assumed when the OS won't report the display's rate (headless, some compositors).
+const FALLBACK_REFRESH_RATE: int = 60
+
+## When true (default), no tearing (vsync_mode picks how). Off, frames show
+## as soon as they're drawn.
+var vsync_enabled: bool = true
+## The mode last handed to the DisplayServer. Not read back from it: a system
+## without the mode reports its fallback, and every apply would re-request.
+var _requested_vsync_mode: int = -1
 
 ## How long a touch must hold a move chip before its detail card (MoveTooltip)
 ## opens. CORE input decision (ui-style-guide.md §14): long press = right click
@@ -117,6 +133,38 @@ var move_confirm_mode: int = MoveConfirmMode.AUTO
 enum BattleAnimations { ALWAYS, PLAYER_PHASE_ONLY, MAP }
 var battle_animations: int = BattleAnimations.ALWAYS
 
+## How long an exchange lets each result sit. RELAXED (default, for a new
+## player): every seam of an exchange breathes for
+## CombatPresenter.RELAXED_BREATH_SECONDS, and any press ends that one breath.
+## FAST: the tuned snap. Read per breath, so a change lands mid-battle.
+enum BattlePacing { RELAXED, FAST }
+var battle_pacing: int = BattlePacing.RELAXED
+
+## When true (default), End Turn with units that can still act asks first,
+## and those units light up (UIManager.request_end_turn). Off = End Turn
+## always ends the turn at once.
+var end_turn_warning: bool = true
+
+## The Options menu's Preset row: one press sets the whole group, and every
+## setting stays editable afterwards (it's a shortcut, not a mode). NEWCOMER
+## is the in-code defaults; VETERAN speeds the game up and drops the
+## confirmations. Keys are property names — apply_preset asserts each exists,
+## because set() on a misspelled one is silent.
+const PRESETS: Dictionary = {
+	"newcomer": {
+		"battle_pacing": BattlePacing.RELAXED,
+		"end_turn_warning": true,
+		"click_to_attack_enabled": false,
+		"move_confirm_mode": MoveConfirmMode.AUTO,
+	},
+	"veteran": {
+		"battle_pacing": BattlePacing.FAST,
+		"end_turn_warning": false,
+		"click_to_attack_enabled": true,
+		"move_confirm_mode": MoveConfirmMode.MARKER,
+	},
+}
+
 const TOOLTIP_HOLD_MIN_MS: int = 200
 const TOOLTIP_HOLD_MAX_MS: int = 800
 const TOOLTIP_HOLD_STEP_MS: int = 50
@@ -170,7 +218,9 @@ func load_settings() -> void:
 		music_volume = clampf(float(config.get_value(
 				"audio", "music_volume", music_volume)), 0.0, 1.0)
 		max_fps = clampi(int(config.get_value(
-				"display", "max_fps", max_fps)), 0, 1000)
+				"display", "max_fps", max_fps)), 0, FPS_CAP_MAX)
+		vsync_enabled = bool(config.get_value(
+				"display", "vsync_enabled", vsync_enabled))
 		tooltip_hold_ms = _snap_tooltip_hold(int(config.get_value(
 				"controls", "tooltip_hold_ms", tooltip_hold_ms)))
 		cursor_speed = _snap_cursor_speed(float(config.get_value(
@@ -187,6 +237,11 @@ func load_settings() -> void:
 		battle_animations = clampi(int(config.get_value(
 				"visuals", "battle_animations", battle_animations)),
 				BattleAnimations.ALWAYS, BattleAnimations.MAP)
+		battle_pacing = clampi(int(config.get_value(
+				"gameplay", "battle_pacing", battle_pacing)),
+				BattlePacing.RELAXED, BattlePacing.FAST)
+		end_turn_warning = bool(config.get_value(
+				"gameplay", "end_turn_warning", end_turn_warning))
 	# Engine-level prefs (fps cap, bus volumes) must apply even with no file —
 	# a fresh install still needs the buses minted and defaults pushed.
 	_apply_engine_settings()
@@ -271,15 +326,61 @@ func set_music_volume(value: float) -> void:
 	changed.emit()
 
 
-## Persists + applies Engine.max_fps + notifies. 0 = uncapped; else 30–1000.
+## Persists + applies Engine.max_fps + notifies. 0 = the display's rate; else
+## FPS_CAP_MIN–FPS_CAP_MAX.
 func set_max_fps(value: int) -> void:
-	value = 0 if value <= 0 else clampi(value, 30, 1000)
+	value = 0 if value <= 0 else clampi(value, FPS_CAP_MIN, FPS_CAP_MAX)
 	if value == max_fps:
 		return
 	max_fps = value
 	_apply_engine_settings()
 	_save()
 	changed.emit()
+
+
+## Persists + applies + notifies.
+func set_vsync_enabled(value: bool) -> void:
+	if value == vsync_enabled:
+		return
+	vsync_enabled = value
+	_apply_engine_settings()
+	_save()
+	changed.emit()
+
+
+## VSync on: plain VSync paces frames evenly at the display's rate; a cap past
+## it takes mailbox (the newest frame shown at each refresh: less lag, no
+## tearing). A system without mailbox falls back to plain VSync, where the cap
+## past the display does nothing (Godot through XWayland); one that forbids
+## tearing refuses DISABLED the same way (native Wayland).
+func vsync_mode() -> DisplayServer.VSyncMode:
+	if not vsync_enabled:
+		return DisplayServer.VSYNC_DISABLED
+	if max_fps > display_refresh_rate():
+		return DisplayServer.VSYNC_MAILBOX
+	return DisplayServer.VSYNC_ENABLED
+
+
+## The display's refresh rate in whole Hz, inside the cap's range.
+func display_refresh_rate() -> int:
+	var refresh_rate: float = DisplayServer.screen_get_refresh_rate()
+	if refresh_rate <= 0.0:
+		return FALLBACK_REFRESH_RATE
+	return clampi(roundi(refresh_rate), FPS_CAP_MIN, FPS_CAP_MAX)
+
+
+## The FPS Cap slider's stops, low to high. Locked: up to the display's rate,
+## which is always a stop and always the last. Unlocked (Higher?): on to
+## FPS_CAP_MAX. Locked is a prefix of unlocked, so a stop keeps its index.
+func fps_cap_stops(display_rate: int, unlocked: bool) -> Array[int]:
+	assert(display_rate >= FPS_CAP_MIN and display_rate <= FPS_CAP_MAX,
+			"Settings: a display rate outside the cap's range has no stop")
+	var stops: Array[int] = []
+	for stop: int in FPS_CAP_STOPS:
+		if stop < display_rate or (unlocked and stop > display_rate):
+			stops.append(stop)
+	stops.insert(stops.bsearch(display_rate), display_rate)
+	return stops
 
 
 ## Persists + notifies. Snapped to the 50ms slider grid and clamped 200–800
@@ -336,6 +437,48 @@ func set_battle_animations(value: int) -> void:
 	changed.emit()
 
 
+func set_battle_pacing(value: int) -> void:
+	value = clampi(value, BattlePacing.RELAXED, BattlePacing.FAST)
+	if value == battle_pacing:
+		return
+	battle_pacing = value
+	_save()
+	changed.emit()
+
+
+func set_end_turn_warning(value: bool) -> void:
+	if value == end_turn_warning:
+		return
+	end_turn_warning = value
+	_save()
+	changed.emit()
+
+
+## Sets every value in PRESETS[preset_name] at once: one save, one `changed`.
+func apply_preset(preset_name: String) -> void:
+	assert(PRESETS.has(preset_name), "Settings: no preset '%s'" % preset_name)
+	var values: Dictionary = PRESETS.get(preset_name, {})
+	for key: String in values:
+		assert(key in self, "Settings.PRESETS names '%s', which isn't a setting" % key)
+		set(key, values[key])
+	_save()
+	changed.emit()
+
+
+## The preset the current values match exactly, or "" once any of its
+## settings has been changed by hand. The Options row lights this one.
+func matching_preset() -> String:
+	for preset_name: String in PRESETS:
+		var values: Dictionary = PRESETS[preset_name]
+		var matches: bool = true
+		for key: String in values:
+			if get(key) != values[key]:
+				matches = false
+		if matches:
+			return preset_name
+	return ""
+
+
 func set_auto_end_turn(value: bool) -> void:
 	if value == auto_end_turn:
 		return
@@ -368,7 +511,13 @@ func _snap_tooltip_hold(value: int) -> int:
 ## are core singletons, not autoloads, so the "no autoload dependencies" rule
 ## in the header still holds.
 func _apply_engine_settings() -> void:
-	Engine.max_fps = max_fps
+	# Only on a change: this runs on every volume tick, and a VSync write can
+	# rebuild the swap chain.
+	var mode: DisplayServer.VSyncMode = vsync_mode()
+	if mode != _requested_vsync_mode:
+		_requested_vsync_mode = mode
+		DisplayServer.window_set_vsync_mode(mode)
+	Engine.max_fps = max_fps if max_fps > 0 or vsync_enabled else display_refresh_rate()
 	_ensure_audio_buses()
 	_apply_bus_volume("Master", master_volume)
 	_apply_bus_volume("SFX", sfx_volume)
@@ -413,6 +562,7 @@ func _save() -> void:
 	config.set_value("audio", "sfx_volume", sfx_volume)
 	config.set_value("audio", "music_volume", music_volume)
 	config.set_value("display", "max_fps", max_fps)
+	config.set_value("display", "vsync_enabled", vsync_enabled)
 	config.set_value("controls", "tooltip_hold_ms", tooltip_hold_ms)
 	config.set_value("controls", "cursor_speed", cursor_speed)
 	config.set_value("gameplay", "auto_end_turn", auto_end_turn)
@@ -420,6 +570,8 @@ func _save() -> void:
 	config.set_value("controls", "show_control_hints", show_control_hints)
 	config.set_value("controls", "move_confirm_mode", move_confirm_mode)
 	config.set_value("visuals", "battle_animations", battle_animations)
+	config.set_value("gameplay", "battle_pacing", battle_pacing)
+	config.set_value("gameplay", "end_turn_warning", end_turn_warning)
 	var err: int = config.save(settings_path)
 	if err != OK:
 		push_warning("Settings: failed to save %s (error %d)" % [settings_path, err])

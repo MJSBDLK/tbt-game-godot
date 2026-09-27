@@ -24,6 +24,19 @@ static var ATTACK_RANGE_HOVERED: Color:
 
 
 # =============================================================================
+# NIGHT SKY (menu stage)
+# =============================================================================
+
+## Every twinkling star draws in this one near-white; the painted star map
+## only carries instructions. Lawrence's pick pending — nearest palette entry.
+static var STAR_TWINKLE: Color:
+	get: return GameColorPalette.get_color("Eggshell", 9)
+## The sky behind the stars, beyond the edge of the painted layer.
+static var NIGHT_SKY: Color:
+	get: return GameColorPalette.get_color("Eggshell", 0)
+
+
+# =============================================================================
 # UNIT COLORS BY FACTION
 # =============================================================================
 
@@ -223,7 +236,8 @@ static var GHOST_OUTLINE: Color:
 ## Decorations bake it into their _shadow.png; UnitShadow modulates the
 ## mirrored unit frame with it. Change here and hand-authored art drifts —
 ## coordinate with Lawrence.
-const CAST_SHADOW_INK: Color = Color(0.0, 0.0, 0.0, 0.4)
+static var CAST_SHADOW_INK: Color:
+	get: return Color(0.0, 0.0, 0.0, ArtVariables.SHADOW_INK_ALPHA)
 
 
 # =============================================================================

@@ -78,11 +78,12 @@ func test_acting_desaturates_the_sprite_and_a_new_turn_restores_it() -> void:
 	assert_null(unit._sprite.material, "a fresh turn restores full color")
 
 
-func test_the_acted_look_is_full_grayscale() -> void:
+func test_the_acted_look_reads_the_greyscale_knob() -> void:
 	var material := Unit.acted_material()
 	assert_eq(material.shader, Unit.ACTED_SHADER)
-	assert_almost_eq(float(material.get_shader_parameter("desaturation")), 1.0, 0.001,
-			"full grayscale")
+	assert_almost_eq(float(material.get_shader_parameter("desaturation")),
+			ArtVariables.ACTED_GREYSCALE, 0.001,
+			"how grey is Lawrence's call (ArtVariables), not this test's")
 
 
 func _make_loose_tile() -> Tile:

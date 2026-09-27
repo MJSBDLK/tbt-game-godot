@@ -32,7 +32,7 @@ const AUTOTILE_CONFIGS: Array = [
 	["res://art/sprites/tilesets/black_sand__regolith_12x4.png",           "Black Sand / Regolith",       "Sand",  Color(0.3, 0.3, 0.3),  false],
 	["res://art/sprites/tilesets/orange_sand__purple_sand_12x4.png",       "Orange Sand / Purple Sand",   "Sand",  Color(0.7, 0.4, 0.7),  false],
 	["res://art/sprites/tilesets/water__regolith_12x4.png",                "Water / Regolith",            "Water", Color(0.2, 0.4, 0.9),  false],
-	["res://art/sprites/tilesets/mountain__regolith_12x4.png",             "Mountain / Regolith",         "Rock",  Color(0.5, 0.5, 0.5),  false],
+	["res://art/sprites/deprecated/mountain__regolith_12x4.png",             "Mountain / Regolith",         "Rock",  Color(0.5, 0.5, 0.5),  false],
 	["res://art/sprites/tilesets/road__regolith_12x4.png",                 "Road / Regolith",             "Road",  Color(0.6, 0.5, 0.4),  false],
 ]
 

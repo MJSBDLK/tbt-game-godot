@@ -127,3 +127,33 @@ func test_hiding_the_panel_abandons_an_armed_hold() -> void:
 	assert_eq(panel._peek_hold_start_ms, -1,
 			"hide_panel ends the peek — no card matures over a closed panel")
 	assert_null(panel._peek_chip)
+
+
+## The SHOW RANGE chip is touch-only (RQD 2026-09-13): with a mouse the
+## panel dodges the hover so the chip can never be reached, and a pad has no
+## pointer at all. Showing a button nobody can press just reads as broken.
+func test_the_range_chip_shows_for_touch_only() -> void:
+	var controller := ThreatOverlayController.new()
+	add_child_autofree(controller)
+	var scene: PackedScene = load(
+			"res://scenes/ui/panels/unit_preview_panel/unit_preview_panel.tscn")
+	var panel := scene.instantiate() as UnitPreviewPanel
+	add_child_autofree(panel)
+	var unit := Unit.new()
+	autofree(unit)
+	unit.character_data = CharacterData.new()
+	unit.faction = Enums.UnitFaction.ENEMY
+	unit.current_hp = 10
+
+	var saved_device: InputSource.Device = InputSource.last_device
+	InputSource.last_device = InputSource.Device.MOUSE
+	panel._update_range_toggle(unit)
+	assert_false(panel._range_toggle_button.visible, "mouse: unreachable, so absent")
+	InputSource.last_device = InputSource.Device.JOYPAD
+	panel._update_range_toggle(unit)
+	assert_false(panel._range_toggle_button.visible, "pad: no pointer, so absent")
+	InputSource.last_device = InputSource.Device.TOUCH
+	panel._update_range_toggle(unit)
+	assert_true(panel._range_toggle_button.visible, "touch is the one input that can press it")
+	assert_eq(panel._range_toggle_button.text, "SHOW RANGE")
+	InputSource.last_device = saved_device

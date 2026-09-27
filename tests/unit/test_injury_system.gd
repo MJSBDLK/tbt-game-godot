@@ -150,3 +150,23 @@ func test_queue_random_injury_appends_one_to_pending() -> void:
 func test_queue_random_injury_null_character_returns_null() -> void:
 	assert_null(InjurySystem.queue_random_injury(null),
 			"Null character short-circuits without crashing")
+
+
+# =============================================================================
+# Max-HP injuries actually apply
+# =============================================================================
+
+func test_a_wound_lowers_max_hp() -> void:
+	# The recompute wrote "injury_modifier_max_hp", a property that doesn't
+	# exist (the field is injury_modifier_hp), and Object.set() on a missing
+	# property is silent — so a Wound never capped anyone's vitality.
+	var data := _make_character(Enums.ElementalType.SIMPLE, 40)
+	var wound := Injury.new()
+	wound.injury_id = "wound_chivalric"
+	wound.severity = Enums.InjurySeverity.MINOR
+	data.current_injuries.append(wound)
+	InjurySystem.recalculate_injury_modifiers(data)
+	assert_eq(data.injury_modifier_hp, -8, "20% of 40")
+	assert_eq(data.max_hp, 32)
+	assert_eq(StatBreakdown.text(data, "max_hp"), "Base (40)\n-8 (Wound)",
+			"and the breakdown names the injury")

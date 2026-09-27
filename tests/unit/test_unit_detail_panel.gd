@@ -471,3 +471,46 @@ func test_the_portrait_box_is_square() -> void:
 	var portrait: Control = box.get_node("PortraitInset/Portrait")
 	assert_gt(portrait.size.x, 0.0, "laid out")
 	assert_almost_eq(portrait.size.x, portrait.size.y, 0.5, "the portrait rect is square after layout")
+
+
+# =============================================================================
+# STAT BREAKDOWN TOOLTIPS — hover or click a stat for its arithmetic
+# =============================================================================
+
+func test_a_stat_row_carries_its_breakdown() -> void:
+	# RQD 2026-09-13: "Str 10+2 → Base (10) / +3 (Competitive) / -1 (debuff)".
+	var panel := _make_panel()
+	var data := CharacterData.new()
+	data.base_strength = 10
+	data.add_passive_bonus("strength", 3, "Competitive")
+	panel.show_character(data)
+	var row: Dictionary = panel._stat_rows["STR"]
+	var name_tip: String = (row["name_label"] as Label).tooltip_text
+	assert_string_starts_with(name_tip, "Physical strength:",
+			"the scene's what-it-does copy stays on top")
+	assert_string_ends_with(name_tip, "Base (10)\n+3 (Competitive)",
+			"the breakdown rides under it, so the label's TapTooltip opens both on a click")
+	assert_eq((row["row"] as Control).tooltip_text, "Base (10)\n+3 (Competitive)",
+			"the row itself answers a hover over the number")
+	# The number and the "+3" are click targets too (RQD 2026-09-22: "I thought
+	# you could bring them up by clicking? That's how the stat names work").
+	var tap_targets: Array = row["tap_targets"]
+	assert_eq(tap_targets.size(), 2)
+	for target: Control in tap_targets:
+		assert_eq(target.tooltip_text, "Base (10)\n+3 (Competitive)")
+		var tap: Node = null
+		for child: Node in target.get_children():
+			if child is TapTooltip:
+				tap = child
+		assert_not_null(tap, "a TapTooltip child is what opens it on a click or tap")
+		assert_eq((tap as Control).tooltip_text, "Base (10)\n+3 (Competitive)",
+				"and it carries the text itself, so a hover over it isn't blank")
+
+
+func test_the_hp_row_breaks_down_max_hp() -> void:
+	var panel := _make_panel()
+	var data := CharacterData.new()
+	data.base_max_hp = 40
+	panel.show_character(data)
+	assert_string_ends_with(panel._hp_name_label.tooltip_text, StatBreakdown.text(data, "max_hp"))
+	assert_string_ends_with(panel._hp_name_label.tooltip_text, "Base (40)")

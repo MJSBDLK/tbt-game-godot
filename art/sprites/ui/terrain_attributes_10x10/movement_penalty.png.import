@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dpo3poj5hua6c"
-path="res://.godot/imported/mountain__regolith_12x4.png-941f1085c4793be8c656f224dbaca5c0.ctex"
+uid="uid://de0tlvuionsdd"
+path="res://.godot/imported/movement_penalty.png-45ec74bd0f12c9292421559a2bd7f867.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/sprites/tilesets/12x4_terrains/mountain__regolith_12x4.png"
-dest_files=["res://.godot/imported/mountain__regolith_12x4.png-941f1085c4793be8c656f224dbaca5c0.ctex"]
+source_file="res://art/sprites/ui/terrain_attributes_10x10/movement_penalty.png"
+dest_files=["res://.godot/imported/movement_penalty.png-45ec74bd0f12c9292421559a2bd7f867.ctex"]
 
 [params]
 

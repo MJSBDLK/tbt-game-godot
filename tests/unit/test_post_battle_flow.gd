@@ -1,22 +1,13 @@
-## Post-battle flow wiring. The chain is banner → BattleResultPanel → conclude
-## (UIManager._on_post_mission_report_ready). show_battle_result's jobs are
-## the state push, map-panel teardown, and recording the outcome + stats for
-## the banner and the result panel — it SHOWS nothing (a legacy stats overlay
-## used to be shown from here and came back as an undismissable zombie under
-## the chain, 2026-07-07; deleted 2026-09-09).
-##
-## Trimmed 2026-09-09 (RQD: "Post-battle: remove a lot of these screens"):
-## the LevelUpReportPanel and BonusXpPanel steps that used to follow the
-## result panel are gone — level-ups celebrate mid-battle the moment they
-## happen (LevelUpStatPanel, test_level_up_stat_panel.gd) and bEXP is spent
-## in the intermission (BexpSpendPanel). The first tests pin that they stay
-## gone.
+## Post-battle flow: banner → BattleResultPanel → conclude. The chain lives in
+## BattleResultPanel (hold_outcome, play_post_mission); these pin its wiring
+## and what the one screen says. Level-ups celebrate mid-battle
+## (test_level_up_stat_panel.gd) and bEXP is spent in the intermission, so
+## neither has a post-battle screen.
 extends GutTest
 
 
 func after_each() -> void:
-	# Unwind the BATTLE_RESULT state pushed by show_battle_result.
-	UIManager.hide_battle_result()
+	UIManager._battle_result_panel.release_outcome_hold()
 
 
 # =============================================================================
@@ -24,53 +15,47 @@ func after_each() -> void:
 # =============================================================================
 
 func test_the_retired_post_battle_screens_stay_deleted() -> void:
-	# If a scene comes back, so does the double celebration this trimmed.
+	# If a scene comes back, so does the double celebration.
 	for path: String in ["res://scenes/ui/panels/bonus_xp_panel.tscn",
 			"res://scenes/ui/panels/level_up_report_panel.tscn",
 			"res://scenes/ui/overlays/battle_result_overlay.tscn"]:
 		assert_false(ResourceLoader.exists(path),
 				"%s was removed with the post-battle cleanup" % path)
-	assert_false("_bonus_xp_panel" in UIManager, "UIManager no longer hosts a bEXP screen")
-	assert_false("_level_up_report_panel" in UIManager,
-			"UIManager no longer hosts a level-up report")
-	assert_false("_battle_result_overlay" in UIManager,
-			"UIManager no longer instantiates the dormant stats overlay")
+	for field: String in ["_bonus_xp_panel", "_level_up_report_panel", "_battle_result_overlay"]:
+		assert_false(field in UIManager, "UIManager hosts no %s" % field)
 
 
-func test_closing_the_result_panel_concludes_the_mission_directly() -> void:
-	assert_not_null(UIManager._battle_result_panel, "the one post-battle screen is instantiated")
-	assert_true(UIManager._battle_result_panel.closed.is_connected(
-			UIManager._on_battle_result_panel_closed),
-			"Continue on the result panel hands straight to the finisher")
-	assert_false(UIManager.has_method("_show_level_up_report"),
-			"no level-up report step between the result panel and conclude")
-	assert_false(UIManager.has_method("_show_bonus_xp_panel"),
-			"no bEXP step between the result panel and conclude")
+func test_the_chain_starts_off_the_squad_report() -> void:
+	var panel: BattleResultPanel = UIManager._battle_result_panel
+	assert_not_null(panel, "the one post-battle screen is instantiated")
+	assert_true(SquadManager.post_mission_report_ready.is_connected(panel.play_post_mission),
+			"the banner waits for SquadManager's report, not battle_ended")
 
 
 # =============================================================================
-# show_battle_result — records, never shows
+# hold_outcome — holds, never shows
 # =============================================================================
 
-func test_outcome_is_recorded_for_the_banner() -> void:
-	UIManager.show_battle_result(false, 5, 4, 1, 4, 3)
-	assert_false(UIManager._pending_result_is_victory, "defeat recorded for the DEFEAT banner")
-	UIManager.hide_battle_result()
-	UIManager.show_battle_result(true, 5, 0, 3, 4, 3)
-	assert_true(UIManager._pending_result_is_victory, "victory recorded for the VICTORY banner")
+func test_the_outcome_is_held_for_the_banner_and_the_screen() -> void:
+	var panel: BattleResultPanel = UIManager._battle_result_panel
+	UIManager.hold_battle_outcome(_stats(false, 7))
+	assert_eq(GameStateManager.current_state, Enums.InputState.BATTLE_RESULT,
+			"the map is frozen from the last blow")
+	assert_false(panel._outcome.is_victory, "defeat held for the DEFEAT banner")
+	assert_eq(int(panel._outcome.turn_count), 7, "turns survive to the result screen")
+	assert_false(panel.visible, "the banner comes first; nothing shows yet")
 
 
-func test_full_stats_payload_is_stashed_for_the_result_panel() -> void:
-	UIManager.show_battle_result(true, 7, 1, 8, 4, 8)
-	assert_eq(int(UIManager._pending_battle_stats.get("turn_count", -1)), 7,
-			"turns survive from _end_battle to the result panel")
-	assert_eq(int(UIManager._pending_battle_stats.get("enemies_defeated", -1)), 8)
-	assert_eq(int(UIManager._pending_battle_stats.get("player_units_lost", -1)), 1)
-	assert_eq(int(UIManager._pending_battle_stats.get("total_players", -1)), 4)
+func test_a_second_hold_does_not_stack_the_state() -> void:
+	UIManager.hold_battle_outcome(_stats(true, 5))
+	UIManager.hold_battle_outcome(_stats(true, 6))
+	UIManager._battle_result_panel.release_outcome_hold()
+	assert_ne(GameStateManager.current_state, Enums.InputState.BATTLE_RESULT,
+			"one release unwinds it")
 
 
 # =============================================================================
-# BattleResultPanel rendering (the one post-battle screen, added 2026-08-03)
+# BattleResultPanel rendering
 # =============================================================================
 
 func _fresh_result_panel() -> BattleResultPanel:
@@ -134,5 +119,5 @@ func test_result_panel_continue_emits_closed_and_hides() -> void:
 	panel.show_result(_stats(true, 5), [], [])
 	assert_true(panel.visible, "panel visible while showing")
 	panel._on_continue_pressed()
-	assert_signal_emitted(panel, "closed", "UIManager concludes the mission off this")
+	assert_signal_emitted(panel, "closed", "the chain concludes the mission off this")
 	assert_false(panel.visible)

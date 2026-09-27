@@ -159,14 +159,17 @@ func test_nothing_casts_returns_empty() -> void:
 			"A fully transparent frame casts nothing.")
 
 
-func test_shadow_sits_in_the_terrain_effects_slot_of_its_row() -> void:
+func test_shadow_sits_in_the_terrain_shadow_slot_of_its_row() -> void:
 	var shadow := UnitShadow.new()
 	add_child_autofree(shadow)
 	assert_true(shadow.z_as_relative)
 	assert_eq(shadow.z_index,
-			ZIndexCalculator.ZIndexLayer.TERRAIN_EFFECTS
+			ZIndexCalculator.ZIndexLayer.TERRAIN_SHADOWS
 			- ZIndexCalculator.ZIndexLayer.UNITS,
-			"Relative slot must land in the decoration-shadow band of the unit's own row.")
+			"One band with terrain shadows: a unit's shadow falls ON a modifier beside it.")
+	assert_gt(ZIndexCalculator.ZIndexLayer.TERRAIN_SHADOWS,
+			ZIndexCalculator.ZIndexLayer.TERRAIN_MODIFIERS,
+			"which is only true while shadows outrank same-row bodies")
 	assert_eq(shadow.texture_filter, CanvasItem.TEXTURE_FILTER_NEAREST)
 
 
@@ -361,3 +364,22 @@ func test_debug_toggle_kills_the_shadow() -> void:
 	DebugConfig.unit_cast_shadows = true
 	shadow.sync_to_source()
 	assert_true(shadow.visible)
+
+
+func test_two_frames_cut_from_one_sheet_read_back_as_two_images() -> void:
+	# Every AtlasTexture reports its SHEET's RID but returns only its own
+	# region's pixels; a cache keyed on the RID alone handed the first frame's
+	# pixels to every later frame of that sheet.
+	var sheet := Image.create(8, 4, false, Image.FORMAT_RGBA8)
+	sheet.fill_rect(Rect2i(0, 0, 4, 4), Color.WHITE)
+	var sheet_texture := ImageTexture.create_from_image(sheet)
+	var left := AtlasTexture.new()
+	left.atlas = sheet_texture
+	left.region = Rect2(0, 0, 4, 4)
+	var right := AtlasTexture.new()
+	right.atlas = sheet_texture
+	right.region = Rect2(4, 0, 4, 4)
+	assert_eq(left.get_rid(), right.get_rid(), "the engine fact the key has to work around")
+	assert_eq(UnitShadow.readable_sheet(left).get_pixel(0, 0).a, 1.0)
+	assert_eq(UnitShadow.readable_sheet(right).get_pixel(0, 0).a, 0.0,
+			"the right frame is its own (clear) pixels, not the left frame's")

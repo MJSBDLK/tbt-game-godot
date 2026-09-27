@@ -172,7 +172,9 @@ func cancel_attack_targeting() -> void:
 # =============================================================================
 
 func _process(_delta: float) -> void:
-	if not input_enabled or not GridManager.is_grid_ready():
+	# The dev console gate is here, not just in InputRouter: hover and the
+	# repeats POLL the mouse and Input, which don't care what was handled.
+	if not input_enabled or not GridManager.is_grid_ready() or DevConsole.is_open():
 		return
 	_update_hover()
 	_check_long_press()
@@ -216,11 +218,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not input_enabled or not GridManager.is_grid_ready():
 		return
 
-	# End turn shortcut (E key)
+	# End turn shortcut (E key, and the hint bar's touch button)
 	if event.is_action_pressed("end_turn"):
-		var turn_manager: Node = get_node_or_null("/root/TurnManager")
-		if turn_manager != null and turn_manager.is_player_phase():
-			turn_manager.force_end_player_turn()
+		UIManager.request_end_turn()
 		get_viewport().set_input_as_handled()
 		return
 

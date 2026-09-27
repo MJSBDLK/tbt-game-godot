@@ -30,15 +30,15 @@ signal combat_completed(attacker: Unit, defender: Unit)
 
 const MOVEMENT_SCALE: int = 2
 const MOVE_SPEED: float = 600.0  # Pixels per second
-const HIT_DELAY: float = 0.3  # Seconds between combat hits (a presenter hold; skip → 0)
+const HIT_DELAY: float = 0.3  # Seconds between combat hits under FAST pacing (a presenter breath; skip → 0)
 # A Bellows-boosted fire hit never lands soft: impact weight floors here so the
 # flash/shake/hitlag sell the boost (crits floor at 0.8 — this is the lesser
 # beat).
 const BELLOWS_IMPACT_FLOOR: float = 0.6
 ## The acted look: full grayscale, no darkening (see the shader). Faction-blind
-## on purpose — the health bar already carries faction.
+## on purpose — the health bar already carries faction. How grey is
+## ArtVariables.ACTED_GREYSCALE, pushed into the shared material live.
 const ACTED_SHADER: Shader = preload("res://shaders/unit_acted.gdshader")
-const ACTED_DESATURATION: float = 1.0
 
 
 # =============================================================================
@@ -270,6 +270,14 @@ func _ready() -> void:
 	Settings.changed.connect(_update_type_icons)
 
 
+## A picture of the unit, not a combatant (MissionPreview's diorama): the
+## sprite and its cast shadow stay; the health bar and everything parented
+## to it — level, status pips, type icons — go.
+func hide_battle_chrome() -> void:
+	if _health_bar != null:
+		_health_bar.visible = false
+
+
 func initialize(starting_tile: Tile) -> void:
 	# If character_data was injected before initialize() (BattleScene route for
 	# persistent player units via SquadManager), skip the JSON load. Otherwise
@@ -481,10 +489,8 @@ func execute_planned_movement() -> void:
 ## The deferred walk: commit the LOGIC of the plan instantly — occupancy, ranges,
 ## previews and every movement_completed listener (auras, threat) read the
 ## destination — while the sprite stays at the origin behind the staged ghost.
-## Ghost parks BEFORE the claim: UnitGhost.anchor_offset measures the sprite
-## against current_tile, so both must still agree on the origin here. z is
-## deliberately NOT restamped — the visual row hasn't changed; the deferred
-## walk restamps it row by row as the sprite actually passes.
+## z is deliberately NOT restamped — the visual row hasn't changed; the
+## deferred walk restamps it row by row as the sprite actually passes.
 func _stage_deferred_movement(full_path: Array[Tile], traversed_tiles: Array[Tile]) -> void:
 	var destination: Tile = full_path.back() if not full_path.is_empty() else current_tile
 	if _path_visualizer != null and _path_visualizer.has_method("show_staged_ghost"):
@@ -992,6 +998,21 @@ func resolve_friendly_fire_victim(original_defender: Unit, move: Move) -> Unit:
 # the living map): scripts/combat/presenter/combat_presenter.gd.
 # =============================================================================
 
+# Units mid-fight; untyped so a freed one can sit here without a crash.
+static var _fighters: Array = []
+
+
+## True from a fight's first beat to its last result beat (XP bars, a
+## level-up reveal): the map camera sits the whole fight out
+## (CameraController._is_input_blocked). A fighter freed mid-fight stops
+## counting, so a coroutine that never resumes can't lock the camera.
+static func is_fight_running() -> bool:
+	for fighter: Variant in _fighters:
+		if is_instance_valid(fighter):
+			return true
+	return false
+
+
 ## Run one full exchange: the attacker's move against `defender`, counters,
 ## multi-hits, and everything that rides on them. LOGIC lives here — rolls,
 ## damage, the pipeline, live range re-checks, XP banking. Every visual
@@ -1001,6 +1022,13 @@ func resolve_friendly_fire_victim(original_defender: Unit, move: Move) -> Unit:
 ## CombatPresenter.for_exchange decide.
 func execute_combat_sequence(defender: Unit, attacker_move: Move,
 		presenter: CombatPresenter = null) -> void:
+	_fighters.append(self)
+	await _run_combat_sequence(defender, attacker_move, presenter)
+	_fighters.erase(self)
+
+
+func _run_combat_sequence(defender: Unit, attacker_move: Move,
+		presenter: CombatPresenter) -> void:
 	if defender == null or attacker_move == null:
 		return
 	# Deferred walk: the sprite must have walked before it swings — commit
@@ -1172,7 +1200,7 @@ func _run_offensive_exchange(defender: Unit, attacker_move: Move,
 		if DamageCalculator.is_within_attack_range(defender, self, defender.assigned_move):
 			defender.assigned_move.consume_use()
 			defender_counter_paid = true
-			await presenter.hold(HIT_DELAY)
+			await presenter.breath(HIT_DELAY)
 			await defender._execute_single_hit(self, defender.assigned_move, true, presenter)
 			if is_defeated():
 				await _handle_defeat(presenter)
@@ -1192,7 +1220,7 @@ func _run_offensive_exchange(defender: Unit, attacker_move: Move,
 				attacker_denial_shown = true
 				await presenter.out_of_range(self)
 			break
-		await presenter.hold(HIT_DELAY)
+		await presenter.breath(HIT_DELAY)
 		await _execute_single_hit(defender, attacker_move, false, presenter)
 
 	if defender.is_defeated():
@@ -1215,7 +1243,7 @@ func _run_offensive_exchange(defender: Unit, attacker_move: Move,
 			if not defender_counter_paid:
 				defender.assigned_move.consume_use()
 				defender_counter_paid = true
-			await presenter.hold(HIT_DELAY)
+			await presenter.breath(HIT_DELAY)
 			await defender._execute_single_hit(self, defender.assigned_move, false, presenter)
 
 	if is_defeated():
@@ -2152,8 +2180,16 @@ static func acted_material() -> ShaderMaterial:
 	if _acted_material == null:
 		_acted_material = ShaderMaterial.new()
 		_acted_material.shader = ACTED_SHADER
-		_acted_material.set_shader_parameter("desaturation", ACTED_DESATURATION)
+		refresh_acted_material()
+		# One material, one connection, for the life of the process.
+		DebugConfig.art_knobs_changed.connect(refresh_acted_material)
 	return _acted_material
+
+
+## Push the current knob into the shared material.
+static func refresh_acted_material() -> void:
+	if _acted_material != null:
+		_acted_material.set_shader_parameter("desaturation", ArtVariables.ACTED_GREYSCALE)
 
 
 func _update_z_index() -> void:

@@ -1,13 +1,149 @@
+**Reminder** We should be trying to get to alpha.
++ fix essential bugs
++ additional features need a good reason to be added at this point
+	- there will be time to add them later
++ prioritize stuff that gets us to alpha
+
 # Resp
-Ah, so I didn't express this to you perhaps: our dynamic shadow system is almost comically poorly-suited to these mountain tiles. That's what I just tried.
-I'm not sure if that's what you meant, but our existing shadow system won't work for these mountains.
-The end problem I'm trying to solve is less work for Lawrence. He can indeed hand-draw shadows, and they'll look great - but we have exactly one artist, and this game needs a ton of art.
-In this case, it's autotiled mountain tiles on the right edge which have shadows that fail to protrude into the cell to the right.
-If Lawrence weren't staunchly against this, I'd say "just have an AI do them" but he's dead set on zero AI-generated art.
+
+
+# Claude
+Things Claude found while working on something else that need doing — not
+asked for, not yet acted on. RQD triages (promote, answer, or strike);
+Claude deletes an entry once it's fixed or moved into a real section.
+Observations with nothing to do go in "Claude FYI" below.
+- [ ] Twinkle lab: the published artifact
+  (https://claude.ai/artifact/6KnNAarmzsRbTbwdXvD9FE) still runs the pre-fix
+  shader; republish it before sending Lawrence the link. The three presets
+  (RQD / Lawrence / geometric middle) aren't built yet; values in Claude's memory.
+- [ ] 5× "Lambda capture at index 0 was freed" in test_displacement_system's
+  counter/knockback tests, on a clean HEAD too. A lambda outlives the unit it
+  captured; harmless today, noise in every run.
+	- This is lower priority but we should track it down [ready]
+- [ ] 
+
+# Claude FYI
+Observations with no action item: worth knowing, nothing to do. No
+checkboxes. RQD deletes an entry once read; if one grows an action, it moves
+up to # Claude.
+
+# [ ] TRACKING ART AND ANIMATION WORK
+We need something like a Kanban board or a checklist which lists each character, which highres/pixel art is still needed for that character, and the system needs to be extensible as we add features. For example, we might decide that highres line art needs each character to have a "determined face" (I'm not saying we're doing this) and then that would need to appear in the checklist for Lawrence for all relevant characters. It should live somewhere super convenient and be tracked on Lawrence's branch.
+This will also need to extend to other art other than character work.
+Basically it should be a dashboard where Lawrence can come in, see what work is most pressing, and work on that. We might include an AI agentic skill to scan for updates Lawrence has done, and to sync the progress on his dashboard with the art that's actually in place. Flag anomalies. Stuff like that.
+The goal is to make Lawrence's life as easy as possible - so let's make sure we're not adding unnecessary process. We shouldn't even really need to teach Lawrence how to access the todo list. Him bookmarking it should be enough, and the utility should be super obvious. Needs a careful design session.
+
+# Reparent worktree directories
+One container for every checkout of the game plus the Unity source, so
+worktrees sit beside the main checkout instead of loose in ~/Documents/Projects:
+
+    ~/Documents/Projects/tbt-game/          container
+      tbt-game-godot/                       main checkout
+      tbt-game-godot--twinkle-steps/        worktree
+      tbt-game-unity/                       Unity source
+      tbt-game.code-workspace               open THIS in VS Code
+
+Full names kept inside the container, so a folder read without context still
+says which project it is. Claude keys memory by path, so the memory folder is
+renamed in the move below. Claude sessions must start in tbt-game-godot/ (it
+holds CLAUDE.md); one opened at the container root gets no project memory.
+
+- [x] Layout and names (RQD: full names), Unity moves in.
+- [x] Twinkle shader comments folded into the branch's one commit (d68c2b6).
+- [x] Unity path fixed → `../tbt-game-unity/` (CLAUDE.md ×7, guide.md ×8, migration.md ×1; `../tbt-game/` pointed at nothing). Resolves before and after the move.
+- [x] .claude/settings.local.json: absolute-path rules rewritten to the new roots (same scope).
+- [x] Memory: the 3 files with absolute links + the twinkle note point at the new paths.
+- [x] tbt-game/ created with tbt-game.code-workspace (tbt-game-godot first); CLAUDE.md Branch Flow names the worktree convention.
+- [x] Close Godot (both projects), Unity + Unity Hub, every VS Code window on these folders, and every Claude session in them. Then, from a plain terminal (not VS Code's):
+
+      cd ~/Documents/Projects
+      mv tbt-game-godot tbt-game-godot--twinkle-steps tbt-game-unity tbt-game/
+      cd tbt-game/tbt-game-godot
+      git worktree repair ../tbt-game-godot--twinkle-steps
+      git worktree list
+      mv ~/.claude/projects/-home-mjsbdlk-Documents-Projects-tbt-game-godot \
+         ~/.claude/projects/-home-mjsbdlk-Documents-Projects-tbt-game-tbt-game-godot
+
+  (The main checkout can't `git worktree move`, hence mv + repair with the
+  worktree's new path. Hooks are relative symlinks and move along.)
+- [x] Open tbt-game/tbt-game.code-workspace. Check a Claude session starts in tbt-game-godot/ and loads CLAUDE.md + memory.
+- [x] Godot Project Manager: remove the stale entries, Import tbt-game-godot/project.godot (and the worktree's if wanted). user:// (saves, settings, logs) is keyed on the project name, so it's untouched.
+- [-] Unity Hub: re-add tbt-game-unity/.
+- [~] Verify: `git status` in both checkouts, GUT suite, F5. (git + GUT checked by Claude 9/25; F5 is yours.)
+
+# BUGZ
+- [~] Threat zones should disable during the enemy turn
+  (BUILT 2026-09-23 on `rqd--playtest-0922`, eyeball-gated; story in the commit.)
+- [~] Camera doesn't follow enemy unit movement during the enemy's turn
+  (BUILT 2026-09-23, eyeball-gated. EYEBALL: does the minimal pan read as
+  "following", or does it want a hard center on each enemy?)
+- [~] It looks like enemies are still too dumb to use their attacking moves if their top, equipped move is a non-attacking move. They just move toward you and end their turn. The enemies need to be smarter in general - maybe this calls for the full AI pass and a design session? Or should we get a significantly larger move pool first?
+  (FIXED 2026-09-23 — a bug, not the AI pass, which still stands; story in the commit.)
+- [x] I overwrote a save once, and now the "overwrite save" screen will show up unexpectedly where it shouldn't: ![alt text](image-5.png)
+  (FIXED 2026-09-22 in 319f72a, on rqd--main. Not the hub's picker — UIManager's, opened
+  from the battle system menu (Load, or Save on a full ring), living in the
+  overlay that outlives scenes. The state handler hid the system menu on
+  every exit from PAUSED but never the browser, so a phase start or a
+  stack-clearing cancel under it left it floating, and it rode into the hub.
+  `UIManager.hide_save_browser` now goes with the menu. test_hud_overlay_orphans.)
+- [x] Save browser rows stamp the save in UTC, not local time — a 20:36 save reads as tomorrow: ![alt text](image-4.png)
+  (FIXED 2026-09-22. The screenshot rode into 319f72a with no item under it;
+  this is the item. `SaveBrowserPanel._format_timestamp` fed the raw unix
+  stamp to Godot's from_unix_time formatter, which is UTC-only; it now shifts
+  by the system zone bias first. test_save_browser_panel pins it against the
+  OS clock. Delete image-4.png once seen in a build.)
+
 
 # Meeting Notes 2026/09/20
-- [ ] Star twinkle shader
-- [ ] 
+- [x] Star twinkle shader
+- [x] Mountains 12x8 is on Lawrence's branch - let's try to implement it!
+- [~] Runtime-editable art knobs ("cvars"): let `ArtVariables` values change
+	while the game runs, so Lawrence tunes and watches instead of edit → F5.
+	(BUILT 2026-09-21 on `rqd--art-cvars`, eyeball-gated. The Carmack shape:
+	knobs are `static var`s read at use (every `const X := ArtVariables.Y`
+	alias is gone — 13 sites); `DebugConfig.set_art_knob` is the one write
+	path and fires `art_knobs_changed`; UnitShadow polls the dials each tick
+	like it polls the frame, TerrainSpriteRenderer/Unit's acted material/the
+	vignette re-push on the signal; both bake caches key on the knobs, so no
+	drop. TRIGGER = a ` dev console (`DevConsole`, CanvasLayer 100 in
+	HUDViewport, gated on cheats_enabled): `shadow_ink_alpha 0.3`, `list`,
+	`reset [name]`, `dump` = the changed knobs as `static var` lines to paste
+	into his file, Tab/Up/Down. WHILE OPEN the game is deaf, BY DESIGN (RQD
+	2026-09-21, shipped in fc87f16): the
+	console root spans the canvas and stops the mouse, keys/joypad die in
+	the HUD, and `DevConsole.is_open()` gates InputRouter (nothing reaches
+	the world, motion included) plus the two POLLERS handled flags can't
+	stop — InputManager's hover and CameraController's key pan (typing
+	"shadow" was WASD). No pause, no InputState: a state pushed for as long
+	as a console stays open would outlive turn changes. Tests: test_art_variables rewritten from "alias
+	equals knob" to "turn knob, consumer follows" (+ a live terrain refresh
+	in test_terrain_sprite_renderer, test_unit's 1.0 now reads the knob),
+	test_dev_console ×10; suite 1302. EYEBALL: console size/colors on the
+	HUD canvas, whether ` collides with anything, the Steam Deck (no
+	keyboard — a pad path is a later ask). NOT built: file-watch reload,
+	sliders. GOTCHA for later: a class name won't take get()/set() by name —
+	the analyzer refuses instance calls on a class; preload the script
+	resource and call them on that.)
+	-> Cheap route, no GUI: `const` → `static var` in art_variables.gd (one
+	word per line; his file still reads the same), and the alias sites
+	(UnitShadow, TerrainSpriteRenderer, GameColors, Unit — ~13) read at use
+	instead of copying into their own consts. Then a debug panel, a console
+	command or a test can set one live.
+	-> Two shadow paths BAKE the ink into cached images (generated terrain
+	casts, unit projections) — a live change needs those caches dropped. The
+	mask-based ones (mountains, decorations) update instantly.
+	-> Doubles as a UNIT TEST AUDIT, which may be the better reason to do it: a
+	test that hardcodes 0.4 breaks, a test that reads the knob or takes the
+	dials as arguments doesn't. One found and fixed already
+	(test_terrain_sprite_renderer's ink assertion).
+	-> Inspector sliders (a .tres Resource with @export_range) are the GUI half
+	if he ever wants one; the same const → runtime change is what unlocks it.
+- [~] Error: /home/l/.var/app/com.valvesoftware.Steam/config/aseprite/extensions/webtyler/webtyler.lua:861: index out of bounds 256
+	(FIXED in 8f897f2 — the preview palette grows before the source's is
+	copied. Lawrence's installed copy is the OLD one until the extension is
+	rebuilt and re-installed; the webtyler install workflow note has the
+	three copies to sync.)
+	-> This happens every time you first run the Webtyler script, and then you can run it again after that and everything works fine. Would be great for an error not to mean "all's well," because seeing this error is just part of standard procedure at present.
 
 # Lawrence playtest feedback
 - [~] "this right here is a little cluttered" - in reference to the intermission main screen - talking about the subtitles
@@ -41,20 +177,36 @@ If Lawrence weren't staunchly against this, I'd say "just have an AI do them" bu
   length so a Bellows warm flash stays warm.)
   - [ ] Known gap, accepted: an already-gray unit (Gentry, Robo palettes)
     barely changes when it acts. Fix when it bites.
-- [ ] For a new player, the battle scene goes by really quickly. I think it's appropriate for a veteran, but this should be a toggle in the settings. For a new player, the battle scene goes by too fast to understand what's happening.
-	- [ ] what we can do: apply a ~0.8-second wait before, between, and after attack animations. The user can skip the wait by pressing any button.
-- [ ] When hitting end turn, if there are player units which still have not acted, display a warning. The user can toggle this warning off in the gameplay options if they wish. 
-- [ ] Maybe add an "advanced player defaults" option which speeds the game up, removes confirmations, etc
+- [~] For a new player, the battle scene goes by really quickly. I think it's appropriate for a veteran, but this should be a toggle in the settings. For a new player, the battle scene goes by too fast to understand what's happening.
+	- [~] what we can do: apply a ~0.8-second wait before, between, and after attack animations. The user can skip the wait by pressing any button.
+  (Group C, BUILT on `rqd--playtest-0913`; story in the commit. Options →
+  "Battle Pacing", `CombatPresenter.breath`. EYEBALL: the 0.8 s feel; whether
+  the map wants a breath before the ENEMY's swing (it has none).)
+- [~] When hitting end turn, if there are player units which still have not acted, display a warning. The user can toggle this warning off in the gameplay options if they wish. 
+  (BUILT, same commit. `UIManager.request_end_turn` → the system menu's
+  confirm page; waiting units wear the Silhouette CTA (style guide §14,
+  knobs `ArtVariables.UNIT_CALL_TO_ACTION_*`). RQD: "looking great".
+  OFF-SCREEN units: BUILT on `rqd--end-turn-framing` — the camera frames
+  every waiting unit beside the menu, zooming out only if they won't fit;
+  Cancel glides back to the old view, End Turn leaves it
+  (`CameraController.frame_points`). RQD: "feels natural off the bat".)
+- [~] Maybe add an "advanced player defaults" option which speeds the game up, removes confirmations, etc
+  (BUILT, same commit: Options → "Preset: Newcomer / Veteran",
+  `Settings.PRESETS`. Battle Anims left out on purpose — taste, not speed.)
 - [~] The phantom previews are hard to see agianst certain backgrounds - let's apply a near-white outline.
   (1px `GHOST_OUTLINE` Azure 10 rim in ghost_projection.gdshader, steady,
   blinks with modulate — move-plan AND displacement ghosts. EYEBALL.)
 - [~] The green from being at the class max on a stat is the same green as "this stat has been boosted by some effect" no semantic difference between the colors is confusing.
   (At-cap is now `TEXT_AT_CAP` Cyan 7/4 — the full-HP hue — in all six
   venues; buffs keep Green 6. Style guide §3 updated. EYEBALL.)
-- [ ] StatUps - new player was confused at the percentage-based stat-ups. 4+ computes to 4, and 15+ computes to 17. If you don't understand these are a 10% buff, this appears broken. The system is working correctly - it's the presentation that needs improvement.
-  (Next branch: "stat readability" — `15 → 17` preview on the [+] hover,
-  the per-source stat tooltip from §Todo, then a tutorial beat. OPEN: min +1
-  per StatUp? Move buffs already floor at ±1, StatUps round plainly.)
+- [~] StatUps - new player was confused at the percentage-based stat-ups. 4+ computes to 4, and 15+ computes to 17. If you don't understand these are a 10% buff, this appears broken. The system is working correctly - it's the presentation that needs improvement.
+  (BUILT 2026-09-22 on `rqd--stat-readability` with the §Todo stat tooltip
+  and three Quick Fixes; story in that branch's first commit. Hover [+]/[−]
+  on the sheet → `15→17` on the number, `4→4` when a point rounds away and
+  the tooltip names the point that moves it; touch = hold-to-peek, never
+  spends. RQD: "working great, feels totally natural". NOT built: the
+  tutorial beat (no tutorial system yet, group D). STILL OPEN: min +1 per
+  StatUp? The honest +0 may be enough. EYEBALL on a phone: hold timing.)
 - [x] New player didn't add a unit from the bench, despite a slot being open in the squad. He thought recruits were added automatically, which actually should  be how it works if there's room.
   (`CampaignManager._seat_recruit`: a recruit joins the chosen deployment;
   the hub's cap trim benches it when the squad is full. Also joins a squad
@@ -62,8 +214,13 @@ If Lawrence weren't staunchly against this, I'd say "just have an AI do them" bu
 - [ ] 
 
 # Quick Fixes
-- [ ] "show range" box in the unit preview panel is funtionally non-interactible when using M&K, so it should not display if touchscreen input is not active.
-- [ ] There is too much vertical gap between the unit preview panel and the terrain preview panel when both are onscreen at once - the terrain preview panel is pushed 1-2 pixels off the bottom of the screen.
+- [x] "show range" box in the unit preview panel is funtionally non-interactible when using M&K, so it should not display if touchscreen input is not active.
+  (DONE 2026-09-22: touch-only — a mouse can't reach it, a pad has no pointer.)
+- [x] There is too much vertical gap between the unit preview panel and the terrain preview panel when both are onscreen at once - the terrain preview panel is pushed 1-2 pixels off the bottom of the screen.
+  (DONE 2026-09-22: the left column is no longer a stack — unit preview
+  pinned top, terrain preview locked to the bottom corner and growing
+  upward; the two fixed frames (218 + 140 + 4) overran a 360 canvas. RQD:
+  "flawless". Pinned in test_hud_side_columns.)
 - [~] Goblin Healer - not a mage, an... apothecary? I think that's the name of the store. What do you call them, an herbalist or something? What word am I looking for?
   (ANSWERED 2026-09-10: **apothecary** — it names both the shop and the
   person who keeps it; "herbalist" is the plants-only narrower word,
@@ -114,7 +271,11 @@ If Lawrence weren't staunchly against this, I'd say "just have an AI do them" bu
   cursor share). Not touched, flagging: the "move preview doesn't animate
   properly when a unit retreads its path" item in §6 is probably related
   (beacon phase on revisited tiles), not this.)
-- [ ] Still need to replace "B" and "8" in the small font with our own creations
+- [x] Still need to replace "B" and "8" in the small font with our own creations
+  (DONE 2026-09-22. They were the only 4-wide glyphs in a 3-wide font, with
+  outlines that rendered as noise. Redrawn — B 3×4, 8 3×5 on the descender
+  row — by tools/fonts/patch_pixel_glyphs.py, where the grids are text an
+  artist can edit; the same tool added → to the 8px font. RQD: "looks great".)
 
 # Characters
 - [ ] Goblin Healer
@@ -181,6 +342,41 @@ If Lawrence weren't staunchly against this, I'd say "just have an AI do them" bu
 - [ ] 
 
 # Todo
+- [ ] Mouse commands that bypass the InputMap. Keys, pad and the wheel all go
+  through actions (project.godot), but three mouse commands check the
+  physical button: right-click = back on the board
+  (`InputManager._handle_right_click`), middle-drag = camera pan
+  (CameraController), right-hold = move peek (MoveChipButton). A rebind
+  screen couldn't reach them, and the hint bar can't name a rebound one.
+  Fix: an action each (`ui_cancel` may already fit right-click). Left-click
+  as "press the thing under the pointer" stays raw — that's what a pointer
+  is, same as Godot's own Button. Blocks nothing until a rebind screen exists.
+  RQD: matters a lot for Steam Input (it remaps actions, not raw buttons).
+- [ ] Add a next/prev unit button.
+	- M&K: Probably Q/E on keyboard (careful to make sure this is contextual because these do other things in the menus). LMK if you have a better idea or if there's a game that does this well I should be aware of.
+	- Controller: are the bumpers in use? If we need to, these can just be B (east) on the controller, but I think I prefer having both Prev and Next
+	- Touchscreen: the controls at the bottom are already getting cluttered. What are your thoughts? Just a next button? Next/Prev in the top corners? (don't love this idea but it could work well) Just add them to the control strip anyway?
+- [ ] We still haven't implimented single enemy unit threat zones - should be a distinct "danger" or "warning" color. Might make the "all enemies" threat zone "warning," and a specific enemy threat zone "danger," the more I think about it.
+	- I hold a controller in my hands, and think "what button press brings up the enemy threat zone?" and that button is A or X (face button west or south). If both are already taken, can it be contextual? Let's discuss.
+	- I think we probably want to toggle the threat zone off with the same button as well - LMK if you can think of any disadvantages to that.
+	- (Already there: the Range chip on an enemy's info panel pins its zone.
+	  Missing: the danger color, and a button.)
+- [ ] Context-sensitive button map — spell it out, then build the two items
+  above on it. DECIDED (RQD 9/26):
+  - RT (keyboard V): over an enemy, pin/unpin its zone; anywhere else, all
+    enemies on / everything off. The controller already works this way.
+  - Y on a unit = unit info, never the zone too. Y on an empty tile = the
+    type-icon layer (breakable terrain could join it later).
+  - Peek moves onto Y, freeing Back and R3. Action menu: tap Y = unit info,
+    hold Y = peek.
+  - LB / RB = prev / next unit (LB gives up the zones); keyboard Q / E, as
+    in menus. Touch: one "Next".
+  - End Turn moves from E (beside WASD) to Backspace, XCOM's key.
+  - A on an enemy keeps the info panel; the zone is RT's alone. RT over
+    your own unit = the all-enemies toggle. (Playtest both.)
+  Home for the map: HintBarCommands' table (the bar must name each context's
+  verb anyway).
+- [ ] We should have fullres line art for the Keener enemy - name is either "cultist" or "blood mage," not to be confused with the plant cultist.
 - [x] Options menu has gotten too big for the screen. We'll need to tabulate and/or refactor
   (DONE 2026-09-09 on `rqd--options-tabs`, eyeball-gated. Both: three tabs
   — GAMEPLAY (Quick Attack, Auto End Turn, Move Confirm, [Move Commit — deleted 2026-09-10],
@@ -244,14 +440,57 @@ If Lawrence weren't staunchly against this, I'd say "just have an AI do them" bu
   (DONE 2026-09-10: `OptionsMenuPanel._dress_slider` — the pill palette as a
   bar, 5×9 knob. RQD: "knob looks good". Still no §14 slider design; this
   is the placeholder.)
-- [ ] In the unit detail panel, clicking any stat should display its modifications:
+- [x] In the unit detail panel, clicking any stat should display its modifications:
 	- Str 10+2
 		-> Base (10)\n+3 (Competitive)\n-1 (Some debuff)
 	- should also show base (10) alone if it's unmodified and the user brings up the tooltip
 	- should still show e.g. `Base (10)\n+2 (Some buff)\n-2 (Some debuff)` if there are modifications which bring it back to its base.
+  (DONE 2026-09-22 on `rqd--stat-readability`, exactly this shape —
+  `StatBreakdown` + per-source ledgers on CharacterData; lines always sum to
+  the number on screen. Click/tap the name, the number or the "+2"; hover
+  the row. Sheet rows too. NOT built: a pad path. FOUND ON THE WAY (story in
+  the commit): HP injuries never applied (`injury_modifier_max_hp` isn't a
+  property; set() is silent) — fixed; and every native tooltip in the HUD
+  was dead (mouse-enter never reaches a nested SubViewport) — InputRouter
+  mirrors it now, so ~29 authored hover tooltips light up. EYEBALL those.)
 - [ ] Victory screen popping up needs more dopamine - discuss
-- [ ] The finalized icons for the terrain preview panel are actually finished - we should use those over the placeholders we're currently using.
-- [ ] 
+  (Mockup session, HTML first.)
+- [~] The finalized icons for the terrain preview panel are actually finished - we should use those over the placeholders we're currently using.
+  (BUILT on `rqd--terrain-icons`: exported from his
+  `art/sprites/ui/terrain_attributes_10x10/terrain_attributes_10x10.aseprite`
+  — the folder was `terrain_attribute_icons_placeholder/`. EYEBALL.)
+- [~] Allow for tooltips in the options menu, explaining what options do.
+  (BUILT on `rqd--options-tooltips`; story in the commit. RQD: "looks great".
+  EYEBALL on other devices: the pane on touch (tap a name), on the Deck.)
+- [ ] Mix the audio so every bus sounds right at 80% — the default for all
+  three volume sliders (already true in code; a settings.cfg that saved
+  another value keeps it).
+- [~] For the FPS cap, we should have it go from 60 to the monitor's refresh rate, with a  "higher?" button to the right, which, when clicked, lets them pick values up to 1000.
+	- the reason for this is that most people don't know their monitor's refresh rate
+	- tooltip explaining why
+	- Claude recommends off/30/60/refresh. I agree this is user-friendly but I don't want to leave out people with less common refresh rates. I am a framerate princess. 75, 90, 120, 144, 165, 200, 240, higher - I like the idea of a slider that accommodates everyone, but for people who have the "basic bitch fixed 60" monitor, it's a lot of wasted screen real estate, or worse, confusing. 25 year old Quinn didn't know about screen refresh rates, microstutter, etc, so when I saw a knob that let me increase my frame rate beyond the refresh rate, I cranked that up and got confused at the tearing.
+	- If we can design around this, great, but if not, maybe we just leave as-is.
+	- DECIDED (RQD 9/26) [ready]: detect the monitor's refresh rate; slider
+	  30–refresh; a "Higher?" button unlocks it to 1000. Tooltip says why.
+	  Fallback 60 when the OS won't report a rate.
+	- BUILT on `rqd--fps-slider`, with a VSync row (RQD: a separate row).
+	  VSync on + a cap past the display = mailbox (RQD 9/26: less lag, no
+	  tearing). Story in the commit. EYEBALL: the stop list, the row at 94 px.
+- [ ] Renderer on Bazzite / SteamOS (gamescope): make sure it plays nice.
+  Probed on RQD's laptop (240 Hz, NVIDIA, Wayland session), cap 300:
+  Godot's default X11 driver runs through XWayland — no mailbox (falls back
+  to plain VSync, 240 fps), VSync off works (301). `--display-driver wayland`:
+  mailbox works (301, no tearing), VSync off is refused (tearing not allowed).
+  To decide / check:
+  - Prefer native Wayland on Linux (project setting
+    `display/display_server/driver.linuxbsd`)? It's the no-tearing world RQD
+    wants; Godot's Wayland driver is the younger one.
+  - What gamescope (Deck gaming mode, Bazzite) offers: present modes, the
+    refresh rate Godot reads, the Deck's 40–60 / 90 Hz modes.
+  - A mode the system refuses is detectable (`window_get_vsync_mode` reports
+    the fallback a frame later). The Options pane could say "not on this
+    system" instead of Higher? / VSync Off silently doing nothing.
+
 
 **Answered + BUILT 2026-09-07 on `rqd--terrain-stack`** (3 commits, suite
 1096 green; squash-merge once RQD/Lawrence have eyeballed a build):
@@ -344,7 +583,24 @@ those cells need repainting.
 
 
 # More stuff
-- [ ] Enemies hit too often. I'll position my highest AGL unit on good cover, and I don't think I've ever seen an enemy miss. I don't know if this is simply because we gave them all too much skill, or if there's a bug which gives enemies 100% accuracy.
+- [~] Enemies hit too often. I'll position my highest AGL unit on good cover, and I don't think I've ever seen an enemy miss. I don't know if this is simply because we gave them all too much skill, or if there's a bug which gives enemies 100% accuracy.
+  (AUDITED 2026-09-22 — the roll is honest; the numbers aren't kind. Hit%
+  = (accuracy + 1.5×(SKL − AGL)) × (2 − terrain avoid), one path for the
+  preview, the scene and the AI (`_execute_single_hit`). Three things make
+  it feel like 100%: **every Grunt spawns with Reliable (+50 flat)** — the
+  loader equips the first four pool passives and Reliable is the Grunt's
+  second, so Bonk 95 + 50 = 145, ×0.8 on a mountain is still 100% (the
+  Ogre's pool lists it fifth, so Ogres skip it); **forests aren't cover** — Plant avoid is 1.01, only Rock (the
+  mountains) / Castle reach 1.2, StoneEdifice / SpaceShip / Tarpit 1.1,
+  Crater 0.9 (worse); and **Air units get no cover at all** on Rock /
+  SpaceShip / Plant (per-type 1.0 exemption — Pica is Air). Without
+  Reliable a Grunt on a mountain target lands ~72%; with it, never misses.
+  MISS reads as Gray 5 text, easy to miss itself. FOUND + FIXED on the way:
+  an unknown terrain name returned avoid/defense 0.0 — DEF × 0 and a
+  doubled hit chance clamped to 100%. Latent (every painted name resolves
+  today), now neutral 1.0 with tests. TUNING CALL (RQD): Reliable's size,
+  whether Grunts should lead with it (reorder grunt.json's pool is a
+  one-line change), forest cover.)
 - [x] the default camera pan speed is way too low - probably speed up 3-5x
   (Done 2026-09-09: `CameraController.pan_speed` 120 → 480 screen px/s — 4x,
   the mid-point; it's an @export, tune in the inspector or the const.)
@@ -750,6 +1006,7 @@ features.
   visual pass (functionality-first scaffold, Lawrence styling later).
 - [ ] **Controller peek button.** `tooltip_peek` is mapped to BOTH Back and R3 —
   playtest and cull one.
+  (Superseded: peek moves onto Y, so both go. See the button map in # Todo.)
 - [~] **STAB.** Mechanic shipped (1.2× `STAB_MULTIPLIER`). Open: in-game eyeball,
   and whether STAB deserves its own callout/badge beyond just a bigger number.
 
@@ -936,9 +1193,46 @@ foundation shipped. What's left is **deliberate deferral, not loose ends**:
 ---
 
 ## 6. Bugs
-- [ ] Max S. leveled up on the move that won the level, and the victory screen showed before the level up screen (should wait on continue). Then the level up screen displays over the intermission screen. This seems like a class of bug which should be precluded by the transition to the intermission screen, but that would've made it hard to detect the early victory screen pop-up, so I'm glad we caught it.
-- [ ] In the intermission/manage units screen, the VHS-distortion effect on portraits has disappeared. This is a regression, and should have a unit test.
-- [ ] When we switched to the phantom move preview, when targeting with a move with a displacement effect, the red arrow correctly displays the displacement, but the phantom being displaced is animating relative to the character sprite, not the phantom preview.
+- [x] Max S. leveled up on the move that won the level, and the victory screen showed before the level up screen (should wait on continue). Then the level up screen displays over the intermission screen. This seems like a class of bug which should be precluded by the transition to the intermission screen, but that would've made it hard to detect the early victory screen pop-up, so I'm glad we caught it.
+  (RQD 2026-09-22: no longer reproduces as described. What DID show: pick a
+  recruit and the hub arrives with the "Choose a recruit" panel still
+  painted under its menu. FIXED on `rqd--playtest-0922`, eyeball-gated. It
+  was never the picker — the mission-boundary autosave grabbed the
+  viewport's LAST RENDERED FRAME the instant the pick emitted (the picker
+  hides and emits in the same frame), and MenuStageBackdrop showed the
+  newest save's screenshot first, so the hub wore that frozen frame. Same
+  for New Game (a main-menu frame) and a defeat (the result panel). RQD's
+  call (2026-09-22, on seeing the hint bar in that frame): beneath the
+  intermission it should be the map itself, no HUD whatsoever, the art
+  speaking for itself — and never mid-battle carnage on the main menu
+  after a ragequit. Now: in fiction the stage is ship art → the mission
+  being prepared for as a LIVING DIORAMA → flat (`MenuStageBackdrop
+  .mission_path`, set by the hub and Manage Units); the main menu keeps
+  Black Mesa mode. `MissionPreview` = the map's TilemapBuilder in a
+  SubViewport with its script dropped (no grid, GridManager untouched),
+  real TerrainSpriteRenderer overlays in `standalone` mode, the deployed
+  squad seated on the player spawns in the battle's own order
+  (`BattleScene.deployed_roster`, now static and shared) with health bars /
+  level / pips / type icons hidden (`Unit.hide_battle_chrome`), integer
+  cover-zoom camera at the HUD canvas size — zoom 1 on every map we ship,
+  i.e. the game's own scale. Enemies aren't rolled until the battle, so
+  their spawns stay empty. EVERY save's PNG is one frame of that same
+  diorama (the viewport frame-grab is gone), so Continue shows the mission
+  as it began. EYEBALL: how it reads under the hub's dim + vignette,
+  whether empty enemy spawns feel wrong, the Continue picture.
+  test_menu_stage_backdrop ×12, hub + roster pins.)
+- [x] In the intermission/manage units screen, the VHS-distortion effect on portraits has disappeared. This is a regression, and should have a unit test.
+  (RQD 2026-09-22: confirmed fixed in a build.)
+- [x] When we switched to the phantom move preview, when targeting with a move with a displacement effect, the red arrow correctly displays the displacement, but the phantom being displaced is animating relative to the character sprite, not the phantom preview.
+  (FIXED 2026-09-22 on `rqd--playtest-0922`. The deferred walk moves the
+  caster's `current_tile` to the staged destination while the sprite stays
+  home, and `UnitGhost.anchor_offset` measured the sprite against that
+  tile — so a self-displacing move (Compressed Air, Switcheroo) departed
+  from the sprite with every stop dragged back by the length of the plan.
+  The anchor is now sprite-minus-NODE and ghosts depart from
+  `UnitGhost.projected_position` (logic tile + anchor = the phantom when
+  staged, the sprite when not). Pushes and pulls on the target were never
+  affected. Pinned in test_displacement_preview + test_path_ghost.)
 - [x] In the first intermission screen after the first mission, I click on Max, and the bar for his stength and skill appear modified. However, the numerals have no modifiers, and nothing (at least in the intermission) should be modifying these stats.
 	- what I think happened is, he ended the battle with the Focused boost, and had a bonus from the competitive ability - I believe these carried over into the intermission screen when they shouldn't have.
 	(FIXED on `rqd--playtest-0913`: Competitive, not Focused — status
@@ -1009,7 +1303,8 @@ independent of the intermission redesign.**
       Parse Error: Cannot find member "TEXT_WARNING" in base "GameColors".
   ```
   *(The latter two are stale references to renamed `GameColors` members — cheap fixes.)*
-- [ ] **Font size 5: the numeral "8" is very hard to read.** Replacement sprite is
+- [x] **Font size 5: the numeral "8" is very hard to read.** (DONE 2026-09-22 —
+  see Quick Fixes: B and 8 redrawn via tools/fonts/patch_pixel_glyphs.py.) Replacement sprite is
   already drawn — open question is how best to implement it. Note the replacement's
   bottom pixel drops below the baseline, like g/j/p/q/y.
 - [ ] **Preview panels don't reposition on touchscreen.** They swap sides correctly

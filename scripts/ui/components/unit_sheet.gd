@@ -16,6 +16,11 @@
 ## lets [−] exist: without the tally there's no telling refundable points from
 ## growth rolls. The [+]/[−] live HERE, on the row, so allocating never
 ## requires the workbench (§3d) — the workbench explains, the row changes.
+## Hovering an enabled [+]/[−] previews the press on the number (`15→17`, in
+## the StatUp gold) and its tooltip says why a point can round to nothing;
+## hovering the row gives the StatBreakdown lines behind the number. Touch
+## has no hover, so there the preview is a HOLD (Settings.tooltip_hold_ms)
+## that never spends — the move chips' peek rule.
 ##
 ## The XP row is display-only until slice 4 wires the bEXP lane into it.
 class_name UnitSheet
@@ -129,6 +134,46 @@ static func stat_number_voice(character: CharacterData, stat_name: String) -> Ar
 	if character.get_allocated_points(stat_name) > 0:
 		return [GameColors.TEXT_SECONDARY, GameColors.TEXT_SECONDARY_GLOW]
 	return [GameColors.TEXT_PRIMARY, GameColors.TEXT_PRIMARY_GLOW]
+
+
+## `15→17`: the number the row would show after the press, for the [+]/[−]
+## hover preview and their tooltips ("4+ computes to 4 and 15+ to 17 — if you
+## don't know it's +10% this looks broken"). The arrow is
+## a glyph drawn into UndeadPixelLight8 by tools/fonts/patch_pixel_glyphs.py.
+static func preview_text(current_value: int, after_value: int) -> String:
+	return "%d→%d" % [current_value, after_value]
+
+
+## The EFFECTIVE stat if the allocation were `points` instead of what it is;
+## everything else on the number (auras, statuses, injuries) rides along.
+static func alloc_preview_value(character: CharacterData, stat_name: String, points: int) -> int:
+	var level_value: int = character.get_base_plus_growth(stat_name)
+	var clamped: int = clampi(points, 0, StatAllocation.PER_STAT_CAP)
+	return int(character.get(stat_name)) \
+			- StatAllocation.compute_delta(stat_name, level_value, character.get_allocated_points(stat_name)) \
+			+ StatAllocation.compute_delta(stat_name, level_value, clamped)
+
+
+## Tooltip for an enabled [+] (direction 1) or [−] (direction -1): the numbers
+## in words, and when a spend rounds to nothing (the confusing case) which
+## later point finally moves the number.
+static func alloc_tooltip(character: CharacterData, stat_name: String, abbrev: String,
+		direction: int) -> String:
+	var points: int = character.get_allocated_points(stat_name)
+	var current_value: int = int(character.get(stat_name))
+	var after_value: int = alloc_preview_value(character, stat_name, points + direction)
+	var pct: int = int(roundf(StatAllocation.PCT_PER_POINT * 100.0))
+	var arrow: String = preview_text(current_value, after_value)
+	if direction < 0:
+		return "refund a StatUp: %s %s (−%d%%)" % [abbrev, arrow, pct]
+	var line: String = "spend a StatUp: %s %s (+%d%%)" % [abbrev, arrow, pct]
+	if after_value != current_value:
+		return line
+	for later: int in range(points + 2, StatAllocation.PER_STAT_CAP + 1):
+		var later_value: int = alloc_preview_value(character, stat_name, later)
+		if later_value != current_value:
+			return line + " · rounds to nothing yet; point %d lifts it to %d" % [later, later_value]
+	return line + " · rounds to nothing at this size"
 
 
 ## Width of `text_value` at the sheet's 8px font. Slot buttons keep their
@@ -316,10 +361,17 @@ func _make_stat_row(stat_name: String, abbrev: String) -> Button:
 	var level_value: int = _character.get_base_plus_growth(stat_name)
 	var capped: bool = level_value >= _character.get_stat_cap(stat_name)
 	var remaining: int = _character.available_stat_ups - _character.allocated_total()
+	var current_value: int = int(_character.get(stat_name))
+	var after_spend: int = alloc_preview_value(_character, stat_name, points + 1)
+	var after_refund: int = alloc_preview_value(_character, stat_name, points - 1)
 
 	var row := slot_button(_is_selected("stat", stat_name))
+	row.name = "StatRow_" + stat_name
 	row.custom_minimum_size = Vector2(0, 13)
 	row.pressed.connect(_pick.bind("stat", stat_name))
+	# The arithmetic behind the number, on hover. The gauge and the [−]/[+]
+	# keep their own tips; the rest of the row falls through to this.
+	row.tooltip_text = StatBreakdown.text(_character, stat_name)
 
 	var content := HBoxContainer.new()
 	content.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -353,34 +405,62 @@ func _make_stat_row(stat_name: String, abbrev: String) -> Button:
 	# the ★N badge and pool pips in the StatUp-accent gold rather than the
 	# modifier violet-halo pair.
 	var value_cluster := HBoxContainer.new()
+	value_cluster.name = "Value"
 	value_cluster.add_theme_constant_override("separation", 0)
-	value_cluster.custom_minimum_size = Vector2(28, 0)
+	# Wide enough for the hover preview (`120→132` on an HP row) so the gauge
+	# never jumps under the cursor; two-digit stats stay at the old 28.
+	value_cluster.custom_minimum_size = Vector2(maxf(28.0, maxf(
+			text_width(preview_text(current_value, after_spend)),
+			text_width(preview_text(current_value, after_refund)))), 0)
 	value_cluster.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var voice: Array = stat_number_voice(_character, stat_name)
-	var number := GlowLabel.styled(str(_character.get(stat_name)),
-			UIManager.font_8px, 8, voice[0], voice[1])
+	var number := GlowLabel.styled(str(current_value), UIManager.font_8px, 8, voice[0], voice[1])
+	number.name = "Number"
 	number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	number.nudge_baseline_down(2)
 	value_cluster.add_child(number)
+	var tally: GlowLabel = null
 	if points > 0:
-		var tally := GlowLabel.styled("+".repeat(points), UIManager.font_8px, 8,
+		tally = GlowLabel.styled("+".repeat(points), UIManager.font_8px, 8,
 				GameColors.TEXT_INFO, GameColors.TEXT_INFO_GLOW)
+		tally.name = "Tally"
 		tally.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		tally.nudge_baseline_down(2)
 		value_cluster.add_child(tally)
 	content.add_child(value_cluster)
 
-	content.add_child(_make_alloc_button("−", points > 0,
-			"refund a StatUp (−10%% %s)" % abbrev if points > 0 else "nothing allocated here",
-			_on_stat_decrement.bind(stat_name)))
+	# Hovering an enabled [−]/[+] previews the press on the number itself:
+	# `15→17` in the StatUp gold, the tally stepping aside. The percentage
+	# rounds in ways a new player reads as broken ("4+ is still 4"); the
+	# button's tooltip says the same thing in words.
+	var show_preview: Callable = func(after_value: int) -> void:
+		number.text = preview_text(current_value, after_value)
+		number.add_theme_color_override("font_color", GameColors.TEXT_INFO)
+		number.glow_color = GameColors.TEXT_INFO_GLOW
+		if tally != null:
+			tally.visible = false
+	var end_preview: Callable = func() -> void:
+		number.text = str(current_value)
+		number.add_theme_color_override("font_color", voice[0])
+		number.glow_color = voice[1]
+		if tally != null:
+			tally.visible = true
+
+	var minus := _make_alloc_button("−", points > 0,
+			alloc_tooltip(_character, stat_name, abbrev, -1) if points > 0 else "nothing allocated here",
+			_on_stat_decrement.bind(stat_name), show_preview.bind(after_refund), end_preview)
+	minus.name = "Minus"
+	content.add_child(minus)
 	var can_add: bool = remaining > 0 and points < StatAllocation.PER_STAT_CAP
-	var plus_tip: String = "spend a StatUp (+10%% %s, %d max)" % [abbrev, StatAllocation.PER_STAT_CAP]
+	var plus_tip: String = alloc_tooltip(_character, stat_name, abbrev, 1)
 	if points >= StatAllocation.PER_STAT_CAP:
 		plus_tip = "%d points is the per-stat cap" % StatAllocation.PER_STAT_CAP
 	elif remaining <= 0:
 		plus_tip = "no StatUp to spend"
-	content.add_child(_make_alloc_button("+", can_add, plus_tip,
-			_on_stat_increment.bind(stat_name)))
+	var plus := _make_alloc_button("+", can_add, plus_tip,
+			_on_stat_increment.bind(stat_name), show_preview.bind(after_spend), end_preview)
+	plus.name = "Plus"
+	content.add_child(plus)
 	return row
 
 
@@ -428,7 +508,7 @@ static func _alloc_art_pieces(path: String) -> Array:
 ## each is constructed already in its enabled/disabled state — only hover
 ## mutates live.
 func _make_alloc_button(glyph: String, enabled: bool, tip: String,
-		handler: Callable) -> Button:
+		handler: Callable, on_hover: Callable = Callable(), on_leave: Callable = Callable()) -> Button:
 	var button := Button.new()
 	button.custom_minimum_size = Vector2(9, 9)
 	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -460,12 +540,65 @@ func _make_alloc_button(glyph: String, enabled: bool, tip: String,
 	if enabled:
 		button.mouse_entered.connect(func() -> void:
 			ring.self_modulate = GameColors.brightened(GameColors.TEXT_PRIMARY)
-			symbol.self_modulate = GameColors.brightened(GameColors.TEXT_PRIMARY))
+			symbol.self_modulate = GameColors.brightened(GameColors.TEXT_PRIMARY)
+			if on_hover.is_valid():
+				on_hover.call())
 		button.mouse_exited.connect(func() -> void:
 			ring.self_modulate = GameColors.TEXT_PRIMARY
-			symbol.self_modulate = GameColors.TEXT_PRIMARY)
+			symbol.self_modulate = GameColors.TEXT_PRIMARY
+			if on_leave.is_valid():
+				on_leave.call())
 	button.pressed.connect(handler)
+	_wire_touch_peek(button, tip, on_hover, on_leave)
 	return button
+
+
+## Touch hold-to-peek for an alloc button ("hold-to-peek here, at least until
+## someone complains"). A genuine touch press held for
+## Settings.tooltip_hold_ms shows what the mouse gets on hover — the `15→17`
+## preview on the number plus the button's tooltip floated above it — and a
+## matured hold NEVER spends: the in-flight press is forgotten (the disabled
+## flip, as MoveChipButton does) and the release is swallowed. A quick tap
+## still spends. Disabled buttons peek too: "no StatUp to spend" is exactly
+## what a finger wants to read. A real mouse never arms the hold.
+func _wire_touch_peek(button: Button, tip: String, on_hover: Callable, on_leave: Callable) -> void:
+	# `token` outlives one press: a release-and-repress inside the hold time
+	# must not let the FIRST press's timer mature the second. The timer can
+	# also outlive the BUTTON (tap → spend → refresh rebuilds the rows), so it
+	# holds a weakref: a lambda whose capture was freed errors on every call.
+	var peek: Dictionary = {"token": 0, "held": false, "open": false}
+	var button_ref: WeakRef = weakref(button)
+	var mature: Callable = func(token: int) -> void:
+		var live: Button = button_ref.get_ref() as Button
+		if live == null or not peek.held or token != peek.token:
+			return
+		peek.held = false
+		peek.open = true
+		if not live.disabled:
+			live.disabled = true
+			live.disabled = false
+		if on_hover.is_valid():
+			on_hover.call()
+		DenyTooltip.show_above(live, tip, 0.0)
+	button.gui_input.connect(func(event: InputEvent) -> void:
+		var mouse := event as InputEventMouseButton
+		if mouse == null or mouse.button_index != MOUSE_BUTTON_LEFT:
+			return
+		if mouse.pressed:
+			if not MoveTooltip.is_touch_pointer(mouse):
+				return
+			peek.token += 1
+			peek.held = true
+			get_tree().create_timer(Settings.tooltip_hold_ms / 1000.0).timeout.connect(
+					mature.bind(peek.token))
+			return
+		peek.held = false
+		if peek.open:
+			peek.open = false
+			if on_leave.is_valid():
+				on_leave.call()
+			DenyTooltip.dismiss()
+			button.accept_event())
 
 
 func _on_stat_increment(stat_name: String) -> void:

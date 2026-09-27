@@ -26,7 +26,7 @@ enum ZIndexLayer {
 	## Cast shadows of terrain sprites — one slot ABOVE the bodies so a
 	## shadow falls onto its east neighbor's body (the caster's own pixels
 	## are masked out at export). When
-	## TerrainSpriteRenderer.SHADOWS_ABOVE_MODIFIERS is off, shadows drop to
+	## ArtVariables.SHADOWS_FALL_ON_NEIGHBORS is off, shadows drop to
 	## TERRAIN_EFFECTS instead and this slot is unused.
 	TERRAIN_SHADOWS = 4,
 	## Movement arrows, range indicators

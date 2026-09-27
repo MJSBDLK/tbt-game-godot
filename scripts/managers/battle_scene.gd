@@ -37,6 +37,7 @@ extends Node2D
 
 var _unit_scene: PackedScene = preload("res://scenes/battle/unit.tscn")
 var _vignette_shader: Shader = preload("res://shaders/vignette.gdshader")
+var _vignette_material: ShaderMaterial = null
 var _units_container: Node2D = null
 var _foot_track_renderer: FootTrackRenderer = null
 var _threat_overlay: ThreatOverlayController = null
@@ -228,7 +229,7 @@ func _spawn_units_from_tiles(positions: Array, faction: Enums.UnitFaction, chara
 	# spawns and how many slots are filled). Player spawn tiles carry no
 	# difficulty data — entries are bare Vector2i.
 	if faction == Enums.UnitFaction.PLAYER:
-		var roster: Array[CharacterData] = _get_deployed_roster()
+		var roster: Array[CharacterData] = deployed_roster()
 		var slot_count: int = mini(positions.size(), roster.size())
 		for i: int in range(slot_count):
 			var grid_pos := positions[i] as Vector2i
@@ -300,8 +301,19 @@ func _build_vignette() -> void:
 	mat.shader = _vignette_shader
 	mat.set_shader_parameter("map_min", map_min)
 	mat.set_shader_parameter("map_max", map_max)
+	_vignette_material = mat
+	_refresh_vignette_knobs()
+	DebugConfig.art_knobs_changed.connect(_refresh_vignette_knobs)
 	poly.material = mat
 	add_child(poly)
+
+
+## The edge fade reads its knobs once at build; re-push when one changes.
+func _refresh_vignette_knobs() -> void:
+	if _vignette_material == null:
+		return
+	_vignette_material.set_shader_parameter("fade_width", ArtVariables.MAP_EDGE_FADE_WIDTH)
+	_vignette_material.set_shader_parameter("fade_color", ArtVariables.MAP_EDGE_FADE_COLOR)
 
 
 # =============================================================================
@@ -343,15 +355,15 @@ func _create_unit(json_path: String, faction: Enums.UnitFaction, tile: Tile,
 ## (nobody ever wrote one — F6 on a map, an ad-hoc battle) means "deploy
 ## everyone"; a chosen selection is honored verbatim, empty included — the hub
 ## refuses to launch at 0/N, so an empty board here means a path skipped it.
-## Falls back to the full roster if no campaign is active.
-func _get_deployed_roster() -> Array[CharacterData]:
+## Falls back to the full roster if no campaign is active. Static: the
+## mission diorama (MissionPreview) seats the same lineup.
+static func deployed_roster() -> Array[CharacterData]:
 	var full_roster: Array[CharacterData] = SquadManager.get_active_roster()
-	var campaign_manager: Node = get_node_or_null("/root/CampaignManager")
-	if campaign_manager == null or not campaign_manager.is_active():
+	if not CampaignManager.is_active():
 		return full_roster
-	if not campaign_manager.has_deployment():
+	if not CampaignManager.has_deployment():
 		return full_roster
-	var selected_ids: Array[String] = campaign_manager.get_deployment()
+	var selected_ids: Array[String] = CampaignManager.get_deployment()
 	var filtered: Array[CharacterData] = []
 	for character: CharacterData in full_roster:
 		if selected_ids.has(character.character_id):

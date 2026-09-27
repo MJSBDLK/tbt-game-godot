@@ -1,6 +1,7 @@
 ## AI behavior for a single enemy unit. Added as a child node to enemy Unit nodes.
-## Finds best target, moves toward it, and attacks if in range.
-## Called by TurnManager during the enemy phase.
+## Finds best target, moves toward it, and attacks if in range — choosing the
+## move per target (best expected damage), not swinging whatever sits in the top
+## slot. Called by TurnManager during the enemy phase.
 class_name EnemyAI
 extends Node
 
@@ -18,6 +19,20 @@ var _unit: Unit = null
 
 func _ready() -> void:
 	_unit = get_parent() as Unit
+	_prefer_damaging_counter_move()
+
+
+## Spawn arms the first usable move, and the armed move is what this unit
+## counters with — a support move there means no counter until the AI first
+## swings. Arm the first DAMAGING move instead, when there is one.
+func _prefer_damaging_counter_move() -> void:
+	if _unit == null or (_unit.assigned_move != null
+			and _unit.assigned_move.damage_type != Enums.DamageType.SUPPORT):
+		return
+	for move: Move in _unit.get_usable_moves():
+		if move.damage_type != Enums.DamageType.SUPPORT:
+			_unit.assigned_move = move
+			return
 
 
 ## Execute this enemy's full turn. Async — caller must await.
@@ -26,47 +41,58 @@ func execute_turn() -> void:
 		return
 
 	DebugConfig.log_ai("AI '%s' thinking..." % _unit.unit_name)
+	# The camera brings an off-screen enemy into view before it pulses, then
+	# trails its walk.
+	_camera_follow(true)
 	# Quick scale pulse on the sprite so the player can tell which enemy is
 	# acting when there are several on screen. Fits inside think_delay so the
 	# AI doesn't visibly stall waiting for it to finish.
 	_pulse_active_indicator()
 	await get_tree().create_timer(think_delay).timeout
 
-	# Pick a move. Capricious passive → random among usable moves excluding the last used one.
-	_assign_move_for_turn()
-	if _unit.assigned_move == null:
+	await _act()
+
+	_camera_follow(false)
+	_unit.set_acted()
+	DebugConfig.log_ai("AI '%s' turn complete" % _unit.unit_name)
+
+
+## Walk and swing. Every way out returns to execute_turn, which releases the
+## camera and marks the unit acted.
+func _act() -> void:
+	if _unit.get_usable_moves().is_empty():
 		DebugConfig.log_ai("AI '%s' has no usable moves, ending turn" % _unit.unit_name)
-		_unit.set_acted()
 		return
+	if _randomizes_move():
+		_roll_capricious_move()
 
 	var target := _find_best_target()
 	if target == null:
 		DebugConfig.log_ai("AI '%s' found no targets, ending turn" % _unit.unit_name)
-		_unit.set_acted()
 		return
 
-	# If already in attack range, attack directly
-	if _can_attack_target(target):
-		await _execute_attack(target)
-		_unit.set_acted()
-		return
+	if _pick_attack_move(target) == null:
+		await _move_toward_target(target)
+		# The walk can fall short of the chosen target yet end beside another
+		# player unit: swing at whoever's in reach rather than stand idle. Not
+		# when challenged — the challenge names the only legal target.
+		if _pick_attack_move(target) == null and _active_challenger() == null:
+			var in_reach := _find_best_target(true)
+			if in_reach != null:
+				target = in_reach
 
-	# Move toward target
-	await _move_toward_target(target)
-
-	# Try to attack after moving
-	if _can_attack_target(target):
-		await _execute_attack(target)
-
-	_unit.set_acted()
-	DebugConfig.log_ai("AI '%s' turn complete" % _unit.unit_name)
+	var move := _pick_attack_move(target)
+	if move != null:
+		await _execute_attack(target, move)
 
 
 # =============================================================================
 # TARGET EVALUATION
 # =============================================================================
 
-func _find_best_target() -> Unit:
+## `in_reach_only` narrows the field to units this one can hit from where it
+## stands — the fallback after a walk that fell short.
+func _find_best_target(in_reach_only: bool = false) -> Unit:
 	# CHALLENGED (Phase 4): a challenged unit answers the challenge. While the
 	# status holds and the challenger lives, targeting locks onto them — no
 	# scoring, no second-guessing. The compulsion ends when the status expires
@@ -87,6 +113,8 @@ func _find_best_target() -> Unit:
 
 	for player_unit: Unit in player_units:
 		if player_unit.is_defeated():
+			continue
+		if in_reach_only and _pick_attack_move(player_unit) == null:
 			continue
 		var score := _evaluate_target(player_unit)
 		if score > best_score:
@@ -136,28 +164,56 @@ func _evaluate_target(target: Unit) -> float:
 # COMBAT
 # =============================================================================
 
-func _can_attack_target(target: Unit) -> bool:
-	if _unit.assigned_move == null:
-		return false
-	if not _unit.assigned_move.has_uses_remaining():
-		return false
-	# can_target folds in effective range + Extendo's reach LoS, so the AI honors
-	# range passives and never "attacks through" a wall on a bonus tile.
-	return MoveTargeting.can_target(_unit, target, _unit.assigned_move)
+## The move this unit would swing at `target` from where it stands, or null.
+## Capricious swings only what it rolled. Everyone else takes the usable
+## damaging move with the best expected damage (damage × hit chance; slot order
+## breaks ties), so a support move in the top slot no longer benches the kit.
+## can_target folds in effective range + Extendo's reach LoS, so the AI honors
+## range passives and never "attacks through" a wall on a bonus tile.
+func _pick_attack_move(target: Unit) -> Move:
+	if _randomizes_move():
+		var rolled: Move = _unit.assigned_move
+		if rolled != null and rolled.has_uses_remaining() \
+				and MoveTargeting.can_target(_unit, target, rolled):
+			return rolled
+		return null
+	var best_move: Move = null
+	var best_expected: float = -1.0
+	for move: Move in _unit.get_usable_moves():
+		if move.damage_type == Enums.DamageType.SUPPORT \
+				or not MoveTargeting.can_target(_unit, target, move):
+			continue
+		var expected: float = DamageCalculator.calculate_damage(_unit, target, move) \
+				* DamageCalculator.hit_chance_pct(_unit, target, move) / 100.0
+		if expected > best_expected:
+			best_expected = expected
+			best_move = move
+	return best_move
 
 
-func _execute_attack(target: Unit) -> void:
+func _execute_attack(target: Unit, move: Move) -> void:
+	assert(MoveTargeting.can_target(_unit, target, move),
+			"EnemyAI: '%s' swinging '%s' at a target it can't reach" % [
+				_unit.unit_name, move.move_name])
 	DebugConfig.log_ai("AI '%s' attacking '%s' with '%s'" % [
-		_unit.unit_name, target.unit_name, _unit.assigned_move.move_name])
+		_unit.unit_name, target.unit_name, move.move_name])
+	# The swung move stays armed: it's what this unit counters with next phase,
+	# and what its preview panel marks.
+	_unit.assigned_move = move
 	# Record which move we're about to use so Capricious can avoid picking it again next turn.
 	var data: CharacterData = _unit.character_data
 	if data != null:
-		_unit.last_used_move_index = data.equipped_moves.find(_unit.assigned_move)
+		_unit.last_used_move_index = data.equipped_moves.find(move)
+	# Frame the exchange the way the player's own attacks are framed.
+	_camera_follow(false)
+	var camera := _camera()
+	if camera != null:
+		camera.center_on((_unit.global_position + target.global_position) / 2.0)
 	# Float the move name above the attacker BEFORE the swing so the player has
 	# a beat to read it. The attack_delay timer is what gives them the time.
-	_unit.spawn_text_callout(_unit.assigned_move.move_name.to_upper(), _move_callout_color())
+	_unit.spawn_text_callout(move.move_name.to_upper(), _move_callout_color())
 	await get_tree().create_timer(attack_delay).timeout
-	await _unit.execute_combat_sequence(target, _unit.assigned_move)
+	await _unit.execute_combat_sequence(target, move)
 
 
 ## Color for the move-name callout. Uses the move's elemental-type foreground
@@ -183,25 +239,18 @@ func _pulse_active_indicator() -> void:
 	tween.tween_property(sprite, "scale", Vector2(1.0, 1.0), 0.15).set_ease(Tween.EASE_IN)
 
 
-func _assign_move_for_turn() -> void:
-	var data: CharacterData = _unit.character_data
-	if data == null:
-		_unit.auto_assign_first_usable_move()
-		return
-
-	# Move-randomizer passives (Capricious) re-pick each turn; others keep their
-	# assignment. Capability is read from the passive handlers, not a name string.
-	var should_randomize: bool = false
-	for handler: CombatEffect in PassiveRegistry.get_handlers_for(data, _unit):
+## Move-randomizer passives (Capricious) re-roll each turn and swing what they
+## rolled. Capability is read from the passive handlers, not a name string.
+func _randomizes_move() -> bool:
+	for handler: CombatEffect in PassiveRegistry.get_handlers_for(_unit.character_data, _unit):
 		if handler.randomizes_move():
-			should_randomize = true
-			break
-	if not should_randomize:
-		if _unit.assigned_move == null:
-			_unit.auto_assign_first_usable_move()
-		return
+			return true
+	return false
 
-	# Randomize: pick from usable moves, excluding last_used_move_index.
+
+## Capricious: a random usable move, excluding the last one used.
+func _roll_capricious_move() -> void:
+	var data: CharacterData = _unit.character_data
 	var usable_indices: Array[int] = []
 	for index: int in range(data.equipped_moves.size()):
 		var move: Move = data.equipped_moves[index]
@@ -240,6 +289,27 @@ func _move_toward_target(target: Unit) -> void:
 	DebugConfig.log_ai("AI '%s' moving toward '%s'" % [_unit.unit_name, target.unit_name])
 	await get_tree().create_timer(move_delay).timeout
 	await _unit.execute_planned_movement()
+
+
+# =============================================================================
+# CAMERA
+# =============================================================================
+
+## Null outside a battle scene (and in tests) — every caller tolerates that.
+func _camera() -> CameraController:
+	return SceneRouter.get_world_camera() as CameraController
+
+
+## Hand the camera this unit to keep on screen, or take it back. Only releases
+## a follow this unit holds.
+func _camera_follow(enabled: bool) -> void:
+	var camera := _camera()
+	if camera == null:
+		return
+	if enabled:
+		camera.follow_target = _unit
+	elif camera.follow_target == _unit:
+		camera.follow_target = null
 
 
 func _find_best_move_tile(target: Unit) -> Tile:

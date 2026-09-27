@@ -200,7 +200,10 @@ func refresh() -> void:
 # =============================================================================
 # THREAT-ZONE PIN CHIP
 # =============================================================================
-# Enemies only: toggles this enemy's danger zone via ThreatOverlayController.
+# Enemies only, TOUCH only: toggles this enemy's danger zone via
+# ThreatOverlayController. With a mouse the panel dodges the cursor (hovering
+# it hovers the map underneath, which flips it away) and a pad has no pointer,
+# so on either the chip was a button nobody could reach.
 # Pins PERSIST after the panel closes (design call 2026-07: tap-anywhere
 # dismisses the panel, so panel lifetime can't own zone lifetime); V /
 # clear-all is the global off-switch. Built in code — the panel scene predates
@@ -244,7 +247,8 @@ func _update_range_toggle(unit: Unit) -> void:
 	var controller := _threat_controller()
 	var is_living_enemy: bool = unit != null and is_instance_valid(unit) \
 			and unit.faction == Enums.UnitFaction.ENEMY and not unit.is_defeated()
-	_range_toggle_button.visible = is_living_enemy and controller != null
+	_range_toggle_button.visible = is_living_enemy and controller != null \
+			and InputSource.is_touch_driven()
 	if not _range_toggle_button.visible:
 		return
 	# Track external state changes (V clearing all, pin pruned on death) so the

@@ -1,27 +1,23 @@
--- Headless check for the rpgmaker overflow column. Builds a test template from
--- the real mountain frame (canvas widened to 3×3 tiles, the shadow rows clipped
--- at the 2×2 block's east edge extended a few pixels into column 2, a regolith
--- ground swatch at (2,0)), runs the plugin's conversion, and asserts the
--- overflow atlas against the autotile's own peering table. Nothing on disk
--- changes except the optional preview PNG. Run from the repo root:
+-- Headless check for the rpgmaker shadow pipeline, run against Lawrence's real
+-- mountain template: the `bg` layer never reaches the output, the `shadows`
+-- layer becomes a two-color mask, and the sheet stacks three blocks — body,
+-- the tile's own shadow, and the spill into the cell east of it. Nothing on
+-- disk changes except the PNGs the params ask for. Run from the repo root:
 --
 --   ~/aseprite/build/bin/aseprite -b \
---     --script-param out=/tmp/overflow_preview.png \
+--     --script-param out=/tmp/preview.png \
+--     --script-param tileset=/tmp/mountain_12x12.png \
 --     --script tools/aseprite/webtyler/overflow_probe.lua
 
 local params = app.params
 local PLUGIN_PATH = params.plugin or "tools/aseprite/webtyler/webtyler.lua"
-local TEMPLATE_PATH = params.template or "art/sprites/tilesets/2x3_source_tiles/2x3_source_tiles.aseprite"
-local MOUNTAIN_TAG = "mountain__regolith"
+local TEMPLATE_PATH = params.template
+    or "art/sprites/terrain_modifiers/mountain_autotile_with_shadow.aseprite"
+local TAG = params.tag or "Mountains"
 local TILE = 32
-local OVERFLOW_ROWS = 4
-local SHADOW_EXTENSION = 8
+local SHADOW_ROWS, SPILL_ROWS = 4, 8
 
 local pc = app.pixelColor
-local GROUND = pc.rgba(190, 181, 156, 255)
-local SHADOW = pc.rgba(156, 148, 127, 255)
--- Tan over regolith is 18% black; allow rounding either side.
-local SHADOW_ALPHA_MIN, SHADOW_ALPHA_MAX = 44, 48
 
 -- The 13 autotile positions open to the east, with whether the terrain
 -- continues north (t) and south (b). From tileset_terrain_setup.gd's peering
@@ -51,59 +47,37 @@ local plugin = assert(load(pluginText .. [[
 
 return { updatePreviews = updatePreviews, settings = settings,
          previewData = preview_data, previewTileIndex = previewTileIndex,
-         exportTileset = exportTileset, defaultExportPath = defaultExportPath,
+         exportTileset = exportTileset, exportRows = exportRows,
+         defaultExportPath = defaultExportPath,
          preview = function() return previewSprite end }
 ]]))()
 
+-- Opened with its real palette, which is larger than the 256 a new Sprite
+-- starts with: the plugin has to grow the preview's palette before copying.
 local sprite = assert(app.open(TEMPLATE_PATH), "can't open " .. TEMPLATE_PATH)
--- A batch-mode Sprite starts with a 256-color palette and the plugin copies
--- the source palette into it index by index; the colors don't matter in RGB.
-if #sprite.palettes[1] > 256 then
-    sprite.palettes[1]:resize(256)
+
+local roles = {}
+for _, layer in ipairs(sprite.layers) do
+    roles[layer.name:lower()] = true
 end
+check(roles["bg"], "the template has a `bg` layer")
+check(roles["shadows"], "the template has a `shadows` layer")
+
 local frame
 for _, tag in ipairs(sprite.tags) do
-    if tag.name == MOUNTAIN_TAG then frame = tag.fromFrame end
+    if tag.name == TAG then frame = tag.fromFrame end
 end
-assert(frame, "no " .. MOUNTAIN_TAG .. " tag in " .. TEMPLATE_PATH)
+assert(frame, "no " .. TAG .. " tag in " .. TEMPLATE_PATH)
 -- Batch mode ignores app.activeFrame, so the plugin renders frame 1: make the
--- mountain frame the only one.
+-- tagged frame the only one.
 local keep = frame.frameNumber
 for i = #sprite.frames, 1, -1 do
     if i ~= keep then
         sprite:deleteFrame(i)
     end
 end
-frame = sprite.frames[1]
-
--- Test template: widen, flatten the mountain frame into one full-canvas cel,
--- fill column 2 with ground, extend each clipped shadow row into it.
-sprite:crop(0, 0, 3 * TILE, 3 * TILE)
-local cel = sprite.layers[1]:cel(frame)
-local image = Image(sprite.width, sprite.height, sprite.colorMode)
-image:clear()
-image:drawImage(cel.image, cel.position)
-for y = 0, 3 * TILE - 1 do
-    for x = 2 * TILE, 3 * TILE - 1 do
-        image:drawPixel(x, y, GROUND)
-    end
-end
-local shadowRows, shadowRowCount = {}, 0
-for y = TILE, 3 * TILE - 1 do
-    if image:getPixel(2 * TILE - 1, y) == SHADOW then
-        shadowRows[y] = true
-        shadowRowCount = shadowRowCount + 1
-        for x = 2 * TILE, 2 * TILE + SHADOW_EXTENSION - 1 do
-            image:drawPixel(x, y, SHADOW)
-        end
-    end
-end
-check(shadowRowCount > 0, "the mountain frame has shadow rows clipped at the block's east edge")
-cel.image = image
-cel.position = Point(0, 0)
 
 app.activeSprite = sprite
-app.activeFrame = frame
 plugin.settings.mode = "rpgmaker"
 plugin.settings.tileW = TILE
 plugin.settings.tileH = TILE
@@ -113,57 +87,96 @@ plugin.updatePreviews(false)
 local preview = assert(plugin.preview(), "the plugin made no preview sprite")
 local out = preview.layers[1]:cel(1).image
 
--- Which template row a pixel of an overflow tile was read from: the top half
--- follows the north neighbor, the bottom half the south one.
-local function templateRow(entry, localY)
-    if localY < TILE / 2 then
-        return (entry.t == 0 and TILE or 2 * TILE) + localY
+check(preview.height == (12 + 10) * TILE,
+    "preview height makes room for three blocks (" .. preview.height .. ")")
+check(preview.width >= 13 * TILE,
+    "preview keeps a 13th scene column for spills (" .. preview.width .. ")")
+check(plugin.exportRows() == 12, "export covers 12 rows (" .. plugin.exportRows() .. ")")
+check(plugin.defaultExportPath():find("_12x12%.png$") ~= nil,
+    "export name says 12x12 (" .. plugin.defaultExportPath() .. ")")
+
+-- Block scans. The body is opaque pixel art; the shadow blocks are a two-color
+-- mask — flat black where shadow falls, transparent elsewhere — because the
+-- game draws them at the board's one shadow opacity (GameColors.CAST_SHADOW_INK).
+local function scanBlock(rowOffset)
+    local inked, mask, translucent = 0, 0, 0
+    for y = rowOffset * TILE, (rowOffset + 4) * TILE - 1 do
+        for x = 0, 12 * TILE - 1 do
+            local px = out:getPixel(x, y)
+            local a = pc.rgbaA(px)
+            if a > 0 then
+                inked = inked + 1
+                if a < 255 then
+                    translucent = translucent + 1
+                elseif pc.rgbaR(px) == 0 and pc.rgbaG(px) == 0 and pc.rgbaB(px) == 0 then
+                    mask = mask + 1
+                end
+            end
+        end
     end
-    return (entry.b == 0 and 2 * TILE or TILE) + localY
+    return inked, mask, translucent
 end
+
+local bodyInked, _, bodyTranslucent = scanBlock(0)
+check(bodyInked > 0, "the body block has art")
+check(bodyTranslucent == 0,
+    "the body block is opaque — no shadow bled in (" .. bodyTranslucent .. " translucent px)")
+
+local shadowInked, shadowMask = scanBlock(SHADOW_ROWS)
+check(shadowInked > 0, "the shadow block has shadow")
+check(shadowInked == shadowMask,
+    "the shadow block is a flat black mask (" .. shadowInked .. " inked, " .. shadowMask .. " mask)")
+
+local spillInked, spillMask = scanBlock(SPILL_ROWS)
+check(spillInked > 0, "the spill block has shadow")
+check(spillInked == spillMask,
+    "the spill block is a flat black mask (" .. spillInked .. " inked, " .. spillMask .. " mask)")
+
+-- A tile's own shadow must never land on its own art: terrain shadows draw
+-- ABOVE the bodies, so an unmasked pixel darkens the very rock that casts it
+-- and leaves a seam at the tile edge. The spill block is exempt — landing on
+-- the east neighbor is its job.
+local selfShaded = 0
+for ty = 0, 3 do
+    for tx = 0, 11 do
+        for ly = 0, TILE - 1 do
+            for lx = 0, TILE - 1 do
+                local body = out:getPixel(tx * TILE + lx, ty * TILE + ly)
+                local shadow = out:getPixel(tx * TILE + lx, (ty + SHADOW_ROWS) * TILE + ly)
+                if pc.rgbaA(body) > 0 and pc.rgbaA(shadow) > 0 then
+                    selfShaded = selfShaded + 1
+                end
+            end
+        end
+    end
+end
+check(selfShaded == 0, "no tile shadows its own art (" .. selfShaded .. " px)")
 
 local openAt = {}
 for _, entry in ipairs(EAST_OPEN) do
     openAt[entry.x .. "," .. entry.y] = entry
 end
-
+local function tileInked(tx, ty)
+    for ly = 0, TILE - 1 do
+        for lx = 0, TILE - 1 do
+            if pc.rgbaA(out:getPixel(tx * TILE + lx, ty * TILE + ly)) > 0 then return true end
+        end
+    end
+    return false
+end
 for ty = 0, 3 do
     for tx = 0, 11 do
-        local entry = openAt[tx .. "," .. ty]
-        local originX, originY = tx * TILE, (ty + OVERFLOW_ROWS) * TILE
-        local where = string.format("overflow (%d,%d)", tx, ty)
-        local wrong = 0
-        local badAlpha = 0
-        for ly = 0, TILE - 1 do
-            local inkRow = entry ~= nil and shadowRows[templateRow(entry, ly)] == true
-            for lx = 0, TILE - 1 do
-                local px = out:getPixel(originX + lx, originY + ly)
-                local alpha = pc.rgbaA(px)
-                local expectInk = inkRow and lx < SHADOW_EXTENSION
-                if (alpha > 0) ~= expectInk then
-                    wrong = wrong + 1
-                elseif expectInk and (alpha < SHADOW_ALPHA_MIN or alpha > SHADOW_ALPHA_MAX
-                        or pc.rgbaR(px) ~= 0 or pc.rgbaG(px) ~= 0 or pc.rgbaB(px) ~= 0) then
-                    badAlpha = badAlpha + 1
-                end
-            end
-        end
-        if entry then
-            check(wrong == 0, where .. " (east-open) matches its template rows; " .. wrong .. " pixels off")
-            check(badAlpha == 0, where .. " ink is black at ~18%; " .. badAlpha .. " pixels off")
-        else
-            check(wrong == 0, where .. " (closed east edge) is empty; " .. wrong .. " pixels inked")
-        end
+        local open = openAt[tx .. "," .. ty] ~= nil
+        local inked = tileInked(tx, ty + SPILL_ROWS)
+        check(inked == open, string.format(
+            "spill (%d,%d) is %s", tx, ty, open and "present (east-open)" or "empty (closed east edge)"))
     end
 end
 
 -- Sample scene: a tile with no east neighbor is east-open by construction, so
--- every such tile must spill its overflow over the swatch in the cell beside
--- it. The scene is 12 wide, so the last-column tile needs the canvas's 13th
--- column; that cell is the regression pin.
-local sceneStartY = (4 + OVERFLOW_ROWS + 1) * TILE
-check(preview.width >= 13 * TILE,
-    "preview keeps a 13th scene column for spills (" .. preview.width .. ")")
+-- every such tile must darken the cell beside it. The scene is 12 wide, so the
+-- last-column tile needs the canvas's 13th column; that cell is the pin.
+local sceneStartY = (12 + 1) * TILE
 local spills, lastColumnSpilled = 0, false
 for row = 1, #plugin.previewData do
     for col = 1, #plugin.previewData[row] do
@@ -172,52 +185,33 @@ for row = 1, #plugin.previewData do
             local tx, ty = index % 12, math.floor(index / 12)
             local where = string.format("scene cell (%d,%d) east of atlas (%d,%d)", col, row - 1, tx, ty)
             check(openAt[tx .. "," .. ty] ~= nil, where .. " is east-open")
-            local cellX, cellY = col * TILE, sceneStartY + (row - 1) * TILE
-            local wrong = 0
+            local darkened = 0
             for ly = 0, TILE - 1 do
                 for lx = 0, TILE - 1 do
-                    local inked = pc.rgbaA(out:getPixel(tx * TILE + lx, (ty + OVERFLOW_ROWS) * TILE + ly)) > 0
-                    local px = out:getPixel(cellX + lx, cellY + ly)
-                    if inked == (px == GROUND) then
-                        wrong = wrong + 1
+                    local spill = out:getPixel(tx * TILE + lx, (ty + SPILL_ROWS) * TILE + ly)
+                    if pc.rgbaA(spill) > 0 then
+                        darkened = darkened + 1
                     end
                 end
             end
-            check(wrong == 0, where .. " carries its overflow over the swatch; " .. wrong .. " pixels off")
-            spills = spills + 1
-            if col == 12 then lastColumnSpilled = true end
+            if darkened > 0 then
+                spills = spills + 1
+                if col == 12 then lastColumnSpilled = true end
+            end
         end
     end
 end
-check(spills > 0, "the scene has tiles with an empty east neighbor")
-check(lastColumnSpilled, "the scene's last-column tile spills into the 13th column")
-
--- Export: the plugin's own writer must hand Godot exactly the preview's
--- top-left 12×8 block, named after the tag.
-local exportPath = app.fs.joinPath(app.fs.tempPath, "webtyler_probe_export.png")
-plugin.exportTileset(exportPath)
-local exported = Image{ fromFile = exportPath }
-check(exported ~= nil and exported.width == 12 * TILE and exported.height == (4 + OVERFLOW_ROWS) * TILE,
-    "export is 12×8 tiles (" .. (exported and (exported.width .. "x" .. exported.height) or "nil") .. ")")
-local exportDiff = 0
-if exported then
-    for y = 0, exported.height - 1 do
-        for x = 0, exported.width - 1 do
-            if exported:getPixel(x, y) ~= out:getPixel(x, y) then exportDiff = exportDiff + 1 end
-        end
-    end
-end
-check(exportDiff == 0, "export matches the preview's top-left block; " .. exportDiff .. " pixels differ")
-check(plugin.defaultExportPath():match("mountain__regolith_12x8%.png$") ~= nil,
-    "default export name is <tag>_12x8.png (" .. plugin.defaultExportPath() .. ")")
-os.remove(exportPath)
-
-check(preview.height == (8 + 10) * TILE,
-    "preview height makes room for the overflow block (" .. preview.height .. ")")
+check(spills > 0, "the scene draws spills into east neighbors (" .. spills .. " cells)")
+check(lastColumnSpilled, "a tile in the scene's last column spills into the 13th")
 
 if params.out then
     preview:saveCopyAs(params.out)
     print("preview written to " .. params.out)
 end
-print(string.format("overflow probe: %s (%d checks, %d failed)",
+if params.tileset then
+    plugin.exportTileset(params.tileset)
+    print("tileset written to " .. params.tileset)
+end
+print(string.format("mask pixels: shadow %d, spill %d", shadowMask, spillMask))
+print(string.format("shadow probe: %s (%d checks, %d failed)",
     failures == 0 and "PASS" or "FAIL", checks, failures))

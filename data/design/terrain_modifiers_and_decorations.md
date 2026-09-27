@@ -124,10 +124,10 @@ only orders things *within* a row. Slots, bottom to top:
 |---|---|---|
 | `TerrainTileLayer` (Floor) | `FLOOR_TILES` (0) | Base terrain. Always populated. Defines default tile properties (movement cost, defense, etc). Rendered by the TileMapLayer itself. |
 | Foot tracks (runtime-only) | `FOOT_TRACKS` (1) | Walk trails. See [foot_tracks.md](foot_tracks.md). |
-| Terrain effects (runtime-only) | `TERRAIN_EFFECTS` (2) | Unit cast shadows (`UnitShadow`). Terrain-sprite shadows drop here only when `TerrainSpriteRenderer.SHADOWS_ABOVE_MODIFIERS` is off. |
+| Terrain effects (runtime-only) | `TERRAIN_EFFECTS` (2) | Ground FX. Shadows drop here only when `TerrainSpriteRenderer.SHADOWS_ABOVE_MODIFIERS` is off. |
 | `ModifierTileLayer` (Modifiers) | `TERRAIN_MODIFIERS` (3) | Tiles painted here **completely replace** the floor's gameplay properties (per `terrain_data.json`). Hidden at runtime; drawn by a `TerrainSpriteRenderer` overlay. |
 | `DecorationTileLayer` (Decorations) | `TERRAIN_MODIFIERS` (3) | Same sprite library, **no gameplay effect**. Hidden at runtime; drawn by its own `TerrainSpriteRenderer`, added to the tree *after* the modifier one, so on a shared cell the decoration draws on top (tree order at equal z). |
-| Terrain-sprite shadows (runtime-only) | `TERRAIN_SHADOWS` (4) | Authored or generated shadows of *both* layers' sprites, one slot above the bodies so a shadow falls onto its east neighbor. |
+| Shadows (runtime-only) | `TERRAIN_SHADOWS` (4) | Every shadow on the board — both paint layers' sprites (authored, generated or autotile blocks) AND `UnitShadow` — one slot above the bodies, so a shadow falls onto its east neighbor and onto a modifier beside a unit. |
 | `SpawnTileLayer` (metadata) | n/a | Marks spawn points and map boundaries. Hidden at runtime. |
 
 The same tile (e.g. a tree sprite) can land on either modifier or
@@ -284,6 +284,26 @@ The loose `crater_small.png`, `crater_large.png`, `tree_01.png` in the
 `terrain_modifiers/` root are legacy placeholders from before this system;
 they aren't in a subfolder, so they're never registered.
 
+### Autotile modifier sheets
+
+A modifier can also be an **autotile sheet** rather than a stamped sprite:
+one atlas holding the 47 Webtyler variants, painted with Godot's terrain
+brush on `ModifierTileLayer` so a range shapes itself. Mountains are the
+first. These differ from the sprites above in three ways:
+
+- **One source, many tiles.** Registered by
+  [register_autotile_modifier.gd](../../tools/register_autotile_modifier.gd)
+  below source id 100, so the single-sprite invariants (one tile per source,
+  texture in an export dir) keep holding. Terrain still resolves through
+  `modifier_terrain.json` by the source's `resource_name`.
+- **Shadows are authored in blocks**, not generated: the sheet stacks body,
+  the tile's own shadow, and the shadow that falls into the cell east of it.
+  The renderer draws the two shadow blocks at the board's shared
+  `CAST_SHADOW_INK`, so they darken with everything else. The rigid tip-over
+  cast never runs for these — it suits tall casters, not mounds.
+- **Art and layout** live in
+  [modifier_autotiles/README.md](../../art/sprites/tilesets/modifier_autotiles/README.md).
+
 ## Export pipeline
 
 Right-click a `.aseprite` file in the FileSystem dock → **Export Tags as
@@ -406,7 +426,10 @@ TileMapLayer and, per painted cell, spawns:
    position. `casts_shadow: false` → none at all. Otherwise:
    - **Authored**: `<source_texture>_shadow.png` next to the source PNG
      (what the exporter emits when the `.aseprite` has a shadow layer).
-     Played verbatim, centered on the sprite like the body.
+     Centered on the sprite like the body. The PNG is a MASK — flat black
+     where Lawrence painted shadow — drawn at `ArtVariables.SHADOW_INK_ALPHA`,
+     so his paint decides the shape and one knob decides how dark every
+     shadow on the board is.
    - **Generated**: otherwise, unless `DebugConfig.terrain_generated_shadows`
      is off, `generate_cast_shadow` rasterizes the sprite's own pixels
      into a cast — the same rigid 90° tip-over + squash `UnitShadow` uses
@@ -475,10 +498,11 @@ gameplay, not for finding out what a tree looks like.
 > **Units cast shadows too** — generated, not authored: `UnitShadow`
 > (`scripts/units/unit_shadow.gd`) rasterizes the unit's live frame onto the
 > ground on the world pixel grid, speaking this section's visual language
-> exactly (cast right, squat, 40% black = `GameColors.CAST_SHADOW_INK` —
-> decoded from the baked `_shadow.png` decoration art). If the decoration
-> shadow look ever changes, retune UnitShadow's knobs in the same pass —
-> the generated terrain shadows follow automatically.
+> exactly (cast right, squat, `GameColors.CAST_SHADOW_INK`). Every shadow on
+> the board — units, generated casts, authored decoration masks, autotile
+> shadow blocks — reads that one ink, and the sun's dials with it, from
+> [art_variables.gd](../../scripts/core/art_variables.gd). Retune there, not
+> here.
 
 ## Behavior on unknown tile
 

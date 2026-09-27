@@ -203,6 +203,21 @@ func _spawn_layer_with(layer_name: String, paints: Dictionary) -> TerrainSpriteR
 	return renderer
 
 
+func test_a_live_ink_change_re_renders_the_layer() -> void:
+	# DebugConfig.set_art_knob fires art_knobs_changed; the renderer refreshes
+	# on it, so Lawrence's turn of the knob lands on the board without F5.
+	var renderer := _spawn_layer_with("DecorationTileLayer", {Vector2i(2, -3): "darkforest_a"})
+	var ink_before: float = ArtVariables.SHADOW_INK_ALPHA
+	DebugConfig.set_art_knob("SHADOW_INK_ALPHA", 0.55)
+	var re_inked: int = 0
+	for sprite in renderer.get_spawned_sprites():
+		if sprite.texture.resource_path.ends_with("_shadow.png"):
+			assert_almost_eq(sprite.modulate.a, 0.55, 0.001, "rebuilt with the new ink")
+			re_inked += 1
+	assert_eq(re_inked, 1, "the authored shadow was re-spawned")
+	DebugConfig.set_art_knob("SHADOW_INK_ALPHA", ink_before)
+
+
 func _textures_of(sprites: Array[Sprite2D]) -> Array[String]:
 	var names: Array[String] = []
 	for s in sprites:
@@ -217,6 +232,12 @@ func test_decoration_layer_gets_full_visual_and_authored_shadow() -> void:
 	var sprites := renderer.get_spawned_sprites()
 	assert_eq(_textures_of(sprites), ["darkforest_a.png", "darkforest_a_shadow.png"],
 			"body + authored shadow, both from the full PNGs (not the atlas chunk)")
+	for sprite in sprites:
+		if sprite.texture.resource_path.ends_with("_shadow.png"):
+			assert_eq(sprite.modulate, GameColors.CAST_SHADOW_INK,
+					"authored shadows ship as masks and wear the board's one ink")
+		else:
+			assert_eq(sprite.modulate, Color.WHITE, "the art draws as painted")
 	var layer := renderer.get_node("../DecorationTileLayer") as TileMapLayer
 	assert_false(layer.visible, "the tilemap layer is hidden so the cropped chunk doesn't double-draw")
 	for s in sprites:
@@ -344,7 +365,8 @@ func test_generated_shadow_is_ink_and_never_tints_its_own_caster() -> void:
 	# where the trunk is (x 16..19) and inked just past it (x=20).
 	var trunk_row: int = 55 - int(origin.y)
 	assert_eq(image.get_pixel(16 - int(origin.x), trunk_row).a, 0.0, "under the trunk: erased")
-	assert_almost_eq(image.get_pixel(20 - int(origin.x), trunk_row).a, 0.4, 0.01, "just past the trunk: ink")
+	assert_almost_eq(image.get_pixel(20 - int(origin.x), trunk_row).a,
+			GameColors.CAST_SHADOW_INK.a, 0.01, "just past the trunk: ink")
 
 
 func test_generated_shadow_is_empty_for_transparent_art() -> void:

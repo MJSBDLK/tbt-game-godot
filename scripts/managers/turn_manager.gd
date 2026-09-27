@@ -129,10 +129,16 @@ func check_end_player_turn() -> void:
 
 ## True when no living player unit can still act — the phase is spent.
 func all_player_units_acted() -> bool:
+	return unacted_player_units().is_empty()
+
+
+## Living player units that can still act — who the End Turn warning names.
+func unacted_player_units() -> Array[Unit]:
+	var waiting: Array[Unit] = []
 	for unit: Unit in _player_units:
 		if not unit.is_defeated() and unit.can_act:
-			return false
-	return true
+			waiting.append(unit)
+	return waiting
 
 
 func force_end_player_turn() -> void:
@@ -205,6 +211,9 @@ func start_enemy_phase() -> void:
 		return
 	current_phase = Enums.TurnPhase.ENEMY_PHASE
 	_is_processing_phase = true
+	# Fired at the flip, not after the banner: listeners that stand down for the
+	# enemy's turn (the threat overlay) must be gone before the banner shows.
+	enemy_phase_started.emit()
 
 	var input_manager: Node = get_node_or_null("/root/InputManager")
 	if input_manager != null:
@@ -232,7 +241,6 @@ func start_enemy_phase() -> void:
 	_process_injury_turn_effects(_enemy_units)
 	_process_passive_turn_start(_enemy_units)
 
-	enemy_phase_started.emit()
 	await _process_enemy_phase()
 
 	if not _battle_ended:
@@ -312,10 +320,14 @@ func _end_battle(is_victory: bool) -> void:
 		if unit.is_defeated():
 			enemies_defeated += 1
 
-	var ui_manager: Node = UIManager
-	if ui_manager != null:
-		ui_manager.show_battle_result(is_victory, turn_count, player_units_lost,
-			enemies_defeated, _player_units.size(), _enemy_units.size())
+	UIManager.hold_battle_outcome({
+		"is_victory": is_victory,
+		"turn_count": turn_count,
+		"player_units_lost": player_units_lost,
+		"enemies_defeated": enemies_defeated,
+		"total_players": _player_units.size(),
+		"total_enemies": _enemy_units.size(),
+	})
 
 	battle_ended.emit(is_victory)
 
