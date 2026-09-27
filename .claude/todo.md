@@ -1,3 +1,9 @@
+**Reminder** We should be trying to get to alpha.
++ fix essential bugs
++ additional features need a good reason to be added at this point
+	- there will be time to add them later
++ prioritize stuff that gets us to alpha
+
 # Resp
 
 
