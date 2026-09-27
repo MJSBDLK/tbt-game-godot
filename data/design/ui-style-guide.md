@@ -485,6 +485,17 @@ disabled < static < idle < selected < call to action.
   CONFIRM already does; the hint bar's "Move here" button (playtest toggle,
   `Settings.move_confirm_mode`) does. The rings are too attention-grabbing to
   spend on a suggestion.
+  **Silhouette CTA — TBD (RQD 2026-09-25, eyeball-gated)**: the same rings cut to
+  a unit's outline instead of a rect (`SilhouetteCallToAction`) — spawn 6 px out,
+  step in on the button's stepping, land on the art's edge pixels. Plays in
+  BURSTS — 3 passes of 0.5 s, each starting halfway through the last so rings
+  overlap, 1 s rest, repeat (RQD 2026-09-26) — for as long
+  as its question is up; all four are Lawrence's knobs
+  (`ArtVariables.UNIT_CALL_TO_ACTION_*`). First use: the End Turn warning points
+  at every unit that can still act. **Sanctioned exception to scarcity**:
+  several units ring at once, because it's one invitation and the board is
+  paused under a modal question while it runs — don't copy it onto anything the
+  player can play around.
 - **NOTICE — "the game is pointing at this; it is NOT a button" (RQD 2026-08-21,
   `GameColors.NOTICE_BORDER`)**: a **violet, STATIC 1 px border** on a non-pressable
   element whose content just changed or matters next. Purple comes back for this

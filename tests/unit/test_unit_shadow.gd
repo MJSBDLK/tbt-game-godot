@@ -364,3 +364,22 @@ func test_debug_toggle_kills_the_shadow() -> void:
 	DebugConfig.unit_cast_shadows = true
 	shadow.sync_to_source()
 	assert_true(shadow.visible)
+
+
+func test_two_frames_cut_from_one_sheet_read_back_as_two_images() -> void:
+	# Every AtlasTexture reports its SHEET's RID but returns only its own
+	# region's pixels; a cache keyed on the RID alone handed the first frame's
+	# pixels to every later frame of that sheet.
+	var sheet := Image.create(8, 4, false, Image.FORMAT_RGBA8)
+	sheet.fill_rect(Rect2i(0, 0, 4, 4), Color.WHITE)
+	var sheet_texture := ImageTexture.create_from_image(sheet)
+	var left := AtlasTexture.new()
+	left.atlas = sheet_texture
+	left.region = Rect2(0, 0, 4, 4)
+	var right := AtlasTexture.new()
+	right.atlas = sheet_texture
+	right.region = Rect2(4, 0, 4, 4)
+	assert_eq(left.get_rid(), right.get_rid(), "the engine fact the key has to work around")
+	assert_eq(UnitShadow.readable_sheet(left).get_pixel(0, 0).a, 1.0)
+	assert_eq(UnitShadow.readable_sheet(right).get_pixel(0, 0).a, 0.0,
+			"the right frame is its own (clear) pixels, not the left frame's")

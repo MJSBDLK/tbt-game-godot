@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://erwd7xgrprfa"
-path="res://.godot/imported/defense_modifier.png-688440c6072d4ef728e772e208a1109f.ctex"
+uid="uid://yut24ox3y8x6"
+path="res://.godot/imported/healing_modifier.png-4736fe51426c582857738c0f722c6baf.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/sprites/ui/terrain_attribute_icons_placeholder/defense_modifier.png"
-dest_files=["res://.godot/imported/defense_modifier.png-688440c6072d4ef728e772e208a1109f.ctex"]
+source_file="res://art/sprites/ui/terrain_attributes_10x10/healing_modifier.png"
+dest_files=["res://.godot/imported/healing_modifier.png-4736fe51426c582857738c0f722c6baf.ctex"]
 
 [params]
 

@@ -30,7 +30,7 @@ signal combat_completed(attacker: Unit, defender: Unit)
 
 const MOVEMENT_SCALE: int = 2
 const MOVE_SPEED: float = 600.0  # Pixels per second
-const HIT_DELAY: float = 0.3  # Seconds between combat hits (a presenter hold; skip → 0)
+const HIT_DELAY: float = 0.3  # Seconds between combat hits under FAST pacing (a presenter breath; skip → 0)
 # A Bellows-boosted fire hit never lands soft: impact weight floors here so the
 # flash/shake/hitlag sell the boost (crits floor at 0.8 — this is the lesser
 # beat).
@@ -1178,7 +1178,7 @@ func _run_offensive_exchange(defender: Unit, attacker_move: Move,
 		if DamageCalculator.is_within_attack_range(defender, self, defender.assigned_move):
 			defender.assigned_move.consume_use()
 			defender_counter_paid = true
-			await presenter.hold(HIT_DELAY)
+			await presenter.breath(HIT_DELAY)
 			await defender._execute_single_hit(self, defender.assigned_move, true, presenter)
 			if is_defeated():
 				await _handle_defeat(presenter)
@@ -1198,7 +1198,7 @@ func _run_offensive_exchange(defender: Unit, attacker_move: Move,
 				attacker_denial_shown = true
 				await presenter.out_of_range(self)
 			break
-		await presenter.hold(HIT_DELAY)
+		await presenter.breath(HIT_DELAY)
 		await _execute_single_hit(defender, attacker_move, false, presenter)
 
 	if defender.is_defeated():
@@ -1221,7 +1221,7 @@ func _run_offensive_exchange(defender: Unit, attacker_move: Move,
 			if not defender_counter_paid:
 				defender.assigned_move.consume_use()
 				defender_counter_paid = true
-			await presenter.hold(HIT_DELAY)
+			await presenter.breath(HIT_DELAY)
 			await defender._execute_single_hit(self, defender.assigned_move, false, presenter)
 
 	if is_defeated():

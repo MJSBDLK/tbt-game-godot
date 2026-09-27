@@ -26,8 +26,9 @@
 ##
 ## Skip: any press on the stage (mouse/touch via _gui_input, confirm/cancel
 ## via _unhandled_input) emits skip_requested; ScenePresenter fast-forwards.
-## Except while wait_for_press() is parked (DebugConfig.combat_scene_step_pauses):
-## then the press emits advance_requested instead and the hint says so.
+## Except while wait_for_press() is parked — a RELAXED-pacing breath, or the
+## debug step-pause (DebugConfig.combat_scene_step_pauses, whose hint says
+## so): then the press ends the wait instead.
 ## The Control stops mouse events, so the map never sees a press meant for
 ## the stage (InputRouter blocks the world when the HUD consumes).
 class_name CombatScene
@@ -35,8 +36,6 @@ extends Control
 
 
 signal skip_requested
-## A press while the stage is parked at a debug step-pause (wait_for_press).
-signal advance_requested
 
 # --- LAYOUT (design px; eyeball knobs) --------------------------------------
 const CORE := Vector2(640, 360)
@@ -101,6 +100,7 @@ var _tile_strip: Node2D = null
 var _dim: ColorRect = null
 var _skip_hint: Label = null
 var _awaiting_advance: bool = false
+var _advance_pressed: bool = false
 
 
 ## Can a scene be mounted right now? UIManager must be alive with its
@@ -871,14 +871,20 @@ func _set_portraits_visible(shown: bool) -> void:
 # INPUT — any press skips (or advances, at a debug step-pause)
 # =============================================================================
 
-## Debug step-pause (DebugConfig.combat_scene_step_pauses): park the stage
-## until the player presses, so it can be examined indefinitely. While parked
-## a press ADVANCES instead of skipping, and the hint reads accordingly.
-func wait_for_press() -> void:
+## Park the stage until the player presses — or, given a timeout, until it
+## runs out (a RELAXED-pacing breath). While parked a press ADVANCES instead
+## of skipping. Only the indefinite park (the debug step-pause) swaps the
+## hint: a breath is under a second, and a line that flips every beat is
+## noise.
+func wait_for_press(timeout_seconds: float = -1.0) -> void:
+	var indefinite: bool = timeout_seconds < 0.0
+	var deadline_ms: int = Time.get_ticks_msec() + int(timeout_seconds * 1000.0)
 	_awaiting_advance = true
-	if _skip_hint != null:
+	_advance_pressed = false
+	if indefinite and _skip_hint != null:
 		_skip_hint.text = ADVANCE_HINT_TEXT
-	await advance_requested
+	while not _advance_pressed and (indefinite or Time.get_ticks_msec() < deadline_ms):
+		await get_tree().process_frame
 	_awaiting_advance = false
 	if is_instance_valid(_skip_hint):
 		_skip_hint.text = SKIP_HINT_TEXT
@@ -890,7 +896,7 @@ func is_waiting_for_press() -> bool:
 
 func _on_press() -> void:
 	if _awaiting_advance:
-		advance_requested.emit()
+		_advance_pressed = true
 	else:
 		skip_requested.emit()
 

@@ -243,3 +243,64 @@ func test_move_confirm_mode_defaults_auto_and_roundtrips() -> void:
 	assert_eq(reloaded.move_confirm_mode, settings.MoveConfirmMode.BUTTON, "persisted under [controls]")
 	settings.set_move_confirm_mode(99)
 	assert_eq(settings.move_confirm_mode, settings.MoveConfirmMode.BUTTON, "out-of-range clamps")
+
+
+func test_battle_pacing_defaults_relaxed_and_roundtrips() -> void:
+	var settings := _make_settings()
+	assert_eq(settings.battle_pacing, settings.BattlePacing.RELAXED,
+			"a new player gets the breathing room")
+	settings.set_battle_pacing(settings.BattlePacing.FAST)
+	var reloaded := _make_settings()
+	reloaded.load_settings()
+	assert_eq(reloaded.battle_pacing, settings.BattlePacing.FAST, "persisted under [gameplay]")
+	settings.set_battle_pacing(99)
+	assert_eq(settings.battle_pacing, settings.BattlePacing.FAST, "out-of-range clamps")
+
+
+func test_end_turn_warning_defaults_on_and_roundtrips() -> void:
+	var settings := _make_settings()
+	assert_true(settings.end_turn_warning)
+	watch_signals(settings)
+	settings.set_end_turn_warning(false)
+	assert_signal_emitted(settings, "changed")
+	var reloaded := _make_settings()
+	reloaded.load_settings()
+	assert_false(reloaded.end_turn_warning, "persisted under [gameplay]")
+
+
+func test_every_preset_key_is_a_real_setting() -> void:
+	# set() on a misspelled name is silent (the HP-injury bug); this is the net.
+	var settings := _make_settings()
+	for preset_name: String in settings.PRESETS:
+		for key: String in settings.PRESETS[preset_name]:
+			assert_true(key in settings, "%s names '%s'" % [preset_name, key])
+
+
+func test_the_newcomer_preset_is_the_defaults() -> void:
+	var settings := _make_settings()
+	assert_eq(settings.matching_preset(), "newcomer",
+			"a fresh install already reads as Newcomer on the Preset row")
+
+
+func test_a_preset_sets_its_group_in_one_save_and_persists() -> void:
+	var settings := _make_settings()
+	watch_signals(settings)
+	settings.apply_preset("veteran")
+	assert_signal_emit_count(settings, "changed", 1, "one notification for the whole group")
+	assert_eq(settings.battle_pacing, settings.BattlePacing.FAST)
+	assert_false(settings.end_turn_warning)
+	assert_true(settings.click_to_attack_enabled)
+	assert_eq(settings.move_confirm_mode, settings.MoveConfirmMode.MARKER)
+	assert_eq(settings.matching_preset(), "veteran")
+	var reloaded := _make_settings()
+	reloaded.load_settings()
+	assert_eq(reloaded.matching_preset(), "veteran", "the whole group reached the disk")
+
+
+func test_a_hand_change_leaves_every_preset() -> void:
+	var settings := _make_settings()
+	settings.apply_preset("veteran")
+	settings.set_end_turn_warning(true)
+	assert_eq(settings.matching_preset(), "", "custom — neither preset lights")
+	settings.apply_preset("newcomer")
+	assert_eq(settings.matching_preset(), "newcomer", "and a preset brings it back")

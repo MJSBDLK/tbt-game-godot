@@ -313,7 +313,7 @@ func _rebuild_projection() -> void:
 static func measure_stance_radius(texture: Texture2D,
 		band_pixels: int = SHADOW_BLOB_FEET_BAND_PIXELS,
 		trim_fraction: float = SHADOW_BLOB_STANCE_TRIM) -> float:
-	var sheet := _readable_sheet(texture)
+	var sheet := readable_sheet(texture)
 	if sheet == null:
 		return 0.0
 	var lowest_row := -1
@@ -345,7 +345,7 @@ static func measure_stance_radius(texture: Texture2D,
 ## for textures whose pixels can't be read back — the shadow simply doesn't
 ## render for those.
 func _extract_frame() -> Image:
-	var sheet_image := _readable_sheet(_frame_texture)
+	var sheet_image := readable_sheet(_frame_texture)
 	if sheet_image == null:
 		return null
 	var frame := sheet_image.get_region(Rect2i(_frame_region))
@@ -355,9 +355,13 @@ func _extract_frame() -> Image:
 
 
 ## Decompressed RGBA8 image for a texture, cached by RID; null (with a
-## one-time warning) when the pixels can't be read back.
-static func _readable_sheet(texture: Texture2D) -> Image:
+## one-time warning) when the pixels can't be read back. An AtlasTexture
+## reports its SHEET's RID but returns only its region's pixels, so the
+## region joins the key — two frames cut from one sheet are two images.
+static func readable_sheet(texture: Texture2D) -> Image:
 	var rid_key := "%s" % texture.get_rid()
+	if texture is AtlasTexture:
+		rid_key += "|%s" % (texture as AtlasTexture).region
 	if _sheet_image_cache.has(rid_key):
 		return _sheet_image_cache[rid_key]
 	var sheet := texture.get_image()

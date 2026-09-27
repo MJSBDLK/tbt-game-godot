@@ -117,6 +117,38 @@ var move_confirm_mode: int = MoveConfirmMode.AUTO
 enum BattleAnimations { ALWAYS, PLAYER_PHASE_ONLY, MAP }
 var battle_animations: int = BattleAnimations.ALWAYS
 
+## How long an exchange lets each result sit. RELAXED (default, for a new
+## player): every seam of an exchange breathes for
+## CombatPresenter.RELAXED_BREATH_SECONDS, and any press ends that one breath.
+## FAST: the tuned snap. Read per breath, so a change lands mid-battle.
+enum BattlePacing { RELAXED, FAST }
+var battle_pacing: int = BattlePacing.RELAXED
+
+## When true (default), End Turn with units that can still act asks first,
+## and those units light up (UIManager.request_end_turn). Off = End Turn
+## always ends the turn at once.
+var end_turn_warning: bool = true
+
+## The Options menu's Preset row: one press sets the whole group, and every
+## setting stays editable afterwards (it's a shortcut, not a mode). NEWCOMER
+## is the in-code defaults; VETERAN speeds the game up and drops the
+## confirmations. Keys are property names — apply_preset asserts each exists,
+## because set() on a misspelled one is silent.
+const PRESETS: Dictionary = {
+	"newcomer": {
+		"battle_pacing": BattlePacing.RELAXED,
+		"end_turn_warning": true,
+		"click_to_attack_enabled": false,
+		"move_confirm_mode": MoveConfirmMode.AUTO,
+	},
+	"veteran": {
+		"battle_pacing": BattlePacing.FAST,
+		"end_turn_warning": false,
+		"click_to_attack_enabled": true,
+		"move_confirm_mode": MoveConfirmMode.MARKER,
+	},
+}
+
 const TOOLTIP_HOLD_MIN_MS: int = 200
 const TOOLTIP_HOLD_MAX_MS: int = 800
 const TOOLTIP_HOLD_STEP_MS: int = 50
@@ -187,6 +219,11 @@ func load_settings() -> void:
 		battle_animations = clampi(int(config.get_value(
 				"visuals", "battle_animations", battle_animations)),
 				BattleAnimations.ALWAYS, BattleAnimations.MAP)
+		battle_pacing = clampi(int(config.get_value(
+				"gameplay", "battle_pacing", battle_pacing)),
+				BattlePacing.RELAXED, BattlePacing.FAST)
+		end_turn_warning = bool(config.get_value(
+				"gameplay", "end_turn_warning", end_turn_warning))
 	# Engine-level prefs (fps cap, bus volumes) must apply even with no file —
 	# a fresh install still needs the buses minted and defaults pushed.
 	_apply_engine_settings()
@@ -336,6 +373,48 @@ func set_battle_animations(value: int) -> void:
 	changed.emit()
 
 
+func set_battle_pacing(value: int) -> void:
+	value = clampi(value, BattlePacing.RELAXED, BattlePacing.FAST)
+	if value == battle_pacing:
+		return
+	battle_pacing = value
+	_save()
+	changed.emit()
+
+
+func set_end_turn_warning(value: bool) -> void:
+	if value == end_turn_warning:
+		return
+	end_turn_warning = value
+	_save()
+	changed.emit()
+
+
+## Sets every value in PRESETS[preset_name] at once: one save, one `changed`.
+func apply_preset(preset_name: String) -> void:
+	assert(PRESETS.has(preset_name), "Settings: no preset '%s'" % preset_name)
+	var values: Dictionary = PRESETS.get(preset_name, {})
+	for key: String in values:
+		assert(key in self, "Settings.PRESETS names '%s', which isn't a setting" % key)
+		set(key, values[key])
+	_save()
+	changed.emit()
+
+
+## The preset the current values match exactly, or "" once any of its
+## settings has been changed by hand. The Options row lights this one.
+func matching_preset() -> String:
+	for preset_name: String in PRESETS:
+		var values: Dictionary = PRESETS[preset_name]
+		var matches: bool = true
+		for key: String in values:
+			if get(key) != values[key]:
+				matches = false
+		if matches:
+			return preset_name
+	return ""
+
+
 func set_auto_end_turn(value: bool) -> void:
 	if value == auto_end_turn:
 		return
@@ -420,6 +499,8 @@ func _save() -> void:
 	config.set_value("controls", "show_control_hints", show_control_hints)
 	config.set_value("controls", "move_confirm_mode", move_confirm_mode)
 	config.set_value("visuals", "battle_animations", battle_animations)
+	config.set_value("gameplay", "battle_pacing", battle_pacing)
+	config.set_value("gameplay", "end_turn_warning", end_turn_warning)
 	var err: int = config.save(settings_path)
 	if err != OK:
 		push_warning("Settings: failed to save %s (error %d)" % [settings_path, err])

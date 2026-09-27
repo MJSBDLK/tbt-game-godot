@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://de0tlvuionsdd"
-path="res://.godot/imported/movement_penalty.png-45fc26053f4706e66a3a11aae5732a4f.ctex"
+uid="uid://erwd7xgrprfa"
+path="res://.godot/imported/defense_modifier.png-6e483afa64089f9779b02326585cbf82.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/sprites/ui/terrain_attribute_icons_placeholder/movement_penalty.png"
-dest_files=["res://.godot/imported/movement_penalty.png-45fc26053f4706e66a3a11aae5732a4f.ctex"]
+source_file="res://art/sprites/ui/terrain_attributes_10x10/defense_modifier.png"
+dest_files=["res://.godot/imported/defense_modifier.png-6e483afa64089f9779b02326585cbf82.ctex"]
 
 [params]
 
