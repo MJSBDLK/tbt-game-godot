@@ -12,11 +12,14 @@ extends GutTest
 
 var _battle_ended_before: bool = false
 var _warning_before: bool = true
+var _world_root_before: Node2D = null
+var _root_size_before := Vector2i.ZERO
 
 
 func before_each() -> void:
 	_battle_ended_before = TurnManager._battle_ended
 	_warning_before = Settings.end_turn_warning
+	_world_root_before = SceneRouter._world_root
 	TurnManager._battle_ended = true
 	TurnManager._is_processing_phase = false
 	TurnManager.current_phase = Enums.TurnPhase.PLAYER_PHASE
@@ -27,6 +30,10 @@ func before_each() -> void:
 
 func after_each() -> void:
 	UIManager.hide_system_menu()
+	SceneRouter._world_root = _world_root_before
+	if _root_size_before != Vector2i.ZERO:
+		get_tree().root.size = _root_size_before
+		_root_size_before = Vector2i.ZERO
 	TurnManager._player_units = []
 	TurnManager._battle_ended = _battle_ended_before
 	Settings.end_turn_warning = _warning_before
@@ -84,6 +91,18 @@ func test_a_waiting_unit_turns_end_turn_into_a_question() -> void:
 	assert_true(waiting.can_act, "nothing ended yet")
 	assert_eq(_buttons().size(), 2, "End Turn and Cancel")
 	assert_eq(_menu()._close_button.text, "Cancel", "Cancel is the landing — a mashed A keeps the turn")
+
+
+func test_the_question_speaks_in_the_primary_voice_centered() -> void:
+	_roster([_make_unit(false)])
+	UIManager.request_end_turn()
+	var message: GlowLabel = null
+	for child: Node in _menu()._content_container.get_children():
+		if child is GlowLabel:
+			message = child
+	assert_not_null(message, "the message wears the orthogonal glow")
+	assert_eq(message.glow_color, GameColors.TEXT_PRIMARY_GLOW, "primary body + its glow partner (§2)")
+	assert_eq(message.horizontal_alignment, HORIZONTAL_ALIGNMENT_CENTER)
 
 
 func test_the_waiting_units_flash_their_outline() -> void:
@@ -195,6 +214,81 @@ func test_the_setting_turns_the_warning_off() -> void:
 	UIManager.request_end_turn()
 	assert_false(_menu().visible)
 	assert_false(waiting.can_act, "ended at once")
+
+
+# The camera frames the waiting units beside the menu; Cancel glides back.
+# A world camera is registered the way GameRoot does it (SceneRouter's root),
+# in a 1920×1080 window — headless GUT's is 64×64, narrower than the menu.
+
+func _world_camera() -> CameraController:
+	_root_size_before = get_tree().root.size
+	get_tree().root.size = Vector2i(1920, 1080)
+	var world := Node2D.new()
+	add_child_autofree(world)
+	SceneRouter._world_root = world
+	var camera := CameraController.new()
+	camera.constrain_to_bounds = false
+	world.add_child(camera)
+	camera.make_current()
+	return camera
+
+
+## A waiting unit standing at `where` in the world — the unit scene, since a
+## bare Unit in the tree misses the nodes its _ready looks up.
+func _waiting_unit_at(where: Vector2) -> Unit:
+	var unit := (load("res://scenes/battle/unit.tscn") as PackedScene).instantiate() as Unit
+	unit.character_data = CharacterData.new()
+	unit.current_hp = 1
+	add_child_autofree(unit)
+	unit.global_position = where
+	return unit
+
+
+## Where `point` lands on screen once the camera arrives.
+func _screen_position(camera: CameraController, point: Vector2) -> Vector2:
+	return (point - camera.target_position) * (camera.current_view().zoom as float) \
+			+ camera.get_viewport_rect().size / 2.0
+
+
+func test_a_waiting_unit_off_screen_is_brought_into_view() -> void:
+	var camera := _world_camera()
+	var view := camera.get_viewport_rect().size
+	var far_right := _waiting_unit_at(Vector2(view.x * 3.0, 0))
+	_roster([far_right])
+	UIManager.request_end_turn()
+	var landed := _screen_position(camera, far_right.global_position)
+	var menu_left_edge := view.x - _menu().size.x * SceneRouter.get_hud_scale()
+	assert_between(landed.x, 0.0, menu_left_edge, "on screen, left of the menu's column")
+
+
+func test_units_already_in_view_move_nothing() -> void:
+	var camera := _world_camera()
+	var before := camera.target_position
+	_roster([_waiting_unit_at(before)])
+	UIManager.request_end_turn()
+	assert_eq(camera.target_position, before, "the camera only moves when it has to")
+
+
+func test_cancel_glides_back_to_the_view_before_the_question() -> void:
+	var camera := _world_camera()
+	var before := camera.current_view()
+	_roster([_waiting_unit_at(Vector2(camera.get_viewport_rect().size.x * 3.0, 0))])
+	UIManager.request_end_turn()
+	assert_ne(camera.target_position, before.position, "framed")
+	_menu()._close_button.pressed.emit()
+	assert_eq(camera.target_position, before.position, "backing out undoes the move")
+	assert_eq(camera.current_view().zoom, before.zoom)
+
+
+func test_ending_the_turn_leaves_the_camera_on_the_units() -> void:
+	var camera := _world_camera()
+	var before := camera.current_view()
+	_roster([_waiting_unit_at(Vector2(camera.get_viewport_rect().size.x * 3.0, 0))])
+	UIManager.request_end_turn()
+	var framed := camera.target_position
+	_buttons()[0].pressed.emit()
+	assert_eq(camera.target_position, framed, "the enemy phase takes the camera from here")
+	assert_ne(camera.target_position, before.position)
 
 
 func test_nothing_happens_outside_the_player_phase() -> void:

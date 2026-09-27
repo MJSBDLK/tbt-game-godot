@@ -320,10 +320,14 @@ func _end_battle(is_victory: bool) -> void:
 		if unit.is_defeated():
 			enemies_defeated += 1
 
-	var ui_manager: Node = UIManager
-	if ui_manager != null:
-		ui_manager.show_battle_result(is_victory, turn_count, player_units_lost,
-			enemies_defeated, _player_units.size(), _enemy_units.size())
+	UIManager.hold_battle_outcome({
+		"is_victory": is_victory,
+		"turn_count": turn_count,
+		"player_units_lost": player_units_lost,
+		"enemies_defeated": enemies_defeated,
+		"total_players": _player_units.size(),
+		"total_enemies": _enemy_units.size(),
+	})
 
 	battle_ended.emit(is_victory)
 

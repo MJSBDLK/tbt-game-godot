@@ -55,9 +55,25 @@ var master_volume: float = 0.8
 var sfx_volume: float = 0.8
 var music_volume: float = 0.8
 
-## Framerate cap, applied to Engine.max_fps. 0 = uncapped (VSync still applies
-## on top). The Options slider offers Off / 30–1000.
+## Framerate cap, applied to Engine.max_fps. 0 = the display's own rate: VSync
+## holds frames there by itself, and without it the engine is capped there.
 var max_fps: int = 0
+const FPS_CAP_MIN: int = 30
+const FPS_CAP_MAX: int = 1000
+## The Options FPS Cap slider's stops: the rates screens actually run, plus
+## halves (45 = the Deck OLED's 90 halved, 72 = 144's). fps_cap_stops adds
+## the display's own rate when it isn't one of these.
+const FPS_CAP_STOPS: Array[int] = [30, 40, 45, 50, 60, 72, 75, 90, 100, 120, 144,
+		165, 180, 200, 240, 280, 300, 360, 480, 500, 600, 750, 1000]
+## Assumed when the OS won't report the display's rate (headless, some compositors).
+const FALLBACK_REFRESH_RATE: int = 60
+
+## When true (default), no tearing (vsync_mode picks how). Off, frames show
+## as soon as they're drawn.
+var vsync_enabled: bool = true
+## The mode last handed to the DisplayServer. Not read back from it: a system
+## without the mode reports its fallback, and every apply would re-request.
+var _requested_vsync_mode: int = -1
 
 ## How long a touch must hold a move chip before its detail card (MoveTooltip)
 ## opens. CORE input decision (ui-style-guide.md §14): long press = right click
@@ -202,7 +218,9 @@ func load_settings() -> void:
 		music_volume = clampf(float(config.get_value(
 				"audio", "music_volume", music_volume)), 0.0, 1.0)
 		max_fps = clampi(int(config.get_value(
-				"display", "max_fps", max_fps)), 0, 1000)
+				"display", "max_fps", max_fps)), 0, FPS_CAP_MAX)
+		vsync_enabled = bool(config.get_value(
+				"display", "vsync_enabled", vsync_enabled))
 		tooltip_hold_ms = _snap_tooltip_hold(int(config.get_value(
 				"controls", "tooltip_hold_ms", tooltip_hold_ms)))
 		cursor_speed = _snap_cursor_speed(float(config.get_value(
@@ -308,15 +326,61 @@ func set_music_volume(value: float) -> void:
 	changed.emit()
 
 
-## Persists + applies Engine.max_fps + notifies. 0 = uncapped; else 30–1000.
+## Persists + applies Engine.max_fps + notifies. 0 = the display's rate; else
+## FPS_CAP_MIN–FPS_CAP_MAX.
 func set_max_fps(value: int) -> void:
-	value = 0 if value <= 0 else clampi(value, 30, 1000)
+	value = 0 if value <= 0 else clampi(value, FPS_CAP_MIN, FPS_CAP_MAX)
 	if value == max_fps:
 		return
 	max_fps = value
 	_apply_engine_settings()
 	_save()
 	changed.emit()
+
+
+## Persists + applies + notifies.
+func set_vsync_enabled(value: bool) -> void:
+	if value == vsync_enabled:
+		return
+	vsync_enabled = value
+	_apply_engine_settings()
+	_save()
+	changed.emit()
+
+
+## VSync on: plain VSync paces frames evenly at the display's rate; a cap past
+## it takes mailbox (the newest frame shown at each refresh: less lag, no
+## tearing). A system without mailbox falls back to plain VSync, where the cap
+## past the display does nothing (Godot through XWayland); one that forbids
+## tearing refuses DISABLED the same way (native Wayland).
+func vsync_mode() -> DisplayServer.VSyncMode:
+	if not vsync_enabled:
+		return DisplayServer.VSYNC_DISABLED
+	if max_fps > display_refresh_rate():
+		return DisplayServer.VSYNC_MAILBOX
+	return DisplayServer.VSYNC_ENABLED
+
+
+## The display's refresh rate in whole Hz, inside the cap's range.
+func display_refresh_rate() -> int:
+	var refresh_rate: float = DisplayServer.screen_get_refresh_rate()
+	if refresh_rate <= 0.0:
+		return FALLBACK_REFRESH_RATE
+	return clampi(roundi(refresh_rate), FPS_CAP_MIN, FPS_CAP_MAX)
+
+
+## The FPS Cap slider's stops, low to high. Locked: up to the display's rate,
+## which is always a stop and always the last. Unlocked (Higher?): on to
+## FPS_CAP_MAX. Locked is a prefix of unlocked, so a stop keeps its index.
+func fps_cap_stops(display_rate: int, unlocked: bool) -> Array[int]:
+	assert(display_rate >= FPS_CAP_MIN and display_rate <= FPS_CAP_MAX,
+			"Settings: a display rate outside the cap's range has no stop")
+	var stops: Array[int] = []
+	for stop: int in FPS_CAP_STOPS:
+		if stop < display_rate or (unlocked and stop > display_rate):
+			stops.append(stop)
+	stops.insert(stops.bsearch(display_rate), display_rate)
+	return stops
 
 
 ## Persists + notifies. Snapped to the 50ms slider grid and clamped 200–800
@@ -447,7 +511,13 @@ func _snap_tooltip_hold(value: int) -> int:
 ## are core singletons, not autoloads, so the "no autoload dependencies" rule
 ## in the header still holds.
 func _apply_engine_settings() -> void:
-	Engine.max_fps = max_fps
+	# Only on a change: this runs on every volume tick, and a VSync write can
+	# rebuild the swap chain.
+	var mode: DisplayServer.VSyncMode = vsync_mode()
+	if mode != _requested_vsync_mode:
+		_requested_vsync_mode = mode
+		DisplayServer.window_set_vsync_mode(mode)
+	Engine.max_fps = max_fps if max_fps > 0 or vsync_enabled else display_refresh_rate()
 	_ensure_audio_buses()
 	_apply_bus_volume("Master", master_volume)
 	_apply_bus_volume("SFX", sfx_volume)
@@ -492,6 +562,7 @@ func _save() -> void:
 	config.set_value("audio", "sfx_volume", sfx_volume)
 	config.set_value("audio", "music_volume", music_volume)
 	config.set_value("display", "max_fps", max_fps)
+	config.set_value("display", "vsync_enabled", vsync_enabled)
 	config.set_value("controls", "tooltip_hold_ms", tooltip_hold_ms)
 	config.set_value("controls", "cursor_speed", cursor_speed)
 	config.set_value("gameplay", "auto_end_turn", auto_end_turn)

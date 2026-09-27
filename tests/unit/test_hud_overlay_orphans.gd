@@ -24,9 +24,9 @@ func _open_browser_from_the_menu(overwrite: bool) -> void:
 	UIManager.show_system_menu()
 	if overwrite:
 		UIManager._save_browser_panel.show_overwrite_picker()
-		UIManager._system_menu_panel.visible = false  # what _on_system_menu_save does
+		UIManager._system_menu_panel.visible = false  # what Save does on a full ring
 	else:
-		UIManager._on_system_menu_load()
+		UIManager._system_menu_panel._open_load()
 	assert_true(UIManager._save_browser_panel.visible, "the browser is up")
 	assert_false(UIManager._system_menu_panel.visible, "over a hidden menu")
 
@@ -54,3 +54,19 @@ func test_the_browsers_own_close_still_brings_the_menu_back() -> void:
 	UIManager._save_browser_panel.hide_panel()
 	assert_false(UIManager._save_browser_panel.visible)
 	assert_true(UIManager._system_menu_panel.visible, "closed → the menu returns")
+
+
+func test_the_menu_owns_the_browser_it_opens() -> void:
+	assert_eq(UIManager._system_menu_panel._save_browser, UIManager._save_browser_panel,
+			"UIManager builds it; SystemMenuPanel runs Save/Load through it")
+
+
+func test_options_opens_over_a_hidden_menu_and_comes_back() -> void:
+	GameStateManager.push_state(Enums.InputState.PAUSED)
+	UIManager.show_system_menu()
+	UIManager._system_menu_panel._open_options()
+	assert_true(UIManager._options_menu_panel.visible, "Options is up")
+	assert_false(UIManager._system_menu_panel.visible, "over a hidden menu")
+	assert_eq(GameStateManager.current_state, Enums.InputState.PAUSED, "still paused under it")
+	UIManager.hide_options_menu()
+	assert_true(UIManager._system_menu_panel.visible, "closing Options brings the menu back")

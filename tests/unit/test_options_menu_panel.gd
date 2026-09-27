@@ -20,6 +20,8 @@ var _saved_pacing: int = 0
 var _saved_warning: bool = true
 var _saved_move_confirm: int = 0
 var _saved_kind: InputSource.Kind = InputSource.Kind.POINTER
+var _saved_vsync: bool = true
+var _saved_max_fps: int = 0
 
 
 func before_each() -> void:
@@ -28,6 +30,8 @@ func before_each() -> void:
 	_saved_warning = Settings.end_turn_warning
 	_saved_move_confirm = Settings.move_confirm_mode
 	_saved_kind = InputSource.last_kind
+	_saved_vsync = Settings.vsync_enabled
+	_saved_max_fps = Settings.max_fps
 	_panel = OptionsMenuPanel.new()
 	add_child_autofree(_panel)
 
@@ -38,6 +42,8 @@ func after_each() -> void:
 	Settings.set_end_turn_warning(_saved_warning)
 	Settings.set_move_confirm_mode(_saved_move_confirm)
 	InputSource.last_kind = _saved_kind
+	Settings.set_vsync_enabled(_saved_vsync)
+	Settings.set_max_fps(_saved_max_fps)
 
 
 func _action(name: StringName) -> InputEventAction:
@@ -62,7 +68,7 @@ func test_every_persisted_setting_lives_on_exactly_one_tab() -> void:
 			"seeded_reload", "control_hints", "tooltip_hold", "cursor_speed",
 			"preset"] as Array[String])
 	assert_eq(_ids(OptionsMenuPanel.Tab.VIDEO), ["zoom_mode", "portrait_effects",
-			"ui_motion", "type_icons", "max_fps"] as Array[String])
+			"ui_motion", "type_icons", "vsync", "max_fps"] as Array[String])
 	assert_eq(_ids(OptionsMenuPanel.Tab.AUDIO), ["master_volume", "sfx_volume",
 			"music_volume"] as Array[String])
 	var all_ids: Array[String] = []
@@ -70,7 +76,7 @@ func test_every_persisted_setting_lives_on_exactly_one_tab() -> void:
 		for id: String in _ids(tab as OptionsMenuPanel.Tab):
 			assert_false(all_ids.has(id), "%s appears on two tabs" % id)
 			all_ids.append(id)
-	assert_eq(all_ids.size(), 19, "eighteen persisted settings + the preset row, each on one tab")
+	assert_eq(all_ids.size(), 20, "nineteen persisted settings + the preset row, each on one tab")
 
 
 # =============================================================================
@@ -232,6 +238,91 @@ func test_slider_rows_wear_the_pill_palette_not_godots_default() -> void:
 	assert_eq(_panel._slider_track_style.border_color, GameColors.ACTION_BUTTON_BORDER,
 			"the track's rim is the unlit pill's gray")
 	assert_eq(_panel._slider_track_style.get_minimum_size().y, float(OptionsMenuPanel.SLIDER_TRACK_HEIGHT))
+
+
+# =============================================================================
+# FPS CAP — stops up to the display's rate; Higher? past it
+# =============================================================================
+# Headless reports no refresh rate, so the display here is the 60 Hz fallback.
+
+func _open_on_video(vsync: bool, max_fps: int) -> void:
+	Settings.set_vsync_enabled(vsync)
+	Settings.set_max_fps(max_fps)
+	_panel.current_tab = OptionsMenuPanel.Tab.VIDEO
+	_panel.show_panel()
+
+
+func _fps_readout() -> String:
+	return _panel._fps_readout.text
+
+
+func test_the_slider_tops_out_at_the_display() -> void:
+	_open_on_video(true, 0)
+	var slider: HSlider = _panel._fps_slider
+	assert_eq(slider.value, slider.max_value, "0 sits on the top stop")
+	assert_eq(_fps_readout(), str(Settings.display_refresh_rate()),
+			"the top stop reads the display's rate — the number most players never knew")
+
+
+func test_the_display_stop_stores_zero_and_the_others_their_rate() -> void:
+	_open_on_video(true, 0)
+	var slider: HSlider = _panel._fps_slider
+	slider.value = slider.max_value - 1
+	assert_eq(Settings.max_fps, _panel._fps_stops[int(slider.max_value) - 1])
+	assert_eq(_fps_readout(), str(Settings.max_fps))
+	slider.value = slider.max_value
+	assert_eq(Settings.max_fps, 0, "the display's stop follows the display to another monitor")
+
+
+func test_higher_opens_the_stops_to_1000() -> void:
+	_open_on_video(true, 0)
+	assert_eq(_panel._higher_pill.text, OptionsMenuPanel.HIGHER_LABEL)
+	_panel._higher_pill.pressed.emit()
+	assert_eq(_panel._higher_pill.text, OptionsMenuPanel.LOWER_LABEL,
+			"open, the pill says what pressing it again does")
+	var slider: HSlider = _panel._fps_slider
+	assert_eq(slider.value, float(_panel._fps_stops.find(Settings.display_refresh_rate())),
+			"opening never moves the knob")
+	slider.value = slider.max_value
+	assert_eq(Settings.max_fps, Settings.FPS_CAP_MAX)
+	assert_eq(_fps_readout(), "1000")
+
+
+func test_closing_higher_drops_a_cap_past_the_display_back_to_it() -> void:
+	_open_on_video(true, 0)
+	_panel._higher_pill.pressed.emit()
+	_panel._fps_slider.value = _panel._fps_slider.max_value
+	_panel._higher_pill.pressed.emit()
+	assert_eq(_panel._higher_pill.text, OptionsMenuPanel.HIGHER_LABEL)
+	assert_eq(Settings.max_fps, 0)
+	assert_eq(_panel._fps_slider.value, _panel._fps_slider.max_value, "the knob sits on the display's stop")
+	assert_eq(_fps_readout(), str(Settings.display_refresh_rate()))
+
+
+func test_a_cap_past_the_display_reopens_on_the_range_that_shows_it() -> void:
+	_open_on_video(true, 240)
+	assert_eq(_fps_readout(), "240")
+	assert_eq(_panel._fps_stops.back(), Settings.FPS_CAP_MAX, "Higher? opens already open")
+	(_panel._choice_buttons["vsync"][false] as Button).pressed.emit()
+	assert_eq(Settings.max_fps, 240, "VSync off leaves the cap alone")
+
+
+func test_the_pill_keeps_its_width_when_it_flips() -> void:
+	# A narrower Lower? would slide the slider and readout under the pointer.
+	_open_on_video(true, 0)
+	var width: float = _panel._higher_pill.get_combined_minimum_size().x
+	_panel._higher_pill.pressed.emit()
+	assert_eq(_panel._higher_pill.get_combined_minimum_size().x, width)
+
+
+func test_the_cursor_presses_past_the_top_stop_onto_higher() -> void:
+	_open_on_video(true, 0)
+	var slider: HSlider = _panel._fps_slider
+	slider.grab_focus()
+	slider.gui_input.emit(_action(&"ui_right"))
+	assert_eq(_panel.get_viewport().gui_get_focus_owner(), _panel._higher_pill,
+			"the slider eats left/right; the top stop hands the cursor on")
+	_assert_explains("max_fps", "the pill explains its row")
 
 
 # =============================================================================

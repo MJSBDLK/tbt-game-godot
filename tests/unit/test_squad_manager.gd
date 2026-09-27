@@ -3,6 +3,16 @@
 extends GutTest
 
 
+# A battle end here fires SquadManager's report; the post-mission chain
+# (banner, state push, result screen) must not play under bookkeeping tests.
+func before_all() -> void:
+	SquadManager.post_mission_report_ready.disconnect(UIManager._battle_result_panel.play_post_mission)
+
+
+func after_all() -> void:
+	SquadManager.post_mission_report_ready.connect(UIManager._battle_result_panel.play_post_mission)
+
+
 # =============================================================================
 # Battle-start move PP reset
 # =============================================================================

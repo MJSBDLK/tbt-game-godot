@@ -117,15 +117,14 @@ modules (`HintBarCommands`, `ZIndexCalculator`, and kin).
 probes, `addons/aseprite_tag_exporter/`, the SceneRouter + HUDViewport dual
 render pipeline, the versioned pre-commit hook.
 
-**Over-cap files (2026-09-10) — don't grow; split when substantially touched:**
+**Over-cap files (2026-09-26) — don't grow; split when substantially touched:**
 
 | File | Lines |
 |---|---|
-| `scripts/units/unit.gd` | 2164 |
-| `scripts/ui/panels/unit_detail_panel.gd` | 1452 |
-| `scripts/ui/ui_manager.gd` | 1101 |
-| `scripts/managers/input_manager.gd` | 1096 |
-| `scripts/ui/components/unit_workbench.gd` | 1075 |
+| `scripts/units/unit.gd` | 2211 |
+| `scripts/ui/panels/unit_detail_panel.gd` | 1649 |
+| `scripts/managers/input_manager.gd` | 1111 |
+| `scripts/ui/components/unit_workbench.gd` | 1062 |
 
 Third-party addons (`gut`, `AsepriteWizard`, `importality`) are exempt. Update
 this table when a file crosses the line in either direction.

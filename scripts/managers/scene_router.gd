@@ -123,6 +123,11 @@ func _swap_scene(path: String) -> void:
 
 	var new_scene: Node = packed.instantiate()
 	if _current_scene != null:
+		# Out of the tree BEFORE the new scene enters: its _exit_tree tears down
+		# autoload state the new scene is about to build (BattleScene clears
+		# GridManager) — a mid-battle Load, battle → battle, would otherwise
+		# wipe the new board's grid at the end of the frame.
+		_current_scene.get_parent().remove_child(_current_scene)
 		_current_scene.queue_free()
 		_current_scene = null
 

@@ -117,7 +117,8 @@ func test_audio_and_fps_defaults() -> void:
 	assert_almost_eq(settings.master_volume, 0.8, 0.001, "master volume defaults to 0.8")
 	assert_almost_eq(settings.sfx_volume, 0.8, 0.001, "sfx volume defaults to 0.8")
 	assert_almost_eq(settings.music_volume, 0.8, 0.001, "music volume defaults to 0.8")
-	assert_eq(settings.max_fps, 0, "framerate cap defaults to 0 (uncapped)")
+	assert_eq(settings.max_fps, 0, "framerate cap defaults to 0 (the display's rate)")
+	assert_true(settings.vsync_enabled, "VSync defaults on: no tearing out of the box")
 
 
 func test_audio_and_fps_persist_across_instances() -> void:
@@ -126,12 +127,15 @@ func test_audio_and_fps_persist_across_instances() -> void:
 	writer.set_sfx_volume(0.25)
 	writer.set_music_volume(0.0)
 	writer.set_max_fps(144)
+	writer.set_vsync_enabled(false)
 	var reader := _make_settings()
 	reader.load_settings()
 	assert_almost_eq(reader.master_volume, 0.5, 0.001, "master volume persisted")
 	assert_almost_eq(reader.sfx_volume, 0.25, 0.001, "sfx volume persisted")
 	assert_almost_eq(reader.music_volume, 0.0, 0.001, "music volume persisted")
 	assert_eq(reader.max_fps, 144, "framerate cap persisted")
+	assert_false(reader.vsync_enabled, "VSync persisted")
+	writer.set_vsync_enabled(true)  # Engine.max_fps is global; hand it back
 
 
 func test_volume_setter_clamps() -> void:
@@ -149,7 +153,7 @@ func test_max_fps_setter_clamps() -> void:
 	settings.set_max_fps(10)
 	assert_eq(settings.max_fps, 30, "sub-30 positive values clamp up to 30")
 	settings.set_max_fps(0)
-	assert_eq(settings.max_fps, 0, "0 = uncapped is always allowed")
+	assert_eq(settings.max_fps, 0, "0 = the display's rate is always allowed")
 
 
 func test_volume_setter_noop_when_unchanged() -> void:
@@ -166,8 +170,81 @@ func test_load_mints_audio_buses_and_applies_engine_prefs() -> void:
 	assert_true(AudioServer.get_bus_index("SFX") != -1, "SFX bus minted")
 	assert_true(AudioServer.get_bus_index("Music") != -1, "Music bus minted")
 	assert_eq(Engine.max_fps, 120, "Engine.max_fps mirrors the setting")
-	settings.set_max_fps(0)  # restore uncapped so the test leaves no residue
-	assert_eq(Engine.max_fps, 0, "0 restores uncapped")
+	settings.set_max_fps(0)  # hand the rate back so the test leaves no residue
+	assert_eq(Engine.max_fps, 0, "0 under VSync: the display holds the rate itself")
+
+
+func test_without_vsync_the_display_rate_becomes_a_real_cap() -> void:
+	# 0 means "the display's rate" either way; VSync off, only a number can say it.
+	var settings := _make_settings()
+	settings.set_vsync_enabled(false)
+	assert_eq(Engine.max_fps, settings.display_refresh_rate(),
+			"no VSync to hold 0 at the display's rate, so the engine gets the number")
+	settings.set_max_fps(240)
+	assert_eq(Engine.max_fps, 240, "a cap past the display goes through without VSync")
+	settings.set_vsync_enabled(true)
+	assert_eq(Engine.max_fps, 240, "…and with it: mailbox carries it")
+	settings.set_max_fps(0)
+	assert_eq(Engine.max_fps, 0)
+
+
+func test_vsync_turns_mailbox_only_past_the_display() -> void:
+	# Plain VSync paces evenly at the display's rate; mailbox near it would
+	# drift against the refresh and drop a frame now and then.
+	var settings := _make_settings()
+	var display: int = settings.display_refresh_rate()
+	assert_eq(settings.vsync_mode(), DisplayServer.VSYNC_ENABLED, "0 = the display's rate")
+	settings.set_max_fps(display)
+	assert_eq(settings.vsync_mode(), DisplayServer.VSYNC_ENABLED, "at the display: plain VSync")
+	settings.set_max_fps(display + 1)
+	assert_eq(settings.vsync_mode(), DisplayServer.VSYNC_MAILBOX,
+			"past it: mailbox, the extra frames cut lag and never tear")
+	settings.set_vsync_enabled(false)
+	assert_eq(settings.vsync_mode(), DisplayServer.VSYNC_DISABLED)
+	assert_eq(settings.max_fps, display + 1, "switching VSync never moves the cap")
+	settings.set_vsync_enabled(true)
+	assert_eq(settings.max_fps, display + 1)
+	settings.set_max_fps(0)
+
+
+func test_the_display_rate_is_a_whole_hz_inside_the_caps_range() -> void:
+	var settings := _make_settings()
+	var rate: int = settings.display_refresh_rate()
+	assert_between(rate, settings.FPS_CAP_MIN, settings.FPS_CAP_MAX)
+	if DisplayServer.screen_get_refresh_rate() <= 0.0:
+		assert_eq(rate, settings.FALLBACK_REFRESH_RATE, "an OS that won't say reads as 60")
+
+
+# =============================================================================
+# FPS Cap stops — what the Options slider walks
+# =============================================================================
+
+func test_locked_stops_end_on_the_display_rate() -> void:
+	var settings := _make_settings()
+	var stops: Array[int] = settings.fps_cap_stops(144, false)
+	assert_eq(stops.front(), settings.FPS_CAP_MIN)
+	assert_eq(stops.back(), 144, "the slider tops out at the display")
+	assert_true(stops.has(60) and stops.has(72) and stops.has(120), "the common rates under it are stops")
+
+
+func test_unlocked_stops_run_to_1000_and_extend_the_locked_ones() -> void:
+	var settings := _make_settings()
+	var locked: Array[int] = settings.fps_cap_stops(144, false)
+	var unlocked: Array[int] = settings.fps_cap_stops(144, true)
+	assert_eq(unlocked.back(), settings.FPS_CAP_MAX)
+	assert_eq(unlocked.slice(0, locked.size()), locked,
+			"locked is a prefix: opening Higher? never moves the knob's stop")
+
+
+func test_an_uncommon_display_rate_becomes_its_own_stop_once() -> void:
+	var settings := _make_settings()
+	assert_eq(settings.fps_cap_stops(170, false).slice(-2), [165, 170] as Array[int],
+			"a 170 Hz display tops out at 170, not 165")
+	for rate: int in [60, 170, 1000]:
+		var stops: Array[int] = settings.fps_cap_stops(rate, true)
+		assert_eq(stops.count(rate), 1, "%d Hz: its stop appears once" % rate)
+		for index: int in range(1, stops.size()):
+			assert_gt(stops[index], stops[index - 1], "%d Hz: stops run low to high" % rate)
 
 
 func test_tooltip_hold_defaults_snaps_and_clamps() -> void:
