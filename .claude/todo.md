@@ -1,34 +1,32 @@
 # Resp
-- [x] Just noticed a problem. The "6 units haven't acted" warning doesn't have the orthogonal glow applied. We also probably want to center that text.
-  (DONE on `rqd--end-turn-framing`: primary voice + glow, centered; every count fits one line.)
-The camera stuff you did works flawlessly - just feels natural off the bat.
-You said you made edits to the # Claude section, but I'm not seeing them. I coincidentally deleted the "any button" item, before I read your reply.
+- [~] So admittedly I was trying to break it, but I was able to zoom out between the battle scene and the level up scene, and unable to zoom back in when the level up scene popped up. I don't know if this is worth  fixing but if a unit is set to  level  up post battle, we may wish to prevent scroll until after the level  up screen is dismissed.
+  (BUILT on `rqd--stage-zoom`: the gap was the XP bar on the map. The camera
+  now sits out the whole fight — first beat to last result beat, level-up
+  included — `Unit.is_fight_running`, every fight on either side.)
+- [~] Oh! Discovered a major bug  testing save/load/options. I couldn't even  get to options, because after save/load, Esc no longer brings up the menu! I can't interact with anything at all - even the terrain preview panel doesn't update as I mouse over stuff.
+  (FIXED, not the split — older than it: SceneRouter added the new scene
+  before the old one left, so a mid-battle Load (battle → battle) had the
+  old battle's teardown wipe the new battle's grid. Old scene leaves first
+  now; test_scene_router pins the order. RETEST: save, load it, Esc.)
+What was I testing with Options?
 
 # Claude
 Things Claude found while working on something else that need doing — not
 asked for, not yet acted on. RQD triages (promote, answer, or strike);
 Claude deletes an entry once it's fixed or moved into a real section.
 Observations with nothing to do go in "Claude FYI" below.
-- [ ] The mouse wheel skips the combat stage: its `_gui_input` takes any
-  mouse-button press, and a wheel notch is one. Scrolling the camera as a
-  fight opens skips it. Fix if it bites: ignore wheel buttons there.
-	-> Good catch, we should disable zooming in/out when the combat scene starts
-		and re-enable it when done.
-	-> Speaking of, did you imply that scrollwheel is hardcoded in the code?
-		Because the exact keybinds should be abstracted. Please create a todo
-		to address this if this is a real gap. [ready]
-	(Claude: zoom isn't hardcoded — it's the `zoom_in`/`zoom_out` actions,
-	which happen to be bound to the wheel. The stage just treats every mouse
-	button as a click. Fix: while the stage is up, zoom presses do nothing —
-	no skip, no zoom — matched by action, not by button. A real gap nearby:
-	three mouse commands skip the InputMap — filed in # Todo, "Mouse commands
-	that bypass the InputMap".) [ready]
-- [ ] `ui_manager.gd` is 1161 lines (cap ~1000). Split proposal: the
-  `_on_system_menu_*` handlers move into SystemMenuPanel (~100 lines out). The
-  spry over-cap table (`.claude/skills/spry/principles.md`) is stale:
-  ui_manager 1101→1161, input_manager 1096→1111, unit.gd 2164→2189.
-	-> analysis: no good reason for UI Manager to be this long. The extra lines just pass the system menu's button presses along,
-	and the policy says that code belongs in SystemMenuPanel anyway. [ready-to-implement]
+- [~] The mouse wheel skipped the combat stage. BUILT on `rqd--stage-zoom`:
+  the camera sits out the fight (no zoom, no pan — `Unit.is_fight_running`
+  gates it, through the XP bars and a level-up) and a zoom notch on the stage
+  is not a skip, matched by the zoom action. EYEBALL: scroll and arrow-pan
+  while a fight plays; the map should be where you left it. (The real
+  InputMap gap is filed in # Todo.)
+- [~] `ui_manager.gd` split. BUILT (stacked on the zoom fix): Options / Save /
+  Load and the save-browser round trip run in SystemMenuPanel now, plus its
+  own side pinning; 1161 → 1070. Still over cap — the next cut would be the
+  battle-result / post-mission chain (~100 lines). Spry table refreshed
+  (unit_detail_panel crept 1452 → 1649 unnoticed). EYEBALL: Save, Load,
+  Options from the pause menu, and back.
 - [ ] 5× "Lambda capture at index 0 was freed" in test_displacement_system's
   counter/knockback tests, on a clean HEAD too. A lambda outlives the unit it
   captured; harmless today, noise in every run.
