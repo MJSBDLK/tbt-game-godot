@@ -13,16 +13,17 @@
 ## was open, the board if the E key / hint bar asked. The camera frames the
 ## waiting units beside the panel; Cancel glides it back to the view it had —
 ## the press asked the question, backing out undoes what it moved.
+##
+## Options, Save and Load run here, with the save browser UIManager hands
+## over (attach_save_browser). End Turn, Main Menu and Quit signal UIManager:
+## End Turn shares the E key's path, the other two leave the battle.
 class_name SystemMenuPanel
 extends PanelContainer
 
 
-signal options_selected()
 signal end_turn_selected()
 ## End Turn pressed on the warning page — the player meant it.
 signal end_turn_confirmed()
-signal save_selected()
-signal load_selected()
 ## Leave the battle for the start screen (RQD 2026-08-16). Sits beside Quit
 ## and, like Quit, doesn't confirm — the turn autosave ring means at most the
 ## current turn is lost, and neither the hub's Quit to Menu nor Quit here asks.
@@ -47,6 +48,7 @@ var _cancel_returns_to_menu: bool = false
 var _waiting_flashes: Array[SilhouetteCallToAction] = []
 # CameraController.current_view() from before the framing; empty = nothing to undo.
 var _view_before_question: Dictionary = {}
+var _save_browser: SaveBrowserPanel = null
 
 
 func _ready() -> void:
@@ -210,9 +212,9 @@ func _populate_menu() -> void:
 	_create_spacer()
 	# Close leads the list (RQD 2026-08-21) — see the header for why.
 	_close_button = _create_button("Close", func() -> void: hide_menu())
-	_create_button("Options", func() -> void: options_selected.emit())
-	_save_button = _create_button("Save", func() -> void: save_selected.emit())
-	_create_button("Load", func() -> void: load_selected.emit())
+	_create_button("Options", _open_options)
+	_save_button = _create_button("Save", _save)
+	_create_button("Load", _open_load)
 	_create_button("Main Menu", func() -> void: main_menu_selected.emit())
 	_create_button("Quit", func() -> void: quit_selected.emit())
 
@@ -226,6 +228,90 @@ func _populate_menu() -> void:
 
 
 const END_TURN_BUTTON_HEIGHT: int = 22
+
+
+## Pins the panel's outer corner to the top of one screen edge; it grows
+## inward to fit its content — no hardcoded width. UIManager picks the side
+## (the action panels' side, away from the unit in play).
+func pin_to_side(on_left: bool) -> void:
+	anchor_top = 0.0
+	anchor_bottom = 0.0
+	offset_top = 0
+	offset_bottom = 0
+	offset_left = 0
+	offset_right = 0
+	if on_left:
+		anchor_left = 0.0
+		anchor_right = 0.0
+		grow_horizontal = Control.GROW_DIRECTION_END
+	else:
+		anchor_left = 1.0
+		anchor_right = 1.0
+		grow_horizontal = Control.GROW_DIRECTION_BEGIN
+
+
+# =============================================================================
+# OPTIONS / SAVE / LOAD
+# =============================================================================
+# Opening Options or the save browser hides this panel WITHOUT `closed`: the
+# game stays PAUSED under them, and their close brings the menu back.
+
+## UIManager builds the browser in its overlay layer (centered, like Options)
+## and hands it over; this menu is its only opener.
+func attach_save_browser(browser: SaveBrowserPanel) -> void:
+	assert(_save_browser == null, "SystemMenuPanel: the save browser is attached once")
+	_save_browser = browser
+	browser.closed.connect(_on_save_browser_closed)
+	browser.save_chosen.connect(_on_save_chosen)
+	browser.slot_chosen.connect(_on_overwrite_slot_chosen)
+
+
+func _open_options() -> void:
+	visible = false
+	UIManager.show_options_menu()  # its close lands in UIManager._on_options_menu_closed
+
+
+## A free manual slot: silent write, the Save row itself flashes the outcome.
+## Ring full: the press would destroy a save the player asked to keep, so the
+## overwrite picker takes over and the write lands in _on_overwrite_slot_chosen.
+func _save() -> void:
+	if SaveManager.find_free_manual_slot().is_empty():
+		assert(_save_browser != null, "SystemMenuPanel: Save on a full ring needs the save browser")
+		visible = false
+		_save_browser.show_overwrite_picker()
+		return
+	flash_save_result(not SaveManager.write_manual_save().is_empty())
+
+
+func _open_load() -> void:
+	assert(_save_browser != null, "SystemMenuPanel: Load needs the save browser")
+	visible = false
+	_save_browser.show_panel()
+
+
+func _on_overwrite_slot_chosen(path: String) -> void:
+	var written: String = SaveManager.write_manual_save_to(path)
+	# hide_panel emits closed, which brings this menu back (still PAUSED) —
+	# then the Save row flashes on the rebuilt menu.
+	_save_browser.hide_panel()
+	if visible:
+		flash_save_result(not written.is_empty())
+
+
+## Back to this menu — only while still PAUSED: a chosen save changes scene
+## and resets state, and the menu must not rise over the load.
+func _on_save_browser_closed() -> void:
+	if GameStateManager.current_state == Enums.InputState.PAUSED:
+		show_menu()
+
+
+func _on_save_chosen(path: String) -> void:
+	# Hidden WITHOUT closed (hide_panel would bring this menu back over the
+	# scene change); load_save_and_continue routes from here.
+	_save_browser.visible = false
+	if not SaveManager.load_save_and_continue(path):
+		push_warning("SystemMenuPanel: failed to load save '%s'" % path)
+		_save_browser.show_panel()
 
 
 # =============================================================================

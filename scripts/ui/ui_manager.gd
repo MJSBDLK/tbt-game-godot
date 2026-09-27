@@ -235,7 +235,7 @@ func is_unit_detail_visible() -> bool:
 func show_system_menu() -> void:
 	if _system_menu_panel == null:
 		return
-	_place_system_menu()
+	_system_menu_panel.pin_to_side(_action_panels_on_left)
 	_system_menu_panel.show_menu()
 
 
@@ -257,7 +257,7 @@ func request_end_turn() -> void:
 		return
 	if GameStateManager.current_state != Enums.InputState.PAUSED:
 		GameStateManager.push_state(Enums.InputState.PAUSED)
-	_place_system_menu()
+	_system_menu_panel.pin_to_side(_action_panels_on_left)
 	_system_menu_panel.show_end_turn_confirm(waiting)
 
 
@@ -599,13 +599,10 @@ func _instantiate_panels() -> void:
 	# so it can anchor to either screen edge without clipping the border.
 	_system_menu_panel = SystemMenuPanel.new()
 	_main_layout.add_child(_system_menu_panel)
-	_place_system_menu()
+	_system_menu_panel.pin_to_side(_action_panels_on_left)
 	_system_menu_panel.closed.connect(_on_system_menu_closed)
 	_system_menu_panel.end_turn_selected.connect(request_end_turn)
 	_system_menu_panel.end_turn_confirmed.connect(_end_player_turn)
-	_system_menu_panel.options_selected.connect(_on_system_menu_options)
-	_system_menu_panel.save_selected.connect(_on_system_menu_save)
-	_system_menu_panel.load_selected.connect(_on_system_menu_load)
 	_system_menu_panel.main_menu_selected.connect(_on_system_menu_main_menu)
 	_system_menu_panel.quit_selected.connect(_on_system_menu_quit)
 
@@ -623,9 +620,7 @@ func _instantiate_panels() -> void:
 	_save_browser_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_save_browser_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
 	_overlay_layer.add_child(_save_browser_panel)
-	_save_browser_panel.closed.connect(_on_save_browser_closed)
-	_save_browser_panel.save_chosen.connect(_on_save_browser_chosen)
-	_save_browser_panel.slot_chosen.connect(_on_save_browser_slot_chosen)
+	_system_menu_panel.attach_save_browser(_save_browser_panel)
 
 
 func _instantiate_overlays() -> void:
@@ -765,30 +760,6 @@ func _place_action_panels(on_left: bool) -> void:
 		_right_panel.offset_right = 0
 
 
-## Anchors the system menu panel to the correct screen edge.
-## The panel's outer corner (including border) sits at the screen corner,
-## growing inward to fit its content — no hardcoded width.
-func _place_system_menu() -> void:
-	if _system_menu_panel == null:
-		return
-	# Pin to a corner point; the panel's minimum size determines the actual rect.
-	# grow_horizontal controls which direction it expands from the anchor.
-	_system_menu_panel.anchor_top = 0.0
-	_system_menu_panel.anchor_bottom = 0.0
-	_system_menu_panel.offset_top = 0
-	_system_menu_panel.offset_bottom = 0
-	_system_menu_panel.offset_left = 0
-	_system_menu_panel.offset_right = 0
-	if _action_panels_on_left:
-		_system_menu_panel.anchor_left = 0.0
-		_system_menu_panel.anchor_right = 0.0
-		_system_menu_panel.grow_horizontal = Control.GROW_DIRECTION_END
-	else:
-		_system_menu_panel.anchor_left = 1.0
-		_system_menu_panel.anchor_right = 1.0
-		_system_menu_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-
-
 ## Returns true if the unit's world position will appear in the right half of the
 ## screen after the camera finishes panning (uses target_position, not current).
 ## Anchored on current_tile when the unit has one: with the deferred walk the
@@ -924,68 +895,6 @@ func _on_system_menu_closed() -> void:
 	var state_manager := get_node_or_null("/root/GameStateManager")
 	if state_manager != null and state_manager.current_state == Enums.InputState.PAUSED:
 		state_manager.pop_state()
-
-
-func _on_system_menu_options() -> void:
-	# Hide system menu panel without emitting closed (stay in PAUSED state)
-	if _system_menu_panel != null:
-		_system_menu_panel.visible = false
-	show_options_menu()
-
-
-func _on_system_menu_save() -> void:
-	# A free manual slot: silent write, the Save row itself flashes the
-	# outcome. Ring full: the press would destroy a save the player asked to
-	# keep, so the overwrite picker takes over (same hide-without-closed dance
-	# as Load) and the write lands in _on_save_browser_slot_chosen.
-	if SaveManager.find_free_manual_slot().is_empty():
-		if _system_menu_panel != null:
-			_system_menu_panel.visible = false
-		if _save_browser_panel != null:
-			_save_browser_panel.show_overwrite_picker()
-		return
-	var path: String = SaveManager.write_manual_save()
-	if _system_menu_panel != null:
-		_system_menu_panel.flash_save_result(not path.is_empty())
-
-
-func _on_save_browser_slot_chosen(path: String) -> void:
-	var written: String = SaveManager.write_manual_save_to(path)
-	# hide_panel emits closed, which brings the system menu back (still
-	# PAUSED) — then the Save row flashes on the rebuilt menu.
-	if _save_browser_panel != null:
-		_save_browser_panel.hide_panel()
-	if _system_menu_panel != null and _system_menu_panel.visible:
-		_system_menu_panel.flash_save_result(not written.is_empty())
-
-
-func _on_system_menu_load() -> void:
-	# Same dance as Options: hide without emitting closed (stay PAUSED),
-	# browser's own closed signal brings the menu back.
-	if _system_menu_panel != null:
-		_system_menu_panel.visible = false
-	if _save_browser_panel != null:
-		_save_browser_panel.show_panel()
-
-
-func _on_save_browser_closed() -> void:
-	# Return to the system menu — but only if still PAUSED (a chosen save
-	# changes scene and resets state; don't resurrect the menu over the load).
-	var state_manager := get_node_or_null("/root/GameStateManager")
-	if state_manager != null and state_manager.current_state == Enums.InputState.PAUSED:
-		if _system_menu_panel != null:
-			_system_menu_panel.show_menu()
-
-
-func _on_save_browser_chosen(path: String) -> void:
-	# Hide WITHOUT closed (hide_panel would re-show the system menu over the
-	# scene change); load_save_and_continue handles the routing from here.
-	if _save_browser_panel != null:
-		_save_browser_panel.visible = false
-	if not SaveManager.load_save_and_continue(path):
-		push_warning("UIManager: failed to load save '%s'" % path)
-		if _save_browser_panel != null:
-			_save_browser_panel.show_panel()
 
 
 func _on_options_menu_closed() -> void:
