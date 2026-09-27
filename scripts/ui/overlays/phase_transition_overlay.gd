@@ -1,6 +1,8 @@
 ## Animated phase transition banner with parallax star field.
 ## Text slides in from left, decelerates to center, holds, then accelerates off right.
-## Star layers scroll in parallax, speed tracking text velocity.
+## Star layers scroll in parallax, speed tracking text velocity. Their speeds
+## are designed at 60 fps and refitted to each display's refresh rate so every
+## layer steps evenly there (see even_layer_steps).
 class_name PhaseTransitionOverlay
 extends Control
 
@@ -18,10 +20,16 @@ const BANNER_HEIGHT: int = 64
 ## Vertical center of the banner within the 360px viewport.
 const BANNER_Y: int = (360 - BANNER_HEIGHT) / 2  # 148
 
-## Per-layer scroll speeds in pixels/second at full speed (_speed_factor = 1.0).
-## At half speed (_speed_factor = 0.5), each layer runs at half these values.
-## star1(bright)=360, star2(mid)=240, star3(dim)=120 → at 60fps: 6/4/2 fast, 3/2/1 slow.
-const STAR_FAST_SPEEDS: Array[float] = [360.0, 240.0, 120.0]
+## Per-layer scroll at full speed, in pixels per 60 fps frame (star1 bright,
+## star2 mid, star3 dim), fastest first. The hold runs at HOLD_SPEED_FACTOR.
+const STAR_PIXELS_PER_FRAME: Array[float] = [6.0, 4.0, 2.0]
+const HOLD_SPEED_FACTOR: float = 0.5
+
+## Lifts thirds that sum to 0.9999… onto the pixel they add up to.
+const PIXEL_SNAP_TOLERANCE: float = 0.000001
+## A frame within this fraction of a whole number of refreshes counts as
+## exactly that many; see _process.
+const REFRESH_SNAP: float = 0.05
 
 ## Timing (seconds).
 const FADE_IN_DURATION: float = 0.2
@@ -38,8 +46,15 @@ var _banner: TextureRect = null
 var _star_pairs: Array[Array] = []
 var _phase_label: Label = null
 var _scroll_offsets: Array[float] = [0.0, 0.0, 0.0]
-## 1.0 = full speed, 0.5 = slow (hold). Tweened by the animation sequence.
-var _speed_factor: float = 1.0
+## Pixels per refresh for each layer at full speed and at hold speed, fitted to
+## _refresh_rate by _start_scroll.
+var _full_speed_steps: Array[float] = []
+var _hold_steps: Array[float] = []
+var _refresh_rate: float = 60.0
+## Refreshes that have elapsed but haven't been scrolled yet.
+var _refresh_clock: float = 0.0
+## 0 = full speed, 1 = hold speed. Tweened by the animation sequence.
+var _hold_blend: float = 0.0
 var _is_animating: bool = false
 
 
@@ -53,13 +68,24 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if not _is_animating:
 		return
+	# Count whole refreshes, not delta × speed: flooring accumulated px/s turns
+	# delta's wobble into 1-px hitches. A vsync'd frame is a whole number of
+	# refreshes even when the reported rate is a hair off, so snap it there;
+	# other frames (vsync off, variable refresh) keep the exact remainder.
+	var elapsed_refreshes: float = delta * _refresh_rate
+	var nearest_refreshes: int = roundi(elapsed_refreshes)
+	if nearest_refreshes >= 1 and absf(elapsed_refreshes - nearest_refreshes) < REFRESH_SNAP:
+		elapsed_refreshes = nearest_refreshes
+	_refresh_clock += elapsed_refreshes
+	var refreshes: int = roundi(_refresh_clock)
+	_refresh_clock -= refreshes
 	# Advance each star layer's scroll offset and position both copies.
 	for i: int in range(_star_pairs.size()):
-		_scroll_offsets[i] += STAR_FAST_SPEEDS[i] * _speed_factor * delta
+		var step: float = lerpf(_full_speed_steps[i], _hold_steps[i], _hold_blend)
 		# Wrap offset to stay within one texture width.
-		_scroll_offsets[i] = fmod(_scroll_offsets[i], float(TEXTURE_WIDTH))
+		_scroll_offsets[i] = fmod(_scroll_offsets[i] + step * refreshes, float(TEXTURE_WIDTH))
 		# Snap to whole pixels so single-pixel stars don't vanish.
-		var snapped_offset: float = floorf(_scroll_offsets[i])
+		var snapped_offset: float = floorf(_scroll_offsets[i] + PIXEL_SNAP_TOLERANCE)
 		var pair: Array = _star_pairs[i]
 		(pair[0] as TextureRect).position.x = -snapped_offset
 		(pair[1] as TextureRect).position.x = -snapped_offset + TEXTURE_WIDTH
@@ -87,8 +113,7 @@ func show_transition(text: String, color: Color) -> void:
 			star_rect.modulate = star_tint
 
 	# Reset state.
-	_scroll_offsets = [0.0, 0.0, 0.0]
-	_speed_factor = 1.0
+	_start_scroll(effective_refresh_rate())
 	_is_animating = true
 	visible = true
 	modulate.a = 0.0
@@ -112,7 +137,7 @@ func show_transition(text: String, color: Color) -> void:
 	tween.set_parallel(true)
 	tween.tween_property(_phase_label, "position:x", 0.0, SLIDE_IN_DURATION) \
 		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUART)
-	tween.tween_property(self, "_speed_factor", 0.5, SLIDE_IN_DURATION) \
+	tween.tween_property(self, "_hold_blend", 1.0, SLIDE_IN_DURATION) \
 		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUART)
 	tween.set_parallel(false)
 
@@ -124,7 +149,7 @@ func show_transition(text: String, color: Color) -> void:
 	tween.set_parallel(true)
 	tween.tween_property(_phase_label, "position:x", TEXT_OFFSCREEN, SLIDE_OUT_DURATION) \
 		.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUART)
-	tween.tween_property(self, "_speed_factor", 1.0, SLIDE_OUT_DURATION) \
+	tween.tween_property(self, "_hold_blend", 0.0, SLIDE_OUT_DURATION) \
 		.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUART)
 	tween.set_parallel(false)
 
@@ -134,6 +159,90 @@ func show_transition(text: String, color: Color) -> void:
 	await tween.finished
 	_is_animating = false
 	visible = false
+
+
+# =============================================================================
+# EVEN STEPS
+# =============================================================================
+
+func _start_scroll(refresh_rate: float) -> void:
+	assert(refresh_rate > 0.0, "a star scroll needs a refresh rate to step on")
+	_refresh_rate = refresh_rate
+	_full_speed_steps = even_layer_steps(STAR_PIXELS_PER_FRAME, 1.0, refresh_rate)
+	_hold_steps = even_layer_steps(STAR_PIXELS_PER_FRAME, HOLD_SPEED_FACTOR, refresh_rate)
+	_scroll_offsets = [0.0, 0.0, 0.0]
+	_refresh_clock = 0.0
+	_hold_blend = 0.0
+
+
+## The rate frames reach the screen at: the monitor's refresh, or the FPS cap
+## when that's lower. 60 when the platform can't say (headless, some drivers).
+static func effective_refresh_rate() -> float:
+	var refresh_rate: float = DisplayServer.screen_get_refresh_rate()
+	if refresh_rate <= 0.0:
+		refresh_rate = 60.0
+	if Engine.max_fps > 0 and Engine.max_fps < refresh_rate:
+		refresh_rate = Engine.max_fps
+	return refresh_rate
+
+
+## Each layer's scroll in pixels per refresh at `refresh_rate`, as close to
+## `pixels_per_frame` × `speed_factor` at 60 fps as even steps allow. The layers
+## are fitted together: picking each alone can squeeze the slower ones (75 Hz
+## would hold at 2, 1, 0.5 where 3, 2, 1 keeps the parallax), and every layer
+## stays slower than the one before so two never scroll as one.
+static func even_layer_steps(pixels_per_frame: Array[float], speed_factor: float,
+		refresh_rate: float) -> Array[float]:
+	var targets: Array[float] = []
+	var options: Array[Array] = []
+	var combination_count: int = 1
+	for pixels: float in pixels_per_frame:
+		var target: float = pixels * speed_factor * 60.0 / refresh_rate
+		targets.append(target)
+		options.append(even_steps_near(target, refresh_rate))
+		combination_count *= options[-1].size()
+	# A handful of options per layer, so every combination is cheap to try.
+	var best: Array[float] = []
+	var best_error: float = INF
+	for combination: int in range(combination_count):
+		var steps: Array[float] = []
+		var error: float = 0.0
+		var remaining: int = combination
+		for layer: int in range(targets.size()):
+			var step: float = options[layer][remaining % options[layer].size()]
+			@warning_ignore("integer_division")
+			remaining /= options[layer].size()
+			if layer > 0 and step >= steps[-1]:
+				break
+			steps.append(step)
+			error += pow(log(step / targets[layer]), 2.0)
+		if steps.size() == targets.size() and error < best_error:
+			best = steps
+			best_error = error
+	assert(best.size() == targets.size(), "no fastest-first even steps at %s Hz" % refresh_rate)
+	return best
+
+
+## The steps within 2× of `target` pixels per refresh that scroll evenly at
+## `refresh_rate`. Whole pixels every refresh, or one pixel every k refreshes,
+## are always even. Any other fraction alternates (1.5 px goes 1, 2, 1, 2) and
+## only passes when the pattern repeats within a 60 fps frame: no coarser than
+## the 60 Hz screen the speeds were designed on.
+static func even_steps_near(target: float, refresh_rate: float) -> Array[float]:
+	assert(target > 0.0, "a layer that doesn't move has no even step")
+	# The 0.05 lets 119.88 Hz count as 120.
+	var max_denominator: int = maxi(1, floori(refresh_rate / 60.0 + 0.05))
+	var candidates: Array[float] = []
+	for denominator: int in range(1, max_denominator + 1):
+		for numerator: int in range(1, ceili(target * 2.0 * denominator) + 1):
+			candidates.append(float(numerator) / denominator)
+	for every: int in range(2, 17):
+		candidates.append(1.0 / every)
+	var steps: Array[float] = []
+	for candidate: float in candidates:
+		if absf(log(candidate / target)) <= log(2.0) and not steps.has(candidate):
+			steps.append(candidate)
+	return steps
 
 
 # =============================================================================
