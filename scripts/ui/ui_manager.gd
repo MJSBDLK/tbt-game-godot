@@ -59,21 +59,12 @@ var _unit_detail_panel: UnitDetailPanel = null
 var _system_menu_panel: SystemMenuPanel = null
 var _options_menu_panel: OptionsMenuPanel = null
 var _save_browser_panel: SaveBrowserPanel = null
+const BATTLE_RESULT_SCENE: PackedScene = preload("res://scenes/ui/panels/battle_result_panel.tscn")
 var _battle_result_panel: BattleResultPanel = null
 # The mid-battle level-up reveal while it is up (show_level_up_celebration);
 # null otherwise. Exposed so callers can tell a celebration is holding the
 # turn, and so tests can press through it.
 var _level_up_celebration: LevelUpStatPanel = null
-# SquadManager's post-mission report, held from post_mission_report_ready
-# until the banner clears and BattleResultPanel renders it.
-var _pending_post_mission_report: Array = []
-# Outcome recorded by show_battle_result (which _end_battle calls before
-# emitting battle_ended) so the banner played at the top of the post-mission
-# chain knows what to say.
-var _pending_result_is_victory: bool = true
-# Full stats payload from show_battle_result (turns, kills, losses, totals),
-# rendered by BattleResultPanel once the banner clears.
-var _pending_battle_stats: Dictionary = {}
 var _recruit_picker_panel: Node = null
 
 
@@ -294,54 +285,27 @@ func show_phase_transition(text: String, color: Color) -> void:
 		await _phase_transition_overlay.show_transition(text, color)
 
 
-func show_battle_result(is_victory: bool, turn_count: int, player_units_lost: int,
-		enemies_defeated: int, total_players: int, total_enemies: int) -> void:
-	# Push BATTLE_RESULT — the state-changed handler tears down any in-flight
-	# map UI and _is_map_view_active() returns false from this point.
-	var state_manager := get_node_or_null("/root/GameStateManager")
-	if state_manager != null and state_manager.current_state != Enums.InputState.BATTLE_RESULT:
-		state_manager.push_state(Enums.InputState.BATTLE_RESULT)
-	# Belt-and-suspenders teardown of map-side panels. The state-changed
-	# handler already does this, but if we re-entered BATTLE_RESULT (push
-	# above was skipped) the handler never fires — and these panels would
-	# otherwise linger underneath the result overlay.
+## TurnManager._end_battle, before battle_ended. The post-mission chain lives
+## in BattleResultPanel; this is its way in from outside the HUD.
+func hold_battle_outcome(stats: Dictionary) -> void:
+	_battle_result_panel.hold_outcome(stats)
+
+
+## The map-side panels, down — for a caller that can't count on a state
+## change to do it (a state already on the stack doesn't fire one).
+func hide_map_panels() -> void:
 	hide_unit_info()
 	hide_terrain_info()
 	hide_action_menu()
 	hide_combat_preview()
 	hide_unit_detail()
-	# Record the outcome + stats for the chain. _end_battle calls this BEFORE
-	# emitting battle_ended, so both are always fresh when the post-mission
-	# chain (_on_post_mission_report_ready) reads them.
-	_pending_result_is_victory = is_victory
-	_pending_battle_stats = {
-		"is_victory": is_victory,
-		"turn_count": turn_count,
-		"player_units_lost": player_units_lost,
-		"enemies_defeated": enemies_defeated,
-		"total_players": total_players,
-		"total_enemies": total_enemies,
-	}
-	# Nothing is SHOWN from here: the post-mission chain
-	# (_on_post_mission_report_ready) plays the banner and then
-	# BattleResultPanel. A stats overlay used to be shown here and came back
-	# as an undismissable zombie under the chain (2026-07-07); it was deleted
-	# 2026-09-09.
 
 
-## Unwinds the BATTLE_RESULT state show_battle_result pushed.
-func hide_battle_result() -> void:
-	var state_manager := get_node_or_null("/root/GameStateManager")
-	if state_manager != null and state_manager.current_state == Enums.InputState.BATTLE_RESULT:
-		state_manager.pop_state()
-
-
-## Mid-battle level-up celebration (RQD 2026-08-11): a stats-exclusive cut of
-## the detail panel, awaited so the combat sequence holds while the reveal
-## plays — and, since 2026-09-09, until the player PRESSES through it (the
-## panel never auto-dismisses; the post-battle report it used to hand off to
-## is gone). `before` is LevelUpStatPanel.stat_snapshot taken pre-grant. Safe
-## to call from any combat context — returns immediately on bad input.
+## Mid-battle level-up celebration: a stats-exclusive cut of the detail
+## panel, awaited so the combat sequence holds while the reveal plays and
+## until the player presses through it (it never auto-dismisses). `before`
+## is LevelUpStatPanel.stat_snapshot taken pre-grant. Safe to call from any
+## combat context — returns immediately on bad input.
 ##
 ## While the panel is up, InputState.LEVEL_UP_CELEBRATION is pushed: the
 ## InputManager goes quiet (the Continue press must not also select a unit),
@@ -640,91 +604,18 @@ func _instantiate_overlays() -> void:
 		_overlay_layer.add_child(_unit_detail_panel)
 		_unit_detail_panel.closed.connect(_on_unit_detail_closed)
 
-	# Post-mission flow: banner → BattleResultPanel → conclude. The level-up
-	# report and bEXP screens that used to follow were removed 2026-09-09:
-	# level-ups celebrate mid-battle as they happen (show_level_up_celebration)
-	# and bEXP is spent in the intermission (BexpSpendPanel).
-	var battle_result_scene := load("res://scenes/ui/panels/battle_result_panel.tscn")
-	if battle_result_scene != null:
-		_battle_result_panel = battle_result_scene.instantiate() as BattleResultPanel
-		_overlay_layer.add_child(_battle_result_panel)
-		_battle_result_panel.closed.connect(_on_battle_result_panel_closed)
-
-	var squad_manager: Node = get_node_or_null("/root/SquadManager")
-	if squad_manager and squad_manager.has_signal("post_mission_report_ready"):
-		squad_manager.post_mission_report_ready.connect(_on_post_mission_report_ready)
+	# The post-mission chain runs itself (BattleResultPanel); it starts off
+	# SquadManager's report.
+	_battle_result_panel = BATTLE_RESULT_SCENE.instantiate() as BattleResultPanel
+	assert(_battle_result_panel != null, "UIManager: battle_result_panel.tscn lost its script")
+	_overlay_layer.add_child(_battle_result_panel)
+	SquadManager.post_mission_report_ready.connect(_battle_result_panel.play_post_mission)
 
 	# Recruit picker panel (between-missions choice of N candidates)
 	var recruit_picker_scene := load("res://scenes/ui/panels/recruit_picker_panel.tscn")
 	if recruit_picker_scene != null:
 		_recruit_picker_panel = recruit_picker_scene.instantiate()
 		_overlay_layer.add_child(_recruit_picker_panel)
-
-
-## Entry point for the post-mission flow. Chain (results first, 2026-08-03;
-## trimmed to one screen 2026-09-09 — level-ups already celebrated
-## mid-battle, bEXP is spent in the intermission):
-##   battle_ended signal → _on_post_mission_report_ready (this)
-##     → banner ("VICTORY"/"DEFEAT", no numbers) — awaited, blocks the chain
-##     → BattleResultPanel.show_result() — turns vs par, itemized bEXP
-##         income, kills/losses, injuries/permadeath.
-##     → _on_battle_result_panel_closed → _finish_post_mission_flow() —
-##         state pop, campaign concludes (victory advances, defeat replays).
-func _on_post_mission_report_ready(report: Array) -> void:
-	# Suppress the legacy battle-result overlay so its Continue button doesn't
-	# compete with the post-mission panel (they share the same overlay layer).
-	hide_battle_result()
-	var state_manager := get_node_or_null("/root/GameStateManager")
-	if state_manager != null and state_manager.current_state != Enums.InputState.POST_MISSION_REPORT:
-		state_manager.push_state(Enums.InputState.POST_MISSION_REPORT)
-	# Belt-and-suspenders map-panel teardown (mirrors show_battle_result): if
-	# POST_MISSION_REPORT was already on the stack the push above is skipped,
-	# the state-changed handler never fires, and a hovered terrain preview
-	# would sit under the result panel.
-	hide_unit_info()
-	hide_terrain_info()
-	hide_action_menu()
-	hide_combat_preview()
-	hide_unit_detail()
-
-	_pending_post_mission_report = report
-	# Banner-first flow (Lawrence, playtesting): the FIRST thing the player
-	# sees at battle end is a bare "VICTORY"/"DEFEAT" riding the phase banner —
-	# no numbers, no buttons. The await here holds back the result panel until
-	# the banner clears; map input is already dead because POST_MISSION_REPORT
-	# was pushed above. This must live HERE, not in show_battle_result — the
-	# chain starts off battle_ended and would race a banner played anywhere
-	# else (it did, 2026-07-07: the old bEXP screen popped over the banner).
-	var banner_color: Color = GameColors.PLAYER_UNIT if _pending_result_is_victory \
-			else GameColors.ENEMY_UNIT
-	await show_phase_transition(
-			"VICTORY" if _pending_result_is_victory else "DEFEAT", banner_color)
-	if _battle_result_panel != null:
-		_battle_result_panel.show_result(_pending_battle_stats,
-				SquadManager.last_mission_award_lines, report)
-	else:
-		_finish_post_mission_flow()
-
-
-func _on_battle_result_panel_closed() -> void:
-	_finish_post_mission_flow()
-
-
-## End of the post-mission chain: release the input state and hand the
-## outcome to CampaignManager (victory advances, defeat replays — its call).
-## Absorbed from the retired PostMissionReportPanel, which used to own this.
-func _finish_post_mission_flow() -> void:
-	_pending_post_mission_report = []
-	var state_manager := get_node_or_null("/root/GameStateManager")
-	if state_manager != null and state_manager.current_state == Enums.InputState.POST_MISSION_REPORT:
-		state_manager.pop_state()
-	var campaign_manager: Node = get_node_or_null("/root/CampaignManager")
-	if campaign_manager != null and campaign_manager.is_active():
-		campaign_manager.conclude_mission(_pending_result_is_victory)
-	else:
-		# No active campaign (e.g. launched a map directly from the editor).
-		# Fall back to the start screen so the player can pick a campaign.
-		SceneRouter.change_scene_to("res://scenes/ui/start_screen.tscn")
 
 
 # =============================================================================
@@ -838,49 +729,24 @@ func hide_save_browser() -> void:
 func _on_state_changed(_old_state: Enums.InputState, new_state: Enums.InputState) -> void:
 	if new_state != Enums.InputState.PAUSED:
 		hide_save_browser()
+	# Each state spares its own panels; every other one goes down. A modal
+	# state (result, recruiting, level-up, any new one) spares none.
+	var spared: Array[Callable] = []
 	match new_state:
 		Enums.InputState.DEFAULT, Enums.InputState.UNIT_SELECTED, Enums.InputState.MOVEMENT_PLANNING:
-			hide_action_menu()
-			hide_combat_preview()
-			hide_unit_detail()
-			hide_system_menu()
-			hide_options_menu()
+			spared = [hide_unit_info, hide_terrain_info]
 		Enums.InputState.ACTION_MENU_OPEN:
-			hide_unit_info()
-			hide_terrain_info()
-			hide_combat_preview()
-			hide_unit_detail()
-			hide_system_menu()
-			hide_options_menu()
+			spared = [hide_action_menu]
 		Enums.InputState.ATTACK_TARGETING:
-			hide_unit_info()
-			hide_terrain_info()
-			hide_action_menu()
-			hide_unit_detail()
-			hide_system_menu()
-			hide_options_menu()
+			spared = [hide_combat_preview]
 		Enums.InputState.UNIT_DETAIL:
-			hide_unit_info()
-			hide_terrain_info()
-			hide_action_menu()
-			hide_combat_preview()
-			hide_system_menu()
-			hide_options_menu()
+			spared = [hide_unit_detail]
 		Enums.InputState.PAUSED:
-			hide_unit_info()
-			hide_terrain_info()
-			hide_action_menu()
-			hide_combat_preview()
-			hide_unit_detail()
-		Enums.InputState.BATTLE_RESULT, Enums.InputState.POST_MISSION_REPORT, \
-		Enums.InputState.RECRUITING, Enums.InputState.LEVEL_UP_CELEBRATION:
-			hide_unit_info()
-			hide_terrain_info()
-			hide_action_menu()
-			hide_combat_preview()
-			hide_unit_detail()
-			hide_system_menu()
-			hide_options_menu()
+			spared = [hide_system_menu, hide_options_menu]
+	for hide_panel: Callable in [hide_unit_info, hide_terrain_info, hide_action_menu,
+			hide_combat_preview, hide_unit_detail, hide_system_menu, hide_options_menu]:
+		if not spared.has(hide_panel):
+			hide_panel.call()
 
 
 func _on_unit_detail_closed() -> void:

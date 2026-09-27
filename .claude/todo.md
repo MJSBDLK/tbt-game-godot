@@ -1,36 +1,15 @@
 # Resp
-- [~] So admittedly I was trying to break it, but I was able to zoom out between the battle scene and the level up scene, and unable to zoom back in when the level up scene popped up. I don't know if this is worth  fixing but if a unit is set to  level  up post battle, we may wish to prevent scroll until after the level  up screen is dismissed.
-  (BUILT on `rqd--stage-zoom`: the gap was the XP bar on the map. The camera
-  now sits out the whole fight — first beat to last result beat, level-up
-  included — `Unit.is_fight_running`, every fight on either side.)
-- [~] Oh! Discovered a major bug  testing save/load/options. I couldn't even  get to options, because after save/load, Esc no longer brings up the menu! I can't interact with anything at all - even the terrain preview panel doesn't update as I mouse over stuff.
-  (FIXED, not the split — older than it: SceneRouter added the new scene
-  before the old one left, so a mid-battle Load (battle → battle) had the
-  old battle's teardown wipe the new battle's grid. Old scene leaves first
-  now; test_scene_router pins the order. RETEST: save, load it, Esc.)
-What was I testing with Options?
+
 
 # Claude
 Things Claude found while working on something else that need doing — not
 asked for, not yet acted on. RQD triages (promote, answer, or strike);
 Claude deletes an entry once it's fixed or moved into a real section.
 Observations with nothing to do go in "Claude FYI" below.
-- [~] The mouse wheel skipped the combat stage. BUILT on `rqd--stage-zoom`:
-  the camera sits out the fight (no zoom, no pan — `Unit.is_fight_running`
-  gates it, through the XP bars and a level-up) and a zoom notch on the stage
-  is not a skip, matched by the zoom action. EYEBALL: scroll and arrow-pan
-  while a fight plays; the map should be where you left it. (The real
-  InputMap gap is filed in # Todo.)
-- [~] `ui_manager.gd` split. BUILT (stacked on the zoom fix): Options / Save /
-  Load and the save-browser round trip run in SystemMenuPanel now, plus its
-  own side pinning; 1161 → 1070. Still over cap — the next cut would be the
-  battle-result / post-mission chain (~100 lines). Spry table refreshed
-  (unit_detail_panel crept 1452 → 1649 unnoticed). EYEBALL: Save, Load,
-  Options from the pause menu, and back.
 - [ ] 5× "Lambda capture at index 0 was freed" in test_displacement_system's
   counter/knockback tests, on a clean HEAD too. A lambda outlives the unit it
   captured; harmless today, noise in every run.
-	- I straight up don't understand what you're talking about here. Let's discuss
+	- This is lower priority but we should track it down [ready]
 - [ ] 
 
 # Claude FYI
@@ -362,6 +341,7 @@ holds CLAUDE.md); one opened at the container root gets no project memory.
   Fix: an action each (`ui_cancel` may already fit right-click). Left-click
   as "press the thing under the pointer" stays raw — that's what a pointer
   is, same as Godot's own Button. Blocks nothing until a rebind screen exists.
+  RQD: matters a lot for Steam Input (it remaps actions, not raw buttons).
 - [ ] Add a next/prev unit button.
 	- M&K: Probably Q/E on keyboard (careful to make sure this is contextual because these do other things in the menus). LMK if you have a better idea or if there's a game that does this well I should be aware of.
 	- Controller: are the bumpers in use? If we need to, these can just be B (east) on the controller, but I think I prefer having both Prev and Next
@@ -369,6 +349,18 @@ holds CLAUDE.md); one opened at the container root gets no project memory.
 - [ ] We still haven't implimented single enemy unit threat zones - should be a distinct "danger" or "warning" color. Might make the "all enemies" threat zone "warning," and a specific enemy threat zone "danger," the more I think about it.
 	- I hold a controller in my hands, and think "what button press brings up the enemy threat zone?" and that button is A or X (face button west or south). If both are already taken, can it be contextual? Let's discuss.
 	- I think we probably want to toggle the threat zone off with the same button as well - LMK if you can think of any disadvantages to that.
+	- (Already there: the Range chip on an enemy's info panel pins its zone.
+	  Missing: the danger color, and a button.)
+- [ ] Context-sensitive button map — spell it out, then build the two items
+  above on it. DECIDED (RQD 9/26): A on an enemy toggles its zone; Y on a
+  unit opens unit info, never the zone too; Y on an empty tile toggles the
+  type-icon layer (breakable terrain could join it later); tooltip peek
+  moves onto Y, freeing Back and R3. PROPOSED, unanswered: LB/RB = prev/next
+  unit, all-enemy zones to a trigger, Tab / Shift+Tab on keyboard, one
+  touch "Next". OPEN: in the action menu Y already opens unit info and the
+  move chips peek — Claude suggests tap Y = unit info, hold Y = peek.
+  Home for the map: HintBarCommands' table (the bar must name each context's
+  verb anyway).
 - [ ] We should have fullres line art for the Keener enemy - name is either "cultist" or "blood mage," not to be confused with the plant cultist.
 - [x] Options menu has gotten too big for the screen. We'll need to tabulate and/or refactor
   (DONE 2026-09-09 on `rqd--options-tabs`, eyeball-gated. Both: three tabs
@@ -447,6 +439,7 @@ holds CLAUDE.md); one opened at the container root gets no project memory.
   was dead (mouse-enter never reaches a nested SubViewport) — InputRouter
   mirrors it now, so ~29 authored hover tooltips light up. EYEBALL those.)
 - [ ] Victory screen popping up needs more dopamine - discuss
+  (Mockup session, HTML first.)
 - [~] The finalized icons for the terrain preview panel are actually finished - we should use those over the placeholders we're currently using.
   (BUILT on `rqd--terrain-icons`: exported from his
   `art/sprites/ui/terrain_attributes_10x10/terrain_attributes_10x10.aseprite`
@@ -462,6 +455,9 @@ holds CLAUDE.md); one opened at the container root gets no project memory.
 	- tooltip explaining why
 	- Claude recommends off/30/60/refresh. I agree this is user-friendly but I don't want to leave out people with less common refresh rates. I am a framerate princess. 75, 90, 120, 144, 165, 200, 240, higher - I like the idea of a slider that accommodates everyone, but for people who have the "basic bitch fixed 60" monitor, it's a lot of wasted screen real estate, or worse, confusing. 25 year old Quinn didn't know about screen refresh rates, microstutter, etc, so when I saw a knob that let me increase my frame rate beyond the refresh rate, I cranked that up and got confused at the tearing.
 	- If we can design around this, great, but if not, maybe we just leave as-is.
+	- DECIDED (RQD 9/26) [ready]: detect the monitor's refresh rate; slider
+	  30–refresh; a "Higher?" button unlocks it to 1000. Tooltip says why.
+	  Fallback 60 when the OS won't report a rate.
 
 
 **Answered + BUILT 2026-09-07 on `rqd--terrain-stack`** (3 commits, suite

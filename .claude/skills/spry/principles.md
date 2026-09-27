@@ -124,7 +124,6 @@ render pipeline, the versioned pre-commit hook.
 | `scripts/units/unit.gd` | 2211 |
 | `scripts/ui/panels/unit_detail_panel.gd` | 1649 |
 | `scripts/managers/input_manager.gd` | 1111 |
-| `scripts/ui/ui_manager.gd` | 1070 |
 | `scripts/ui/components/unit_workbench.gd` | 1062 |
 
 Third-party addons (`gut`, `AsepriteWizard`, `importality`) are exempt. Update
