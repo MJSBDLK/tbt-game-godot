@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cuyboevu7ila1"
-path="res://.godot/imported/big_troll.png-f80b92cec1cbf0b806afeaef3cf59b2a.ctex"
+uid="uid://daqxx85y35rtu"
+path="res://.godot/imported/ex_gentry_swordsman.png-3a976db0ae7a7df98ae777368db03dcd.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/lineart_fullres/big_troll.png"
-dest_files=["res://.godot/imported/big_troll.png-f80b92cec1cbf0b806afeaef3cf59b2a.ctex"]
+source_file="res://art/lineart_fullres/ex_gentry_swordsman.png"
+dest_files=["res://.godot/imported/ex_gentry_swordsman.png-3a976db0ae7a7df98ae777368db03dcd.ctex"]
 
 [params]
 

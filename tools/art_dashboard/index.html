@@ -1,0 +1,62 @@
+<!doctype html>
+<!-- Art board: bookmark this file. How it works: dashboard.js header. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Art board</title>
+<link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+<header class="top-bar">
+	<h1 id="board-title" class="board-title" data-note-target="board" data-note-label="the whole board">Art board</h1>
+	<div id="summary" class="summary"></div>
+	<span id="status" class="status">Loading…</span>
+	<button id="notes-button" class="notes-button" type="button">Notes</button>
+</header>
+
+<section id="next-up" class="next-up"></section>
+
+<div class="legend">
+	<span class="legend-item"><span class="legend-empty"></span> missing</span>
+	<span class="legend-item"><span class="cell-dash">—</span> its moves never play it</span>
+	<span class="legend-item"><span class="badge badge-new legend-badge">new</span> drawn, not in the game yet</span>
+	<span class="legend-item"><span class="badge badge-uses legend-badge">= Melee</span> another clip covers it</span>
+	<span class="legend-item">Hover a box to play it.</span>
+	<span class="legend-actions">
+		<button id="open-all" type="button">Open all</button>
+		<button id="close-all" type="button">Close all</button>
+	</span>
+</div>
+
+<details id="renames" class="panel renames" hidden>
+	<summary>Renames to do</summary>
+	<ul></ul>
+</details>
+
+<details id="box-key" class="panel box-key">
+	<summary>What each box means</summary>
+	<p class="box-key-intro">&lt;id&gt; is the character's file name. Hover any box for its exact tag or file.</p>
+	<ul></ul>
+</details>
+
+<main id="grid"></main>
+
+<dialog id="note-dialog" class="note-dialog">
+	<form method="dialog">
+		<h2 id="note-title"></h2>
+		<div id="note-replies" class="note-replies"></div>
+		<textarea id="note-text" rows="6" placeholder="Questions, problems, anything. Claude reads these next time it syncs the board."></textarea>
+		<menu class="note-actions">
+			<button value="delete" class="note-delete">Delete</button>
+			<button value="cancel">Cancel</button>
+			<button value="save" class="note-save">Save</button>
+		</menu>
+	</form>
+</dialog>
+
+<script src="ranking.js"></script>
+<script src="game_data.js"></script>
+<script src="dashboard.js"></script>
+</body>
+</html>

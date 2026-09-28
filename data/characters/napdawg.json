@@ -5,7 +5,7 @@
 	"currentClass": "Noble",
 	"specialization": "None",
 	"portraitPath": "res://art/portraits/napdawg_portrait.png",
-	"lineartPath": "res://art/lineart_fullres/napdog.png",
+	"lineartPath": "res://art/lineart_fullres/napdawg.png",
 	"lineartAtlases": {
 		"portrait": "res://art/lineart_fullres/napdawg_portrait.tres"
 	},

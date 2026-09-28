@@ -4,7 +4,7 @@
 	"secondaryType": "None",
 	"currentClass": "Heavy",
 	"specialization": "None",
-	"lineartPath": "res://art/lineart_fullres/big_troll.png",
+	"lineartPath": "res://art/lineart_fullres/ogre.png",
 	"lineartAtlases": {
 		"portrait": "res://art/lineart_fullres/ogre_portrait.tres"
 	},

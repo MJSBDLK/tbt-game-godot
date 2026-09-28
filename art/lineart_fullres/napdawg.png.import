@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bn2buty1ax1y5"
-path="res://.godot/imported/ma'am.png-99fba9fe4e78af3fb4ab450756256079.ctex"
+uid="uid://dbjief76xo57w"
+path="res://.godot/imported/napdawg.png-1905e2f6764ed836b0774e354c19d5c1.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/lineart_fullres/ma'am.png"
-dest_files=["res://.godot/imported/ma'am.png-99fba9fe4e78af3fb4ab450756256079.ctex"]
+source_file="res://art/lineart_fullres/napdawg.png"
+dest_files=["res://.godot/imported/napdawg.png-1905e2f6764ed836b0774e354c19d5c1.ctex"]
 
 [params]
 
