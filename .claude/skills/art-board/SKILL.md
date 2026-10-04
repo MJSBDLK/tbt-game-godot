@@ -18,7 +18,8 @@ env -u LD_LIBRARY_PATH node tools/art_dashboard/check_on_disk.js
 ```
 
 Each character's tier and what its next tier needs, art that's drawn but not
-wired in ("new, not wired"), and pending renames: the page's own logic.
+wired in ("new, not wired"), pending renames, and placeholder status: the
+page's own logic.
 
 ## 2. Wire in new art (a "new" badge on the board)
 
@@ -32,6 +33,16 @@ A convention file exists but the character JSON doesn't declare it:
 - Line art: set `lineartPath`, set `mipmaps/generate=true` in its `.import`,
   and make a square `<id>_portrait.tres` crop (view the image, pick the face).
   RQD eyeballs new crops.
+- Art that's in the game but not good enough yet (a photo of the paper page,
+  not transparent ink): wire it anyway, then add its path and the reason to
+  `placeholders.js`. The board shows it but doesn't count it. Ask RQD first.
+
+## 2b. Clear placeholders
+
+The check prints each placeholder's corners. "Transparent now" means the
+real art replaced the photo: delete its line in `placeholders.js`, look at
+the image, and re-check the crop. "Opaque corners but not marked" is a
+new paper photo: ask RQD whether to mark it.
 
 ## 3. Follow up renames Lawrence did
 

@@ -424,6 +424,59 @@ maxing DEF, it makes it better. Two things to watch in playtest:
 
 Kept as-is for now per RQD; both are tuning questions, not design ones.
 
+---
+
+## 8. Promotion trees
+
+### Bugler **[DECIDED]**
+
+```
+Bugler             Heraldic            tier 1
+├─ Herald          Heraldic            tier 2
+│  ├─ King of Arms Heraldic            tier 3   loadout swaps (below)
+│  └─ Banneret     Heraldic/Chivalric  tier 3
+└─ Envoy           Heraldic/Gentry     tier 2
+   ├─ Ambassador   Heraldic/Gentry     tier 3
+   └─ Spy          Gentry              tier 3   concealment (below)
+```
+
+- **Bugler is a new base class.** It isn't in `Enums.CharacterClass` yet; the two
+  bugler characters are `Noble` today, typed Chivalric and Gentry.
+- **Uneven on purpose.** Envoy gains Gentry at tier 2; Herald stays pure Heraldic
+  until Banneret. The branches have different strengths: the player picks for
+  the squad, or for the art.
+- **Spy drops Heraldic**: the spy takes off the herald's tabard.
+- **Names come from real heraldry.** Pursuivant → herald → king of arms was the
+  officers' ladder; kings of arms granted arms and never fought. A banneret was
+  a knight promoted on the field for valor. Envoys and trumpeters carried
+  messages between armies and were suspected of spying.
+- **Harold** is the named recruitable Bugler (Lawrence may veto). Enemy buglers
+  stay unnamed.
+- **Art.** Lawrence's Gentry bugler is the Envoy and his Chivalric bugler the
+  Banneret. Bugler, Herald, King of Arms, Ambassador and Spy need designs.
+
+Both tier-3 passives need mechanics that don't exist. They are designed but not
+scheduled: post-alpha, and feature creep until then.
+
+**King of Arms: loadout swaps.** An ally adjacent to the King of Arms may swap
+moves and passives and still act. Adjacency is the cost: without a
+move-after-acting passive, the ally ends its turn next to him. Player-only:
+never given to enemies, so the AI never has to use it. Needs a battle-side
+version of the Manage Units loadout editor (`UnitWorkbench`).
+
+**Spy: concealment.** A general mechanic other abilities can use too (the
+unused `FOG` terrain status says "Conceals position").
+- Enemies can't see or target a concealed unit. Attacking breaks cover. Area
+  attacks still hit it.
+- Enemies who are canonically very situationally aware get a passive that
+  reveals concealed units.
+- Re-hiding needs distance from enemies and a tile that gives cover. The
+  passive puts a Disguise move in the third move slot. Disguising takes the
+  turn, so a disguised Spy can't attack: it's a toggle.
+- Player-only. Enemies may "cheat" with their own version, e.g. jumping out of
+  bushes, but never run the Spy rules. One such cheat, the impostor hiding in
+  the player's own squad: future-ideas.md.
+
 ## 6. Open questions
 
 - **Promotion sets** — per base class, or shared pools? (§3; drives the 30–45

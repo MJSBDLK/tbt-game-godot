@@ -7,7 +7,10 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const os = require("node:os");
+const zlib = require("node:zlib");
 const board = require("./dashboard.js");
+const { topCornerAlphas } = require("./check_on_disk.js");
 
 const exists = (width, height) => ({ exists: true, width, height });
 const candidate = (filePath, declared, convention, renameTo, clip) =>
@@ -72,6 +75,61 @@ test("extras show as optional and never lower the tier", () => {
 	assert.equal(board.boxState(crit, null), "optional");
 	assert.equal(board.boxState({ ...crit, needed: false }, null), "not-needed");
 	assert.equal(board.boxState({ ...crit, tier: "green" }, null), "missing");
+});
+
+test("a placeholder shows on its box but never counts", () => {
+	const lineArt = requirement("line_art", "orange", true, [candidate("lineart/hero.png", true, true)]);
+	const hero = character([requirement("idle", "orange", true, IDLE), lineArt]);
+	const probes = { "sprites/hero/idle.png": exists(64, 64), "lineart/hero.png": exists(3024, 4032) };
+	assert.equal(board.evaluateCharacter(hero, probes).tier, "green");
+	const marked = board.evaluateCharacter(hero, probes, { "lineart/hero.png": "a paper photo" });
+	assert.equal(marked.tier, "red");
+	assert.deepEqual(marked.missingForNext.map((entry) => entry.id), ["line_art"]);
+	assert.equal(marked.placeholders.line_art.path, "lineart/hero.png");
+	assert.equal(board.boxState(lineArt, marked.shown.line_art, marked.placeholders.line_art), "placeholder");
+});
+
+test("every placeholder names a file some box looks for", () => {
+	const sandbox = { window: {} };
+	for (const file of ["game_data.js", "placeholders.js"]) {
+		vm.runInNewContext(fs.readFileSync(path.join(__dirname, file), "utf8"), sandbox);
+	}
+	const looked = new Set(sandbox.window.ART_DASHBOARD_DATA.characters.flatMap((entry) =>
+		entry.requirements.flatMap((need) => need.candidates.map((option) => option.path))));
+	for (const placeholderPath of Object.keys(sandbox.window.ART_DASHBOARD_PLACEHOLDERS)) {
+		assert.ok(looked.has(placeholderPath), `${placeholderPath} is a path the board checks`);
+	}
+});
+
+// A minimal PNG: IHDR, one IDAT, IEND. CRCs are zero; the reader skips them.
+function writePng(folder, name, width, colorType, rows) {
+	const chunk = (type, body) => {
+		const length = Buffer.alloc(4);
+		length.writeUInt32BE(body.length);
+		return Buffer.concat([length, Buffer.from(type, "latin1"), body, Buffer.alloc(4)]);
+	};
+	const header = Buffer.alloc(13);
+	header.writeUInt32BE(width, 0);
+	header.writeUInt32BE(rows.length, 4);
+	header[8] = 8;
+	header[9] = colorType;
+	const file = path.join(folder, name);
+	fs.writeFileSync(file, Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", header),
+		chunk("IDAT", zlib.deflateSync(Buffer.from(rows.flat()))), chunk("IEND", Buffer.alloc(0))]));
+	return file;
+}
+
+test("corner alphas come from the first scanline, whatever its filter", () => {
+	const folder = fs.mkdtempSync(path.join(os.tmpdir(), "art-board-"));
+	// Three RGBA pixels, alpha 0 / 255 / 128. Sub stores each byte minus the pixel to its left.
+	const plain = writePng(folder, "none.png", 3, 6, [[0, 9, 9, 9, 0, 9, 9, 9, 255, 9, 9, 9, 128]]);
+	assert.deepEqual(topCornerAlphas(plain), { left: 0, right: 128 });
+	const sub = writePng(folder, "sub.png", 3, 6, [[1, 9, 9, 9, 0, 0, 0, 0, 255, 0, 0, 0, 129]]);
+	assert.deepEqual(topCornerAlphas(sub), { left: 0, right: 128 }, "255 + 129 wraps to 128");
+	const photo = writePng(folder, "photo.png", 2, 6, [[4, 200, 200, 200, 255, 0, 0, 0, 0]]);
+	assert.deepEqual(topCornerAlphas(photo), { left: 255, right: 255 }, "Paeth on row 0 adds the left byte");
+	assert.equal(topCornerAlphas(writePng(folder, "rgb.png", 1, 2, [[0, 1, 2, 3]])), null, "no alpha channel");
+	fs.rmSync(folder, { recursive: true });
 });
 
 test("a convention file beats the declared one: it's the newer art", () => {

@@ -51,18 +51,24 @@ function isStandIn(requirement, candidate) {
 }
 
 // What a box shows. "optional": an extra no color needs yet (crits).
-function boxState(requirement, shown) {
+// "placeholder": in the game for now, but it doesn't count (placeholders.js).
+function boxState(requirement, shown, placeholder) {
 	if (shown) return isStandIn(requirement, shown) ? "stand-in" : "shown";
+	if (placeholder) return "placeholder";
 	if (!requirement.needed) return "not-needed";
 	return requirement.tier === "extra" ? "optional" : "missing";
 }
 
 // Tier = one below the lowest tier with an unmet, needed requirement.
 // "extra" requirements sit outside the ladder, so they never lower it.
-function evaluateCharacter(character, probes) {
+// `placeholders` (path → why) never count; they're kept to show on the box.
+function evaluateCharacter(character, probes, placeholders = {}) {
 	const shown = {};
+	const placeholderShown = {};
 	for (const requirement of character.requirements) {
-		shown[requirement.id] = shownCandidate(requirement, probes);
+		const counted = requirement.candidates.filter((candidate) => !(candidate.path in placeholders));
+		shown[requirement.id] = shownCandidate({ ...requirement, candidates: counted }, probes);
+		if (!shown[requirement.id]) placeholderShown[requirement.id] = shownCandidate(requirement, probes);
 	}
 	const unmet = character.requirements.filter((requirement) => requirement.needed && !shown[requirement.id]);
 	let tier = "green";
@@ -75,6 +81,7 @@ function evaluateCharacter(character, probes) {
 	const nextTier = NEXT_TIER[tier];
 	return {
 		shown,
+		placeholders: placeholderShown,
 		unmet,
 		tier,
 		missingForNext: nextTier ? unmet.filter((requirement) => requirement.tier === nextTier) : [],
@@ -310,7 +317,10 @@ const BOX_GROUPS = [
 const STATE_WORDS = {
 	shown: "done", "stand-in": "covered by another clip", missing: "missing",
 	optional: "optional", "not-needed": "its moves never play it",
+	placeholder: "placeholder, doesn't count",
 };
+// Path → why the file doesn't count yet (placeholders.js).
+let placeholderReasons = {};
 const SUMMARY_THUMBNAIL_SIZE = 36;
 
 // Characters open in the grid. null until the viewer opens or closes one:
@@ -341,7 +351,8 @@ const isOpen = (id) => (openCharacters ? openCharacters.has(id) : id === nextUpI
 function render(data, ranking) {
 	stopPlayback();
 	const characters = sortCharacters(data.characters, ranking);
-	const evaluations = new Map(characters.map((character) => [character.id, evaluateCharacter(character, probes)]));
+	const evaluations = new Map(characters.map((character) =>
+		[character.id, evaluateCharacter(character, probes, placeholderReasons)]));
 	const columns = data.columns;
 	const next = characters.find((character) => ["red", "orange"].includes(evaluations.get(character.id).tier));
 	nextUpId = next ? next.id : null;
@@ -381,6 +392,8 @@ function renderNextUp(next, evaluations, ranking, columns) {
 		const column = columns.find((candidate) => candidate.id === requirement.id);
 		const item = element("li");
 		item.append(element("span", "need-chip", column.label), element("span", "need-how", boxHint(column, next.id)));
+		const placeholder = evaluation.placeholders[requirement.id];
+		if (placeholder) item.append(element("span", "need-placeholder", `Placeholder in the game now: ${placeholderReasons[placeholder.path]}`));
 		list.append(item);
 	}
 	panel.append(list);
@@ -488,7 +501,7 @@ function renderPips(character, evaluation, columns) {
 		const cluster = element("span", "pip-group");
 		for (const column of columns.filter((candidate) => candidate.tier === group.tier)) {
 			const requirement = character.requirements.find((candidate) => candidate.id === column.id);
-			const state = boxState(requirement, evaluation.shown[column.id]);
+			const state = boxState(requirement, evaluation.shown[column.id], evaluation.placeholders[column.id]);
 			const pip = element("span", `pip pip-${state} pip-tier-${group.tier}`);
 			pip.title = `${column.label}: ${STATE_WORDS[state]}`;
 			cluster.append(pip);
@@ -514,6 +527,15 @@ function renderCharacterBody(character, evaluation, columns) {
 		section.append(boxes);
 		body.append(section);
 	}
+	// Placeholder reasons in plain view, not just in tooltips.
+	for (const column of columns) {
+		const placeholder = evaluation.placeholders[column.id];
+		if (!placeholder) continue;
+		const note = element("p", "placeholder-note");
+		note.append(element("strong", "", `${column.label} is a placeholder. `),
+			element("span", "", placeholderReasons[placeholder.path]));
+		body.append(note);
+	}
 	return body;
 }
 
@@ -535,8 +557,9 @@ function renderCell(character, evaluation, column, columns) {
 	cell.dataset.noteTarget = `cell--${character.id}--${column.id}`;
 	cell.dataset.noteLabel = `${character.name} · ${column.label}`;
 	const requirement = character.requirements.find((candidate) => candidate.id === column.id);
-	const shown = evaluation.shown[column.id];
-	const state = boxState(requirement, shown);
+	const placeholder = evaluation.placeholders[column.id];
+	const state = boxState(requirement, evaluation.shown[column.id], placeholder);
+	const shown = evaluation.shown[column.id] || placeholder;
 	const how = boxHint(column, character.id);
 	if (state === "not-needed") {
 		cell.classList.add("cell-not-needed");
@@ -576,7 +599,12 @@ function renderCell(character, evaluation, column, columns) {
 	cell.append(thumbnail);
 
 	const notes = [];
-	if (state === "stand-in") {
+	if (state === "placeholder") {
+		cell.classList.add("cell-placeholder");
+		cell.append(element("span", "badge badge-placeholder", "placeholder"));
+		notes.push(`Placeholder: ${placeholderReasons[shown.path]}`,
+			"It's in the game for now, but doesn't count toward a color.", `To replace it: ${how}.`);
+	} else if (state === "stand-in") {
 		const owner = columnLabel(shown.clip, columns);
 		cell.classList.add("cell-stand-in");
 		cell.append(element("span", "badge badge-uses", `= ${owner}`));
@@ -793,6 +821,7 @@ function formatTime(timestamp) {
 async function start() {
 	const data = global.ART_DASHBOARD_DATA;
 	const ranking = global.ART_DASHBOARD_RANKING || [];
+	placeholderReasons = global.ART_DASHBOARD_PLACEHOLDERS || {};
 	const status = document.getElementById("status");
 	if (!data) {
 		status.textContent = "game_data.js didn't load. Is this page inside the game's repo?";

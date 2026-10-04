@@ -2660,6 +2660,13 @@ window.ART_DASHBOARD_DATA = {
 					}
 				}
 			},
+			"crop": {
+				"atlas": "art/lineart_fullres/flamethrower_phoenix.png",
+				"height": 950,
+				"width": 950,
+				"x": 1520,
+				"y": 1060
+			},
 			"id": "flamethrower_phoenix",
 			"name": "Phoenix Pirate",
 			"requirements": [
@@ -2692,7 +2699,7 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
-							"declared": false,
+							"declared": true,
 							"path": "art/lineart_fullres/flamethrower_phoenix.png"
 						}
 					],
@@ -4769,6 +4776,13 @@ window.ART_DASHBOARD_DATA = {
 					"hit_frame": 10
 				}
 			},
+			"crop": {
+				"atlas": "art/lineart_fullres/keener.png",
+				"height": 1000,
+				"width": 1000,
+				"x": 560,
+				"y": 1300
+			},
 			"id": "keener",
 			"name": "Keener",
 			"requirements": [
@@ -4801,7 +4815,7 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
-							"declared": false,
+							"declared": true,
 							"path": "art/lineart_fullres/keener.png"
 						}
 					],
@@ -7697,6 +7711,13 @@ window.ART_DASHBOARD_DATA = {
 					}
 				}
 			},
+			"crop": {
+				"atlas": "art/lineart_fullres/robot.png",
+				"height": 900,
+				"width": 900,
+				"x": 1060,
+				"y": 200
+			},
 			"id": "robot",
 			"name": "Robot",
 			"requirements": [
@@ -7729,7 +7750,7 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
-							"declared": false,
+							"declared": true,
 							"path": "art/lineart_fullres/robot.png"
 						}
 					],
@@ -8303,6 +8324,13 @@ window.ART_DASHBOARD_DATA = {
 					}
 				}
 			},
+			"crop": {
+				"atlas": "art/lineart_fullres/squash.png",
+				"height": 1000,
+				"width": 1000,
+				"x": 980,
+				"y": 660
+			},
 			"id": "squash",
 			"name": "Squash",
 			"requirements": [
@@ -8335,7 +8363,7 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
-							"declared": false,
+							"declared": true,
 							"path": "art/lineart_fullres/squash.png"
 						}
 					],
@@ -8560,6 +8588,13 @@ window.ART_DASHBOARD_DATA = {
 					}
 				}
 			},
+			"crop": {
+				"atlas": "art/lineart_fullres/thumps.png",
+				"height": 1200,
+				"width": 1200,
+				"x": 615,
+				"y": 425
+			},
 			"id": "thumps",
 			"name": "Thumps",
 			"requirements": [
@@ -8592,7 +8627,7 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
-							"declared": false,
+							"declared": true,
 							"path": "art/lineart_fullres/thumps.png"
 						}
 					],

@@ -1,0 +1,7 @@
+[gd_resource type="AtlasTexture" format=3 uid="uid://dnfmvu1s5rhgg"]
+
+[ext_resource type="Texture2D" uid="uid://5ibm6qhxi3dp" path="res://art/lineart_fullres/flamethrower_phoenix.png" id="1_4557u"]
+
+[resource]
+atlas = ExtResource("1_4557u")
+region = Rect2(1520, 1060, 950, 950)
