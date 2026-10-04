@@ -88,6 +88,13 @@ stats. That's the first real class *data* in the project; everything else below
 is still absent. All 32 character JSONs already carry a `currentClass` and the
 loader parses it, so caps resolved per-unit the moment the table landed.
 
+**The promotion trees are `promotes_to` on each `Enums.CLASS_INFO` entry** (the
+next tier's choices; tier 3 has none). Two are drawn so far: Spaceman → Jetpack
+→ EVA and Squire → Knight → Void Knight. Hardcase and Topdog are in no tree yet.
+An empty `promotes_to` means "not designed yet", and the art board's Class trees
+panel shows every such gap. `tests/unit/test_class_tree.gd` checks each
+promotion goes up exactly one tier. Nothing in the game reads the trees yet.
+
 Still absent: any other class data (no granted passives, typing, growth mods, or
 `data/classes/`), any promotion trigger or eligibility check, and the
 class-choice screen.

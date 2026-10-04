@@ -224,9 +224,8 @@ static func _derive_from_sprite(character: CharacterData) -> Texture2D:
 
 
 static func _resolve_frame_rect(character: CharacterData, image: Image) -> Rect2i:
-	# Atlas-less PNGs are single-frame — the whole image is the idle frame.
 	if character.sprite_atlas_path.is_empty():
-		return Rect2i(0, 0, image.get_width(), image.get_height())
+		return SpriteSidecar.idle_frame_rect(image.get_size())
 
 	var frame_tex: AtlasTexture = SpriteAtlasLoader.get_frame_texture(
 		character.sprite_sheet_path,

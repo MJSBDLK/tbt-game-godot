@@ -114,6 +114,63 @@ func test_every_box_has_one_requirement_of_its_tier() -> void:
 		assert_eq(_requirement(entry, column.id).tier, column.tier, column.id)
 
 
+func test_a_character_gets_a_variant_per_class_below_its_own() -> void:
+	var entry := Generator.character_entry("nobody", {"currentClass": "Squire"}, MOVE_BANK)
+	assert_eq(entry["class"], "squire")
+	assert_eq(entry.variants.map(func(variant: Dictionary) -> String: return variant["class"]),
+			Generator.promotions_below("squire"))
+	for variant: Dictionary in entry.variants:
+		assert_eq(variant.id, "nobody_" + variant["class"], "file stem <id>_<class>")
+
+
+func test_class_names_with_spaces_read_like_the_loader() -> void:
+	assert_eq(Generator.character_class_id({"currentClass": "Void Knight"}), "void_knight")
+	assert_eq(Generator.promotions_below("void_knight"), [], "tier 3 promotes into nothing")
+
+
+## Moves don't change with class, so neither do the boxes a variant needs.
+func test_a_variant_needs_what_its_base_needs() -> void:
+	var entry := Generator.character_entry("nobody", {"currentClass": "Squire", "basePoolMoves": ["Jab", "Mend"]}, MOVE_BANK)
+	assert_false(entry.variants.is_empty(), "Squire promotes")
+	for variant: Dictionary in entry.variants:
+		for index: int in entry.requirements.size():
+			assert_eq(variant.requirements[index].needed, entry.requirements[index].needed,
+					"%s %s" % [variant.id, entry.requirements[index].id])
+
+
+## Nothing in the game loads variants yet: a declared base path must never
+## leak into a variant as if it were the variant's own.
+func test_variants_only_look_on_their_own_convention_paths() -> void:
+	var character := {
+		"currentClass": "Squire",
+		"sprite": {"sheetPath": "res://art/sprites/characters/old_name/idle.png"},
+		"lineartPath": "res://art/lineart_fullres/old_name.png",
+	}
+	var entry := Generator.character_entry("nobody", character, MOVE_BANK)
+	for variant: Dictionary in entry.variants:
+		for requirement: Dictionary in variant.requirements:
+			for candidate: Dictionary in requirement.candidates:
+				assert_true(candidate.path.contains(variant.id), candidate.path)
+				assert_false(candidate.declared, candidate.path)
+
+
+func test_classes_mirror_the_enum() -> void:
+	var classes: Array = Generator.build_data().classes
+	assert_eq(classes.size(), Enums.CLASS_INFO.size())
+	for entry: Dictionary in classes:
+		var character_class: int = Enums.CharacterClass[entry.id.to_upper()]
+		assert_eq(entry.tier, Enums.get_class_tier(character_class), entry.id)
+		assert_eq(entry.promotes_to.size(), Enums.CLASS_INFO[character_class].get("promotes_to", []).size(), entry.id)
+
+
+func test_no_variant_shares_its_files_with_a_character() -> void:
+	var characters: Array = Generator.build_data().characters
+	var character_ids: Array = characters.map(func(entry: Dictionary) -> String: return entry.id)
+	for entry: Dictionary in characters:
+		for variant: Dictionary in entry.variants:
+			assert_does_not_have(character_ids, variant.id, "%s's %s variant" % [entry.id, variant["class"]])
+
+
 func test_declared_convention_path_is_one_candidate() -> void:
 	var candidates := Generator.candidates_for("res://art/a/idle.png", "res://art/a/idle.png")
 	assert_eq(candidates, [{"path": "art/a/idle.png", "declared": true, "convention": true}])
@@ -121,8 +178,12 @@ func test_declared_convention_path_is_one_candidate() -> void:
 
 func test_every_strip_splits_into_square_frames() -> void:
 	var checked := 0
+	var art: Array[Dictionary] = []
 	for character: Dictionary in Generator.build_data().characters:
-		for requirement: Dictionary in character.requirements:
+		art.append(character)
+		art.append_array(character.variants)
+	for entry: Dictionary in art:
+		for requirement: Dictionary in entry.requirements:
 			if requirement.id == "line_art":
 				continue
 			for candidate: Dictionary in requirement.candidates:

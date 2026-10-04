@@ -1,14 +1,15 @@
 // What the art board shows, from the terminal: node tools/art_dashboard/check_on_disk.js
-// Same logic as the page (dashboard.js), with fs standing in for image loads.
-// Prints each character's tier, art that's drawn but not wired in, renames,
-// and whether each placeholder (placeholders.js) is still what it was marked for.
+// Same logic as the page (board_logic.js), with fs standing in for image loads.
+// Prints each character's tier, art that's drawn but not wired in, class
+// variants that have any art of their own, renames, and whether each
+// placeholder (placeholders.js) is still what it was marked for.
 "use strict";
 
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const zlib = require("node:zlib");
-const board = require("./dashboard.js");
+const board = require("./board_logic.js");
 
 const repositoryRoot = path.join(__dirname, "..", "..");
 // Enough compressed data for a first scanline many times over, so a line-art
@@ -89,8 +90,8 @@ function main() {
 	const placeholders = sandbox.window.ART_DASHBOARD_PLACEHOLDERS || {};
 
 	const probes = {};
-	for (const character of data.characters) {
-		for (const requirement of character.requirements) {
+	for (const art of data.characters.flatMap((character) => [character, ...character.variants])) {
+		for (const requirement of art.requirements) {
 			for (const candidate of requirement.candidates) {
 				probes[candidate.path] = probe(candidate.path);
 				if (candidate.rename_to) probes[candidate.rename_to] = probe(candidate.rename_to);
@@ -105,6 +106,13 @@ function main() {
 		// A plain clip standing in for its kind boxes would print once per box.
 		const unwired = new Set(Object.values(evaluation.shown).filter((shown) => shown && !shown.declared).map((shown) => shown.path));
 		for (const unwiredPath of unwired) console.log(`       new, not wired: ${unwiredPath}`);
+		// Nothing loads variants yet, so their art is tracked, never wired.
+		for (const variant of character.variants) {
+			const variantEvaluation = board.evaluateCharacter(variant, probes, placeholders);
+			const progress = board.variantProgress(variant, variantEvaluation);
+			if (progress.drawn === 0) continue;
+			console.log(`       ${variant.class} variant: ${variantEvaluation.tier}, ${progress.drawn} of ${progress.total} boxes drawn`);
+		}
 	}
 	const renames = board.pendingRenames(data.characters, probes);
 	if (renames.length > 0) console.log(`\nRenames to do (${renames.length}):`);

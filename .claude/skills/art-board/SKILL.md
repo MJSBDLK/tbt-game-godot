@@ -7,7 +7,7 @@ description: Syncs Lawrence's art board (tools/art_dashboard/) with the art on d
 
 The board (`tools/art_dashboard/index.html`) reads art presence live; this
 skill does the parts a page can't. How the page decides things:
-`dashboard.js` header. The data file and tier rules:
+`board_logic.js`, and the `dashboard.js` header. The data file and tier rules:
 `game_data_generator.gd` header. Specs: `.claude/todo.md`
 "TRACKING ART AND ANIMATION WORK".
 
