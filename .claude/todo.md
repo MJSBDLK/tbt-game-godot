@@ -4,7 +4,36 @@
 	- there will be time to add them later
 + prioritize stuff that gets us to alpha
 
+# Meeting Todo
+- [ ] Rebelle 7 needs to start working
+- [ ] Lawrence finished the battle background - implement with our twinkle shader
+- [ ] Victory screen mockup
+- [ ] Defeat screen animation
+- [ ] 
+
+# Meeting 20260928 Todo
+- [ ] We need a smoke shader with customizable params (pull examples from the art and we'll design it in code)
+- [ ] If Lawrence includes a glow layer in any sprite, we should apply our (new) glow shader
+- [ ] 
+
 # Resp
+Re: todo.md - yes! We should move completed items into a completed items file. TODO should be genuine todo items.
+As for the completed items, we should only let it grow if we aren't reading it. If you think it would be useful to read COMPLETED.md, we should maintain it in a condensed form that's under 1000 lines, or separate the files, which seems dumb to me but there might be a reasonable application for this.
+LOD-main: should be done in the next hour or so - meeting in 3 minutes.
+Oh yeah, the art dashboard. We should get this into a state where Lawrence can use it, ASAP. Today would be ideal, but failing that, by next Sunday.
+I'll sort out the merges for rqd--main and lod--main today - it's the Art Dashboard I think I need help with. That branch  is actually impeding me until it's ready, as well, so consider it a top priority.
+Meeting stuff: going over it with Lawrence shortly.
+Harold's bugler class: we were actively working on that - go ahead and move it.
+
+
+Harold
+- Base Class: [Bugler] - Heraldic
+		├2A: Herald - Heraldic
+		|	├3A: King of Arms // has access to a passive which let units swap their moves/passives out during a battle if they're adjacent to this unit
+		|	└3B: Banneret -Heraldic/Chivalric // passives which provide boosts in a wide AOE.
+		└2B: Envoy - Heraldic/Gentry
+			├3C: Ambassador - Heraldic/Gentry // 
+			└3D: Spy [Gentry] // has access to a passive that makes this unit invisible to enemy units, until he gets caught, by enemies with specific passives or something like that?
 
 
 # Claude
@@ -20,6 +49,12 @@ Observations with nothing to do go in "Claude FYI" below.
   counter/knockback tests, on a clean HEAD too. A lambda outlives the unit it
   captured; harmless today, noise in every run.
 	- This is lower priority but we should track it down [ready]
+- [ ] Dead art references, found by the art-name survey:
+  `editor/tileset_terrain_setup.gd:30-36` wants `tilesets/*_12x4.png` (moved to
+  `12x4_terrains/`); `ui_manager.gd:805+` loads 8 missing `hud_panel_*.png`
+  (8 warnings every headless run); `menu_stage_backdrop.gd:32-33` points at a
+  missing `art/backgrounds/`. Also `scripts/editor/aseprite_tag_exporter.gd`
+  is an unreferenced older copy of the tag-exporter plugin: delete it?
 - [ ] 
 
 # Claude FYI
@@ -28,6 +63,60 @@ checkboxes. RQD deletes an entry once read; if one grows an action, it moves
 up to # Claude.
 
 # [ ] TRACKING ART AND ANIMATION WORK
+
+## Specs
+| Character asset                                  | If missing, the game shows          | Needed for |
+|--------------------------------------------------|-------------------------------------|------------|
+| Idle still frame, pivot checked                  | nothing: the unit can't appear      | orange     |
+| Idle animation                                   | the still (all the game plays today)| orange     |
+| Line art + square portrait crop                  | a crop of the sprite's head         | orange     |
+| Melee clip, if any move hits from 1 tile         | its ranged clip, else the nudge     | yellow     |
+| Ranged clip, if any move hits from 2+ tiles      | its melee clip, else the nudge      | yellow     |
+| Physical/special clip per reach its moves use    | the same reach's other-kind clip    | green      |
+| cast, if it has support moves                    | its melee clip, then ranged (open*) | green      |
+| hurt / dodge / death                             | a code-drawn flash or fade          | green      |
+| Crit clip per reach its moves use                | the normal attack clip              | extra      |
+| 92×92 pixel portrait                             | the line-art crop                   | retired    |
++ Red = short of orange: no idle animation or no line art (a still alone
+  stays red; so does `placeholder_unit.png`). Orange = idle animation + line
+  art, short of yellow. Yellow = good enough, ships in alpha. Green = done.
+  Extra = its own box on the board, never counted: nothing plays crits yet.
+  Two reaches in code: 1 tile = melee, 2+ = ranged. "Its moves" = the whole
+  basePoolMoves, not the 4 equipped, so a swap never changes a color. A plain
+  `melee`/`ranged` clip covers both kinds: each kind has its own box, and the
+  plain clip fills it dimmed with an "= Melee" badge (counts; draw its own
+  only if it should look different).
++ Layout: one collapsible row per character. Closed = a pip per box, so rows
+  line up like a grid; open = the boxes grouped by the color that needs them.
+  First visit opens the next-up character; after that the board remembers.
++ Class variants (not needed for alpha, never counted): the character redrawn
+  for each class it can promote into, mostly recolors. Each variant needs
+  every box, because a recolor shows in every clip. Its files are
+  `<id>_<class>` (`spaceman_jetpack.aseprite`, `art/lineart_fullres/spaceman_jetpack.png`).
+  A missing box shows, dimmed, the art of the class it promotes from
+  ("= Squire"). Trees come from `promotes_to` in `Enums.CLASS_INFO`. The
+  board has a collapsible "Class trees" panel (every tree, undesigned gaps
+  dashed) and, in each open row, a collapsible tree of that character's
+  classes. Click a class to see its boxes.
++ Characters are keyed by their JSON file name (`spaceman`, `maam`), never
+  `characterId`. JSON files are never renamed: saves store their paths.
++ The board tracks the renames: any file whose declared path isn't the
+  convention path shows up with its target name, and drops off once renamed.
+  Renames happen in Aseprite (tags + file names); the exporter rebuilds file
+  names from tags, so renaming a PNG gets undone.
++ Unused line art (battle chicken's, etc.) isn't flagged. Mounts are concept art.
++ Placeholders: art that's in the game but not good enough yet (paper photos
+  so far) is listed in `tools/art_dashboard/placeholders.js` with the reason.
+  The box shows it with a red "placeholder" badge and the reason, and it
+  doesn't count toward a color.
++ Every checked box shows a keyframe: attacks and reactions their hit frame
+  (the exporter's marker, else the middle frame), idle its first frame, line
+  art its portrait crop. Frame count comes live from the strip's width ÷
+  height (every character canvas is square), so a fresh export shows without
+  waiting on regenerated data. Hovering a box plays the clip.
++ *Your old row said "nothing, use particles on map"; the code plays the melee
+  clip (Ernesto/Keener/Spaceman/Grasker swing for Focus today). Which is right?
+
 We need something like a Kanban board or a checklist which lists each character, which highres/pixel art is still needed for that character, and the system needs to be extensible as we add features. For example, we might decide that highres line art needs each character to have a "determined face" (I'm not saying we're doing this) and then that would need to appear in the checklist for Lawrence for all relevant characters. It should live somewhere super convenient and be tracked on Lawrence's branch.
 This will also need to extend to other art other than character work.
 Basically it should be a dashboard where Lawrence can come in, see what work is most pressing, and work on that. We might include an AI agentic skill to scan for updates Lawrence has done, and to sync the progress on his dashboard with the art that's actually in place. Flag anomalies. Stuff like that.
@@ -1121,11 +1210,12 @@ Nothing here is code-blocked; all have placeholders shipping today.
   `<tag>_shadow.png` strips and the runtime plays them verbatim when present.
   Deferred until Lawrence authors the first one.
 - [ ] **Grunt pivot non-compliance** — Lawrence redesigning the sprite.
-- [ ] **Ink pass on the 9/7 paper roughs.** `IMG_0154` Keener, `IMG_0203`
-  Phoenix Pirate, `IMG_0204` Robot, `IMG_0205` Squash, `IMG_0207` Thumps,
-  `IMG_0208` Bugler, `pirate_boss` (new). Opaque page photos, 11–15 MB each;
-  unwireable until they're transparent ink. Rename to the character name,
-  then drop or recompress the photos.
+- [ ] **Ink pass on the 9/7 paper roughs.** Renamed and wired as placeholder
+  portraits: keener, flamethrower_phoenix, robot, squash, thumps. They're
+  marked in `tools/art_dashboard/placeholders.js`, so the board shows them
+  but doesn't count them. `bugler.png` and `pirate_boss` aren't wired: no
+  character matches them yet. All are opaque page photos, 4–15 MB. A
+  transparent re-export to the same file name replaces each one.
 - [ ] **Sprites for the new characters** once their kits settle: swordsman,
   gentry prince, wooly beast, tipsy goblin (all on the 16px
   `placeholder_unit` today), then the three NPCs and the Thief.

@@ -1,7 +1,7 @@
 [gd_scene load_steps=5 format=3 uid="uid://b5hdportrtest02"]
 
 [ext_resource type="Texture2D" uid="uid://crbkedprar533" path="res://art/portraits/napdawg_portrait.png" id="1_pixel"]
-[ext_resource type="Texture2D" uid="uid://dbjief76xo57w" path="res://art/lineart_fullres/napdog.png" id="2_lineart"]
+[ext_resource type="Texture2D" uid="uid://dbjief76xo57w" path="res://art/lineart_fullres/napdawg.png" id="2_lineart"]
 [ext_resource type="Script" path="res://scripts/ui/hd_portrait_slot.gd" id="3_hdslot"]
 [ext_resource type="Script" path="res://scenes/debug/hd_portrait_test.gd" id="4_test"]
 

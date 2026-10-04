@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dbjief76xo57w"
-path="res://.godot/imported/napdog.png-414515db5757405ed31c8152e3dc943f.ctex"
+uid="uid://b2qilx1itsjc4"
+path="res://.godot/imported/thumps.png-c9682a1686ac282f00d27bea886a2d6b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/lineart_fullres/napdog.png"
-dest_files=["res://.godot/imported/napdog.png-414515db5757405ed31c8152e3dc943f.ctex"]
+source_file="res://art/lineart_fullres/thumps.png"
+dest_files=["res://.godot/imported/thumps.png-c9682a1686ac282f00d27bea886a2d6b.ctex"]
 
 [params]
 

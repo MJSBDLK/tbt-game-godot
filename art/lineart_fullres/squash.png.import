@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://baj1scnshmfh"
-path="res://.godot/imported/max_stellar.png-385a53af045595a40806996121b9f7f0.ctex"
+uid="uid://cvci8r84lkib8"
+path="res://.godot/imported/squash.png-596268d73057a5817ec0a47539c4debf.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/lineart_fullres/max_stellar.png"
-dest_files=["res://.godot/imported/max_stellar.png-385a53af045595a40806996121b9f7f0.ctex"]
+source_file="res://art/lineart_fullres/squash.png"
+dest_files=["res://.godot/imported/squash.png-596268d73057a5817ec0a47539c4debf.ctex"]
 
 [params]
 

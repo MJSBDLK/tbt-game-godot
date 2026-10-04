@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://daqxx85y35rtu"
-path="res://.godot/imported/ex-gentry_swordsman.png-d119caa9964869b6dcb844eac1e22a51.ctex"
+uid="uid://cuyboevu7ila1"
+path="res://.godot/imported/ogre.png-0843f915015996a493afaed0ec0f6edd.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/lineart_fullres/ex-gentry_swordsman.png"
-dest_files=["res://.godot/imported/ex-gentry_swordsman.png-d119caa9964869b6dcb844eac1e22a51.ctex"]
+source_file="res://art/lineart_fullres/ogre.png"
+dest_files=["res://.godot/imported/ogre.png-0843f915015996a493afaed0ec0f6edd.ctex"]
 
 [params]
 
