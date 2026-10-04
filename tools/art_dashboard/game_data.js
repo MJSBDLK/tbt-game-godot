@@ -3,6 +3,7 @@
 window.ART_DASHBOARD_DATA = {
 	"characters": [
 		{
+			"class": "bandit",
 			"clips": {
 				"art/sprites/characters/bandit/idle.png": {
 					"art_bounds": {
@@ -264,9 +265,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "enigma",
 			"clips": {
 				"art/sprites/characters/battle_chicken/idle.png": {
 					"art_bounds": {
@@ -521,9 +524,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "fighter",
 			"clips": {
 				"art/sprites/characters/berzerker/idle.png": {
 					"art_bounds": {
@@ -785,9 +790,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "noble",
 			"clips": {
 				"art/sprites/characters/bugler_chivalric/idle.png": {
 					"art_bounds": {
@@ -1042,9 +1049,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "noble",
 			"clips": {
 				"art/sprites/characters/bugler_gentry/idle.png": {
 					"art_bounds": {
@@ -1299,9 +1308,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "noble",
 			"clips": {
 				"art/sprites/characters/desert_prince/idle.png": {
 					"art_bounds": {
@@ -1556,9 +1567,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "skulk",
 			"clips": {
 				"art/sprites/characters/desert_sniper/idle.png": {
 					"art_bounds": {
@@ -1813,9 +1826,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "pirate",
 			"clips": {
 				"art/sprites/characters/elf_pirate/idle.png": {
 					"art_bounds": {
@@ -2077,9 +2092,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "engineer",
 			"clips": {
 				"art/sprites/characters/ernesto/idle.png": {
 					"art_bounds": {
@@ -2392,9 +2409,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "duelist",
 			"clips": {},
 			"crop": {
 				"atlas": "art/lineart_fullres/ex_gentry_swordsman.png",
@@ -2647,9 +2666,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "mage",
 			"clips": {
 				"art/sprites/characters/flamethrower_phoenix/idle.png": {
 					"art_bounds": {
@@ -2911,9 +2932,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "noble",
 			"clips": {},
 			"crop": {
 				"atlas": "art/lineart_fullres/gentry_prince.png",
@@ -3166,9 +3189,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "fighter",
 			"clips": {
 				"art/sprites/characters/grasker/idle.png": {
 					"art_bounds": {
@@ -3442,9 +3467,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": false,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "enigma",
 			"clips": {
 				"art/sprites/characters/gravity_captain/idle.png": {
 					"art_bounds": {
@@ -3706,9 +3733,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "grunt",
 			"clips": {
 				"art/sprites/characters/grunt/idle.png": {
 					"art_bounds": {
@@ -3970,9 +3999,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "mage",
 			"clips": {
 				"art/sprites/characters/healer_goblin/idle.png": {
 					"art_bounds": {
@@ -4234,9 +4265,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "mage",
 			"clips": {
 				"art/sprites/characters/healer_plant/idle.png": {
 					"art_bounds": {
@@ -4491,9 +4524,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "skulk",
 			"clips": {
 				"art/sprites/characters/ice_archer/idle.png": {
 					"art_bounds": {
@@ -4755,9 +4790,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "keener",
 			"clips": {
 				"art/sprites/characters/keener/idle.png": {
 					"art_bounds": {
@@ -5069,9 +5106,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "knight",
 			"clips": {
 				"art/sprites/characters/knight/idle.png": {
 					"art_bounds": {
@@ -5326,9 +5365,260 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
+			],
+			"variants": [
+				{
+					"class": "void_knight",
+					"clips": {},
+					"id": "knight_void_knight",
+					"requirements": [
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/knight_void_knight/idle.png"
+								}
+							],
+							"id": "idle",
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/knight_void_knight/idle.png"
+								}
+							],
+							"id": "idle_animation",
+							"min_frames": 2,
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/lineart_fullres/knight_void_knight.png"
+								}
+							],
+							"id": "line_art",
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/knight_void_knight/melee.png"
+								},
+								{
+									"clip": "melee_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/knight_void_knight/melee_physical.png"
+								},
+								{
+									"clip": "melee_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/knight_void_knight/melee_special.png"
+								}
+							],
+							"id": "melee",
+							"needed": true,
+							"tier": "yellow"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/knight_void_knight/ranged.png"
+								},
+								{
+									"clip": "ranged_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/knight_void_knight/ranged_physical.png"
+								},
+								{
+									"clip": "ranged_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/knight_void_knight/ranged_special.png"
+								}
+							],
+							"id": "ranged",
+							"needed": true,
+							"tier": "yellow"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/knight_void_knight/melee_physical.png"
+								},
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/knight_void_knight/melee.png"
+								}
+							],
+							"id": "melee_physical",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/knight_void_knight/melee_special.png"
+								},
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/knight_void_knight/melee.png"
+								}
+							],
+							"id": "melee_special",
+							"needed": false,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/knight_void_knight/ranged_physical.png"
+								},
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/knight_void_knight/ranged.png"
+								}
+							],
+							"id": "ranged_physical",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/knight_void_knight/ranged_special.png"
+								},
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/knight_void_knight/ranged.png"
+								}
+							],
+							"id": "ranged_special",
+							"needed": false,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "cast",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/knight_void_knight/cast.png"
+								}
+							],
+							"id": "cast",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "hurt",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/knight_void_knight/hurt.png"
+								}
+							],
+							"id": "hurt",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "dodge",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/knight_void_knight/dodge.png"
+								}
+							],
+							"id": "dodge",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "death",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/knight_void_knight/death.png"
+								}
+							],
+							"id": "death",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "crit_melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/knight_void_knight/crit_melee.png"
+								}
+							],
+							"id": "crit_melee",
+							"needed": true,
+							"tier": "extra"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "crit_ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/knight_void_knight/crit_ranged.png"
+								}
+							],
+							"id": "crit_ranged",
+							"needed": true,
+							"tier": "extra"
+						}
+					]
+				}
 			]
 		},
 		{
+			"class": "skulk",
 			"clips": {
 				"art/sprites/characters/ma'am/idle.png": {
 					"art_bounds": {
@@ -5602,9 +5892,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "enigma",
 			"clips": {
 				"art/sprites/characters/mystic/idle.png": {
 					"art_bounds": {
@@ -5859,9 +6151,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "noble",
 			"clips": {
 				"art/sprites/characters/napdog/idle.png": {
 					"art_bounds": {
@@ -6135,9 +6429,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "heavy",
 			"clips": {
 				"art/sprites/characters/ogre/idle.png": {
 					"art_bounds": {
@@ -6399,9 +6695,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": false,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "squire",
 			"clips": {
 				"art/sprites/characters/ogre_squire/idle.png": {
 					"art_bounds": {
@@ -6663,9 +6961,508 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
+			],
+			"variants": [
+				{
+					"class": "knight",
+					"clips": {},
+					"id": "ogre_squire_knight",
+					"requirements": [
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_knight/idle.png"
+								}
+							],
+							"id": "idle",
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_knight/idle.png"
+								}
+							],
+							"id": "idle_animation",
+							"min_frames": 2,
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/lineart_fullres/ogre_squire_knight.png"
+								}
+							],
+							"id": "line_art",
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_knight/melee.png"
+								},
+								{
+									"clip": "melee_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_knight/melee_physical.png"
+								},
+								{
+									"clip": "melee_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_knight/melee_special.png"
+								}
+							],
+							"id": "melee",
+							"needed": true,
+							"tier": "yellow"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_knight/ranged.png"
+								},
+								{
+									"clip": "ranged_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_knight/ranged_physical.png"
+								},
+								{
+									"clip": "ranged_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_knight/ranged_special.png"
+								}
+							],
+							"id": "ranged",
+							"needed": true,
+							"tier": "yellow"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_knight/melee_physical.png"
+								},
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_knight/melee.png"
+								}
+							],
+							"id": "melee_physical",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_knight/melee_special.png"
+								},
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_knight/melee.png"
+								}
+							],
+							"id": "melee_special",
+							"needed": false,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_knight/ranged_physical.png"
+								},
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_knight/ranged.png"
+								}
+							],
+							"id": "ranged_physical",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_knight/ranged_special.png"
+								},
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_knight/ranged.png"
+								}
+							],
+							"id": "ranged_special",
+							"needed": false,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "cast",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_knight/cast.png"
+								}
+							],
+							"id": "cast",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "hurt",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_knight/hurt.png"
+								}
+							],
+							"id": "hurt",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "dodge",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_knight/dodge.png"
+								}
+							],
+							"id": "dodge",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "death",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_knight/death.png"
+								}
+							],
+							"id": "death",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "crit_melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_knight/crit_melee.png"
+								}
+							],
+							"id": "crit_melee",
+							"needed": true,
+							"tier": "extra"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "crit_ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_knight/crit_ranged.png"
+								}
+							],
+							"id": "crit_ranged",
+							"needed": true,
+							"tier": "extra"
+						}
+					]
+				},
+				{
+					"class": "void_knight",
+					"clips": {},
+					"id": "ogre_squire_void_knight",
+					"requirements": [
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_void_knight/idle.png"
+								}
+							],
+							"id": "idle",
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_void_knight/idle.png"
+								}
+							],
+							"id": "idle_animation",
+							"min_frames": 2,
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/lineart_fullres/ogre_squire_void_knight.png"
+								}
+							],
+							"id": "line_art",
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_void_knight/melee.png"
+								},
+								{
+									"clip": "melee_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_void_knight/melee_physical.png"
+								},
+								{
+									"clip": "melee_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_void_knight/melee_special.png"
+								}
+							],
+							"id": "melee",
+							"needed": true,
+							"tier": "yellow"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_void_knight/ranged.png"
+								},
+								{
+									"clip": "ranged_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_void_knight/ranged_physical.png"
+								},
+								{
+									"clip": "ranged_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_void_knight/ranged_special.png"
+								}
+							],
+							"id": "ranged",
+							"needed": true,
+							"tier": "yellow"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_void_knight/melee_physical.png"
+								},
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_void_knight/melee.png"
+								}
+							],
+							"id": "melee_physical",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_void_knight/melee_special.png"
+								},
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_void_knight/melee.png"
+								}
+							],
+							"id": "melee_special",
+							"needed": false,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_void_knight/ranged_physical.png"
+								},
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_void_knight/ranged.png"
+								}
+							],
+							"id": "ranged_physical",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_void_knight/ranged_special.png"
+								},
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_void_knight/ranged.png"
+								}
+							],
+							"id": "ranged_special",
+							"needed": false,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "cast",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_void_knight/cast.png"
+								}
+							],
+							"id": "cast",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "hurt",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_void_knight/hurt.png"
+								}
+							],
+							"id": "hurt",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "dodge",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_void_knight/dodge.png"
+								}
+							],
+							"id": "dodge",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "death",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_void_knight/death.png"
+								}
+							],
+							"id": "death",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "crit_melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_void_knight/crit_melee.png"
+								}
+							],
+							"id": "crit_melee",
+							"needed": true,
+							"tier": "extra"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "crit_ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_void_knight/crit_ranged.png"
+								}
+							],
+							"id": "crit_ranged",
+							"needed": true,
+							"tier": "extra"
+						}
+					]
+				}
 			]
 		},
 		{
+			"class": "duelist",
 			"clips": {
 				"art/sprites/characters/pierre/idle.png": {
 					"art_bounds": {
@@ -6927,9 +7724,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "mage",
 			"clips": {
 				"art/sprites/characters/plant_cultist/idle.png": {
 					"art_bounds": {
@@ -7184,9 +7983,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "mage",
 			"clips": {
 				"art/sprites/characters/plant_urchin/idle.png": {
 					"art_bounds": {
@@ -7441,9 +8242,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "mage",
 			"clips": {
 				"art/sprites/characters/pyro/idle.png": {
 					"art_bounds": {
@@ -7698,9 +8501,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "engineer",
 			"clips": {
 				"art/sprites/characters/robot/idle.png": {
 					"art_bounds": {
@@ -7962,9 +8767,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "spaceman",
 			"clips": {
 				"art/sprites/characters/max/idle.png": {
 					"art_bounds": {
@@ -8311,9 +9118,508 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
+			],
+			"variants": [
+				{
+					"class": "jetpack",
+					"clips": {},
+					"id": "spaceman_jetpack",
+					"requirements": [
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_jetpack/idle.png"
+								}
+							],
+							"id": "idle",
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_jetpack/idle.png"
+								}
+							],
+							"id": "idle_animation",
+							"min_frames": 2,
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/lineart_fullres/spaceman_jetpack.png"
+								}
+							],
+							"id": "line_art",
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_jetpack/melee.png"
+								},
+								{
+									"clip": "melee_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_jetpack/melee_physical.png"
+								},
+								{
+									"clip": "melee_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_jetpack/melee_special.png"
+								}
+							],
+							"id": "melee",
+							"needed": true,
+							"tier": "yellow"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_jetpack/ranged.png"
+								},
+								{
+									"clip": "ranged_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_jetpack/ranged_physical.png"
+								},
+								{
+									"clip": "ranged_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_jetpack/ranged_special.png"
+								}
+							],
+							"id": "ranged",
+							"needed": true,
+							"tier": "yellow"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_jetpack/melee_physical.png"
+								},
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_jetpack/melee.png"
+								}
+							],
+							"id": "melee_physical",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_jetpack/melee_special.png"
+								},
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_jetpack/melee.png"
+								}
+							],
+							"id": "melee_special",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_jetpack/ranged_physical.png"
+								},
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_jetpack/ranged.png"
+								}
+							],
+							"id": "ranged_physical",
+							"needed": false,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_jetpack/ranged_special.png"
+								},
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_jetpack/ranged.png"
+								}
+							],
+							"id": "ranged_special",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "cast",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_jetpack/cast.png"
+								}
+							],
+							"id": "cast",
+							"needed": false,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "hurt",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_jetpack/hurt.png"
+								}
+							],
+							"id": "hurt",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "dodge",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_jetpack/dodge.png"
+								}
+							],
+							"id": "dodge",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "death",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_jetpack/death.png"
+								}
+							],
+							"id": "death",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "crit_melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_jetpack/crit_melee.png"
+								}
+							],
+							"id": "crit_melee",
+							"needed": true,
+							"tier": "extra"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "crit_ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_jetpack/crit_ranged.png"
+								}
+							],
+							"id": "crit_ranged",
+							"needed": true,
+							"tier": "extra"
+						}
+					]
+				},
+				{
+					"class": "eva",
+					"clips": {},
+					"id": "spaceman_eva",
+					"requirements": [
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_eva/idle.png"
+								}
+							],
+							"id": "idle",
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_eva/idle.png"
+								}
+							],
+							"id": "idle_animation",
+							"min_frames": 2,
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/lineart_fullres/spaceman_eva.png"
+								}
+							],
+							"id": "line_art",
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_eva/melee.png"
+								},
+								{
+									"clip": "melee_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_eva/melee_physical.png"
+								},
+								{
+									"clip": "melee_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_eva/melee_special.png"
+								}
+							],
+							"id": "melee",
+							"needed": true,
+							"tier": "yellow"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_eva/ranged.png"
+								},
+								{
+									"clip": "ranged_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_eva/ranged_physical.png"
+								},
+								{
+									"clip": "ranged_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_eva/ranged_special.png"
+								}
+							],
+							"id": "ranged",
+							"needed": true,
+							"tier": "yellow"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_eva/melee_physical.png"
+								},
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_eva/melee.png"
+								}
+							],
+							"id": "melee_physical",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_eva/melee_special.png"
+								},
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_eva/melee.png"
+								}
+							],
+							"id": "melee_special",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_eva/ranged_physical.png"
+								},
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_eva/ranged.png"
+								}
+							],
+							"id": "ranged_physical",
+							"needed": false,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_eva/ranged_special.png"
+								},
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_eva/ranged.png"
+								}
+							],
+							"id": "ranged_special",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "cast",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_eva/cast.png"
+								}
+							],
+							"id": "cast",
+							"needed": false,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "hurt",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_eva/hurt.png"
+								}
+							],
+							"id": "hurt",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "dodge",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_eva/dodge.png"
+								}
+							],
+							"id": "dodge",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "death",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_eva/death.png"
+								}
+							],
+							"id": "death",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "crit_melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_eva/crit_melee.png"
+								}
+							],
+							"id": "crit_melee",
+							"needed": true,
+							"tier": "extra"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "crit_ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_eva/crit_ranged.png"
+								}
+							],
+							"id": "crit_ranged",
+							"needed": true,
+							"tier": "extra"
+						}
+					]
+				}
 			]
 		},
 		{
+			"class": "fighter",
 			"clips": {
 				"art/sprites/characters/squash/idle.png": {
 					"art_bounds": {
@@ -8575,9 +9881,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "heavy",
 			"clips": {
 				"art/sprites/characters/thumps/idle.png": {
 					"art_bounds": {
@@ -8839,9 +10147,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "engineer",
 			"clips": {},
 			"crop": {
 				"atlas": "art/lineart_fullres/tipsy_goblin.png",
@@ -9094,9 +10404,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "mercenary",
 			"clips": {
 				"art/sprites/characters/traveller/idle.png": {
 					"art_bounds": {
@@ -9351,9 +10663,11 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
 		},
 		{
+			"class": "heavy",
 			"clips": {},
 			"crop": {
 				"atlas": "art/lineart_fullres/wooly_beast.png",
@@ -9606,7 +10920,144 @@ window.ART_DASHBOARD_DATA = {
 					"needed": true,
 					"tier": "extra"
 				}
-			]
+			],
+			"variants": []
+		}
+	],
+	"classes": [
+		{
+			"id": "spaceman",
+			"name": "Spaceman",
+			"promotes_to": [
+				"jetpack"
+			],
+			"tier": 1
+		},
+		{
+			"id": "mercenary",
+			"name": "Mercenary",
+			"promotes_to": [],
+			"tier": 1
+		},
+		{
+			"id": "squire",
+			"name": "Squire",
+			"promotes_to": [
+				"knight"
+			],
+			"tier": 1
+		},
+		{
+			"id": "noble",
+			"name": "Noble",
+			"promotes_to": [],
+			"tier": 1
+		},
+		{
+			"id": "engineer",
+			"name": "Engineer",
+			"promotes_to": [],
+			"tier": 1
+		},
+		{
+			"id": "pirate",
+			"name": "Pirate",
+			"promotes_to": [],
+			"tier": 1
+		},
+		{
+			"id": "fighter",
+			"name": "Fighter",
+			"promotes_to": [],
+			"tier": 1
+		},
+		{
+			"id": "enigma",
+			"name": "Enigma",
+			"promotes_to": [],
+			"tier": 1
+		},
+		{
+			"id": "skulk",
+			"name": "Skulk",
+			"promotes_to": [],
+			"tier": 1
+		},
+		{
+			"id": "duelist",
+			"name": "Duelist",
+			"promotes_to": [],
+			"tier": 1
+		},
+		{
+			"id": "mage",
+			"name": "Mage",
+			"promotes_to": [],
+			"tier": 1
+		},
+		{
+			"id": "heavy",
+			"name": "Heavy",
+			"promotes_to": [],
+			"tier": 1
+		},
+		{
+			"id": "grunt",
+			"name": "Grunt",
+			"promotes_to": [],
+			"tier": 1
+		},
+		{
+			"id": "keener",
+			"name": "Keener",
+			"promotes_to": [],
+			"tier": 1
+		},
+		{
+			"id": "bandit",
+			"name": "Bandit",
+			"promotes_to": [],
+			"tier": 1
+		},
+		{
+			"id": "jetpack",
+			"name": "Jetpack",
+			"promotes_to": [
+				"eva"
+			],
+			"tier": 2
+		},
+		{
+			"id": "hardcase",
+			"name": "Hardcase",
+			"promotes_to": [],
+			"tier": 2
+		},
+		{
+			"id": "knight",
+			"name": "Knight",
+			"promotes_to": [
+				"void_knight"
+			],
+			"tier": 2
+		},
+		{
+			"id": "eva",
+			"name": "EVA",
+			"promotes_to": [],
+			"tier": 3
+		},
+		{
+			"id": "topdog",
+			"name": "Topdog",
+			"promotes_to": [],
+			"tier": 3
+		},
+		{
+			"id": "void_knight",
+			"name": "Void Knight",
+			"promotes_to": [],
+			"tier": 3
 		}
 	],
 	"columns": [

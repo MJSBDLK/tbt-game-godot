@@ -86,8 +86,8 @@ func _load_idle() -> void:
 	if character.sprite_atlas_path == "":
 		var raw: Texture2D = load(character.sprite_sheet_path) as Texture2D
 		if raw != null:
-			var sidecar: Dictionary = SpriteSidecar.read(character.sprite_sheet_path, raw)
-			_idle_texture = raw
+			_idle_texture = SpriteSidecar.idle_frame(raw)
+			var sidecar: Dictionary = SpriteSidecar.read(character.sprite_sheet_path, _idle_texture)
 			_idle_offset = sidecar["offset"]
 			art_top = sidecar["art_top"]
 			feet_drop = sidecar["feet_drop"]
