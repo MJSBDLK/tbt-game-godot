@@ -1778,7 +1778,7 @@ func _load_character_sprite() -> void:
 	if character_data.sprite_sheet_path == "":
 		return
 
-	# Atlas-less single-frame PNG (e.g. programmer-art idle.png) — load directly.
+	# Atlas-less idle PNG, one frame or a strip: stand on frame 0.
 	# If a pivot sidecar JSON exists next to the PNG (emitted by the aseprite
 	# tag exporter when the .aseprite file has a slice with pivot), use it to
 	# anchor the sprite. Otherwise fall back to feet-at-tile-center.
@@ -1786,8 +1786,8 @@ func _load_character_sprite() -> void:
 		var raw_texture: Texture2D = load(character_data.sprite_sheet_path) as Texture2D
 		if raw_texture == null:
 			return
-		_sprite.texture = raw_texture
-		_sprite.offset = _resolve_pivot_offset(character_data.sprite_sheet_path, raw_texture)
+		_sprite.texture = SpriteSidecar.idle_frame(raw_texture)
+		_sprite.offset = _resolve_pivot_offset(character_data.sprite_sheet_path, _sprite.texture)
 		return
 
 	var atlas_texture := SpriteAtlasLoader.get_frame_texture(

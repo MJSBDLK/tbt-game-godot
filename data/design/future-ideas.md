@@ -58,7 +58,24 @@ None currently - most of Lawrence's ideas were integrated into active documents.
 
 ## Mechanic Ideas - Nice to Have
 
-None currently.
+### The impostor (an enemy Spy, before the player knows Spies exist)
+
+RQD's idea. The player picks 8 units and 9 spawn. The extra one wears the face
+of a unit the player owns but didn't bring: "wait a minute... I don't remember
+bringing you, Grasker..." Most players won't count at the start.
+
+- The player orders the impostor around like any other unit.
+- When the fight reaches it, it drops the disguise, turns enemy and attacks
+  the units around it.
+- Clues for sharp players: one unit too many at spawn. Ma'am at the start:
+  "hold on... something isn't right." Your own units can target the impostor
+  like an enemy before it reveals itself.
+- The payoff: the player meets the Spy as a mystery long before it's a class
+  they can pick.
+
+Builds on the Spy's concealment (class-and-promotion.md §8), as the enemy
+"cheat" version. Open: does unmasking it early earn a reward? And it probably
+lands once as a story beat, then turns up only rarely.
 
 ---
 

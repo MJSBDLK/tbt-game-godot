@@ -15,6 +15,7 @@
 	--yellow: #e0c341;
 	--green: #5cb85c;
 	--new: #4a90d9;
+	--tree-line: #5f5f5f;
 		color-scheme: dark;
 }
 
@@ -109,6 +110,7 @@ code { font: 12px ui-monospace, monospace; }
 .next-up-list { display: grid; flex-basis: 100%; gap: 4px; margin: 2px 0 0; padding: 0; list-style: none; }
 .next-up-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
 .need-how { color: var(--text-muted); }
+.need-placeholder { flex-basis: 100%; color: var(--red); font-size: 12px; }
 .next-up-done { color: var(--green); font-weight: 600; }
 
 .legend {
@@ -175,6 +177,7 @@ code { font: 12px ui-monospace, monospace; }
 /* ---- characters: a pip strip when closed, the boxes when open ---- */
 
 .character {
+	scroll-margin-top: 52px;  /* clear of the sticky top bar */
 	border-bottom: 1px solid var(--line);
 	border-left: 3px solid transparent;
 	/* Rows off screen skip painting, so their line art isn't decoded yet. */
@@ -206,7 +209,8 @@ code { font: 12px ui-monospace, monospace; }
 	border-left: 5px solid var(--text-muted);
 	transition: transform 0.12s;
 }
-.character[open] .chevron { transform: rotate(90deg); }
+.character[open] > .character-summary .chevron,
+.variants[open] > .variants-summary .chevron { transform: rotate(90deg); }
 
 .grid-rank { color: var(--text-muted); text-align: right; font-variant-numeric: tabular-nums; }
 
@@ -241,6 +245,11 @@ code { font: 12px ui-monospace, monospace; }
 .pip-stand-in { background: var(--pip-color); opacity: 0.45; }
 .pip-missing { box-shadow: inset 0 0 0 1.5px var(--pip-color); }
 .pip-optional { box-shadow: inset 0 0 0 1px #5a5a5a; }
+.pip-placeholder { box-shadow: inset 0 0 0 1.5px var(--pip-color); background: radial-gradient(circle, var(--red) 0 2px, transparent 2.5px); }
+.pip-inherited {
+	box-shadow: inset 0 0 0 1.5px var(--pip-color);
+	background: color-mix(in srgb, var(--pip-color) 30%, transparent);
+}
 .pip-not-needed::after {
 	content: "";
 	position: absolute;
@@ -276,6 +285,150 @@ code { font: 12px ui-monospace, monospace; }
 .boxes { display: flex; gap: 4px; }
 .box { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 72px; }
 .box-label { color: var(--text-muted); font-size: 11px; white-space: nowrap; }
+.placeholder-note { flex-basis: 100%; margin: 0; color: var(--text-muted); font-size: 12px; }
+.placeholder-note strong { color: var(--red); }
+
+/* ---- trees: tiers run left to right, a line from each class to what it
+   promotes into. Each child draws its own stub and its piece of the spine,
+   so any number of children joins up. ---- */
+
+.tree, .tree-children { margin: 0; padding: 0; list-style: none; }
+.tree-branch { position: relative; display: flex; align-items: center; }
+.tree-children {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	padding-left: var(--branch-gap);
+}
+.tree-children > .tree-branch { padding: 3px 0; }
+.tree-children::before,
+.tree-children > .tree-branch::before {
+	content: "";
+	position: absolute;
+	top: 50%;
+	width: calc(var(--branch-gap) / 2);
+	border-top: 2px solid var(--tree-line);
+}
+.tree-children::before { left: 0; }
+.tree-children > .tree-branch::before { left: calc(var(--branch-gap) / -2); }
+.tree-children > .tree-branch::after {
+	content: "";
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: calc(var(--branch-gap) / -2);
+	border-left: 2px solid var(--tree-line);
+}
+.tree-children > .tree-branch:first-child::after { top: 50%; }
+.tree-children > .tree-branch:last-child::after { bottom: 50%; }
+.tree-children > .tree-branch:only-child::after { display: none; }
+.tree-children-gap::before, .tree-children > .tree-branch-gap::before { border-top-style: dashed; }
+.tree-gap {
+	padding: 3px 8px;
+	border: 1px dashed #6a6a6a;
+	border-radius: 4px;
+	color: var(--text-muted);
+	font-size: 11px;
+	white-space: nowrap;
+}
+
+/* A character's class variants, inside its open row. */
+.variants { flex-basis: 100%; --branch-gap: 28px; --node-width: 220px; }
+.variants-summary {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 4px 10px;
+	padding-bottom: 3px;
+	border-bottom: 2px solid var(--tree-line);
+	color: var(--text-muted);
+	font-size: 12px;
+	list-style: none;
+	cursor: pointer;
+}
+.variants-summary::-webkit-details-marker { display: none; }
+.variants-title { font-size: 11px; font-weight: 700; text-transform: uppercase; }
+.variants-none { font-style: italic; }
+.variant-chip { display: inline-flex; align-items: center; gap: 4px; color: var(--text); }
+.variants-body { padding-top: 8px; overflow-x: auto; }
+.tier-heads { display: flex; gap: var(--branch-gap); margin-bottom: 2px; }
+.tier-head {
+	flex: none;
+	width: var(--node-width);
+	color: var(--text-muted);
+	font-size: 11px;
+	font-weight: 700;
+	text-transform: uppercase;
+}
+.variant-card {
+	display: flex;
+	flex: none;
+	flex-direction: column;
+	gap: 6px;
+	width: var(--node-width);
+	padding: 6px 9px 8px;
+	border: 1px solid var(--line);
+	border-radius: 5px;
+	background: var(--surface-raised);
+	color: var(--text);
+	font: inherit;
+	text-align: left;
+}
+button.variant-card { cursor: pointer; }
+button.variant-card:hover { border-color: var(--text-muted); }
+.variant-card.selected { border-color: var(--text); box-shadow: 0 0 0 1px var(--text); }
+.variant-card-base { background: var(--background); }
+.variant-card-head { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+.variant-card-count {
+	margin-left: auto;
+	color: var(--text-muted);
+	font-size: 11px;
+	font-weight: 400;
+	font-variant-numeric: tabular-nums;
+}
+.variant-pane { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+.variant-pane-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin-bottom: 8px; }
+.variant-pane-count { color: var(--text-muted); }
+.variant-pane-how { flex-basis: 100%; color: var(--text-muted); font-size: 12px; }
+.variant-pane-boxes { display: flex; flex-wrap: wrap; gap: 10px 22px; }
+
+/* The Class trees panel: every class's tree, names only. */
+.class-tree { --branch-gap: 22px; --node-width: 128px; }
+.class-trees-intro { margin: 6px 0 10px; color: var(--text-muted); font-size: 12px; }
+.class-trees-drawn { display: flex; flex-wrap: wrap; gap: 14px 44px; }
+.class-trees-heading {
+	margin: 14px 0 6px;
+	color: var(--text-muted);
+	font-size: 11px;
+	font-weight: 700;
+	text-transform: uppercase;
+}
+.class-trees-undesigned { display: flex; flex-wrap: wrap; gap: 6px 26px; }
+.class-trees-orphans { margin: 12px 0 2px; color: var(--text-muted); font-size: 12px; }
+.class-node {
+	display: flex;
+	flex: none;
+	flex-direction: column;
+	width: var(--node-width);
+	padding: 4px 8px 5px;
+	border: 1px solid var(--line);
+	border-radius: 4px;
+	background: var(--surface-raised);
+}
+.class-node-name { font-weight: 600; }
+.class-node-units { display: flex; flex-wrap: wrap; gap: 0 8px; font-size: 11px; }
+.class-tree-compact .class-node { flex-direction: row; gap: 6px; width: auto; }
+.class-node-count { color: var(--text-muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.unit-link {
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--text-muted);
+	font: inherit;
+	text-decoration: underline dotted;
+	cursor: pointer;
+}
+.unit-link:hover { color: var(--text); }
 
 /* ---- cells ---- */
 
@@ -295,6 +448,8 @@ code { font: 12px ui-monospace, monospace; }
 .cell-missing:hover .cell-empty { border-color: var(--text-muted); }
 .cell-optional .cell-empty { border: 1px dotted #4a4a4a; }
 .cell-stand-in .thumbnail { opacity: 0.4; }
+.cell-placeholder { outline: 2px dashed var(--red); outline-offset: -2px; }
+.cell-inherited .thumbnail { opacity: 0.3; }
 
 .thumbnail {
 	background-repeat: no-repeat;
@@ -314,6 +469,7 @@ code { font: 12px ui-monospace, monospace; }
 	color: #fff;
 }
 .badge-new { background: var(--new); }
+.badge-placeholder { background: var(--red); }
 .badge-uses {
 	left: 2px;
 	padding: 0 1px;

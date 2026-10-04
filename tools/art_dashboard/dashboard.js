@@ -2,7 +2,8 @@
 // can load images and scripts but not JSON or folder listings. The game's
 // facts come from game_data.js (generated); PRESENCE is decided here by
 // loading each candidate file as an image, so the board always shows what's
-// on disk, not what someone last typed.
+// on disk, not what someone last typed. The rules it draws by (tiers, trees,
+// which file a box shows) are in board_logic.js.
 //
 // Flow: paint the last check from browser storage, load every candidate,
 // repaint, save. The window regaining focus re-checks, so alt-tabbing back
@@ -13,208 +14,24 @@
 // up like a grid); open, its boxes grouped by the color that needs them. New
 // boxes go in game_data_generator.gd's COLUMNS and need no layout work here.
 //
+// Class variants (the character redrawn for each class it can promote into)
+// sit outside the alpha counts. The "Class trees" panel draws every promotion
+// tree; inside an open row, a collapsible tree of the character's own classes
+// gives each variant the full box set. A variant box without its own art
+// shows, dimmed, what the class it promotes from shows.
+//
 // Notes need the File System Access API (Brave: brave://flags/#file-system-access-api).
 // The page is only ever granted tools/art_dashboard/notes/, and works without it.
 "use strict";
 
 (function (global) {
 
+const {
+	NEXT_TIER, TOP_TIER, frameCount, boxState, evaluateCharacter, promotionTree, treeStatus,
+	classForest, resolveBoxes, variantProgress, sortCharacters, pendingRenames, folderName, boxHint,
+	keyframeIndex, frameDurations, spriteGeometry, lineArtGeometry,
+} = global.ArtBoardLogic;
 const REPOSITORY_ROOT = "../../";
-const DEFAULT_FPS = 12;  // ClipPlayer.DEFAULT_FPS
-const THUMBNAIL_SIZE = 64;  // CSS px; sprites scale by whole device pixels inside it
-const IDLE_COLUMNS = ["idle", "idle_animation"];
-const NEXT_TIER = { red: "orange", orange: "yellow", yellow: "green" };
-
-
-// ---------------------------------------------------------------- logic ----
-// Pure: no DOM, so tools/art_dashboard/dashboard_test.js runs these in node.
-
-function frameCount(probe) {
-	return Math.max(1, Math.floor(probe.width / probe.height));
-}
-
-// The candidate a requirement's cell shows, or null. Convention files win:
-// after a rename the new file is the one Lawrence just made.
-function shownCandidate(requirement, probes) {
-	const minimumFrames = requirement.min_frames || 1;
-	const found = requirement.candidates.filter((candidate) => {
-		const probe = probes[candidate.path];
-		return probe && probe.exists && (minimumFrames === 1 || frameCount(probe) >= minimumFrames);
-	});
-	return found.find((candidate) => candidate.convention) || found[0] || null;
-}
-
-// A plain melee clip filling the "melee physical" box: it counts, but the
-// box says whose clip it is. Idle and line art candidates carry no clip.
-function isStandIn(requirement, candidate) {
-	return Boolean(candidate && candidate.clip) && candidate.clip !== requirement.id;
-}
-
-// What a box shows. "optional": an extra no color needs yet (crits).
-function boxState(requirement, shown) {
-	if (shown) return isStandIn(requirement, shown) ? "stand-in" : "shown";
-	if (!requirement.needed) return "not-needed";
-	return requirement.tier === "extra" ? "optional" : "missing";
-}
-
-// Tier = one below the lowest tier with an unmet, needed requirement.
-// "extra" requirements sit outside the ladder, so they never lower it.
-function evaluateCharacter(character, probes) {
-	const shown = {};
-	for (const requirement of character.requirements) {
-		shown[requirement.id] = shownCandidate(requirement, probes);
-	}
-	const unmet = character.requirements.filter((requirement) => requirement.needed && !shown[requirement.id]);
-	let tier = "green";
-	for (const [needsTier, belowTier] of [["orange", "red"], ["yellow", "orange"], ["green", "yellow"]]) {
-		if (unmet.some((requirement) => requirement.tier === needsTier)) {
-			tier = belowTier;
-			break;
-		}
-	}
-	const nextTier = NEXT_TIER[tier];
-	return {
-		shown,
-		unmet,
-		tier,
-		missingForNext: nextTier ? unmet.filter((requirement) => requirement.tier === nextTier) : [],
-	};
-}
-
-// Ranked ids first in ranking order, the rest alphabetically after.
-function sortCharacters(characters, ranking) {
-	const rankOf = new Map(ranking.map((id, index) => [id, index]));
-	return characters.slice().sort((first, second) => {
-		const firstRank = rankOf.has(first.id) ? rankOf.get(first.id) : Infinity;
-		const secondRank = rankOf.has(second.id) ? rankOf.get(second.id) : Infinity;
-		return firstRank - secondRank || first.id.localeCompare(second.id);
-	});
-}
-
-// Declared files off the convention whose convention twin doesn't exist yet.
-function pendingRenames(characters, probes) {
-	const seen = new Set();
-	const renames = [];
-	for (const character of characters) {
-		for (const requirement of character.requirements) {
-			for (const candidate of requirement.candidates) {
-				if (!candidate.rename_to || seen.has(candidate.path)) continue;
-				const from = probes[candidate.path];
-				const to = probes[candidate.rename_to];
-				if (!from || !from.exists || (to && to.exists)) continue;
-				seen.add(candidate.path);
-				renames.push({
-					character: character.id,
-					from: candidate.path,
-					to: candidate.rename_to,
-					how: renameInstruction(candidate.path, candidate.rename_to),
-				});
-			}
-		}
-	}
-	return renames;
-}
-
-// Sprites are named by the exporter: folder = .aseprite file, file = tag.
-const folderName = (path) => path.split("/").slice(-2, -1)[0];
-const fileStem = (path) => path.split("/").pop().replace(/\.png$/, "");
-
-// So a renamed PNG would come back on the next export: rename at the source.
-function renameInstruction(from, to) {
-	if (!from.startsWith("art/sprites/")) {
-		return `Rename ${from.split("/").pop()} to ${to.split("/").pop()}.`;
-	}
-	const steps = [];
-	if (folderName(from) !== folderName(to)) {
-		steps.push(`${folderName(from)}.aseprite → ${folderName(to)}.aseprite`);
-	}
-	if (fileStem(from) !== fileStem(to)) {
-		steps.push(`tag "${fileStem(from)}" → "${fileStem(to)}"`);
-	}
-	return `In Aseprite: ${steps.join(", ")}, then re-export.`;
-}
-
-// How to make a box's file: a sprite box is a tag in the character's
-// .aseprite, line art is a file to save.
-function deliveryHint(path, minimumFrames = 1) {
-	if (!path.startsWith("art/sprites/")) return `Save as ${path}`;
-	const frames = minimumFrames > 1 ? ` with ${minimumFrames}+ frames` : "";
-	return `Tag "${fileStem(path)}"${frames} in ${folderName(path)}.aseprite, then Export Tags as PNGs`;
-}
-
-// `characterId` null: the generic form, for the box key.
-function boxHint(column, characterId) {
-	const path = column.convention.replaceAll("{id}", characterId || "<id>");
-	return deliveryHint(path, column.min_frames);
-}
-
-function keyframeIndex(columnId, timing, frames) {
-	if (IDLE_COLUMNS.includes(columnId)) return 0;
-	const hitFrame = timing && Number.isInteger(timing.hit_frame) ? timing.hit_frame : Math.floor(frames / 2);
-	return Math.min(Math.max(hitFrame, 0), frames - 1);
-}
-
-function frameDurations(timing, frames) {
-	if (timing && Array.isArray(timing.frame_durations_ms) && timing.frame_durations_ms.length === frames) {
-		return timing.frame_durations_ms;
-	}
-	const fps = Math.max(1, (timing && timing.fps) || DEFAULT_FPS);
-	return new Array(frames).fill(1000 / fps);
-}
-
-// Background geometry for one frame of a strip at whole-device-pixel scale.
-// `bounds` (the idle's art_bounds) crops to the figure so it reads bigger.
-function spriteGeometry(probe, frameIndex, bounds, deviceRatio, size = THUMBNAIL_SIZE) {
-	const frameSize = probe.height;
-	const padding = 2;
-	const crop = bounds
-		? {
-			left: Math.max(0, bounds.left - padding), top: Math.max(0, bounds.top - padding),
-			right: Math.min(frameSize, bounds.right + padding), bottom: Math.min(frameSize, bounds.bottom + padding),
-		}
-		: { left: 0, top: 0, right: frameSize, bottom: frameSize };
-	const cropWidth = crop.right - crop.left;
-	const cropHeight = crop.bottom - crop.top;
-	const deviceScale = Math.max(1, Math.floor((size * deviceRatio) / Math.max(cropWidth, cropHeight)));
-	const scale = deviceScale / deviceRatio;
-	return {
-		width: cropWidth * scale,
-		height: cropHeight * scale,
-		size: [probe.width * scale, probe.height * scale],
-		position: [-(frameIndex * frameSize + crop.left) * scale, -crop.top * scale],
-		frameStep: frameSize * scale,
-	};
-}
-
-// Line art: the portrait crop when it's on this file, else the top of the art.
-function lineArtGeometry(probe, crop, path) {
-	if (crop && crop.atlas === path && crop.width > 0) {
-		const scale = THUMBNAIL_SIZE / crop.width;
-		return {
-			width: THUMBNAIL_SIZE,
-			height: crop.height * scale,
-			size: [probe.width * scale, probe.height * scale],
-			position: [-crop.x * scale, -crop.y * scale],
-		};
-	}
-	const scale = THUMBNAIL_SIZE / Math.min(probe.width, probe.height);
-	return {
-		width: THUMBNAIL_SIZE,
-		height: THUMBNAIL_SIZE,
-		size: [probe.width * scale, probe.height * scale],
-		position: [-(probe.width * scale - THUMBNAIL_SIZE) / 2, 0],
-	};
-}
-
-const logic = {
-	frameCount, shownCandidate, isStandIn, boxState, evaluateCharacter, sortCharacters, pendingRenames,
-	renameInstruction, deliveryHint, boxHint, keyframeIndex, frameDurations, spriteGeometry, lineArtGeometry,
-};
-if (typeof module !== "undefined") {
-	module.exports = logic;
-	return;
-}
-
 
 // --------------------------------------------------------------- probing ----
 
@@ -235,8 +52,8 @@ function probe(path, stamp) {
 
 function allCandidatePaths(data) {
 	const paths = new Map();  // path → is line art
-	for (const character of data.characters) {
-		for (const requirement of character.requirements) {
+	for (const art of data.characters.flatMap((character) => [character, ...character.variants])) {
+		for (const requirement of art.requirements) {
 			for (const candidate of requirement.candidates) {
 				paths.set(candidate.path, requirement.id === "line_art");
 				if (candidate.rename_to) paths.set(candidate.rename_to, requirement.id === "line_art");
@@ -310,7 +127,11 @@ const BOX_GROUPS = [
 const STATE_WORDS = {
 	shown: "done", "stand-in": "covered by another clip", missing: "missing",
 	optional: "optional", "not-needed": "its moves never play it",
+	inherited: "missing, shows the class it promotes from",
+	placeholder: "placeholder, doesn't count",
 };
+// Path → why the file doesn't count yet (placeholders.js).
+let placeholderReasons = {};
 const SUMMARY_THUMBNAIL_SIZE = 36;
 
 // Characters open in the grid. null until the viewer opens or closes one:
@@ -335,20 +156,44 @@ function saveOpen() {
 	}
 }
 
+// Class-variant trees the viewer opened, and the class each one shows.
+const VARIANTS_KEY = "tbt-art-board-variants:" + global.location.pathname;
+const variantView = loadVariantView();
+
+function loadVariantView() {
+	try {
+		const stored = JSON.parse(global.localStorage.getItem(VARIANTS_KEY) || "null");
+		if (stored && Array.isArray(stored.open)) return { open: new Set(stored.open), selected: stored.selected || {} };
+	} catch (error) {
+		// Storage off: every tree starts closed.
+	}
+	return { open: new Set(), selected: {} };
+}
+
+function saveVariantView() {
+	try {
+		global.localStorage.setItem(VARIANTS_KEY,
+			JSON.stringify({ open: [...variantView.open], selected: variantView.selected }));
+	} catch (error) {
+		// Storage off: the trees just don't survive a reload.
+	}
+}
+
 let nextUpId = null;
 const isOpen = (id) => (openCharacters ? openCharacters.has(id) : id === nextUpId);
 
 function render(data, ranking) {
 	stopPlayback();
 	const characters = sortCharacters(data.characters, ranking);
-	const evaluations = new Map(characters.map((character) => [character.id, evaluateCharacter(character, probes)]));
+	const evaluations = new Map(characters.map((character) =>
+		[character.id, evaluateCharacter(character, probes, placeholderReasons)]));
 	const columns = data.columns;
 	const next = characters.find((character) => ["red", "orange"].includes(evaluations.get(character.id).tier));
 	nextUpId = next ? next.id : null;
 	renderSummary(characters, evaluations);
 	renderNextUp(next, evaluations, ranking, columns);
 	renderRenames(pendingRenames(characters, probes), characters);
-	renderGrid(characters, evaluations, columns, ranking);
+	renderGrid(characters, evaluations, columns, ranking, data.classes);
 	Notes.decorate();
 }
 
@@ -381,6 +226,8 @@ function renderNextUp(next, evaluations, ranking, columns) {
 		const column = columns.find((candidate) => candidate.id === requirement.id);
 		const item = element("li");
 		item.append(element("span", "need-chip", column.label), element("span", "need-how", boxHint(column, next.id)));
+		const placeholder = evaluation.placeholders[requirement.id];
+		if (placeholder) item.append(element("span", "need-placeholder", `Placeholder in the game now: ${placeholderReasons[placeholder.path]}`));
 		list.append(item);
 	}
 	panel.append(list);
@@ -433,7 +280,74 @@ function renderBoxKey(columns) {
 	}
 }
 
-function renderGrid(characters, evaluations, columns, ranking) {
+// Every tier-1 class's promotion tree: designed ones drawn with their
+// characters (click one to see its variants), the rest as a class and a "?".
+function renderClassTrees(classes, characters) {
+	const panel = document.getElementById("class-trees");
+	const { roots, orphans } = classForest(classes);
+	const statuses = new Map(roots.map((root) => [root.id, treeStatus(root)]));
+	const counted = (status) => roots.filter((root) => statuses.get(root.id) === status).length;
+	panel.querySelector("summary").textContent = `Class trees: ${counted("designed")} of ${roots.length} designed`
+		+ (counted("partial") ? `, ${counted("partial")} partly` : "");
+	const unitsOf = (classId) => characters.filter((character) => character.class === classId);
+
+	const branch = (node, compact) => {
+		const item = element("li", "tree-branch");
+		const card = element("div", "class-node");
+		card.append(element("span", "class-node-name", node.name));
+		const units = unitsOf(node.id);
+		if (compact) {
+			card.append(element("span", "class-node-count", String(units.length)));
+			card.title = units.map((character) => character.name).join(", ");
+		} else if (units.length) {
+			const links = element("span", "class-node-units");
+			for (const character of units) {
+				const link = element("button", "unit-link", character.name);
+				link.type = "button";
+				link.dataset.jump = character.id;
+				link.title = `Open ${character.name}'s class variants`;
+				links.append(link);
+			}
+			card.append(links);
+		}
+		item.append(card);
+		const children = treeChildren(node, (child) => branch(child, compact));
+		if (children) item.append(children);
+		return item;
+	};
+	const treeList = (root, compact) => {
+		const list = element("ul", compact ? "tree class-tree class-tree-compact" : "tree class-tree");
+		list.append(branch(root, compact));
+		return list;
+	};
+
+	const body = panel.querySelector(".class-trees-body");
+	body.replaceChildren(element("p", "class-trees-intro",
+		"What each class promotes into, by tier, left to right. A dashed ? is a promotion not designed yet."
+		+ " The trees live in scripts/core/enums.gd (CLASS_INFO, promotes_to)."));
+	const drawn = element("div", "class-trees-drawn");
+	for (const root of roots.filter((entry) => statuses.get(entry.id) !== "not-designed")) drawn.append(treeList(root, false));
+	const undesigned = element("div", "class-trees-undesigned");
+	for (const root of roots.filter((entry) => statuses.get(entry.id) === "not-designed")) undesigned.append(treeList(root, true));
+	body.append(drawn, element("h3", "class-trees-heading", "Not designed yet"), undesigned);
+	if (orphans.length) {
+		const line = element("p", "class-trees-orphans", "Not in a tree yet: ");
+		line.append(orphans.map((entry) => `${entry.name} (tier ${entry.tier})`).join(", "));
+		body.append(line);
+	}
+}
+
+// Opens a character's row and its class variants, and scrolls to them.
+function showVariants(characterId) {
+	const row = document.querySelector(`details.character[data-character="${CSS.escape(characterId)}"]`);
+	if (!row) return;
+	row.open = true;
+	const variants = row.querySelector("details.variants");
+	if (variants) variants.open = true;
+	row.scrollIntoView({ block: "start" });
+}
+
+function renderGrid(characters, evaluations, columns, ranking, classes) {
 	const grid = document.getElementById("grid");
 	grid.replaceChildren();
 	const nameCounts = new Map();
@@ -444,7 +358,7 @@ function renderGrid(characters, evaluations, columns, ranking) {
 		section.dataset.character = character.id;
 		section.open = isOpen(character.id);
 		section.append(renderCharacterSummary(character, evaluation, columns, ranking, nameCounts.get(character.name) > 1));
-		section.append(renderCharacterBody(character, evaluation, columns));
+		section.append(renderCharacterBody(character, evaluation, columns, classes));
 		grid.append(section);
 	}
 }
@@ -482,13 +396,14 @@ function renderCharacterSummary(character, evaluation, columns, ranking, nameCla
 }
 
 // One pip per box, in box order, so collapsed rows line up like a grid.
-function renderPips(character, evaluation, columns) {
+function renderPips(character, evaluation, columns, inherited = {}) {
 	const pips = element("span", "pips");
 	for (const group of BOX_GROUPS) {
 		const cluster = element("span", "pip-group");
 		for (const column of columns.filter((candidate) => candidate.tier === group.tier)) {
 			const requirement = character.requirements.find((candidate) => candidate.id === column.id);
-			const state = boxState(requirement, evaluation.shown[column.id]);
+			const state = boxState(requirement, evaluation.shown[column.id], inherited[column.id],
+				evaluation.placeholders[column.id]);
 			const pip = element("span", `pip pip-${state} pip-tier-${group.tier}`);
 			pip.title = `${column.label}: ${STATE_WORDS[state]}`;
 			cluster.append(pip);
@@ -498,8 +413,27 @@ function renderPips(character, evaluation, columns) {
 	return pips;
 }
 
-function renderCharacterBody(character, evaluation, columns) {
+function renderCharacterBody(character, evaluation, columns, classes) {
 	const body = element("div", "character-body");
+	body.append(...renderBoxGroups(character, evaluation, columns));
+	// Placeholder reasons in plain view, not just in tooltips.
+	for (const column of columns) {
+		const placeholder = evaluation.placeholders[column.id];
+		if (!placeholder) continue;
+		const note = element("p", "placeholder-note");
+		note.append(element("strong", "", `${column.label} is a placeholder. `),
+			element("span", "", placeholderReasons[placeholder.path]));
+		body.append(note);
+	}
+	const variants = renderVariants(character, evaluation, columns, classes);
+	if (variants) body.append(variants);
+	return body;
+}
+
+// The boxes, grouped by the color that needs them. `inherited`: a variant's
+// fallback per box (resolveBoxes of the class it promotes from).
+function renderBoxGroups(character, evaluation, columns, inherited) {
+	const sections = [];
 	for (const group of BOX_GROUPS) {
 		const groupColumns = columns.filter((column) => column.tier === group.tier);
 		if (groupColumns.length === 0) continue;
@@ -508,13 +442,129 @@ function renderCharacterBody(character, evaluation, columns) {
 		const boxes = element("div", "boxes");
 		for (const column of groupColumns) {
 			const box = element("div", "box");
-			box.append(renderCell(character, evaluation, column, columns), element("span", "box-label", column.label));
+			box.append(renderCell(character, evaluation, column, columns, inherited), element("span", "box-label", column.label));
 			boxes.append(box);
 		}
 		section.append(boxes);
-		body.append(section);
+		sections.push(section);
 	}
-	return body;
+	return sections;
+}
+
+// A node's children as a tree list, or null at the top tier. A class not
+// designed past gets one dashed "?" child.
+function treeChildren(node, renderChild) {
+	if (!node.gap && node.children.length === 0) return null;
+	const list = element("ul", node.gap ? "tree-children tree-children-gap" : "tree-children");
+	if (node.gap) {
+		const gap = element("li", "tree-branch tree-branch-gap");
+		gap.append(element("span", "tree-gap", "? not designed"));
+		list.append(gap);
+	}
+	for (const child of node.children) list.append(renderChild(child));
+	return list;
+}
+
+// The character's own promotion tree, a card per class, and the picked
+// variant's boxes under it. Collapsed by default: alpha doesn't need it.
+function renderVariants(character, evaluation, columns, classes) {
+	const tree = promotionTree(classes, character.class);
+	if (!tree || (!tree.gap && tree.children.length === 0)) return null;
+	const section = element("details", "variants");
+	section.dataset.character = character.id;
+	section.open = variantView.open.has(character.id);
+	const classNames = new Map(classes.map((entry) => [entry.id, entry.name]));
+	const variants = new Map(character.variants.map((variant) => [variant.class, {
+		...variant, name: `${character.name} (${classNames.get(variant.class)})`,
+		classLabel: classNames.get(variant.class), isVariant: true,
+	}]));
+	const evaluations = new Map(character.variants.map((variant) => [variant.class, evaluateCharacter(variant, probes, placeholderReasons)]));
+
+	const summary = element("summary", "variants-summary");
+	summary.append(element("span", "chevron"), element("span", "variants-title", "Class variants"));
+	if (tree.children.length === 0) summary.append(element("span", "variants-none", `${tree.name}'s promotions aren't designed yet`));
+	for (const [id, variant] of variants) {
+		const chip = element("span", "variant-chip");
+		chip.append(element("span", `tier-dot tier-${evaluations.get(id).tier}`), variant.classLabel);
+		summary.append(chip);
+	}
+	section.append(summary);
+
+	const stored = variantView.selected[character.id];
+	const selectedId = variants.has(stored) ? stored : tree.children.length ? tree.children[0].id : null;
+	let selected = null;
+	const base = { ...character, classLabel: tree.name };
+	const card = (art, artEvaluation, inherited, isBase) => {
+		const node = element(isBase ? "div" : "button", "variant-card");
+		const head = element("span", "variant-card-head");
+		head.append(element("span", `tier-dot tier-${artEvaluation.tier}`), element("span", "variant-card-name", art.classLabel));
+		if (isBase) {
+			node.classList.add("variant-card-base");
+			node.title = `${character.name} as ${art.classLabel}: the boxes above.`;
+			head.append(element("span", "variant-card-count", "base"));
+		} else {
+			const progress = variantProgress(art, artEvaluation);
+			head.append(element("span", "variant-card-count", `${progress.drawn}/${progress.total}`));
+		}
+		node.append(head, renderPips(art, artEvaluation, columns, inherited));
+		return node;
+	};
+	const branch = (node, parentResolved) => {
+		const item = element("li", "tree-branch");
+		let resolved;
+		if (node === tree) {
+			resolved = resolveBoxes(base, evaluation.shown);
+			item.append(card(base, evaluation, {}, true));
+		} else {
+			const variant = variants.get(node.id);
+			const variantEvaluation = evaluations.get(node.id);
+			resolved = resolveBoxes(variant, variantEvaluation.shown, parentResolved);
+			const button = card(variant, variantEvaluation, parentResolved, false);
+			button.type = "button";
+			if (node.id === selectedId && !selected) {
+				selected = { variant, evaluation: variantEvaluation, inherited: parentResolved };
+				button.classList.add("selected");
+			}
+			button.addEventListener("click", () => {
+				variantView.selected[character.id] = node.id;
+				saveVariantView();
+				section.replaceWith(renderVariants(character, evaluation, columns, classes));
+				Notes.decorate();
+			});
+			item.append(button);
+		}
+		const children = treeChildren(node, (child) => branch(child, resolved));
+		if (children) item.append(children);
+		return item;
+	};
+
+	const body = element("div", "variants-body");
+	const heads = element("div", "tier-heads");
+	for (let tier = tree.tier; tier <= TOP_TIER; tier++) heads.append(element("span", "tier-head", `Tier ${tier}`));
+	const list = element("ul", "tree variant-tree");
+	list.append(branch(tree, {}));
+	body.append(heads, list);
+	if (selected) body.append(renderVariantPane(character, selected, columns));
+	section.append(body);
+	return section;
+}
+
+function renderVariantPane(character, { variant, evaluation, inherited }, columns) {
+	const pane = element("div", "variant-pane");
+	const progress = variantProgress(variant, evaluation);
+	const head = element("div", "variant-pane-head");
+	head.append(element("strong", "", `${character.name} as ${variant.classLabel}`),
+		element("span", "variant-pane-count", `${progress.drawn} of ${progress.total} drawn`));
+	// Start from whatever the variant falls back to: usually its base's file.
+	const from = inherited.idle;
+	head.append(element("span", "variant-pane-how", from
+		? `Its own file: ${variant.id}.aseprite, a copy of ${folderName(from.candidate.path)}.aseprite to change.`
+			+ ` Dimmed boxes show the ${from.owner.classLabel} art it falls back to.`
+		: `Its own file: ${variant.id}.aseprite.`));
+	const boxes = element("div", "variant-pane-boxes");
+	boxes.append(...renderBoxGroups(variant, evaluation, columns, inherited));
+	pane.append(head, boxes);
+	return pane;
 }
 
 function thumbnailElement(probeResult, geometry) {
@@ -530,13 +580,15 @@ function thumbnailElement(probeResult, geometry) {
 	return thumbnail;
 }
 
-function renderCell(character, evaluation, column, columns) {
+function renderCell(character, evaluation, column, columns, inherited = {}) {
 	const cell = element("div", "cell");
 	cell.dataset.noteTarget = `cell--${character.id}--${column.id}`;
 	cell.dataset.noteLabel = `${character.name} · ${column.label}`;
 	const requirement = character.requirements.find((candidate) => candidate.id === column.id);
-	const shown = evaluation.shown[column.id];
-	const state = boxState(requirement, shown);
+	const fallback = inherited[column.id];
+	const placeholder = evaluation.placeholders[column.id];
+	const state = boxState(requirement, evaluation.shown[column.id], fallback, placeholder);
+	const shown = evaluation.shown[column.id] || placeholder;
 	const how = boxHint(column, character.id);
 	if (state === "not-needed") {
 		cell.classList.add("cell-not-needed");
@@ -552,6 +604,39 @@ function renderCell(character, evaluation, column, columns) {
 			: `Missing. Until it's drawn the game shows ${column.fallback}.`) + `\nTo add it: ${how}.`;
 		return cell;
 	}
+	if (state === "inherited") {
+		const whose = `${fallback.owner.classLabel}'s ${columnLabel(fallback.candidate.clip || column.id, columns).toLowerCase()}`;
+		cell.classList.add("cell-inherited");
+		cell.append(cellThumbnail(fallback.owner, column, fallback.candidate),
+			element("span", "badge badge-uses", `= ${fallback.owner.classLabel}`));
+		cell.title = `Missing: shows ${whose} until its own is drawn.\nTo add it: ${how}.`;
+		return cell;
+	}
+	cell.append(cellThumbnail(character, column, shown));
+
+	const notes = [];
+	if (state === "placeholder") {
+		cell.classList.add("cell-placeholder");
+		cell.append(element("span", "badge badge-placeholder", "placeholder"));
+		notes.push(`Placeholder: ${placeholderReasons[shown.path]}`,
+			"It's in the game for now, but doesn't count toward a color.", `To replace it: ${how}.`);
+	} else if (state === "stand-in") {
+		const owner = columnLabel(shown.clip, columns);
+		cell.classList.add("cell-stand-in");
+		cell.append(element("span", "badge badge-uses", `= ${owner}`));
+		notes.push(`Covered by the ${owner} clip, so it counts. Draw its own only if it should look different:`, `${how}.`);
+	} else if (!shown.declared && !character.isVariant) {
+		// Nothing loads variants yet, so there's nothing to wire them into.
+		cell.append(element("span", "badge badge-new", "new"));
+		notes.push("Drawn, not in the game yet: Claude wires it in.");
+	}
+	cell.title = [shown.path, ...notes].join("\n");
+	return cell;
+}
+
+// A box's picture: line art at its portrait crop, a clip at its keyframe
+// (played on hover).
+function cellThumbnail(character, column, shown) {
 	const probeResult = probes[shown.path];
 	let geometry;
 	let playback = null;
@@ -573,20 +658,7 @@ function renderCell(character, evaluation, column, columns) {
 		thumbnail.dataset.frameStep = geometry.frameStep;
 		thumbnail.dataset.durations = JSON.stringify(playback.durations);
 	}
-	cell.append(thumbnail);
-
-	const notes = [];
-	if (state === "stand-in") {
-		const owner = columnLabel(shown.clip, columns);
-		cell.classList.add("cell-stand-in");
-		cell.append(element("span", "badge badge-uses", `= ${owner}`));
-		notes.push(`Covered by the ${owner} clip, so it counts. Draw its own only if it should look different:`, `${how}.`);
-	} else if (!shown.declared) {
-		cell.append(element("span", "badge badge-new", "new"));
-		notes.push("Drawn, not in the game yet: Claude wires it in.");
-	}
-	cell.title = [shown.path, ...notes].join("\n");
-	return cell;
+	return thumbnail;
 }
 
 
@@ -793,12 +865,14 @@ function formatTime(timestamp) {
 async function start() {
 	const data = global.ART_DASHBOARD_DATA;
 	const ranking = global.ART_DASHBOARD_RANKING || [];
+	placeholderReasons = global.ART_DASHBOARD_PLACEHOLDERS || {};
 	const status = document.getElementById("status");
 	if (!data) {
 		status.textContent = "game_data.js didn't load. Is this page inside the game's repo?";
 		return;
 	}
 	renderBoxKey(data.columns);
+	renderClassTrees(data.classes, sortCharacters(data.characters, ranking));
 	const cachedAt = loadCache();
 	if (cachedAt) {
 		render(data, ranking);
@@ -831,6 +905,11 @@ async function start() {
 	// made differs from isOpen, and only those are remembered.
 	grid.addEventListener("toggle", (event) => {
 		const section = event.target;
+		if (section.matches && section.matches("details.variants")) {
+			variantView.open[section.open ? "add" : "delete"](section.dataset.character);
+			saveVariantView();
+			return;
+		}
 		if (!section.matches || !section.matches("details.character")) return;
 		const id = section.dataset.character;
 		if (section.open === isOpen(id)) return;
@@ -847,6 +926,8 @@ async function start() {
 	document.getElementById("open-all").addEventListener("click", () => setAllOpen(true));
 	document.getElementById("close-all").addEventListener("click", () => setAllOpen(false));
 	document.addEventListener("click", (event) => {
+		const jump = event.target.closest("[data-jump]");
+		if (jump) showVariants(jump.dataset.jump);
 		const noteButton = event.target.closest(".note-button");
 		if (!noteButton) return;
 		event.preventDefault();  // inside a <summary> the click would also open/close the row

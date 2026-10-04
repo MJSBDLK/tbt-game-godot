@@ -22,6 +22,7 @@
 	<span class="legend-item"><span class="cell-dash">—</span> its moves never play it</span>
 	<span class="legend-item"><span class="badge badge-new legend-badge">new</span> drawn, not in the game yet</span>
 	<span class="legend-item"><span class="badge badge-uses legend-badge">= Melee</span> another clip covers it</span>
+	<span class="legend-item"><span class="badge badge-placeholder legend-badge">placeholder</span> in the game for now, doesn't count</span>
 	<span class="legend-item">Hover a box to play it.</span>
 	<span class="legend-actions">
 		<button id="open-all" type="button">Open all</button>
@@ -40,6 +41,11 @@
 	<ul></ul>
 </details>
 
+<details id="class-trees" class="panel class-trees">
+	<summary>Class trees</summary>
+	<div class="class-trees-body"></div>
+</details>
+
 <main id="grid"></main>
 
 <dialog id="note-dialog" class="note-dialog">
@@ -56,7 +62,9 @@
 </dialog>
 
 <script src="ranking.js"></script>
+<script src="placeholders.js"></script>
 <script src="game_data.js"></script>
+<script src="board_logic.js"></script>
 <script src="dashboard.js"></script>
 </body>
 </html>

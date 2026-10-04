@@ -1,0 +1,7 @@
+[gd_resource type="AtlasTexture" format=3 uid="uid://c331wp634gedd"]
+
+[ext_resource type="Texture2D" uid="uid://cvci8r84lkib8" path="res://art/lineart_fullres/squash.png" id="1_xaolo"]
+
+[resource]
+atlas = ExtResource("1_xaolo")
+region = Rect2(980, 660, 1000, 1000)

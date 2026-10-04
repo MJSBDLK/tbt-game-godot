@@ -15,6 +15,16 @@
 ##   clips         per strip: hit frame and frame timing, sidecar first, the
 ##                 same precedence as ClipPlayer.resolve_playback.
 ##   crop          the portrait crop's region on its line art.
+##   class         the class it starts in (currentClass, as a class id).
+##   variants      one per class below that in its promotion tree: the same
+##                 character redrawn for that class, with its own full set of
+##                 boxes under the file stem <id>_<class>. Moves don't change
+##                 with class, so a variant needs what the base needs. Nothing
+##                 in the game loads variants yet, so only convention paths
+##                 count and none is "declared".
+##
+## `classes` is the promotion tree from Enums.CLASS_INFO, keyed by the class's
+## lowercase enum name (the id in variant file names).
 ##
 ## Needs mirror UnitAnimationResolver: two reaches (1 tile = melee, 2+ =
 ## ranged), every attack can hit from 1 tile (targeting is distance <= range),
@@ -91,10 +101,76 @@ static func build_data() -> Dictionary:
 		var entry := column.duplicate()
 		entry["convention"] = convention_path(column.id, "{id}").trim_prefix("res://")
 		columns.append(entry)
-	return {"columns": columns, "characters": characters}
+	var character_ids := characters.map(func(entry: Dictionary) -> String: return entry.id)
+	for entry: Dictionary in characters:
+		for variant: Dictionary in entry.variants:
+			if character_ids.has(variant.id):
+				push_error("Art dashboard: %s's %s variant shares its files with the character %s" % [
+						entry.id, variant["class"], variant.id])
+	return {"columns": columns, "classes": class_entries(), "characters": characters}
+
+
+## Every class with its tier and the classes it promotes into.
+static func class_entries() -> Array[Dictionary]:
+	var entries: Array[Dictionary] = []
+	for character_class: int in Enums.CLASS_INFO:
+		var info: Dictionary = Enums.CLASS_INFO[character_class]
+		entries.append({
+			"id": class_id(character_class),
+			"name": str(info.display_name),
+			"tier": int(info.tier),
+			"promotes_to": (info.get("promotes_to", []) as Array).map(
+					func(promotion: int) -> String: return class_id(promotion)),
+		})
+	return entries
+
+
+static func class_id(character_class: int) -> String:
+	return str(Enums.CharacterClass.find_key(character_class)).to_lower()
+
+
+## currentClass the way CharacterDataLoader reads it: "Void Knight" → void_knight.
+static func character_class_id(character: Dictionary) -> String:
+	var id := str(character.get("currentClass", "Spaceman")).to_lower().replace(" ", "_")
+	if not Enums.CharacterClass.has(id.to_upper()):
+		push_error("Art dashboard: no class '%s' in Enums.CharacterClass" % id)
+	return id
+
+
+## Every class below `start` in the promotion tree, nearest tier first.
+static func promotions_below(start: String) -> Array[String]:
+	var found: Array[String] = []
+	var frontier: Array[String] = [start]
+	while not frontier.is_empty():
+		var info: Dictionary = Enums.CLASS_INFO.get(Enums.CharacterClass.get(frontier.pop_front().to_upper(), -1), {})
+		for promotion: int in info.get("promotes_to", []):
+			if not found.has(class_id(promotion)):
+				found.append(class_id(promotion))
+				frontier.append(class_id(promotion))
+	return found
 
 
 static func character_entry(character_id: String, character: Dictionary, move_bank: Dictionary) -> Dictionary:
+	var result := {
+		"id": character_id,
+		"name": str(character.get("characterName", character_id)),
+		"class": character_class_id(character),
+	}
+	result.merge(art_entry(character_id, character, move_bank))
+	# Only the moves carry over: every file a variant has is its own.
+	var moves_only := {"basePoolMoves": character.get("basePoolMoves", []),
+			"basePoolPassives": character.get("basePoolPassives", [])}
+	var variants: Array[Dictionary] = []
+	for promotion: String in promotions_below(result["class"]):
+		var variant := {"class": promotion}
+		variant.merge(art_entry(character_id + "_" + promotion, moves_only, move_bank))
+		variants.append(variant)
+	result["variants"] = variants
+	return result
+
+
+## The boxes for one set of art (a character, or one of its class variants).
+static func art_entry(character_id: String, character: Dictionary, move_bank: Dictionary) -> Dictionary:
 	var kit := kit_for(character.get("basePoolMoves", []), character.get("basePoolPassives", []), move_bank)
 	var declared_clips: Dictionary = {}
 	var animations: Dictionary = character.get("animations", {})
@@ -141,12 +217,7 @@ static func character_entry(character_id: String, character: Dictionary, move_ba
 			if not timing.is_empty():
 				clips[candidate.path] = timing
 
-	var result := {
-		"id": character_id,
-		"name": str(character.get("characterName", character_id)),
-		"requirements": requirements,
-		"clips": clips,
-	}
+	var result := {"id": character_id, "requirements": requirements, "clips": clips}
 	var crop := portrait_crop(character, character_id)
 	if not crop.is_empty():
 		result["crop"] = crop
