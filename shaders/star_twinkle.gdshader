@@ -35,12 +35,12 @@ uniform float time_offset = 0.0;
 // the full-reach frame lingering. The painted blue picks the period between
 // flashes (slow at 0, fast at 255) and the rest is whatever the flash leaves
 // of it; period_jitter spreads it ± per star so neighbors never sync.
-uniform float step_seconds : hint_range(0.03, 1.0) = 0.1;
+uniform float step_seconds : hint_range(0.03, 1.0) = 0.25;
 uniform float hold_seconds : hint_range(0.0, 3.0) = 0.0;
 uniform float dim_hold_seconds : hint_range(0.0, 3.0) = 0.0;
-uniform float period_slow_seconds : hint_range(0.5, 30.0) = 8.0;
-uniform float period_fast_seconds : hint_range(0.5, 30.0) = 1.5;
-uniform float period_jitter : hint_range(0.0, 0.5) = 0.2;
+uniform float period_slow_seconds : hint_range(0.5, 30.0) = 20.0;
+uniform float period_fast_seconds : hint_range(0.5, 30.0) = 20.0;
+uniform float period_jitter : hint_range(0.0, 0.5) = 0.5;
 // Alpha of a tail's TIP pixel. Pixels behind the tip brighten one step per
 // pixel of depth, so a tail fades in from the outside as it grows instead of
 // popping in at full — and dims the same way as it retracts.

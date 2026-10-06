@@ -144,7 +144,7 @@ static var UNIT_CALL_TO_ACTION_REST_SECONDS: float = 1.0
 ## How long each frame of a flash lasts, in seconds. The tails grow a pixel
 ## per frame and pull back the same way (1, 2, 3, 2, 1), every frame this
 ## long. Sane range: 0.05 to 0.5.
-static var STAR_STEP_SECONDS: float = 0.1
+static var STAR_STEP_SECONDS: float = 0.25
 
 ## Extra time on the full-stretch frame before the tails pull back, in
 ## seconds. 0.0 turns straight around. Sane range: 0.0 to 2.0.
@@ -156,14 +156,14 @@ static var STAR_HOLD_SECONDS: float = 0.0
 static var STAR_DIM_HOLD_SECONDS: float = 0.0
 
 ## Seconds between flashes for a star painted with NO blue …
-static var STAR_PERIOD_SLOW_SECONDS: float = 8.0
+static var STAR_PERIOD_SLOW_SECONDS: float = 20.0
 
 ## … and for one painted with FULL blue (255). Sane range: 0.5 to 30 for both.
-static var STAR_PERIOD_FAST_SECONDS: float = 1.5
+static var STAR_PERIOD_FAST_SECONDS: float = 20.0
 
 ## How far each star's own timing strays from those two numbers, so neighbours
 ## never flash in step. 0.2 means up to 20% either way. Sane range: 0.0 to 0.5.
-static var STAR_PERIOD_JITTER: float = 0.2
+static var STAR_PERIOD_JITTER: float = 0.5
 
 ## How bright a tail's newest pixel is when it appears (1.0 = as bright as the
 ## star). The pixels behind it brighten a step each as the tail grows.

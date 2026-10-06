@@ -2,7 +2,7 @@
 + fix essential bugs
 + additional features need a good reason to be added at this point
 	- there will be time to add them later
-+ prioritize stuff that gets us to alpha
++ prioritize the highest leverage items that get us to alpha
 
 # Meeting Todo
 - [ ] Rebelle 7 needs to start working
@@ -51,7 +51,6 @@
 
 # Resp
 
-
 # Claude
 Things Claude found while working on something else that need doing — not
 asked for, not yet acted on. RQD triages (promote, answer, or strike);
@@ -61,10 +60,12 @@ Observations with nothing to do go in "Claude FYI" below.
   (https://claude.ai/artifact/6KnNAarmzsRbTbwdXvD9FE) still runs the pre-fix
   shader; republish it before sending Lawrence the link. The three presets
   (RQD / Lawrence / geometric middle) aren't built yet; values in Claude's memory.
-- [ ] 5× "Lambda capture at index 0 was freed" in test_displacement_system's
+- [~] 5× "Lambda capture at index 0 was freed" in test_displacement_system's
   counter/knockback tests, on a clean HEAD too. A lambda outlives the unit it
   captured; harmless today, noise in every run.
 	- This is lower priority but we should track it down [ready]
+  (FIXED on `rqd--alpha-bugs`: the hit flash's tween lived on its autoload;
+  now it's bound to the sprite and dies with the unit. 0 in a full run.)
 - [ ] Dead art references, found by the art-name survey:
   `editor/tileset_terrain_setup.gd:30-36` wants `tilesets/*_12x4.png` (moved to
   `12x4_terrains/`); `ui_manager.gd:805+` loads 8 missing `hud_panel_*.png`
@@ -177,9 +178,13 @@ holds CLAUDE.md); one opened at the container root gets no project memory.
 - [~] Verify: `git status` in both checkouts, GUT suite, F5. (git + GUT checked by Claude 9/25; F5 is yours.)
 
 # BUGZ
-- [ ] Regression: enemies have somehow gotten the grayed out visual design on the player's turn. I haven't bug tested enough to know if this requires a certain sequence of events. As with all regressions, we now need a unit test.
+- [~] Regression: enemies have somehow gotten the grayed out visual design on the player's turn. I haven't bug tested enough to know if this requires a certain sequence of events. As with all regressions, we now need a unit test.
+  (FIXED on `rqd--alpha-bugs`, eyeball-gated: each phase start stands down
+  the side that just moved, so neither side looks spent on the other's turn.
+  Story in the commit.)
 - [ ] There's no visual feedback on the map for the Protector passive. Let's talk about this one because it will be easy to confuse the player.
-- [ ] The combat preview panel doesn't make it clear whether the enemy will survive with 1HP. >0 HP should always leave one pip in the preview panel.
+- [~] The combat preview panel doesn't make it clear whether the enemy will survive with 1HP. >0 HP should always leave one pip in the preview panel.
+  (FIXED on `rqd--alpha-bugs`: any HP left lights at least one pip.)
 - [~] Threat zones should disable during the enemy turn
   (BUILT 2026-09-23 on `rqd--playtest-0922`, eyeball-gated; story in the commit.)
 - [~] Camera doesn't follow enemy unit movement during the enemy's turn
