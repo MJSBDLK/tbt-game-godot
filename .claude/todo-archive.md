@@ -4,6 +4,10 @@ Every finished item from `todo.md`, kept verbatim for the **design record**: the
 shipped-notes explain *why* a thing works the way it does, and several of them are
 the only written home for a decision. Grep here before re-litigating an old call.
 
+**Grep it; don't read it whole.** It only grows, by `# Archived <date>` blocks
+appended at the bottom, and nobody reads it front to back: that's why it may
+run past the ~1000-line cap that every other file keeps.
+
 - **Open work lives in [todo.md](todo.md)** — this file is history only.
 - Section headings mirror the original file so old references still resolve.
 - Nothing here should be edited except to correct a factual error. If a shipped
@@ -1529,3 +1533,1092 @@ All 7 existing attack clips: **left** (Keener `shootside`: **none**).
     intents with physical/special refinements, the fallback chain (the archer
     shoots point-blank), the three override levels, and the presenter seam that
     kept it out of spaghetti. See the plan above.
+
+---
+
+# Archived 2026-10-06: done items moved out of todo.md
+
+Verbatim, under the todo.md section each one sat in.
+
+## Art board (built: tools/art_dashboard/, spec in its README)
+
+RQD's original ask:
+
+We need something like a Kanban board or a checklist which lists each character, which highres/pixel art is still needed for that character, and the system needs to be extensible as we add features. For example, we might decide that highres line art needs each character to have a "determined face" (I'm not saying we're doing this) and then that would need to appear in the checklist for Lawrence for all relevant characters. It should live somewhere super convenient and be tracked on Lawrence's branch.
+This will also need to extend to other art other than character work.
+Basically it should be a dashboard where Lawrence can come in, see what work is most pressing, and work on that. We might include an AI agentic skill to scan for updates Lawrence has done, and to sync the progress on his dashboard with the art that's actually in place. Flag anomalies. Stuff like that.
+The goal is to make Lawrence's life as easy as possible - so let's make sure we're not adding unnecessary process. We shouldn't even really need to teach Lawrence how to access the todo list. Him bookmarking it should be enough, and the utility should be super obvious. Needs a careful design session.
+
+## Reparent worktree directories
+
+One container for every checkout of the game plus the Unity source, so
+worktrees sit beside the main checkout instead of loose in ~/Documents/Projects:
+
+    ~/Documents/Projects/tbt-game/          container
+      tbt-game-godot/                       main checkout
+      tbt-game-godot--twinkle-steps/        worktree
+      tbt-game-unity/                       Unity source
+      tbt-game.code-workspace               open THIS in VS Code
+
+Full names kept inside the container, so a folder read without context still
+says which project it is. Claude keys memory by path, so the memory folder is
+renamed in the move below. Claude sessions must start in tbt-game-godot/ (it
+holds CLAUDE.md); one opened at the container root gets no project memory.
+
+- [x] Layout and names (RQD: full names), Unity moves in.
+- [x] Twinkle shader comments folded into the branch's one commit (d68c2b6).
+- [x] Unity path fixed → `../tbt-game-unity/` (CLAUDE.md ×7, guide.md ×8, migration.md ×1; `../tbt-game/` pointed at nothing). Resolves before and after the move.
+- [x] .claude/settings.local.json: absolute-path rules rewritten to the new roots (same scope).
+- [x] Memory: the 3 files with absolute links + the twinkle note point at the new paths.
+- [x] tbt-game/ created with tbt-game.code-workspace (tbt-game-godot first); CLAUDE.md Branch Flow names the worktree convention.
+- [x] Close Godot (both projects), Unity + Unity Hub, every VS Code window on these folders, and every Claude session in them. Then, from a plain terminal (not VS Code's):
+
+      cd ~/Documents/Projects
+      mv tbt-game-godot tbt-game-godot--twinkle-steps tbt-game-unity tbt-game/
+      cd tbt-game/tbt-game-godot
+      git worktree repair ../tbt-game-godot--twinkle-steps
+      git worktree list
+      mv ~/.claude/projects/-home-mjsbdlk-Documents-Projects-tbt-game-godot \
+         ~/.claude/projects/-home-mjsbdlk-Documents-Projects-tbt-game-tbt-game-godot
+
+  (The main checkout can't `git worktree move`, hence mv + repair with the
+  worktree's new path. Hooks are relative symlinks and move along.)
+- [x] Open tbt-game/tbt-game.code-workspace. Check a Claude session starts in tbt-game-godot/ and loads CLAUDE.md + memory.
+- [x] Godot Project Manager: remove the stale entries, Import tbt-game-godot/project.godot (and the worktree's if wanted). user:// (saves, settings, logs) is keyed on the project name, so it's untouched.
+- [-] Unity Hub: re-add tbt-game-unity/.
+- [~] Verify: `git status` in both checkouts, GUT suite, F5. (git + GUT checked by Claude 9/25; F5 is yours.)
+
+## BUGZ
+
+- [x] I overwrote a save once, and now the "overwrite save" screen will show up unexpectedly where it shouldn't: ![alt text](image-5.png)
+  (FIXED 2026-09-22 in 319f72a, on rqd--main. Not the hub's picker — UIManager's, opened
+  from the battle system menu (Load, or Save on a full ring), living in the
+  overlay that outlives scenes. The state handler hid the system menu on
+  every exit from PAUSED but never the browser, so a phase start or a
+  stack-clearing cancel under it left it floating, and it rode into the hub.
+  `UIManager.hide_save_browser` now goes with the menu. test_hud_overlay_orphans.)
+
+- [x] Save browser rows stamp the save in UTC, not local time — a 20:36 save reads as tomorrow: ![alt text](image-4.png)
+  (FIXED 2026-09-22. The screenshot rode into 319f72a with no item under it;
+  this is the item. `SaveBrowserPanel._format_timestamp` fed the raw unix
+  stamp to Godot's from_unix_time formatter, which is UTC-only; it now shifts
+  by the system zone bias first. test_save_browser_panel pins it against the
+  OS clock. Delete image-4.png once seen in a build.)
+
+## Meeting Notes 2026/09/20
+
+- [x] Star twinkle shader
+
+- [x] Mountains 12x8 is on Lawrence's branch - let's try to implement it!
+
+## Resolved sub-threads (parent still open in todo.md): "this right here is a little cluttered" - in reference to th…
+
+- [x] get rid of subtitle on bEXP
+
+- [x] get rid of subtitle on mission briefing
+
+## Lawrence playtest feedback
+
+- [x] New player didn't add a unit from the bench, despite a slot being open in the squad. He thought recruits were added automatically, which actually should  be how it works if there's room.
+  (`CampaignManager._seat_recruit`: a recruit joins the chosen deployment;
+  the hub's cap trim benches it when the squad is full. Also joins a squad
+  benched to zero.)
+
+## Quick Fixes
+
+- [x] "show range" box in the unit preview panel is funtionally non-interactible when using M&K, so it should not display if touchscreen input is not active.
+  (DONE 2026-09-22: touch-only — a mouse can't reach it, a pad has no pointer.)
+
+- [x] There is too much vertical gap between the unit preview panel and the terrain preview panel when both are onscreen at once - the terrain preview panel is pushed 1-2 pixels off the bottom of the screen.
+  (DONE 2026-09-22: the left column is no longer a stack — unit preview
+  pinned top, terrain preview locked to the bottom corner and growing
+  upward; the two fixed frames (218 + 140 + 4) overran a 360 canvas. RQD:
+  "flawless". Pinned in test_hud_side_columns.)
+
+- [x] Reduce tooltip hold max from 1000ms -> 800ms (Done 2026-09-10:
+  `Settings.TOOLTIP_HOLD_MAX_MS` 1000 → 800; the slider reads the const; the
+  §14 style-guide range + test_settings ceiling assert updated.)
+
+- [x] options menu: "walk" and "ghost" both apply "ghost" mode
+  (RESOLVED 2026-09-10 by DECREE, not diagnosis: RQD re-confirmed the bug
+  in-game after a headless investigation couldn't reproduce it (the tab
+  refactor's handler was line-for-line the old one, the setter persisted,
+  the 15 mode tests were green, and the real InputManager press path walked
+  the sprite under Walk) — and called it: **Ghost is canonical, Walk is
+  deleted.** "It works great", was leaning to nix Walk anyway; the
+  un-trackable bug decided it. Gone: `Settings.move_commit_mode` + its
+  setter/load/save (an old settings.cfg key is ignored), the Options "Move
+  Commit" row (GAMEPLAY is 7 rows now), the hint bar's mode flag — the
+  planning copy is the confirm copy only ("Select the marker again to
+  confirm" / "Tap the marker again to confirm" / BUTTON mode's "Confirm
+  path"). `Unit.execute_planned_movement` stages for EVERY player unit; the
+  AI still walks immediately (its walk is its telegraph). Tests:
+  test_move_commit_mode.gd → test_deferred_walk.gd (10 tests, incl. one
+  that pins the setting's absence); test_waypoint_replan.gd re-pinned to the
+  staged contract. Design consequence worth remembering: this is the commit
+  model fog missions need (§9), so nothing is foreclosed.)
+
+- [x] There's a bug when you try to take a nonsense path, e.g. move to space 3, then 2, then back to 3 - the game moves you to space 2. This is cancelable and therefore of low consequence, but I believe it's a real bug
+  (FIXED 2026-09-10. Cause: `_handle_movement_planning_press` executed on
+  ANY marker press — pressing 3 again after 3 → 2 confirmed the 3 → 2 plan.
+  Now only the LAST marker confirms (the marker double-press gesture, same
+  as the hint bar's copy); pressing an EARLIER marker backs the plan up to
+  it (`Unit.truncate_waypoints_to`, FE-style re-route — it becomes the last
+  stop, so pressing it again confirms). Costs stay cumulative-from-start so
+  nothing recomputes; beacons + ghost redraw from the shortened plan. This
+  doubles as the first plan UNDO — before, the only undo was right-click,
+  which deselects. The alternative reading (a third press APPENDS a revisit
+  so the unit literally walks 3 → 2 → 3) was rejected: a stop on a stop is
+  never a useful plan, self-crossing paths still work by routing THROUGH an
+  earlier tile, and the genre convention is truncate. 5 tests in
+  test_waypoint_replan.gd (drives the real press handler the mouse + board
+  cursor share). Not touched, flagging: the "move preview doesn't animate
+  properly when a unit retreads its path" item in §6 is probably related
+  (beacon phase on revisited tiles), not this.)
+
+- [x] Still need to replace "B" and "8" in the small font with our own creations
+  (DONE 2026-09-22. They were the only 4-wide glyphs in a 3-wide font, with
+  outlines that rendered as noise. Redrawn — B 3×4, 8 3×5 on the descender
+  row — by tools/fonts/patch_pixel_glyphs.py, where the grids are text an
+  artist can edit; the same tool added → to the 8px font. RQD: "looks great".)
+
+## Todo
+
+- [x] Options menu has gotten too big for the screen. We'll need to tabulate and/or refactor
+  (DONE 2026-09-09 on `rqd--options-tabs`, eyeball-gated. Both: three tabs
+  — GAMEPLAY (Quick Attack, Auto End Turn, Move Confirm, [Move Commit — deleted 2026-09-10],
+  Battle Anims, Seeded Reload, Control Hints, Tooltip Hold) · VIDEO (Zoom
+  Mode, Portrait FX, UI Motion, Type Icons, FPS Cap) · AUDIO (three volumes)
+  — over a ROW REGISTRY (`_row_specs()`, one entry per setting; the panel
+  went 889 → 680 lines and adding a setting is adding an entry). The rows
+  area is pinned to the tallest tab so the strip and Close never jump.
+  Headers are InteractiveButtons (current tab wears the §14 brackets);
+  NEW actions `menu_tab_prev` / `menu_tab_next` = Q / E + LB / RB switch
+  from anywhere and wrap; the strip shows the glyph for the driving
+  device. Cursor model as the system menu: pad/keyboard opens land on the
+  first row's ACTIVE pill, pointer opens stay quiet. Measured ~265 px tall
+  vs ~420 before. 12 tests in test_options_menu_panel.gd pin tab
+  membership + the height budget. EYEBALL: tab grouping, Q/E vs another
+  key pair (E is also End Turn on the map — harmless, InputManager is off
+  under the menu, but the double meaning may grate), glyph placement.)
+
+- [x] Oh yeah, I forgot to mention - after our last meeting (9/7) I merged in a bunch of Lawrence's new line art. This provides some new line art for characters for whom there's no data yet.
+  (REVIEWED 2026-09-12: 7 sheets wired, 4 JSON stubs in no spawn pool,
+  4 art-only. Roles + lore: data/design/ideas-and-brainstorming.md
+  "Line-art batch". Paper roughs: §4. Story in the commit.)
+
+- [x] Pull spry.md and the spry skill out of work's documents - then see how we can apply those principles here
+
+- [x] Post-battle: remove a lot of these screens (DONE 2026-09-09 on
+  `rqd--post-battle-cleanup`, eyeball-gated — squash-merge once seen in a
+  build. The chain is now banner → BattleResultPanel → conclude; ~1,000
+  lines of scaffolding left with the two scenes + the dormant
+  `battle_result_overlay`. Pinned in test_post_battle_flow.gd.)
+  - [x] bEXP screen - completely remove. This system has moved to the intermission.
+    (`BonusXpPanel` + `SquadManager.buy_bexp_level` deleted; `commit_bexp_pour`
+    is the one spend API and now reads `BEXP_LEVEL_COST` too.)
+  - [x] level up summary: remove it from the post-battle, but the level up in-mission screen should behave more like this post-battle version (while keeping the visual design of the in-mission version)
+    - the post-battle version is better at being a dopamine factory, per the intended design
+    - I like needing to manually advance after viewing a level-up
+    - I like the smaller form-factor of the in-mission level-up screen, as well as its general visual design
+    (What moved into `LevelUpStatPanel`: the pitch-climbing DING per "+1"
+    — now `LevelUpStatBlock.play_ding`, so the intermission bEXP pour rings
+    too; the stat-up badge landing on its own beat after the last "+1"
+    with the next ding; the 0.35 s breath; then a blinking CONTINUE and
+    MANUAL ADVANCE — the panel never leaves on its own. Two-stage press
+    like a dialogue box: while revealing a press skips to the end (every
+    gain shown), once armed a press dismisses. Click/tap anywhere, or
+    A/Enter/B/Esc. Form factor + sheet chrome untouched. NEW
+    `InputState.LEVEL_UP_CELEBRATION` is pushed around the reveal so the
+    board goes quiet under the press, the camera holds, and the hint bar
+    says "[A] Continue" — in the ENEMY phase too (their hit can level our
+    defender; input stays off afterwards). Reduce-motion: everything at
+    once, armed immediately. FOUND + FIXED on the way (headless shot): the
+    panel's root was 0×0 (set_anchors_preset-on-a-parented-Control gotcha),
+    so it had been sitting TOP-LEFT and "click anywhere to skip" had never
+    had a hit target — it's centered now and the click works. 22 tests
+    across test_level_up_stat_panel / _block / hint_bar_commands + a runtime
+    assert on the root rect. EYEBALL: badge-beat timing, prompt blink rate,
+    whether the two-press skip feels right or should be one press; the
+    ding now also plays in the intermission pour — keep?)
+
+- [x] sliders in the options menu need to be styled to match existing visual design.
+  (DONE 2026-09-10: `OptionsMenuPanel._dress_slider` — the pill palette as a
+  bar, 5×9 knob. RQD: "knob looks good". Still no §14 slider design; this
+  is the placeholder.)
+
+- [x] In the unit detail panel, clicking any stat should display its modifications:
+	- Str 10+2
+		-> Base (10)\n+3 (Competitive)\n-1 (Some debuff)
+	- should also show base (10) alone if it's unmodified and the user brings up the tooltip
+	- should still show e.g. `Base (10)\n+2 (Some buff)\n-2 (Some debuff)` if there are modifications which bring it back to its base.
+  (DONE 2026-09-22 on `rqd--stat-readability`, exactly this shape —
+  `StatBreakdown` + per-source ledgers on CharacterData; lines always sum to
+  the number on screen. Click/tap the name, the number or the "+2"; hover
+  the row. Sheet rows too. NOT built: a pad path. FOUND ON THE WAY (story in
+  the commit): HP injuries never applied (`injury_modifier_max_hp` isn't a
+  property; set() is silent) — fixed; and every native tooltip in the HUD
+  was dead (mouse-enter never reaches a nested SubViewport) — InputRouter
+  mirrors it now, so ~29 authored hover tooltips light up. EYEBALL those.)
+
+## Todo: the terrain-stack build (2026-09-07)
+
+**Answered + BUILT 2026-09-07 on `rqd--terrain-stack`** (3 commits, suite
+1096 green; squash-merge once RQD/Lawrence have eyeballed a build):
+1. Generated-shadow fallback for terrain sprites — the shadow-meeting item
+   below, framed authored-wins / generated-fallback.
+2. Decoration layer now renders exactly like the modifier layer — §6.
+3. The third thing turned out to be **tile registration reshuffling source
+   ids**: `tools/register_modifier_tiles.gd` wiped every source ≥100 and
+   re-minted them in sorted-name order, so the first new sprite sorting
+   before an existing one (`bush_a` < `castle_a`) would have silently
+   repainted every map. Ids are now stable forever, newcomers append, a
+   drift assert refuses to save, a no-op run touches nothing, and headless
+   saves keep their `uid=`s. `tests/unit/test_map_tileset_integrity.gd`
+   walks every map's painted cells against the tileset.
+4. **Editor preview** (the map-week ergonomics win): `TilemapGridBuilder` +
+   `TerrainSpriteRenderer` are `@tool`. With a map open in the editor,
+   unowned `ModifierPreview` / `DecorationPreview` renderers draw the full
+   sprites + shadows on both layers and refresh ~10 frames after a paint
+   stroke. Verified in a headless editor session (spawn, +2 sprites on
+   paint, gone on erase, not written on save). EYEBALL in the real editor:
+   does the overlay fight the tile cursor / selection highlight?
+Also: `tools/diag/map_shot_probe.gd` screenshots any map from the CLI (the
+before/after came from running it in a `git worktree` of the old branch).
+Design doc rewritten: data/design/terrain_modifiers_and_decorations.md,
+including a new-map checklist (wizard → 4 layers → boundary + P/E stamps →
+`data/missions/mission_manifest.json` → F5; `lawrence_test_map` isn't in
+the manifest yet).
+**RQD build report, same day (all three resolved):**
+- *"Terrain shadows look a different opacity/color than unit shadows"* and
+  *"building_a darkened as a whole"* — ONE bug, mine: the OOB fade shader's
+  "honor modulate" edit sampled the texture a second time (canvas_item
+  `COLOR` already holds texture × modulate), squaring every channel — light
+  buildings darkened, 40 % shadows became 16 %. The PNGs were byte-identical
+  to the unit ink all along. Fixed; `tools/diag/shader_parity_probe.gd`
+  renders the four cases and checks parity (run it after any shader edit).
+- *"Some decorations need no shadow, floor elements"* — `casts_shadow: false`
+  in modifier_terrain.json now means NO shadow of any kind (the authored
+  `_shadow.png` is skipped too), and a wildcard key (`"piperoot_*"`) flags a
+  family. The editor preview re-reads the JSON on change, so flip a line and
+  watch the open map. I couldn't tell from the art WHICH ones RQD means (the
+  craters + bridge already have none; everything else reads as an upright
+  object on the contact sheet), so the list is RQD's to fill — one line per
+  sprite or family.
+**Content note for Lawrence:** every sprite except `castle_a` exports with a
+1×1 footprint — the 160×96 buildings and the 96×96 bridge included — so
+gameplay treats them as one cell (units walk up to / onto a single tile of a
+five-cell-wide building). If that's not intended, suffix the tags (`_3x2`)
+and re-export; the registration tool warns when an atlas tile moves and
+those cells need repainting.
+
+## Combat scene — follow-ups
+
+- [x] **FE7-style combat scene LANDED 2026-09-09** from `rqd--battle-animations`
+  (plan + decision log: [todo-archive.md](todo-archive.md) "Battle animations
+  plan"; pointer at [battle-animations.md](battle-animations.md); player-facing
+  description in `data/design/combat-system.md` §Combat Animations). Live by
+  default (Options → "Battle Anims": Scene / Player / Map). Sandbox:
+  `godot-4 --path . -- --map=scenes/debug/combat_sandbox.tscn`; every knob at
+  the top of `scripts/combat/scene/combat_scene.gd`.
+
+- [x] **Lawrence: backdrop test scene** — template + brief in
+  `art/backdrops/combat_test/`. (He delivered the regolith; the stage shows
+  it. Export rules: that folder's README.)
+
+- [x] Missing status icon `status_effect_icons_6x6_v2/hasted_0000.png` —
+  applying Hasted logs a resource error (unrelated to the scene, seen in RQD's log).
+  (DONE 2026-09-10: PLACEHOLDERS minted for Hasted, Fortified AND Regen —
+  none had a tag in the v2 .aseprite — via `tools/art/placeholder_status_icon.gd`;
+  Lawrence replaces same-name. test_status_effect_data.gd now fails the
+  suite on the next missing icon.)
+
+- [x] Spin-off (preview panel): STAB ×1.2 is applied silently —
+  `DamageCalculator.get_stab_multiplier` feeds the number but nothing
+  displays it. Show it on the panel. (DONE 2026-09-10: the multiplier column
+  shows type × STAB, coloured by the TYPE stage alone. RQD 2026-09-11:
+  not clear enough — the redesign is filed in §8, "STAB presentation
+  redesign + a damage-calc tooltip system".)
+
+## More stuff
+
+- [x] the default camera pan speed is way too low - probably speed up 3-5x
+  (Done 2026-09-09: `CameraController.pan_speed` 120 → 480 screen px/s — 4x,
+  the mid-point; it's an @export, tune in the inspector or the const.)
+
+- [x] For the Steam Deck glyphs, we also need L4-5 and R4-5. (Done 2026-09-02 on
+  `rqd--controller-glyphs`: rounded-square chips for the Deck grips L4/L5/R4/R5
+  AND Xbox Elite paddles P1–P4, labels wired for JOY_BUTTON_PADDLE1..4. CAVEAT:
+  the SDL paddle→position mapping (PADDLE1 = upper-left, etc.) is UNVERIFIED on
+  real hardware — mash `tools/diag/joypad_probe.gd` on the Deck before anything
+  BINDS a paddle; nothing does today.)
+  - [x] On mouse, should M4-5 and beyond be "we'll cross that bridge when we get
+    to it?" (Answered 2026-09-02: yes for art — but the TEXT tier is already
+    crossed: `mouse_button_label` now returns "M4"/"M5", so a future side-button
+    binding degrades to "[M4]" in the bar instead of silently dropping the item.)
+
+- [x] "Three lines" and "overlapping squares" always require looking at the
+  controller — is there a universal start/select icon for millennial+ gamers?
+  (Answered + built 2026-09-02: there is no universal ICON — that era printed
+  the WORDS on pill buttons, so the word-pill IS the universal glyph. START and
+  SELECT mini-font pills now map from every pad's start/select-position buttons
+  (Menu/Options → START, View/Share → SELECT); Switch keeps its printed +/−.
+  The hardware-accurate ☰/⧉ sprites stay on disk unmapped for a re-audition.)
+  - [ ] Also, "three lines" and "overlapping squares" have always made me look at the controller. Are there icons which universally represent "start" and "select" for us millenial (and older) gamers?
+
+- [x] Just discovered I can't navigate the unit detail panel with a controller
+  (DONE 2026-09-10: every inspectable is a focus stop; Up/Down walk
+  moves → passives → statuses → injuries, Left/Right jump families, A
+  inspects. Story in the commit. EYEBALL: the 1.6× tablet lift vs the chip
+  backlight; Left/Right as family-jump vs column geometry.)
+  - [x] All the controls bar reads, in this context, is "B for close"
+    (DONE same day: [A] Inspect · [B] Close; touch stays Close-only.)
+
+- [x] Default cursor speed is perfect with the D-pad, too fast on the control stick
+  (DONE 2026-09-10: stick presses are now EDGES in `InputSource` — one per
+  deadzone crossing; the hold rides the D-pad's repeat timer. Story in the
+  commit. Untested on a real pad.)
+  - [x] For the control stick, I was thinking more of a fairly quick acceleration to medium speed:
+    - you can flick the stick repeatedly for navigaint a single tile at a time
+    - if you hold the stick, it clicks to the nearest tile, but if you keep holding, it begins moving faster, but at a manageable speed - just like the D-pad (let's expose this variable though, so I can test. Might be an options menu "cursor speed")
+    (EXPOSED same day: Options → Gameplay → "Cursor Speed", 4–25 tiles/s,
+    default 12.5 = the old constant. The 0.35 s initial delay is still a
+    constant; a slow→fast ramp was NOT built — read as delay-then-repeat.)
+
+## Ideas
+
+- [x] 1. XP gain on map: When a unit gains XP on the map, we should have an XP bar fade in (quickly) right above/below their health bar (yellow fill, black bg), fill with a filling sound effect, and then fade back out (slowly) (Done 2026-08-21: `Unit._build_xp_bar` — 24×2 banana-on-black (YellowOrange 7 `#f5cd65`, the house gold — RQD correction 2026-08-21, was the olive Yellow 7) under `HealthBar`, 1px BENEATH the health bar (RQD: beneath reads more natural; `XP_BAR_OFFSET_Y` = -4 tries above). `_flush_xp_feedback` fires `_play_xp_bar(before, after, levels)` alongside the "+N XP" callout: fade in 0.1s → sweep (0.45s per full bar; a level wrap fills to full, flashes Yellow 8, restarts from 0) → hold 0.5s → fade out 0.6s; reduce-motion parks at the landing fraction. `xp_bar_fill_segments` is the pure sweep plan. SFX `audio/ui/xp_fill.wav` — placeholder rising tick train from generate_ui_sfx.gd, Lawrence replaces same-name. While there: `CharacterData.XP_PER_LEVEL` now owns the 100 that grant_xp / sheet / bEXP / unit sheet each hardcoded. 9 tests in test_combat_xp.gd. EYEBALL: the bar's bottom row kisses the top pixel of tall sprites' art for the ~1.7s it shows — fine in a static render; judge in motion.)
+
+- [x] 2. The enemy pyro is outrageously powerful - needs a nerf to Spc (Done 2026-08-21: the REAL culprit was Blaze (power 11, range 2, special) auto-equipping from the opening four — lvl-1 Pyro vs Res 3: (9+11−3)×1.2 STAB = 20, ×1.25 with one Bellows stack = 26, vs 13–22 HP player units; Capricious rerolls its move each turn so 1-in-4 turns was a Blaze. Pyro's Spc 9/70% was the shared mage template (Keener, Phoenix Pirate identical; Plant Cultist same sheet, not in the pool). RULING: Spc 9→7, growth 70→55 on all four ("70% growth on a standard enemy is just too high"), and the 11-power move (Blaze / Keener's Dark Energy) moved to pool slot 5 so it waits for an unlock. test_enemy_loadouts.gd pins it. NOT touched, flagging: Mystic (8/65, Dark Energy in its opening four, not in the pool) and Squash/Thumps opening with Megaton Punch at power 50 — that's the parked "move distribution is wonky" item.)
+  - [x] 2A. upon review, the spc stat is indeed too high, but I unknowingly activated the enemy's "bellows" ability, which obliterated me on the next hit. We should have visual feedback when bellows activates, and when an attack bootsted by bellows fires, as well. (Done 2026-08-21, generic for ALL statuses per RQD: `Unit._on_status_effect_applied` floats the status's abbrev name over the unit — buffs in TEXT_SUCCESS green, debuffs in TEXT_DANGER red (NOT element ink: the AI floats move names in element color), a restack counts up ("BELLOWS ×2"; Burn/Poison land as "×4" because their default application IS 4 stacks), and the 6×6 icon pops (StatusEffectIndicator.pop_icon, reduce-motion parks it). Boosted swing: `DamageCalculator.bellows_multiplier` is now one helper shared by the math and `_execute_single_hit`, which announces "BELLOWS ×1.5" over the attacker pre-swing in fire ink, floors impact weight at 0.6, and tints the target's hit flash warm (apply_hit_flash grew a `tint`). test_status_callouts.gd + bellows tests in test_damage_calculator.gd. Also fixed: apply_hit_flash's finished-lambda dereferenced a freed unit (the "Lambda capture… has_method on null" noise in the displacement tests).)
+  - [ ] 2B. Also we should warn the player if they're about to use an attack that triggers bellows, with a pulsing alert, maybe. This requires thoughtful design and can't be a simple add, because we'll want to add this feature for other moves as well. Needs to be a whole system. Let's triage this todo (2B) and keep it for later - I think it's great for the presentation but not high leverage in getting us to alpha. (PARKED 2026-08-21 → filed under §7 design calls as the pre-warn system; the combat preview's damage number already includes the defender's Bellows reaction only AFTER it lands, so today nothing in the UI foreshadows it.)
+
+- [x] 3. In the pause menu, we should move "close" to the top, right under "end turn" and above "options," and make that the default selection on controller (Done 2026-08-21: SystemMenuPanel order is END TURN, Close, Options, Save, Load, Main Menu, Quit; the cursor-model default landing AND the quiet-open "first nav press summons the cursor" target are both Close now — a stray controller A-A used to end the turn. 3 tests in test_system_menu_panel.gd.)
+
+## Resolved sub-threads (parent still open in todo.md): 4. Since we added the arrow + phantom effect for displacemen…
+
+- [x] 4A. need to decide if we hold off on actually moving the unit (just show the static/fuzzy phantom preview) to the spot before committing an action - would be a departure from current design but more accurate. We should solve the problem both ways and playtest both, and see what players prefer/find less confusing. (UNPARKED after the 2026-08-31 talk — the fog objection resolved in REVERSE: ACT_THEN_WALK is the only commit model a future fog modifier can work with, so building it forecloses nothing; fog itself is filed post-alpha in §9 below with the "clank" interception rule. BUILT 2026-08-31 on THIS branch (`rqd--move-commit-mode`, stacked on the #4 ghost), eyeball-gated: `Settings.move_commit_mode { WALK_THEN_ACT (default, shipped behavior), ACT_THEN_WALK }` — Options row "Move Commit" [Walk|Ghost] beside Move Confirm. ACT_THEN_WALK per the candidate shape: `Unit._stage_deferred_movement` commits LOGIC instantly (occupancy via `_claim_tile_keep_position`, which restores global_position around Tile.set_unit's snap — found by test; movement_completed still fires so auras/threat recompute) while the sprite keeps its origin position AND origin-row z; `PathVisualizer.show_staged_ghost` clears the spent beacons and parks the lone #4 ghost on the destination (anchored BEFORE the claim — anchor_offset measures sprite vs current_tile). Commit paths — `_execute_attack` pre-swing, `_on_wait` pre-set_acted — `await play_deferred_walk()`: sprite replays the captured path, restamping z per row, then the action fires; foot tracks stashed at stage time survive to set_acted (asserts guard both commit sites). Cancel is the honesty win: the sprite never moved, so Escape never teleports. Camera post-move target + UIManager panel side-pick re-anchored on current_tile (identical in WALK_THEN_ACT). Hint bar planning copy goes mode-aware ("…to confirm" / "Confirm path"). Player-only — the AI's walk is its telegraph. 14 tests in test_move_commit_mode.gd; suite 1036 green. EYEBALL: ghost-hold through the action menu, walk-then-strike pacing on commit, whether the deferred walk wants a skip input. Playtest Walk vs Ghost → delete the loser; squash-merge once seen in a build.) (RESOLVED 2026-09-10 — Ghost won, by decree: RQD "it works great", was leaning to nix Walk anyway, and an un-reproducible "both modes ghost" report (top-of-file Quick Fixes) decided it. The setting, the Options row and the hint bar's mode flag are gone; staging is unconditional for player units; test_move_commit_mode.gd → test_deferred_walk.gd. Loser deleted, as the plan said.)
+
+## Meeting Notes 2026/08/16
+
+### RQD
+- [x] For the non-interactible HUDs, remove all beep-boop buttons (Done 2026-08-16: the rivet-button tabs were baked into `panel_border_tall.png` — the unit preview's frame. New `panel_border_tall_plain.png` = the same frame with the two tabs removed (built from Lawrence's `panel_border_small.png` rows; a pixel diff vs the tall art shows ONLY the tab regions differ), unit_preview_panel.tscn points at it; the rivet original stays on disk. The STATIC-tier self_modulate dimming on unit preview + combat preview is reverted per the note below — both frames now match the terrain preview at full brightness. The system menu / unit detail panel (interactive) keep their buttons.)
+	- dimming the display did not work well
+- [x] Add a "main menu" option alongside "quit" (Done 2026-08-16: SystemMenuPanel "Main Menu" sits right before Quit → `UIManager._on_system_menu_main_menu` closes the menu (unwinds PAUSED → DEFAULT) and routes to the start screen; BattleScene._exit_tree clears the grid as on a mid-battle load. No confirm, same as Quit and the hub's Quit to Menu — the turn autosave bounds the loss. NOTE pre-existing: New Campaign after returning mid-session reuses the leveled roster (start_campaign never rebuilds it) — same gap the hub's Quit to Menu had.)
+- [x] BUG: When you deselect down to 1 squad member, the "deselect squad member" button appears deselected even though the last unit is selected (Fixed 2026-08-16: the last deployed pip went `disabled`, and disabled pips draw hollow = "benched". Root fix below made the inert rule unnecessary; `REASON_LAST_DEPLOYED` is gone.)
+	- [x] We should actually allow the player to deselect all units (squad size 0/X) but then don't let them start the mission (Done 2026-08-16: `CampaignManager.has_deployment()` splits UNSET ("deploy everyone" legacy fallback for F6/ad-hoc battles) from a CHOSEN EMPTY selection (a real 0/N). Saved as `deployment_chosen` (legacy saves without it: empty = unset). `RosterRail.resolved_deployment(..., chosen)` keeps a chosen empty selection empty instead of re-seeding it on hub arrival; BattleScene honors chosen selections verbatim. Hub: Begin Mission goes inert at 0/N with sub-line "deploy at least one unit"; the summoned cursor skips it. BONUS FIX found while verifying: MainMenuEntry only built its sub label when sub_text was non-empty at _ready, so NONE of the hub's live sub-lines ("4/5 deployed", the bEXP number, Save latch) had ever rendered — sub_text is a live setter now. intermission.md §4c updated.)
+#### Unit detail panel
+- [x] The background on the unit detail panel is lighter than the rest of the menus for some reason (Fixed 2026-08-16: the scene root had no stylebox, so it fell back to Godot's default panel — 0.1 gray @ 60% — instead of `HUD_PANEL_BACKGROUND`. `_apply_panel_background()` in unit_detail_panel.gd now stamps the shared menu tint, radius 5 like the system/options/action menus.)
+- [x] Unit detail panel: injury borders are appearing when there's no injury in that slot (Fixed 2026-08-16: empty placeholders keep their footprint — a lone Minor stays Minor-sized — but draw no border; the selection pass used to re-stamp 1px on every injury panel, empties included. Placeholders also no longer take the selection on click.)
+- [x] On the selection border for the passives, I'd like 1px rounded corners, antialiased (Done 2026-08-16: `UnitSheet.SLOT_CORNER_RADIUS = 1` on the shared slot chrome — normal+hover — so the Manage Units sheet rows match; Godot only feathers a StyleBoxFlat once it has a radius. Eyeball: straight edges stay crisp, corner pixel ~50% blend.)
+- [x] "Range" is incorrectly only showing max range, not min range (Fixed 2026-08-16: detail sheet now uses `MoveChipButton.range_text` — "1-3", "1" at melee, "--" for self-target — same helper as the chip band and the peek tooltip. NB: there is no min-range mechanic in the engine yet; every move reaches 1..N.)
+
+## Open Work: the restore note
+
+*(§1–3 below + the shadow-meeting notes were accidentally deleted in commit
+`faa0b3a` on 2026-08-18 — a mid-line splice while adding the Battle HUD mockup
+bullet — and restored 2026-08-31. Two things SHIPPED while the sections were
+missing and are marked below: slice 4 / the bEXP spend panel (§1), and the
+mid-battle level-up beat (§7).)*
+
+## Resolved sub-threads (parent still open in todo.md): Squad / prep + between-mission level-up screen
+
+- **Porting from the mockup in slices** (design locked in
+  [intermission.md](intermission.md), branch `rqd--manage-units`):
+  - [x] Slice 1 — intermission hub (2026-08-07).
+  - [x] Slice 2 — ManageUnitsScreen scaffold + live roster rail (2026-08-10):
+    search / sort-key-as-readout / bench pips, deployment resolved at hub
+    arrival and rewritten per pip toggle, always in roster order (§4d — spawn
+    positions can't move under rail sorting; tested). bEXP deep link opens
+    level-ascending.
+  - [x] Slice 3 — sheet + workbench (2026-08-10). UnitSheet: ident, XP row
+    (display-only until slice 4), single-column stat block with StatCapBars
+    + inline [−]/[+] allocation, move/passive slots, injury chips. UnitWork-
+    bench: lane per slot kind — move/passive (detail → swap bar → filtered
+    bank, live commit), stat (blurbs + cap position + ACROSS THE SQUAD),
+    injury, unit summary. prep_screen.gd and equipment_picker.gd DELETED
+    (absorbed; bank/equip semantics pinned in test_unit_workbench.gd).
+  - [x] Slice 4 — the bEXP level row (SHIPPED 2026-08-13..16, commits
+    e39eccd..369936e + round 5 cf09c2a; discovered-done 2026-08-31 while
+    restoring this section — the deletion ate the status update).
+    `BexpSpendPanel` swaps into the sheet's column:
+    [RESET][-10][-1][+1][+10][99][100][CONFIRM], single-level cap
+    (staged + experience ≤ 100), two-segment XP bar (committed gold +
+    pulsing staged azure), reveal through the shared `LevelUpStatBlock`,
+    holds the +1 view until CONTINUE. The staging layer shipped as pure
+    arithmetic inside the panel; `SquadManager.commit_bexp_pour` is the one
+    irreversible step (growth rolls inside). Stages persist across rail
+    switches — one squad-wide decision, one confirm; leaving discards all.
+    The 99 brink parks XP so the next combat action takes the level with
+    full growth rolls instead of bEXP's fixed spread.)
+
+- [x] For the bEXP allocation system, I think we should have buttons:
+  [-10][-1][+1][+10][99][100]
+  May want +/- 5 in there. Probably not to start. What do you think?
+  Need a clear pool total to see what we're spending from
+  (RESOLVED by slice 4 above — exactly this row plus RESET/CONFIRM, and the
+  staging-layer blocker below was solved by keeping the stage as arithmetic
+  in the panel until one CONFIRM.)
+  - **Unblocked 2026-08-05, engine ready 2026-08-06.** The pool is flat now,
+    so the buttons have something coherent to act on and the pool total is
+    the readout. ±5 agreed as probably-not-to-start.
+  - **Blocker found on implementation:** the `[-1]` / `[-10]` refunds can't
+    wire straight through to `SquadManager.buy_bexp_level` — that commits
+    immediately and irreversibly, because the growth rolls happen inside it.
+    Refundable pouring needs a **staging layer** holding uncommitted XP until
+    the player confirms (which is what the mockup's `u.poured` models — it
+    gets away with it by not simulating growths at all). Design that before
+    building the row.
+
+- [x] **Class-based stat caps + the shared cap bar** — DONE 2026-08-06.
+  [ClassStatCaps](../scripts/units/class_stat_caps.gd) holds all 21 classes ×
+  8 stats plus the global (tier-3) ceiling every bar is scaled against;
+  `get_stat_cap()` reads the unit's class. One shared
+  [StatCapBar](../scripts/ui/components/stat_cap_bar.gd) draws track + fill +
+  bonus and is used by CharacterSheetPanel, UnitDetailPanel and
+  EquipmentPicker — it replaced two near-identical hand-rolled bar
+  implementations that both scaled against a flat `STAT_DISPLAY_MAX = 60`
+  matching no real ceiling, and added the first cap awareness EquipmentPicker
+  has ever had.
+  - **Live balance change, not just UI:** the old flat caps were unreachable,
+    so `is_at_stat_cap()` was permanently false. Class caps bind, which turns
+    on growth-roll skipping, bEXP growth concentration, and gives promotion a
+    purpose. Cap *numbers* are PROVISIONAL — tests assert the tier ladder and
+    archetype shape, never individual values.
+
+- [x] **Revamp StatAllocation to percentage** — DONE 2026-08-06. `MODE` →
+  `PERCENTAGE`, `PCT_PER_POINT` 0.0625 → 0.10 (so 4 pips = +40%, as spec'd).
+  Also removed the `max_hp` flat carve-out, which had survived into PERCENTAGE
+  mode and would have reintroduced exactly the archetype-flattening the mode
+  exists to prevent. Added `tests/unit/test_stat_allocation.gd` (first coverage
+  this file has ever had) and a runtime assert on the per-stat cap — it was
+  enforced only in `equipment_picker`, nothing in the data model.
+
+- [x] **Flatten bEXP to a simple pool** — DONE 2026-08-06. `bexp_level_cost`
+  and its three constants replaced by `BEXP_LEVEL_COST = 100`. BonusXpPanel
+  header note and buy-button tooltip rewritten.
+
+- [x] **Rework CombatXpCalculator** — DONE 2026-08-06, values PROVISIONAL
+  ([class-and-promotion.md](../data/design/class-and-promotion.md) §4).
+  `TIER_LEVEL_BOOST` + `_internal_level()` deleted, `MAX_XP` retired, awards on
+  `base × 2^(gap/15)` with `HIT_BASE_XP = 27` / `KILL_BASE_XP = 80`. Survival XP
+  deliberately left on the difference formula (being attacked isn't a choice, so
+  the funnel argument doesn't reach it). Tests assert shape, not dials.
+  - **Found on implementation:** `MIN_XP` is unreachable at k=15 — the steepest
+    legal decay (Lv 60 farming Lv 1) still pays 5 on a kill. The floor is a
+    safety rail, not a live rule, and "the carry stalls" means ~20 kills/level
+    rather than zero. If a future `k` makes it bind, that's the signal the
+    curve got steep enough to feel like punishment.
+
+## Resolved sub-threads (parent still open in todo.md): Battle result V2
+
+- [x] Delete the dormant `battle_result_overlay.tscn` once its slide-in
+  animation is either adopted or given up on. (Deleted 2026-09-09 with the
+  post-battle cleanup; the slide-in was never adopted.)
+
+## Resolved sub-threads (parent still open in todo.md): Threat-overlay system
+
+- [x] **Model** — `ThreatCalculator`, pure, tested.
+
+## 6. Bugs
+
+- [x] Max S. leveled up on the move that won the level, and the victory screen showed before the level up screen (should wait on continue). Then the level up screen displays over the intermission screen. This seems like a class of bug which should be precluded by the transition to the intermission screen, but that would've made it hard to detect the early victory screen pop-up, so I'm glad we caught it.
+  (RQD 2026-09-22: no longer reproduces as described. What DID show: pick a
+  recruit and the hub arrives with the "Choose a recruit" panel still
+  painted under its menu. FIXED on `rqd--playtest-0922`, eyeball-gated. It
+  was never the picker — the mission-boundary autosave grabbed the
+  viewport's LAST RENDERED FRAME the instant the pick emitted (the picker
+  hides and emits in the same frame), and MenuStageBackdrop showed the
+  newest save's screenshot first, so the hub wore that frozen frame. Same
+  for New Game (a main-menu frame) and a defeat (the result panel). RQD's
+  call (2026-09-22, on seeing the hint bar in that frame): beneath the
+  intermission it should be the map itself, no HUD whatsoever, the art
+  speaking for itself — and never mid-battle carnage on the main menu
+  after a ragequit. Now: in fiction the stage is ship art → the mission
+  being prepared for as a LIVING DIORAMA → flat (`MenuStageBackdrop
+  .mission_path`, set by the hub and Manage Units); the main menu keeps
+  Black Mesa mode. `MissionPreview` = the map's TilemapBuilder in a
+  SubViewport with its script dropped (no grid, GridManager untouched),
+  real TerrainSpriteRenderer overlays in `standalone` mode, the deployed
+  squad seated on the player spawns in the battle's own order
+  (`BattleScene.deployed_roster`, now static and shared) with health bars /
+  level / pips / type icons hidden (`Unit.hide_battle_chrome`), integer
+  cover-zoom camera at the HUD canvas size — zoom 1 on every map we ship,
+  i.e. the game's own scale. Enemies aren't rolled until the battle, so
+  their spawns stay empty. EVERY save's PNG is one frame of that same
+  diorama (the viewport frame-grab is gone), so Continue shows the mission
+  as it began. EYEBALL: how it reads under the hub's dim + vignette,
+  whether empty enemy spawns feel wrong, the Continue picture.
+  test_menu_stage_backdrop ×12, hub + roster pins.)
+
+- [x] In the intermission/manage units screen, the VHS-distortion effect on portraits has disappeared. This is a regression, and should have a unit test.
+  (RQD 2026-09-22: confirmed fixed in a build.)
+
+- [x] When we switched to the phantom move preview, when targeting with a move with a displacement effect, the red arrow correctly displays the displacement, but the phantom being displaced is animating relative to the character sprite, not the phantom preview.
+  (FIXED 2026-09-22 on `rqd--playtest-0922`. The deferred walk moves the
+  caster's `current_tile` to the staged destination while the sprite stays
+  home, and `UnitGhost.anchor_offset` measured the sprite against that
+  tile — so a self-displacing move (Compressed Air, Switcheroo) departed
+  from the sprite with every stop dragged back by the length of the plan.
+  The anchor is now sprite-minus-NODE and ghosts depart from
+  `UnitGhost.projected_position` (logic tile + anchor = the phantom when
+  staged, the sprite when not). Pushes and pulls on the target were never
+  affected. Pinned in test_displacement_preview + test_path_ghost.)
+
+- [x] In the first intermission screen after the first mission, I click on Max, and the bar for his stength and skill appear modified. However, the numerals have no modifiers, and nothing (at least in the intermission) should be modifying these stats.
+	- what I think happened is, he ended the battle with the Focused boost, and had a bonus from the competitive ability - I believe these carried over into the intermission screen when they shouldn't have.
+	(FIXED on `rqd--playtest-0913`: Competitive, not Focused — status
+	modifiers were already cleared at battle end, `passive_bonus_*` never was
+	(and isn't saved, so a reload hid it). `CharacterData.reset_passive_bonuses`
+	now runs beside `reset_status_modifiers`; test_squad_manager pins it.)
+
+- [x] **Displacement arrows rendered under terrain modifiers and units**
+  (Lawrence 2026-08-05) — **FIXED same day.** Root cause worth remembering: board
+  z is `(99 − row) × 10 + layer`, spanning 0..998, so the **row term dominates**
+  and the 0–8 layer enum only orders *within* a row. The renderer used a flat
+  `z_index = 2`, commented "one slot above the move-range paint, still under
+  units" — reasoning in layer-enum terms while setting an absolute z. That
+  cleared only the back row's floor tiles; everything in front buried it. Now
+  1000, above the board max (998) and the flat vignette (4), because a targeting
+  preview has to be legible over whatever it crosses. Ghosts ride the same node
+  deliberately. Pinned by three tests in test_displacement_preview.gd that assert
+  the *invariant* (outranks any board z, outranks a front-row unit) rather than
+  the magic number.
+
+- [x] **Displacement arrows too thin** — `ARROW_WIDTH` 1.0 → 2.0, guarded by a
+  test so it can't silently revert.
+
+**Two save-loss defects, both decided 2026-08-04 — design in
+[intermission.md](intermission.md) §2c/§2d. These are live in the current build,
+independent of the intermission redesign.**
+
+- [x] **No autosave at the mission boundary → intermission work is lost.**
+  (FIXED 2026-09-10 per §2c: a FOURTH ring, `KIND_AUTO_BASE`, written off
+  CampaignManager's three boundary signals; GREEN 7 placeholder colour for
+  Lawrence. Story in the commit. Open: the hub's Save Game still arrives
+  armed — §2b's "redundant?" question stands. Not in-game-verified.)
+
+- [x] **The 5th manual save silently destroys the 1st.** (FIXED 2026-09-10
+  per §2d: manual saves take a free slot or open `SaveBrowserPanel`'s
+  overwrite picker; never rotate. Both callers (system menu, hub). Story in
+  the commit. Not in-game-verified; UIManager's glue has no test.)
+
+- [x] **Decorations layer lacks the modifier layer's sprite handling** — image is
+  cropped, no shadows. (FIXED 2026-09-07 on `rqd--terrain-stack`:
+  `ModifierRenderer` → `TerrainSpriteRenderer`, one per paint layer, modifier
+  spawned first so a decoration on a modifier's cell wins by tree order at
+  equal z; `PURE_DECORATIONS` z slot renamed `TERRAIN_SHADOWS` (it was
+  already where terrain shadows rendered). It was worse than "cropped": the
+  flat z also meant a decoration never occluded a unit behind it. Before/after
+  on lawrence_test_map: volcano cones went from flat-topped 32px chunks to
+  full cones with lava tips + cast shadows. Lawrence's map has 43 decoration
+  cells vs 31 modifier cells, so this was most of what he'd painted.)
+
+- [x] **Console errors on load.** (Cleared 2026-09-09: the texturepacker addon
+  was not enabled and nothing referenced it — deleted; game_colors_demo now
+  reads the TEXT_WARNING pair; TEXT_WARNING already existed, so the terrain
+  test panel line had stopped erroring on its own.) Was: believed to be from
+  Godot editor extensions no longer in use — verify, then delete the addon or
+  fix the scripts:
+  ```
+  res://addons/codeandweb.texturepacker/texturepacker_import_spritesheet.gd:54
+      Parse Error: Not all code paths return a value.
+  res://scenes/debug/game_colors_demo.gd:197
+      Parse Error: Cannot find member "STATUS_TEXT" / "STATUS_TEXT_GLOW" in base "GameColors".
+  res://scripts/ui/panels/terrain_info_panel_test.gd:54
+      Parse Error: Cannot find member "TEXT_WARNING" in base "GameColors".
+  ```
+  *(The latter two are stale references to renamed `GameColors` members — cheap fixes.)*
+
+- [x] **Font size 5: the numeral "8" is very hard to read.** (DONE 2026-09-22 —
+  see Quick Fixes: B and 8 redrawn via tools/fonts/patch_pixel_glyphs.py.) Replacement sprite is
+  already drawn — open question is how best to implement it. Note the replacement's
+  bottom pixel drops below the baseline, like g/j/p/q/y.
+
+## 7. Design calls needed (RQD)
+
+- [x] **Mid-battle stat-up moment?** ANSWERED YES + SHIPPED (RQD 2026-08-11,
+  round 5 cf09c2a; discovered-done 2026-08-31 while restoring §1 — see the
+  note above §1). `LevelUpStatPanel` pops the FE-style reveal mid-battle: the
+  battle holds its breath (`Unit._flush_xp_feedback` awaits it), click
+  anywhere skips, reduced motion shows everything at once. The reveal
+  choreography lives in the shared `LevelUpStatBlock` — the same component
+  the bEXP spend panel embeds — so the two celebrations can't drift.
+
+## 8. Not started
+
+- [x] **Options menu tabs.** It's cluttered. Gameplay / Video / Audio — anything
+  else yet? (BUILT 2026-09-09 — see the top-of-file item; exactly those three.)
+
+- [x] **size 5 font** - replace the letter "B" and numeral "8" with custom characters (Done 2026-09-22: see Quick Fixes.)
+
+## Condensed in todo.md (the item stays open there; these are its full notes)
+
+- [~] Runtime-editable art knobs ("cvars"): let `ArtVariables` values change
+	while the game runs, so Lawrence tunes and watches instead of edit → F5.
+	(BUILT 2026-09-21 on `rqd--art-cvars`, eyeball-gated. The Carmack shape:
+	knobs are `static var`s read at use (every `const X := ArtVariables.Y`
+	alias is gone — 13 sites); `DebugConfig.set_art_knob` is the one write
+	path and fires `art_knobs_changed`; UnitShadow polls the dials each tick
+	like it polls the frame, TerrainSpriteRenderer/Unit's acted material/the
+	vignette re-push on the signal; both bake caches key on the knobs, so no
+	drop. TRIGGER = a ` dev console (`DevConsole`, CanvasLayer 100 in
+	HUDViewport, gated on cheats_enabled): `shadow_ink_alpha 0.3`, `list`,
+	`reset [name]`, `dump` = the changed knobs as `static var` lines to paste
+	into his file, Tab/Up/Down. WHILE OPEN the game is deaf, BY DESIGN (RQD
+	2026-09-21, shipped in fc87f16): the
+	console root spans the canvas and stops the mouse, keys/joypad die in
+	the HUD, and `DevConsole.is_open()` gates InputRouter (nothing reaches
+	the world, motion included) plus the two POLLERS handled flags can't
+	stop — InputManager's hover and CameraController's key pan (typing
+	"shadow" was WASD). No pause, no InputState: a state pushed for as long
+	as a console stays open would outlive turn changes. Tests: test_art_variables rewritten from "alias
+	equals knob" to "turn knob, consumer follows" (+ a live terrain refresh
+	in test_terrain_sprite_renderer, test_unit's 1.0 now reads the knob),
+	test_dev_console ×10; suite 1302. EYEBALL: console size/colors on the
+	HUD canvas, whether ` collides with anything, the Steam Deck (no
+	keyboard — a pad path is a later ask). NOT built: file-watch reload,
+	sliders. GOTCHA for later: a class name won't take get()/set() by name —
+	the analyzer refuses instance calls on a class; preload the script
+	resource and call them on that.)
+	-> Cheap route, no GUI: `const` → `static var` in art_variables.gd (one
+	word per line; his file still reads the same), and the alias sites
+	(UnitShadow, TerrainSpriteRenderer, GameColors, Unit — ~13) read at use
+	instead of copying into their own consts. Then a debug panel, a console
+	command or a test can set one live.
+	-> Two shadow paths BAKE the ink into cached images (generated terrain
+	casts, unit projections) — a live change needs those caches dropped. The
+	mask-based ones (mountains, decorations) update instantly.
+	-> Doubles as a UNIT TEST AUDIT, which may be the better reason to do it: a
+	test that hardcodes 0.4 breaks, a test that reads the knob or takes the
+	dials as arguments doesn't. One found and fixed already
+	(test_terrain_sprite_renderer's ink assertion).
+	-> Inspector sliders (a .tres Resource with @export_range) are the GUI half
+	if he ever wants one; the same const → runtime change is what unlocks it.
+
+- [~] Enemies hit too often. I'll position my highest AGL unit on good cover, and I don't think I've ever seen an enemy miss. I don't know if this is simply because we gave them all too much skill, or if there's a bug which gives enemies 100% accuracy.
+  (AUDITED 2026-09-22 — the roll is honest; the numbers aren't kind. Hit%
+  = (accuracy + 1.5×(SKL − AGL)) × (2 − terrain avoid), one path for the
+  preview, the scene and the AI (`_execute_single_hit`). Three things make
+  it feel like 100%: **every Grunt spawns with Reliable (+50 flat)** — the
+  loader equips the first four pool passives and Reliable is the Grunt's
+  second, so Bonk 95 + 50 = 145, ×0.8 on a mountain is still 100% (the
+  Ogre's pool lists it fifth, so Ogres skip it); **forests aren't cover** — Plant avoid is 1.01, only Rock (the
+  mountains) / Castle reach 1.2, StoneEdifice / SpaceShip / Tarpit 1.1,
+  Crater 0.9 (worse); and **Air units get no cover at all** on Rock /
+  SpaceShip / Plant (per-type 1.0 exemption — Pica is Air). Without
+  Reliable a Grunt on a mountain target lands ~72%; with it, never misses.
+  MISS reads as Gray 5 text, easy to miss itself. FOUND + FIXED on the way:
+  an unknown terrain name returned avoid/defense 0.0 — DEF × 0 and a
+  doubled hit chance clamped to 100%. Latent (every painted name resolves
+  today), now neutral 1.0 with tests. TUNING CALL (RQD): Reliable's size,
+  whether Grunts should lead with it (reorder grunt.json's pool is a
+  one-line change), forest cover.)
+
+- [~] **Try the dynamic shadow system on terrain modifiers and decorations.**
+  When flipped on, suppress the hand-drawn shadows those sprites ship with —
+  the export pipeline already masks shadow pixels under the object's own
+  silhouette, so the two systems would otherwise double up. Experiment first;
+  this could look wrong or could retire a whole authoring step.
+  (BUILT 2026-09-07 on `rqd--terrain-stack`, eyeball-gated, framed the
+  OTHER way per the 2026-09-07 talk: the authored `_shadow.png` WINS and the
+  generated cast is the FALLBACK for sprites without one.
+  `TerrainSpriteRenderer.generate_cast_shadow` runs the sprite's own pixels
+  through `UnitShadow.project_silhouette` (one sun for units + terrain),
+  feet = lowest opaque row, self-masked like the exporter so it can sit one
+  z slot above bodies, ink baked, cached per texture. Opt-out
+  `casts_shadow: false` in modifier_terrain.json (the five craters + the
+  bridge — flat ground casts nothing); kill switch
+  `DebugConfig.terrain_generated_shadows`. NOTE: today every non-flat sprite
+  already ships an authored shadow, so nothing on disk exercises the fallback
+  yet — the first shadow-less tree Lawrence exports will (a synthetic one is
+  pinned in test_terrain_sprite_renderer.gd). The "suppress authored,
+  generate everywhere" experiment is a two-line swap in `refresh()` if
+  wanted. EYEBALL: generated vs authored cast length — Lawrence's shelltree
+  measured ~0.85 of height vs the units' 1.0; `GENERATED_SMOOSH_*` alias
+  UnitShadow's dials, split them if the two disagree on screen.)
+
+- [~] **Controller button glyphs** — GENERATED IN-HOUSE same day (2026-09-02,
+  branch `rqd--controller-glyphs`, eyeball-gated). RQD's call on reading the
+  brief: 1-bit meant the palette wasn't load-bearing, so
+  `tools/godot/generate_controller_glyphs.gd` emits the FULL set — 40 sprites
+  after the same-day revisions (all four skins at once — the phasing in the
+  brief collapsed) into `art/sprites/ui/controller_glyphs/`, name-by-depiction.
+  BUTTON-FORMAT (RQD same day): each sprite carries its own silhouette —
+  letters in 12px circles, shoulder labels on 15-wide bumper pills swept round
+  on the correct outer corner, rounded squares for sticks + back grips
+  (L4/L5/R4/R5 + Elite P1–P4), the d-pad its own cross — and the bar draws NO
+  plate, just a TextureRect modulated to TEXT_PRIMARY. Height 12 is the pinned
+  invariant; width is free (chip-expands rule). RETRO START/SELECT (RQD same
+  day: ☰/⧉ "always made me look at the controller"): every pad's Menu/Options
+  → START word-pill, View/Share → SELECT; Switch keeps +/−; ☰/⧉ sprites kept
+  unmapped. Map keys on `joy_button_label`'s output so the skin logic isn't
+  duplicated. BREATHING ROOM (RQD same day): letters/digits keep all four
+  orthogonals ≥1px clear of the silhouette (diagonals fine) — text and
+  silhouette compose on separate layers and the generator ASSERTS the rule
+  (circle got flatter shoulders, bumper grew to 15×10, rounded square to
+  13 wide, to pass). COLOR IDENTITIES (RQD same day, "Y = yellow skittle"):
+  face buttons render SPLIT layers (shared `face_form` disc + per-glyph
+  `*_char`, both 1px-padded for halo room) tinted per skin — Xbox/Steam
+  color the skittle + dark letter (A Green 6, B Red 5, X Azure 5,
+  Y YellowOrange 7; glow = ramp −3, the TEXT_* pairing rule), PS colors the
+  MARK on Gray 2 plastic (✕ Azure 6, ○ Red 6, □ RedViolet 6 — pink, not the
+  retired magenta — △ Teal 6), Switch stays neutral. Glow rides the runtime
+  hud_glow shader (generic TextureRect path — no baked glow layers).
+  `joy_glyph_identity` is the one table; missing layer files degrade to the
+  merged outline sprite. CIRCLE WENT ODD (RQD same day: letters sat
+  off-center, "shrink or widen by 1px"): 12→11 wide, so 5-wide letters and
+  the redrawn 5-wide marks center exactly on both axes. TWO STYLES
+  (RQD 2026-09-04): `HintBarCommands.joy_glyph_style` — HARDWARE (ships:
+  colors where the plastic puts them) vs INK (identity in the glyph + its
+  glow, on a semitransparent plate: `INK_PLATE_RAMP/INDEX/ALPHA` knobs,
+  Eggshell 1 @ 85%; letter bodies brighten a step for text-on-dark,
+  `INK_LETTER_RAMPS`). Static var — flip the default in code or set at
+  runtime, bar re-renders at the next boundary; tests pin their own style
+  so either default ships. INK ROUND 2 (RQD 2026-09-04, from an in-game
+  shot): LB broke the pattern (only faces had layers) → the generator now
+  emits form/line/char layers for EVERY button family (`_emit_form_family`:
+  face, bumper_left/right, square, start, select — 86 sprites total), INK
+  plates the whole bar uniformly, and a NEW OUTLINE LAYER ships in mid-gray
+  (`INK_OUTLINE_RAMP`/`INK_OUTLINE_INDEX` = Gray 5, "not subtle, not
+  bright"); identity-less glyphs (LB, START…) speak TEXT_PRIMARY + its
+  glow. `joy_glyph_recipe` is what the bar paints; HARDWARE is untouched
+  (neutrals stay merged-outline). EYEBALL: HARDWARE vs INK verdict (strips
+  in .claude/hint_bar_strip_*.png — ink pair rendered on a BRIGHT backdrop
+  now), plate alpha/index, outline Gray 5 vs 6, Deck-shares-Xbox-colors
+  call, PS disc contrast.
+  Lawrence's ask is now a VETO/REDRAW pass — replace a PNG, keep the name,
+  nothing else moves. Contact sheet: rerun the generator, it drops
+  `.claude/controller_glyphs_contact.png` at 8×. Tests:
+  test_controller_glyphs.gd (every skin×button label → sprite or deliberate
+  text). EYEBALL: chip-vs-text row height, chip read at 1× on the Deck.
+
+- [~] **Hint / command bar — BUILT, RQD-approved on mouse 2026-08-21** (branch
+  `rqd--guidance-interface`, 11 commits d09f9a0..528b9c4; `HintBar` +
+  `HintBarCommands` in `scripts/ui/components/`; tests `test_hint_bar*.gd`).
+  Bottom corners + glass, glyphs from the live InputMap, touch = real buttons,
+  waypoints taught one click at a time (Plot path → Add stop), planning step
+  wears the new NOTICE border, `Settings.move_confirm_mode` Auto/Marker/Button
+  playtest toggle, `Settings.show_control_hints`, X/LB controller bindings.
+  **Unseen so far:** controller glyphs on a real pad; touch rendering
+  (`DebugConfig.debug_force_touch_hints` on desktop, or the phone build).
+  **Remaining, in order:** (1) pad + touch eyeball; (2) Lawrence's visual pass
+  — sprite borders for the glass, InteractiveButton for touch buttons, NOTICE
+  ramp step (Magenta 4–6); glyph chips are DONE in-house 2026-09-02 (branch
+  `rqd--controller-glyphs`, see §4) — Lawrence's half is just vetoing the
+  generated sprites;
+  (3) Android export setup → sideload on RQD's GrapheneOS phone; safe-area
+  insets then; (4) playtest verdict on Marker vs Button → delete the loser;
+  (5) squash-merge to rqd--main once proven. Mockup artifact is one round
+  behind (no NOTICE / toggle row) — refresh when Lawrence's pass starts.
+- [~] Error: /home/l/.var/app/com.valvesoftware.Steam/config/aseprite/extensions/webtyler/webtyler.lua:861: index out of bounds 256
+	(FIXED in 8f897f2 — the preview palette grows before the source's is
+	copied. Lawrence's installed copy is the OLD one until the extension is
+	rebuilt and re-installed; the webtyler install workflow note has the
+	three copies to sync.)
+	-> This happens every time you first run the Webtyler script, and then you can run it again after that and everything works fine. Would be great for an error not to mean "all's well," because seeing this error is just part of standard procedure at present.
+
+- [~] **Squad / prep + between-mission level-up screen.** *(The single biggest
+  open item — flagged PRIORITY twice, in two different sections, for months.)*
+  Pick squad, equip moves (~330 in the bank), equip passives, distribute stat
+  allocation points. One screen does double duty: initial prep AND the
+  between-mission level-up display (XP gained, stat-up rolls, new moves/passives
+  unlocked). Build initial prep first; the level-up overlay reuses most of the
+  same widgets. See [equipment_picker.md](equipment_picker.md) and
+  [squad_manager.md](squad_manager.md).
+  - Slices 1–4 of the port shipped (archive).
+
+
+# Archived 2026-10-06: the Claude-finished `[~]` items
+
+RQD: "let's consider these complete and if there's something wrong I'll
+add them back as bugs." Verbatim, under the todo.md section each sat in.
+
+## Meeting Todo
+
+- [~] Lawrence finished the battle background - implement with our twinkle shader
+  (BUILT on `rqd--regolith-backdrop`: twinkle, smoke, fade fix, layers that
+  follow the map. Stare at it: scenes/debug/combat_stage_viewer.tscn.)
+
+## Meeting 20260928 Todo
+
+- [~] We need a smoke shader with customizable params (pull examples from the art and we'll design it in code)
+  (FIRST CUT on `rqd--regolith-backdrop`: SmokePlume, the regolith's
+  volcano smoke. Dials: ArtVariables SMOKE_*.)
+
+## Claude
+
+- [~] 5× "Lambda capture at index 0 was freed" in test_displacement_system's
+  counter/knockback tests, on a clean HEAD too. A lambda outlives the unit it
+  captured; harmless today, noise in every run.
+	- This is lower priority but we should track it down [ready]
+  (FIXED on `rqd--alpha-bugs`: the hit flash's tween lived on its autoload;
+  now it's bound to the sprite and dies with the unit. 0 in a full run.)
+
+## BUGZ
+
+- [~] Regression: enemies have somehow gotten the grayed out visual design on the player's turn. I haven't bug tested enough to know if this requires a certain sequence of events. As with all regressions, we now need a unit test.
+  (FIXED on `rqd--alpha-bugs`, eyeball-gated: each phase start stands down
+  the side that just moved, so neither side looks spent on the other's turn.
+  Story in the commit.)
+
+- [~] The combat preview panel doesn't make it clear whether the enemy will survive with 1HP. >0 HP should always leave one pip in the preview panel.
+  (FIXED on `rqd--alpha-bugs`: any HP left lights at least one pip.)
+
+- [~] Threat zones should disable during the enemy turn
+  (BUILT 2026-09-23 on `rqd--playtest-0922`, eyeball-gated; story in the commit.)
+
+- [~] Camera doesn't follow enemy unit movement during the enemy's turn
+  (BUILT 2026-09-23, eyeball-gated. EYEBALL: does the minimal pan read as
+  "following", or does it want a hard center on each enemy?)
+
+- [~] It looks like enemies are still too dumb to use their attacking moves if their top, equipped move is a non-attacking move. They just move toward you and end their turn. The enemies need to be smarter in general - maybe this calls for the full AI pass and a design session? Or should we get a significantly larger move pool first?
+  (FIXED 2026-09-23 — a bug, not the AI pass, which still stands; story in the commit.)
+
+## Meeting Notes 2026/09/20
+
+- [~] Runtime-editable art knobs ("cvars"): let `ArtVariables` values change
+	while the game runs, so Lawrence tunes and watches instead of edit → F5.
+	(BUILT on `rqd--art-cvars`: the ` dev console, `DevConsole`; full notes in
+	the archive. EYEBALL: console size/colors on the HUD canvas, whether `
+	collides with anything, the Steam Deck (no keyboard; a pad path is a
+	later ask). Not built: file-watch reload, sliders.)
+
+- [~] Error: /home/l/.var/app/com.valvesoftware.Steam/config/aseprite/extensions/webtyler/webtyler.lua:861: index out of bounds 256
+	(on every first run. FIXED in 8f897f2; Lawrence's installed copy stays the
+	old one until the extension is rebuilt and re-installed, see the webtyler
+	install workflow note.)
+
+## Lawrence playtest feedback
+
+- [~] "this right here is a little cluttered" - in reference to the intermission main screen - talking about the subtitles
+  (Group A, branch `rqd--playtest-0913`, eyeball-gated. Plan for the whole
+  list: A = small fixes now · stat readability (#8 + the stat-tooltip item)
+  own branch · C = pacing/end-turn warning/veteran preset · D = tutorial arc.)
+	- [~] the "grayed out" font color/glow doesn't look great - need a better pair of colors for "grayed out" that still looks non-interactive, but is more legible and appealing
+	  (Cause: the label went Gray 6 with NO glow while its sub-line kept the
+	  glowing gold. Now `MENU_TEXT_INERT` Gray 7/3 + sub-line YO 5/2, dimming
+	  together; dimmed azure auditioned and read as pressable. EYEBALL.
+	  FOUND ON THE WAY: `MenuStageBackdrop` sat at 0×0 (set_anchors_preset
+	  in an already-parented _ready), so the hub, main menu and Manage Units
+	  never drew the stage — players saw Godot's default gray. Fixed; the
+	  save-screenshot "Black Mesa" backdrop now actually shows.)
+
+- [~] new player experience - user gets plonked onto the map, and their first instruction says "select a unit." new player might select an enemy unit and be confused about why they can't command those units
+  (Interim, pre-tutorial: step reads "Select one of your units"; pressing an
+  enemy / ally / spent unit swaps the line to "Enemy unit · select one of
+  yours" etc. in the NOTICE border until the next state/phase boundary —
+  `HintBarCommands.InspectNotice`. Contradicts §2's "nobody failed at select
+  a unit" note.)
+
+- [~] The grayout applied to a character sprite to indicate they can't move again this turn is slightly too dark.
+  (Two darkening lifts still read dark in RQD's build. RQD's call: FULL
+  GRAYSCALE, NO DARKENING — `shaders/unit_acted.gdshader` on the sprite while
+  acted (`Unit.ACTED_DESATURATION` 1.0), faction-blind; the three
+  `*_UNIT_ACTED` tints are deleted. The hit flash drops the material for its
+  length so a Bellows warm flash stays warm.)
+  - [ ] Known gap, accepted: an already-gray unit (Gentry, Robo palettes)
+    barely changes when it acts. Fix when it bites.
+
+- [~] For a new player, the battle scene goes by really quickly. I think it's appropriate for a veteran, but this should be a toggle in the settings. For a new player, the battle scene goes by too fast to understand what's happening.
+	- [~] what we can do: apply a ~0.8-second wait before, between, and after attack animations. The user can skip the wait by pressing any button.
+  (Group C, BUILT on `rqd--playtest-0913`; story in the commit. Options →
+  "Battle Pacing", `CombatPresenter.breath`. EYEBALL: the 0.8 s feel; whether
+  the map wants a breath before the ENEMY's swing (it has none).)
+
+- [~] When hitting end turn, if there are player units which still have not acted, display a warning. The user can toggle this warning off in the gameplay options if they wish. 
+  (BUILT, same commit. `UIManager.request_end_turn` → the system menu's
+  confirm page; waiting units wear the Silhouette CTA (style guide §14,
+  knobs `ArtVariables.UNIT_CALL_TO_ACTION_*`). RQD: "looking great".
+  OFF-SCREEN units: BUILT on `rqd--end-turn-framing` — the camera frames
+  every waiting unit beside the menu, zooming out only if they won't fit;
+  Cancel glides back to the old view, End Turn leaves it
+  (`CameraController.frame_points`). RQD: "feels natural off the bat".)
+
+- [~] Maybe add an "advanced player defaults" option which speeds the game up, removes confirmations, etc
+  (BUILT, same commit: Options → "Preset: Newcomer / Veteran",
+  `Settings.PRESETS`. Battle Anims left out on purpose — taste, not speed.)
+
+- [~] The phantom previews are hard to see agianst certain backgrounds - let's apply a near-white outline.
+  (1px `GHOST_OUTLINE` Azure 10 rim in ghost_projection.gdshader, steady,
+  blinks with modulate — move-plan AND displacement ghosts. EYEBALL.)
+
+- [~] The green from being at the class max on a stat is the same green as "this stat has been boosted by some effect" no semantic difference between the colors is confusing.
+  (At-cap is now `TEXT_AT_CAP` Cyan 7/4 — the full-HP hue — in all six
+  venues; buffs keep Green 6. Style guide §3 updated. EYEBALL.)
+
+- [~] StatUps - new player was confused at the percentage-based stat-ups. 4+ computes to 4, and 15+ computes to 17. If you don't understand these are a 10% buff, this appears broken. The system is working correctly - it's the presentation that needs improvement.
+  (BUILT 2026-09-22 on `rqd--stat-readability` with the §Todo stat tooltip
+  and three Quick Fixes; story in that branch's first commit. Hover [+]/[−]
+  on the sheet → `15→17` on the number, `4→4` when a point rounds away and
+  the tooltip names the point that moves it; touch = hold-to-peek, never
+  spends. RQD: "working great, feels totally natural". NOT built: the
+  tutorial beat (no tutorial system yet, group D). STILL OPEN: min +1 per
+  StatUp? The honest +0 may be enough. EYEBALL on a phone: hold timing.)
+
+## Quick Fixes
+
+- [~] Goblin Healer - not a mage, an... apothecary? I think that's the name of the store. What do you call them, an herbalist or something? What word am I looking for?
+  (ANSWERED 2026-09-10: **apothecary** — it names both the shop and the
+  person who keeps it; "herbalist" is the plants-only narrower word,
+  "chirurgeon" the period word for a cutter. NOT one-shottable as a class
+  change: `CharacterClass` has no healer/support class — `healer_goblin.json`
+  and `healer_plant.json` both sit on the shared Mage sheet (6 characters
+  use it). Adding APOTHECARY (tier 1) touches: the enum + `CLASS_INFO`
+  in enums.gd, a provisional cap row in class_stat_caps.gd (start from
+  Mage's, lift Skill/Res, drop Spc), both healer JSONs' `currentClass`,
+  and the tier-1 list in class-and-promotion.md §Tier 1 (15 → 16). Wants
+  RQD's call first — it's the first class added since the enum was ported,
+  and the class doc is still the design's open question.)
+
+## Todo
+
+- [~] Add a next/prev unit button. (BUILT on `rqd--button-map`, see the map below.)
+	- M&K: Probably Q/E on keyboard (careful to make sure this is contextual because these do other things in the menus). LMK if you have a better idea or if there's a game that does this well I should be aware of.
+	- Controller: are the bumpers in use? If we need to, these can just be B (east) on the controller, but I think I prefer having both Prev and Next
+	- Touchscreen: the controls at the bottom are already getting cluttered. What are your thoughts? Just a next button? Next/Prev in the top corners? (don't love this idea but it could work well) Just add them to the control strip anyway?
+
+- [~] We still haven't implimented single enemy unit threat zones - should be a distinct "danger" or "warning" color. Might make the "all enemies" threat zone "warning," and a specific enemy threat zone "danger," the more I think about it.
+	- I hold a controller in my hands, and think "what button press brings up the enemy threat zone?" and that button is A or X (face button west or south). If both are already taken, can it be contextual? Let's discuss.
+	- I think we probably want to toggle the threat zone off with the same button as well - LMK if you can think of any disadvantages to that.
+	- (Already there: the Range chip on an enemy's info panel pins its zone.
+	  Missing: the danger color, and a button.)
+	- (BUILT on `rqd--button-map`: RT / V over an enemy pins its zone in red;
+	  the all-enemies zone is amber now.)
+
+- [~] Context-sensitive button map — spell it out, then build the two items
+  above on it. DECIDED (RQD 9/26). BUILT on `rqd--button-map`, uncommitted;
+  next/prev SELECTS, Y on no unit flips the Options setting (RQD 10/6).
+  EYEBALL on a pad: RT's feel, hold-Y peek's length (the touch hold's).
+  - RT (keyboard V): over an enemy, pin/unpin its zone; anywhere else, all
+    enemies on / everything off. The controller already works this way.
+  - Y on a unit = unit info, never the zone too. Y on an empty tile = the
+    type-icon layer (breakable terrain could join it later).
+  - Peek moves onto Y, freeing Back and R3. Action menu: tap Y = unit info,
+    hold Y = peek.
+  - LB / RB = prev / next unit (LB gives up the zones); keyboard Q / E, as
+    in menus. Touch: one "Next".
+  - End Turn moves from E (beside WASD) to Backspace, XCOM's key.
+  - A on an enemy keeps the info panel; the zone is RT's alone. RT over
+    your own unit = the all-enemies toggle. (Playtest both.)
+  Home for the map: HintBarCommands' table (the bar must name each context's
+  verb anyway).
+
+- [~] The finalized icons for the terrain preview panel are actually finished - we should use those over the placeholders we're currently using.
+  (BUILT on `rqd--terrain-icons`: exported from his
+  `art/sprites/ui/terrain_attributes_10x10/terrain_attributes_10x10.aseprite`
+  — the folder was `terrain_attribute_icons_placeholder/`. EYEBALL.)
+
+- [~] Allow for tooltips in the options menu, explaining what options do.
+  (BUILT on `rqd--options-tooltips`; story in the commit. RQD: "looks great".
+  EYEBALL on other devices: the pane on touch (tap a name), on the Deck.)
+
+- [~] For the FPS cap, we should have it go from 60 to the monitor's refresh rate, with a  "higher?" button to the right, which, when clicked, lets them pick values up to 1000.
+	- the reason for this is that most people don't know their monitor's refresh rate
+	- tooltip explaining why
+	- Claude recommends off/30/60/refresh. I agree this is user-friendly but I don't want to leave out people with less common refresh rates. I am a framerate princess. 75, 90, 120, 144, 165, 200, 240, higher - I like the idea of a slider that accommodates everyone, but for people who have the "basic bitch fixed 60" monitor, it's a lot of wasted screen real estate, or worse, confusing. 25 year old Quinn didn't know about screen refresh rates, microstutter, etc, so when I saw a knob that let me increase my frame rate beyond the refresh rate, I cranked that up and got confused at the tearing.
+	- If we can design around this, great, but if not, maybe we just leave as-is.
+	- DECIDED (RQD 9/26) [ready]: detect the monitor's refresh rate; slider
+	  30–refresh; a "Higher?" button unlocks it to 1000. Tooltip says why.
+	  Fallback 60 when the OS won't report a rate.
+	- BUILT on `rqd--fps-slider`, with a VSync row (RQD: a separate row).
+	  VSync on + a cap past the display = mailbox (RQD 9/26: less lag, no
+	  tearing). Story in the commit. EYEBALL: the stop list, the row at 94 px.
+
+## More stuff
+
+- [~] Enemies hit too often. I'll position my highest AGL unit on good cover, and I don't think I've ever seen an enemy miss. I don't know if this is simply because we gave them all too much skill, or if there's a bug which gives enemies 100% accuracy.
+  (AUDITED: the roll is honest; the numbers aren't kind. Every Grunt spawns
+  with Reliable (+50 hit), forests aren't cover, and Air units get no cover;
+  full audit in the archive. TUNING CALL (RQD): Reliable's size, whether
+  Grunts lead with it (a one-line reorder in grunt.json), forest cover.)
+
+## Ideas
+
+- [~] 4. Since we added the arrow + phantom effect for displacement moves, should we use the same system when previewing a move with the move beacons? (FIRST CUT 2026-08-21 on branch `rqd--move-preview-ghost`, eyeball-gated: the beacons stay the path, and a `UnitGhost` projection (the displacement renderer's silhouette recipe, extracted into scripts/grid/unit_ghost.gd — renderer behavior unchanged) parks on the plan's last waypoint while a PLAYER unit is planning. Same material/shader as the displacement ghosts, absolute z above the board, player-only, freed with the plan. Did NOT replace the beacons with the polyline arrow — the beacons are shipped LOD art and already carry the path. 8 tests in test_path_ghost.gd. Squash-merge once RQD has seen it in a build.)
+  (RIDE UPGRADE 2026-08-31, RQD ask, built on `rqd--move-commit-mode`: the ghost now RIDES the plan under motion — walks the tile-center polyline from the origin with the displacement arrow recipe (same ARROW_WIDTH, shared overlay_static material, Azure 7 neutral intent, Polygon2D head riding the tip) drawing behind it, holds `GHOST_HOLD_AT_DESTINATION_SECONDS` at the landing, loops; `GHOST_SPEED_PX_PER_SECOND` = 88 ≈ the displacement loop's 0.18 s/tile — both are the tinker knobs. Every plan edit restarts the ride. Beacons KEPT underneath (still the shipped path language). ARROW DISABLED SAME DAY (RQD: "that's what the beacons were for" — the trail double-marked the path): `RIDE_ARROW_ENABLED = false`, machinery + pure math kept and pinned for a cheap re-audition; the arrow had been retuned to Azure 5 first (the phantom's tint sits at the Azure 7 neighborhood — if re-enabled, keep the two apart). Ghost speed RQD-tuned 88 → 135 world-px/s. Reduce-motion parks at the landing state: ghost on the destination + arrow drawn full (the old parked contract survives as that state). The ACT_THEN_WALK staged ghost never rides — committed plans park. Pure ride math (walk_sample/trail_points/path_length) static + pinned; test_path_ghost.gd rewritten to the riding contract, 12 tests; suite 1040 green. EYEBALL: ride pacing/loop feel, arrow-over-beacon density, tip-over-silhouette read.)
+
+## Lawrence meeting 2026-08-05 — shadow system
+
+- [~] **Try the dynamic shadow system on terrain modifiers and decorations.**
+  When flipped on, suppress the hand-drawn shadows those sprites ship with —
+  the export pipeline already masks shadow pixels under the object's own
+  silhouette, so the two systems would otherwise double up. Experiment first;
+  this could look wrong or could retire a whole authoring step.
+  (BUILT the other way round: an authored `_shadow.png` wins and the
+  generated cast is the fallback; full notes in the archive. EYEBALL:
+  generated vs authored cast length, Lawrence's shelltree ~0.85 of height
+  vs the units' 1.0. Nothing on disk uses the fallback until a sprite
+  without an authored shadow lands.)
+
+## 1. Alpha blockers
+
+- [~] **Squad / prep + between-mission level-up screen.** Built: the
+  intermission hub and Manage Units (slices 1–4 of the port, notes in the
+  archive; design in [intermission.md](intermission.md)). What's left is the
+  tuning below.
+  - Related design note: the level-up moment is a *dopamine beat*, not a text
+    dump — budget polish from day one.
+
+## Needs RQD in-game
+
+- [~] **Threat-overlay static/scanline treatment.** Trial shipped 2026-07-30 —
+  glass static + scanlines now ride every grid overlay. Defaults deliberately
+  visible for the eyeball. Awaiting RQD + Lawrence verdict and tuning.
+
+- [~] **Controller peek button.** `tooltip_peek` is mapped to BOTH Back and R3 —
+  playtest and cull one.
+  (Superseded: hold Y peeks on `rqd--button-map`; Back and R3 are free.)
+
+- [~] **STAB.** Mechanic shipped (1.2× `STAB_MULTIPLIER`). Open: in-game eyeball,
+  and whether STAB deserves its own callout/badge beyond just a bigger number.
+
+## Needs Lawrence in-game (F6 gallery)
+
+- [~] **Unit cast shadows.** Override knob is character JSON
+  `sprite.shadowBlobRadius` (0 = casts no blob); global taste = the `SHADOW_*`
+  consts. Double/triple-darkening between units is pre-approved.
+
+- [~] **Assigned ≠ selected marker (marquee orbit).** In-engine, Gray 10/9/8/7 on
+  the chip's border ring, 50 px/s (`ORBIT_SPEED_PX_PER_SECOND` is the tinker
+  knob), core = step = 3. Wants eyes on: F. Lance (live orbit), Spark (orbit over
+  the depleted grey tier), tail wrap on short edges. Static fallbacks (edge bar /
+  underline / pip) still live in the mockup's marker hunt.
+
+- [~] **Glyph ink.** Dark-cut flip vetoed, per-side bleach vetoed → now UNIFORM
+  bleach (whole glyph to index 10 of the element's own ramp when the fill is too
+  close; shadow carries legibility). Wants eyes on Piston + Dynamo. Revisit again
+  when real scheme sprites land — multi-color art can't value-shift like a
+  generated glyph.
+
+## Icons
+
+- [~] **Controller button glyphs**: generated in-house
+  (`tools/godot/generate_controller_glyphs.gd`, 86 sprites in
+  `art/sprites/ui/controller_glyphs/`, all four skins; full notes in the
+  archive). Lawrence's ask is a VETO/REDRAW pass: replace a PNG, keep the
+  name. EYEBALL: HARDWARE vs INK style (strips in
+  .claude/hint_bar_strip_*.png), plate alpha/index, outline Gray 5 vs 6,
+  the Deck sharing Xbox colors, PS disc contrast, chip vs text row height,
+  the chip read at 1× on the Deck.
+
+## Phase 2 — Passives (substantively complete)
+
+- [~] **Threat-overlay system.** Alpha-worthy on its own — an FE-style danger zone
+  helps planning against *every* enemy, not just ZC.
+  - [ ] **View** — `ThreatOverlayRenderer` on its OWN layer. Exists as placeholder
+    tint; needs Lawrence's style split (see §4).
+  - [~] **Controller** — both toggles shipped (V = show-all/clear-all;
+    preview-panel chip = additive per-enemy pins). Remaining is the visuals half,
+    plus the "try it both ways" hover-to-preview variant + its Options toggle.
+
+## 7. Design calls needed (RQD)
+
+- [~] **Hint / command bar — BUILT, RQD-approved on mouse 2026-08-21**
+  (`HintBar` + `HintBarCommands` in `scripts/ui/components/`; build notes in
+  the archive). **Remaining, in order:** (1) pad + touch eyeball; (2)
+  Lawrence's visual pass: sprite borders for the glass, InteractiveButton
+  for touch buttons, NOTICE ramp step (Magenta 4–6); (3) Android export
+  setup → sideload on RQD's GrapheneOS phone, safe-area insets then; (4)
+  playtest verdict on Marker vs Button → delete the loser. The mockup
+  artifact is one round behind (no NOTICE / toggle row).
