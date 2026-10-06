@@ -109,3 +109,14 @@ func test_the_lab_sliders_start_at_the_file() -> void:
 		if hit != null:
 			assert_almost_eq(float(hit.get_string(1)), float(KNOBS_SCRIPT.get(UNIFORM_KNOBS[uniform])), 0.0001,
 					"the lab's %s must equal ArtVariables.%s" % [uniform, UNIFORM_KNOBS[uniform]])
+
+
+func test_over_a_painted_sky_only_the_flashes_draw() -> void:
+	# The painted sky shows every star at rest; the shader adds the flashes.
+	var sky := _mounted_sky()
+	assert_almost_eq(_param(sky, "rest_core_amount"), 1.0, 0.001, "nothing painted under it: it draws the resting stars")
+	sky.draws_resting_stars = false
+	assert_almost_eq(_param(sky, "rest_core_amount"), 0.0, 0.001)
+	DebugConfig.set_art_knob("STAR_REST_ALPHA_MIN", 0.4)
+	assert_almost_eq(_param(sky, "rest_core_amount"), 0.0, 0.001, "a turned knob doesn't switch it back on")
+	assert_almost_eq(_param(sky, "rest_alpha_min"), 0.4, 0.001, "the knob still reaches the shader")

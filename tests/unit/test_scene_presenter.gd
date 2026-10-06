@@ -14,6 +14,7 @@ const GRUNT_PATH: String = "res://data/characters/grunt.json"
 
 var _setting_before: int = Settings.BattleAnimations.MAP
 var _motion_before: bool = true
+var _tile_strip_before: bool = false
 # Set from a signal handler — a member, because GDScript lambdas capture
 # locals by VALUE and a flag flipped inside one never reaches the test.
 var _saw_stage_popups: bool = false
@@ -22,6 +23,7 @@ var _saw_stage_popups: bool = false
 func before_each() -> void:
 	_setting_before = Settings.battle_animations
 	_motion_before = Settings.ui_motion_enabled
+	_tile_strip_before = CombatScene.SHOW_TILE_STRIP
 	Settings.battle_animations = Settings.BattleAnimations.ALWAYS
 	Settings.ui_motion_enabled = true
 	GridManager.clear_grid()
@@ -30,6 +32,7 @@ func before_each() -> void:
 func after_each() -> void:
 	Settings.battle_animations = _setting_before
 	Settings.ui_motion_enabled = _motion_before
+	CombatScene.SHOW_TILE_STRIP = _tile_strip_before
 	GridManager.clear_grid()
 
 
@@ -442,8 +445,46 @@ func test_portraits_pop_in_after_the_wipe_and_out_before_it() -> void:
 	assert_false(frame.visible, "pops out before the conceal starts")
 
 
+func test_the_wipe_fades_the_stage_as_one_picture() -> void:
+	# The stage is a canvas group faded by its self_modulate. Fading the
+	# scene's own modulate fades each layer apart: the stars showed through
+	# the hills mid-wipe.
+	var attacker := _spawn(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 0, 0)
+	var defender := _spawn(GRUNT_PATH, Enums.UnitFaction.ENEMY, 1, 0)
+	var scene := _mounted_scene(attacker, defender, _strike_move())
+	var stage: Control = scene.get_node("Stage")
+	var dim: Control = scene.get_node("Dim")
+	assert_eq(stage.self_modulate.a, 0.0, "hidden until the wipe")
+	assert_eq(dim.modulate.a, 0.0)
+	await scene.wipe_in(true)
+	assert_eq(stage.self_modulate.a, 1.0)
+	assert_eq(dim.modulate.a, 1.0)
+	await scene.wipe_out(true)
+	assert_eq(stage.self_modulate.a, 0.0)
+	assert_eq(dim.modulate.a, 0.0)
+	assert_eq(scene.modulate.a, 1.0, "never the scene's own modulate: under it the group would fade twice")
+
+
+func test_nothing_on_the_stage_leaves_its_layer() -> void:
+	# A child on another z_index draws outside the stage's canvas group: it
+	# stops fading with the stage (or, lower, hides under the backdrop).
+	var attacker := _spawn(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 0, 0)
+	var defender := _spawn(GRUNT_PATH, Enums.UnitFaction.ENEMY, 1, 0)
+	var scene := _mounted_scene(attacker, defender, _strike_move())
+	var stage: Control = scene.get_node("Stage")
+	var to_visit: Array[Node] = [stage]
+	while not to_visit.is_empty():
+		var node: Node = to_visit.pop_back()
+		if node is CanvasItem:
+			assert_eq((node as CanvasItem).z_index, 0, "%s stays on the stage's layer" % stage.get_path_to(node))
+		to_visit.append_array(node.get_children())
+	assert_eq(stage.get_child(stage.get_child_count() - 1).name, &"Fx", "popups draw over the HUD by order")
+	var puppet := scene.puppet_for(attacker)
+	assert_lt(puppet.shadow.get_index(), puppet.sprite.get_index(), "the cast shadow draws under the sprite")
+
+
 func test_the_stage_settles_for_a_beat_at_open_and_at_close() -> void:
-	# RQD 2026-09-08: "it whips by before my brain can process it."
+	# Without the settles the stage whips by before the eye can take it in.
 	var attacker := _spawn(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 0, 0)
 	var defender := _spawn(GRUNT_PATH, Enums.UnitFaction.ENEMY, 1, 0)
 	var presenter := ScenePresenter.new()
@@ -573,11 +614,8 @@ func test_without_backdrop_art_the_stage_shows_the_palette_bands_only() -> void:
 	var attacker := _spawn(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 0, 0)
 	var defender := _spawn(GRUNT_PATH, Enums.UnitFaction.ENEMY, 1, 0)
 	var scene := _mounted_scene(attacker, defender, _strike_move())
-	var has_art: bool = ResourceLoader.exists(CombatScene.BACKDROP_DIRECTORY + CombatScene.BACKDROP_SKY_FILE)
-	var backdrops := 0
-	for child: Node in scene.get_node("Stage").get_children():
-		if child.name.begins_with("Backdrop_"):
-			backdrops += 1
+	var has_art: bool = ResourceLoader.exists(CombatBackdrop.DIRECTORY + CombatBackdrop.SKY_FILE)
+	var backdrops: int = scene.get_node("Stage/Backdrop").get_child_count()
 	if has_art:
 		assert_true(backdrops >= 1, "art present → drawn")
 	else:
@@ -655,9 +693,21 @@ func test_a_shove_past_the_safe_margin_hands_the_rest_to_the_other_puppet() -> v
 	assert_true(right.stage_x <= CombatScene.CORE.x - CombatScene.PUPPET_SAFE_MARGIN, "and stays inside the core")
 
 
+func test_the_tile_strip_switched_off_draws_no_tiles() -> void:
+	CombatScene.SHOW_TILE_STRIP = false
+	var attacker := _spawn(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 0, 0)
+	var defender := _spawn(GRUNT_PATH, Enums.UnitFaction.ENEMY, 2, 0)
+	var scene := _mounted_scene(attacker, defender, _strike_move())
+	assert_eq(scene.tile_strip_count(), 0)
+	await scene.respace(3, defender, true)
+	assert_eq(scene.tile_strip_count(), 0, "a re-space doesn't bring it back either")
+
+
+# The strip is off while Lawrence's floor carries the stage; these switch it
+# on so it still works the day it comes back. Two tiles apart LOOKED
+# adjacent without it: bodies are wider than tiles.
 func test_the_tile_strip_shows_one_tile_per_map_tile_under_the_pair() -> void:
-	# RQD's screenshot (2026-09-09): two tiles apart LOOKED adjacent — bodies
-	# are wider than tiles and the stage had no tiles to read against.
+	CombatScene.SHOW_TILE_STRIP = true
 	for distance: int in [1, 2, 3, 8, 11]:
 		var attacker := _spawn(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 0, 0)
 		var defender := _spawn(GRUNT_PATH, Enums.UnitFaction.ENEMY, distance, 0)
@@ -673,6 +723,7 @@ func test_the_tile_strip_shows_one_tile_per_map_tile_under_the_pair() -> void:
 
 
 func test_a_respace_rebuilds_the_strip_for_the_new_distance() -> void:
+	CombatScene.SHOW_TILE_STRIP = true
 	var attacker := _spawn(SPACEMAN_PATH, Enums.UnitFaction.PLAYER, 0, 0)
 	var defender := _spawn(GRUNT_PATH, Enums.UnitFaction.ENEMY, 1, 0)
 	var scene := _mounted_scene(attacker, defender, _strike_move())

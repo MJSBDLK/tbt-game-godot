@@ -51,12 +51,19 @@ func _init() -> void:
 	sprite = Sprite2D.new()
 	sprite.name = "Sprite2D"
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	add_child(sprite)
 	shadow = UnitShadow.new()
 	shadow.name = "CastShadow"
 	shadow.source_sprite = sprite
-	add_child(shadow)
+	add_child(shadow)  # first, so the sprite draws over it
+	add_child(sprite)
 	clip_player = ClipPlayer.new(sprite, _restore_idle)
+
+
+## UnitShadow takes the map's layer two below its unit. Here that draws it
+## under the backdrop (unseen) and outside the stage's canvas group, so it
+## stays on the stage's layer and child order puts it under the sprite.
+func _ready() -> void:
+	shadow.z_index = 0
 
 
 ## Bind to a live unit. `mirror` = stands on the left. The puppet loads the

@@ -12,6 +12,11 @@ var grid_y: int = 0
 # Terrain type name matching terrain_data.json keys
 var terrain_type_name: String = "Plains"
 
+# What stands here, by name, lowercase: the floor terrain ("sand") and the
+# family of any modifier or decoration covering the cell ("crater"). Set by
+# TilemapGridBuilder; CombatBackdrop shows the scenery near a fight.
+var scenery: PackedStringArray = PackedStringArray()
+
 # Cached terrain properties (refreshed from TerrainDataManager)
 var walkable: float = 1.0
 var move_penalty: float = 1.0

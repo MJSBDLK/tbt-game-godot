@@ -133,10 +133,11 @@ static var UNIT_CALL_TO_ACTION_REST_SECONDS: float = 1.0
 # =============================================================================
 # NIGHT SKY
 # =============================================================================
-# The twinkle over the ship. Every dot on your skybox_twinkle layer is a star:
-# red twinkles as an X, green as a +, red and green together take turns, blue
-# says how often (0 rarely, 255 nearly always), and how bright you paint the
-# dot is how far its tails reach (up to 3 px). The lab page
+# Twinkling stars. Paint your stars on the sky the way they look at rest; a
+# dot on your twinkle layer, right on top of one, makes it flash: red as an X,
+# green as a +, red and green together take turns, blue says how often (0
+# rarely, 255 nearly always), and how bright you paint the dot is how far its
+# tails reach (up to 3 px). Between flashes your own star shows. The lab page
 # (data/design/mockups/skybox_twinkle_lab.html) has these same dials as
 # sliders; its "Send these numbers back" block prints them as lines for here.
 
@@ -169,6 +170,43 @@ static var STAR_PERIOD_JITTER: float = 0.2
 ## Sane range: 0.1 to 1.0.
 static var STAR_TAIL_TIP_ALPHA: float = 0.35
 
-## How bright the DIMMEST painted star sits between flashes. Bright ones rest
-## at full; this is the floor the faint ones rest at. Sane range: 0.0 to 1.0.
+## Where there's no painted sky under the twinkle layer (the lab page, the
+## menu's sky until it's painted), each dot draws its own star between
+## flashes: bright dots at full, and this is how bright the DIMMEST one sits.
+## Over your painted skies your own stars show instead. Sane range: 0.0 to 1.0.
 static var STAR_REST_ALPHA_MIN: float = 0.1
+
+
+# =============================================================================
+# SMOKE
+# =============================================================================
+# Painted smoke, brought to life: any combat backdrop layer with "smoke" in its
+# name. Your painting is the smoke at rest. Patches of thicker and thinner
+# smoke drift through it: thin patches hide some of your pixels, thick ones
+# fill the holes between them a step or two lighter. Your pixels keep their
+# colours; the plume keeps its shape.
+
+## How long each frame of the smoke lasts, in seconds. Sane range: 0.06 to 0.5.
+static var SMOKE_STEP_SECONDS: float = 0.125
+
+## How fast the patches rise, in pixels per second. Sane range: 0.0 to 30.0.
+static var SMOKE_RISE_SPEED: float = 6.0
+
+## How fast they drift sideways, in pixels per second; minus drifts left.
+## Sane range: -30.0 to 30.0.
+static var SMOKE_DRIFT_SPEED: float = 3.0
+
+## How big one patch is, in pixels. Sane range: 2.0 to 24.0.
+static var SMOKE_PATCH_SIZE: float = 4.0
+
+## Roughly how much of your painted smoke is hidden at any moment.
+## 0.0 hides none. Sane range: 0.0 to 0.6.
+static var SMOKE_BREAKUP: float = 0.3
+
+## Roughly how much of the gaps between your pixels fill in as thick smoke.
+## 0.0 never fills them. Sane range: 0.0 to 0.6.
+static var SMOKE_THICKNESS: float = 0.3
+
+## How many steps up the ramp the thick smoke is from the pixels around it;
+## minus makes it darker. Sane range: -2 to 2.
+static var SMOKE_THICK_STEPS: int = 1

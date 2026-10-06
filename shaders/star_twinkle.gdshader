@@ -10,6 +10,8 @@ shader_type canvas_item;
 // gathers the 49 texels around it. Only star_color ever leaves this shader;
 // the map's own colors are data. Near-black is "no star" and renders
 // TRANSPARENT — the sky background is a layer underneath, not this one.
+// Over a painted sky (rest_core_amount 0) the painting is each star at rest
+// and this draws only the flashes on top.
 //
 // Between the [shared] markers is plain GLSL ES 3.00 with no Godot built-ins:
 // data/design/mockups/skybox_twinkle_lab.html embeds it verbatim so Lawrence
@@ -45,6 +47,9 @@ uniform float period_jitter : hint_range(0.0, 0.5) = 0.2;
 uniform float tail_tip_alpha : hint_range(0.0, 1.0) = 0.35;
 // Core alpha at rest runs from this (dimmest painted star) up to 1 (#FF).
 uniform float rest_alpha_min : hint_range(0.0, 1.0) = 0.1;
+// 1 draws each star's resting core. 0 leaves rest to a painted sky
+// underneath: the flare then grows out of nothing and fades back to it.
+uniform float rest_core_amount : hint_range(0.0, 1.0) = 1.0;
 
 varying vec4 vertex_modulate;
 
@@ -145,7 +150,7 @@ float star_alpha(ivec2 cell, vec3 channels, ivec2 offset, float t) {
 	if (offset == ivec2(0)) {
 		// The core brightens a step with each tail frame, full at the peak. A
 		// blue-only star has no tails, so its whole twinkle is this flare.
-		float rest = mix(rest_alpha_min, 1.0, max(channels.r, channels.g));
+		float rest = rest_core_amount * mix(rest_alpha_min, 1.0, max(channels.r, channels.g));
 		if (reach < 0) {
 			return rest;
 		}

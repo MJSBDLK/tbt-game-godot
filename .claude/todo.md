@@ -6,34 +6,50 @@
 
 # Meeting Todo
 - [ ] Rebelle 7 needs to start working
-- [ ] Lawrence finished the battle background - implement with our twinkle shader
+- [~] Lawrence finished the battle background - implement with our twinkle shader
+  (BUILT on `rqd--regolith-backdrop`: twinkle, smoke, fade fix, layers that
+  follow the map. Stare at it: scenes/debug/combat_stage_viewer.tscn.)
 - [ ] Victory screen mockup
 - [ ] Defeat screen animation
+- [ ] Wednesday with Lawrence: the regolith backdrop. Applies once
+  `rqd--regolith-backdrop` reaches lod--main.
+	- Layers follow the map now. A layer named after a map piece (`crater`,
+	  `shelltree`, `piperoot`, `firetopradish`, `volcano`, `mountain`) or a
+	  floor material (`orange_sand`, `blue_sand`, `water`) shows only when one
+	  is within two steps of a fighter. Other names (`ground_regolith`,
+	  `hill_left`) always show. Full rule: art/backdrops/combat_test/README.md.
+	- Renames in combat_regolith.aseprite: `raddish` → `firetopradish`,
+	  `volvano` → `volcano_…`, `volacano_smoke` → `volcano_smoke`, `rivers` →
+	  `water`; `sand_orange` → `orange_sand` if it's for orange sand only;
+	  `sand_blue` → `blue_sand` when he un-hides it. Unrenamed, they show in
+	  every fight.
+	- Smoke: renamed `volcano_smoke`, it shows only with the volcanoes (if a
+	  volcano layer ever gets `_left`/`_right`, the smoke takes the same).
+	  We animate it in code (the 9/28 smoke-shader item), so it stays on its
+	  own layer. He paints smoke the way he does now; he can tune the motion
+	  live with the `smoke_*` dials in the ` console.
+	- `_left` / `_right` now mean "near the fighter on that side". His
+	  `crater_left` and `crater_right` each span most of the canvas: one
+	  crater per side, probably.
+	- Stars: paint the sky as it looks at rest; a twinkle dot only adds the
+	  flash on top (the rule for every sky). Done for him: every star on
+	  skybox_stars is now its center dot, at his luminance; his original is
+	  kept hidden as "stars mockup — do not export".
+	- Don't open combat_regolith.aseprite until this branch reaches
+	  lod--main: the branch changed it, and Aseprite files can't merge.
+	- Re-copy tools/aseprite/export_combat_backdrop.lua into his Aseprite
+	  scripts folder. The first run asks to trust it: it deletes files left by
+	  renamed layers.
 - [ ] 
 
 # Meeting 20260928 Todo
-- [ ] We need a smoke shader with customizable params (pull examples from the art and we'll design it in code)
+- [~] We need a smoke shader with customizable params (pull examples from the art and we'll design it in code)
+  (FIRST CUT on `rqd--regolith-backdrop`: SmokePlume, the regolith's
+  volcano smoke. Dials: ArtVariables SMOKE_*.)
 - [ ] If Lawrence includes a glow layer in any sprite, we should apply our (new) glow shader
 - [ ] 
 
 # Resp
-Re: todo.md - yes! We should move completed items into a completed items file. TODO should be genuine todo items.
-As for the completed items, we should only let it grow if we aren't reading it. If you think it would be useful to read COMPLETED.md, we should maintain it in a condensed form that's under 1000 lines, or separate the files, which seems dumb to me but there might be a reasonable application for this.
-LOD-main: should be done in the next hour or so - meeting in 3 minutes.
-Oh yeah, the art dashboard. We should get this into a state where Lawrence can use it, ASAP. Today would be ideal, but failing that, by next Sunday.
-I'll sort out the merges for rqd--main and lod--main today - it's the Art Dashboard I think I need help with. That branch  is actually impeding me until it's ready, as well, so consider it a top priority.
-Meeting stuff: going over it with Lawrence shortly.
-Harold's bugler class: we were actively working on that - go ahead and move it.
-
-
-Harold
-- Base Class: [Bugler] - Heraldic
-		├2A: Herald - Heraldic
-		|	├3A: King of Arms // has access to a passive which let units swap their moves/passives out during a battle if they're adjacent to this unit
-		|	└3B: Banneret -Heraldic/Chivalric // passives which provide boosts in a wide AOE.
-		└2B: Envoy - Heraldic/Gentry
-			├3C: Ambassador - Heraldic/Gentry // 
-			└3D: Spy [Gentry] // has access to a passive that makes this unit invisible to enemy units, until he gets caught, by enemies with specific passives or something like that?
 
 
 # Claude
@@ -161,6 +177,9 @@ holds CLAUDE.md); one opened at the container root gets no project memory.
 - [~] Verify: `git status` in both checkouts, GUT suite, F5. (git + GUT checked by Claude 9/25; F5 is yours.)
 
 # BUGZ
+- [ ] Regression: enemies have somehow gotten the grayed out visual design on the player's turn. I haven't bug tested enough to know if this requires a certain sequence of events. As with all regressions, we now need a unit test.
+- [ ] There's no visual feedback on the map for the Protector passive. Let's talk about this one because it will be easy to confuse the player.
+- [ ] The combat preview panel doesn't make it clear whether the enemy will survive with 1HP. >0 HP should always leave one pip in the preview panel.
 - [~] Threat zones should disable during the enemy turn
   (BUILT 2026-09-23 on `rqd--playtest-0922`, eyeball-gated; story in the commit.)
 - [~] Camera doesn't follow enemy unit movement during the enemy's turn
@@ -431,6 +450,10 @@ holds CLAUDE.md); one opened at the container root gets no project memory.
 - [ ] 
 
 # Todo
+- [ ] We should go through the unit tests and remove the ones which are simply there to pass.
+	-> Anything testing somthing that has regressed should stay
+	-> Anything that's hard to catch in-game should stay
+	-> It's possible there are zero such tests, but please review anyway.
 - [ ] Mouse commands that bypass the InputMap. Keys, pad and the wheel all go
   through actions (project.godot), but three mouse commands check the
   physical button: right-click = back on the board
@@ -638,9 +661,9 @@ those cells need repainting.
   default (Options → "Battle Anims": Scene / Player / Map). Sandbox:
   `godot-4 --path . -- --map=scenes/debug/combat_sandbox.tscn`; every knob at
   the top of `scripts/combat/scene/combat_scene.gd`.
-- [ ] **Lawrence: backdrop test scene** — template + brief in
-  `art/backdrops/combat_test/` (288×134 at sprite density; drop-in `sky.png`
-  / `floor.png`, the scene picks them up).
+- [x] **Lawrence: backdrop test scene** — template + brief in
+  `art/backdrops/combat_test/`. (He delivered the regolith; the stage shows
+  it. Export rules: that folder's README.)
 - [ ] **Lawrence: reaction clips** — `dodge`, `hurt`, `death` (side view,
   left-facing, tag names from the vocabulary); then `cast`; crit variants
   last. Procedural stand-ins (hop, flash, fade) play until then.

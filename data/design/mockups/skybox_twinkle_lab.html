@@ -282,7 +282,7 @@ float star_alpha(ivec2 cell, vec3 channels, ivec2 offset, float t) {
 	if (offset == ivec2(0)) {
 		// The core brightens a step with each tail frame, full at the peak. A
 		// blue-only star has no tails, so its whole twinkle is this flare.
-		float rest = mix(rest_alpha_min, 1.0, max(channels.r, channels.g));
+		float rest = rest_core_amount * mix(rest_alpha_min, 1.0, max(channels.r, channels.g));
 		if (reach < 0) {
 			return rest;
 		}
@@ -362,7 +362,7 @@ float sky_alpha(ivec2 cell, float t) {
     'uniform sampler2D star_map;',
     'uniform vec4 star_color;',
     'uniform float twinkle_amount, step_seconds, hold_seconds, dim_hold_seconds, period_slow_seconds, period_fast_seconds,',
-    '              period_jitter, tail_tip_alpha, rest_alpha_min, u_time;',
+    '              period_jitter, tail_tip_alpha, rest_alpha_min, rest_core_amount, u_time;',
     'uniform int map_height, show_source;',
     'out vec4 frag_color;',
     shared,
@@ -394,7 +394,7 @@ float sky_alpha(ivec2 cell, float t) {
   } catch (e) { fail('Shader failed to compile. Send this to RQD:\n\n' + e.message); return; }
   gl.useProgram(program);
   var U = {};
-  SHADER_KEYS.concat(['star_color', 'u_time', 'map_height', 'show_source', 'star_map']).forEach(function (k) { U[k] = gl.getUniformLocation(program, k); });
+  SHADER_KEYS.concat(['star_color', 'u_time', 'map_height', 'show_source', 'star_map', 'rest_core_amount']).forEach(function (k) { U[k] = gl.getUniformLocation(program, k); });
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
   gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
@@ -407,6 +407,7 @@ float sky_alpha(ivec2 cell, float t) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   gl.uniform1i(U.star_map, 0);
+  gl.uniform1f(U.rest_core_amount, 1);  // no painted sky here: the shader draws every star at rest
 
   var source = null;  // ImageData of the loaded map, for the hover readout
   function setMap(imageData) {
