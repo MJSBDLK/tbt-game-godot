@@ -44,8 +44,10 @@ protect. Four things grow it:
 3. **Keep it local.** A change to one game concept touches few files. Prefer a
    direct call, or a signal on the thing itself, to a relay through a manager.
    Put the code next to the concept it implements.
-4. **Files under ~1000 lines.** Over-cap files are listed below. Don't grow
-   them. A substantial change to one carries a split proposal.
+4. **Files under ~1000 lines.** Past the line, a file either says in its
+   class header why it earns the length, or gets split by concept: the split
+   first, on its own commit, before the work that brought you there. No third
+   state. Docs count too; ask before splitting a planning doc.
 5. **Names in game language.** `truncate_waypoints_to`, not
    `handle_marker_press_alt`. A designer should recognize the name. No pattern
    nouns (Handler, Strategy, Factory) unless the pattern is the point.
@@ -117,15 +119,17 @@ modules (`HintBarCommands`, `ZIndexCalculator`, and kin).
 probes, `addons/aseprite_tag_exporter/`, the SceneRouter + HUDViewport dual
 render pipeline, the versioned pre-commit hook.
 
-**Over-cap files (2026-09-26) — don't grow; split when substantially touched:**
+**Over-cap files (2026-10-06), each with its verdict (principle 4):**
 
-| File | Lines |
-|---|---|
-| `scripts/units/unit.gd` | 2211 |
-| `scripts/ui/panels/unit_detail_panel.gd` | 1649 |
-| `scripts/managers/input_manager.gd` | 1111 |
-| `scripts/ui/components/unit_workbench.gd` | 1062 |
+| File | Lines | Verdict |
+|---|---|---|
+| `scripts/units/unit.gd` | 2211 | split pending |
+| `scripts/ui/panels/unit_detail_panel.gd` | 1649 | split pending |
+| `scripts/ui/components/unit_workbench.gd` | 1062 | split pending |
+| `.claude/todo.md` | 1649 | split pending: done items go to the archive |
+| `.claude/todo-archive.md` | 1531 | split pending |
 
+"Split pending" means the next work that lands in the file splits it first.
 Third-party addons (`gut`, `AsepriteWizard`, `importality`) are exempt. Update
 this table when a file crosses the line in either direction.
 
