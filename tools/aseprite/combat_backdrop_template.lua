@@ -152,7 +152,7 @@ spr:newCel(guides, frame, g, Point(0, 0))
 -- Slices: named rectangles Lawrence can read in the editor.
 addSlice(spr, CORE, "CORE — always visible (214x120)", Color{ r = 255, g = 0, b = 255 })
 addSlice(spr, { x = 0, y = 0, w = W, h = HORIZON }, "sky — rows 0-85 → sky.png", Color{ r = 0, g = 220, b = 255 })
-addSlice(spr, { x = 0, y = HORIZON, w = W, h = H - HORIZON }, "floor — rows 86-133 → floor.png (may rise above the horizon)", Color{ r = 120, g = 120, b = 120 })
+addSlice(spr, { x = 0, y = HORIZON, w = W, h = H - HORIZON }, "floor — rows 86-133 → floor/00_floor.png (may rise above the horizon)", Color{ r = 120, g = 120, b = 120 })
 addSlice(spr, { x = 0, y = FEET, w = W, h = 1 }, "FEET LINE — puppets stand on row 91", Color{ r = 255, g = 230, b = 0 })
 addSlice(spr, { x = CENTRE_X - half * MAX_TILES, y = FEET - 60, w = TILE * MAX_TILES + 1, h = 61 },
   "PUPPET ZONE — centres 16 px per map tile each side of x=144, cap 4 tiles (x 80..208)", Color{ r = 255, g = 230, b = 0 })

@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://cabav2a4vdhin"
+path="res://.godot/imported/combat_regolith.aseprite-99e0ed4890c8727a0a58511c82e2161c.res"
+
+[deps]
+
+source_file="res://art/backdrops/combat_regolith/combat_regolith.aseprite"
+dest_files=["res://.godot/imported/combat_regolith.aseprite-99e0ed4890c8727a0a58511c82e2161c.res"]
+
+[params]
+
