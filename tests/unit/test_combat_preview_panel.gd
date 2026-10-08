@@ -1,6 +1,6 @@
-## CombatPreviewPanel's multiplier column: type effectiveness × STAB, coloured
-## by the type stage alone (ui-style-guide §6 LOCK on the colour tiers). STAB
-## used to be applied to the damage number silently — the column now says so.
+## CombatPreviewPanel: the multiplier column (type effectiveness × STAB,
+## coloured by the type stage alone, ui-style-guide §6 LOCK on the colour
+## tiers) and the HP pips.
 extends GutTest
 
 
@@ -91,3 +91,26 @@ func test_the_shown_number_matches_the_damage_scale() -> void:
 	var stab_damage: int = int(panel._attacker_damage_label.text)
 	assert_eq(stab_damage, roundi(plain_damage * DamageCalculator.STAB_MULTIPLIER))
 	assert_eq(panel._attacker_multiplier_label.text, "x%.2f" % DamageCalculator.STAB_MULTIPLIER)
+
+
+# --- HP pips ---------------------------------------------------------------------
+
+func test_a_survivor_on_1_hp_keeps_a_lit_pip() -> void:
+	# On a big HP pool 1 HP is under one pip's share: the bar went dark and a
+	# survivor read as a kill.
+	var panel := _panel()
+	var attacker := _unit()
+	var defender := _unit()
+	defender.character_data.base_max_hp = 200
+	var move := _move()
+	var blow := DamageCalculator.calculate_damage(attacker, defender, move) \
+			* DamageCalculator.calculate_attack_count(attacker, defender)
+	var bar: HealthPipBar = panel._bottom_health_pips
+	var one_pip := float(HealthPipBar.PIP_PITCH) / bar.texture.get_height()
+	defender.current_hp = blow + 1
+	panel.show_preview(attacker, defender, move)
+	assert_almost_eq(bar.health_fill, one_pip, 0.0001, "1 HP left lights one pip")
+	assert_gt(bar.damage_fill, 0.0, "the blow still pulses above it")
+	defender.current_hp = blow
+	panel.show_preview(attacker, defender, move)
+	assert_eq(bar.health_fill, 0.0, "a kill leaves none")

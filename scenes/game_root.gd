@@ -63,13 +63,11 @@ func _integer_scale_for(window: Vector2i) -> int:
 	return maxi(1, mini(window.x / _REF_WIDTH, window.y / _REF_HEIGHT))
 
 
-# Autoloads default to children of /root. UIManager and VisualFeedbackManager
-# both render into HUD design space, so they live inside HUDViewport. Signal
-# connections and autoload-singleton lookups survive reparenting; only the
-# tree path changes.
+# Autoloads default to children of /root. UIManager renders into HUD design
+# space, so it lives inside HUDViewport. Signal connections and
+# autoload-singleton lookups survive reparenting; only the tree path changes.
 func _reparent_ui_autoloads() -> void:
 	_reparent_into(UIManager, hud_viewport)
-	_reparent_into(VisualFeedbackManager, hud_viewport)
 
 
 func _reparent_into(node: Node, new_parent: Node) -> void:
@@ -93,4 +91,3 @@ func _dump_diagnostics() -> void:
 		window, scale_factor, hud_display.position, hud_display.size])
 	print("[GameRoot] HUDViewport=%s" % hud_viewport.size)
 	print("[GameRoot] UIManager parent: %s" % UIManager.get_parent().get_path())
-	print("[GameRoot] VisualFeedbackManager parent: %s" % VisualFeedbackManager.get_parent().get_path())
