@@ -137,16 +137,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		_step_zoom(-1)
 		get_viewport().set_input_as_handled()
 
-	# Middle-mouse drag
-	if event is InputEventMouseButton:
-		var mouse_event := event as InputEventMouseButton
-		if mouse_event.button_index == MOUSE_BUTTON_MIDDLE:
-			if mouse_event.pressed:
-				_is_dragging = true
-				_drag_start_position = get_global_mouse_position()
-				_cancel_tween()
-			else:
-				_is_dragging = false
+	# Drag to pan (middle mouse): held, the map follows the pointer.
+	if event.is_action("camera_drag"):
+		_is_dragging = event.is_pressed()
+		if _is_dragging:
+			_drag_start_position = get_global_mouse_position()
+			_cancel_tween()
 	elif event is InputEventMouseMotion and _is_dragging:
 		var current_mouse := get_global_mouse_position()
 		_target_position -= (current_mouse - _drag_start_position)
