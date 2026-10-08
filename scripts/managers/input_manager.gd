@@ -17,13 +17,8 @@ var _selected_unit: Unit = null
 var _unit_has_moved: bool = false
 var _camera_precentered: bool = false
 
-# Attack targeting state
-var _is_selecting_attack_target: bool = false
-var _attacking_unit: Unit = null
-var _attack_move: Move = null
-var _attackable_tiles: Array[Tile] = []
-## Touch only: the target a first tap armed; a second tap on it attacks.
-var _armed_target_tile: Tile = null
+## The attack-targeting session: who the chosen move can hit (AttackTargeting).
+var _targeting := AttackTargeting.new()
 
 # The CURSOR model's brackets on the board: the free cursor in the map-view
 # states, the aim cursor during attack targeting. Accept presses its tile
@@ -137,13 +132,10 @@ func cycle_unit(step: int) -> void:
 
 
 func start_attack_targeting(attacker: Unit, move: Move) -> void:
-	_disarm_target()
-	_is_selecting_attack_target = true
-	_attacking_unit = attacker
-	_attack_move = move
-	_attackable_tiles = MoveTargeting.get_valid_target_tiles(attacker, move)
+	_targeting.begin(attacker, move)
+	_set_target_armed(false)
 	GridManager.clear_movement_range()
-	GridManager.display_attack_range(_attackable_tiles)
+	GridManager.display_attack_range(_targeting.tiles)
 
 	var ui_manager: Node = _get_ui_manager()
 	if ui_manager != null:
@@ -152,7 +144,7 @@ func start_attack_targeting(attacker: Unit, move: Move) -> void:
 	var state_manager: Node = get_node("/root/GameStateManager")
 	state_manager.change_state(Enums.InputState.ATTACK_TARGETING, attacker)
 	DebugConfig.log_input("InputManager: Attack targeting with '%s' (%d valid tiles)" % [
-		move.move_name, _attackable_tiles.size()])
+		move.move_name, _targeting.tiles.size()])
 
 	# Cursor-model courtesy (InputSource, same doctrine as the menus): a
 	# keyboard/controller-driven entry adopts the nearest target immediately;
@@ -162,11 +154,8 @@ func start_attack_targeting(attacker: Unit, move: Move) -> void:
 
 
 func cancel_attack_targeting() -> void:
-	_disarm_target()
-	_is_selecting_attack_target = false
-	_attacking_unit = null
-	_attack_move = null
-	_attackable_tiles.clear()
+	_targeting.end()
+	_set_target_armed(false)
 	_cursor.clear_aim()
 	GridManager.clear_attack_range()
 	GridManager.clear_displacement_preview()
@@ -256,7 +245,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	# cursor across the valid targets (it wears the §14 brackets); accept
 	# confirms it. Pointer entry stays quiet — the first arrow press adopts
 	# the nearest target, mirroring the menus' quiet-open adoption.
-	if _is_selecting_attack_target:
+	if _targeting.is_active():
 		var direction: Vector2i = InputSource.navigation_direction(event)
 		if direction != Vector2i.ZERO:
 			_move_target_cursor(direction)
@@ -348,36 +337,22 @@ func _update_hover() -> void:
 
 func _update_combat_preview(tile: Tile) -> void:
 	var ui_manager: Node = _get_ui_manager()
-	if ui_manager == null:
+	if ui_manager == null or not _targeting.is_active():
 		return
-
-	if not _is_selecting_attack_target or _attacking_unit == null or _attack_move == null:
-		return
-
-	if tile != null and _attackable_tiles.has(tile) and tile.current_unit != null and tile.current_unit is Unit:
-		var target := tile.current_unit as Unit
-		if MoveTargeting.is_valid_target(target, _attacking_unit, _attack_move):
-			if _attack_move.heals:
-				var heal_amount := DamageCalculator.calculate_heal_amount(_attacking_unit, target, _attack_move)
-				ui_manager.show_heal_preview(_attacking_unit, target, _attack_move, heal_amount)
-				GridManager.clear_displacement_preview()
-				return
-			if _attack_move.targets_allies():
-				# Non-healing buff/support — no preview UI yet, defer that pass.
-				ui_manager.hide_combat_preview()
-				GridManager.clear_displacement_preview()
-				return
-			# Preview the unit the shot will actually hit — a Protector between the
-			# attacker and the aimed-at enemy body-blocks, so show it taking the hit.
-			var actual: Unit = MoveTargeting.resolve_actual_target(_attacking_unit, target, _attack_move)
-			ui_manager.show_combat_preview(_attacking_unit, actual, _attack_move)
+	var forecast := _targeting.forecast_for(tile)
+	match forecast.kind:
+		AttackTargeting.Forecast.HEAL:
+			ui_manager.show_heal_preview(_targeting.attacker, forecast.target, _targeting.move,
+					forecast.heal_amount)
+		AttackTargeting.Forecast.ATTACK:
+			ui_manager.show_combat_preview(_targeting.attacker, forecast.target, _targeting.move)
 			# Displacing moves ALSO play their future on the board — ghosts,
 			# arrows, slam stars (DisplacementPreviewRenderer). No-op for
 			# non-displacing moves.
-			GridManager.preview_displacement(_attacking_unit, actual, _attack_move)
+			GridManager.preview_displacement(_targeting.attacker, forecast.target, _targeting.move)
 			return
-
-	ui_manager.hide_combat_preview()
+		_:
+			ui_manager.hide_combat_preview()
 	GridManager.clear_displacement_preview()
 
 
@@ -607,50 +582,23 @@ func _handle_movement_planning_press(clicked_tile: Tile) -> void:
 ## press on anything outside the valid set cancels targeting — unchanged
 ## click semantics; the keyboard path can only arrive with a valid tile.
 func _try_attack_tile(tile: Tile) -> void:
-	if not _is_target_tile(tile):
+	if not _targeting.is_target_tile(tile):
 		cancel_attack_targeting()
 		return
 	_execute_attack(tile.current_unit as Unit)
 
 
-## A tile holding a unit the current move can hit.
-func _is_target_tile(tile: Tile) -> bool:
-	if tile == null or not _attackable_tiles.has(tile) or tile.current_unit is not Unit:
-		return false
-	return MoveTargeting.is_valid_target(tile.current_unit as Unit, _attacking_unit, _attack_move)
-
-
-## What a tap does while targeting on touch (target_tap).
-enum TargetTap { ARM, ATTACK, CANCEL }
-
-
-## Touch has no hover to show the forecast before the press, so the tap that
-## picks a target can't also be the one that attacks: the first tap on a
-## target ARMs it (forecast up), a second tap on the armed target ATTACKs, a
-## tap on another target re-arms, and a tap off the targets CANCELs, as a
-## click would.
-static func target_tap(armed: Tile, tapped: Tile, tapped_is_target: bool) -> TargetTap:
-	if not tapped_is_target:
-		return TargetTap.CANCEL
-	return TargetTap.ATTACK if tapped == armed else TargetTap.ARM
-
-
+## Touch: the first tap on a target arms it and shows the forecast, a second
+## tap attacks (AttackTargeting.target_tap).
 func _tap_attack_tile(tile: Tile) -> void:
-	match target_tap(_armed_target_tile, tile, _is_target_tile(tile)):
-		TargetTap.ATTACK:
+	match _targeting.tap(tile):
+		AttackTargeting.TargetTap.ATTACK:
 			_try_attack_tile(tile)
-		TargetTap.ARM:
-			_armed_target_tile = tile
+		AttackTargeting.TargetTap.ARM:
 			_update_combat_preview(tile)
 			_set_target_armed(true)
-		TargetTap.CANCEL:
+		AttackTargeting.TargetTap.CANCEL:
 			cancel_attack_targeting()
-
-
-## Targeting started, cancelled or swung: no target stays armed.
-func _disarm_target() -> void:
-	_armed_target_tile = null
-	_set_target_armed(false)
 
 
 func _set_target_armed(armed: bool) -> void:
@@ -681,21 +629,22 @@ func _on_cursor_moved(tile: Tile, aimed: bool) -> void:
 
 ## The aim cursor, during targeting: arrows walk it between the valid targets.
 func _move_target_cursor(direction: Vector2i) -> void:
-	if _attackable_tiles.is_empty():
+	if _targeting.tiles.is_empty():
 		return
 	# First press on a quiet (pointer-opened) targeting session summons the
 	# cursor onto the nearest target instead of stepping.
-	if _cursor.aim_tile == null or not _attackable_tiles.has(_cursor.aim_tile):
+	if _cursor.aim_tile == null or not _targeting.tiles.has(_cursor.aim_tile):
 		_adopt_initial_target()
 		return
-	_cursor.aim(direction, _attackable_tiles)
+	_cursor.aim(direction, _targeting.tiles)
 
 
 func _adopt_initial_target() -> void:
-	if _attacking_unit == null or _attacking_unit.current_tile == null:
+	var attacker := _targeting.attacker
+	if attacker == null or attacker.current_tile == null:
 		return
-	_cursor.adopt(_attackable_tiles,
-			Vector2i(_attacking_unit.current_tile.grid_x, _attacking_unit.current_tile.grid_y))
+	_cursor.adopt(_targeting.tiles,
+			Vector2i(attacker.current_tile.grid_x, attacker.current_tile.grid_y))
 
 
 ## The free cursor roams the whole grid in the map-view states (DEFAULT /
@@ -767,7 +716,7 @@ func _tick_nav_repeat(now: float) -> void:
 	var direction := _cursor.repeat_due(now)
 	if direction == Vector2i.ZERO:
 		return
-	if _is_selecting_attack_target:
+	if _targeting.is_active():
 		_move_target_cursor(direction)
 	elif _is_map_view_state():
 		_move_board_cursor(direction)
@@ -784,7 +733,7 @@ func _on_game_state_changed(old_state: Enums.InputState, new_state: Enums.InputS
 	# A sheet opened mid-targeting (long press) drops the armed target, as the
 	# hint bar drops its "tap again" line.
 	if new_state != Enums.InputState.ATTACK_TARGETING:
-		_armed_target_tile = null
+		_targeting.armed_tile = null
 	if not Enums.MAP_VIEW_STATES.has(new_state):
 		_cursor.clear_free()
 		return
@@ -877,15 +826,14 @@ func _execute_direct_combat(target: Unit) -> void:
 
 
 func _execute_attack(target: Unit) -> void:
-	if _attacking_unit == null or _attack_move == null:
+	if not _targeting.is_active():
 		return
 
-	var attacker := _attacking_unit
-	var move := _attack_move
+	var attacker := _targeting.attacker
+	var move := _targeting.move
 
-	_disarm_target()
-	_is_selecting_attack_target = false
-	_attackable_tiles.clear()
+	_targeting.end()
+	_set_target_armed(false)
 	_cursor.clear_aim()
 	GridManager.clear_attack_range()
 	GridManager.clear_displacement_preview()
@@ -911,8 +859,6 @@ func _execute_attack(target: Unit) -> void:
 	if ui_manager != null:
 		ui_manager.refresh()
 
-	_attacking_unit = null
-	_attack_move = null
 	_finish_unit_action()
 
 

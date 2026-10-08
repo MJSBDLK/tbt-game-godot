@@ -126,7 +126,6 @@ render pipeline, the versioned pre-commit hook.
 | `scripts/units/unit.gd` | 2211 | split pending |
 | `scripts/ui/panels/unit_detail_panel.gd` | 1649 | split pending |
 | `scripts/ui/components/unit_workbench.gd` | 1062 | split pending |
-| `scripts/managers/input_manager.gd` | 994 | at the line: the next work splits attack targeting out first |
 | `.claude/todo-archive.md` | 2624 | justified: append-only, grepped never read whole (its header says so) |
 
 "Split pending" means the next work that lands in the file splits it first.
