@@ -519,19 +519,43 @@ func test_quick_tap_disarms_without_a_card() -> void:
 	assert_false(MoveTooltip.is_open_for(chip_button), "no card from a tap")
 
 
-func test_controller_peek_action_holds_the_card() -> void:
+func _pad_y(pressed: bool) -> InputEventJoypadButton:
+	var event := InputEventJoypadButton.new()
+	event.button_index = JOY_BUTTON_Y
+	event.pressed = pressed
+	return event
+
+
+## Counts unit_info presses that reach the tree: a tap's pass-on.
+class UnitInfoRecorder extends Node:
+	var presses: int = 0
+
+	func _input(event: InputEvent) -> void:
+		if event.is_action_pressed("unit_info"):
+			presses += 1
+
+
+func test_controller_hold_on_y_holds_the_card() -> void:
 	var chip_button := _make_chip_button(_make_move())
-	var press := InputEventJoypadButton.new()
-	press.button_index = JOY_BUTTON_BACK
-	press.pressed = true
-	assert_true(chip_button._handle_peek_input(press),
-			"tooltip_peek (Back/R3) reaches the focused chip through gui_input")
-	assert_true(MoveTooltip.is_open_for(chip_button))
-	var release := InputEventJoypadButton.new()
-	release.button_index = JOY_BUTTON_BACK
-	release.pressed = false
-	assert_true(chip_button._handle_peek_input(release))
-	assert_false(MoveTooltip.is_open_for(chip_button))
+	assert_true(chip_button._handle_peek_input(_pad_y(true)),
+			"tooltip_peek (Y) reaches the focused chip through gui_input")
+	assert_false(MoveTooltip.is_open_for(chip_button), "a press alone may still be a tap")
+	await wait_seconds(0.3)
+	assert_true(MoveTooltip.is_open_for(chip_button),
+			"the hold matured past Settings.tooltip_hold_ms, the touch hold's length")
+	assert_true(chip_button._handle_peek_input(_pad_y(false)))
+	assert_false(MoveTooltip.is_open_for(chip_button), "release dismisses")
+
+
+func test_controller_tap_on_y_stays_unit_info() -> void:
+	var chip_button := _make_chip_button(_make_move())
+	var recorder := UnitInfoRecorder.new()
+	add_child_autofree(recorder)
+	chip_button._handle_peek_input(_pad_y(true))
+	assert_true(chip_button._handle_peek_input(_pad_y(false)), "the tap is the chip's to pass on")
+	await get_tree().process_frame
+	assert_false(MoveTooltip.is_open_for(chip_button), "no card from a tap")
+	assert_eq(recorder.presses, 1, "Y's other meaning went back out as unit_info")
 
 
 func test_peek_disabled_venue_is_inert() -> void:

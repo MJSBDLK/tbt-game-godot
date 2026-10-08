@@ -6,6 +6,10 @@
 extends Node
 
 
+## The tile under the pointer or the board cursor changed (null = none). The
+## hint bar names some buttons by what's under it ("Pin zone", "Type icons").
+signal hover_changed(tile: Tile)
+
 var input_enabled: bool = true
 
 var _hovered_tile: Tile = null
@@ -61,8 +65,10 @@ func disable_input() -> void:
 	_cursor.release()
 
 
+## Null once the tile is freed (this autoload outlives the battle's board):
+## a freed tile handed on to a typed parameter is a script error.
 func get_hovered_tile() -> Tile:
-	return _hovered_tile
+	return _hovered_tile if is_instance_valid(_hovered_tile) else null
 
 
 func get_selected_unit() -> Unit:
@@ -102,6 +108,30 @@ func deselect_unit() -> void:
 	var ui_manager: Node = _get_ui_manager()
 	if ui_manager != null:
 		ui_manager.hide_unit_info()
+
+
+## Next / previous unit: selects the next player unit that can still act, in
+## roster order and wrapping (`step` +1 / -1), counting from the selected unit
+## or the one under the cursor, and brings it into view. Already selected
+## (the only one left ready) it just recenters: re-selecting would drop the
+## plan on the board.
+func cycle_unit(step: int) -> void:
+	var ready: Array[Unit] = TurnManager.unacted_player_units()
+	if ready.is_empty():
+		return
+	var from: Unit = _selected_unit
+	if from == null and _hovered_tile != null and is_instance_valid(_hovered_tile):
+		from = _hovered_tile.current_unit as Unit
+	var index := ready.find(from)
+	var next: Unit = ready[posmod(index + step, ready.size())] if index >= 0 \
+			else (ready[0] if step > 0 else ready[-1])
+	if next != _selected_unit:
+		select_unit(next)
+	var camera := _get_camera()
+	if camera != null:
+		camera.center_on(next.global_position)
+	if InputSource.is_cursor_driven():
+		_cursor.place_free(next.current_tile)
 
 
 func start_attack_targeting(attacker: Unit, move: Move) -> void:
@@ -184,7 +214,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not input_enabled or not GridManager.is_grid_ready():
 		return
 
-	# End turn shortcut (E key, and the hint bar's touch button)
+	# End turn shortcut (Backspace / X, and the hint bar's touch button)
 	if event.is_action_pressed("end_turn"):
 		UIManager.request_end_turn()
 		get_viewport().set_input_as_handled()
@@ -199,6 +229,14 @@ func _unhandled_input(event: InputEvent) -> void:
 	# Unit info hotkey (I key / Y button)
 	if event.is_action_pressed("unit_info"):
 		_handle_unit_info_hotkey()
+		get_viewport().set_input_as_handled()
+		return
+
+	# Next / previous ready unit (E / Q, RB / LB, touch's Next): open board only.
+	var cycle_step := 1 if event.is_action_pressed("unit_next") \
+			else (-1 if event.is_action_pressed("unit_prev") else 0)
+	if cycle_step != 0 and _is_map_view_state():
+		cycle_unit(cycle_step)
 		get_viewport().set_input_as_handled()
 		return
 
@@ -288,6 +326,7 @@ func _update_hover() -> void:
 	if tile != _hovered_tile:
 		_hovered_tile = tile
 		GridManager.set_hovered_tile(tile)
+		hover_changed.emit(tile)
 
 		var ui_manager: Node = _get_ui_manager()
 		if ui_manager != null:
@@ -364,6 +403,9 @@ func _handle_unit_info_hotkey() -> void:
 	elif _hovered_tile != null and _hovered_tile.current_unit is Unit:
 		unit = _hovered_tile.current_unit as Unit
 	if unit == null:
+		# No unit to read: the button shows the type-icon layer instead, by
+		# flipping the Options "Type Icons" setting, so the two never disagree.
+		Settings.set_unit_type_icons_enabled(not Settings.unit_type_icons_enabled)
 		return
 	_open_unit_detail(unit)
 
@@ -581,6 +623,7 @@ func _try_attack_tile(tile: Tile) -> void:
 func _on_cursor_moved(tile: Tile, aimed: bool) -> void:
 	_hovered_tile = tile
 	GridManager.set_hovered_tile(tile)
+	hover_changed.emit(tile)
 	if aimed:
 		_update_combat_preview(tile)
 		return

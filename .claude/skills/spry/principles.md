@@ -126,8 +126,7 @@ render pipeline, the versioned pre-commit hook.
 | `scripts/units/unit.gd` | 2211 | split pending |
 | `scripts/ui/panels/unit_detail_panel.gd` | 1649 | split pending |
 | `scripts/ui/components/unit_workbench.gd` | 1062 | split pending |
-| `.claude/todo.md` | 1649 | split pending: done items go to the archive |
-| `.claude/todo-archive.md` | 1531 | split pending |
+| `.claude/todo-archive.md` | 2624 | justified: append-only, grepped never read whole (its header says so) |
 
 "Split pending" means the next work that lands in the file splits it first.
 Third-party addons (`gut`, `AsepriteWizard`, `importality`) are exempt. Update
@@ -141,8 +140,8 @@ lookups. A new one of either needs a stated reason.
 "RETIRED"). Take those out of any hunk you're already editing; don't add new
 ones.
 
-**Planning docs are context too.** `.claude/todo.md` (~81 KB) and
-`todo-archive.md` (~159 KB) are the largest single reads in the repo. Apply
-principle 8 to every entry added there: what would the next reader lose at
-half? The commit message already holds the narrative; the entry can point at
-it.
+**Planning docs are context too.** `.claude/todo.md` (~44 KB) is read at the
+start of most sessions, so it holds open items only: done ones move to
+`todo-archive.md`, which is grepped, never read whole. Apply principle 8 to
+every entry added to todo.md: what would the next reader lose at half? The
+commit message already holds the narrative; the entry can point at it.

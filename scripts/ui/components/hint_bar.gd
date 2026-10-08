@@ -86,6 +86,12 @@ var enemy_phase: bool = false
 ## Set by InputManager when a DEFAULT press lands on a unit the player can't
 ## command. Released at the next state or phase boundary.
 var inspect_notice: HintBarCommands.InspectNotice = HintBarCommands.InspectNotice.NONE
+## What was under the pointer / board cursor at the last refresh, as the
+## context verbs saw it. Readable by tests.
+var last_hover: HintBarCommands.Hover = HintBarCommands.Hover.UNIT
+## The zone button's next press at the last refresh (ThreatOverlayController.
+## Press), -1 with no battle. Readable by tests.
+var last_zone_press: int = -1
 
 ## The model the last refresh rendered for — readable by tests and by the
 ## future visual pass (corner clusters look different under touch).
@@ -255,6 +261,9 @@ func _connect_boundaries() -> void:
 	var settings: Node = get_node_or_null("/root/Settings")
 	if settings != null:
 		settings.changed.connect(refresh)
+	var input_manager: Node = get_node_or_null("/root/InputManager")
+	if input_manager != null and input_manager.has_signal("hover_changed"):
+		input_manager.hover_changed.connect(_on_hover_changed)
 	var scene_router: Node = get_node_or_null("/root/SceneRouter")
 	if scene_router != null and scene_router.has_signal("scene_changed"):
 		scene_router.scene_changed.connect(_on_scene_changed)
@@ -294,7 +303,11 @@ func refresh() -> void:
 	_step_panel.visible = _step_label.visible or _step_button.visible
 
 	_clear_items()
-	var entries: Array[Dictionary] = HintBarCommands.resolve(state, model, enemy_phase)
+	var hovered := _hovered_tile()
+	last_hover = hover_on(hovered)
+	last_zone_press = _zone_press_on(hovered)
+	var entries: Array[Dictionary] = HintBarCommands.resolve(state, model, enemy_phase,
+			last_hover, last_zone_press)
 	for entry: Dictionary in entries:
 		_items_box.add_child(_make_item(entry, model))
 	_items_panel.visible = not entries.is_empty()
@@ -524,6 +537,44 @@ func set_inspect_notice(notice: HintBarCommands.InspectNotice) -> void:
 		return
 	inspect_notice = notice
 	refresh()
+
+
+## A new tile under the pointer / cursor re-renders only when a verb would
+## change (a unit or none; what the zone button would do): the verbs never
+## flicker tile to tile.
+func _on_hover_changed(tile: Tile) -> void:
+	if hover_on(tile) != last_hover or _zone_press_on(tile) != last_zone_press:
+		refresh()
+
+
+## What's under the pointer or board cursor, as the info button sees it: the
+## same "no unit" it turns into the type icons for.
+static func hover_on(tile: Tile) -> HintBarCommands.Hover:
+	if tile != null and is_instance_valid(tile) and tile.current_unit is Unit:
+		return HintBarCommands.Hover.UNIT
+	return HintBarCommands.Hover.NO_UNIT
+
+
+## Read fresh at every refresh, not cached from the signal: a unit can walk
+## onto the tile under a parked cursor.
+func _hovered_tile() -> Tile:
+	var input_manager: Node = get_node_or_null("/root/InputManager")
+	return input_manager.get_hovered_tile() if input_manager != null else null
+
+
+## What the zone button would do on `tile`, or -1 outside a battle. A zone
+## toggle changes it with nothing moving, so the bar redraws on the
+## controller's `changed` too.
+func _zone_press_on(tile: Tile) -> int:
+	if not is_inside_tree():
+		return -1
+	var controller := get_tree().get_first_node_in_group(
+			ThreatOverlayController.GROUP_NAME) as ThreatOverlayController
+	if controller == null:
+		return -1
+	if not controller.changed.is_connected(refresh):
+		controller.changed.connect(refresh)
+	return controller.zone_press_for(tile)
 
 
 func _on_state_changed(_old_state: Enums.InputState, _new_state: Enums.InputState) -> void:

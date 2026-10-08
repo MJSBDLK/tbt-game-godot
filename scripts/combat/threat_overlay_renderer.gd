@@ -21,15 +21,15 @@ extends Node2D
 ## green = healing, blue = neither.
 enum Style { ARMY, PINNED, PREVIEW_DAMAGE, PREVIEW_HEAL, PREVIEW_NEUTRAL }
 
-# Army-wide zone: red. Pinned zones: amber — same "danger" family, clearly not
-# the whole army. Preview palettes carry the move's intent: damaging = red
-# (rosier than the army red so a pinned enemy zone and a hovered attack don't
-# read identical), healing = green, neither = azure. All placeholder values
-# for Lawrence's restyle.
-@export var fill_color: Color = Color(0.85, 0.12, 0.12, 0.26)
-@export var edge_color: Color = Color(0.95, 0.22, 0.22, 0.55)
-@export var pinned_fill_color: Color = Color(1.0, 0.6, 0.08, 0.26)
-@export var pinned_edge_color: Color = Color(1.0, 0.72, 0.18, 0.6)
+# Army-wide zone: amber, a warning. A pinned enemy's zone: red, the danger
+# you singled out. Preview palettes carry the move's intent: damaging = red
+# (rosier than the pinned red so a pinned zone and a hovered attack don't read
+# identical), healing = green, neither = azure. All placeholder values for
+# Lawrence's restyle.
+@export var fill_color: Color = Color(1.0, 0.6, 0.08, 0.26)
+@export var edge_color: Color = Color(1.0, 0.72, 0.18, 0.6)
+@export var pinned_fill_color: Color = Color(0.85, 0.12, 0.12, 0.26)
+@export var pinned_edge_color: Color = Color(0.95, 0.22, 0.22, 0.55)
 @export var preview_damage_fill_color: Color = Color(0.92, 0.2, 0.28, 0.24)
 @export var preview_damage_edge_color: Color = Color(1.0, 0.36, 0.44, 0.6)
 @export var preview_heal_fill_color: Color = Color(0.16, 0.72, 0.34, 0.24)

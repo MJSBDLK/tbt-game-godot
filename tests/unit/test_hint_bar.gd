@@ -45,6 +45,60 @@ func _items(bar: HintBar) -> Array[Node]:
 	return bar._items_box.get_children()
 
 
+func _verb_of(bar: HintBar, action: String) -> String:
+	return (bar._items_box.get_node("Item_%s/Verb" % action) as Label).text
+
+
+func _enemy() -> Unit:
+	var enemy := Unit.new()
+	autofree(enemy)
+	enemy.faction = Enums.UnitFaction.ENEMY
+	enemy.current_hp = 1
+	enemy.character_data = CharacterData.new()
+	return enemy
+
+
+func test_hover_is_whether_a_unit_is_there() -> void:
+	assert_eq(HintBar.hover_on(null), HintBarCommands.Hover.NO_UNIT)
+	var tile: Tile = autofree(Tile.new())
+	assert_eq(HintBar.hover_on(tile), HintBarCommands.Hover.NO_UNIT, "an empty tile")
+	tile.current_unit = _enemy()
+	assert_eq(HintBar.hover_on(tile), HintBarCommands.Hover.UNIT, "an enemy is a unit to read too")
+
+
+func test_the_info_verb_follows_what_is_under_the_cursor() -> void:
+	var tile: Tile = autofree(Tile.new())
+	InputManager._hovered_tile = tile
+	var bar := _make_bar()
+	assert_eq(_verb_of(bar, "unit_info"), "Type icons", "no unit under the cursor")
+	tile.current_unit = _enemy()
+	InputManager.hover_changed.emit(tile)
+	assert_eq(_verb_of(bar, "unit_info"), "Unit info")
+	InputManager._hovered_tile = null
+
+
+func test_the_zone_verb_names_the_next_press() -> void:
+	# The press's effect depends on what's lit, not only on what's under the
+	# cursor: a pinned enemy's press unpins, and the army zone's shows or hides.
+	var controller := ThreatOverlayController.new()
+	add_child_autofree(controller)
+	var on_enemy: Tile = autofree(Tile.new())
+	on_enemy.current_unit = _enemy()
+	var empty: Tile = autofree(Tile.new())
+	InputManager._hovered_tile = on_enemy
+	var bar := _make_bar()
+	assert_eq(_verb_of(bar, "toggle_threat_zones"), "Pin zone", "an enemy under the cursor")
+	controller.press_zone_button(on_enemy)
+	assert_eq(_verb_of(bar, "toggle_threat_zones"), "Unpin zone", "pinned, and the bar redrew")
+	InputManager._hovered_tile = empty
+	InputManager.hover_changed.emit(empty)
+	assert_eq(_verb_of(bar, "toggle_threat_zones"), "Threat zones",
+			"off the enemy the button is the army zone's, pin or no pin")
+	controller.press_zone_button(empty)
+	assert_eq(_verb_of(bar, "toggle_threat_zones"), "Hide threat zones", "the army zone is up")
+	InputManager._hovered_tile = null
+
+
 # --- visibility ---------------------------------------------------------------
 
 func test_hidden_outside_a_battle() -> void:
@@ -136,11 +190,11 @@ func test_joypad_renders_controller_glyphs() -> void:
 	assert_not_null(form.material, "the colored skittle wears the glow")
 	var character := glyph.get_node("Char") as TextureRect
 	assert_eq(character.modulate, GameColorPalette.get_color("Gray", 1), "dark letter on the skittle")
-	# LB has no identity — under HARDWARE it stays the single ink-tinted
-	# outline sprite.
+	# RT (the zones' trigger) has no identity — under HARDWARE it stays the
+	# single ink-tinted outline sprite.
 	var neutral := _items(bar)[3].get_node("Glyph") as TextureRect
 	assert_eq(neutral.texture.resource_path,
-			HintBarCommands.JOY_GLYPH_SPRITE_DIRECTORY + "label_lb.png")
+			HintBarCommands.JOY_GLYPH_SPRITE_DIRECTORY + "label_rt.png")
 
 
 func test_ink_style_plates_every_button_in_the_bar() -> void:
@@ -182,7 +236,7 @@ func test_touch_renders_buttons() -> void:
 	var bar := _make_bar()
 	assert_eq(bar.last_model, HintBarCommands.Model.TOUCH)
 	var items := _items(bar)
-	assert_eq(items.size(), 3, "End turn / Threat / Menu — Select is the map tap")
+	assert_eq(items.size(), 4, "End turn / Threat / Menu / Next — Select is the map tap")
 	for item: Node in items:
 		assert_true(item is Button, "%s should be a Button" % item.name)
 		assert_eq((item as Button).focus_mode, Control.FOCUS_NONE,
