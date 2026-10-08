@@ -22,6 +22,8 @@ var _is_selecting_attack_target: bool = false
 var _attacking_unit: Unit = null
 var _attack_move: Move = null
 var _attackable_tiles: Array[Tile] = []
+## Touch only: the target a first tap armed; a second tap on it attacks.
+var _armed_target_tile: Tile = null
 
 # The CURSOR model's brackets on the board: the free cursor in the map-view
 # states, the aim cursor during attack targeting. Accept presses its tile
@@ -135,6 +137,7 @@ func cycle_unit(step: int) -> void:
 
 
 func start_attack_targeting(attacker: Unit, move: Move) -> void:
+	_disarm_target()
 	_is_selecting_attack_target = true
 	_attacking_unit = attacker
 	_attack_move = move
@@ -159,6 +162,7 @@ func start_attack_targeting(attacker: Unit, move: Move) -> void:
 
 
 func cancel_attack_targeting() -> void:
+	_disarm_target()
 	_is_selecting_attack_target = false
 	_attacking_unit = null
 	_attack_move = null
@@ -226,6 +230,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 
+	# Back (right click): Escape's step back, except on the open board, where
+	# Escape opens the system menu and a stray right click shouldn't.
+	if event.is_action_pressed("back"):
+		if GameStateManager.current_state != Enums.InputState.DEFAULT:
+			_handle_escape()
+		get_viewport().set_input_as_handled()
+		return
+
 	# Unit info hotkey (I key / Y button)
 	if event.is_action_pressed("unit_info"):
 		_handle_unit_info_hotkey()
@@ -271,7 +283,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 
-	# Mouse/touch clicks
+	# Mouse/touch clicks. The left button stays raw: pressing the thing under
+	# the pointer is what a pointer is, same as Godot's own Button.
 	if event is InputEventMouseButton:
 		var mouse_event := event as InputEventMouseButton
 		if mouse_event.button_index == MOUSE_BUTTON_LEFT:
@@ -279,9 +292,6 @@ func _unhandled_input(event: InputEvent) -> void:
 				_start_press()
 			else:
 				_end_press()
-			get_viewport().set_input_as_handled()
-		elif mouse_event.button_index == MOUSE_BUTTON_RIGHT and mouse_event.pressed:
-			_handle_right_click()
 			get_viewport().set_input_as_handled()
 
 
@@ -386,14 +396,10 @@ func _handle_left_click() -> void:
 		Enums.InputState.UNIT_SELECTED, Enums.InputState.MOVEMENT_PLANNING:
 			_handle_movement_planning_press(tile)
 		Enums.InputState.ATTACK_TARGETING:
-			_try_attack_tile(tile)
-
-
-func _handle_right_click() -> void:
-	if _selected_unit != null:
-		_cancel_and_deselect()
-		var state_manager: Node = get_node("/root/GameStateManager")
-		state_manager.change_state(Enums.InputState.DEFAULT)
+			if InputSource.is_touch_driven():
+				_tap_attack_tile(tile)
+			else:
+				_try_attack_tile(tile)
 
 
 func _handle_unit_info_hotkey() -> void:
@@ -517,12 +523,14 @@ func _handle_default_press(clicked_tile: Tile) -> void:
 
 
 func _set_inspect_notice(notice: HintBarCommands.InspectNotice) -> void:
-	var ui_manager: Node = _get_ui_manager()
-	if ui_manager == null:
-		return
-	var hint_bar: HintBar = ui_manager.get_hint_bar()
+	var hint_bar := _hint_bar()
 	if hint_bar != null:
 		hint_bar.set_inspect_notice(notice)
+
+
+func _hint_bar() -> HintBar:
+	var ui_manager: Node = _get_ui_manager()
+	return ui_manager.get_hint_bar() if ui_manager != null else null
 
 
 ## Press semantics for UNIT_SELECTED / MOVEMENT_PLANNING — shared verbatim by
@@ -599,17 +607,56 @@ func _handle_movement_planning_press(clicked_tile: Tile) -> void:
 ## press on anything outside the valid set cancels targeting — unchanged
 ## click semantics; the keyboard path can only arrive with a valid tile.
 func _try_attack_tile(tile: Tile) -> void:
-	if tile == null or not _attackable_tiles.has(tile) \
-			or tile.current_unit == null or tile.current_unit is not Unit:
+	if not _is_target_tile(tile):
 		cancel_attack_targeting()
 		return
+	_execute_attack(tile.current_unit as Unit)
 
-	var target := tile.current_unit as Unit
-	if not MoveTargeting.is_valid_target(target, _attacking_unit, _attack_move):
-		cancel_attack_targeting()
-		return
 
-	_execute_attack(target)
+## A tile holding a unit the current move can hit.
+func _is_target_tile(tile: Tile) -> bool:
+	if tile == null or not _attackable_tiles.has(tile) or tile.current_unit is not Unit:
+		return false
+	return MoveTargeting.is_valid_target(tile.current_unit as Unit, _attacking_unit, _attack_move)
+
+
+## What a tap does while targeting on touch (target_tap).
+enum TargetTap { ARM, ATTACK, CANCEL }
+
+
+## Touch has no hover to show the forecast before the press, so the tap that
+## picks a target can't also be the one that attacks: the first tap on a
+## target ARMs it (forecast up), a second tap on the armed target ATTACKs, a
+## tap on another target re-arms, and a tap off the targets CANCELs, as a
+## click would.
+static func target_tap(armed: Tile, tapped: Tile, tapped_is_target: bool) -> TargetTap:
+	if not tapped_is_target:
+		return TargetTap.CANCEL
+	return TargetTap.ATTACK if tapped == armed else TargetTap.ARM
+
+
+func _tap_attack_tile(tile: Tile) -> void:
+	match target_tap(_armed_target_tile, tile, _is_target_tile(tile)):
+		TargetTap.ATTACK:
+			_try_attack_tile(tile)
+		TargetTap.ARM:
+			_armed_target_tile = tile
+			_update_combat_preview(tile)
+			_set_target_armed(true)
+		TargetTap.CANCEL:
+			cancel_attack_targeting()
+
+
+## Targeting started, cancelled or swung: no target stays armed.
+func _disarm_target() -> void:
+	_armed_target_tile = null
+	_set_target_armed(false)
+
+
+func _set_target_armed(armed: bool) -> void:
+	var hint_bar := _hint_bar()
+	if hint_bar != null:
+		hint_bar.set_target_armed(armed)
 
 
 # =============================================================================
@@ -734,6 +781,10 @@ func _tick_nav_repeat(now: float) -> void:
 ## re-entry to the board adopts immediately, mirroring cursor-driven menu
 ## opens; pointer re-entry stays quiet.
 func _on_game_state_changed(old_state: Enums.InputState, new_state: Enums.InputState) -> void:
+	# A sheet opened mid-targeting (long press) drops the armed target, as the
+	# hint bar drops its "tap again" line.
+	if new_state != Enums.InputState.ATTACK_TARGETING:
+		_armed_target_tile = null
 	if not Enums.MAP_VIEW_STATES.has(new_state):
 		_cursor.clear_free()
 		return
@@ -832,6 +883,7 @@ func _execute_attack(target: Unit) -> void:
 	var attacker := _attacking_unit
 	var move := _attack_move
 
+	_disarm_target()
 	_is_selecting_attack_target = false
 	_attackable_tiles.clear()
 	_cursor.clear_aim()

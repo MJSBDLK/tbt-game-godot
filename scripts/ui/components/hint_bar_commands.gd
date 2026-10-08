@@ -84,6 +84,9 @@ static var joy_skin_override: int = -1
 ##   step_notice   bool   — OPTIONAL: the step line wears the §14 NOTICE border
 ##                          (violet, static: "the game is pointing at this, it
 ##                          is not a button") so a changed instruction registers.
+##   step_touch_armed String — OPTIONAL: the touch instruction once a first tap
+##                          armed a target (InputManager.target_tap); wears
+##                          the NOTICE border like the marker's "again" line.
 ##   confirm_label String — OPTIONAL: under Settings.move_confirm_mode BUTTON
 ##                          the step cluster is instead a pressable button with
 ##                          this label (parked-gold CTA) whose press confirms
@@ -94,6 +97,9 @@ static var joy_skin_override: int = -1
 ##     mouse_button  int        — OPTIONAL: under KEYBOARD_MOUSE this is a map
 ##                                gesture (a click), not a key — show the mouse
 ##                                glyph instead of resolving a key
+##     mouse_action  StringName — OPTIONAL: under KEYBOARD_MOUSE name this
+##                                action's binding instead (right click is
+##                                `back`, so a rebind shows the new one)
 ##     touch_label   String     — OPTIONAL: under TOUCH the item is a real
 ##                                button with this label; absent = no button
 ##     touch_only    bool       — OPTIONAL: shown under TOUCH alone
@@ -127,7 +133,7 @@ static func _ensure_table() -> void:
 			step = "Choose a destination", step_touch = "Tap a destination",
 			items = [
 				{action = &"ui_accept", verb = "Plot path", mouse_button = MOUSE_BUTTON_LEFT},
-				{action = &"ui_cancel", verb = "Cancel", mouse_button = MOUSE_BUTTON_RIGHT, touch_label = "Cancel"},
+				{action = &"ui_cancel", verb = "Cancel", mouse_action = &"back", touch_label = "Cancel"},
 				{action = &"unit_info", verb = "Unit info", touch_label = "Unit info"},
 			],
 		},
@@ -149,7 +155,7 @@ static func _ensure_table() -> void:
 			step_notice = true, confirm_label = "Confirm path",
 			items = [
 				{action = &"ui_accept", verb = "Add stop", mouse_button = MOUSE_BUTTON_LEFT},
-				{action = &"ui_cancel", verb = "Cancel", mouse_button = MOUSE_BUTTON_RIGHT, touch_label = "Cancel"},
+				{action = &"ui_cancel", verb = "Cancel", mouse_action = &"back", touch_label = "Cancel"},
 				{action = &"unit_info", verb = "Unit info", touch_label = "Unit info"},
 			],
 		},
@@ -157,14 +163,15 @@ static func _ensure_table() -> void:
 			step = "Choose an action", step_touch = "Tap an action",
 			items = [
 				{action = &"ui_accept", verb = "Confirm", mouse_button = MOUSE_BUTTON_LEFT},
-				{action = &"ui_cancel", verb = "Back", mouse_button = MOUSE_BUTTON_RIGHT, touch_label = "Back"},
+				{action = &"ui_cancel", verb = "Back", mouse_action = &"back", touch_label = "Back"},
 			],
 		},
 		Enums.InputState.ATTACK_TARGETING: {
 			step = "Choose a target", step_touch = "Tap a target",
+			step_touch_armed = "Tap the target again to attack",
 			items = [
 				{action = &"ui_accept", verb = "Attack", mouse_button = MOUSE_BUTTON_LEFT},
-				{action = &"ui_cancel", verb = "Back", mouse_button = MOUSE_BUTTON_RIGHT, touch_label = "Back"},
+				{action = &"ui_cancel", verb = "Back", mouse_action = &"back", touch_label = "Back"},
 			],
 		},
 		# The sheet is browsable under the cursor model (UnitDetailPanel wires
@@ -223,7 +230,7 @@ static func _phase_blind(state: Enums.InputState) -> bool:
 ## no step for this state; ENEMY_PHASE_STEP while the enemy owns the turn; the
 ## inspect notice's line in DEFAULT when one is up.
 static func step_text_for(state: Enums.InputState, model: Model, enemy_phase: bool = false,
-		notice: InspectNotice = InspectNotice.NONE) -> String:
+		notice: InspectNotice = InspectNotice.NONE, armed: bool = false) -> String:
 	_ensure_table()
 	if enemy_phase and not _phase_blind(state):
 		return ENEMY_PHASE_STEP
@@ -233,7 +240,7 @@ static func step_text_for(state: Enums.InputState, model: Model, enemy_phase: bo
 		return inspect_notice_text(notice, model)
 	var entry: Dictionary = _table[state]
 	if model == Model.TOUCH:
-		return entry.step_touch
+		return entry.step_touch_armed if armed and entry.has("step_touch_armed") else entry.step_touch
 	return entry.step
 
 
@@ -241,11 +248,11 @@ static func step_text_for(state: Enums.InputState, model: Model, enemy_phase: bo
 ## during the enemy phase — there is nothing to point at. An inspect notice
 ## wears it too: the line changed under a press that did nothing else.
 static func step_is_notice(state: Enums.InputState, enemy_phase: bool = false,
-		notice: InspectNotice = InspectNotice.NONE) -> bool:
+		notice: InspectNotice = InspectNotice.NONE, armed: bool = false) -> bool:
 	_ensure_table()
 	if enemy_phase or not _table.has(state):
 		return false
-	if _notice_applies(state, notice):
+	if _notice_applies(state, notice) or (armed and _table[state].has("step_touch_armed")):
 		return true
 	return bool(_table[state].get("step_notice", false))
 
@@ -326,7 +333,7 @@ static func glyph_for(item: Dictionary, model: Model) -> String:
 		Model.KEYBOARD_MOUSE:
 			if item.has("mouse_button"):
 				return mouse_button_label(int(item.mouse_button))
-			return key_label_for_action(item.action)
+			return key_label_for_action(item.get("mouse_action", item.action))
 		Model.CONTROLLER:
 			return joy_label_for_action(item.action, current_joy_skin())
 	return ""

@@ -86,6 +86,9 @@ var enemy_phase: bool = false
 ## Set by InputManager when a DEFAULT press lands on a unit the player can't
 ## command. Released at the next state or phase boundary.
 var inspect_notice: HintBarCommands.InspectNotice = HintBarCommands.InspectNotice.NONE
+## Set by InputManager when a touch tap armed an attack target: the step line
+## asks for the second tap. Released at the next state or phase boundary.
+var target_armed: bool = false
 ## What was under the pointer / board cursor at the last refresh, as the
 ## context verbs saw it. Readable by tests.
 var last_hover: HintBarCommands.Hover = HintBarCommands.Hover.UNIT
@@ -285,12 +288,14 @@ func refresh() -> void:
 	if state_manager != null:
 		state = state_manager.current_state
 
-	var step_text := HintBarCommands.step_text_for(state, model, enemy_phase, inspect_notice)
+	var step_text := HintBarCommands.step_text_for(state, model, enemy_phase, inspect_notice,
+			target_armed)
 	var confirm_label := HintBarCommands.confirm_label_for(state, enemy_phase)
 	var use_button: bool = not confirm_label.is_empty() and _confirm_mode_is_button(model)
 	if use_button:
 		last_step_form = StepForm.BUTTON
-	elif HintBarCommands.step_is_notice(state, enemy_phase, inspect_notice) and not step_text.is_empty():
+	elif HintBarCommands.step_is_notice(state, enemy_phase, inspect_notice, target_armed) \
+			and not step_text.is_empty():
 		last_step_form = StepForm.NOTICE
 	else:
 		last_step_form = StepForm.LABEL
@@ -532,6 +537,19 @@ func _on_confirm_button_pressed() -> void:
 # BOUNDARIES
 # =============================================================================
 
+func set_target_armed(armed: bool) -> void:
+	if armed == target_armed:
+		return
+	target_armed = armed
+	refresh()
+
+
+## Boundaries end both step-line notices: they describe the last press.
+func _release_notices() -> void:
+	inspect_notice = HintBarCommands.InspectNotice.NONE
+	target_armed = false
+
+
 func set_inspect_notice(notice: HintBarCommands.InspectNotice) -> void:
 	if notice == inspect_notice:
 		return
@@ -578,20 +596,20 @@ func _zone_press_on(tile: Tile) -> int:
 
 
 func _on_state_changed(_old_state: Enums.InputState, _new_state: Enums.InputState) -> void:
-	inspect_notice = HintBarCommands.InspectNotice.NONE
+	_release_notices()
 	refresh()
 
 
 func _on_battle_started(_player_units: Array[Unit]) -> void:
 	battle_active = true
 	enemy_phase = false
-	inspect_notice = HintBarCommands.InspectNotice.NONE
+	_release_notices()
 	refresh()
 
 
 func _on_battle_ended(_is_victory: bool) -> void:
 	battle_active = false
-	inspect_notice = HintBarCommands.InspectNotice.NONE
+	_release_notices()
 	refresh()
 
 
@@ -601,14 +619,14 @@ func _on_battle_ended(_is_victory: bool) -> void:
 func _on_player_phase_started(_turn_count: int) -> void:
 	battle_active = true
 	enemy_phase = false
-	inspect_notice = HintBarCommands.InspectNotice.NONE
+	_release_notices()
 	refresh()
 
 
 func _on_enemy_phase_started() -> void:
 	battle_active = true
 	enemy_phase = true
-	inspect_notice = HintBarCommands.InspectNotice.NONE
+	_release_notices()
 	refresh()
 
 

@@ -3,6 +3,7 @@
 ## that can still act, in roster order and wrapping, counting from the
 ## selected unit or the one under the cursor; it works only on the open board.
 ## The info button (I / Y) with no unit to read shows the type icons instead.
+## Back (right click) steps back like Escape but never opens the system menu.
 ## The zone button's side is in test_threat_overlay_controller.
 extends GutTest
 
@@ -112,3 +113,13 @@ func test_a_freed_hovered_tile_reads_as_none() -> void:
 	InputManager._hovered_tile = tile
 	tile.free()
 	assert_null(InputManager.get_hovered_tile())
+
+
+func test_back_cancels_a_selection_but_never_opens_the_menu() -> void:
+	InputManager._unhandled_input(_press(&"back"))
+	assert_eq(GameStateManager.current_state, Enums.InputState.DEFAULT,
+			"the open board: a stray right click opens no menu (Escape does)")
+	InputManager.select_unit(_units[0])
+	InputManager._unhandled_input(_press(&"back"))
+	assert_null(InputManager.get_selected_unit(), "a selection: back cancels it")
+	assert_eq(GameStateManager.current_state, Enums.InputState.DEFAULT)

@@ -485,6 +485,33 @@ func test_right_click_is_hold_to_peek() -> void:
 			"release dismisses — hold is the verb, on every input")
 
 
+func test_a_quick_right_click_never_opens_the_unit_sheet() -> void:
+	var chip_button := _make_chip_button(_make_move())
+	var recorder := UnitInfoRecorder.new()
+	add_child_autofree(recorder)
+	chip_button._handle_peek_input(_mouse_button(MOUSE_BUTTON_RIGHT, true))
+	chip_button._handle_peek_input(_mouse_button(MOUSE_BUTTON_RIGHT, false))
+	await get_tree().process_frame
+	assert_eq(recorder.presses, 0, "a mouse has no tap meaning to pass on, unlike Y")
+
+
+func test_the_mouse_peek_follows_its_binding() -> void:
+	var bindings := InputMap.action_get_events(&"tooltip_peek")
+	InputMap.action_erase_events(&"tooltip_peek")
+	var middle := InputEventMouseButton.new()
+	middle.button_index = MOUSE_BUTTON_MIDDLE
+	InputMap.action_add_event(&"tooltip_peek", middle)
+	var chip_button := _make_chip_button(_make_move())
+	assert_false(chip_button._handle_peek_input(_mouse_button(MOUSE_BUTTON_RIGHT, true)),
+			"right click rebound away: no longer the peek")
+	chip_button._handle_peek_input(_mouse_button(MOUSE_BUTTON_MIDDLE, true))
+	assert_true(MoveTooltip.is_open_for(chip_button), "the rebound button peeks")
+	chip_button._handle_peek_input(_mouse_button(MOUSE_BUTTON_MIDDLE, false))
+	InputMap.action_erase_events(&"tooltip_peek")
+	for binding: InputEvent in bindings:
+		InputMap.action_add_event(&"tooltip_peek", binding)
+
+
 func test_touch_hold_matures_into_a_peek_and_swallows_the_release() -> void:
 	var chip_button := _make_chip_button(_make_move())
 	assert_false(chip_button._handle_peek_input(_mouse_button(MOUSE_BUTTON_LEFT, true, true)),

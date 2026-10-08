@@ -324,3 +324,29 @@ func test_the_level_up_reveal_says_continue_in_both_phases() -> void:
 		if other != state:
 			assert_eq(HintBarCommands.items_for(other, true).size(), 0,
 					"%s still blanks in the enemy phase" % Enums.InputState.keys()[other])
+
+
+func test_the_right_click_items_name_backs_binding() -> void:
+	var kb := HintBarCommands.Model.KEYBOARD_MOUSE
+	assert_eq(_glyphs(Enums.InputState.UNIT_SELECTED, kb), ["LMB", "RMB", "I"])
+	var bindings := InputMap.action_get_events(&"back")
+	InputMap.action_erase_events(&"back")
+	var key := InputEventKey.new()
+	key.physical_keycode = KEY_B
+	InputMap.action_add_event(&"back", key)
+	assert_eq(_glyphs(Enums.InputState.UNIT_SELECTED, kb)[1], "B", "a rebind shows the new button")
+	InputMap.action_erase_events(&"back")
+	for binding: InputEvent in bindings:
+		InputMap.action_add_event(&"back", binding)
+
+
+func test_an_armed_target_asks_touch_for_the_second_tap() -> void:
+	var state := Enums.InputState.ATTACK_TARGETING
+	var none := HintBarCommands.InspectNotice.NONE
+	assert_eq(HintBarCommands.step_text_for(state, HintBarCommands.Model.TOUCH), "Tap a target")
+	assert_eq(HintBarCommands.step_text_for(state, HintBarCommands.Model.TOUCH, false, none, true),
+			"Tap the target again to attack")
+	assert_true(HintBarCommands.step_is_notice(state, false, none, true),
+			"a changed instruction wears the notice border")
+	assert_eq(HintBarCommands.step_text_for(state, HintBarCommands.Model.CONTROLLER, false, none, true),
+			"Choose a target", "only touch arms: the pad sees the forecast on its cursor")

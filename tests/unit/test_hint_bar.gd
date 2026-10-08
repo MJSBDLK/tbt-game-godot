@@ -419,3 +419,15 @@ func test_glass_backing_follows_placement() -> void:
 	bar.placement = HintBar.Placement.FULL_WIDTH
 	assert_true(bar._strip.get_theme_stylebox("panel") is StyleBoxFlat, "strip glass")
 	assert_true(bar._items_panel.get_theme_stylebox("panel") is StyleBoxEmpty, "items cluster clear")
+
+
+func test_an_armed_target_asks_for_the_second_tap_until_the_state_moves() -> void:
+	InputSource.last_device = InputSource.Device.TOUCH
+	GameStateManager.change_state(Enums.InputState.ATTACK_TARGETING)
+	var bar := _make_bar()
+	assert_eq(bar._step_label.text, "Tap a target")
+	bar.set_target_armed(true)
+	assert_eq(bar._step_label.text, "Tap the target again to attack")
+	assert_eq(bar.last_step_form, HintBar.StepForm.NOTICE)
+	GameStateManager.change_state(Enums.InputState.DEFAULT)
+	assert_false(bar.target_armed, "a state change releases it")
