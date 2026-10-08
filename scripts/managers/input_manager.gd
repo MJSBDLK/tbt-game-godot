@@ -34,6 +34,7 @@ var _long_press_fired: bool = false
 
 func _ready() -> void:
 	_cursor.moved.connect(_on_cursor_moved)
+	hover_changed.connect(_preview_path_to)
 	# TurnManager autoloads after this node, so signal hookup waits a frame.
 	_connect_cursor_signals.call_deferred()
 
@@ -751,6 +752,23 @@ func _on_player_phase_started(_turn_count: int) -> void:
 # =============================================================================
 # MOVEMENT
 # =============================================================================
+
+## A selected unit that hasn't moved: the beacons preview the route to the
+## tile under the pointer or cursor, inside the movement range left (from the
+## unit, or onward from the last stop). On a marker they show just the plan:
+## pressing one confirms or cuts back to it. The ghost stays on what's
+## plotted (PathVisualizer.preview_path_to).
+func _preview_path_to(tile: Tile) -> void:
+	var state: Enums.InputState = GameStateManager.current_state
+	if _selected_unit == null or _unit_has_moved or (state != Enums.InputState.UNIT_SELECTED
+			and state != Enums.InputState.MOVEMENT_PLANNING):
+		return
+	var visualizer := _selected_unit.get_node_or_null("PathVisualizer") as PathVisualizer
+	if visualizer != null:
+		var onward := tile != null and GridManager.is_in_current_movement_range(tile) \
+				and not _is_waypoint_tile(tile)
+		visualizer.preview_path_to(_selected_unit, tile if onward else null)
+
 
 func _is_waypoint_tile(tile: Tile) -> bool:
 	if _selected_unit == null:
