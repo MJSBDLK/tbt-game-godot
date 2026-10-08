@@ -18,22 +18,7 @@ Each issue uses structured metadata for tracking. Priority: P0 (critical) → P5
 
 ## Open Issues
 
-### [VFX-001] Freed-unit lambda in acted-modulate tween
-
-- **Status**: `OPEN`
-- **Affected Systems**: `VisualFeedbackManager`
-- **Introduced**: unknown (surfaced in GUT logs 2026-08-10 — 3× "Lambda
-  capture at index 0 was freed" + "Cannot call method 'has_method' on a null
-  value" per full-suite run; tests still pass)
-- **Description**: `visual_feedback_manager.gd:74` connects a
-  `tween.finished` lambda that captures `target`; if the unit is freed before
-  the tween finishes (death mid-animation, battle teardown), the capture is
-  nulled and `target.has_method(...)` errors.
-- **Expected**: the lambda guards with `is_instance_valid(target)` before
-  touching it (same pattern MainMenuEntry._press already uses).
-- **Actual**: script error in logs; harmless in practice so far.
-- **Related Files**: `scripts/ui/visual_feedback_manager.gd`
-- **Priority**: P4
+*None.*
 
 ---
 
@@ -65,7 +50,24 @@ These issues existed in the Unity version. Watch for them during porting:
 
 ## Resolved Issues
 
-*None yet.*
+### [VFX-001] Freed-unit lambda in acted-modulate tween
+
+- **Status**: `RESOLVED`
+- **Affected Systems**: the map hit flash (`HitFlash`)
+- **Introduced**: unknown (surfaced in GUT logs 2026-08-10 — 3× "Lambda
+  capture at index 0 was freed" + "Cannot call method 'has_method' on a null
+  value" per full-suite run; tests still pass)
+- **Description**: the hit flash connects a
+  `tween.finished` lambda that captures `target`; if the unit is freed before
+  the tween finishes (death mid-animation, battle teardown), the capture is
+  nulled and `target.has_method(...)` errors.
+- **Expected**: the lambda guards with `is_instance_valid(target)` before
+  touching it (same pattern MainMenuEntry._press already uses).
+- **Actual**: script error in logs; harmless in practice so far.
+- **Resolution**: the tween is created on the sprite (`sprite.create_tween()`),
+  so a unit freed mid-flash takes the tween and its callback with it.
+- **Related Files**: `scripts/units/hit_flash.gd`
+- **Priority**: P4
 
 ---
 
