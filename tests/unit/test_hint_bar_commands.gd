@@ -27,9 +27,10 @@ func _glyphs(state: Enums.InputState, model: HintBarCommands.Model, enemy: bool 
 	return out
 
 
-func _verbs(state: Enums.InputState, model: HintBarCommands.Model) -> Array:
+func _verbs(state: Enums.InputState, model: HintBarCommands.Model,
+		hover: HintBarCommands.Hover = HintBarCommands.Hover.UNIT) -> Array:
 	var out: Array = []
-	for entry: Dictionary in HintBarCommands.resolve(state, model):
+	for entry: Dictionary in HintBarCommands.resolve(state, model, false, hover):
 		out.append(entry.verb)
 	return out
 
@@ -96,24 +97,48 @@ func test_states_the_bar_is_silent_in() -> void:
 # --- the DEFAULT row, three renderings (mockup round 1) -----------------------
 
 func test_default_row_under_controller() -> void:
-	# X / LB are the 2026-08-20 bindings (end_turn / toggle_threat_zones were
-	# keyboard-only before); B is ui_cancel, which opens the menu from DEFAULT.
+	# The zones ride RT (a trigger); B is ui_cancel, which opens the menu from
+	# DEFAULT. Next unit (RB) is touch's alone: the bar teaches, it doesn't
+	# enumerate.
 	assert_eq(_glyphs(Enums.InputState.DEFAULT, HintBarCommands.Model.CONTROLLER),
-			["A", "Y", "X", "LB", "B"])
+			["A", "Y", "X", "RT", "B"])
 	assert_eq(_verbs(Enums.InputState.DEFAULT, HintBarCommands.Model.CONTROLLER),
 			["Select", "Unit info", "End turn", "Threat zones", "Menu"])
 
 
 func test_default_row_under_keyboard_mouse() -> void:
 	assert_eq(_glyphs(Enums.InputState.DEFAULT, HintBarCommands.Model.KEYBOARD_MOUSE),
-			["LMB", "I", "E", "V", "Esc"])
+			["LMB", "I", "Bksp", "V", "Esc"])
 
 
 func test_default_row_under_touch_is_only_the_buttons() -> void:
-	# Select has no button — tapping the map IS the select. The three that have
-	# no gesture become buttons.
+	# Select has no button — tapping the map IS the select. The ones that have
+	# no gesture become buttons; Next is touch's only way to cycle units.
 	assert_eq(_glyphs(Enums.InputState.DEFAULT, HintBarCommands.Model.TOUCH),
-			["End turn", "Threat", "Menu"])
+			["End turn", "Threat", "Menu", "Next"])
+
+
+func test_the_info_verb_says_what_the_press_does_under_the_cursor() -> void:
+	var on_nothing := _verbs(Enums.InputState.DEFAULT, HintBarCommands.Model.CONTROLLER,
+			HintBarCommands.Hover.NO_UNIT)
+	assert_true(on_nothing.has("Type icons"), "no unit to read: the info button shows type icons")
+	assert_eq(_verbs(Enums.InputState.UNIT_SELECTED, HintBarCommands.Model.CONTROLLER,
+			HintBarCommands.Hover.NO_UNIT).has("Unit info"), true,
+			"with a unit selected the info button is that unit's, whatever's under the cursor")
+
+
+func test_the_zone_verb_names_the_next_press() -> void:
+	var zone_verb := func(press: int) -> String:
+		for entry: Dictionary in HintBarCommands.resolve(Enums.InputState.DEFAULT,
+				HintBarCommands.Model.CONTROLLER, false, HintBarCommands.Hover.UNIT, press):
+			if entry.action == &"toggle_threat_zones":
+				return entry.verb
+		return ""
+	assert_eq(zone_verb.call(-1), "Threat zones", "no battle, no controller: the plain verb")
+	assert_eq(zone_verb.call(ThreatOverlayController.Press.SHOW_ARMY), "Threat zones")
+	assert_eq(zone_verb.call(ThreatOverlayController.Press.HIDE_ARMY), "Hide threat zones")
+	assert_eq(zone_verb.call(ThreatOverlayController.Press.PIN), "Pin zone")
+	assert_eq(zone_verb.call(ThreatOverlayController.Press.UNPIN), "Unpin zone")
 
 
 func test_unit_detail_row_says_what_the_press_does() -> void:
@@ -261,7 +286,23 @@ func test_joy_button_labels_per_skin() -> void:
 func test_skin_override_drives_resolution() -> void:
 	HintBarCommands.joy_skin_override = HintBarCommands.JoySkin.PLAYSTATION
 	assert_eq(_glyphs(Enums.InputState.DEFAULT, HintBarCommands.Model.CONTROLLER),
-			["Cross", "Triangle", "Square", "L1", "Circle"])
+			["Cross", "Triangle", "Square", "R2", "Circle"])
+
+
+func test_triggers_are_labeled_per_skin() -> void:
+	var expected := {
+		HintBarCommands.JoySkin.XBOX: ["LT", "RT"],
+		HintBarCommands.JoySkin.STEAM_DECK: ["L2", "R2"],
+		HintBarCommands.JoySkin.PLAYSTATION: ["L2", "R2"],
+		HintBarCommands.JoySkin.NINTENDO: ["ZL", "ZR"],
+	}
+	for skin: HintBarCommands.JoySkin in expected:
+		assert_eq([HintBarCommands.joy_trigger_label(JOY_AXIS_TRIGGER_LEFT, skin),
+				HintBarCommands.joy_trigger_label(JOY_AXIS_TRIGGER_RIGHT, skin)], expected[skin])
+		for label: String in expected[skin]:
+			assert_not_null(HintBarCommands.joy_glyph_texture(label), "%s has its sprite" % label)
+	assert_eq(HintBarCommands.joy_trigger_label(JOY_AXIS_LEFT_X, HintBarCommands.JoySkin.XBOX), "",
+			"a stick isn't a button the bar can name")
 
 
 # --- the level-up reveal (manual advance, 2026-09-09) --------------------------
@@ -283,3 +324,29 @@ func test_the_level_up_reveal_says_continue_in_both_phases() -> void:
 		if other != state:
 			assert_eq(HintBarCommands.items_for(other, true).size(), 0,
 					"%s still blanks in the enemy phase" % Enums.InputState.keys()[other])
+
+
+func test_the_right_click_items_name_backs_binding() -> void:
+	var kb := HintBarCommands.Model.KEYBOARD_MOUSE
+	assert_eq(_glyphs(Enums.InputState.UNIT_SELECTED, kb), ["LMB", "RMB", "I"])
+	var bindings := InputMap.action_get_events(&"back")
+	InputMap.action_erase_events(&"back")
+	var key := InputEventKey.new()
+	key.physical_keycode = KEY_B
+	InputMap.action_add_event(&"back", key)
+	assert_eq(_glyphs(Enums.InputState.UNIT_SELECTED, kb)[1], "B", "a rebind shows the new button")
+	InputMap.action_erase_events(&"back")
+	for binding: InputEvent in bindings:
+		InputMap.action_add_event(&"back", binding)
+
+
+func test_an_armed_target_asks_touch_for_the_second_tap() -> void:
+	var state := Enums.InputState.ATTACK_TARGETING
+	var none := HintBarCommands.InspectNotice.NONE
+	assert_eq(HintBarCommands.step_text_for(state, HintBarCommands.Model.TOUCH), "Tap a target")
+	assert_eq(HintBarCommands.step_text_for(state, HintBarCommands.Model.TOUCH, false, none, true),
+			"Tap the target again to attack")
+	assert_true(HintBarCommands.step_is_notice(state, false, none, true),
+			"a changed instruction wears the notice border")
+	assert_eq(HintBarCommands.step_text_for(state, HintBarCommands.Model.CONTROLLER, false, none, true),
+			"Choose a target", "only touch arms: the pad sees the forecast on its cursor")

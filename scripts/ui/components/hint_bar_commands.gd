@@ -18,8 +18,12 @@
 ##     (glyph_for). A rebind shows the new key; an unbound action drops out of
 ##     the bar. RQD: "I hate it when it's rebound and shows the default."
 ##   - At most MAX_ITEMS_PER_STATE items per state — the bar teaches, it
-##     doesn't enumerate. Camera, tooltip peek, unit cycling are deliberately
-##     absent.
+##     doesn't enumerate. Camera and tooltip peek are deliberately absent;
+##     unit cycling shows only as touch's Next (touch has no other way to it).
+##   - A button whose meaning depends on the board says that meaning: the info
+##     button over no unit reads "Type icons" (Hover), and the zone button
+##     names the press it will make (Pin / Unpin zone over an enemy, Threat
+##     zones / Hide threat zones elsewhere).
 ##   - UNIT_SELECTED and MOVEMENT_PLANNING teach the waypoint mechanic ONE
 ##     CLICK AT A TIME (RQD 2026-08-21: "what I just said was overwhelming").
 ##     The first click in range doesn't move — it plots a path and flips the
@@ -61,6 +65,12 @@ const ENEMY_PHASE_STEP: String = "Enemy phase"
 ## player who clicks an enemy first learns which units are theirs.
 enum InspectNotice { NONE, ENEMY, NOT_YOURS, ALREADY_ACTED }
 
+## What's under the pointer or board cursor, for the verbs that depend on it
+## (verb_on_no_unit). UNIT keeps the plain verbs; so does a caller that
+## doesn't say. HintBar reads it off the board (HintBar.hover_on): this file
+## names no game class, so a -s probe script can load it.
+enum Hover { UNIT, NO_UNIT }
+
 ## Test hook: force a skin instead of reading the connected joypad's name.
 ## -1 = read the real pad.
 static var joy_skin_override: int = -1
@@ -74,6 +84,9 @@ static var joy_skin_override: int = -1
 ##   step_notice   bool   — OPTIONAL: the step line wears the §14 NOTICE border
 ##                          (violet, static: "the game is pointing at this, it
 ##                          is not a button") so a changed instruction registers.
+##   step_touch_armed String — OPTIONAL: the touch instruction once a first tap
+##                          armed a target (InputManager.target_tap); wears
+##                          the NOTICE border like the marker's "again" line.
 ##   confirm_label String — OPTIONAL: under Settings.move_confirm_mode BUTTON
 ##                          the step cluster is instead a pressable button with
 ##                          this label (parked-gold CTA) whose press confirms
@@ -84,8 +97,16 @@ static var joy_skin_override: int = -1
 ##     mouse_button  int        — OPTIONAL: under KEYBOARD_MOUSE this is a map
 ##                                gesture (a click), not a key — show the mouse
 ##                                glyph instead of resolving a key
+##     mouse_action  StringName — OPTIONAL: under KEYBOARD_MOUSE name this
+##                                action's binding instead (right click is
+##                                `back`, so a rebind shows the new one)
 ##     touch_label   String     — OPTIONAL: under TOUCH the item is a real
 ##                                button with this label; absent = no button
+##     touch_only    bool       — OPTIONAL: shown under TOUCH alone
+##     verb_on_no_unit String   — OPTIONAL: the verb while no unit is under the
+##                                pointer / board cursor (Hover.NO_UNIT)
+##     verb_by_press   Array    — OPTIONAL: the zone button's verb for each
+##                                ThreatOverlayController.Press, in its order
 static var _table: Dictionary = {}
 
 
@@ -97,11 +118,13 @@ static func _ensure_table() -> void:
 			step = "Select one of your units", step_touch = "Tap one of your units",
 			items = [
 				{action = &"ui_accept", verb = "Select", mouse_button = MOUSE_BUTTON_LEFT},
-				{action = &"unit_info", verb = "Unit info"},
+				{action = &"unit_info", verb = "Unit info", verb_on_no_unit = "Type icons"},
 				{action = &"end_turn", verb = "End turn", touch_label = "End turn"},
-				{action = &"toggle_threat_zones", verb = "Threat zones", touch_label = "Threat"},
+				{action = &"toggle_threat_zones", verb = "Threat zones", touch_label = "Threat",
+						verb_by_press = ["Threat zones", "Hide threat zones", "Pin zone", "Unpin zone"]},
 				# Esc / B opens the system menu from DEFAULT (InputManager._handle_escape).
 				{action = &"ui_cancel", verb = "Menu", touch_label = "Menu"},
+				{action = &"unit_next", verb = "Next unit", touch_label = "Next", touch_only = true},
 			],
 		},
 		# No waypoint yet. The first press in range PLOTS a path (it does not
@@ -110,7 +133,7 @@ static func _ensure_table() -> void:
 			step = "Choose a destination", step_touch = "Tap a destination",
 			items = [
 				{action = &"ui_accept", verb = "Plot path", mouse_button = MOUSE_BUTTON_LEFT},
-				{action = &"ui_cancel", verb = "Cancel", mouse_button = MOUSE_BUTTON_RIGHT, touch_label = "Cancel"},
+				{action = &"ui_cancel", verb = "Cancel", mouse_action = &"back", touch_label = "Cancel"},
 				{action = &"unit_info", verb = "Unit info", touch_label = "Unit info"},
 			],
 		},
@@ -132,7 +155,7 @@ static func _ensure_table() -> void:
 			step_notice = true, confirm_label = "Confirm path",
 			items = [
 				{action = &"ui_accept", verb = "Add stop", mouse_button = MOUSE_BUTTON_LEFT},
-				{action = &"ui_cancel", verb = "Cancel", mouse_button = MOUSE_BUTTON_RIGHT, touch_label = "Cancel"},
+				{action = &"ui_cancel", verb = "Cancel", mouse_action = &"back", touch_label = "Cancel"},
 				{action = &"unit_info", verb = "Unit info", touch_label = "Unit info"},
 			],
 		},
@@ -140,14 +163,15 @@ static func _ensure_table() -> void:
 			step = "Choose an action", step_touch = "Tap an action",
 			items = [
 				{action = &"ui_accept", verb = "Confirm", mouse_button = MOUSE_BUTTON_LEFT},
-				{action = &"ui_cancel", verb = "Back", mouse_button = MOUSE_BUTTON_RIGHT, touch_label = "Back"},
+				{action = &"ui_cancel", verb = "Back", mouse_action = &"back", touch_label = "Back"},
 			],
 		},
 		Enums.InputState.ATTACK_TARGETING: {
 			step = "Choose a target", step_touch = "Tap a target",
+			step_touch_armed = "Tap the target again to attack",
 			items = [
 				{action = &"ui_accept", verb = "Attack", mouse_button = MOUSE_BUTTON_LEFT},
-				{action = &"ui_cancel", verb = "Back", mouse_button = MOUSE_BUTTON_RIGHT, touch_label = "Back"},
+				{action = &"ui_cancel", verb = "Back", mouse_action = &"back", touch_label = "Back"},
 			],
 		},
 		# The sheet is browsable under the cursor model (UnitDetailPanel wires
@@ -206,7 +230,7 @@ static func _phase_blind(state: Enums.InputState) -> bool:
 ## no step for this state; ENEMY_PHASE_STEP while the enemy owns the turn; the
 ## inspect notice's line in DEFAULT when one is up.
 static func step_text_for(state: Enums.InputState, model: Model, enemy_phase: bool = false,
-		notice: InspectNotice = InspectNotice.NONE) -> String:
+		notice: InspectNotice = InspectNotice.NONE, armed: bool = false) -> String:
 	_ensure_table()
 	if enemy_phase and not _phase_blind(state):
 		return ENEMY_PHASE_STEP
@@ -216,7 +240,7 @@ static func step_text_for(state: Enums.InputState, model: Model, enemy_phase: bo
 		return inspect_notice_text(notice, model)
 	var entry: Dictionary = _table[state]
 	if model == Model.TOUCH:
-		return entry.step_touch
+		return entry.step_touch_armed if armed and entry.has("step_touch_armed") else entry.step_touch
 	return entry.step
 
 
@@ -224,11 +248,11 @@ static func step_text_for(state: Enums.InputState, model: Model, enemy_phase: bo
 ## during the enemy phase — there is nothing to point at. An inspect notice
 ## wears it too: the line changed under a press that did nothing else.
 static func step_is_notice(state: Enums.InputState, enemy_phase: bool = false,
-		notice: InspectNotice = InspectNotice.NONE) -> bool:
+		notice: InspectNotice = InspectNotice.NONE, armed: bool = false) -> bool:
 	_ensure_table()
 	if enemy_phase or not _table.has(state):
 		return false
-	if _notice_applies(state, notice):
+	if _notice_applies(state, notice) or (armed and _table[state].has("step_touch_armed")):
 		return true
 	return bool(_table[state].get("step_notice", false))
 
@@ -272,30 +296,44 @@ static func confirm_label_for(state: Enums.InputState, enemy_phase: bool = false
 ## The renderable list for a state under a model: each entry is
 ## {action, verb, glyph}. Items whose glyph resolves empty are DROPPED —
 ## unbound action, or (under TOUCH) no touch_label. Never longer than
-## MAX_ITEMS_PER_STATE.
-static func resolve(state: Enums.InputState, model: Model, enemy_phase: bool = false) -> Array[Dictionary]:
+## MAX_ITEMS_PER_STATE. `hover` and `zone_press` (a
+## ThreatOverlayController.Press, -1 = no battle) pick the context verbs.
+static func resolve(state: Enums.InputState, model: Model, enemy_phase: bool = false,
+		hover: Hover = Hover.UNIT, zone_press: int = -1) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for item: Dictionary in items_for(state, enemy_phase):
 		var glyph := glyph_for(item, model)
 		if glyph.is_empty():
 			continue
-		out.append({action = item.action, verb = item.verb, glyph = glyph})
+		out.append({action = item.action, verb = verb_for(item, hover, zone_press), glyph = glyph})
 	assert(out.size() <= MAX_ITEMS_PER_STATE,
 			"HintBarCommands: %s resolves to %d items — the bar teaches, it doesn't enumerate" % [
 				Enums.InputState.keys()[state], out.size()])
 	return out
 
 
+static func verb_for(item: Dictionary, hover: Hover, zone_press: int = -1) -> String:
+	if zone_press >= 0 and item.has("verb_by_press"):
+		assert(zone_press < item.verb_by_press.size(),
+				"HintBarCommands: no verb for zone press %d on %s" % [zone_press, item.action])
+		return String(item.verb_by_press[zone_press])
+	if hover == Hover.NO_UNIT:
+		return String(item.get("verb_on_no_unit", item.verb))
+	return item.verb
+
+
 ## The label for one item under one model, from the action's CURRENT bindings.
 ## "" = nothing to show (drop the item).
 static func glyph_for(item: Dictionary, model: Model) -> String:
+	if bool(item.get("touch_only", false)) and model != Model.TOUCH:
+		return ""
 	match model:
 		Model.TOUCH:
 			return String(item.get("touch_label", ""))
 		Model.KEYBOARD_MOUSE:
 			if item.has("mouse_button"):
 				return mouse_button_label(int(item.mouse_button))
-			return key_label_for_action(item.action)
+			return key_label_for_action(item.get("mouse_action", item.action))
 		Model.CONTROLLER:
 			return joy_label_for_action(item.action, current_joy_skin())
 	return ""
@@ -368,15 +406,34 @@ static func mouse_button_label(button: int) -> String:
 # CONTROLLER
 # =============================================================================
 
-## First joypad button bound to the action, labeled in the given skin. "" if
-## the action has no joypad binding. Axis bindings (triggers as motion) are
-## not labeled in v1.
+## First joypad binding of the action, a button or a trigger, labeled in the
+## given skin. "" if the action has none (stick axes aren't labeled).
 static func joy_label_for_action(action: StringName, skin: JoySkin) -> String:
 	if not InputMap.has_action(action):
 		return ""
 	for event: InputEvent in InputMap.action_get_events(action):
 		if event is InputEventJoypadButton:
 			return joy_button_label((event as InputEventJoypadButton).button_index, skin)
+		if event is InputEventJoypadMotion:
+			var label := joy_trigger_label((event as InputEventJoypadMotion).axis, skin)
+			if not label.is_empty():
+				return label
+	return ""
+
+
+## Physical label of a trigger under a skin; "" for a stick axis.
+static func joy_trigger_label(axis: JoyAxis, skin: JoySkin) -> String:
+	match axis:
+		JOY_AXIS_TRIGGER_LEFT:
+			match skin:
+				JoySkin.XBOX: return "LT"
+				JoySkin.NINTENDO: return "ZL"
+			return "L2"
+		JOY_AXIS_TRIGGER_RIGHT:
+			match skin:
+				JoySkin.XBOX: return "RT"
+				JoySkin.NINTENDO: return "ZR"
+			return "R2"
 	return ""
 
 
@@ -514,6 +571,8 @@ const JOY_GLYPH_SPRITES_BY_LABEL: Dictionary = {
 	"Cross": "shape_cross", "Circle": "shape_circle",
 	"Square": "shape_square", "Triangle": "shape_triangle",
 	"LB": "label_lb", "RB": "label_rb", "L1": "label_l1", "R1": "label_r1",
+	"LT": "label_lt", "RT": "label_rt", "L2": "label_l2", "R2": "label_r2",
+	"ZL": "label_zl", "ZR": "label_zr",
 	"Menu": "label_start", "View": "label_select",
 	"Options": "label_start", "Share": "label_select",
 	"+": "label_plus", "-": "label_minus",

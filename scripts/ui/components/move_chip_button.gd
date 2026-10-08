@@ -416,11 +416,14 @@ static func damage_type_icon(damage_type: Enums.DamageType) -> Texture2D:
 #   touch      — long press (Settings.tooltip_hold_ms); maturing the hold
 #                CANCELS the in-flight button press, so releasing after a peek
 #                never casts the move (the not-confuse-the-player rule).
-#   M&K        — hold right click. A real mouse left-hold never peeks: desktop
+#   M&K        — hold right click (a tooltip_peek binding, so a rebind can
+#                move it). A real mouse left-hold never peeks: desktop
 #                clicks have no tap/hold ambiguity, and a slow click must stay
 #                a click.
-#   controller — hold Back/R3 ("tooltip_peek") while focus is on the chip
-#                (focused Controls receive joypad events through gui_input).
+#   controller — hold Y ("tooltip_peek") while focus is on the chip, as long
+#                as the touch hold (focused Controls receive joypad events
+#                through gui_input). A tap keeps Y's other meaning: it goes
+#                back out as unit_info (unit info in the action menu).
 # Works on DISABLED chips too — a depleted move's details are exactly what a
 # player wants to read. Quick tap on one still denies; the hold peeks.
 # =============================================================================
@@ -437,21 +440,25 @@ func _gui_input(event: InputEvent) -> void:
 func _handle_peek_input(event: InputEvent) -> bool:
 	if not peek_enabled or _move == null:
 		return false
-	if event.is_action_pressed("tooltip_peek"):
-		_open_peek()
-		return true
-	if event.is_action_released("tooltip_peek"):
-		_close_peek()
-		return true
 	var mouse := event as InputEventMouseButton
-	if mouse == null:
-		return false
-	if mouse.button_index == MOUSE_BUTTON_RIGHT:
+	# The mouse's peek button (right click) peeks at once while held: a mouse
+	# has no tap meaning to keep, so no hold timer and no unit_info pass-on.
+	if mouse != null and event.is_action("tooltip_peek"):
 		if mouse.pressed:
 			_open_peek()
 		else:
 			_close_peek()
 		return true
+	if event.is_action_pressed("tooltip_peek"):
+		_peek_hold_start_ms = Time.get_ticks_msec()  # _process matures it
+		return true
+	if event.is_action_released("tooltip_peek"):
+		if not _peek_open and _peek_hold_start_ms >= 0:
+			_pass_tap_on()
+		_close_peek()
+		return true
+	if mouse == null:
+		return false
 	if mouse.button_index != MOUSE_BUTTON_LEFT:
 		return false
 	if mouse.pressed:
@@ -488,6 +495,17 @@ func _notification(what: int) -> void:
 	# down — otherwise the card floats over whatever replaced the menu.
 	if what == NOTIFICATION_VISIBILITY_CHANGED and not is_visible_in_tree():
 		_close_peek()
+
+
+## A tap of the peek button keeps the button's other meaning, wherever the
+## chip sits: it goes back out as unit_info, through the normal input
+## pipeline (as the hint bar's touch buttons fire theirs).
+func _pass_tap_on() -> void:
+	for pressed: bool in [true, false]:
+		var tap := InputEventAction.new()
+		tap.action = &"unit_info"
+		tap.pressed = pressed
+		Input.parse_input_event(tap)
 
 
 func _open_peek() -> void:

@@ -44,8 +44,10 @@ protect. Four things grow it:
 3. **Keep it local.** A change to one game concept touches few files. Prefer a
    direct call, or a signal on the thing itself, to a relay through a manager.
    Put the code next to the concept it implements.
-4. **Files under ~1000 lines.** Over-cap files are listed below. Don't grow
-   them. A substantial change to one carries a split proposal.
+4. **Files under ~1000 lines.** Past the line, a file either says in its
+   class header why it earns the length, or gets split by concept: the split
+   first, on its own commit, before the work that brought you there. No third
+   state. Docs count too; ask before splitting a planning doc.
 5. **Names in game language.** `truncate_waypoints_to`, not
    `handle_marker_press_alt`. A designer should recognize the name. No pattern
    nouns (Handler, Strategy, Factory) unless the pattern is the point.
@@ -117,15 +119,16 @@ modules (`HintBarCommands`, `ZIndexCalculator`, and kin).
 probes, `addons/aseprite_tag_exporter/`, the SceneRouter + HUDViewport dual
 render pipeline, the versioned pre-commit hook.
 
-**Over-cap files (2026-09-26) — don't grow; split when substantially touched:**
+**Over-cap files (2026-10-06), each with its verdict (principle 4):**
 
-| File | Lines |
-|---|---|
-| `scripts/units/unit.gd` | 2211 |
-| `scripts/ui/panels/unit_detail_panel.gd` | 1649 |
-| `scripts/managers/input_manager.gd` | 1111 |
-| `scripts/ui/components/unit_workbench.gd` | 1062 |
+| File | Lines | Verdict |
+|---|---|---|
+| `scripts/units/unit.gd` | 2211 | split pending |
+| `scripts/ui/panels/unit_detail_panel.gd` | 1649 | split pending |
+| `scripts/ui/components/unit_workbench.gd` | 1062 | split pending |
+| `.claude/todo-archive.md` | 2624 | justified: append-only, grepped never read whole (its header says so) |
 
+"Split pending" means the next work that lands in the file splits it first.
 Third-party addons (`gut`, `AsepriteWizard`, `importality`) are exempt. Update
 this table when a file crosses the line in either direction.
 
@@ -137,8 +140,8 @@ lookups. A new one of either needs a stated reason.
 "RETIRED"). Take those out of any hunk you're already editing; don't add new
 ones.
 
-**Planning docs are context too.** `.claude/todo.md` (~81 KB) and
-`todo-archive.md` (~159 KB) are the largest single reads in the repo. Apply
-principle 8 to every entry added there: what would the next reader lose at
-half? The commit message already holds the narrative; the entry can point at
-it.
+**Planning docs are context too.** `.claude/todo.md` (~44 KB) is read at the
+start of most sessions, so it holds open items only: done ones move to
+`todo-archive.md`, which is grepped, never read whole. Apply principle 8 to
+every entry added to todo.md: what would the next reader lose at half? The
+commit message already holds the narrative; the entry can point at it.

@@ -85,7 +85,7 @@ func release_contact(actor: Node2D) -> void:
 
 
 func impact(target: Node2D, impact_weight: float, tint: Color = Color.TRANSPARENT) -> void:
-	VisualFeedbackManager.apply_hit_flash(target, impact_weight, tint)
+	HitFlash.play(target, impact_weight, tint)
 	if target.is_inside_tree():
 		var camera := target.get_viewport().get_camera_2d() as CameraController
 		if camera != null:

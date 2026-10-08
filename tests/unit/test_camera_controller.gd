@@ -210,3 +210,25 @@ func test_a_fighter_freed_mid_fight_does_not_lock_the_camera() -> void:
 	fighter.free()
 	assert_false(Unit.is_fight_running(), "a coroutine that never resumes can't hold the gate shut")
 	Unit._fighters.clear()
+
+
+# =============================================================================
+# drag to pan: the camera_drag action (middle mouse), so a rebind reaches it
+# =============================================================================
+
+func _mouse_button(button: MouseButton, pressed: bool) -> InputEventMouseButton:
+	var event := InputEventMouseButton.new()
+	event.button_index = button
+	event.pressed = pressed
+	return event
+
+
+func test_the_drag_button_is_the_camera_drag_action() -> void:
+	GameStateManager.change_state(Enums.InputState.DEFAULT)
+	var camera := _free_camera()
+	camera._unhandled_input(_mouse_button(MOUSE_BUTTON_RIGHT, true))
+	assert_false(camera._is_dragging, "right click isn't the drag button")
+	camera._unhandled_input(_mouse_button(MOUSE_BUTTON_MIDDLE, true))
+	assert_true(camera._is_dragging, "held, the map follows the pointer")
+	camera._unhandled_input(_mouse_button(MOUSE_BUTTON_MIDDLE, false))
+	assert_false(camera._is_dragging, "and lets go on release")

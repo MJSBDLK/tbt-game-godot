@@ -261,10 +261,9 @@ static func _predicts_counter(attacker: Node, defender: Node, move: Move) -> boo
 # =============================================================================
 # HEALTH PIPS — shader-driven HP bars with damage preview
 # =============================================================================
-# HealthPipBar uses two values:
-#   health_fill = projected HP after damage (the green/healthy portion)
-#   damage_fill = HP that will be lost (the pulsing damage preview band)
-# The shader renders three zones from bottom: filled, damage preview, empty.
+# HealthPipBar.show_hp lights the HP left and pulses the band above it (the
+# HP this exchange takes, or a heal gives). The shader renders three zones
+# from bottom: filled, band, empty.
 
 func _update_health_pips(attacker: Node, defender: Node, move: Move) -> void:
 	_apply_pip_faction_color(_top_health_pips, attacker)
@@ -287,19 +286,16 @@ func _update_health_pips(attacker: Node, defender: Node, move: Move) -> void:
 		var counter_damage := DamageCalculator.calculate_damage(defender, attacker, counter_move)
 		var counter_hits := DamageCalculator.calculate_attack_count(defender, attacker)
 		var attacker_projected := maxi(0, attacker_hp - counter_damage * counter_hits)
-		_top_health_pips.health_fill = float(attacker_projected) / float(attacker_max_hp)
-		_top_health_pips.damage_fill = float(attacker_hp - attacker_projected) / float(attacker_max_hp)
+		_top_health_pips.show_hp(attacker_projected, attacker_hp - attacker_projected, attacker_max_hp)
 	else:
-		_top_health_pips.health_fill = float(attacker_hp) / float(attacker_max_hp)
-		_top_health_pips.damage_fill = 0.0
+		_top_health_pips.show_hp(attacker_hp, 0, attacker_max_hp)
 
 	# Defender HP — show incoming attack damage preview
 	var damage_per_hit := DamageCalculator.calculate_damage(attacker, defender, move)
 	var hit_count := DamageCalculator.calculate_attack_count(attacker, defender)
 	var defender_projected := maxi(0, defender_hp - damage_per_hit * hit_count)
 
-	_bottom_health_pips.health_fill = float(defender_projected) / float(defender_max_hp)
-	_bottom_health_pips.damage_fill = float(defender_hp - defender_projected) / float(defender_max_hp)
+	_bottom_health_pips.show_hp(defender_projected, defender_hp - defender_projected, defender_max_hp)
 
 	# Position arrows at the projected health boundary
 	var attacker_health_ratio := _top_health_pips.health_fill
@@ -587,23 +583,20 @@ func _update_heal_pips(caster: Node, target: Node, heal_amount: int) -> void:
 	# Self-cast: there's only one unit involved, so the heal projection rides
 	# on the top (caster) bar and the bottom bar is hidden by show_heal_preview.
 	if caster == target:
-		_top_health_pips.health_fill = float(caster_hp) / float(caster_max)
-		_top_health_pips.damage_fill = float(heal_amount) / float(caster_max)
+		_top_health_pips.show_hp(caster_hp, heal_amount, caster_max)
 		var caster_projected_ratio := float(caster_hp + heal_amount) / float(caster_max)
 		_position_arrow(_attacker_arrow, _top_health_pips, caster_projected_ratio, false)
 		return
 
 	# Standard heal: caster's bar is steady (they aren't taking or gaining HP),
 	# target's bar shows the projected gain band.
-	_top_health_pips.health_fill = float(caster_hp) / float(caster_max)
-	_top_health_pips.damage_fill = 0.0
+	_top_health_pips.show_hp(caster_hp, 0, caster_max)
 
 	var target_data: CharacterData = target.get("character_data")
 	var target_hp: int = target.get("current_hp")
 	var target_max: int = target_data.max_hp if target_data != null else 1
 
-	_bottom_health_pips.health_fill = float(target_hp) / float(target_max)
-	_bottom_health_pips.damage_fill = float(heal_amount) / float(target_max)
+	_bottom_health_pips.show_hp(target_hp, heal_amount, target_max)
 
 	_position_arrow(_attacker_arrow, _top_health_pips, _top_health_pips.health_fill, false)
 	# Position the target arrow at the TOP of the gain band (the projected new HP).
