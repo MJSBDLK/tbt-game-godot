@@ -5,7 +5,7 @@
 	"secondaryType": "None",
 	"currentClass": "Duelist",
 	"specialization": "None",
-	"lineartPath": "res://art/lineart_fullres/ex-gentry_swordsman.png",
+	"lineartPath": "res://art/lineart_fullres/ex_gentry_swordsman.png",
 	"lineartAtlases": {
 		"portrait": "res://art/lineart_fullres/ex_gentry_swordsman_portrait.tres"
 	},

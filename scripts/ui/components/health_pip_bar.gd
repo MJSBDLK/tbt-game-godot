@@ -4,6 +4,9 @@ class_name HealthPipBar
 ## filled (faction color), damage preview (pulsing), and empty.
 ## Requires a ShaderMaterial using health_pip_bar.gdshader.
 
+## One pip is a row of the art and the gap under it.
+const PIP_PITCH: int = 2
+
 @export var health_fill: float = 1.0:
 	set(value):
 		health_fill = clampf(value, 0.0, 1.0)
@@ -49,6 +52,17 @@ func _ready() -> void:
 	if material:
 		material = material.duplicate()
 		_apply_shader_params()
+
+
+## `health` lit and a pulsing `band` above it, in HP out of `max_hp`. Any
+## health left lights at least one pip: a unit that survives on 1 HP never
+## reads as a kill.
+func show_hp(health: int, band: int, max_hp: int) -> void:
+	assert(texture != null, "HealthPipBar: no pip art to measure a pip by")
+	var per_hp := 1.0 / maxf(1.0, float(max_hp))
+	var one_pip := float(PIP_PITCH) / float(texture.get_height())
+	health_fill = maxf(health * per_hp, one_pip) if health > 0 else 0.0
+	damage_fill = maxf(0.0, (health + band) * per_hp - health_fill)
 
 
 func _apply_shader_params() -> void:

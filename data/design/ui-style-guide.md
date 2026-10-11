@@ -579,7 +579,8 @@ tooltip is the spec sheet, so nobody is *required* to navigate menus to play.
     so the tap-through doesn't dismiss the panel mid-hold.
   - **Unit detail**: no-op (`peek_enabled = false`) — the detail pane beside
     the chips is the card's content, live and larger.
-- Controller mapping: `tooltip_peek` = Back AND R3 for now; playtest culls.
+- Controller mapping: `tooltip_peek` = hold Y, as long as the touch hold
+  (Settings.tooltip_hold_ms). A tap keeps Y's other meaning (unit info).
 
 ### Sound
 Crispy, RE1 / OG Deus Ex direction — sharp attack, dead-fast decay, mid-band.

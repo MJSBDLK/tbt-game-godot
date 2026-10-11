@@ -76,6 +76,9 @@ func resume_battle(player_units: Array[Unit], enemy_units: Array[Unit],
 	for unit: Unit in _enemy_units:
 		if not unit.unit_defeated.is_connected(_on_unit_defeated):
 			unit.unit_defeated.connect(_on_unit_defeated)
+	# The player phase: the enemy side stands down (an older save can still
+	# carry their acted latch).
+	_stand_down(_enemy_units)
 
 	DebugConfig.log_turn("TurnManager: Battle RESUMED at turn %d — %d players, %d enemies" % [
 		turn_count, _player_units.size(), _enemy_units.size()])
@@ -173,6 +176,7 @@ func start_player_phase() -> void:
 	var input_manager: Node = get_node_or_null("/root/InputManager")
 	if input_manager != null:
 		input_manager.disable_input()
+	_stand_down(_enemy_units)
 
 	DebugConfig.log_turn("TurnManager: === PLAYER PHASE (Turn %d) ===" % turn_count)
 
@@ -219,6 +223,7 @@ func start_enemy_phase() -> void:
 	if input_manager != null:
 		input_manager.disable_input()
 		input_manager.deselect_unit()
+	_stand_down(_player_units)
 
 	GridManager.clear_movement_range()
 	GridManager.clear_attack_range()
@@ -345,6 +350,16 @@ func _refresh_units(units: Array[Unit]) -> void:
 		if not unit.is_defeated():
 			unit.refresh_unit()
 	_audit_tile_occupancy(units, "refresh")
+
+
+## The flip: the side that just moved stands down, ready again and in full
+## color, so the acted gray only shows on the side whose phase it is. can_move
+## keeps its latch (threat zones read it) until that side's own phase start.
+func _stand_down(units: Array[Unit]) -> void:
+	for unit: Unit in units:
+		if not unit.is_defeated():
+			unit.can_act = true
+			unit._apply_active_look()
 
 
 ## Diagnostic: verify every alive unit's current_tile registers the unit back.

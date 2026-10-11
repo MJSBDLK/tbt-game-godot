@@ -91,6 +91,25 @@ static func resolve(sprite_name: String, cell_offset: Vector2i) -> String:
 	return _prefix_match(sprite_name)
 
 
+## The family a sprite belongs to: its longest matching by_prefix key
+## ("crater_b" → "crater"), or "" when none matches. Combat backdrop layers
+## are named by family, so the stage can show what stands near a fight.
+static func family(sprite_name: String) -> String:
+	_ensure_loaded()
+	var best := ""
+	for prefix: Variant in _by_prefix:
+		var name := str(prefix)
+		if sprite_name.begins_with(name) and name.length() > best.length():
+			best = name
+	return best
+
+
+## Every family name: the by_prefix keys.
+static func families() -> PackedStringArray:
+	_ensure_loaded()
+	return PackedStringArray(_by_prefix.keys())
+
+
 ## Longest matching prefix wins so specific names ("firetopradish") aren't
 ## shadowed by shorter ones ("fire"). Returns "" if nothing matches.
 static func _prefix_match(sprite_name: String) -> String:

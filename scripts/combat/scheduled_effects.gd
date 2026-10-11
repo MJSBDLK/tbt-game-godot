@@ -254,7 +254,7 @@ static func _strike(popup_host: Unit, victim: Unit, damage: int, element: Enums.
 		"damage_type": Enums.DamageType.SPECIAL,
 		"name": "Chain Lightning",
 	})
-	VisualFeedbackManager.apply_hit_flash(victim, 0.4)
+	HitFlash.play(victim, 0.4)
 	popup_host._spawn_damage_popup(victim, damage, "", 1.0)
 
 

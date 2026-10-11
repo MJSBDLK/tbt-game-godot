@@ -5,6 +5,10 @@
 	"secondaryType": "None",
 	"currentClass": "Engineer",
 	"specialization": "None",
+	"lineartPath": "res://art/lineart_fullres/robot.png",
+	"lineartAtlases": {
+		"portrait": "res://art/lineart_fullres/robot_portrait.tres"
+	},
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/robot/idle.png",
 		"atlasPath": "",

@@ -1,9 +1,14 @@
 ## Central input dispatcher. Routes clicks/keys based on GameStateManager state.
 ## Handles unit selection, waypoint placement, movement execution, attack targeting,
-## and the two board cursors (free map cursor + constrained attack-target cursor).
+## and which board cursor each state owns (BoardCursor does the stepping; the
+## dev cheat keys are BattleCheats).
 ## Registered as Autoload "InputManager".
 extends Node
 
+
+## The tile under the pointer or the board cursor changed (null = none). The
+## hint bar names some buttons by what's under it ("Pin zone", "Type icons").
+signal hover_changed(tile: Tile)
 
 var input_enabled: bool = true
 
@@ -12,34 +17,13 @@ var _selected_unit: Unit = null
 var _unit_has_moved: bool = false
 var _camera_precentered: bool = false
 
-# Attack targeting state
-var _is_selecting_attack_target: bool = false
-var _attacking_unit: Unit = null
-var _attack_move: Move = null
-var _attackable_tiles: Array[Tile] = []
-# The board target cursor (RQD 2026-07-31): under the CURSOR model, arrows
-# walk this across the valid targets and it wears the §14 brackets
-# (GridManager.display_target_cursor). Null = pointer is driving.
-var _keyboard_target_tile: Tile = null
+## The attack-targeting session: who the chosen move can hit (AttackTargeting).
+var _targeting := AttackTargeting.new()
 
-# The FREE board cursor (FE-style, 2026-07-31): under the CURSOR model the
-# arrows roam this across the whole grid during the map-view states — unit
-# selection and movement planning — wearing the same §14 brackets as the
-# constrained attack-target cursor above (one renderer, one "you are here").
-# Accept presses its tile with exact click semantics. Null = the pointer is
-# driving, or a menu owns the cursor vocabulary.
-var _board_cursor_tile: Tile = null
-
-# Hold-to-repeat for both board cursors. The initial press steps via the
-# event; holding keeps stepping on this timer. OS key echo is deliberately
-# ignored (navigation_direction filters it) — joypads never echo, so the
-# timer serves keyboard, d-pad and stick identically (a stick press is
-# edge-detected in InputSource; its hold rides this same timer). The step
-# interval is the player's: Settings.cursor_speed, the Options "Cursor
-# Speed" slider.
-const NAV_REPEAT_DELAY_SECONDS: float = 0.35
-var _held_nav_direction: Vector2i = Vector2i.ZERO
-var _nav_repeat_at: float = 0.0
+# The CURSOR model's brackets on the board: the free cursor in the map-view
+# states, the aim cursor during attack targeting. Accept presses its tile
+# with exact click semantics.
+var _cursor := BoardCursor.new()
 
 # Long-press detection for opening unit detail on touch
 const LONG_PRESS_DURATION: float = 0.2  # seconds
@@ -49,6 +33,8 @@ var _long_press_fired: bool = false
 
 
 func _ready() -> void:
+	_cursor.moved.connect(_on_cursor_moved)
+	hover_changed.connect(_preview_path_to)
 	# TurnManager autoloads after this node, so signal hookup waits a frame.
 	_connect_cursor_signals.call_deferred()
 
@@ -73,12 +59,14 @@ func disable_input() -> void:
 	input_enabled = false
 	# No agency, no "you are here": AI phases, cutscenes, and menus all take
 	# the board cursor with them (menus raise their own §14 brackets instead).
-	_clear_board_cursor()
-	_held_nav_direction = Vector2i.ZERO
+	_cursor.clear_free()
+	_cursor.release()
 
 
+## Null once the tile is freed (this autoload outlives the battle's board):
+## a freed tile handed on to a typed parameter is a script error.
 func get_hovered_tile() -> Tile:
-	return _hovered_tile
+	return _hovered_tile if is_instance_valid(_hovered_tile) else null
 
 
 func get_selected_unit() -> Unit:
@@ -120,13 +108,35 @@ func deselect_unit() -> void:
 		ui_manager.hide_unit_info()
 
 
+## Next / previous unit: selects the next player unit that can still act, in
+## roster order and wrapping (`step` +1 / -1), counting from the selected unit
+## or the one under the cursor, and brings it into view. Already selected
+## (the only one left ready) it just recenters: re-selecting would drop the
+## plan on the board.
+func cycle_unit(step: int) -> void:
+	var ready: Array[Unit] = TurnManager.unacted_player_units()
+	if ready.is_empty():
+		return
+	var from: Unit = _selected_unit
+	if from == null and _hovered_tile != null and is_instance_valid(_hovered_tile):
+		from = _hovered_tile.current_unit as Unit
+	var index := ready.find(from)
+	var next: Unit = ready[posmod(index + step, ready.size())] if index >= 0 \
+			else (ready[0] if step > 0 else ready[-1])
+	if next != _selected_unit:
+		select_unit(next)
+	var camera := _get_camera()
+	if camera != null:
+		camera.center_on(next.global_position)
+	if InputSource.is_cursor_driven():
+		_cursor.place_free(next.current_tile)
+
+
 func start_attack_targeting(attacker: Unit, move: Move) -> void:
-	_is_selecting_attack_target = true
-	_attacking_unit = attacker
-	_attack_move = move
-	_attackable_tiles = MoveTargeting.get_valid_target_tiles(attacker, move)
+	_targeting.begin(attacker, move)
+	_set_target_armed(false)
 	GridManager.clear_movement_range()
-	GridManager.display_attack_range(_attackable_tiles)
+	GridManager.display_attack_range(_targeting.tiles)
 
 	var ui_manager: Node = _get_ui_manager()
 	if ui_manager != null:
@@ -135,7 +145,7 @@ func start_attack_targeting(attacker: Unit, move: Move) -> void:
 	var state_manager: Node = get_node("/root/GameStateManager")
 	state_manager.change_state(Enums.InputState.ATTACK_TARGETING, attacker)
 	DebugConfig.log_input("InputManager: Attack targeting with '%s' (%d valid tiles)" % [
-		move.move_name, _attackable_tiles.size()])
+		move.move_name, _targeting.tiles.size()])
 
 	# Cursor-model courtesy (InputSource, same doctrine as the menus): a
 	# keyboard/controller-driven entry adopts the nearest target immediately;
@@ -145,11 +155,9 @@ func start_attack_targeting(attacker: Unit, move: Move) -> void:
 
 
 func cancel_attack_targeting() -> void:
-	_is_selecting_attack_target = false
-	_attacking_unit = null
-	_attack_move = null
-	_attackable_tiles.clear()
-	_clear_keyboard_target()
+	_targeting.end()
+	_set_target_armed(false)
+	_cursor.clear_aim()
 	GridManager.clear_attack_range()
 	GridManager.clear_displacement_preview()
 
@@ -184,28 +192,10 @@ func _process(_delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	# Cheat keybinds run even when input is disabled (e.g. mid-AI phase),
 	# so you can always bail out of a stuck battle.
-	if DebugConfig.cheats_enabled and event is InputEventKey and event.pressed and not event.echo:
-		var key_event := event as InputEventKey
-		# Use Ctrl+W for victory, Ctrl+L for loss. F9/F10 conflict with the
-		# Godot editor's debug pause keybinding.
-		if key_event.ctrl_pressed:
-			match key_event.keycode:
-				KEY_W:
-					_cheat_end_battle(true)
-					get_viewport().set_input_as_handled()
-					return
-				KEY_L:
-					_cheat_end_battle(false)
-					get_viewport().set_input_as_handled()
-					return
-				KEY_R:
-					_cheat_refresh_hovered_unit()
-					get_viewport().set_input_as_handled()
-					return
-				KEY_K:
-					_cheat_kill_hovered_unit()
-					get_viewport().set_input_as_handled()
-					return
+	if DebugConfig.cheats_enabled and event is InputEventKey and BattleCheats.handle(
+			event, GridManager.get_tile_at_position(_get_world_mouse_position())):
+		get_viewport().set_input_as_handled()
+		return
 
 	# GRID READINESS IS THE BATTLE GATE. This is an autoload, so it keeps
 	# receiving input on menus and the intermission — and every handler below
@@ -218,7 +208,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not input_enabled or not GridManager.is_grid_ready():
 		return
 
-	# End turn shortcut (E key, and the hint bar's touch button)
+	# End turn shortcut (Backspace / X, and the hint bar's touch button)
 	if event.is_action_pressed("end_turn"):
 		UIManager.request_end_turn()
 		get_viewport().set_input_as_handled()
@@ -230,9 +220,25 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 
+	# Back (right click): Escape's step back, except on the open board, where
+	# Escape opens the system menu and a stray right click shouldn't.
+	if event.is_action_pressed("back"):
+		if GameStateManager.current_state != Enums.InputState.DEFAULT:
+			_handle_escape()
+		get_viewport().set_input_as_handled()
+		return
+
 	# Unit info hotkey (I key / Y button)
 	if event.is_action_pressed("unit_info"):
 		_handle_unit_info_hotkey()
+		get_viewport().set_input_as_handled()
+		return
+
+	# Next / previous ready unit (E / Q, RB / LB, touch's Next): open board only.
+	var cycle_step := 1 if event.is_action_pressed("unit_next") \
+			else (-1 if event.is_action_pressed("unit_prev") else 0)
+	if cycle_step != 0 and _is_map_view_state():
+		cycle_unit(cycle_step)
 		get_viewport().set_input_as_handled()
 		return
 
@@ -240,15 +246,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	# cursor across the valid targets (it wears the §14 brackets); accept
 	# confirms it. Pointer entry stays quiet — the first arrow press adopts
 	# the nearest target, mirroring the menus' quiet-open adoption.
-	if _is_selecting_attack_target:
+	if _targeting.is_active():
 		var direction: Vector2i = InputSource.navigation_direction(event)
 		if direction != Vector2i.ZERO:
 			_move_target_cursor(direction)
-			_begin_nav_repeat(direction, Time.get_ticks_msec() / 1000.0)
+			_cursor.hold(direction, Time.get_ticks_msec() / 1000.0)
 			get_viewport().set_input_as_handled()
 			return
-		if event.is_action_pressed("ui_accept") and _keyboard_target_tile != null:
-			_try_attack_tile(_keyboard_target_tile)
+		if event.is_action_pressed("ui_accept") and _cursor.aim_tile != null:
+			_try_attack_tile(_cursor.aim_tile)
 			get_viewport().set_input_as_handled()
 			return
 	# Free board cursor (CURSOR model): during the map-view states the arrows
@@ -259,16 +265,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		var direction: Vector2i = InputSource.navigation_direction(event)
 		if direction != Vector2i.ZERO:
 			_move_board_cursor(direction)
-			_begin_nav_repeat(direction, Time.get_ticks_msec() / 1000.0)
+			_cursor.hold(direction, Time.get_ticks_msec() / 1000.0)
 			get_viewport().set_input_as_handled()
 			return
-		if event.is_action_pressed("ui_accept") \
-				and _board_cursor_tile != null and is_instance_valid(_board_cursor_tile):
+		if event.is_action_pressed("ui_accept") and _cursor.has_free():
 			_press_board_cursor_tile()
 			get_viewport().set_input_as_handled()
 			return
 
-	# Mouse/touch clicks
+	# Mouse/touch clicks. The left button stays raw: pressing the thing under
+	# the pointer is what a pointer is, same as Godot's own Button.
 	if event is InputEventMouseButton:
 		var mouse_event := event as InputEventMouseButton
 		if mouse_event.button_index == MOUSE_BUTTON_LEFT:
@@ -276,9 +282,6 @@ func _unhandled_input(event: InputEvent) -> void:
 				_start_press()
 			else:
 				_end_press()
-			get_viewport().set_input_as_handled()
-		elif mouse_event.button_index == MOUSE_BUTTON_RIGHT and mouse_event.pressed:
-			_handle_right_click()
 			get_viewport().set_input_as_handled()
 
 
@@ -297,9 +300,9 @@ func _update_hover() -> void:
 	# brackets (brackets follow the CURSOR model only) and hover goes back to
 	# tracking the mouse. Targeting itself continues; only the cursor display
 	# yields, and the next arrow press re-adopts.
-	_clear_board_cursor()
-	if _keyboard_target_tile != null:
-		_clear_keyboard_target()
+	_cursor.clear_free()
+	if _cursor.aim_tile != null:
+		_cursor.clear_aim()
 	# Camera2D is in the root viewport (WorldRoot's tree). This autoload is at
 	# /root, so get_viewport() returns the root viewport directly.
 	var camera := SceneRouter.get_world_camera() as CameraController
@@ -323,6 +326,7 @@ func _update_hover() -> void:
 	if tile != _hovered_tile:
 		_hovered_tile = tile
 		GridManager.set_hovered_tile(tile)
+		hover_changed.emit(tile)
 
 		var ui_manager: Node = _get_ui_manager()
 		if ui_manager != null:
@@ -334,36 +338,22 @@ func _update_hover() -> void:
 
 func _update_combat_preview(tile: Tile) -> void:
 	var ui_manager: Node = _get_ui_manager()
-	if ui_manager == null:
+	if ui_manager == null or not _targeting.is_active():
 		return
-
-	if not _is_selecting_attack_target or _attacking_unit == null or _attack_move == null:
-		return
-
-	if tile != null and _attackable_tiles.has(tile) and tile.current_unit != null and tile.current_unit is Unit:
-		var target := tile.current_unit as Unit
-		if MoveTargeting.is_valid_target(target, _attacking_unit, _attack_move):
-			if _attack_move.heals:
-				var heal_amount := DamageCalculator.calculate_heal_amount(_attacking_unit, target, _attack_move)
-				ui_manager.show_heal_preview(_attacking_unit, target, _attack_move, heal_amount)
-				GridManager.clear_displacement_preview()
-				return
-			if _attack_move.targets_allies():
-				# Non-healing buff/support — no preview UI yet, defer that pass.
-				ui_manager.hide_combat_preview()
-				GridManager.clear_displacement_preview()
-				return
-			# Preview the unit the shot will actually hit — a Protector between the
-			# attacker and the aimed-at enemy body-blocks, so show it taking the hit.
-			var actual: Unit = MoveTargeting.resolve_actual_target(_attacking_unit, target, _attack_move)
-			ui_manager.show_combat_preview(_attacking_unit, actual, _attack_move)
+	var forecast := _targeting.forecast_for(tile)
+	match forecast.kind:
+		AttackTargeting.Forecast.HEAL:
+			ui_manager.show_heal_preview(_targeting.attacker, forecast.target, _targeting.move,
+					forecast.heal_amount)
+		AttackTargeting.Forecast.ATTACK:
+			ui_manager.show_combat_preview(_targeting.attacker, forecast.target, _targeting.move)
 			# Displacing moves ALSO play their future on the board — ghosts,
 			# arrows, slam stars (DisplacementPreviewRenderer). No-op for
 			# non-displacing moves.
-			GridManager.preview_displacement(_attacking_unit, actual, _attack_move)
+			GridManager.preview_displacement(_targeting.attacker, forecast.target, _targeting.move)
 			return
-
-	ui_manager.hide_combat_preview()
+		_:
+			ui_manager.hide_combat_preview()
 	GridManager.clear_displacement_preview()
 
 
@@ -382,14 +372,10 @@ func _handle_left_click() -> void:
 		Enums.InputState.UNIT_SELECTED, Enums.InputState.MOVEMENT_PLANNING:
 			_handle_movement_planning_press(tile)
 		Enums.InputState.ATTACK_TARGETING:
-			_try_attack_tile(tile)
-
-
-func _handle_right_click() -> void:
-	if _selected_unit != null:
-		_cancel_and_deselect()
-		var state_manager: Node = get_node("/root/GameStateManager")
-		state_manager.change_state(Enums.InputState.DEFAULT)
+			if InputSource.is_touch_driven():
+				_tap_attack_tile(tile)
+			else:
+				_try_attack_tile(tile)
 
 
 func _handle_unit_info_hotkey() -> void:
@@ -399,6 +385,9 @@ func _handle_unit_info_hotkey() -> void:
 	elif _hovered_tile != null and _hovered_tile.current_unit is Unit:
 		unit = _hovered_tile.current_unit as Unit
 	if unit == null:
+		# No unit to read: the button shows the type-icon layer instead, by
+		# flipping the Options "Type Icons" setting, so the two never disagree.
+		Settings.set_unit_type_icons_enabled(not Settings.unit_type_icons_enabled)
 		return
 	_open_unit_detail(unit)
 
@@ -510,12 +499,14 @@ func _handle_default_press(clicked_tile: Tile) -> void:
 
 
 func _set_inspect_notice(notice: HintBarCommands.InspectNotice) -> void:
-	var ui_manager: Node = _get_ui_manager()
-	if ui_manager == null:
-		return
-	var hint_bar: HintBar = ui_manager.get_hint_bar()
+	var hint_bar := _hint_bar()
 	if hint_bar != null:
 		hint_bar.set_inspect_notice(notice)
+
+
+func _hint_bar() -> HintBar:
+	var ui_manager: Node = _get_ui_manager()
+	return ui_manager.get_hint_bar() if ui_manager != null else null
 
 
 ## Press semantics for UNIT_SELECTED / MOVEMENT_PLANNING — shared verbatim by
@@ -592,122 +583,74 @@ func _handle_movement_planning_press(clicked_tile: Tile) -> void:
 ## press on anything outside the valid set cancels targeting — unchanged
 ## click semantics; the keyboard path can only arrive with a valid tile.
 func _try_attack_tile(tile: Tile) -> void:
-	if tile == null or not _attackable_tiles.has(tile) \
-			or tile.current_unit == null or tile.current_unit is not Unit:
+	if not _targeting.is_target_tile(tile):
 		cancel_attack_targeting()
 		return
+	_execute_attack(tile.current_unit as Unit)
 
-	var target := tile.current_unit as Unit
-	if not MoveTargeting.is_valid_target(target, _attacking_unit, _attack_move):
-		cancel_attack_targeting()
-		return
 
-	_execute_attack(target)
+## Touch: the first tap on a target arms it and shows the forecast, a second
+## tap attacks (AttackTargeting.target_tap).
+func _tap_attack_tile(tile: Tile) -> void:
+	match _targeting.tap(tile):
+		AttackTargeting.TargetTap.ATTACK:
+			_try_attack_tile(tile)
+		AttackTargeting.TargetTap.ARM:
+			_update_combat_preview(tile)
+			_set_target_armed(true)
+		AttackTargeting.TargetTap.CANCEL:
+			cancel_attack_targeting()
+
+
+func _set_target_armed(armed: bool) -> void:
+	var hint_bar := _hint_bar()
+	if hint_bar != null:
+		hint_bar.set_target_armed(armed)
 
 
 # =============================================================================
-# BOARD TARGET CURSOR — the CURSOR model's "you are here" during targeting
-# (RQD 2026-07-31: "still not seeing the brackets when picking which unit to
-# attack" — this step had no keyboard support at all; the menus did.)
+# BOARD CURSOR — which cursor a state owns and where it summons (BoardCursor
+# does the stepping, brackets and repeat)
 # =============================================================================
 
+## The cursor IS the hover under the CURSOR model: tile tint, the unit-info
+## hotkey, and the readout follow it (the combat preview while aiming, the
+## terrain panel while roaming).
+func _on_cursor_moved(tile: Tile, aimed: bool) -> void:
+	_hovered_tile = tile
+	GridManager.set_hovered_tile(tile)
+	hover_changed.emit(tile)
+	if aimed:
+		_update_combat_preview(tile)
+		return
+	var ui_manager: Node = _get_ui_manager()
+	if ui_manager != null:
+		ui_manager.show_terrain_info(tile)
+
+
+## The aim cursor, during targeting: arrows walk it between the valid targets.
 func _move_target_cursor(direction: Vector2i) -> void:
-	if _attackable_tiles.is_empty():
+	if _targeting.tiles.is_empty():
 		return
 	# First press on a quiet (pointer-opened) targeting session summons the
 	# cursor onto the nearest target instead of stepping.
-	if _keyboard_target_tile == null or not _attackable_tiles.has(_keyboard_target_tile):
+	if _cursor.aim_tile == null or not _targeting.tiles.has(_cursor.aim_tile):
 		_adopt_initial_target()
 		return
-	var current := Vector2i(_keyboard_target_tile.grid_x, _keyboard_target_tile.grid_y)
-	# navigation_direction speaks screen convention (up = -y); the game grid is
-	# Y-up (get_tile_at_position flips), so the vertical flips here before the
-	# picker compares against grid-coordinate candidates. Without this, "up"
-	# walked the cursor to the target visually BELOW.
-	var grid_direction := Vector2i(direction.x, -direction.y)
-	var index := pick_target_in_direction(current, _attackable_cells(), grid_direction)
-	if index >= 0:
-		_set_keyboard_target(_attackable_tiles[index])
+	_cursor.aim(direction, _targeting.tiles)
 
 
 func _adopt_initial_target() -> void:
-	if _attackable_tiles.is_empty() or _attacking_unit == null \
-			or _attacking_unit.current_tile == null:
+	var attacker := _targeting.attacker
+	if attacker == null or attacker.current_tile == null:
 		return
-	var origin := Vector2i(_attacking_unit.current_tile.grid_x, _attacking_unit.current_tile.grid_y)
-	var index := pick_initial_target(origin, _attackable_cells())
-	if index >= 0:
-		_set_keyboard_target(_attackable_tiles[index])
+	_cursor.adopt(_targeting.tiles,
+			Vector2i(attacker.current_tile.grid_x, attacker.current_tile.grid_y))
 
 
-func _set_keyboard_target(tile: Tile) -> void:
-	_keyboard_target_tile = tile
-	# The cursor IS the hover under this model: tile tint, terrain readout,
-	# combat preview, and the unit-info hotkey all follow it.
-	_hovered_tile = tile
-	GridManager.set_hovered_tile(tile)
-	GridManager.display_target_cursor(tile)
-	_update_combat_preview(tile)
-	_nudge_camera_toward(tile)
-
-
-func _clear_keyboard_target() -> void:
-	_keyboard_target_tile = null
-	GridManager.clear_target_cursor()
-
-
-func _attackable_cells() -> Array[Vector2i]:
-	var cells: Array[Vector2i] = []
-	for tile: Tile in _attackable_tiles:
-		cells.append(Vector2i(tile.grid_x, tile.grid_y))
-	return cells
-
-
-## Nearest candidate in the pressed direction's half-plane: candidates behind
-## or perpendicular to the press never win; among the rest, straight-ahead
-## beats diagonal drift (sideways distance counts double). Returns an index
-## into `candidates`, or -1 when nothing lies that way — the cursor then
-## stays put rather than wrapping. Pure + static for GUT.
-static func pick_target_in_direction(current: Vector2i, candidates: Array[Vector2i],
-		direction: Vector2i) -> int:
-	var best := -1
-	var best_score := 0
-	for i: int in candidates.size():
-		var delta := candidates[i] - current
-		if delta == Vector2i.ZERO:
-			continue
-		var along := delta.x * direction.x + delta.y * direction.y
-		if along <= 0:
-			continue
-		var across := absi(delta.x * direction.y) + absi(delta.y * direction.x)
-		var score := along + across * 2
-		if best == -1 or score < best_score:
-			best = i
-			best_score = score
-	return best
-
-
-## The summon target for a fresh cursor: nearest candidate to the attacker
-## (Manhattan), first-listed wins ties. Pure + static for GUT.
-static func pick_initial_target(origin: Vector2i, candidates: Array[Vector2i]) -> int:
-	var best := -1
-	var best_distance := 0
-	for i: int in candidates.size():
-		var distance := absi(candidates[i].x - origin.x) + absi(candidates[i].y - origin.y)
-		if best == -1 or distance < best_distance:
-			best = i
-			best_distance = distance
-	return best
-
-
-# =============================================================================
-# FREE BOARD CURSOR — FE-style full-map roam for the CURSOR model during the
-# map-view states (DEFAULT / UNIT_SELECTED / MOVEMENT_PLANNING). Completes the
-# controller/keyboard battle loop: select a unit, plan movement, act — all
-# without a pointer. Same renderer and §14 brackets as the attack cursor; the
-# two never coexist (state transitions hand the vocabulary over).
-# =============================================================================
-
+## The free cursor roams the whole grid in the map-view states (DEFAULT /
+## UNIT_SELECTED / MOVEMENT_PLANNING): select a unit, plan movement, act, all
+## without a pointer.
 func _is_map_view_state() -> bool:
 	var state_manager: Node = get_node("/root/GameStateManager")
 	return Enums.MAP_VIEW_STATES.has(state_manager.current_state)
@@ -716,16 +659,10 @@ func _is_map_view_state() -> bool:
 func _move_board_cursor(direction: Vector2i) -> void:
 	# First press summons the cursor rather than stepping — the board twin of
 	# the menus' quiet-open adoption.
-	if _board_cursor_tile == null or not is_instance_valid(_board_cursor_tile):
+	if not _cursor.has_free():
 		_summon_board_cursor()
 		return
-	# Screen convention (up = -y) → Y-up game grid: flip the vertical.
-	var next := GridManager.get_tile(
-			_board_cursor_tile.grid_x + direction.x,
-			_board_cursor_tile.grid_y - direction.y)
-	if next == null:
-		return  # Map edge or hole: the cursor stays put.
-	_set_board_cursor(next)
+	_cursor.roam(direction)
 
 
 func _summon_board_cursor(prefer_active_unit: bool = false) -> void:
@@ -733,7 +670,7 @@ func _summon_board_cursor(prefer_active_unit: bool = false) -> void:
 		return
 	var tile := _board_cursor_summon_tile(prefer_active_unit)
 	if tile != null:
-		_set_board_cursor(tile)
+		_cursor.place_free(tile)
 
 
 ## Where a fresh cursor materializes: the selected unit if there is one, then
@@ -765,73 +702,27 @@ func _first_actable_player_unit_tile() -> Tile:
 	return null
 
 
-func _set_board_cursor(tile: Tile) -> void:
-	_board_cursor_tile = tile
-	# The cursor IS the hover under this model (same doctrine as the attack
-	# cursor): tile tint, terrain readout, and the unit-info hotkey follow it.
-	_hovered_tile = tile
-	GridManager.set_hovered_tile(tile)
-	GridManager.display_target_cursor(tile)
-	var ui_manager: Node = _get_ui_manager()
-	if ui_manager != null:
-		ui_manager.show_terrain_info(tile)
-	_nudge_camera_toward(tile)
-
-
-func _clear_board_cursor() -> void:
-	if _board_cursor_tile == null:
-		return
-	_board_cursor_tile = null
-	GridManager.clear_target_cursor()
-
-
 func _press_board_cursor_tile() -> void:
 	var state_manager: Node = get_node("/root/GameStateManager")
 	match state_manager.current_state:
 		Enums.InputState.DEFAULT:
-			_handle_default_press(_board_cursor_tile)
+			_handle_default_press(_cursor.free_tile)
 		Enums.InputState.UNIT_SELECTED, Enums.InputState.MOVEMENT_PLANNING:
-			_handle_movement_planning_press(_board_cursor_tile)
+			_handle_movement_planning_press(_cursor.free_tile)
 
 
-## FE-style camera courtesy shared by both board cursors: a step that lands
-## near (or past) the view edge glides the camera just far enough to keep the
-## brackets comfortably on screen. No-op for a mid-screen cursor.
-func _nudge_camera_toward(tile: Tile) -> void:
-	var camera := _get_camera()
-	if camera != null:
-		camera.ensure_point_visible(
-				tile.global_position, float(GridManager.tile_size) * 1.5)
-
-
-func _begin_nav_repeat(direction: Vector2i, now: float) -> void:
-	_held_nav_direction = direction
-	_nav_repeat_at = now + NAV_REPEAT_DELAY_SECONDS
-
-
-## Timer-driven hold-to-repeat (called from _process; `now` injected for GUT).
-## Steps whichever board cursor the current state owns while the pressed
-## direction's action stays held; any release, model flip, or state without a
-## board cursor disarms it.
+## Hold-to-repeat (called from _process; `now` injected for GUT): steps
+## whichever cursor the current state owns; a state with neither disarms it.
 func _tick_nav_repeat(now: float) -> void:
-	if _held_nav_direction == Vector2i.ZERO:
+	var direction := _cursor.repeat_due(now)
+	if direction == Vector2i.ZERO:
 		return
-	if not InputSource.is_cursor_driven():
-		_held_nav_direction = Vector2i.ZERO
-		return
-	var action: StringName = InputSource.action_for_direction(_held_nav_direction)
-	if action == &"" or not Input.is_action_pressed(action):
-		_held_nav_direction = Vector2i.ZERO
-		return
-	if now < _nav_repeat_at:
-		return
-	_nav_repeat_at = now + Settings.cursor_repeat_interval_seconds()
-	if _is_selecting_attack_target:
-		_move_target_cursor(_held_nav_direction)
+	if _targeting.is_active():
+		_move_target_cursor(direction)
 	elif _is_map_view_state():
-		_move_board_cursor(_held_nav_direction)
+		_move_board_cursor(direction)
 	else:
-		_held_nav_direction = Vector2i.ZERO
+		_cursor.release()
 
 
 ## Board-cursor lifecycle vs the state machine: leaving the map-view states
@@ -840,8 +731,12 @@ func _tick_nav_repeat(now: float) -> void:
 ## re-entry to the board adopts immediately, mirroring cursor-driven menu
 ## opens; pointer re-entry stays quiet.
 func _on_game_state_changed(old_state: Enums.InputState, new_state: Enums.InputState) -> void:
+	# A sheet opened mid-targeting (long press) drops the armed target, as the
+	# hint bar drops its "tap again" line.
+	if new_state != Enums.InputState.ATTACK_TARGETING:
+		_targeting.armed_tile = null
 	if not Enums.MAP_VIEW_STATES.has(new_state):
-		_clear_board_cursor()
+		_cursor.clear_free()
 		return
 	if not Enums.MAP_VIEW_STATES.has(old_state) and InputSource.is_cursor_driven():
 		_summon_board_cursor()
@@ -857,6 +752,23 @@ func _on_player_phase_started(_turn_count: int) -> void:
 # =============================================================================
 # MOVEMENT
 # =============================================================================
+
+## A selected unit that hasn't moved: the beacons preview the route to the
+## tile under the pointer or cursor, inside the movement range left (from the
+## unit, or onward from the last stop). On a marker they show just the plan:
+## pressing one confirms or cuts back to it. The ghost stays on what's
+## plotted (PathVisualizer.preview_path_to).
+func _preview_path_to(tile: Tile) -> void:
+	var state: Enums.InputState = GameStateManager.current_state
+	if _selected_unit == null or _unit_has_moved or (state != Enums.InputState.UNIT_SELECTED
+			and state != Enums.InputState.MOVEMENT_PLANNING):
+		return
+	var visualizer := _selected_unit.get_node_or_null("PathVisualizer") as PathVisualizer
+	if visualizer != null:
+		var onward := tile != null and GridManager.is_in_current_movement_range(tile) \
+				and not _is_waypoint_tile(tile)
+		visualizer.preview_path_to(_selected_unit, tile if onward else null)
+
 
 func _is_waypoint_tile(tile: Tile) -> bool:
 	if _selected_unit == null:
@@ -932,15 +844,15 @@ func _execute_direct_combat(target: Unit) -> void:
 
 
 func _execute_attack(target: Unit) -> void:
-	if _attacking_unit == null or _attack_move == null:
+	if not _targeting.is_active():
 		return
 
-	var attacker := _attacking_unit
-	var move := _attack_move
+	var attacker := _targeting.attacker
+	var move := _targeting.move
 
-	_is_selecting_attack_target = false
-	_attackable_tiles.clear()
-	_clear_keyboard_target()
+	_targeting.end()
+	_set_target_armed(false)
+	_cursor.clear_aim()
 	GridManager.clear_attack_range()
 	GridManager.clear_displacement_preview()
 
@@ -965,8 +877,6 @@ func _execute_attack(target: Unit) -> void:
 	if ui_manager != null:
 		ui_manager.refresh()
 
-	_attacking_unit = null
-	_attack_move = null
 	_finish_unit_action()
 
 
@@ -1046,66 +956,3 @@ func _get_world_mouse_position() -> Vector2:
 	if camera != null:
 		return camera.get_global_mouse_position()
 	return get_viewport().get_mouse_position()
-
-
-# =============================================================================
-# DEV CHEATS
-# =============================================================================
-
-func _cheat_end_battle(is_victory: bool) -> void:
-	var turn_manager: Node = get_node_or_null("/root/TurnManager")
-	if turn_manager == null:
-		return
-	if turn_manager.is_battle_ended():
-		return
-	print("CHEAT: Forcing battle end — %s" % ("VICTORY" if is_victory else "DEFEAT"))
-	turn_manager._end_battle(is_victory)
-
-
-## Refresh whichever unit the mouse is currently over (any faction). Useful for
-## re-using First Aid on the same caster repeatedly when iterating on heal UX.
-func _cheat_refresh_hovered_unit() -> void:
-	var tile := GridManager.get_tile_at_position(_get_world_mouse_position())
-	if tile == null or tile.current_unit == null or not tile.current_unit is Unit:
-		return
-	var unit := tile.current_unit as Unit
-	if unit.is_defeated():
-		return
-	unit.refresh_unit()
-	print("CHEAT: Refreshed '%s'" % unit.unit_name)
-
-
-## Kill whichever unit the mouse is over, and — for player units — queue a random
-## injury onto its character. Exercises the full death + injury pipeline for
-## balance testing: the unit dies now; the injury commits at mission end through
-## the normal slot-check / permadeath path. We pass an EMPTY killing source so
-## take_damage's own (type-based) death-injury queue no-ops, leaving the random
-## injury as the only one queued. Enemies just die — their character_data isn't
-## persisted, so injuring them is meaningless.
-func _cheat_kill_hovered_unit() -> void:
-	var tile := GridManager.get_tile_at_position(_get_world_mouse_position())
-	if tile == null or tile.current_unit == null or not tile.current_unit is Unit:
-		return
-	var unit := tile.current_unit as Unit
-	if unit.is_defeated():
-		return
-	# Queue the random injury BEFORE the kill. Killing the last player unit can
-	# end the battle synchronously (unit_defeated → victory check → battle_ended),
-	# which commits pending injuries right then — so it must already be queued.
-	var summary: String = "CHEAT: Killed '%s'" % unit.unit_name
-	if unit.faction == Enums.UnitFaction.PLAYER and unit.character_data != null:
-		var injury: Injury = InjurySystem.queue_random_injury(unit.character_data)
-		if injury != null:
-			var injury_data: InjuryData = injury.get_data()
-			var label: String = injury_data.display_name if injury_data != null else injury.injury_id
-			summary += " + random injury %s (%s)" % [label, Enums.InjurySeverity.keys()[injury.severity]]
-	# Empty killing source → take_damage's own (type-based) death injury no-ops,
-	# leaving the random injury as the only one queued.
-	unit.take_damage(unit.current_hp, {})
-	# take_damage only zeroes HP + emits unit_defeated (the victory check). The
-	# visual death — gray out, fade, and clearing tile occupancy — lives in
-	# _handle_defeat, which combat awaits after the hit. Run it here too
-	# (fire-and-forget; it self-guards via _defeat_visuals_played) so the
-	# cheat-killed unit actually leaves the map instead of sitting at 0 HP.
-	unit._handle_defeat()
-	print(summary)

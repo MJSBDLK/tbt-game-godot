@@ -41,7 +41,7 @@ GameRoot (Node)
 │       — Renders directly to root viewport at native resolution.
 │
 ├── HUDViewport (SubViewport, size = Vector2i(640, 360), transparent_bg = true)
-│   └── (UIManager, VisualFeedbackManager, HUD scenes load here)
+│   └── (UIManager, HUD scenes load here)
 │
 ├── HUDDisplay (TextureRect)
 │       — texture = HUDViewport.get_texture()
@@ -165,7 +165,6 @@ Keyboard/joypad: forward to HUDViewport if a HUD Control has focus; otherwise le
 
 Autoload reparenting:
 - `UIManager` → HUDViewport (renders HUD panels)
-- `VisualFeedbackManager` → split: cancel hint stays in HUD-tree (640×360 label), world feedback (damage popups, tweens on Node2D) operates on world objects regardless of manager's tree position. Manager itself lives in HUDViewport for simplicity; damage popups will be added directly to WorldRoot via `WorldRoot.add_child(popup)`.
 
 Scene routing:
 - `BattleScene` / map roots (Node2D) → `WorldRoot`

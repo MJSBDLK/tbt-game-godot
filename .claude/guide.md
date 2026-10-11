@@ -188,7 +188,6 @@ These replace Unity's FindObjectOfType singleton pattern:
 - `TypeChartManager` — Type effectiveness lookups
 - `StatusEffectSystem` — Apply/process/remove status effects
 - `UIManager` — Panel management, overlays
-- `VisualFeedbackManager` — Screen shake, flash, tooltips
 
 ### Scene Structure (replaces Unity scene hierarchy)
 ```

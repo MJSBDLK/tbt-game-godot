@@ -261,3 +261,30 @@ func test_dpad_and_keys_are_untouched_by_the_edge_logic() -> void:
 	assert_eq(source.navigation_direction(press), Vector2i(-1, 0))
 	assert_eq(source.navigation_direction(press), Vector2i(-1, 0),
 			"buttons already arrive as discrete presses; each one counts")
+
+
+func _trigger(value: float) -> InputEventJoypadMotion:
+	var event := InputEventJoypadMotion.new()
+	event.axis = JOY_AXIS_TRIGGER_RIGHT
+	event.axis_value = value
+	return event
+
+
+func test_a_trigger_action_presses_once_per_squeeze() -> void:
+	# toggle_threat_zones rides RT: its motion stream reads "pressed" on every
+	# event past the deadzone, so only the crossing counts.
+	var source := _make_source()
+	var presses: Array = []
+	for value: float in [0.1, 0.6, 0.8, 1.0, 0.7, 0.2, 0.0, 0.9]:
+		presses.append(source.is_action_press(_trigger(value), &"toggle_threat_zones"))
+	assert_eq(presses, [false, true, false, false, false, false, false, true])
+
+
+func test_buttons_and_keys_press_as_they_always_did() -> void:
+	var source := _make_source()
+	var press := InputEventAction.new()
+	press.action = &"toggle_threat_zones"
+	press.pressed = true
+	assert_true(source.is_action_press(press, &"toggle_threat_zones"))
+	assert_true(source.is_action_press(press, &"toggle_threat_zones"), "no memory for a button")
+	assert_false(source.is_action_press(_trigger(1.0), &"unit_info"), "another action's event")

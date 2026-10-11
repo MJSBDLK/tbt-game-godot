@@ -76,7 +76,7 @@ res://
 
 ## Autoloads
 
-`DebugConfig`, `InputSource`, `Settings`, `SceneRouter`, `TerrainDataManager`, `GridManager`, `GameStateManager`, `InputManager`, `TurnManager`, `ActionMenuManager`, `TypeChartManager`, `StatusEffectSystem`, `UIManager`, `VisualFeedbackManager`
+`DebugConfig`, `InputSource`, `Settings`, `SceneRouter`, `TerrainDataManager`, `GridManager`, `GameStateManager`, `InputManager`, `TurnManager`, `ActionMenuManager`, `TypeChartManager`, `StatusEffectSystem`, `UIManager`
 
 ## Rendering Architecture
 
@@ -115,10 +115,9 @@ Key API rules:
   pixel UI for an HD texture. The slot's mirror in HDLayer is positioned via
   explicit `hud_display.position + slot.global_position × hud_scale` projection,
   not the old "same coord space" assumption.
-- `UIManager` and `VisualFeedbackManager` are reparented into HUDViewport at
-  startup by GameRoot. Access them through the autoload singleton name
-  (`UIManager.foo()`), never via `get_node("/root/UIManager")` — the path no
-  longer resolves.
+- `UIManager` is reparented into HUDViewport at startup by GameRoot. Access
+  it through the autoload singleton name (`UIManager.foo()`), never via
+  `get_node("/root/UIManager")` — the path no longer resolves.
 - HD assets (large textures rendered into HDLayer) should have
   `mipmaps/generate=true` in their .import file to avoid aliasing on bilinear
   downscale.

@@ -16,8 +16,8 @@ func before_each() -> void:
 	InputSource.last_kind = InputSource.Kind.POINTER
 	InputManager.cancel_attack_targeting()
 	InputManager.deselect_unit()
-	InputManager._clear_board_cursor()
-	InputManager._held_nav_direction = Vector2i.ZERO
+	InputManager._cursor.clear_free()
+	InputManager._cursor.release()
 	InputManager.enable_input()
 
 
@@ -25,8 +25,8 @@ func after_each() -> void:
 	InputSource.last_kind = InputSource.Kind.POINTER
 	InputManager.cancel_attack_targeting()
 	InputManager.deselect_unit()
-	InputManager._clear_board_cursor()
-	InputManager._held_nav_direction = Vector2i.ZERO
+	InputManager._cursor.clear_free()
+	InputManager._cursor.release()
 	InputManager.enable_input()
 	GameStateManager.change_state(Enums.InputState.DEFAULT)
 
@@ -90,9 +90,9 @@ func _nav(action: String) -> InputEventAction:
 
 func test_direction_picker_finds_nearest_in_half_plane() -> void:
 	var candidates: Array[Vector2i] = [Vector2i(3, 0), Vector2i(1, 0), Vector2i(-2, 0)]
-	var picked := InputManager.pick_target_in_direction(Vector2i.ZERO, candidates, Vector2i(1, 0))
+	var picked := BoardCursor.pick_target_in_direction(Vector2i.ZERO, candidates, Vector2i(1, 0))
 	assert_eq(picked, 1, "nearest candidate to the right wins; the one behind never does")
-	assert_eq(InputManager.pick_target_in_direction(Vector2i.ZERO, candidates, Vector2i(0, -1)),
+	assert_eq(BoardCursor.pick_target_in_direction(Vector2i.ZERO, candidates, Vector2i(0, -1)),
 			-1, "nothing upward -> -1, the cursor stays put (no wrap)")
 
 
@@ -100,17 +100,17 @@ func test_direction_picker_prefers_straight_ahead_over_diagonal_drift() -> void:
 	# Right press: (2,0) is dead ahead at distance 2; (1,2) is nearer overall
 	# but two tiles of sideways drift (counted double) makes it lose.
 	var candidates: Array[Vector2i] = [Vector2i(1, 2), Vector2i(2, 0)]
-	assert_eq(InputManager.pick_target_in_direction(Vector2i.ZERO, candidates, Vector2i(1, 0)),
+	assert_eq(BoardCursor.pick_target_in_direction(Vector2i.ZERO, candidates, Vector2i(1, 0)),
 			1, "sideways distance counts double")
-	assert_eq(InputManager.pick_target_in_direction(Vector2i.ZERO, [] as Array[Vector2i],
+	assert_eq(BoardCursor.pick_target_in_direction(Vector2i.ZERO, [] as Array[Vector2i],
 			Vector2i(1, 0)), -1, "empty set -> -1")
 
 
 func test_initial_pick_is_nearest_to_attacker() -> void:
 	var candidates: Array[Vector2i] = [Vector2i(5, 5), Vector2i(1, 0), Vector2i(0, 1)]
-	assert_eq(InputManager.pick_initial_target(Vector2i.ZERO, candidates), 1,
+	assert_eq(BoardCursor.pick_initial_target(Vector2i.ZERO, candidates), 1,
 			"nearest Manhattan wins; first-listed breaks ties")
-	assert_eq(InputManager.pick_initial_target(Vector2i.ZERO, [] as Array[Vector2i]), -1)
+	assert_eq(BoardCursor.pick_initial_target(Vector2i.ZERO, [] as Array[Vector2i]), -1)
 
 
 func test_navigation_direction_mapping() -> void:
@@ -194,7 +194,7 @@ func test_cancel_clears_the_board_cursor() -> void:
 	# at the remembered spot — that continuity is pinned separately below.)
 	InputSource.last_kind = InputSource.Kind.POINTER
 	InputManager.cancel_attack_targeting()
-	assert_null(InputManager._keyboard_target_tile, "the attack cursor itself is gone")
+	assert_null(InputManager._cursor.aim_tile, "the attack cursor itself is gone")
 	assert_null(GridManager.target_cursor_tile(), "cancel takes the brackets with it")
 
 
@@ -372,7 +372,7 @@ func test_hold_to_repeat_steps_after_delay_then_interval() -> void:
 			"precondition: summoned")
 
 	Input.action_press("ui_right")
-	InputManager._begin_nav_repeat(Vector2i(1, 0), 0.0)
+	InputManager._cursor.hold(Vector2i(1, 0), 0.0)
 	InputManager._tick_nav_repeat(0.2)
 	assert_eq(GridManager.target_cursor_tile(), GridManager.get_tile(0, 2),
 			"inside the initial delay: no step")
@@ -403,7 +403,7 @@ func test_the_repeat_interval_is_the_cursor_speed_setting() -> void:
 	Settings.cursor_speed = 5.0
 
 	Input.action_press("ui_right")
-	InputManager._begin_nav_repeat(Vector2i(1, 0), 0.0)
+	InputManager._cursor.hold(Vector2i(1, 0), 0.0)
 	InputManager._tick_nav_repeat(0.4)
 	assert_eq(GridManager.target_cursor_tile(), GridManager.get_tile(1, 3), "first step after the delay")
 	InputManager._tick_nav_repeat(0.5)

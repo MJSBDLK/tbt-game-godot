@@ -51,12 +51,19 @@ func _init() -> void:
 	sprite = Sprite2D.new()
 	sprite.name = "Sprite2D"
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	add_child(sprite)
 	shadow = UnitShadow.new()
 	shadow.name = "CastShadow"
 	shadow.source_sprite = sprite
-	add_child(shadow)
+	add_child(shadow)  # first, so the sprite draws over it
+	add_child(sprite)
 	clip_player = ClipPlayer.new(sprite, _restore_idle)
+
+
+## UnitShadow takes the map's layer two below its unit. Here that draws it
+## under the backdrop (unseen) and outside the stage's canvas group, so it
+## stays on the stage's layer and child order puts it under the sprite.
+func _ready() -> void:
+	shadow.z_index = 0
 
 
 ## Bind to a live unit. `mirror` = stands on the left. The puppet loads the
@@ -86,8 +93,8 @@ func _load_idle() -> void:
 	if character.sprite_atlas_path == "":
 		var raw: Texture2D = load(character.sprite_sheet_path) as Texture2D
 		if raw != null:
-			var sidecar: Dictionary = SpriteSidecar.read(character.sprite_sheet_path, raw)
-			_idle_texture = raw
+			_idle_texture = SpriteSidecar.idle_frame(raw)
+			var sidecar: Dictionary = SpriteSidecar.read(character.sprite_sheet_path, _idle_texture)
 			_idle_offset = sidecar["offset"]
 			art_top = sidecar["art_top"]
 			feet_drop = sidecar["feet_drop"]
@@ -116,21 +123,18 @@ func _restore_idle() -> void:
 	_lunged = false
 
 
-## The hit flash, owned by the puppet: the same numbers as
-## VisualFeedbackManager.apply_hit_flash, but the tween is created on THIS
-## node so it dies with the puppet when the scene unmounts mid-flash
-## (a tween on the autoload would outlive its captured target and log a
-## freed-capture error on every quick close).
+## The hit flash on HitFlash's clock, eased back to white: a puppet has no
+## acted look to restore. The tween lives on this node, so it dies with the
+## puppet if the scene unmounts mid-flash.
 func hit_flash(impact_weight: float, tint: Color = Color.TRANSPARENT) -> void:
 	var flash_color: Color = GameColorPalette.get_color("Gray", 10) if tint.a <= 0.0 else tint
 	sprite.modulate = flash_color * 3.0  # overbright for intensity
 	if not is_inside_tree() or not _motion():
 		sprite.modulate = Color.WHITE
 		return
-	var duration := lerpf(VisualFeedbackManager.HIT_FLASH_MIN_DURATION,
-			VisualFeedbackManager.HIT_FLASH_MAX_DURATION, clampf(impact_weight, 0.0, 1.0))
 	var tween := create_tween()
-	tween.tween_property(sprite, "modulate", Color.WHITE, duration).set_ease(Tween.EASE_OUT)
+	tween.tween_property(sprite, "modulate", Color.WHITE, HitFlash.duration_for(impact_weight)) \
+			.set_ease(Tween.EASE_OUT)
 
 
 ## +1 when the opponent is to the right (this puppet stands on the left).

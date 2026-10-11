@@ -159,3 +159,15 @@ func test_wildcards_never_carry_terrain() -> void:
 	assert_false(ModifierTerrainMap.is_modifier("bush_a"), "a wildcard can't make a sprite a modifier")
 	assert_false(ModifierTerrainMap.casts_shadow("bush_a"), "…its render hint still applies")
 	ModifierTerrainMap.reload()
+
+
+func test_a_sprite_belongs_to_its_longest_prefix_family() -> void:
+	ModifierTerrainMap.load_from_dictionary({
+		"by_prefix": {"fire": "Volcano", "firetopradish": "VolcanicPlant", "crater": "Crater"},
+		"by_sprite": {},
+	})
+	assert_eq(ModifierTerrainMap.family("crater_b"), "crater")
+	assert_eq(ModifierTerrainMap.family("firetopradish_a"), "firetopradish", "the longer family wins")
+	assert_eq(ModifierTerrainMap.family("rock_a"), "", "no family")
+	assert_true(Array(ModifierTerrainMap.families()).has("crater"))
+	ModifierTerrainMap.reload()

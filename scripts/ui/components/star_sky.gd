@@ -10,6 +10,15 @@ extends TextureRect
 
 const SHADER: Shader = preload("res://shaders/star_twinkle.gdshader")
 
+## Off over a painted sky (the combat backdrop): the painting already shows
+## every star at rest, so only the flashes draw. On where nothing painted is
+## underneath (the menu stage today, the demo) and STAR_REST_ALPHA_MIN applies.
+var draws_resting_stars: bool = true:
+	set(value):
+		draws_resting_stars = value
+		if material != null:
+			refresh()
+
 
 ## A material carrying the file's current dials, for probes and the demo
 ## scene that draw the sky without this node.
@@ -38,6 +47,7 @@ func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	material = build_material()
+	refresh()
 	set_star_map(texture)
 	DebugConfig.art_knobs_changed.connect(refresh)
 	Settings.changed.connect(refresh)
@@ -53,3 +63,4 @@ func set_star_map(map: Texture2D) -> void:
 
 func refresh() -> void:
 	push_knobs(material as ShaderMaterial)
+	(material as ShaderMaterial).set_shader_parameter("rest_core_amount", 1.0 if draws_resting_stars else 0.0)

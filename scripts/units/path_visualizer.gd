@@ -97,27 +97,46 @@ func _on_settings_changed() -> void:
 
 func update_path(unit: Node2D) -> void:
 	_faction = unit.get("faction")
-
-	var current_tile: Tile = unit.get("current_tile")
-	var planned_waypoints: Array = unit.get("planned_waypoints")
-
-	var full_path: Array[Tile] = []
-	if current_tile != null and not planned_waypoints.is_empty():
-		var start: Tile = current_tile
-		for waypoint: Variant in planned_waypoints:
-			var segment := GridManager.find_path(start, waypoint.tile, unit)
-			# Preserve duplicates: when a path crosses itself, the cross-tile
-			# spawns a stacked beacon whose phase = its index in full_path, so
-			# the pulse wave visits it again in walked order. find_path excludes
-			# the start tile, so segments don't introduce seam dupes — every
-			# repeat here reflects a real revisit the player drew.
-			full_path.append_array(segment)
-			start = waypoint.tile
-
-	_path_tiles = full_path
+	_path_tiles = _plan_path(unit)
 	_animation_time_ms = 0.0
 	_rebuild_beacon_nodes()
 	_rebuild_destination_ghost(unit)
+
+
+## The plotted plan's tiles, stop to stop, the unit's own tile excluded.
+func _plan_path(unit: Node2D) -> Array[Tile]:
+	var full_path: Array[Tile] = []
+	var start: Tile = unit.get("current_tile")
+	if start == null:
+		return full_path
+	for waypoint: Variant in unit.get("planned_waypoints"):
+		var segment := GridManager.find_path(start, waypoint.tile, unit)
+		# Preserve duplicates: when a path crosses itself, the cross-tile
+		# spawns a stacked beacon whose phase = its index in full_path, so
+		# the pulse wave visits it again in walked order. find_path excludes
+		# the start tile, so segments don't introduce seam dupes — every
+		# repeat here reflects a real revisit the player drew.
+		full_path.append_array(segment)
+		start = waypoint.tile
+	return full_path
+
+
+## The beacons preview the route to `tile` (the one under the pointer or
+## cursor; null = none): from the unit before anything is plotted, onward from
+## the last stop after. The ghost stays on the plotted plan: it marks what's
+## been chosen, so a preview never rebuilds it or restarts its ride.
+func preview_path_to(unit: Node2D, tile: Tile) -> void:
+	var path := _plan_path(unit)
+	var stops: Array = unit.get("planned_waypoints")
+	var from: Tile = stops.back().tile if not stops.is_empty() else unit.get("current_tile")
+	if tile != null and from != null and tile != from:
+		path.append_array(GridManager.find_path(from, tile, unit))
+	if path == _path_tiles:
+		return  # same path: don't restart the beacons' wave
+	_faction = unit.get("faction")
+	_path_tiles = path
+	_animation_time_ms = 0.0
+	_rebuild_beacon_nodes()
 
 
 func clear_arrows() -> void:

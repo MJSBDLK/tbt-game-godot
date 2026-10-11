@@ -5,8 +5,31 @@
 ## feet hang below the pivot (cast shadows pivot at the boots — the cast is
 ## body-centred, see the pivot memory / .claude/todo-archive.md ("Battle animations plan")).
 ## Extracted from Unit so a CombatPuppet stands exactly like the map unit.
+## Also cuts the stance frame out of an idle strip (idle_frame).
 class_name SpriteSidecar
 extends RefCounted
+
+
+## An idle PNG is one frame, or a strip of square frames left to right
+## (every character canvas is square). Idles don't play yet, so the stance
+## is frame 0. Anything else wider than tall is a single non-square frame.
+static func idle_frame_rect(size: Vector2i) -> Rect2i:
+	assert(size.x > 0 and size.y > 0, "idle sheet has no pixels")
+	var is_strip: bool = size.x >= size.y * 2 and size.x % size.y == 0
+	return Rect2i(0, 0, size.y, size.y) if is_strip else Rect2i(Vector2i.ZERO, size)
+
+
+## The idle's stance frame as a texture; a single-frame PNG comes back as is.
+## Pass this, not the sheet, to read(): the pivot is in one frame's space.
+static func idle_frame(texture: Texture2D) -> Texture2D:
+	var size := Vector2i(texture.get_width(), texture.get_height())
+	var rect: Rect2i = idle_frame_rect(size)
+	if rect.size == size:
+		return texture
+	var frame := AtlasTexture.new()
+	frame.atlas = texture
+	frame.region = Rect2(rect)
+	return frame
 
 
 ## { "offset": Vector2, "art_top": float, "feet_drop": float, "has_pivot": bool }

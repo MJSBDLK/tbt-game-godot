@@ -5,6 +5,10 @@
 	"secondaryType": "None",
 	"currentClass": "Heavy",
 	"specialization": "None",
+	"lineartPath": "res://art/lineart_fullres/thumps.png",
+	"lineartAtlases": {
+		"portrait": "res://art/lineart_fullres/thumps_portrait.tres"
+	},
 	"sprite": {
 		"sheetPath": "res://art/sprites/characters/thumps/idle.png",
 		"atlasPath": "",

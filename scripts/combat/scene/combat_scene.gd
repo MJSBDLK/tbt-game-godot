@@ -57,19 +57,15 @@ const TILE_SPRITE_PX: int = 32       # one map tile in sprite px: battle_tileset
 const MAX_SPREAD_TILES: int = 4      # 4 × 32 = 128 sprite px centre-to-centre (RQD's cap)
 const PUPPET_SAFE_MARGIN: float = 63.0  # design px a centre keeps from the core's edge (21 sprite px ≈ the widest half-body)
 const RESPACE_SECONDS: float = 0.12
-# TILE STRIP — the reference the map gives for free: one flat tile per map
-# tile from the left puppet's tile to the right's, under the feet line, so
-# "two tiles apart" shows the empty tile between them (RQD's screenshot
-# 2026-09-09; the stage has no tiles to read distance against). Stand-in
-# for Lawrence's floor / the per-unit terrain strip.
-const SHOW_TILE_STRIP: bool = true
+# TILE STRIP — one flat tile per map tile from the left puppet's tile to the
+# right's, under the feet line, so "two tiles apart" shows the empty tile
+# between them. Off while Lawrence's floor carries the stage: set true to
+# bring it back. A static var so the tests can switch it on.
+static var SHOW_TILE_STRIP: bool = false
 const TILE_STRIP_HEIGHT: float = 9.0    # design px (3 sprite px) below the feet line
-# Authored backdrop (Lawrence's test scene, brief in the plan §7): two PNGs at
-# sprite density drawn at PUPPET_SCALE over the palette bands, anchored to the
-# core origin so they share the puppets' pixel grid. Absent → bands only.
-const BACKDROP_DIRECTORY: String = "res://art/backdrops/combat_test/"
-const BACKDROP_SKY_FILE: String = "sky.png"
-const BACKDROP_FLOOR_FILE: String = "floor.png"
+# Authored backdrop (CombatBackdrop): art at sprite density drawn at
+# PUPPET_SCALE over the palette bands, anchored to the core origin so it
+# shares the puppets' pixel grid. No art → the bands carry the stage.
 const BACKDROP_CORE_OFFSET := Vector2(37, 7)  # sprite px from the art's top-left to the core's
 const HUD_MARGIN: float = 12.0
 const HUD_COLUMN_WIDTH: float = 200.0   # portrait + rows; ends well above the puppets
@@ -96,6 +92,7 @@ var _distance_tiles: int = 1  # the map distance the puppets currently stand for
 var _puppets: Dictionary = {}  # unit instance id → CombatPuppet
 var _hud_by_unit: Dictionary = {}  # unit instance id → widgets, see hud_for()
 var _stage: Control = null
+var _backdrop: CombatBackdrop = null
 var _puppet_layer: Node2D = null
 var _fx_layer: Node2D = null
 var _tile_strip: Node2D = null
@@ -117,7 +114,6 @@ func _init() -> void:
 	name = "CombatScene"
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	modulate.a = 0.0  # wipe_in reveals
 
 	_dim = ColorRect.new()
 	_dim.name = "Dim"
@@ -130,6 +126,11 @@ func _init() -> void:
 	_stage.name = "Stage"
 	_stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_stage.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# A canvas group: everything on the stage draws into one picture first,
+	# so the wipe fades that picture and nothing behind the scenery shows
+	# through mid-fade. See _set_wipe_alpha.
+	RenderingServer.canvas_item_set_canvas_group_mode(_stage.get_canvas_item(),
+			RenderingServer.CANVAS_GROUP_MODE_TRANSPARENT, 10.0, true, 10.0, false)
 	add_child(_stage)
 
 	var sky := ColorRect.new()
@@ -142,17 +143,8 @@ func _init() -> void:
 	ground.color = GameColorPalette.get_color("Gray", 3)
 	ground.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_stage.add_child(ground)
-	for file_name: String in [BACKDROP_SKY_FILE, BACKDROP_FLOOR_FILE]:
-		var path: String = BACKDROP_DIRECTORY + file_name
-		if not ResourceLoader.exists(path):
-			continue
-		var art := TextureRect.new()
-		art.name = "Backdrop_" + file_name.get_basename()
-		art.texture = load(path) as Texture2D
-		art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		art.stretch_mode = TextureRect.STRETCH_SCALE
-		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_stage.add_child(art)  # sky first, floor over it (floor may rise past the horizon)
+	_backdrop = CombatBackdrop.new()
+	_stage.add_child(_backdrop)
 
 	_tile_strip = Node2D.new()
 	_tile_strip.name = "TileStrip"
@@ -160,15 +152,19 @@ func _init() -> void:
 	_puppet_layer = Node2D.new()
 	_puppet_layer.name = "Puppets"
 	_stage.add_child(_puppet_layer)
+	# Over everything by being the stage's LAST child (setup re-asserts it
+	# after the HUD), not by z_index: a raised layer leaves the canvas group
+	# and stops fading with the stage.
 	_fx_layer = Node2D.new()
 	_fx_layer.name = "Fx"
-	_fx_layer.z_index = 2
 	_stage.add_child(_fx_layer)
 
 	_skip_hint = _label(SKIP_HINT_TEXT, 8, GameColors.TEXT_SECONDARY)
 	_skip_hint.name = "SkipHint"
 	_skip_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_stage.add_child(_skip_hint)
+	_stage.move_child(_fx_layer, -1)
+	_set_wipe_alpha(0.0)  # wipe_in reveals
 
 
 func _ready() -> void:
@@ -230,10 +226,7 @@ func _layout() -> void:
 	sky.size = Vector2(size.x, origin.y + SKY_BOTTOM)
 	ground.position = Vector2(0, origin.y + SKY_BOTTOM)
 	ground.size = Vector2(size.x, maxf(0.0, size.y - ground.position.y))
-	for child: Node in _stage.get_children():
-		if child is TextureRect and child.name.begins_with("Backdrop_") and child.texture != null:
-			child.position = backdrop_position(origin)
-			child.size = child.texture.get_size() * PUPPET_SCALE
+	_backdrop.lay_out(backdrop_position(origin), PUPPET_SCALE)
 	for key: Variant in _puppets.keys():
 		_place_puppet(_puppets[key])
 	_refresh_tile_strip()
@@ -266,9 +259,11 @@ func setup(attacker: Node2D, defender: Node2D, move: Move) -> void:
 	_distance_tiles = distance_between(attacker, defender)
 	_add_puppet(left_unit, true)
 	_add_puppet(right_unit, false)
+	_backdrop.choose_layers(left_unit, right_unit)
 	_refresh_tile_strip()
 	_add_hud(left_unit, false)
 	_add_hud(right_unit, true)
+	_stage.move_child(_fx_layer, -1)  # popups over the HUD
 	show_move(attacker, move)
 	_layout()
 
@@ -853,13 +848,22 @@ func _wipe(from_alpha: float, to_alpha: float, instant: bool) -> void:
 	if not revealing:
 		_set_portraits_visible(false)
 	if instant or not Settings.ui_motion_enabled or not is_inside_tree():
-		modulate.a = to_alpha
+		_set_wipe_alpha(to_alpha)
 	else:
 		for step: int in range(1, WIPE_STEPS + 1):
-			modulate.a = lerpf(from_alpha, to_alpha, float(step) / WIPE_STEPS)
+			_set_wipe_alpha(lerpf(from_alpha, to_alpha, float(step) / WIPE_STEPS))
 			await get_tree().create_timer(WIPE_SECONDS / WIPE_STEPS).timeout
 	if revealing and is_inside_tree():
 		_set_portraits_visible(true)
+
+
+## Looks like a job for this Control's own modulate, isn't: that fades every
+## layer separately, so mid-wipe the stars show through the hills. The stage
+## is a canvas group, and its self_modulate fades the finished picture. Keep
+## this Control's modulate at 1: a group under a fading parent fades twice.
+func _set_wipe_alpha(alpha: float) -> void:
+	_dim.modulate.a = alpha
+	_stage.self_modulate.a = alpha
 
 
 func _set_portraits_visible(shown: bool) -> void:

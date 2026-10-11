@@ -205,8 +205,8 @@ func refresh() -> void:
 # it hovers the map underneath, which flips it away) and a pad has no pointer,
 # so on either the chip was a button nobody could reach.
 # Pins PERSIST after the panel closes (design call 2026-07: tap-anywhere
-# dismisses the panel, so panel lifetime can't own zone lifetime); V /
-# clear-all is the global off-switch. Built in code — the panel scene predates
+# dismisses the panel, so panel lifetime can't own zone lifetime); this chip
+# is the off-switch too. Built in code — the panel scene predates
 # the threat overlay. The panel root is MOUSE_FILTER_IGNORE by design; the
 # button itself is STOP, so it's the one clickable thing on the panel and its
 # press is consumed in HUDViewport (won't leak a map click underneath).
@@ -216,7 +216,7 @@ func _build_range_toggle(vbox: VBoxContainer) -> void:
 	_range_toggle_button.visible = false
 	_range_toggle_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	_range_toggle_button.custom_minimum_size = Vector2(0, 12)
-	_range_toggle_button.tooltip_text = "Show this enemy's danger zone on the map. Stays on until toggled off (V clears all)."
+	_range_toggle_button.tooltip_text = "Show this enemy's danger zone on the map. Stays on until toggled off here."
 	var ui_manager: Node = UIManager
 	if ui_manager != null:
 		_range_toggle_button.add_theme_font_override("font", ui_manager.font_5px)
@@ -251,7 +251,7 @@ func _update_range_toggle(unit: Unit) -> void:
 			and InputSource.is_touch_driven()
 	if not _range_toggle_button.visible:
 		return
-	# Track external state changes (V clearing all, pin pruned on death) so the
+	# Track external state changes (a pin pruned on death) so the
 	# chip's label never lies while the panel is up.
 	if not controller.changed.is_connected(_on_threat_state_changed):
 		controller.changed.connect(_on_threat_state_changed)

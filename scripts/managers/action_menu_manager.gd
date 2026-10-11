@@ -70,7 +70,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not _is_visible:
 		return
 
-	if event.is_action_pressed("ui_cancel"):
+	if event.is_action_pressed("ui_cancel") or event.is_action_pressed("back"):
 		_on_cancel()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("unit_info"):

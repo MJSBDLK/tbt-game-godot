@@ -124,22 +124,39 @@ func _build_grid() -> void:
 					if cell_terrain != "":
 						modifier_cells[cell + Vector2i(dx, dy)] = cell_terrain
 
+	# Scenery (Tile.scenery): the family of every modifier AND decoration over
+	# each cell of its footprint. Looks only — the paint layer doesn't matter.
+	var piece_families: Dictionary = {}  # Vector2i -> PackedStringArray
+	for layer: TileMapLayer in [_modifier_layer, _decoration_layer]:
+		if layer == null:
+			continue
+		for cell: Vector2i in layer.get_used_cells():
+			var family := ModifierTerrainMap.family(_get_sprite_name_from_layer(layer, cell))
+			if family == "":
+				continue
+			var footprint := _get_footprint_from_layer(layer, cell)
+			for dx in range(footprint.x):
+				for dy in range(footprint.y):
+					var covered: Vector2i = cell + Vector2i(dx, dy)
+					var families: PackedStringArray = piece_families.get(covered, PackedStringArray())
+					if not families.has(family):
+						families.append(family)
+					piece_families[covered] = families
+
 	# Build tiles
 	var tile_size: int = _floor_layer.tile_set.tile_size.x
 	var tile_count := 0
 	for cell: Vector2i in floor_cells:
-		var terrain_type: String
-
+		var floor_terrain := _get_terrain_type_from_layer(_floor_layer, cell)
+		if floor_terrain == "":
+			floor_terrain = "Plains"
 		# Three-tier rule: modifier COMPLETELY REPLACES floor
-		if modifier_cells.has(cell):
-			terrain_type = modifier_cells[cell]
-		else:
-			terrain_type = _get_terrain_type_from_layer(_floor_layer, cell)
-			if terrain_type == "":
-				terrain_type = "Plains"
+		var terrain_type: String = modifier_cells.get(cell, floor_terrain)
 
 		var tile: Tile = tile_scene.instantiate() as Tile
 		_tile_container.add_child(tile)
+		tile.scenery = floor_scenery(_floor_layer.tile_set, _floor_layer.get_cell_tile_data(cell), floor_terrain)
+		tile.scenery.append_array(piece_families.get(cell, PackedStringArray()))
 
 		# Game grid uses Y-up; TileMapLayer uses Y-down.  We keep both:
 		# - grid_x/grid_y: game-logic coordinates (Y-up, integer)
@@ -251,6 +268,43 @@ func _get_terrain_type_from_layer(layer: TileMapLayer, cell: Vector2i) -> String
 		return terrain_type
 
 	return ""
+
+
+## A floor cell's scenery names (Tile.scenery): its terrain type ("sand")
+## and both materials its autotile sheet blends ("Blue Sand / Regolith" →
+## "blue_sand", "regolith").
+static func floor_scenery(tile_set: TileSet, data: TileData, terrain_type: String) -> PackedStringArray:
+	var names := PackedStringArray([terrain_type.to_lower()])
+	if tile_set != null and data != null and data.terrain_set >= 0 and data.terrain >= 0:
+		for sheet_material: String in tile_set.get_terrain_name(data.terrain_set, data.terrain).split("/"):
+			var material_name := sheet_material.strip_edges().to_lower().replace(" ", "_")
+			if material_name != "" and not names.has(material_name):
+				names.append(material_name)
+	return names
+
+
+## Every floor scenery name `tile_set` can paint: each tile's terrain type
+## and each autotile sheet's materials.
+static func floor_scenery_names(tile_set: TileSet) -> PackedStringArray:
+	var names := PackedStringArray()
+	for set_index: int in tile_set.get_terrain_sets_count():
+		for terrain_index: int in tile_set.get_terrains_count(set_index):
+			for sheet_material: String in tile_set.get_terrain_name(set_index, terrain_index).split("/"):
+				names.append(sheet_material.strip_edges().to_lower().replace(" ", "_"))
+	for source_index: int in tile_set.get_source_count():
+		var source := tile_set.get_source(tile_set.get_source_id(source_index)) as TileSetAtlasSource
+		if source == null:
+			continue
+		for tile_index: int in source.get_tiles_count():
+			var data := source.get_tile_data(source.get_tile_id(tile_index), 0)
+			var terrain_type: Variant = data.get_custom_data("terrain_type") if data != null else ""
+			if terrain_type is String and terrain_type != "":
+				names.append((terrain_type as String).to_lower())
+	var unique := PackedStringArray()
+	for scenery_name: String in names:
+		if scenery_name != "" and not unique.has(scenery_name):
+			unique.append(scenery_name)
+	return unique
 
 
 ## Reads the painted modifier's sprite name — the atlas source's

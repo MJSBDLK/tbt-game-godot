@@ -93,6 +93,26 @@ func is_touch_driven() -> bool:
 	return last_device == Device.TOUCH
 
 
+## Trigger-bound actions held past their deadzone: action → true.
+var _held_axis_actions: Dictionary = {}
+
+
+## A press of `action`, once. Keys and buttons press once by nature (echo
+## excluded); an action on a trigger arrives as a stream of motion events,
+## each one past the deadzone "pressed", so only the crossing into the
+## deadzone counts, and nothing again until the trigger rests. It remembers:
+## call it once per event per action.
+func is_action_press(event: InputEvent, action: StringName) -> bool:
+	if not event is InputEventJoypadMotion:
+		return event.is_action_pressed(action)
+	if not event.is_action(action):
+		return false
+	var held := event.is_action_pressed(action)
+	var was_held: bool = _held_axis_actions.get(action, false)
+	_held_axis_actions[action] = held
+	return held and not was_held
+
+
 ## True for the four directional UI actions — the presses that summon the
 ## cursor onto a quiet-opened menu (accept/cancel are NOT summons: nothing
 ## is selected yet, so there is nothing to accept).
