@@ -1,7 +1,7 @@
 {
 	"characterId": "squash",
 	"characterName": "Squash",
-	"primaryType": "Plant",
+	"primaryType": "Simple",
 	"secondaryType": "None",
 	"currentClass": "Fighter",
 	"specialization": "None",

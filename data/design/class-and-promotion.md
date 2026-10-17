@@ -66,13 +66,27 @@ class, two tier-2 choices, and two tier-3 choices under each (Bugler's shape,
 §8). No linear trees: Spaceman → Jetpack → EVA and Squire → Knight → Void
 Knight are incomplete, four classes short each.
 
+**[DECIDED] Less commonly, both branches reach the same tier-3 class**: a
+middle ground either path arrives at, making a 6-class tree (RQD, Ernesto's
+draft). At most one tier-3 class is shared, or the choice at 21 stops
+mattering for where the unit ends up.
+
 **[DECIDED] Classes are a shared pool; trees are per unit.** A class (name,
-tier, typing, stat mods, passives) is defined once and can appear in many
+tier, stat mods, passives) is defined once and can appear in many
 units' trees. Each unit has its own tree drawing from the pool, so two units
 that start as the same class may diverge at 21, or not (RQD's example, names
 not real: Unit 1 Soldier → Commando or Legionnaire; Unit 2 Soldier →
 Legionnaire or Elite Mercenary). So a class doesn't decide what it promotes
 into: the unit's tree does.
+
+**[DECIDED] Typing belongs to the unit's class, not the class.** Each slot in
+a unit's tree sets its own typing: Ernesto's Colossus is Simple/Robo, the Ice
+Archer's Colossus is mono Cold (RQD). The tree's base typing is the design for
+the unit's starting class; its character JSON's types are what plays today.
+
+**[DECIDED] Passives are the class's, at set levels, overridable per unit.**
+Classes generally share their passives at specific levels, and a unit's tree
+can override them (RQD). Not in data/classes yet.
 
 ### The consequence that drives everything else
 
@@ -101,8 +115,12 @@ stats. That's the first real class *data* in the project; everything else below
 is still absent. All 32 character JSONs already carry a `currentClass` and the
 loader parses it, so caps resolved per-unit the moment the table landed.
 
-**The promotion trees are `promotes_to` on each `Enums.CLASS_INFO` entry** (the
-next tier's choices; tier 3 has none). Two are drawn so far: Spaceman → Jetpack
+**The trees and the class pool live in `data/classes/`** (its README is the
+format; `ClassTrees` reads it, and `tests/unit/test_class_trees.gd` checks it),
+edited in the class tree editor, `tools/art_dashboard/class_trees.html`. The
+older `promotes_to` on each `Enums.CLASS_INFO` entry is superseded: the art
+board's tree panel still reads it until it's switched over. Below, what that
+older table held: the next tier's choices; tier 3 has none. Two are drawn so far: Spaceman → Jetpack
 → EVA and Squire → Knight → Void Knight. Hardcase and Topdog are in no tree yet.
 An empty `promotes_to` means "not designed yet", and the art board's Class trees
 panel shows every such gap. `tests/unit/test_class_tree.gd` checks each
@@ -153,8 +171,7 @@ The 15 base classes in `Enums.CharacterClass` predate the tree sketches,
 which give units their own base classes (the Goblin Healer is a Herbalist,
 the Plant Cultist a Cultist, though both are "Mage" in their JSON). Because
 trees are per unit, `promotes_to` on `CLASS_INFO` is the wrong home for them:
-when a tree is locked into code it belongs on the unit (its character JSON),
-and the art board reads it there.
+they live in `data/classes/trees/`, one file per unit.
 
 ---
 
@@ -457,6 +474,8 @@ Kept as-is for now per RQD; both are tuning questions, not design ones.
 ## 8. Promotion trees
 
 ### Bugler **[DECIDED]**
+
+The tree itself: `data/classes/trees/bugler.json` (no unit yet).
 
 ```
 Bugler             Heraldic            tier 1

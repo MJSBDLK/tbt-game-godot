@@ -1,0 +1,46 @@
+<!doctype html>
+<!-- Class tree editor: bookmark this file. How it works: class_trees.js header. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Class trees</title>
+<link rel="stylesheet" href="dashboard.css">
+<link rel="stylesheet" href="class_trees.css">
+</head>
+<body>
+<header class="top-bar">
+	<h1 class="board-title">Class trees</h1>
+	<span id="status" class="status">Loading…</span>
+	<button id="connect" class="notes-button" type="button">Connect data/classes</button>
+	<a class="notes-button top-link" href="index.html">Art board</a>
+</header>
+
+<p id="intro" class="intro">
+	Every unit has its own tree: a base class, two choices at level 21, two more under each at 41.
+	Classes come from one shared pool, so two units can share a class, or not.
+	Type a class name into a slot to pick it. A new name is a draft: a placeholder kept in the tree's
+	file only, until its panel makes it a class. ⇅ flips the two branches out of a card. Edits save
+	straight into <code>data/classes/</code> in the game.
+</p>
+
+<div class="editor">
+	<nav id="units" class="units"></nav>
+	<main id="tree" class="tree-view"></main>
+	<aside id="class-panel" class="class-panel"></aside>
+</div>
+
+<details id="pool" class="panel pool">
+	<summary>All classes</summary>
+	<div class="pool-body"></div>
+</details>
+
+<div id="datalists"></div>
+
+<script src="ranking.js"></script>
+<script src="game_data.js"></script>
+<script src="board_logic.js"></script>
+<script src="class_tree_logic.js"></script>
+<script src="class_trees.js"></script>
+</body>
+</html>

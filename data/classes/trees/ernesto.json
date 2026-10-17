@@ -1,0 +1,59 @@
+{
+	"base": "technician",
+	"base_types": [
+		"Simple"
+	],
+	"promotions": [
+		{
+			"class": "engineer",
+			"types": [
+				"Simple",
+				"Robo"
+			],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "machinist",
+					"types": [
+						"Robo"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "dynamo",
+					"types": [
+						"Robo",
+						"Electric"
+					],
+					"art": "palette"
+				}
+			]
+		},
+		{
+			"class": "roughneck",
+			"types": [
+				"Simple"
+			],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "dynamo",
+					"types": [
+						"Robo",
+						"Electric"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "colossus",
+					"types": [
+						"Simple",
+						"Robo"
+					],
+					"art": "palette"
+				}
+			]
+		}
+	],
+	"notes": "From the ??? classes:\n"
+}

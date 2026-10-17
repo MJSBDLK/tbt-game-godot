@@ -1,0 +1,41 @@
+{
+	"base": "heavy",
+	"base_types": [],
+	"promotions": [
+		{
+			"class": "",
+			"types": [],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				},
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				}
+			]
+		},
+		{
+			"class": "",
+			"types": [],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				},
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				}
+			]
+		}
+	],
+	"notes": "This guy has maxed out power, and high defenses. Slow and near-zero skill, but if he hits you he can one-shot some of the more frail units. Part of the monster faction, he's an elite enemy who is really fucking scary."
+}

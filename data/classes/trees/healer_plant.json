@@ -1,0 +1,58 @@
+{
+	"base": "bulb",
+	"base_types": [
+		"Plant"
+	],
+	"promotions": [
+		{
+			"class": "cactus",
+			"types": [
+				"Plant"
+			],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "pyracantha",
+					"types": [
+						"Plant",
+						"Fire"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "snowdrop",
+					"types": [
+						"Plant",
+						"Cold"
+					],
+					"art": "palette"
+				}
+			]
+		},
+		{
+			"class": "taproot",
+			"types": [
+				"Plant"
+			],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "samara",
+					"types": [
+						"Plant",
+						"Air"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "mandrake",
+					"types": [
+						"Plant"
+					],
+					"art": "palette"
+				}
+			]
+		}
+	],
+	"notes": "Moves and passives for this tree (Vines, Sunflower, Whirlicopter, Pod, Turgor, Stolon, Clover): data/design/moves-and-passives.md."
+}
