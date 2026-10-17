@@ -1,0 +1,46 @@
+{
+	"base": "page",
+	"base_types": [
+		"Chivalric"
+	],
+	"promotions": [
+		{
+			"class": "",
+			"types": [],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "void_knight",
+					"types": [
+						"Void",
+						"Chivalric"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				}
+			]
+		},
+		{
+			"class": "",
+			"types": [],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				},
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				}
+			]
+		}
+	],
+	"notes": "Should go Page -> Squire -> Knight\n\nGets access to different elements at max level\n\nThis guy has low base stats but high growth rates - with investment, we intend for him to be the most fearsome player unit in the game\n\nNot sure what to do about tier 2. I like the idea of his tier 2 getting the option to *dabble* in the magical arts."
+}

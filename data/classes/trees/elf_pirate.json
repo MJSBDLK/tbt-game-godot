@@ -1,0 +1,57 @@
+{
+	"base": "pirate",
+	"base_types": [
+		"Air"
+	],
+	"promotions": [
+		{
+			"class": "kleptomaniac",
+			"types": [
+				"Air"
+			],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "infiltrator",
+					"types": [
+						"Air"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "highwayman",
+					"types": [
+						"Air"
+					],
+					"art": "palette"
+				}
+			]
+		},
+		{
+			"class": "corsair",
+			"types": [
+				"Air"
+			],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "privateer",
+					"types": [
+						"Air",
+						"Gentry"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "tempest",
+					"types": [
+						"Air",
+						"Cold"
+					],
+					"art": "palette"
+				}
+			]
+		}
+	],
+	"notes": "Pica is our resident flyer - she stole a magic carpet and can fly. The's also quite thieving. Might have a flying variant of the klepto tree?"
+}

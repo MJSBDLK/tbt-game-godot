@@ -1,0 +1,43 @@
+{
+	"base": "mage",
+	"base_types": [
+		"Fire"
+	],
+	"promotions": [
+		{
+			"class": "",
+			"types": [],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				},
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				}
+			]
+		},
+		{
+			"class": "",
+			"types": [],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				},
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				}
+			]
+		}
+	],
+	"notes": "Similar to the pyros, but from a pirate faction. Sport a barrel full of fuel on their back, with a long nozzle, atop which is perched their pet phoenix, who ignites the fuel.\n"
+}

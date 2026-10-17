@@ -1,0 +1,68 @@
+{
+	"base": "bandit",
+	"base_types": [
+		"Gentry"
+	],
+	"promotions": [
+		{
+			"class": "",
+			"draft": {
+				"name": "Footpad",
+				"notes": "Finesse: Backstab, Feint, Low Profile."
+			},
+			"types": [
+				"Gentry"
+			],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "highwayman",
+					"types": [
+						"Gentry",
+						"Chivalric"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "",
+					"draft": {
+						"name": "Cutthroat",
+						"notes": ""
+					},
+					"types": [
+						"Gentry"
+					],
+					"art": "palette"
+				}
+			]
+		},
+		{
+			"class": "brigand",
+			"types": [
+				"Gentry"
+			],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "marauder",
+					"types": [
+						"Gentry"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "",
+					"draft": {
+						"name": "Robber Baron",
+						"notes": "Buffs the bandits around him: the one to kill first in an early pack."
+					},
+					"types": [
+						"Gentry"
+					],
+					"art": "palette"
+				}
+			]
+		}
+	],
+	"notes": ""
+}

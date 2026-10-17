@@ -1,0 +1,43 @@
+{
+	"base": "grunt",
+	"base_types": [
+		"Heraldic"
+	],
+	"promotions": [
+		{
+			"class": "soldier",
+			"types": [],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				},
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				}
+			]
+		},
+		{
+			"class": "",
+			"types": [],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				},
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				}
+			]
+		}
+	],
+	"notes": "Cannon fodder type enemy, usable atk/def, not very impressive everything else.\n"
+}

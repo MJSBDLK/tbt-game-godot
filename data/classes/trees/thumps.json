@@ -1,0 +1,43 @@
+{
+	"base": "heavy",
+	"base_types": [
+		"Heraldic"
+	],
+	"promotions": [
+		{
+			"class": "",
+			"types": [],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				},
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				}
+			]
+		},
+		{
+			"class": "",
+			"types": [],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				},
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				}
+			]
+		}
+	],
+	"notes": "Thumps is a siamese twin with gigantism. Like Pierre, there are just a lot of this guy, and the narrative does not explain why - don't worry about it.\n\nHe's essentially the ogre of the  peasantry - not quite as fearsome as an ogre, but with passives which play off his dual heads/personality. He can't be as easily ganged up on because he can look both ways, simultaneously.\n\n"
+}

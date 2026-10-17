@@ -1,0 +1,51 @@
+{
+	"base": "archer",
+	"base_types": [
+		"Cold"
+	],
+	"promotions": [
+		{
+			"class": "longbowman",
+			"types": [
+				"Cold"
+			],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				},
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				}
+			]
+		},
+		{
+			"class": "",
+			"draft": {
+				"name": "",
+				"notes": "This branch of the Ice Archer T2 should be more of a generalist - still uses a bow, but doesn't need to snipe everything from several spaces away"
+			},
+			"types": [],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				},
+				{
+					"class": "colossus",
+					"types": [
+						"Cold"
+					],
+					"art": "palette"
+				}
+			]
+		}
+	],
+	"notes": "Extremely tall, slow, adapted to the cold - these are ancient ice beings. They stand over 7' tall, are very  thin and strong. High defenses, near-zero agility. Have access to extra powerful ranged attacks that can't be used if they move on the same turn.\nThe  longbowan track focuses on extreme range - 4-5 spaces, the longest ranged attacks outside the sniper class. Accuracy drops off at this range, but these guys hit like a truck, and from very far away.\n\nThe  lower track is more of a generalist, and it has access to the colossus class at T3 - which focuses more on high attack and defense, while forgoing its ranged options - however, it keeps the ranged moves it learned at lower classes."
+}

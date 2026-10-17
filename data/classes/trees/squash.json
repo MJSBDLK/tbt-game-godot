@@ -1,0 +1,56 @@
+{
+	"base": "fighter",
+	"base_types": [
+		"Simple"
+	],
+	"promotions": [
+		{
+			"class": "bouncer",
+			"types": [
+				"Simple"
+			],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "bulwark",
+					"types": [
+						"Simple"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "bruiser",
+					"types": [
+						"Simple"
+					],
+					"art": "palette"
+				}
+			]
+		},
+		{
+			"class": "haymaker",
+			"types": [
+				"Simple"
+			],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "bruiser",
+					"types": [
+						"Simple"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "hedge_knight",
+					"types": [
+						"Plant",
+						"Chivalric"
+					],
+					"art": "palette"
+				}
+			]
+		}
+	],
+	"notes": "Slightly above average strength, but not very fearsome offensively. Defensive stats are also average, but with a massive HP stat that makes him effectively quite the wall. Very low skill, agility, and athleticism.\nPassives will alleviate his weaknesses to some extent - this character isn't that scary, but if they're blocking a choke point, it'll take a lot to get through him.\n\nBottom track gets access to plant typing, kind of a play on his name, \"squash\""
+}

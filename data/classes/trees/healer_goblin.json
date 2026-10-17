@@ -1,0 +1,60 @@
+{
+	"base": "herbalist",
+	"base_types": [
+		"Monster"
+	],
+	"promotions": [
+		{
+			"class": "apothecary",
+			"types": [
+				"Monster",
+				"Plant"
+			],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "plague_doc",
+					"types": [
+						"Monster"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "distiller",
+					"types": [
+						"Monster",
+						"Plant"
+					],
+					"art": "palette"
+				}
+			]
+		},
+		{
+			"class": "sawbones",
+			"types": [
+				"Monster",
+				"Simple"
+			],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "chirurgeon",
+					"types": [
+						"Monster",
+						"Simple"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "thaumaturge",
+					"types": [
+						"Monster",
+						"Occult"
+					],
+					"art": "palette"
+				}
+			]
+		}
+	],
+	"notes": ""
+}
