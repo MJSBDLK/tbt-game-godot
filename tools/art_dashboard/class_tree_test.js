@@ -241,3 +241,15 @@ test("the trees on disk have no problems the page would show", () => {
 		assert.deepEqual(trees.problems(tree, pool), [], name);
 	}
 });
+
+test("a class's id is its name in lowercase, accents dropped, words joined by _", () => {
+	assert.equal(trees.classId("El Capitán"), "el_capitan", "Lawrence's variant files are named after it");
+	assert.equal(trees.classId("  King of Arms "), "king_of_arms");
+});
+
+test("every pool file is named for its class", () => {
+	for (const name of fs.readdirSync(path.join(DATA, "pool")).filter((file) => file.endsWith(".json"))) {
+		const entry = JSON.parse(fs.readFileSync(path.join(DATA, "pool", name), "utf8"));
+		assert.equal(`${trees.classId(entry.name)}.json`, name, entry.name);
+	}
+});

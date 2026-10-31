@@ -114,24 +114,61 @@ func test_every_box_has_one_requirement_of_its_tier() -> void:
 		assert_eq(_requirement(entry, column.id).tier, column.tier, column.id)
 
 
-func test_a_character_gets_a_variant_per_class_below_its_own() -> void:
-	var entry := Generator.character_entry("nobody", {"currentClass": "Squire"}, MOVE_BANK)
-	assert_eq(entry["class"], "squire")
+## A tree file as data/classes/README.md has it: Squire into Knight or Page,
+## Void Knight under both, and a draft in Page's other slot.
+func _tree() -> Dictionary:
+	return {
+		"base": "squire", "base_types": ["Chivalric"], "notes": "",
+		"promotions": [
+			{"class": "knight", "types": [], "art": "palette", "promotions": [
+				{"class": "void_knight", "types": ["Void"], "art": "redraw"},
+				{"class": "banneret", "types": [], "art": "palette"},
+			]},
+			{"class": "page", "types": [], "art": "palette_layer", "promotions": [
+				{"class": "void_knight", "types": [], "art": "redraw"},
+				{"class": "", "types": [], "art": "palette", "draft": {"name": "Footpad", "notes": ""}},
+			]},
+		],
+	}
+
+
+func test_a_character_gets_a_variant_per_class_its_tree_promotes_into() -> void:
+	var entry := Generator.character_entry("nobody", {"currentClass": "Squire"}, MOVE_BANK, _tree())
 	assert_eq(entry.variants.map(func(variant: Dictionary) -> String: return variant["class"]),
-			Generator.promotions_below("squire"))
+			["knight", "page", "void_knight", "banneret"], "tier 2 first, a class under both branches once, a draft no class")
 	for variant: Dictionary in entry.variants:
 		assert_eq(variant.id, "nobody_" + variant["class"], "file stem <id>_<class>")
 
 
+func test_the_board_s_tree_keeps_each_slot_s_class_and_art() -> void:
+	var tree := Generator.tree_entry(_tree(), "fighter")
+	assert_eq(tree["class"], "squire", "the tree's base, not the class it plays as today")
+	assert_eq(tree.promotions[0].promotions[0], {"class": "void_knight", "art": "redraw"}, "typing stays in the file")
+	assert_eq(tree.promotions[1].promotions[1], {"class": "", "art": "palette"}, "a draft is an empty slot, as to the game")
+
+
+func test_no_tree_file_is_today_s_class_with_nothing_designed() -> void:
+	var entry := Generator.character_entry("nobody", {"currentClass": "Squire"}, MOVE_BANK)
+	assert_eq(entry.tree, {"class": "squire", "promotions": []})
+	assert_eq(entry.variants, [])
+
+
+func test_nothing_under_an_undesigned_slot_is_a_variant() -> void:
+	var tree := _tree()
+	tree.promotions[0]["class"] = ""
+	assert_eq(Generator.tree_promotions(Generator.tree_entry(tree, "squire")), ["page", "void_knight"],
+			"no unit promotes into Banneret through an empty slot")
+
+
 func test_class_names_with_spaces_read_like_the_loader() -> void:
 	assert_eq(Generator.character_class_id({"currentClass": "Void Knight"}), "void_knight")
-	assert_eq(Generator.promotions_below("void_knight"), [], "tier 3 promotes into nothing")
 
 
 ## Moves don't change with class, so neither do the boxes a variant needs.
 func test_a_variant_needs_what_its_base_needs() -> void:
-	var entry := Generator.character_entry("nobody", {"currentClass": "Squire", "basePoolMoves": ["Jab", "Mend"]}, MOVE_BANK)
-	assert_false(entry.variants.is_empty(), "Squire promotes")
+	var entry := Generator.character_entry("nobody", {"currentClass": "Squire", "basePoolMoves": ["Jab", "Mend"]},
+			MOVE_BANK, _tree())
+	assert_false(entry.variants.is_empty(), "the tree promotes")
 	for variant: Dictionary in entry.variants:
 		for index: int in entry.requirements.size():
 			assert_eq(variant.requirements[index].needed, entry.requirements[index].needed,
@@ -146,7 +183,8 @@ func test_variants_only_look_on_their_own_convention_paths() -> void:
 		"sprite": {"sheetPath": "res://art/sprites/characters/old_name/idle.png"},
 		"lineartPath": "res://art/lineart_fullres/old_name.png",
 	}
-	var entry := Generator.character_entry("nobody", character, MOVE_BANK)
+	var entry := Generator.character_entry("nobody", character, MOVE_BANK, _tree())
+	assert_false(entry.variants.is_empty(), "the tree promotes")
 	for variant: Dictionary in entry.variants:
 		for requirement: Dictionary in variant.requirements:
 			for candidate: Dictionary in requirement.candidates:
@@ -154,13 +192,21 @@ func test_variants_only_look_on_their_own_convention_paths() -> void:
 				assert_false(candidate.declared, candidate.path)
 
 
-func test_classes_mirror_the_enum() -> void:
+func test_classes_are_the_pool() -> void:
+	var class_pool := ClassTrees.pool()
 	var classes: Array = Generator.build_data().classes
-	assert_eq(classes.size(), Enums.CLASS_INFO.size())
+	assert_eq(classes.size(), class_pool.size())
 	for entry: Dictionary in classes:
-		var character_class: int = Enums.CharacterClass[entry.id.to_upper()]
-		assert_eq(entry.tier, Enums.get_class_tier(character_class), entry.id)
-		assert_eq(entry.promotes_to.size(), Enums.CLASS_INFO[character_class].get("promotes_to", []).size(), entry.id)
+		assert_eq(entry.name, class_pool[entry.id].name, entry.id)
+		assert_eq(entry.tier, int(class_pool[entry.id].tier), entry.id)
+
+
+## The board draws a tree from its base class; one missing from the pool draws nothing.
+func test_every_character_s_tree_starts_at_a_pool_class() -> void:
+	var data := Generator.build_data()
+	var class_ids: Array = data.classes.map(func(entry: Dictionary) -> String: return entry.id)
+	for character: Dictionary in data.characters:
+		assert_has(class_ids, character.tree["class"], character.id)
 
 
 func test_no_variant_shares_its_files_with_a_character() -> void:

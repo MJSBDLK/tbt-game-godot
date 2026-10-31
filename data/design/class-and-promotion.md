@@ -88,6 +88,12 @@ the unit's starting class; its character JSON's types are what plays today.
 Classes generally share their passives at specific levels, and a unit's tree
 can override them (RQD). Not in data/classes yet.
 
+**[PROVISIONAL] A unit keeps what its tier-2 class taught it.** Moves and
+passives a class grants at its levels stay after the next promotion, so a
+shared tier-3 class plays differently by the road taken: the Ogre Squire's
+Void Knight through Squire has no spells, through Apprentice it keeps the
+Apprentice's (RQD). Same art, two units.
+
 ### The consequence that drives everything else
 
 **Stat total stops being a proxy for unit power.** A stat-penalty class with a
@@ -118,17 +124,11 @@ loader parses it, so caps resolved per-unit the moment the table landed.
 **The trees and the class pool live in `data/classes/`** (its README is the
 format; `ClassTrees` reads it, and `tests/unit/test_class_trees.gd` checks it),
 edited in the class tree editor, `tools/art_dashboard/class_trees.html`. The
-older `promotes_to` on each `Enums.CLASS_INFO` entry is superseded: the art
-board's tree panel still reads it until it's switched over. Below, what that
-older table held: the next tier's choices; tier 3 has none. Two are drawn so far: Spaceman → Jetpack
-→ EVA and Squire → Knight → Void Knight. Hardcase and Topdog are in no tree yet.
-An empty `promotes_to` means "not designed yet", and the art board's Class trees
-panel shows every such gap. `tests/unit/test_class_tree.gd` checks each
-promotion goes up exactly one tier. Nothing in the game reads the trees yet.
+art board draws them, undesigned slots dashed. Nothing in the game reads the
+trees yet.
 
-Still absent: any other class data (no granted passives, typing, growth mods, or
-`data/classes/`), any promotion trigger or eligibility check, and the
-class-choice screen.
+Still absent: any other class data (no granted passives or growth mods), any
+promotion trigger or eligibility check, and the class-choice screen.
 
 `CharacterData.tier` exists as a stored `@export` defaulting to 1, and is
 currently stubbed at 1 for every character.

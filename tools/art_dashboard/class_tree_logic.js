@@ -20,9 +20,11 @@ const ELEMENTAL_TYPES = [
 const CHOICES = 2;  // each slot below tier 3 promotes into two
 const TOP_TIER = 3;
 
-// A class's id, which is its file name: the name in lowercase, words joined by "_".
+// A class's id, which is its file name: the name in lowercase, accents
+// dropped (El Capitán → el_capitan), words joined by "_".
 function classId(name) {
-	return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+	return name.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+		.replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
 }
 
 function emptySlot(tier) {

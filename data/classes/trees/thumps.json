@@ -5,39 +5,54 @@
 	],
 	"promotions": [
 		{
-			"class": "",
-			"types": [],
+			"class": "lookout",
+			"types": [
+				"Heraldic"
+			],
 			"art": "palette",
 			"promotions": [
 				{
-					"class": "",
-					"types": [],
+					"class": "warden",
+					"types": [
+						"Heraldic",
+						"Chivalric"
+					],
 					"art": "palette"
 				},
 				{
-					"class": "",
-					"types": [],
+					"class": "ward",
+					"types": [
+						"Heraldic",
+						"Occult"
+					],
 					"art": "palette"
 				}
 			]
 		},
 		{
-			"class": "",
-			"types": [],
+			"class": "gemini",
+			"types": [
+				"Heraldic"
+			],
 			"art": "palette",
 			"promotions": [
 				{
-					"class": "",
-					"types": [],
+					"class": "strongman",
+					"types": [
+						"Heraldic"
+					],
 					"art": "palette"
 				},
 				{
-					"class": "",
-					"types": [],
+					"class": "colossus",
+					"types": [
+						"Heraldic",
+						"Simple"
+					],
 					"art": "palette"
 				}
 			]
 		}
 	],
-	"notes": "Thumps is a siamese twin with gigantism. Like Pierre, there are just a lot of this guy, and the narrative does not explain why - don't worry about it.\n\nHe's essentially the ogre of the  peasantry - not quite as fearsome as an ogre, but with passives which play off his dual heads/personality. He can't be as easily ganged up on because he can look both ways, simultaneously.\n\n"
+	"notes": "Thumps is a siamese twin with gigantism. Like Pierre, there are just a lot of this guy, and the narrative does not explain why - don't worry about it.\n\nHe's essentially the ogre of the  peasantry - not quite as fearsome as an ogre, but with passives which play off his dual heads/personality. He can't be as easily ganged up on because he can look both ways, simultaneously.\n\nFrom the same village as the Traveller: a monstrosity they took in as their own. They were kind to him, but he still caught shit for being different. Mostly heartwarming, with darker details. Simple-minded; utilitarian about the occult. Colossus here is the max tank.\n"
 }

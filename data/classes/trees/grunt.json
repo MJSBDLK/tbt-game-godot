@@ -6,34 +6,53 @@
 	"promotions": [
 		{
 			"class": "soldier",
-			"types": [],
+			"types": [
+				"Heraldic"
+			],
 			"art": "palette",
 			"promotions": [
 				{
-					"class": "",
-					"types": [],
+					"class": "pikeman",
+					"types": [
+						"Heraldic"
+					],
 					"art": "palette"
 				},
 				{
-					"class": "",
-					"types": [],
+					"class": "man_at_arms",
+					"types": [
+						"Heraldic",
+						"Chivalric"
+					],
 					"art": "palette"
 				}
 			]
 		},
 		{
-			"class": "",
-			"types": [],
+			"class": "torchbearer",
+			"types": [
+				"Heraldic",
+				"Fire"
+			],
 			"art": "palette",
 			"promotions": [
 				{
-					"class": "",
-					"types": [],
+					"class": "arsonist",
+					"types": [
+						"Fire"
+					],
 					"art": "palette"
 				},
 				{
 					"class": "",
-					"types": [],
+					"draft": {
+						"name": "",
+						"notes": "Open slot: any ideas? RQD is asking Lawrence."
+					},
+					"types": [
+						"Heraldic",
+						"Fire"
+					],
 					"art": "palette"
 				}
 			]

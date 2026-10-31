@@ -21,30 +21,35 @@
 					"art": "palette"
 				},
 				{
-					"class": "",
+					"class": "interdictor",
 					"types": [
-						"Gravity"
+						"Gravity",
+						"Air"
 					],
 					"art": "palette"
 				}
 			]
 		},
 		{
-			"class": "",
+			"class": "specialist",
 			"types": [
-				"Simple",
-				"Gravity"
+				"Simple"
 			],
 			"art": "palette",
 			"promotions": [
 				{
-					"class": "",
-					"types": [],
+					"class": "comms",
+					"types": [
+						"Simple"
+					],
 					"art": "palette"
 				},
 				{
-					"class": "el_capit_n",
-					"types": [],
+					"class": "marshal",
+					"types": [
+						"Simple",
+						"Gravity"
+					],
 					"art": "palette"
 				}
 			]

@@ -4,8 +4,9 @@
 ## Typing is the unit's, not the class's: each tree slot sets its own.
 ## Edited in the class tree editor (tools/art_dashboard/class_trees.html);
 ## problems_in is what tests/unit/test_class_trees.gd holds the files to.
-## Nothing in the game promotes yet: this is the reader the class-choice
-## screen will use. Design: data/design/class-and-promotion.md.
+## The art board's generator draws from it; nothing in the game promotes yet,
+## and the class-choice screen will read it here. Design:
+## data/design/class-and-promotion.md.
 class_name ClassTrees
 extends RefCounted
 

@@ -15,16 +15,18 @@
 ##   clips         per strip: hit frame and frame timing, sidecar first, the
 ##                 same precedence as ClipPlayer.resolve_playback.
 ##   crop          the portrait crop's region on its line art.
-##   class         the class it starts in (currentClass, as a class id).
-##   variants      one per class below that in its promotion tree: the same
-##                 character redrawn for that class, with its own full set of
-##                 boxes under the file stem <id>_<class>. Moves don't change
-##                 with class, so a variant needs what the base needs. Nothing
-##                 in the game loads variants yet, so only convention paths
-##                 count and none is "declared".
+##   class         the class it plays as today (currentClass, as a class id).
+##   tree          its promotion tree from data/classes/trees/<id>.json, cut
+##                 to each slot's class and art (tree_entry).
+##   variants      one per class its tree promotes into: the same character
+##                 redrawn for that class, with its own full set of boxes
+##                 under the file stem <id>_<class>. Moves don't change with
+##                 class, so a variant needs what the base needs. Nothing in
+##                 the game loads variants yet, so only convention paths count
+##                 and none is "declared".
 ##
-## `classes` is the promotion tree from Enums.CLASS_INFO, keyed by the class's
-## lowercase enum name (the id in variant file names).
+## `classes` is the class pool, data/classes/pool/ (ClassTrees): id, name, tier.
+## A tree edit in the class tree editor makes this file stale, like any other.
 ##
 ## Needs mirror UnitAnimationResolver: two reaches (1 tile = melee, 2+ =
 ## ranged), every attack can hit from 1 tile (targeting is distance <= range),
@@ -90,11 +92,13 @@ static func render(data: Dictionary) -> String:
 
 static func build_data() -> Dictionary:
 	var move_bank: Dictionary = read_json(MOVE_BANK_PATH)
+	var unit_trees := ClassTrees.trees()
 	var characters: Array[Dictionary] = []
 	for path: String in character_files():
 		var character: Dictionary = read_json(path)
+		var character_id := path.get_file().get_basename()
 		if not character.is_empty():
-			characters.append(character_entry(path.get_file().get_basename(), character, move_bank))
+			characters.append(character_entry(character_id, character, move_bank, unit_trees.get(character_id, {})))
 	# `convention` tells the page where each box's file goes ({id} = character).
 	var columns: Array[Dictionary] = []
 	for column: Dictionary in COLUMNS:
@@ -107,26 +111,17 @@ static func build_data() -> Dictionary:
 			if character_ids.has(variant.id):
 				push_error("Art dashboard: %s's %s variant shares its files with the character %s" % [
 						entry.id, variant["class"], variant.id])
-	return {"columns": columns, "classes": class_entries(), "characters": characters}
+	return {"columns": columns, "classes": class_entries(ClassTrees.pool()), "characters": characters}
 
 
-## Every class with its tier and the classes it promotes into.
-static func class_entries() -> Array[Dictionary]:
+## Every pool class, by id.
+static func class_entries(class_pool: Dictionary) -> Array[Dictionary]:
+	var ids := class_pool.keys()
+	ids.sort()
 	var entries: Array[Dictionary] = []
-	for character_class: int in Enums.CLASS_INFO:
-		var info: Dictionary = Enums.CLASS_INFO[character_class]
-		entries.append({
-			"id": class_id(character_class),
-			"name": str(info.display_name),
-			"tier": int(info.tier),
-			"promotes_to": (info.get("promotes_to", []) as Array).map(
-					func(promotion: int) -> String: return class_id(promotion)),
-		})
+	for id: String in ids:
+		entries.append({"id": id, "name": str(class_pool[id].name), "tier": int(class_pool[id].tier)})
 	return entries
-
-
-static func class_id(character_class: int) -> String:
-	return str(Enums.CharacterClass.find_key(character_class)).to_lower()
 
 
 ## currentClass the way CharacterDataLoader reads it: "Void Knight" → void_knight.
@@ -137,31 +132,56 @@ static func character_class_id(character: Dictionary) -> String:
 	return id
 
 
-## Every class below `start` in the promotion tree, nearest tier first.
-static func promotions_below(start: String) -> Array[String]:
+## A unit's tree file (data/classes/README.md) as the board draws it: each
+## slot's class ("" = not designed) and how its art gets made. A draft is an
+## empty slot here, as it is to the game. No tree file: the class it plays as
+## today, nothing designed under it.
+static func tree_entry(unit_tree: Dictionary, current_class: String) -> Dictionary:
+	if unit_tree.is_empty():
+		return {"class": current_class, "promotions": []}
+	return {"class": str(unit_tree.get("base", "")), "promotions": (unit_tree.get("promotions", []) as Array).map(
+			func(slot: Dictionary) -> Dictionary: return slot_entry(slot))}
+
+
+static func slot_entry(slot: Dictionary) -> Dictionary:
+	var entry := {"class": str(slot.get("class", "")), "art": str(slot.get("art", ""))}
+	if slot.has("promotions"):
+		entry["promotions"] = (slot.promotions as Array).map(
+				func(child: Dictionary) -> Dictionary: return slot_entry(child))
+	return entry
+
+
+## The classes a tree promotes into, each once (a tier-3 class under both
+## branches is one variant), tier 2 first. Nothing under an undesigned slot
+## counts: no unit can promote through it.
+static func tree_promotions(tree: Dictionary) -> Array[String]:
 	var found: Array[String] = []
-	var frontier: Array[String] = [start]
+	var frontier: Array = tree.promotions.duplicate()
 	while not frontier.is_empty():
-		var info: Dictionary = Enums.CLASS_INFO.get(Enums.CharacterClass.get(frontier.pop_front().to_upper(), -1), {})
-		for promotion: int in info.get("promotes_to", []):
-			if not found.has(class_id(promotion)):
-				found.append(class_id(promotion))
-				frontier.append(class_id(promotion))
+		var slot: Dictionary = frontier.pop_front()
+		var promotion := str(slot["class"])
+		if promotion.is_empty():
+			continue
+		if not found.has(promotion):
+			found.append(promotion)
+		frontier.append_array(slot.get("promotions", []))
 	return found
 
 
-static func character_entry(character_id: String, character: Dictionary, move_bank: Dictionary) -> Dictionary:
+static func character_entry(character_id: String, character: Dictionary, move_bank: Dictionary,
+		unit_tree: Dictionary = {}) -> Dictionary:
 	var result := {
 		"id": character_id,
 		"name": str(character.get("characterName", character_id)),
 		"class": character_class_id(character),
 	}
+	result["tree"] = tree_entry(unit_tree, result["class"])
 	result.merge(art_entry(character_id, character, move_bank))
 	# Only the moves carry over: every file a variant has is its own.
 	var moves_only := {"basePoolMoves": character.get("basePoolMoves", []),
 			"basePoolPassives": character.get("basePoolPassives", [])}
 	var variants: Array[Dictionary] = []
-	for promotion: String in promotions_below(result["class"]):
+	for promotion: String in tree_promotions(result["tree"]):
 		var variant := {"class": promotion}
 		variant.merge(art_entry(character_id + "_" + promotion, moves_only, move_bank))
 		variants.append(variant)

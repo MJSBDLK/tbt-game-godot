@@ -39,15 +39,16 @@ the same way as notes. Rules: `class_tree_logic.js`
   line up like a grid; open = the boxes grouped by the color that needs them.
   First visit opens the next-up character; after that the board remembers.
 + Class variants (not needed for alpha, never counted): the character redrawn
-  for each class it can promote into, mostly recolors. Each variant needs
+  for each class its tree promotes into, mostly recolors. Each variant needs
   every box, because a recolor shows in every clip. Its files are
   `<id>_<class>` (`spaceman_jetpack.aseprite`, `art/lineart_fullres/spaceman_jetpack.png`).
   A missing box shows, dimmed, the art of the class it promotes from
-  ("= Squire"). Trees come from `promotes_to` in `Enums.CLASS_INFO`, which
-  `data/classes/` replaces: switching the board over is the next step. The
-  board has a collapsible "Class trees" panel (every tree, undesigned gaps
-  dashed) and, in each open row, a collapsible tree of that character's
-  classes. Click a class to see its boxes.
+  ("= Squire"). The trees are `data/classes/trees/<id>.json` (a character
+  with none has nothing designed past its class); each slot's `art` says
+  how that variant gets made. The board has a collapsible "Class trees"
+  panel (every character's tree, undesigned slots dashed) and, in each open
+  row, a collapsible copy of that character's tree. Click a class to see its
+  boxes.
 + Characters are keyed by their JSON file name (`spaceman`, `maam`), never
   `characterId`. JSON files are never renamed: saves store their paths.
 + The board tracks the renames: any file whose declared path isn't the

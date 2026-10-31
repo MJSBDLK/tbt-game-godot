@@ -5,39 +5,39 @@
 	],
 	"promotions": [
 		{
-			"class": "",
+			"class": "lord",
 			"types": [],
 			"art": "palette",
 			"promotions": [
 				{
-					"class": "",
+					"class": "despot",
 					"types": [],
 					"art": "palette"
 				},
 				{
-					"class": "",
+					"class": "roitelet",
 					"types": [],
 					"art": "palette"
 				}
 			]
 		},
 		{
-			"class": "",
+			"class": "enfant_terrible",
 			"types": [],
 			"art": "palette",
 			"promotions": [
 				{
-					"class": "",
+					"class": "despot",
 					"types": [],
 					"art": "palette"
 				},
 				{
-					"class": "",
+					"class": "usurper",
 					"types": [],
 					"art": "palette"
 				}
 			]
 		}
 	],
-	"notes": "Tiny, scheming, cruel."
+	"notes": "Tiny, scheming, cruel. A genuine tyrant, Caligula-type: doesn't understand the importance of reciprocity and kindness."
 }
