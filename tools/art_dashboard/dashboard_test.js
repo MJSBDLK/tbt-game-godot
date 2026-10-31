@@ -133,36 +133,49 @@ test("corner alphas come from the first scanline, whatever its filter", () => {
 });
 
 const CLASSES = [
-	{ id: "squire", name: "Squire", tier: 1, promotes_to: ["knight", "page"] },
-	{ id: "mage", name: "Mage", tier: 1, promotes_to: [] },
-	{ id: "knight", name: "Knight", tier: 2, promotes_to: ["void_knight"] },
-	{ id: "page", name: "Page", tier: 2, promotes_to: [] },
-	{ id: "void_knight", name: "Void Knight", tier: 3, promotes_to: [] },
-	{ id: "hardcase", name: "Hardcase", tier: 2, promotes_to: ["topdog"] },
-	{ id: "topdog", name: "Topdog", tier: 3, promotes_to: [] },
+	{ id: "squire", name: "Squire", tier: 1 },
+	{ id: "mage", name: "Mage", tier: 1 },
+	{ id: "knight", name: "Knight", tier: 2 },
+	{ id: "page", name: "Page", tier: 2 },
+	{ id: "void_knight", name: "Void Knight", tier: 3 },
+	{ id: "banneret", name: "Banneret", tier: 3 },
+	{ id: "warden", name: "Warden", tier: 3 },
 ];
+const slot = (id, art, promotions) => ({ class: id, art, ...(promotions ? { promotions } : {}) });
+// A character's tree as game_data.js has it: Squire into Knight or Page,
+// Void Knight under both, and Page's other slot empty.
+const squireTree = () => ({ tree: { class: "squire", promotions: [
+	slot("knight", "palette", [slot("void_knight", "redraw"), slot("banneret", "palette")]),
+	slot("page", "palette_layer", [slot("void_knight", "redraw"), slot("", "palette")]),
+] } });
 
-test("a promotion tree marks the classes that promote into nothing yet", () => {
-	const tree = board.promotionTree(CLASSES, "squire");
+test("a character's tree marks the classes with a slot not designed yet", () => {
+	const tree = board.unitTree(CLASSES, squireTree());
 	assert.deepEqual(tree.children.map((node) => node.id), ["knight", "page"]);
-	assert.equal(tree.children[0].children[0].id, "void_knight");
+	assert.deepEqual(tree.children[0].children.map((node) => node.id), ["void_knight", "banneret"]);
+	assert.equal(tree.children[0].gap, false, "both of Knight's slots are designed");
+	assert.equal(tree.children[1].gap, true, "Page: one slot empty");
+	assert.equal(tree.children[1].children[0].id, "void_knight", "a class under both branches shows under each");
 	assert.equal(tree.children[0].children[0].gap, false, "tier 3 is the top");
-	assert.equal(tree.children[1].gap, true, "page: tier 2 with nothing after it");
-	assert.equal(board.promotionTree(CLASSES, "nobody"), null);
-	const looped = [{ id: "a", name: "A", tier: 1, promotes_to: ["a"] }];
-	assert.deepEqual(board.promotionTree(looped, "a").children, [], "a loop in the data can't recurse forever");
+	assert.equal(tree.children[0].children[0].art, "redraw", "each slot says how its art gets made");
+	assert.equal(board.unitTree(CLASSES, { tree: { class: "nobody", promotions: [] } }), null);
 });
 
-test("tree status: designed reaches the top tier on every branch", () => {
-	assert.equal(board.treeStatus(board.promotionTree(CLASSES, "squire")), "partial", "page stops at tier 2");
-	assert.equal(board.treeStatus(board.promotionTree(CLASSES, "mage")), "not-designed");
-	assert.equal(board.treeStatus(board.promotionTree(CLASSES, "knight")), "designed");
+test("nothing under an empty slot is drawn: no unit promotes through it", () => {
+	const character = squireTree();
+	character.tree.promotions[0].class = "";
+	const tree = board.unitTree(CLASSES, character);
+	assert.deepEqual(tree.children.map((node) => node.id), ["page"]);
+	assert.equal(tree.gap, true);
 });
 
-test("the forest is every tier-1 tree, plus the classes none of them reach", () => {
-	const forest = board.classForest(CLASSES);
-	assert.deepEqual(forest.roots.map((root) => root.id), ["squire", "mage"]);
-	assert.deepEqual(forest.orphans.map((entry) => entry.id), ["hardcase", "topdog"]);
+test("tree status: designed fills every slot", () => {
+	assert.equal(board.treeStatus(board.unitTree(CLASSES, squireTree())), "partial", "Page's empty slot");
+	assert.equal(board.treeStatus(board.unitTree(CLASSES, { tree: { class: "mage", promotions: [] } })), "not-designed",
+		"no tree file");
+	const full = squireTree();
+	full.tree.promotions[1].promotions[1].class = "warden";
+	assert.equal(board.treeStatus(board.unitTree(CLASSES, full)), "designed");
 });
 
 test("a variant box shows its own art, else what the class above it shows", () => {
@@ -280,6 +293,6 @@ test("the real generated data evaluates: nothing on disk is red, everything is g
 		assert.equal(board.evaluateCharacter(entry, everything).tier, "green", entry.id);
 	}
 	for (const entry of data.characters) {
-		assert.ok(board.promotionTree(data.classes, entry.class), `${entry.id}'s class ${entry.class} is in the tree`);
+		assert.ok(board.unitTree(data.classes, entry), `${entry.id}'s tree starts at ${entry.tree.class}, a pool class`);
 	}
 });

@@ -1,7 +1,7 @@
 {
 	"characterId": "berzerker",
 	"characterName": "Berzerker",
-	"primaryType": "Heraldic",
+	"primaryType": "Monster",
 	"secondaryType": "None",
 	"currentClass": "Fighter",
 	"specialization": "None",

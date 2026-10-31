@@ -1,7 +1,7 @@
 {
 	"base": "bandit",
 	"base_types": [
-		"Gentry"
+		"Simple"
 	],
 	"promotions": [
 		{
@@ -11,7 +11,7 @@
 				"notes": "Finesse: Backstab, Feint, Low Profile."
 			},
 			"types": [
-				"Gentry"
+				"Simple"
 			],
 			"art": "palette",
 			"promotions": [
@@ -30,7 +30,7 @@
 						"notes": ""
 					},
 					"types": [
-						"Gentry"
+						"Simple"
 					],
 					"art": "palette"
 				}
@@ -39,14 +39,14 @@
 		{
 			"class": "brigand",
 			"types": [
-				"Gentry"
+				"Simple"
 			],
 			"art": "palette",
 			"promotions": [
 				{
 					"class": "marauder",
 					"types": [
-						"Gentry"
+						"Simple"
 					],
 					"art": "palette"
 				},

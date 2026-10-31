@@ -1,43 +1,64 @@
 {
 	"base": "fighter",
 	"base_types": [
-		"Heraldic"
+		"Monster"
 	],
 	"promotions": [
 		{
-			"class": "",
-			"types": [],
+			"class": "thrasher",
+			"types": [
+				"Monster"
+			],
 			"art": "palette",
 			"promotions": [
 				{
-					"class": "",
-					"types": [],
+					"class": "mauler",
+					"types": [
+						"Monster"
+					],
 					"art": "palette"
 				},
 				{
 					"class": "",
-					"types": [],
+					"draft": {
+						"name": "Whirlwind",
+						"notes": "Spins both flails through everything around him; his athleticism. RQD likes the Air typing; the name reads a bit too Air, so it's open (may keep)."
+					},
+					"types": [
+						"Monster",
+						"Air"
+					],
 					"art": "palette"
 				}
 			]
 		},
 		{
-			"class": "",
-			"types": [],
+			"class": "lunatic",
+			"types": [
+				"Monster",
+				"Occult"
+			],
 			"art": "palette",
 			"promotions": [
 				{
-					"class": "",
-					"types": [],
+					"class": "fiend",
+					"types": [
+						"Monster",
+						"Beast"
+					],
 					"art": "palette"
 				},
 				{
 					"class": "",
+					"draft": {
+						"name": "",
+						"notes": "The madness deepens. Name open."
+					},
 					"types": [],
 					"art": "palette"
 				}
 			]
 		}
 	],
-	"notes": "He goes apeshit."
+	"notes": "He goes apeshit.\n\nMonster from the get-go: kinda orcish, but not the Ogre Squire's look. Fights with dual flails. High athleticism; really scary to slower/weaker units."
 }

@@ -22,7 +22,8 @@ can be Simple/Robo and the Ice Archer's mono Cold.
 }
 ```
 
-- The file name is the class's id: its name in lowercase, words joined by `_`.
+- The file name is the class's id: its name in lowercase, accents dropped,
+  words joined by `_` (`El Capitán` → `el_capitan`).
 - `tier`: 1 (base, levels 1-20), 2 (21-40) or 3 (41-60).
 - No typing here: that's each tree's (below).
 

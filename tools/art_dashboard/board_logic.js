@@ -10,7 +10,8 @@ const DEFAULT_FPS = 12;  // ClipPlayer.DEFAULT_FPS
 const THUMBNAIL_SIZE = 64;  // CSS px; sprites scale by whole device pixels inside it
 const IDLE_COLUMNS = ["idle", "idle_animation"];
 const NEXT_TIER = { red: "orange", orange: "yellow", yellow: "green" };
-const TOP_TIER = 3;  // class tier; Enums.CLASS_INFO: tier 3 promotes into nothing
+const TOP_TIER = 3;  // class tier; tier 3 promotes into nothing (data/classes/README.md)
+const CHOICES = 2;  // each class below the top tier promotes into two
 
 function frameCount(probe) {
 	return Math.max(1, Math.floor(probe.width / probe.height));
@@ -73,17 +74,22 @@ function evaluateCharacter(character, probes, placeholders = {}) {
 	};
 }
 
-// The promotion tree under a class: {id, name, tier, children, gap}. `gap`: a
-// class below the top tier that promotes into nothing yet (not designed).
-function promotionTree(classes, classId) {
+// A character's promotion tree, from its `tree` in game_data.js:
+// {id, name, tier, art, children, gap}, or null when its base isn't a pool
+// class. `gap`: a class below the top tier with a slot not designed yet.
+// Nothing under an empty slot is drawn: no unit can promote through it. A
+// tier-3 class under both branches shows under each, but it's one variant.
+function unitTree(classes, character) {
 	const byId = new Map(classes.map((entry) => [entry.id, entry]));
-	const grow = (id, path) => {
-		const entry = byId.get(id);
-		const children = entry.promotes_to.filter((child) => byId.has(child) && !path.includes(child))
-			.map((child) => grow(child, [...path, child]));
-		return { id, name: entry.name, tier: entry.tier, children, gap: entry.tier < TOP_TIER && children.length === 0 };
+	const grow = (slot, tier) => {
+		const designed = (slot.promotions || []).filter((child) => byId.has(child.class));
+		return {
+			id: slot.class, name: byId.get(slot.class).name, tier, art: slot.art || null,
+			children: designed.map((child) => grow(child, tier + 1)),
+			gap: tier < TOP_TIER && designed.length < CHOICES,
+		};
 	};
-	return byId.has(classId) ? grow(classId, [classId]) : null;
+	return byId.has(character.tree.class) ? grow(character.tree, 1) : null;
 }
 
 // "designed": every branch reaches the top tier. "not-designed": no promotions.
@@ -91,18 +97,6 @@ function treeStatus(tree) {
 	const hasGap = (node) => node.gap || node.children.some(hasGap);
 	if (!hasGap(tree)) return "designed";
 	return tree.children.length === 0 ? "not-designed" : "partial";
-}
-
-// Every tier-1 class's tree, and the classes none of them reach yet.
-function classForest(classes) {
-	const roots = classes.filter((entry) => entry.tier === 1).map((entry) => promotionTree(classes, entry.id));
-	const reached = new Set();
-	const walk = (node) => {
-		reached.add(node.id);
-		node.children.forEach(walk);
-	};
-	roots.forEach(walk);
-	return { roots, orphans: classes.filter((entry) => !reached.has(entry.id)) };
 }
 
 // Per box, {candidate, owner}: the art's own file, else whatever the class it
@@ -248,8 +242,8 @@ function lineArtGeometry(probe, crop, path) {
 }
 
 const logic = {
-	NEXT_TIER, TOP_TIER, frameCount, shownCandidate, isStandIn, boxState, evaluateCharacter, promotionTree,
-	treeStatus, classForest, resolveBoxes, variantProgress, sortCharacters, pendingRenames, folderName,
+	NEXT_TIER, TOP_TIER, frameCount, shownCandidate, isStandIn, boxState, evaluateCharacter, unitTree,
+	treeStatus, resolveBoxes, variantProgress, sortCharacters, pendingRenames, folderName,
 	renameInstruction, deliveryHint, boxHint, keyframeIndex, frameDurations, spriteGeometry, lineArtGeometry,
 };
 if (typeof module !== "undefined") module.exports = logic;
