@@ -63,8 +63,9 @@ func test_placeholder_sprite_is_no_idle() -> void:
 			{"sprite": {"sheetPath": Generator.PLACEHOLDER_SPRITE}}, MOVE_BANK)
 	var idle: Dictionary = entry.requirements[0]
 	assert_eq(idle.id, "idle")
-	assert_eq(idle.candidates.size(), 1)
-	assert_false(idle.candidates[0].declared, "only the convention path is left to find")
+	assert_eq(idle.candidates.size(), 2, "idle0, then a plain idle")
+	for candidate: Dictionary in idle.candidates:
+		assert_false(candidate.declared, "only the convention paths are left to find")
 
 
 func test_line_art_is_needed_for_orange() -> void:
@@ -89,8 +90,10 @@ func test_crits_are_extras_for_the_reaches_the_kit_uses() -> void:
 
 func test_convention_paths_name_the_aseprite_file_and_tag() -> void:
 	assert_eq(Generator.convention_path("melee_physical", "maam"), "res://art/sprites/characters/maam/melee_physical.png")
-	assert_eq(Generator.convention_path("idle_animation", "maam"), "res://art/sprites/characters/maam/idle.png",
-			"the idle animation is the idle tag with more frames")
+	assert_eq(Generator.convention_path("idle", "maam"), "res://art/sprites/characters/maam/idle0.png",
+			"idle0 is the default idle; idle1+ are fidgets")
+	assert_eq(Generator.convention_path("idle_animation", "maam"), "res://art/sprites/characters/maam/idle0.png",
+			"the idle animation is the idle0 tag with more frames")
 	assert_eq(Generator.convention_path("line_art", "maam"), "res://art/lineart_fullres/maam.png")
 
 
@@ -172,8 +175,28 @@ func test_no_variant_shares_its_files_with_a_character() -> void:
 
 
 func test_declared_convention_path_is_one_candidate() -> void:
-	var candidates := Generator.candidates_for("res://art/a/idle.png", "res://art/a/idle.png")
+	var candidates := Generator.candidates_for("res://art/a/idle.png", ["res://art/a/idle.png"])
 	assert_eq(candidates, [{"path": "art/a/idle.png", "declared": true, "convention": true}])
+
+
+## A plain idle tag is a convention too: declaring it is no rename, but an
+## exported idle0 beside it is the one the board shows.
+func test_a_declared_plain_idle_is_not_a_rename() -> void:
+	var entry := Generator.character_entry("nobody",
+			{"sprite": {"sheetPath": "res://art/sprites/characters/nobody/idle.png"}}, MOVE_BANK)
+	var candidates: Array = _requirement(entry, "idle").candidates
+	assert_eq(candidates.map(func(candidate: Dictionary) -> String: return candidate.path),
+			["art/sprites/characters/nobody/idle0.png", "art/sprites/characters/nobody/idle.png"], "idle0 first")
+	assert_eq(candidates.map(func(candidate: Dictionary) -> bool: return candidate.declared), [false, true])
+	for candidate: Dictionary in candidates:
+		assert_false(candidate.has("rename_to"), candidate.path)
+
+
+func test_a_declared_idle_off_convention_renames_to_idle0() -> void:
+	var entry := Generator.character_entry("nobody",
+			{"sprite": {"sheetPath": "res://art/sprites/characters/old_name/idle.png"}}, MOVE_BANK)
+	var declared: Dictionary = _requirement(entry, "idle").candidates[0]
+	assert_eq(declared.get("rename_to"), "art/sprites/characters/nobody/idle0.png")
 
 
 func test_every_strip_splits_into_square_frames() -> void:

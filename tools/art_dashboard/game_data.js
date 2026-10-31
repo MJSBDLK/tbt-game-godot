@@ -12,6 +12,38 @@ window.ART_DASHBOARD_DATA = {
 						"right": 43,
 						"top": 8
 					}
+				},
+				"art/sprites/characters/bandit/idle0.png": {
+					"frame_durations_ms": [
+						300,
+						300,
+						300,
+						300
+					]
+				},
+				"art/sprites/characters/bandit/melee.png": {
+					"frame_durations_ms": [
+						500,
+						100,
+						100,
+						200,
+						75,
+						75,
+						300,
+						100,
+						100
+					]
+				},
+				"art/sprites/characters/bandit/ranged.png": {
+					"frame_durations_ms": [
+						300,
+						100,
+						100,
+						100,
+						200,
+						100,
+						200
+					]
 				}
 			},
 			"crop": {
@@ -28,6 +60,11 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/bandit/idle0.png"
+						},
+						{
+							"convention": true,
 							"declared": true,
 							"path": "art/sprites/characters/bandit/idle.png"
 						}
@@ -38,6 +75,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/bandit/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -287,6 +329,11 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/battle_chicken/idle0.png"
+						},
+						{
+							"convention": true,
 							"declared": true,
 							"path": "art/sprites/characters/battle_chicken/idle.png"
 						}
@@ -297,6 +344,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/battle_chicken/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -537,6 +589,17 @@ window.ART_DASHBOARD_DATA = {
 						"right": 48,
 						"top": 11
 					}
+				},
+				"art/sprites/characters/berzerker/idle0.png": {
+					"frame_durations_ms": [
+						125,
+						150,
+						300,
+						150,
+						125,
+						150,
+						300
+					]
 				}
 			},
 			"crop": {
@@ -553,6 +616,11 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/berzerker/idle0.png"
+						},
+						{
+							"convention": true,
 							"declared": true,
 							"path": "art/sprites/characters/berzerker/idle.png"
 						}
@@ -563,6 +631,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/berzerker/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -812,6 +885,11 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/bugler_chivalric/idle0.png"
+						},
+						{
+							"convention": true,
 							"declared": true,
 							"path": "art/sprites/characters/bugler_chivalric/idle.png"
 						}
@@ -822,6 +900,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/bugler_chivalric/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -1071,6 +1154,11 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/bugler_gentry/idle0.png"
+						},
+						{
+							"convention": true,
 							"declared": true,
 							"path": "art/sprites/characters/bugler_gentry/idle.png"
 						}
@@ -1081,6 +1169,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/bugler_gentry/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -1330,6 +1423,11 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/desert_prince/idle0.png"
+						},
+						{
+							"convention": true,
 							"declared": true,
 							"path": "art/sprites/characters/desert_prince/idle.png"
 						}
@@ -1340,6 +1438,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/desert_prince/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -1589,6 +1692,11 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/desert_sniper/idle0.png"
+						},
+						{
+							"convention": true,
 							"declared": true,
 							"path": "art/sprites/characters/desert_sniper/idle.png"
 						}
@@ -1599,6 +1707,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/desert_sniper/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -1839,6 +1952,20 @@ window.ART_DASHBOARD_DATA = {
 						"right": 41,
 						"top": 13
 					}
+				},
+				"art/sprites/characters/elf_pirate/idle0.png": {
+					"frame_durations_ms": [
+						1000,
+						1000,
+						1000,
+						200,
+						1000,
+						200,
+						1000,
+						200,
+						700,
+						200
+					]
 				}
 			},
 			"crop": {
@@ -1855,6 +1982,11 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/elf_pirate/idle0.png"
+						},
+						{
+							"convention": true,
 							"declared": true,
 							"path": "art/sprites/characters/elf_pirate/idle.png"
 						}
@@ -1865,6 +1997,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/elf_pirate/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -2109,6 +2246,14 @@ window.ART_DASHBOARD_DATA = {
 						100
 					]
 				},
+				"art/sprites/characters/ernesto/idle0.png": {
+					"frame_durations_ms": [
+						1000,
+						400,
+						1000,
+						400
+					]
+				},
 				"art/sprites/characters/ernesto/melee.png": {
 					"fps": 10,
 					"frame_durations_ms": [
@@ -2158,6 +2303,11 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/ernesto/idle0.png"
+						},
+						{
+							"convention": true,
 							"declared": true,
 							"path": "art/sprites/characters/ernesto/idle.png"
 						}
@@ -2168,6 +2318,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/ernesto/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -2430,6 +2585,11 @@ window.ART_DASHBOARD_DATA = {
 						{
 							"convention": true,
 							"declared": false,
+							"path": "art/sprites/characters/ex_gentry_swordsman/idle0.png"
+						},
+						{
+							"convention": true,
+							"declared": false,
 							"path": "art/sprites/characters/ex_gentry_swordsman/idle.png"
 						}
 					],
@@ -2439,6 +2599,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/ex_gentry_swordsman/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": false,
@@ -2695,6 +2860,11 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/flamethrower_phoenix/idle0.png"
+						},
+						{
+							"convention": true,
 							"declared": true,
 							"path": "art/sprites/characters/flamethrower_phoenix/idle.png"
 						}
@@ -2705,6 +2875,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/flamethrower_phoenix/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -2953,6 +3128,11 @@ window.ART_DASHBOARD_DATA = {
 						{
 							"convention": true,
 							"declared": false,
+							"path": "art/sprites/characters/gentry_prince/idle0.png"
+						},
+						{
+							"convention": true,
+							"declared": false,
 							"path": "art/sprites/characters/gentry_prince/idle.png"
 						}
 					],
@@ -2962,6 +3142,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/gentry_prince/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": false,
@@ -3230,6 +3415,11 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/grasker/idle0.png"
+						},
+						{
+							"convention": true,
 							"declared": true,
 							"path": "art/sprites/characters/grasker/idle.png"
 						}
@@ -3240,6 +3430,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/grasker/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -3496,6 +3691,11 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/gravity_captain/idle0.png"
+						},
+						{
+							"convention": true,
 							"declared": true,
 							"path": "art/sprites/characters/gravity_captain/idle.png"
 						}
@@ -3506,6 +3706,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/gravity_captain/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -3746,6 +3951,28 @@ window.ART_DASHBOARD_DATA = {
 						"right": 45,
 						"top": 4
 					}
+				},
+				"art/sprites/characters/grunt/idle0.png": {
+					"frame_durations_ms": [
+						1000,
+						200,
+						200,
+						200,
+						50,
+						100,
+						100
+					]
+				},
+				"art/sprites/characters/grunt/melee.png": {
+					"frame_durations_ms": [
+						500,
+						100,
+						200,
+						100,
+						100,
+						150,
+						100
+					]
 				}
 			},
 			"crop": {
@@ -3762,6 +3989,11 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/grunt/idle0.png"
+						},
+						{
+							"convention": true,
 							"declared": true,
 							"path": "art/sprites/characters/grunt/idle.png"
 						}
@@ -3772,6 +4004,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/grunt/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -4012,6 +4249,11 @@ window.ART_DASHBOARD_DATA = {
 						"right": 44,
 						"top": 2
 					}
+				},
+				"art/sprites/characters/healer_goblin/idle0.png": {
+					"frame_durations_ms": [
+						1000
+					]
 				}
 			},
 			"crop": {
@@ -4028,6 +4270,11 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/healer_goblin/idle0.png"
+						},
+						{
+							"convention": true,
 							"declared": true,
 							"path": "art/sprites/characters/healer_goblin/idle.png"
 						}
@@ -4038,6 +4285,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/healer_goblin/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -4277,7 +4529,20 @@ window.ART_DASHBOARD_DATA = {
 						"left": 18,
 						"right": 46,
 						"top": 2
-					}
+					},
+					"frame_durations_ms": [
+						300,
+						300,
+						300,
+						300,
+						300,
+						300,
+						300,
+						300,
+						300,
+						300,
+						300
+					]
 				}
 			},
 			"id": "healer_plant",
@@ -4285,6 +4550,11 @@ window.ART_DASHBOARD_DATA = {
 			"requirements": [
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/healer_plant/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -4297,6 +4567,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/healer_plant/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -4553,6 +4828,11 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/ice_archer/idle0.png"
+						},
+						{
+							"convention": true,
 							"declared": true,
 							"path": "art/sprites/characters/ice_archer/idle.png"
 						}
@@ -4563,6 +4843,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/ice_archer/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -4827,6 +5112,11 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/keener/idle0.png"
+						},
+						{
+							"convention": true,
 							"declared": true,
 							"path": "art/sprites/characters/keener/idle.png"
 						}
@@ -4837,6 +5127,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/keener/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -5128,6 +5423,11 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/knight/idle0.png"
+						},
+						{
+							"convention": true,
 							"declared": true,
 							"path": "art/sprites/characters/knight/idle.png"
 						}
@@ -5138,6 +5438,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/knight/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -5377,6 +5682,11 @@ window.ART_DASHBOARD_DATA = {
 								{
 									"convention": true,
 									"declared": false,
+									"path": "art/sprites/characters/knight_void_knight/idle0.png"
+								},
+								{
+									"convention": true,
+									"declared": false,
 									"path": "art/sprites/characters/knight_void_knight/idle.png"
 								}
 							],
@@ -5386,6 +5696,11 @@ window.ART_DASHBOARD_DATA = {
 						},
 						{
 							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/knight_void_knight/idle0.png"
+								},
 								{
 									"convention": true,
 									"declared": false,
@@ -5645,7 +5960,12 @@ window.ART_DASHBOARD_DATA = {
 							"convention": false,
 							"declared": true,
 							"path": "art/sprites/characters/ma'am/idle.png",
-							"rename_to": "art/sprites/characters/maam/idle.png"
+							"rename_to": "art/sprites/characters/maam/idle0.png"
+						},
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/maam/idle0.png"
 						},
 						{
 							"convention": true,
@@ -5663,7 +5983,12 @@ window.ART_DASHBOARD_DATA = {
 							"convention": false,
 							"declared": true,
 							"path": "art/sprites/characters/ma'am/idle.png",
-							"rename_to": "art/sprites/characters/maam/idle.png"
+							"rename_to": "art/sprites/characters/maam/idle0.png"
+						},
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/maam/idle0.png"
 						},
 						{
 							"convention": true,
@@ -5914,6 +6239,11 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/mystic/idle0.png"
+						},
+						{
+							"convention": true,
 							"declared": true,
 							"path": "art/sprites/characters/mystic/idle.png"
 						}
@@ -5924,6 +6254,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/mystic/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -6182,7 +6517,12 @@ window.ART_DASHBOARD_DATA = {
 							"convention": false,
 							"declared": true,
 							"path": "art/sprites/characters/napdog/idle.png",
-							"rename_to": "art/sprites/characters/napdawg/idle.png"
+							"rename_to": "art/sprites/characters/napdawg/idle0.png"
+						},
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/napdawg/idle0.png"
 						},
 						{
 							"convention": true,
@@ -6200,7 +6540,12 @@ window.ART_DASHBOARD_DATA = {
 							"convention": false,
 							"declared": true,
 							"path": "art/sprites/characters/napdog/idle.png",
-							"rename_to": "art/sprites/characters/napdawg/idle.png"
+							"rename_to": "art/sprites/characters/napdawg/idle0.png"
+						},
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/napdawg/idle0.png"
 						},
 						{
 							"convention": true,
@@ -6458,6 +6803,11 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/ogre/idle0.png"
+						},
+						{
+							"convention": true,
 							"declared": true,
 							"path": "art/sprites/characters/ogre/idle.png"
 						}
@@ -6468,6 +6818,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/ogre/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -6708,6 +7063,12 @@ window.ART_DASHBOARD_DATA = {
 						"right": 39,
 						"top": 13
 					}
+				},
+				"art/sprites/characters/ogre_squire/idle0.png": {
+					"frame_durations_ms": [
+						100,
+						100
+					]
 				}
 			},
 			"crop": {
@@ -6724,6 +7085,11 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/ogre_squire/idle0.png"
+						},
+						{
+							"convention": true,
 							"declared": true,
 							"path": "art/sprites/characters/ogre_squire/idle.png"
 						}
@@ -6734,6 +7100,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/ogre_squire/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -6973,6 +7344,11 @@ window.ART_DASHBOARD_DATA = {
 								{
 									"convention": true,
 									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_knight/idle0.png"
+								},
+								{
+									"convention": true,
+									"declared": false,
 									"path": "art/sprites/characters/ogre_squire_knight/idle.png"
 								}
 							],
@@ -6982,6 +7358,11 @@ window.ART_DASHBOARD_DATA = {
 						},
 						{
 							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_knight/idle0.png"
+								},
 								{
 									"convention": true,
 									"declared": false,
@@ -7221,6 +7602,11 @@ window.ART_DASHBOARD_DATA = {
 								{
 									"convention": true,
 									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_void_knight/idle0.png"
+								},
+								{
+									"convention": true,
+									"declared": false,
 									"path": "art/sprites/characters/ogre_squire_void_knight/idle.png"
 								}
 							],
@@ -7230,6 +7616,11 @@ window.ART_DASHBOARD_DATA = {
 						},
 						{
 							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/ogre_squire_void_knight/idle0.png"
+								},
 								{
 									"convention": true,
 									"declared": false,
@@ -7487,6 +7878,11 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/pierre/idle0.png"
+						},
+						{
+							"convention": true,
 							"declared": true,
 							"path": "art/sprites/characters/pierre/idle.png"
 						}
@@ -7497,6 +7893,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/pierre/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -7746,6 +8147,11 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/plant_cultist/idle0.png"
+						},
+						{
+							"convention": true,
 							"declared": true,
 							"path": "art/sprites/characters/plant_cultist/idle.png"
 						}
@@ -7756,6 +8162,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/plant_cultist/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -8005,6 +8416,11 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/plant_urchin/idle0.png"
+						},
+						{
+							"convention": true,
 							"declared": true,
 							"path": "art/sprites/characters/plant_urchin/idle.png"
 						}
@@ -8015,6 +8431,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/plant_urchin/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -8264,6 +8685,11 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/pyro/idle0.png"
+						},
+						{
+							"convention": true,
 							"declared": true,
 							"path": "art/sprites/characters/pyro/idle.png"
 						}
@@ -8274,6 +8700,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/pyro/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -8530,6 +8961,11 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/robot/idle0.png"
+						},
+						{
+							"convention": true,
 							"declared": true,
 							"path": "art/sprites/characters/robot/idle.png"
 						}
@@ -8540,6 +8976,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/robot/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -8788,13 +9229,13 @@ window.ART_DASHBOARD_DATA = {
 					"fps": 5,
 					"frame_durations_ms": [
 						200,
+						100,
 						200,
-						200,
-						200,
-						200,
-						200,
-						200,
-						200
+						100,
+						50,
+						50,
+						250,
+						100
 					],
 					"hit_frame": 4
 				},
@@ -8802,13 +9243,13 @@ window.ART_DASHBOARD_DATA = {
 					"fps": 5,
 					"frame_durations_ms": [
 						200,
-						200,
-						200,
-						200,
-						200,
-						200,
-						200,
-						200
+						150,
+						400,
+						50,
+						100,
+						100,
+						300,
+						150
 					],
 					"hit_frame": 4
 				}
@@ -8829,7 +9270,12 @@ window.ART_DASHBOARD_DATA = {
 							"convention": false,
 							"declared": true,
 							"path": "art/sprites/characters/max/idle.png",
-							"rename_to": "art/sprites/characters/spaceman/idle.png"
+							"rename_to": "art/sprites/characters/spaceman/idle0.png"
+						},
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/spaceman/idle0.png"
 						},
 						{
 							"convention": true,
@@ -8847,7 +9293,12 @@ window.ART_DASHBOARD_DATA = {
 							"convention": false,
 							"declared": true,
 							"path": "art/sprites/characters/max/idle.png",
-							"rename_to": "art/sprites/characters/spaceman/idle.png"
+							"rename_to": "art/sprites/characters/spaceman/idle0.png"
+						},
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/spaceman/idle0.png"
 						},
 						{
 							"convention": true,
@@ -9130,6 +9581,11 @@ window.ART_DASHBOARD_DATA = {
 								{
 									"convention": true,
 									"declared": false,
+									"path": "art/sprites/characters/spaceman_jetpack/idle0.png"
+								},
+								{
+									"convention": true,
+									"declared": false,
 									"path": "art/sprites/characters/spaceman_jetpack/idle.png"
 								}
 							],
@@ -9139,6 +9595,11 @@ window.ART_DASHBOARD_DATA = {
 						},
 						{
 							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_jetpack/idle0.png"
+								},
 								{
 									"convention": true,
 									"declared": false,
@@ -9378,6 +9839,11 @@ window.ART_DASHBOARD_DATA = {
 								{
 									"convention": true,
 									"declared": false,
+									"path": "art/sprites/characters/spaceman_eva/idle0.png"
+								},
+								{
+									"convention": true,
+									"declared": false,
 									"path": "art/sprites/characters/spaceman_eva/idle.png"
 								}
 							],
@@ -9387,6 +9853,11 @@ window.ART_DASHBOARD_DATA = {
 						},
 						{
 							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/spaceman_eva/idle0.png"
+								},
 								{
 									"convention": true,
 									"declared": false,
@@ -9628,6 +10099,12 @@ window.ART_DASHBOARD_DATA = {
 						"right": 47,
 						"top": 13
 					}
+				},
+				"art/sprites/characters/squash/idle0.png": {
+					"frame_durations_ms": [
+						600,
+						600
+					]
 				}
 			},
 			"crop": {
@@ -9644,6 +10121,11 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/squash/idle0.png"
+						},
+						{
+							"convention": true,
 							"declared": true,
 							"path": "art/sprites/characters/squash/idle.png"
 						}
@@ -9654,6 +10136,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/squash/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -9894,6 +10381,14 @@ window.ART_DASHBOARD_DATA = {
 						"right": 48,
 						"top": 6
 					}
+				},
+				"art/sprites/characters/thumps/idle0.png": {
+					"frame_durations_ms": [
+						300,
+						300,
+						300,
+						300
+					]
 				}
 			},
 			"crop": {
@@ -9910,6 +10405,11 @@ window.ART_DASHBOARD_DATA = {
 					"candidates": [
 						{
 							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/thumps/idle0.png"
+						},
+						{
+							"convention": true,
 							"declared": true,
 							"path": "art/sprites/characters/thumps/idle.png"
 						}
@@ -9920,6 +10420,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/thumps/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -10168,6 +10673,11 @@ window.ART_DASHBOARD_DATA = {
 						{
 							"convention": true,
 							"declared": false,
+							"path": "art/sprites/characters/tipsy_goblin/idle0.png"
+						},
+						{
+							"convention": true,
+							"declared": false,
 							"path": "art/sprites/characters/tipsy_goblin/idle.png"
 						}
 					],
@@ -10177,6 +10687,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/tipsy_goblin/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": false,
@@ -10417,6 +10932,18 @@ window.ART_DASHBOARD_DATA = {
 						"right": 40,
 						"top": 2
 					}
+				},
+				"art/sprites/characters/traveller/idle0.png": {
+					"frame_durations_ms": [
+						150,
+						300,
+						450,
+						300,
+						150,
+						300,
+						450,
+						300
+					]
 				}
 			},
 			"id": "traveller",
@@ -10424,6 +10951,11 @@ window.ART_DASHBOARD_DATA = {
 			"requirements": [
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/traveller/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -10436,6 +10968,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/traveller/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": true,
@@ -10684,6 +11221,11 @@ window.ART_DASHBOARD_DATA = {
 						{
 							"convention": true,
 							"declared": false,
+							"path": "art/sprites/characters/wooly_beast/idle0.png"
+						},
+						{
+							"convention": true,
+							"declared": false,
 							"path": "art/sprites/characters/wooly_beast/idle.png"
 						}
 					],
@@ -10693,6 +11235,11 @@ window.ART_DASHBOARD_DATA = {
 				},
 				{
 					"candidates": [
+						{
+							"convention": true,
+							"declared": false,
+							"path": "art/sprites/characters/wooly_beast/idle0.png"
+						},
 						{
 							"convention": true,
 							"declared": false,
@@ -11062,14 +11609,14 @@ window.ART_DASHBOARD_DATA = {
 	],
 	"columns": [
 		{
-			"convention": "art/sprites/characters/{id}/idle.png",
+			"convention": "art/sprites/characters/{id}/idle0.png",
 			"fallback": "nothing: the unit can't appear",
 			"id": "idle",
 			"label": "Idle",
 			"tier": "orange"
 		},
 		{
-			"convention": "art/sprites/characters/{id}/idle.png",
+			"convention": "art/sprites/characters/{id}/idle0.png",
 			"fallback": "the still frame",
 			"id": "idle_animation",
 			"label": "Idle anim",

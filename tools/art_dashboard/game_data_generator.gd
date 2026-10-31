@@ -9,7 +9,7 @@
 ## JSON paths, so file names are the one stable key):
 ##   requirements  one per box, id = its COLUMNS id, in box order. Each lists the
 ##                 candidate files that would satisfy it (the path the JSON
-##                 declares, the convention path) and whether the character's
+##                 declares, the convention paths) and whether the character's
 ##                 moves need it. The PAGE decides presence by loading the
 ##                 candidates, so status is always what's on disk right now.
 ##   clips         per strip: hit frame and frame timing, sidecar first, the
@@ -40,6 +40,11 @@ const SPRITE_DIRECTORY: String = "res://art/sprites/characters/"
 const LINEART_DIRECTORY: String = "res://art/lineart_fullres/"
 ## Stands in for an undrawn idle; counts as no idle at all.
 const PLACEHOLDER_SPRITE: String = "res://art/sprites/characters/placeholder_unit.png"
+## Lawrence numbers a character's idles: idle0 is the default loop, idle1+
+## are fidgets nothing plays yet. A plain "idle" tag predates the numbering
+## and still counts, so it's never on the rename list.
+const IDLE_TAG: String = "idle0"
+const UNNUMBERED_IDLE_TAG: String = "idle"
 
 ## Passive name → the damage type whose range it extends. Any bonus puts a
 ## 1-tile move at 2, so only the type matters. The data test fails when a
@@ -180,9 +185,10 @@ static func art_entry(character_id: String, character: Dictionary, move_bank: Di
 	var sprite_path := str(character.get("sprite", {}).get("sheetPath", ""))
 	if sprite_path == PLACEHOLDER_SPRITE:
 		sprite_path = ""
-	var idle_candidates := candidates_for(sprite_path, convention_path("idle", character_id))
+	var idle_candidates := candidates_for(sprite_path, [convention_path("idle", character_id),
+			SPRITE_DIRECTORY + character_id + "/" + UNNUMBERED_IDLE_TAG + ".png"])
 	var lineart_candidates := candidates_for(str(character.get("lineartPath", "")),
-			convention_path("line_art", character_id))
+			[convention_path("line_art", character_id)])
 
 	var requirements: Array[Dictionary] = [
 		requirement("idle", true, idle_candidates),
@@ -278,7 +284,7 @@ static func column_for(id: String) -> Dictionary:
 static func convention_path(box_id: String, character_id: String) -> String:
 	if box_id == "line_art":
 		return LINEART_DIRECTORY + character_id + ".png"
-	var tag := "idle" if box_id == "idle_animation" else box_id
+	var tag := IDLE_TAG if box_id == "idle" or box_id == "idle_animation" else box_id
 	return SPRITE_DIRECTORY + character_id + "/" + tag + ".png"
 
 
@@ -288,7 +294,7 @@ static func clip_candidates(character_id: String, keys: Array, declared_clips: D
 	var merged: Array[Dictionary] = []
 	for key: String in keys:
 		for candidate: Dictionary in candidates_for(str(declared_clips.get(key, "")),
-				convention_path(key, character_id)):
+				[convention_path(key, character_id)]):
 			candidate["clip"] = key
 			var existing := merged.filter(func(other: Dictionary) -> bool: return other.path == candidate.path)
 			if existing.is_empty():
@@ -299,18 +305,17 @@ static func clip_candidates(character_id: String, keys: Array, declared_clips: D
 	return merged
 
 
-## The declared path (what the game loads) first, then the convention path.
-## Paths are repo-relative so the page can prefix its way to the repo root.
-## A declared path off the convention carries `rename_to`: the board's rename list.
-static func candidates_for(declared_path: String, convention_path: String) -> Array[Dictionary]:
-	var convention := convention_path.trim_prefix("res://")
-	if declared_path == convention_path:
-		return [{"path": convention, "declared": true, "convention": true}]
+## The declared path (what the game loads) first, then the convention paths,
+## preferred first. Paths are repo-relative so the page can prefix its way to
+## the repo root. A declared path off every convention carries `rename_to`
+## (the preferred one): the board's rename list.
+static func candidates_for(declared_path: String, convention_paths: Array[String]) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
-	if not declared_path.is_empty():
+	if not declared_path.is_empty() and not convention_paths.has(declared_path):
 		result.append({"path": declared_path.trim_prefix("res://"), "declared": true,
-				"convention": false, "rename_to": convention})
-	result.append({"path": convention, "declared": false, "convention": true})
+				"convention": false, "rename_to": convention_paths[0].trim_prefix("res://")})
+	for path: String in convention_paths:
+		result.append({"path": path.trim_prefix("res://"), "declared": path == declared_path, "convention": true})
 	return result
 
 
