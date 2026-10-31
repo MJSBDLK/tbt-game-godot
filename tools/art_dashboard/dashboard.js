@@ -14,11 +14,12 @@
 // up like a grid); open, its boxes grouped by the color that needs them. New
 // boxes go in game_data_generator.gd's COLUMNS and need no layout work here.
 //
-// Class variants (the character redrawn for each class it can promote into)
-// sit outside the alpha counts. The "Class trees" panel draws every promotion
-// tree; inside an open row, a collapsible tree of the character's own classes
-// gives each variant the full box set. A variant box without its own art
-// shows, dimmed, what the class it promotes from shows.
+// Class variants (the character redrawn for each class its tree promotes
+// into) sit outside the alpha counts. The trees are data/classes/, edited in
+// class_trees.html. The "Class trees" panel draws every character's tree;
+// inside an open row, a collapsible copy of it gives each variant the full
+// box set. A variant box without its own art shows, dimmed, what the class it
+// promotes from shows.
 //
 // Notes need the File System Access API (Brave: brave://flags/#file-system-access-api).
 // The page is only ever granted tools/art_dashboard/notes/, and works without it.
@@ -27,10 +28,16 @@
 (function (global) {
 
 const {
-	NEXT_TIER, TOP_TIER, frameCount, boxState, evaluateCharacter, promotionTree, treeStatus,
-	classForest, resolveBoxes, variantProgress, sortCharacters, pendingRenames, folderName, boxHint,
+	NEXT_TIER, TOP_TIER, frameCount, boxState, evaluateCharacter, unitTree, treeStatus,
+	resolveBoxes, variantProgress, sortCharacters, pendingRenames, folderName, boxHint,
 	keyframeIndex, frameDurations, spriteGeometry, lineArtGeometry,
 } = global.ArtBoardLogic;
+// How a variant's art gets made: its tree slot's `art` (data/classes/README.md).
+const ART_KINDS = {
+	palette: "a palette swap of the clothes layer",
+	palette_layer: "a palette swap of the clothes layer, plus a touch-up layer named after the class",
+	redraw: "drawn from scratch",
+};
 const REPOSITORY_ROOT = "../../";
 
 // --------------------------------------------------------------- probing ----
@@ -280,61 +287,50 @@ function renderBoxKey(columns) {
 	}
 }
 
-// Every tier-1 class's promotion tree: designed ones drawn with their
-// characters (click one to see its variants), the rest as a class and a "?".
+// Every character's promotion tree, in board order: the ones with a
+// promotion drawn in full (click the name to see its variants), the rest as
+// a base class and a "?".
 function renderClassTrees(classes, characters) {
 	const panel = document.getElementById("class-trees");
-	const { roots, orphans } = classForest(classes);
-	const statuses = new Map(roots.map((root) => [root.id, treeStatus(root)]));
-	const counted = (status) => roots.filter((root) => statuses.get(root.id) === status).length;
-	panel.querySelector("summary").textContent = `Class trees: ${counted("designed")} of ${roots.length} designed`
+	const trees = characters.map((character) => ({ character, tree: unitTree(classes, character) }))
+		.filter(({ tree }) => tree);
+	const statuses = new Map(trees.map(({ character, tree }) => [character.id, treeStatus(tree)]));
+	const counted = (status) => trees.filter(({ character }) => statuses.get(character.id) === status).length;
+	panel.querySelector("summary").textContent = `Class trees: ${counted("designed")} of ${trees.length} designed`
 		+ (counted("partial") ? `, ${counted("partial")} partly` : "");
-	const unitsOf = (classId) => characters.filter((character) => character.class === classId);
 
-	const branch = (node, compact) => {
+	const branch = (node) => {
 		const item = element("li", "tree-branch");
 		const card = element("div", "class-node");
 		card.append(element("span", "class-node-name", node.name));
-		const units = unitsOf(node.id);
-		if (compact) {
-			card.append(element("span", "class-node-count", String(units.length)));
-			card.title = units.map((character) => character.name).join(", ");
-		} else if (units.length) {
-			const links = element("span", "class-node-units");
-			for (const character of units) {
-				const link = element("button", "unit-link", character.name);
-				link.type = "button";
-				link.dataset.jump = character.id;
-				link.title = `Open ${character.name}'s class variants`;
-				links.append(link);
-			}
-			card.append(links);
-		}
 		item.append(card);
-		const children = treeChildren(node, (child) => branch(child, compact));
+		const children = treeChildren(node, branch);
 		if (children) item.append(children);
 		return item;
 	};
-	const treeList = (root, compact) => {
+	const treeList = ({ character, tree }, compact) => {
 		const list = element("ul", compact ? "tree class-tree class-tree-compact" : "tree class-tree");
-		list.append(branch(root, compact));
+		const root = branch(tree);
+		const link = element("button", "unit-link", character.name);
+		link.type = "button";
+		link.dataset.jump = character.id;
+		link.title = `Open ${character.name}'s class variants`;
+		root.querySelector(".class-node").prepend(link);
+		list.append(root);
 		return list;
 	};
 
 	const body = panel.querySelector(".class-trees-body");
 	body.replaceChildren(element("p", "class-trees-intro",
-		"What each class promotes into, by tier, left to right. A dashed ? is a promotion not designed yet."
-		+ " The trees live in scripts/core/enums.gd (CLASS_INFO, promotes_to)."));
+		"Each character's promotion tree, by tier, left to right. A dashed ? is a slot not designed yet."
+		+ " The trees live in data/classes/: edit them in the class tree editor (Class trees, top right)."));
 	const drawn = element("div", "class-trees-drawn");
-	for (const root of roots.filter((entry) => statuses.get(entry.id) !== "not-designed")) drawn.append(treeList(root, false));
 	const undesigned = element("div", "class-trees-undesigned");
-	for (const root of roots.filter((entry) => statuses.get(entry.id) === "not-designed")) undesigned.append(treeList(root, true));
-	body.append(drawn, element("h3", "class-trees-heading", "Not designed yet"), undesigned);
-	if (orphans.length) {
-		const line = element("p", "class-trees-orphans", "Not in a tree yet: ");
-		line.append(orphans.map((entry) => `${entry.name} (tier ${entry.tier})`).join(", "));
-		body.append(line);
+	for (const each of trees) {
+		const compact = statuses.get(each.character.id) === "not-designed";
+		(compact ? undesigned : drawn).append(treeList(each, compact));
 	}
+	body.append(drawn, element("h3", "class-trees-heading", "Not designed yet"), undesigned);
 }
 
 // Opens a character's row and its class variants, and scrolls to them.
@@ -468,7 +464,7 @@ function treeChildren(node, renderChild) {
 // The character's own promotion tree, a card per class, and the picked
 // variant's boxes under it. Collapsed by default: alpha doesn't need it.
 function renderVariants(character, evaluation, columns, classes) {
-	const tree = promotionTree(classes, character.class);
+	const tree = unitTree(classes, character);
 	if (!tree || (!tree.gap && tree.children.length === 0)) return null;
 	const section = element("details", "variants");
 	section.dataset.character = character.id;
@@ -521,8 +517,10 @@ function renderVariants(character, evaluation, columns, classes) {
 			resolved = resolveBoxes(variant, variantEvaluation.shown, parentResolved);
 			const button = card(variant, variantEvaluation, parentResolved, false);
 			button.type = "button";
+			if (ART_KINDS[node.art]) button.title = `${character.name} as ${node.name}: ${ART_KINDS[node.art]}.`;
 			if (node.id === selectedId && !selected) {
-				selected = { variant, evaluation: variantEvaluation, inherited: parentResolved };
+				selected = { variant, evaluation: variantEvaluation, inherited: parentResolved, art: node.art,
+					baseFile: evaluation.shown.idle ? folderName(evaluation.shown.idle.path) : character.id };
 				button.classList.add("selected");
 			}
 			button.addEventListener("click", () => {
@@ -549,18 +547,27 @@ function renderVariants(character, evaluation, columns, classes) {
 	return section;
 }
 
-function renderVariantPane(character, { variant, evaluation, inherited }, columns) {
+function renderVariantPane(character, { variant, evaluation, inherited, art, baseFile }, columns) {
 	const pane = element("div", "variant-pane");
 	const progress = variantProgress(variant, evaluation);
 	const head = element("div", "variant-pane-head");
 	head.append(element("strong", "", `${character.name} as ${variant.classLabel}`),
 		element("span", "variant-pane-count", `${progress.drawn} of ${progress.total} drawn`));
-	// Start from whatever the variant falls back to: usually its base's file.
+	// What Lawrence makes, by the slot's `art`. Palette swaps come from the
+	// recolor exporter (planned), so only a redraw is a copy of a file to
+	// change: whatever the variant falls back to, usually its base.
 	const from = inherited.idle;
-	head.append(element("span", "variant-pane-how", from
+	const ownFile = from
 		? `Its own file: ${variant.id}.aseprite, a copy of ${folderName(from.candidate.path)}.aseprite to change.`
-			+ ` Dimmed boxes show the ${from.owner.classLabel} art it falls back to.`
-		: `Its own file: ${variant.id}.aseprite.`));
+		: `Its own file: ${variant.id}.aseprite.`;
+	const swap = `A palette swap: the exporter will recolor ${baseFile}.aseprite's clothes layer with ${variant.classLabel}'s colors (planned)`;
+	const how = {
+		palette: `${swap}, so there's nothing to draw by hand.`,
+		palette_layer: `${swap}. Touch-ups go on a layer named "${variant.class}" in ${baseFile}.aseprite.`,
+		redraw: `Drawn from scratch. ${ownFile}`,
+	}[art] || ownFile;
+	head.append(element("span", "variant-pane-how",
+		how + (from ? ` Dimmed boxes show the ${from.owner.classLabel} art it falls back to.` : "")));
 	const boxes = element("div", "variant-pane-boxes");
 	boxes.append(...renderBoxGroups(variant, evaluation, columns, inherited));
 	pane.append(head, boxes);

@@ -1,0 +1,56 @@
+{
+	"base": "skulk",
+	"base_types": [
+		"Simple"
+	],
+	"promotions": [
+		{
+			"class": "hardcase",
+			"types": [
+				"Simple"
+			],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "commando",
+					"types": [
+						"Simple",
+						"Fire"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "hitman",
+					"types": [
+						"Simple"
+					],
+					"art": "palette"
+				}
+			]
+		},
+		{
+			"class": "assassin",
+			"types": [
+				"Simple"
+			],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "fixer",
+					"types": [
+						"Gentry"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "hitman",
+					"types": [
+						"Simple"
+					],
+					"art": "palette"
+				}
+			]
+		}
+	],
+	"notes": "In the story, Ma'am dies before tier 3, possibly before tier 2. But we will likely have an alternative mode where she can reach the full tier 3.\n\nBottom branch is the same as the thief's assassin branch, but Ma'am isn't really a thieving type so the  top track is more open. Thinking  something commando-themed."
+}

@@ -1,0 +1,60 @@
+{
+	"base": "cultist",
+	"base_types": [
+		"Occult"
+	],
+	"promotions": [
+		{
+			"class": "botanist",
+			"types": [
+				"Occult",
+				"Plant"
+			],
+			"art": "redraw",
+			"promotions": [
+				{
+					"class": "sage",
+					"types": [
+						"Occult",
+						"Plant"
+					],
+					"art": "redraw"
+				},
+				{
+					"class": "harvester",
+					"types": [
+						"Occult",
+						"Plant"
+					],
+					"art": "redraw"
+				}
+			]
+		},
+		{
+			"class": "creeper",
+			"types": [
+				"Occult",
+				"Plant"
+			],
+			"art": "redraw",
+			"promotions": [
+				{
+					"class": "abomination",
+					"types": [
+						"Occult",
+						"Plant"
+					],
+					"art": "redraw"
+				},
+				{
+					"class": "topiary",
+					"types": [
+						"Plant"
+					],
+					"art": "redraw"
+				}
+			]
+		}
+	],
+	"notes": "Fully different sprites per class (RQD)."
+}

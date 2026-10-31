@@ -1,0 +1,44 @@
+{
+	"base": "enigma",
+	"base_types": [
+		"Gravity",
+		"Robo"
+	],
+	"promotions": [
+		{
+			"class": "",
+			"types": [],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				},
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				}
+			]
+		},
+		{
+			"class": "",
+			"types": [],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				},
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				}
+			]
+		}
+	],
+	"notes": ""
+}

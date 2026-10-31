@@ -1,0 +1,127 @@
+/* Class tree editor. Colors and the top bar come from dashboard.css. */
+
+.top-link { text-decoration: none; }
+.status-error { color: var(--red); }
+.intro { color: var(--text-muted); max-width: 72em; margin: 4px 16px 12px; line-height: 1.45; }
+.intro code { color: var(--text); }
+
+.editor {
+	display: grid;
+	grid-template-columns: 220px minmax(0, 1fr) 280px;
+	gap: 16px;
+	padding: 0 16px 16px;
+	align-items: start;
+}
+
+/* ------------------------------------------------------------- units --- */
+
+.units { display: flex; flex-direction: column; gap: 2px; }
+.units h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 12px 0 4px; }
+.unit-item {
+	display: flex; justify-content: space-between; gap: 8px;
+	background: none; border: 1px solid transparent; border-radius: 4px;
+	color: var(--text); text-align: left; padding: 5px 8px; cursor: pointer; font: inherit;
+}
+.unit-item:hover { background: var(--surface-raised); }
+.unit-item.selected { border-color: var(--new); background: var(--surface); }
+.unit-count { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.unit-count.complete { color: var(--green); }
+
+/* -------------------------------------------------------------- tree --- */
+
+.tree-view h2 { margin: 4px 0 2px; }
+.tree-subtitle { color: var(--text-muted); margin: 0 0 12px; }
+.notes-heading { margin: 22px 0 2px; }
+.tree-notes {
+	width: 100%; box-sizing: border-box; min-height: 22em; margin: 6px 0 0;
+	resize: vertical; line-height: 1.5; tab-size: 4;
+}
+.tree-problems { color: var(--red); margin: 8px 0 0; padding-left: 18px; }
+
+.tree-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(170px, 1fr));
+	grid-template-rows: repeat(4, auto);
+	column-gap: 28px;
+	row-gap: 10px;
+	align-items: center;
+}
+.tree-column-label { color: var(--text-muted); font-size: 12px; margin-bottom: 4px; }
+
+.slot {
+	position: relative;
+	display: grid;
+	grid-template-columns: 56px minmax(0, 1fr);
+	gap: 4px 8px;
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	padding: 8px;
+	cursor: pointer;
+}
+.slot.empty { border-style: dashed; background: transparent; }
+.slot.selected { border-color: var(--new); box-shadow: 0 0 0 1px var(--new); }
+.tree-grid { position: relative; }
+/* The lines between cards (drawLines), under the cards. */
+.tree-lines { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
+.tree-lines path { fill: none; stroke: var(--tree-line); stroke-width: 1; }
+
+.slot-sprite {
+	grid-row: span 3;
+	width: 56px; height: 56px;
+	border-radius: 4px;
+	background-color: var(--well);
+	overflow: hidden;
+	display: flex; align-items: center; justify-content: center;
+	color: var(--text-muted); font-size: 10px; text-align: center; line-height: 1.2;
+}
+.slot-sprite-art { background-repeat: no-repeat; image-rendering: pixelated; flex: none; }
+.slot-class {
+	width: 100%; box-sizing: border-box; font: inherit; font-weight: 600;
+	background: var(--background); color: var(--text);
+	border: 1px solid var(--line); border-radius: 3px; padding: 3px 5px;
+}
+.slot-types { color: var(--text-muted); font-size: 12px; min-height: 1.2em; }
+.slot-art { font: inherit; font-size: 12px; background: var(--background); color: var(--text); border: 1px solid var(--line); border-radius: 3px; }
+.slot-error { grid-column: 1 / -1; color: var(--red); font-size: 12px; }
+.slot-fix { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 6px; }
+.slot-fix .notes-button { font-size: 12px; }
+/* A draft is a tentative name, not a class: dashed like an empty slot, its name in italics. */
+.slot.draft .slot-class { font-style: italic; font-weight: 400; }
+.slot.draft .slot-types { font-style: italic; }
+/* The flip: centered on the gap after the card (tree-grid column-gap), where its lines fork. */
+.slot-flip {
+	position: absolute; left: calc(100% + 4px); top: 50%; transform: translateY(-50%); z-index: 1;
+	width: 20px; height: 20px; padding: 0; border-radius: 50%;
+	border: 1px solid var(--line); background: var(--surface-raised); color: var(--text-muted);
+	font-size: 12px; line-height: 1; cursor: pointer;
+}
+.slot-flip:hover { color: var(--text); border-color: var(--text-muted); }
+
+/* ------------------------------------------------------- class panel --- */
+
+.class-panel {
+	background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+	padding: 12px; display: flex; flex-direction: column; gap: 8px;
+	position: sticky; top: 8px;
+}
+.class-panel h3 { margin: 0; }
+.class-panel label { display: flex; flex-direction: column; gap: 3px; color: var(--text-muted); font-size: 12px; }
+.class-panel input, .class-panel select, .class-panel textarea, .tree-notes {
+	font: inherit; color: var(--text); background: var(--background);
+	border: 1px solid var(--line); border-radius: 3px; padding: 4px 6px;
+}
+.class-panel textarea { min-height: 16em; resize: vertical; line-height: 1.5; }
+.panel-hint { color: var(--text-muted); font-size: 12px; margin: 0; }
+/* The panel's two halves: the slot's own (typing), then the class every tree shares. */
+.panel-section { margin: 8px 0 0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+.used-by { margin: 0; padding-left: 18px; }
+
+/* -------------------------------------------------------------- pool --- */
+
+.pool { margin: 0 16px 24px; }
+.pool table { border-collapse: collapse; width: 100%; }
+.pool th, .pool td { text-align: left; padding: 4px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.pool th { color: var(--text-muted); font-weight: 600; font-size: 12px; }
+.pool tr.unused td { color: var(--text-muted); }
+.pool-tier { font: inherit; background: var(--background); color: var(--text); border: 1px solid var(--line); border-radius: 3px; }

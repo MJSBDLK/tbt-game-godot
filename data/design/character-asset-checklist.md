@@ -13,11 +13,14 @@ art/
     <id>.aseprite              # Lawrence's source. Canvas expanded so the FEET
                                #   land at canvas center (96×96 → pivot 48,48).
                                #   One tag per animation, from the clip
-                               #   vocabulary: idle, melee, ranged, dodge,
-                               #   hurt, death, cast, ... (side view, LEFT-facing)
+                               #   vocabulary: idle0, melee, ranged, dodge,
+                               #   hurt, death, cast, ... (side view, LEFT-facing).
+                               #   idle0 = the default idle; idle1, idle2, ...
+                               #   = fidgets, nothing plays them yet. A plain
+                               #   `idle` tag (older files) counts as idle0.
     <id>/                      # Tag-exporter output (right-click .aseprite in
-      idle.png                 #   FileSystem dock → "Export Tags as PNGs")
-      idle.json                # Sidecar: pivot + frame metadata. Never hand-edit
+      idle0.png                #   FileSystem dock → "Export Tags as PNGs")
+      idle0.json               # Sidecar: pivot + frame metadata. Never hand-edit
       melee.png / melee.json   #   — it's overwritten on re-export.
       ...
   portraits/
@@ -51,7 +54,7 @@ Legacy stragglers that don't follow this (`.js` files, `grasker-portrait.png`,
 
 **Art — sprites**
 - [ ] `<id>.aseprite` with expanded canvas (feet at canvas center)
-- [ ] `idle` tag exported (`<id>/idle.png` + `idle.json` sidecar)
+- [ ] `idle0` tag exported (`<id>/idle0.png` + `idle0.json` sidecar)
 - [ ] Pivot verified in-game (stands centered on its tile, no float/sink)
 - [ ] Attack animations exported — SIDE VIEW, LEFT-FACING, tagged from the
       clip vocabulary (header of `scripts/units/unit_animation_resolver.gd`).
@@ -84,7 +87,7 @@ Legacy stragglers that don't follow this (`.js` files, `grasker-portrait.png`,
 - [ ] `basePoolMoves` — target ≥ 9 (alpha goal)
 - [ ] `basePoolPassives` — target ≥ 9 (alpha goal; Maximum/Stellar stay
       Max-only)
-- [ ] `sprite` block (sheetPath → exported idle.png)
+- [ ] `sprite` block (sheetPath → exported idle0.png)
 - [ ] `animations` block keyed by vocabulary name (path/frames; fps/hit_frame
       are fallbacks — the strip's sidecar wins); `animation_overrides` only for
       exceptions (`"melee_special": "ranged"`, `"move:Uppercut": "ranged"`)

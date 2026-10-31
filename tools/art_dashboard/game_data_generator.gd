@@ -9,22 +9,24 @@
 ## JSON paths, so file names are the one stable key):
 ##   requirements  one per box, id = its COLUMNS id, in box order. Each lists the
 ##                 candidate files that would satisfy it (the path the JSON
-##                 declares, the convention path) and whether the character's
+##                 declares, the convention paths) and whether the character's
 ##                 moves need it. The PAGE decides presence by loading the
 ##                 candidates, so status is always what's on disk right now.
 ##   clips         per strip: hit frame and frame timing, sidecar first, the
 ##                 same precedence as ClipPlayer.resolve_playback.
 ##   crop          the portrait crop's region on its line art.
-##   class         the class it starts in (currentClass, as a class id).
-##   variants      one per class below that in its promotion tree: the same
-##                 character redrawn for that class, with its own full set of
-##                 boxes under the file stem <id>_<class>. Moves don't change
-##                 with class, so a variant needs what the base needs. Nothing
-##                 in the game loads variants yet, so only convention paths
-##                 count and none is "declared".
+##   class         the class it plays as today (currentClass, as a class id).
+##   tree          its promotion tree from data/classes/trees/<id>.json, cut
+##                 to each slot's class and art (tree_entry).
+##   variants      one per class its tree promotes into: the same character
+##                 redrawn for that class, with its own full set of boxes
+##                 under the file stem <id>_<class>. Moves don't change with
+##                 class, so a variant needs what the base needs. Nothing in
+##                 the game loads variants yet, so only convention paths count
+##                 and none is "declared".
 ##
-## `classes` is the promotion tree from Enums.CLASS_INFO, keyed by the class's
-## lowercase enum name (the id in variant file names).
+## `classes` is the class pool, data/classes/pool/ (ClassTrees): id, name, tier.
+## A tree edit in the class tree editor makes this file stale, like any other.
 ##
 ## Needs mirror UnitAnimationResolver: two reaches (1 tile = melee, 2+ =
 ## ranged), every attack can hit from 1 tile (targeting is distance <= range),
@@ -40,6 +42,11 @@ const SPRITE_DIRECTORY: String = "res://art/sprites/characters/"
 const LINEART_DIRECTORY: String = "res://art/lineart_fullres/"
 ## Stands in for an undrawn idle; counts as no idle at all.
 const PLACEHOLDER_SPRITE: String = "res://art/sprites/characters/placeholder_unit.png"
+## Lawrence numbers a character's idles: idle0 is the default loop, idle1+
+## are fidgets nothing plays yet. A plain "idle" tag predates the numbering
+## and still counts, so it's never on the rename list.
+const IDLE_TAG: String = "idle0"
+const UNNUMBERED_IDLE_TAG: String = "idle"
 
 ## Passive name → the damage type whose range it extends. Any bonus puts a
 ## 1-tile move at 2, so only the type matters. The data test fails when a
@@ -90,11 +97,13 @@ static func render(data: Dictionary) -> String:
 
 static func build_data() -> Dictionary:
 	var move_bank: Dictionary = read_json(MOVE_BANK_PATH)
+	var unit_trees := ClassTrees.trees()
 	var characters: Array[Dictionary] = []
 	for path: String in character_files():
 		var character: Dictionary = read_json(path)
+		var character_id := path.get_file().get_basename()
 		if not character.is_empty():
-			characters.append(character_entry(path.get_file().get_basename(), character, move_bank))
+			characters.append(character_entry(character_id, character, move_bank, unit_trees.get(character_id, {})))
 	# `convention` tells the page where each box's file goes ({id} = character).
 	var columns: Array[Dictionary] = []
 	for column: Dictionary in COLUMNS:
@@ -107,26 +116,17 @@ static func build_data() -> Dictionary:
 			if character_ids.has(variant.id):
 				push_error("Art dashboard: %s's %s variant shares its files with the character %s" % [
 						entry.id, variant["class"], variant.id])
-	return {"columns": columns, "classes": class_entries(), "characters": characters}
+	return {"columns": columns, "classes": class_entries(ClassTrees.pool()), "characters": characters}
 
 
-## Every class with its tier and the classes it promotes into.
-static func class_entries() -> Array[Dictionary]:
+## Every pool class, by id.
+static func class_entries(class_pool: Dictionary) -> Array[Dictionary]:
+	var ids := class_pool.keys()
+	ids.sort()
 	var entries: Array[Dictionary] = []
-	for character_class: int in Enums.CLASS_INFO:
-		var info: Dictionary = Enums.CLASS_INFO[character_class]
-		entries.append({
-			"id": class_id(character_class),
-			"name": str(info.display_name),
-			"tier": int(info.tier),
-			"promotes_to": (info.get("promotes_to", []) as Array).map(
-					func(promotion: int) -> String: return class_id(promotion)),
-		})
+	for id: String in ids:
+		entries.append({"id": id, "name": str(class_pool[id].name), "tier": int(class_pool[id].tier)})
 	return entries
-
-
-static func class_id(character_class: int) -> String:
-	return str(Enums.CharacterClass.find_key(character_class)).to_lower()
 
 
 ## currentClass the way CharacterDataLoader reads it: "Void Knight" → void_knight.
@@ -137,31 +137,56 @@ static func character_class_id(character: Dictionary) -> String:
 	return id
 
 
-## Every class below `start` in the promotion tree, nearest tier first.
-static func promotions_below(start: String) -> Array[String]:
+## A unit's tree file (data/classes/README.md) as the board draws it: each
+## slot's class ("" = not designed) and how its art gets made. A draft is an
+## empty slot here, as it is to the game. No tree file: the class it plays as
+## today, nothing designed under it.
+static func tree_entry(unit_tree: Dictionary, current_class: String) -> Dictionary:
+	if unit_tree.is_empty():
+		return {"class": current_class, "promotions": []}
+	return {"class": str(unit_tree.get("base", "")), "promotions": (unit_tree.get("promotions", []) as Array).map(
+			func(slot: Dictionary) -> Dictionary: return slot_entry(slot))}
+
+
+static func slot_entry(slot: Dictionary) -> Dictionary:
+	var entry := {"class": str(slot.get("class", "")), "art": str(slot.get("art", ""))}
+	if slot.has("promotions"):
+		entry["promotions"] = (slot.promotions as Array).map(
+				func(child: Dictionary) -> Dictionary: return slot_entry(child))
+	return entry
+
+
+## The classes a tree promotes into, each once (a tier-3 class under both
+## branches is one variant), tier 2 first. Nothing under an undesigned slot
+## counts: no unit can promote through it.
+static func tree_promotions(tree: Dictionary) -> Array[String]:
 	var found: Array[String] = []
-	var frontier: Array[String] = [start]
+	var frontier: Array = tree.promotions.duplicate()
 	while not frontier.is_empty():
-		var info: Dictionary = Enums.CLASS_INFO.get(Enums.CharacterClass.get(frontier.pop_front().to_upper(), -1), {})
-		for promotion: int in info.get("promotes_to", []):
-			if not found.has(class_id(promotion)):
-				found.append(class_id(promotion))
-				frontier.append(class_id(promotion))
+		var slot: Dictionary = frontier.pop_front()
+		var promotion := str(slot["class"])
+		if promotion.is_empty():
+			continue
+		if not found.has(promotion):
+			found.append(promotion)
+		frontier.append_array(slot.get("promotions", []))
 	return found
 
 
-static func character_entry(character_id: String, character: Dictionary, move_bank: Dictionary) -> Dictionary:
+static func character_entry(character_id: String, character: Dictionary, move_bank: Dictionary,
+		unit_tree: Dictionary = {}) -> Dictionary:
 	var result := {
 		"id": character_id,
 		"name": str(character.get("characterName", character_id)),
 		"class": character_class_id(character),
 	}
+	result["tree"] = tree_entry(unit_tree, result["class"])
 	result.merge(art_entry(character_id, character, move_bank))
 	# Only the moves carry over: every file a variant has is its own.
 	var moves_only := {"basePoolMoves": character.get("basePoolMoves", []),
 			"basePoolPassives": character.get("basePoolPassives", [])}
 	var variants: Array[Dictionary] = []
-	for promotion: String in promotions_below(result["class"]):
+	for promotion: String in tree_promotions(result["tree"]):
 		var variant := {"class": promotion}
 		variant.merge(art_entry(character_id + "_" + promotion, moves_only, move_bank))
 		variants.append(variant)
@@ -180,9 +205,10 @@ static func art_entry(character_id: String, character: Dictionary, move_bank: Di
 	var sprite_path := str(character.get("sprite", {}).get("sheetPath", ""))
 	if sprite_path == PLACEHOLDER_SPRITE:
 		sprite_path = ""
-	var idle_candidates := candidates_for(sprite_path, convention_path("idle", character_id))
+	var idle_candidates := candidates_for(sprite_path, [convention_path("idle", character_id),
+			SPRITE_DIRECTORY + character_id + "/" + UNNUMBERED_IDLE_TAG + ".png"])
 	var lineart_candidates := candidates_for(str(character.get("lineartPath", "")),
-			convention_path("line_art", character_id))
+			[convention_path("line_art", character_id)])
 
 	var requirements: Array[Dictionary] = [
 		requirement("idle", true, idle_candidates),
@@ -278,7 +304,7 @@ static func column_for(id: String) -> Dictionary:
 static func convention_path(box_id: String, character_id: String) -> String:
 	if box_id == "line_art":
 		return LINEART_DIRECTORY + character_id + ".png"
-	var tag := "idle" if box_id == "idle_animation" else box_id
+	var tag := IDLE_TAG if box_id == "idle" or box_id == "idle_animation" else box_id
 	return SPRITE_DIRECTORY + character_id + "/" + tag + ".png"
 
 
@@ -288,7 +314,7 @@ static func clip_candidates(character_id: String, keys: Array, declared_clips: D
 	var merged: Array[Dictionary] = []
 	for key: String in keys:
 		for candidate: Dictionary in candidates_for(str(declared_clips.get(key, "")),
-				convention_path(key, character_id)):
+				[convention_path(key, character_id)]):
 			candidate["clip"] = key
 			var existing := merged.filter(func(other: Dictionary) -> bool: return other.path == candidate.path)
 			if existing.is_empty():
@@ -299,18 +325,17 @@ static func clip_candidates(character_id: String, keys: Array, declared_clips: D
 	return merged
 
 
-## The declared path (what the game loads) first, then the convention path.
-## Paths are repo-relative so the page can prefix its way to the repo root.
-## A declared path off the convention carries `rename_to`: the board's rename list.
-static func candidates_for(declared_path: String, convention_path: String) -> Array[Dictionary]:
-	var convention := convention_path.trim_prefix("res://")
-	if declared_path == convention_path:
-		return [{"path": convention, "declared": true, "convention": true}]
+## The declared path (what the game loads) first, then the convention paths,
+## preferred first. Paths are repo-relative so the page can prefix its way to
+## the repo root. A declared path off every convention carries `rename_to`
+## (the preferred one): the board's rename list.
+static func candidates_for(declared_path: String, convention_paths: Array[String]) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
-	if not declared_path.is_empty():
+	if not declared_path.is_empty() and not convention_paths.has(declared_path):
 		result.append({"path": declared_path.trim_prefix("res://"), "declared": true,
-				"convention": false, "rename_to": convention})
-	result.append({"path": convention, "declared": false, "convention": true})
+				"convention": false, "rename_to": convention_paths[0].trim_prefix("res://")})
+	for path: String in convention_paths:
+		result.append({"path": path.trim_prefix("res://"), "declared": path == declared_path, "convention": true})
 	return result
 
 

@@ -1,0 +1,59 @@
+{
+	"base": "spaceman",
+	"base_types": [
+		"Simple"
+	],
+	"promotions": [
+		{
+			"class": "jetpack",
+			"types": [
+				"Simple",
+				"Air"
+			],
+			"art": "palette_layer",
+			"promotions": [
+				{
+					"class": "eva",
+					"types": [
+						"Gravity",
+						"Air"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "interdictor",
+					"types": [
+						"Gravity",
+						"Air"
+					],
+					"art": "palette"
+				}
+			]
+		},
+		{
+			"class": "specialist",
+			"types": [
+				"Simple"
+			],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "comms",
+					"types": [
+						"Simple"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "marshal",
+					"types": [
+						"Simple",
+						"Gravity"
+					],
+					"art": "palette"
+				}
+			]
+		}
+	],
+	"notes": "The main divergence is into hyper-mobility on the jetpack tree vs all-arounder on the opposite tree.\nMax will have somewhat middling stats, but has access to outrageously powerful passives.\nAccess to CC gravity moves at higher tiers"
+}

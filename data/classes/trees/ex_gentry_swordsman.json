@@ -1,0 +1,43 @@
+{
+	"base": "swordsman",
+	"base_types": [
+		"Gentry"
+	],
+	"promotions": [
+		{
+			"class": "",
+			"types": [],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				},
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				}
+			]
+		},
+		{
+			"class": "",
+			"types": [],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				},
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				}
+			]
+		}
+	],
+	"notes": ""
+}

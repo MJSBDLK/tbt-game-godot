@@ -110,10 +110,20 @@ func _export_file(aseprite_file_path: String, lowercase_names: bool) -> void:
 	# (if any) by suffix convention or content-signature scan. Files with a
 	# shadow layer skip the trim/aligned dance below and run dedicated
 	# Passes C/D instead, so main and shadow strips align frame-for-frame.
+	# Backdrop layers (`bg`) are left out of every pass.
 	var layer_names := _parse_layers(global_source)
+	var backdrop_arguments := PackedStringArray()
+	var art_layer_names: Array[String] = []
+	for layer_name in layer_names:
+		if _is_backdrop_layer(layer_name):
+			backdrop_arguments.append_array(["--ignore-layer", layer_name])
+		else:
+			art_layer_names.append(layer_name)
+	if not backdrop_arguments.is_empty():
+		print("  Left out: %s" % " ".join(backdrop_arguments))
 	var shadow_layer_name := ""
-	if not layer_names.is_empty():
-		shadow_layer_name = _detect_shadow_layer(layer_names, global_source, aseprite_command)
+	if not art_layer_names.is_empty():
+		shadow_layer_name = _detect_shadow_layer(art_layer_names, global_source, aseprite_command)
 	var has_shadow_layer := shadow_layer_name != ""
 	if has_shadow_layer:
 		print("  Shadow layer: '%s'" % shadow_layer_name)
@@ -137,8 +147,7 @@ func _export_file(aseprite_file_path: String, lowercase_names: bool) -> void:
 		# Pass C: main composite with shadow layer hidden — canvas-aligned per
 		# frame so per-tag bbox cropping (below) keeps main + shadow in sync.
 		DirAccess.make_dir_recursive_absolute(temp_main_no_shadow)
-		var main_args := PackedStringArray([
-			"-b", global_source,
+		var main_args := PackedStringArray(["-b", global_source]) + backdrop_arguments + PackedStringArray([
 			"--ignore-layer", shadow_layer_name,
 			"--save-as", temp_main_no_shadow + "{frame0000}.png",
 		])
@@ -174,9 +183,7 @@ func _export_file(aseprite_file_path: String, lowercase_names: bool) -> void:
 		if not has_pivot:
 			DirAccess.make_dir_recursive_absolute(temp_trimmed)
 
-			var trimmed_arguments := PackedStringArray([
-				"-b",
-				global_source,
+			var trimmed_arguments := PackedStringArray(["-b", global_source]) + backdrop_arguments + PackedStringArray([
 				"--trim",
 				"--save-as",
 				temp_trimmed + "{frame0000}.png",
@@ -195,9 +202,7 @@ func _export_file(aseprite_file_path: String, lowercase_names: bool) -> void:
 		# `--tag <name>` filter on `--sheet` is broken in some builds).
 		if needs_aligned_pass:
 			DirAccess.make_dir_recursive_absolute(temp_aligned)
-			var aligned_arguments := PackedStringArray([
-				"-b",
-				global_source,
+			var aligned_arguments := PackedStringArray(["-b", global_source]) + backdrop_arguments + PackedStringArray([
 				"--save-as",
 				temp_aligned + "{frame0000}.png",
 			])
@@ -937,6 +942,14 @@ static func _parse_layers(global_path: String) -> Array[String]:
 static func _is_shadow_layer_by_name(layer_name: String) -> bool:
 	var lower := layer_name.strip_edges().to_lower()
 	return lower == "shadow" or lower.ends_with("_shadow")
+
+
+## True for the solid `bg` layer Lawrence paints against, and Aseprite's
+## duplicates of it ("bg Copy"). Webtyler reads the same layer as a ground
+## colour. It's never art, so exports leave it out even when it's saved visible.
+static func _is_backdrop_layer(layer_name: String) -> bool:
+	var lower := layer_name.strip_edges().to_lower()
+	return lower == "bg" or lower.begins_with("bg ")
 
 
 ## True if every non-transparent pixel in the image matches the shadow

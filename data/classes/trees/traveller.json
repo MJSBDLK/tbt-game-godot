@@ -1,0 +1,70 @@
+{
+	"base": "peasant",
+	"base_types": [
+		"Simple"
+	],
+	"promotions": [
+		{
+			"class": "prospector",
+			"types": [
+				"Simple"
+			],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "",
+					"draft": {
+						"name": "Destroyer of Walls",
+						"notes": "Demolishing. Placeholder name."
+					},
+					"types": [
+						"Heraldic",
+						"Simple"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "",
+					"draft": {
+						"name": "Digger",
+						"notes": "Digging: he fights with the pickaxe, and may get digging moves. Placeholder name."
+					},
+					"types": [
+						"Simple"
+					],
+					"art": "palette"
+				}
+			]
+		},
+		{
+			"class": "pilgrim",
+			"types": [
+				"Simple",
+				"Occult"
+			],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "shade",
+					"types": [
+						"Occult"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "",
+					"draft": {
+						"name": "",
+						"notes": "Employs the occult in their heraldry."
+					},
+					"types": [
+						"Heraldic",
+						"Occult"
+					],
+					"art": "palette"
+				}
+			]
+		}
+	],
+	"notes": "Cannon fodder enemies who can be troublesome in numbers\nProspector branch: digging and demolishing. Pilgrim branch: into the occult. Heraldic comes in at tier 3 on both."
+}

@@ -87,6 +87,15 @@ func test_layer_name_unrelated_does_not_match() -> void:
 	assert_false(ContextMenu._is_shadow_layer_by_name(""))
 
 
+func test_backdrop_layer_is_bg_and_its_copies() -> void:
+	assert_true(ContextMenu._is_backdrop_layer("bg"))
+	assert_true(ContextMenu._is_backdrop_layer("BG"))
+	assert_true(ContextMenu._is_backdrop_layer("bg Copy"), "Aseprite's duplicate name")
+	assert_false(ContextMenu._is_backdrop_layer("bgm_notes"), "only bg itself, or bg + space")
+	assert_false(ContextMenu._is_backdrop_layer("Background"))
+	assert_false(ContextMenu._is_backdrop_layer("character"))
+
+
 # =============================================================================
 # Content bbox
 # =============================================================================

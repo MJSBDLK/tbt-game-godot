@@ -9,6 +9,42 @@
 - [ ] Rebelle 7 needs to start working
 - [ ] Victory screen mockup
 - [ ] Defeat screen animation
+- [ ] Next meeting with Lawrence: class variants as palette swaps (class
+  trees are priority #1; 7 classes per unit, so 6 variants per character).
+  The plan: the exporter generates each class's art by recoloring only the
+  `clothes` layer from a per-class color list; his touch-ups live on a layer
+  named after the class, so regenerating never erases them. Questions:
+	- None of the current character files have a clothes layer (each is bg +
+	  one "character" layer). OK to split existing art by script (he picks the
+	  clothes colors, a script moves those pixels to a `clothes` layer on
+	  every frame, he fixes the strays where a shared ramp landed wrong), or
+	  only new art?
+	- Touch-ups as one layer per class in the .aseprite: does that fit how he
+	  works?
+	- How he gives each class's colors: recolor one idle frame, or pick
+	  swatches?
+	- HD line art: what does he draw it in, and is it layered? Portraits need
+	  the same clothes split, or they stay a manual recolor.
+	- .aseprite files can't merge: who runs the split on his files, and when,
+	  so nobody edits the same file at once.
+	- What the probe showed (a copy of max.aseprite, scripts run in Aseprite):
+	  the color split moved ~11,000 suit pixels over all 29 frames; the only
+	  stray was the melee swipe effect, drawn in the suit's greys. Generated
+	  Jetpack (Orange ramp) and EVA (Teal) recolored only the suit; a touch-up
+	  layer named "jetpack" survived regenerating (byte-identical output).
+	  Line art is different: Max's has 10,595 colors and only 12.5% of it is
+	  exactly a suit grey, so a color-for-color swap can't do portraits. They
+	  need a clothes mask from his drawing app plus a ramp remap, or a hand
+	  recolor.
+- [ ] Squash's Bulwark (tier 3, the pure wall under Bouncer): RQD likes it,
+  but it asks for more than a palette swap: a visibly heavier, walled-up
+  Squash. Worth the extra art, given how much visual personality Squash has?
+- [ ] Max's tier 2 opposite Jetpack: a spaceman-themed generalist, jack of
+  many trades, against the Jetpack's hyper-mobility. No name has landed yet
+  (Officer, Gravboots, Magboots, Hardsuit all passed on); what does he see?
+  EVA (under Jetpack) needs a plainer name too: he asked "what's an EVA".
+- [ ] Grunt: a Crossbowman branch. Big gameplay implications (a ranged
+  grunt in every early pack); does it work for him visually?
 - [ ] Wednesday with Lawrence: the regolith backdrop. Applies once
   `rqd--regolith-backdrop` reaches lod--main.
 	- Layers follow the map now. A layer named after a map piece (`crater`,
@@ -637,7 +673,11 @@ Each of these is blocked on a decision, not on work.
 
 - [ ] **CLASS & PROMOTION SYSTEM** — design doc written 2026-08-05
   ([class-and-promotion.md](../data/design/class-and-promotion.md)), nothing
-  implemented. **This is the largest unscoped commitment in the project**, and by
+  implemented. **RQD 2026-10-11, after the Lawrence meeting: tree DESIGN is
+  priority #1**, in art-board order (tools/art_dashboard/ranking.js), so
+  Lawrence can draw the class variants. Every unit gets 7 classes: base, two
+  tier-2, two tier-3 under each (Bugler's shape); Spaceman's and Squire's
+  trees are four classes short. Promotion mechanics can follow. **This is the largest unscoped commitment in the project**, and by
   RQD's own framing it's load-bearing twice over: it's the progression spine
   (promotion at levels 21 and 41 is the biggest choice moment in the loop) *and*
   it's the actual answer to the supersquad problem, since class-carried typings

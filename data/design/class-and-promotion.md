@@ -61,6 +61,39 @@ uniform upgrades. Each carries a package:
 **[DECIDED] Some classes trade raw stats for utility** — a net stat *penalty* in
 exchange for strong passives or a valuable typing.
 
+**[DECIDED] Every tree is a full binary tree: 7 classes per unit.** One base
+class, two tier-2 choices, and two tier-3 choices under each (Bugler's shape,
+§8). No linear trees: Spaceman → Jetpack → EVA and Squire → Knight → Void
+Knight are incomplete, four classes short each.
+
+**[DECIDED] Less commonly, both branches reach the same tier-3 class**: a
+middle ground either path arrives at, making a 6-class tree (RQD, Ernesto's
+draft). At most one tier-3 class is shared, or the choice at 21 stops
+mattering for where the unit ends up.
+
+**[DECIDED] Classes are a shared pool; trees are per unit.** A class (name,
+tier, stat mods, passives) is defined once and can appear in many
+units' trees. Each unit has its own tree drawing from the pool, so two units
+that start as the same class may diverge at 21, or not (RQD's example, names
+not real: Unit 1 Soldier → Commando or Legionnaire; Unit 2 Soldier →
+Legionnaire or Elite Mercenary). So a class doesn't decide what it promotes
+into: the unit's tree does.
+
+**[DECIDED] Typing belongs to the unit's class, not the class.** Each slot in
+a unit's tree sets its own typing: Ernesto's Colossus is Simple/Robo, the Ice
+Archer's Colossus is mono Cold (RQD). The tree's base typing is the design for
+the unit's starting class; its character JSON's types are what plays today.
+
+**[DECIDED] Passives are the class's, at set levels, overridable per unit.**
+Classes generally share their passives at specific levels, and a unit's tree
+can override them (RQD). Not in data/classes yet.
+
+**[PROVISIONAL] A unit keeps what its tier-2 class taught it.** Moves and
+passives a class grants at its levels stay after the next promotion, so a
+shared tier-3 class plays differently by the road taken: the Ogre Squire's
+Void Knight through Squire has no spells, through Apprentice it keeps the
+Apprentice's (RQD). Same art, two units.
+
 ### The consequence that drives everything else
 
 **Stat total stops being a proxy for unit power.** A stat-penalty class with a
@@ -88,16 +121,14 @@ stats. That's the first real class *data* in the project; everything else below
 is still absent. All 32 character JSONs already carry a `currentClass` and the
 loader parses it, so caps resolved per-unit the moment the table landed.
 
-**The promotion trees are `promotes_to` on each `Enums.CLASS_INFO` entry** (the
-next tier's choices; tier 3 has none). Two are drawn so far: Spaceman → Jetpack
-→ EVA and Squire → Knight → Void Knight. Hardcase and Topdog are in no tree yet.
-An empty `promotes_to` means "not designed yet", and the art board's Class trees
-panel shows every such gap. `tests/unit/test_class_tree.gd` checks each
-promotion goes up exactly one tier. Nothing in the game reads the trees yet.
+**The trees and the class pool live in `data/classes/`** (its README is the
+format; `ClassTrees` reads it, and `tests/unit/test_class_trees.gd` checks it),
+edited in the class tree editor, `tools/art_dashboard/class_trees.html`. The
+art board draws them, undesigned slots dashed. Nothing in the game reads the
+trees yet.
 
-Still absent: any other class data (no granted passives, typing, growth mods, or
-`data/classes/`), any promotion trigger or eligibility check, and the
-class-choice screen.
+Still absent: any other class data (no granted passives or growth mods), any
+promotion trigger or eligibility check, and the class-choice screen.
 
 `CharacterData.tier` exists as a stored `@export` defaulting to 1, and is
 currently stubbed at 1 for every character.
@@ -127,13 +158,20 @@ meant to stay papery) but it is the number most likely to feel bad first.
 
 ### Content scope, stated plainly
 
-**3 tier-2 classes for 15 tier-1 classes.** If each base class wants 2–3
-promotion options, that's roughly **30–45 classes** to author across tiers 2 and
-3 — each needing stat mods, granted passives, typing, growths, caps, a name, and
-eventually art. This is the largest unscoped content commitment in the project.
+**3 tier-2 classes for 15 tier-1 classes.** With 7 classes per tree (§2), each
+unit's tree holds **6 promoted classes**, drawn from the shared pool (§2), so
+the pool is smaller than 6 × units by however much trees overlap. Each class
+needs stat mods, granted passives, typing, growths, caps and a name. The art
+is per unit: each one is redrawn in every class its tree reaches, **6
+variants per unit**, 60 for the top ten of the art board. **[DECIDED] Class variants are mostly palette swaps** (RQD to Lawrence,
+2026-10-11: "too much art for one person"). This is the largest content
+commitment in the project.
 
-**[OPEN]** Does every tier-1 class get its own promotion set, or do several base
-classes share a promotion pool? Sharing is the obvious lever if 30–45 is too many.
+The 15 base classes in `Enums.CharacterClass` predate the tree sketches,
+which give units their own base classes (the Goblin Healer is a Herbalist,
+the Plant Cultist a Cultist, though both are "Mage" in their JSON). Because
+trees are per unit, `promotes_to` on `CLASS_INFO` is the wrong home for them:
+they live in `data/classes/trees/`, one file per unit.
 
 ---
 
@@ -436,6 +474,8 @@ Kept as-is for now per RQD; both are tuning questions, not design ones.
 ## 8. Promotion trees
 
 ### Bugler **[DECIDED]**
+
+The tree itself: `data/classes/trees/bugler.json` (no unit yet).
 
 ```
 Bugler             Heraldic            tier 1

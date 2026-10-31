@@ -1,0 +1,62 @@
+{
+	"base": "rake",
+	"base_types": [
+		"Gentry",
+		"Chivalric"
+	],
+	"promotions": [
+		{
+			"class": "duelist",
+			"types": [
+				"Gentry",
+				"Chivalric"
+			],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "musketeer",
+					"types": [
+						"Gentry",
+						"Chivalric"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "pistolier",
+					"types": [
+						"Gentry",
+						"Chivalric"
+					],
+					"art": "palette"
+				}
+			]
+		},
+		{
+			"class": "fencer",
+			"types": [
+				"Gentry",
+				"Chivalric"
+			],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "musketeer",
+					"types": [
+						"Gentry",
+						"Chivalric"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "sabreur",
+					"types": [
+						"Gentry",
+						"Chivalric"
+					],
+					"art": "palette"
+				}
+			]
+		}
+	],
+	"notes": "Skilled, conceited, handsome.\n\nNever drops his Gentry typing: he's cut of that cloth.\nDuelist is the flintlock road, Fencer the blade; Musketeer (gun and blade) is where they meet. RQD is running it by Lawrence: the final will look a lot like this."
+}

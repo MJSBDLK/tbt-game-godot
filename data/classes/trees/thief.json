@@ -1,0 +1,56 @@
+{
+	"base": "thief",
+	"base_types": [
+		"Simple"
+	],
+	"promotions": [
+		{
+			"class": "assassin",
+			"types": [
+				"Simple"
+			],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "hitman",
+					"types": [
+						"Simple"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "fixer",
+					"types": [
+						"Gentry"
+					],
+					"art": "palette"
+				}
+			]
+		},
+		{
+			"class": "kleptomaniac",
+			"types": [
+				"Simple"
+			],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "highwayman",
+					"types": [
+						"Chivalric"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "infiltrator",
+					"types": [
+						"Simple",
+						"Robo"
+					],
+					"art": "palette"
+				}
+			]
+		}
+	],
+	"notes": "No unit yet: a design from Lawrence's line-art batch (art/lineart_fullres/assassin.png, finished, unwired; no idle sprite). The classes sound fun enough that the player should probably get them."
+}

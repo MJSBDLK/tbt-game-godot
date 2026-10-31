@@ -1,0 +1,43 @@
+{
+	"base": "keener",
+	"base_types": [
+		"Occult"
+	],
+	"promotions": [
+		{
+			"class": "",
+			"types": [],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				},
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				}
+			]
+		},
+		{
+			"class": "",
+			"types": [],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				},
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				}
+			]
+		}
+	],
+	"notes": "Cultist blood mages, using occult magic - class trees can add elements or revel in the dark.\n\n"
+}

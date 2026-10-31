@@ -1,0 +1,41 @@
+{
+	"base": "page",
+	"base_types": [],
+	"promotions": [
+		{
+			"class": "squire",
+			"types": [],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "knight",
+					"types": [],
+					"art": "palette"
+				},
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				}
+			]
+		},
+		{
+			"class": "",
+			"types": [],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				},
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				}
+			]
+		}
+	],
+	"notes": "Knight is actually an endgame class, so we might need variants here. There will be variants, as well - probably different sprites which swap out the armor and make him a bit less chunky\nNeed to brainstorm alternative flavors of squire and knight.\n"
+}

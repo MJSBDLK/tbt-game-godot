@@ -1,0 +1,62 @@
+{
+	"base": "grunt",
+	"base_types": [
+		"Heraldic"
+	],
+	"promotions": [
+		{
+			"class": "soldier",
+			"types": [
+				"Heraldic"
+			],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "pikeman",
+					"types": [
+						"Heraldic"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "man_at_arms",
+					"types": [
+						"Heraldic",
+						"Chivalric"
+					],
+					"art": "palette"
+				}
+			]
+		},
+		{
+			"class": "torchbearer",
+			"types": [
+				"Heraldic",
+				"Fire"
+			],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "arsonist",
+					"types": [
+						"Fire"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "",
+					"draft": {
+						"name": "",
+						"notes": "Open slot: any ideas? RQD is asking Lawrence."
+					},
+					"types": [
+						"Heraldic",
+						"Fire"
+					],
+					"art": "palette"
+				}
+			]
+		}
+	],
+	"notes": "Cannon fodder type enemy, usable atk/def, not very impressive everything else.\n"
+}

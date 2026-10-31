@@ -1,0 +1,58 @@
+{
+	"base": "bugler",
+	"base_types": [
+		"Heraldic"
+	],
+	"promotions": [
+		{
+			"class": "herald",
+			"types": [
+				"Heraldic"
+			],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "king_of_arms",
+					"types": [
+						"Heraldic"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "banneret",
+					"types": [
+						"Heraldic",
+						"Chivalric"
+					],
+					"art": "palette"
+				}
+			]
+		},
+		{
+			"class": "envoy",
+			"types": [
+				"Heraldic",
+				"Gentry"
+			],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "ambassador",
+					"types": [
+						"Heraldic",
+						"Gentry"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "spy",
+					"types": [
+						"Gentry"
+					],
+					"art": "palette"
+				}
+			]
+		}
+	],
+	"notes": "No unit yet: Harold, the named recruitable Bugler (Lawrence may veto); enemy buglers stay unnamed. Lawrence's bugler_gentry art is the Envoy and his bugler_chivalric the Banneret. Reasoning: data/design/class-and-promotion.md §8."
+}

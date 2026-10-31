@@ -1,0 +1,59 @@
+{
+	"base": "page",
+	"base_types": [
+		"Chivalric"
+	],
+	"promotions": [
+		{
+			"class": "squire",
+			"types": [
+				"Chivalric"
+			],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "knight",
+					"types": [
+						"Chivalric"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "void_knight",
+					"types": [
+						"Void",
+						"Chivalric"
+					],
+					"art": "palette"
+				}
+			]
+		},
+		{
+			"class": "apprentice",
+			"types": [
+				"Chivalric",
+				"Occult"
+			],
+			"art": "palette_layer",
+			"promotions": [
+				{
+					"class": "void_knight",
+					"types": [
+						"Void",
+						"Chivalric"
+					],
+					"art": "palette"
+				},
+				{
+					"class": "warlock",
+					"types": [
+						"Occult",
+						"Void"
+					],
+					"art": "palette_layer"
+				}
+			]
+		}
+	],
+	"notes": "Should go Page -> Squire -> Knight\n\nThe Apprentice side learns the powers of the void. Void Knight is reachable from both sides: through Squire the void took him (no spells), through Apprentice he took the void (keeps what the Apprentice taught him).\n\nThis guy has low base stats but high growth rates - with investment, we intend for him to be the most fearsome player unit in the game\n\nTier 2 gets the option to *dabble* in the magical arts: the Apprentice."
+}

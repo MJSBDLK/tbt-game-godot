@@ -1,0 +1,43 @@
+{
+	"base": "noble",
+	"base_types": [
+		"Gentry"
+	],
+	"promotions": [
+		{
+			"class": "lord",
+			"types": [],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "despot",
+					"types": [],
+					"art": "palette"
+				},
+				{
+					"class": "roitelet",
+					"types": [],
+					"art": "palette"
+				}
+			]
+		},
+		{
+			"class": "enfant_terrible",
+			"types": [],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "despot",
+					"types": [],
+					"art": "palette"
+				},
+				{
+					"class": "usurper",
+					"types": [],
+					"art": "palette"
+				}
+			]
+		}
+	],
+	"notes": "Tiny, scheming, cruel. A genuine tyrant, Caligula-type: doesn't understand the importance of reciprocity and kindness."
+}

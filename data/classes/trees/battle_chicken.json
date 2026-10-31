@@ -1,0 +1,44 @@
+{
+	"base": "flightless_bird",
+	"base_types": [
+		"Chivalric",
+		"Air"
+	],
+	"promotions": [
+		{
+			"class": "",
+			"types": [],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				},
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				}
+			]
+		},
+		{
+			"class": "",
+			"types": [],
+			"art": "palette",
+			"promotions": [
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				},
+				{
+					"class": "",
+					"types": [],
+					"art": "palette"
+				}
+			]
+		}
+	],
+	"notes": "This isn't a character on its own\nOn this planet, the mounts are avian. Maybe \"air\" type is a misnomer, idk.\nSteadfast steeds... but giant birds instead of equines."
+}
