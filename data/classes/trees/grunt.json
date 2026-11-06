@@ -44,11 +44,7 @@
 					"art": "palette"
 				},
 				{
-					"class": "",
-					"draft": {
-						"name": "",
-						"notes": "Open slot: any ideas? RQD is asking Lawrence."
-					},
+					"class": "oriflamme",
 					"types": [
 						"Heraldic",
 						"Fire"

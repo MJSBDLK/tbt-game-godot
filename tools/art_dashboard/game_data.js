@@ -313,7 +313,7 @@ window.ART_DASHBOARD_DATA = {
 				"promotions": [
 					{
 						"art": "palette",
-						"class": "",
+						"class": "footpad",
 						"promotions": [
 							{
 								"art": "palette",
@@ -335,13 +335,271 @@ window.ART_DASHBOARD_DATA = {
 							},
 							{
 								"art": "palette",
-								"class": ""
+								"class": "raubritter"
 							}
 						]
 					}
 				]
 			},
 			"variants": [
+				{
+					"class": "footpad",
+					"clips": {},
+					"id": "bandit_footpad",
+					"requirements": [
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_footpad/idle0.png"
+								},
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_footpad/idle.png"
+								}
+							],
+							"id": "idle",
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_footpad/idle0.png"
+								},
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_footpad/idle.png"
+								}
+							],
+							"id": "idle_animation",
+							"min_frames": 2,
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/lineart_fullres/bandit_footpad.png"
+								}
+							],
+							"id": "line_art",
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_footpad/melee.png"
+								},
+								{
+									"clip": "melee_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_footpad/melee_physical.png"
+								},
+								{
+									"clip": "melee_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_footpad/melee_special.png"
+								}
+							],
+							"id": "melee",
+							"needed": true,
+							"tier": "yellow"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_footpad/ranged.png"
+								},
+								{
+									"clip": "ranged_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_footpad/ranged_physical.png"
+								},
+								{
+									"clip": "ranged_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_footpad/ranged_special.png"
+								}
+							],
+							"id": "ranged",
+							"needed": true,
+							"tier": "yellow"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_footpad/melee_physical.png"
+								},
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_footpad/melee.png"
+								}
+							],
+							"id": "melee_physical",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_footpad/melee_special.png"
+								},
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_footpad/melee.png"
+								}
+							],
+							"id": "melee_special",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_footpad/ranged_physical.png"
+								},
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_footpad/ranged.png"
+								}
+							],
+							"id": "ranged_physical",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_footpad/ranged_special.png"
+								},
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_footpad/ranged.png"
+								}
+							],
+							"id": "ranged_special",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "cast",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_footpad/cast.png"
+								}
+							],
+							"id": "cast",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "hurt",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_footpad/hurt.png"
+								}
+							],
+							"id": "hurt",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "dodge",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_footpad/dodge.png"
+								}
+							],
+							"id": "dodge",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "death",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_footpad/death.png"
+								}
+							],
+							"id": "death",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "crit_melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_footpad/crit_melee.png"
+								}
+							],
+							"id": "crit_melee",
+							"needed": true,
+							"tier": "extra"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "crit_ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_footpad/crit_ranged.png"
+								}
+							],
+							"id": "crit_ranged",
+							"needed": true,
+							"tier": "extra"
+						}
+					]
+				},
 				{
 					"class": "brigand",
 					"clips": {},
@@ -601,6 +859,264 @@ window.ART_DASHBOARD_DATA = {
 					]
 				},
 				{
+					"class": "highwayman",
+					"clips": {},
+					"id": "bandit_highwayman",
+					"requirements": [
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_highwayman/idle0.png"
+								},
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_highwayman/idle.png"
+								}
+							],
+							"id": "idle",
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_highwayman/idle0.png"
+								},
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_highwayman/idle.png"
+								}
+							],
+							"id": "idle_animation",
+							"min_frames": 2,
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/lineart_fullres/bandit_highwayman.png"
+								}
+							],
+							"id": "line_art",
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_highwayman/melee.png"
+								},
+								{
+									"clip": "melee_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_highwayman/melee_physical.png"
+								},
+								{
+									"clip": "melee_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_highwayman/melee_special.png"
+								}
+							],
+							"id": "melee",
+							"needed": true,
+							"tier": "yellow"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_highwayman/ranged.png"
+								},
+								{
+									"clip": "ranged_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_highwayman/ranged_physical.png"
+								},
+								{
+									"clip": "ranged_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_highwayman/ranged_special.png"
+								}
+							],
+							"id": "ranged",
+							"needed": true,
+							"tier": "yellow"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_highwayman/melee_physical.png"
+								},
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_highwayman/melee.png"
+								}
+							],
+							"id": "melee_physical",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_highwayman/melee_special.png"
+								},
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_highwayman/melee.png"
+								}
+							],
+							"id": "melee_special",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_highwayman/ranged_physical.png"
+								},
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_highwayman/ranged.png"
+								}
+							],
+							"id": "ranged_physical",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_highwayman/ranged_special.png"
+								},
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_highwayman/ranged.png"
+								}
+							],
+							"id": "ranged_special",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "cast",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_highwayman/cast.png"
+								}
+							],
+							"id": "cast",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "hurt",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_highwayman/hurt.png"
+								}
+							],
+							"id": "hurt",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "dodge",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_highwayman/dodge.png"
+								}
+							],
+							"id": "dodge",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "death",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_highwayman/death.png"
+								}
+							],
+							"id": "death",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "crit_melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_highwayman/crit_melee.png"
+								}
+							],
+							"id": "crit_melee",
+							"needed": true,
+							"tier": "extra"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "crit_ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_highwayman/crit_ranged.png"
+								}
+							],
+							"id": "crit_ranged",
+							"needed": true,
+							"tier": "extra"
+						}
+					]
+				},
+				{
 					"class": "marauder",
 					"clips": {},
 					"id": "bandit_marauder",
@@ -850,6 +1366,264 @@ window.ART_DASHBOARD_DATA = {
 									"convention": true,
 									"declared": false,
 									"path": "art/sprites/characters/bandit_marauder/crit_ranged.png"
+								}
+							],
+							"id": "crit_ranged",
+							"needed": true,
+							"tier": "extra"
+						}
+					]
+				},
+				{
+					"class": "raubritter",
+					"clips": {},
+					"id": "bandit_raubritter",
+					"requirements": [
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_raubritter/idle0.png"
+								},
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_raubritter/idle.png"
+								}
+							],
+							"id": "idle",
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_raubritter/idle0.png"
+								},
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_raubritter/idle.png"
+								}
+							],
+							"id": "idle_animation",
+							"min_frames": 2,
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/lineart_fullres/bandit_raubritter.png"
+								}
+							],
+							"id": "line_art",
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_raubritter/melee.png"
+								},
+								{
+									"clip": "melee_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_raubritter/melee_physical.png"
+								},
+								{
+									"clip": "melee_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_raubritter/melee_special.png"
+								}
+							],
+							"id": "melee",
+							"needed": true,
+							"tier": "yellow"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_raubritter/ranged.png"
+								},
+								{
+									"clip": "ranged_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_raubritter/ranged_physical.png"
+								},
+								{
+									"clip": "ranged_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_raubritter/ranged_special.png"
+								}
+							],
+							"id": "ranged",
+							"needed": true,
+							"tier": "yellow"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_raubritter/melee_physical.png"
+								},
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_raubritter/melee.png"
+								}
+							],
+							"id": "melee_physical",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_raubritter/melee_special.png"
+								},
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_raubritter/melee.png"
+								}
+							],
+							"id": "melee_special",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_raubritter/ranged_physical.png"
+								},
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_raubritter/ranged.png"
+								}
+							],
+							"id": "ranged_physical",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_raubritter/ranged_special.png"
+								},
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_raubritter/ranged.png"
+								}
+							],
+							"id": "ranged_special",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "cast",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_raubritter/cast.png"
+								}
+							],
+							"id": "cast",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "hurt",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_raubritter/hurt.png"
+								}
+							],
+							"id": "hurt",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "dodge",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_raubritter/dodge.png"
+								}
+							],
+							"id": "dodge",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "death",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_raubritter/death.png"
+								}
+							],
+							"id": "death",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "crit_melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_raubritter/crit_melee.png"
+								}
+							],
+							"id": "crit_melee",
+							"needed": true,
+							"tier": "extra"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "crit_ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/bandit_raubritter/crit_ranged.png"
 								}
 							],
 							"id": "crit_ranged",
@@ -1460,7 +2234,7 @@ window.ART_DASHBOARD_DATA = {
 							},
 							{
 								"art": "palette",
-								"class": ""
+								"class": "whirlwind"
 							}
 						]
 					},
@@ -1474,7 +2248,7 @@ window.ART_DASHBOARD_DATA = {
 							},
 							{
 								"art": "palette",
-								"class": ""
+								"class": "maniac"
 							}
 						]
 					}
@@ -2256,6 +3030,264 @@ window.ART_DASHBOARD_DATA = {
 					]
 				},
 				{
+					"class": "whirlwind",
+					"clips": {},
+					"id": "berzerker_whirlwind",
+					"requirements": [
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_whirlwind/idle0.png"
+								},
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_whirlwind/idle.png"
+								}
+							],
+							"id": "idle",
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_whirlwind/idle0.png"
+								},
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_whirlwind/idle.png"
+								}
+							],
+							"id": "idle_animation",
+							"min_frames": 2,
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/lineart_fullres/berzerker_whirlwind.png"
+								}
+							],
+							"id": "line_art",
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_whirlwind/melee.png"
+								},
+								{
+									"clip": "melee_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_whirlwind/melee_physical.png"
+								},
+								{
+									"clip": "melee_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_whirlwind/melee_special.png"
+								}
+							],
+							"id": "melee",
+							"needed": true,
+							"tier": "yellow"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_whirlwind/ranged.png"
+								},
+								{
+									"clip": "ranged_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_whirlwind/ranged_physical.png"
+								},
+								{
+									"clip": "ranged_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_whirlwind/ranged_special.png"
+								}
+							],
+							"id": "ranged",
+							"needed": true,
+							"tier": "yellow"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_whirlwind/melee_physical.png"
+								},
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_whirlwind/melee.png"
+								}
+							],
+							"id": "melee_physical",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_whirlwind/melee_special.png"
+								},
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_whirlwind/melee.png"
+								}
+							],
+							"id": "melee_special",
+							"needed": false,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_whirlwind/ranged_physical.png"
+								},
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_whirlwind/ranged.png"
+								}
+							],
+							"id": "ranged_physical",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_whirlwind/ranged_special.png"
+								},
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_whirlwind/ranged.png"
+								}
+							],
+							"id": "ranged_special",
+							"needed": false,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "cast",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_whirlwind/cast.png"
+								}
+							],
+							"id": "cast",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "hurt",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_whirlwind/hurt.png"
+								}
+							],
+							"id": "hurt",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "dodge",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_whirlwind/dodge.png"
+								}
+							],
+							"id": "dodge",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "death",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_whirlwind/death.png"
+								}
+							],
+							"id": "death",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "crit_melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_whirlwind/crit_melee.png"
+								}
+							],
+							"id": "crit_melee",
+							"needed": true,
+							"tier": "extra"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "crit_ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_whirlwind/crit_ranged.png"
+								}
+							],
+							"id": "crit_ranged",
+							"needed": true,
+							"tier": "extra"
+						}
+					]
+				},
+				{
 					"class": "fiend",
 					"clips": {},
 					"id": "berzerker_fiend",
@@ -2505,6 +3537,264 @@ window.ART_DASHBOARD_DATA = {
 									"convention": true,
 									"declared": false,
 									"path": "art/sprites/characters/berzerker_fiend/crit_ranged.png"
+								}
+							],
+							"id": "crit_ranged",
+							"needed": true,
+							"tier": "extra"
+						}
+					]
+				},
+				{
+					"class": "maniac",
+					"clips": {},
+					"id": "berzerker_maniac",
+					"requirements": [
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_maniac/idle0.png"
+								},
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_maniac/idle.png"
+								}
+							],
+							"id": "idle",
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_maniac/idle0.png"
+								},
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_maniac/idle.png"
+								}
+							],
+							"id": "idle_animation",
+							"min_frames": 2,
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/lineart_fullres/berzerker_maniac.png"
+								}
+							],
+							"id": "line_art",
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_maniac/melee.png"
+								},
+								{
+									"clip": "melee_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_maniac/melee_physical.png"
+								},
+								{
+									"clip": "melee_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_maniac/melee_special.png"
+								}
+							],
+							"id": "melee",
+							"needed": true,
+							"tier": "yellow"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_maniac/ranged.png"
+								},
+								{
+									"clip": "ranged_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_maniac/ranged_physical.png"
+								},
+								{
+									"clip": "ranged_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_maniac/ranged_special.png"
+								}
+							],
+							"id": "ranged",
+							"needed": true,
+							"tier": "yellow"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_maniac/melee_physical.png"
+								},
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_maniac/melee.png"
+								}
+							],
+							"id": "melee_physical",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_maniac/melee_special.png"
+								},
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_maniac/melee.png"
+								}
+							],
+							"id": "melee_special",
+							"needed": false,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_maniac/ranged_physical.png"
+								},
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_maniac/ranged.png"
+								}
+							],
+							"id": "ranged_physical",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_maniac/ranged_special.png"
+								},
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_maniac/ranged.png"
+								}
+							],
+							"id": "ranged_special",
+							"needed": false,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "cast",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_maniac/cast.png"
+								}
+							],
+							"id": "cast",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "hurt",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_maniac/hurt.png"
+								}
+							],
+							"id": "hurt",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "dodge",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_maniac/dodge.png"
+								}
+							],
+							"id": "dodge",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "death",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_maniac/death.png"
+								}
+							],
+							"id": "death",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "crit_melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_maniac/crit_melee.png"
+								}
+							],
+							"id": "crit_melee",
+							"needed": true,
+							"tier": "extra"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "crit_ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/berzerker_maniac/crit_ranged.png"
 								}
 							],
 							"id": "crit_ranged",
@@ -9000,7 +10290,7 @@ window.ART_DASHBOARD_DATA = {
 							},
 							{
 								"art": "palette",
-								"class": ""
+								"class": "oriflamme"
 							}
 						]
 					}
@@ -10289,6 +11579,264 @@ window.ART_DASHBOARD_DATA = {
 									"convention": true,
 									"declared": false,
 									"path": "art/sprites/characters/grunt_arsonist/crit_ranged.png"
+								}
+							],
+							"id": "crit_ranged",
+							"needed": true,
+							"tier": "extra"
+						}
+					]
+				},
+				{
+					"class": "oriflamme",
+					"clips": {},
+					"id": "grunt_oriflamme",
+					"requirements": [
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/grunt_oriflamme/idle0.png"
+								},
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/grunt_oriflamme/idle.png"
+								}
+							],
+							"id": "idle",
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/grunt_oriflamme/idle0.png"
+								},
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/grunt_oriflamme/idle.png"
+								}
+							],
+							"id": "idle_animation",
+							"min_frames": 2,
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/lineart_fullres/grunt_oriflamme.png"
+								}
+							],
+							"id": "line_art",
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/grunt_oriflamme/melee.png"
+								},
+								{
+									"clip": "melee_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/grunt_oriflamme/melee_physical.png"
+								},
+								{
+									"clip": "melee_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/grunt_oriflamme/melee_special.png"
+								}
+							],
+							"id": "melee",
+							"needed": true,
+							"tier": "yellow"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/grunt_oriflamme/ranged.png"
+								},
+								{
+									"clip": "ranged_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/grunt_oriflamme/ranged_physical.png"
+								},
+								{
+									"clip": "ranged_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/grunt_oriflamme/ranged_special.png"
+								}
+							],
+							"id": "ranged",
+							"needed": true,
+							"tier": "yellow"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/grunt_oriflamme/melee_physical.png"
+								},
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/grunt_oriflamme/melee.png"
+								}
+							],
+							"id": "melee_physical",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/grunt_oriflamme/melee_special.png"
+								},
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/grunt_oriflamme/melee.png"
+								}
+							],
+							"id": "melee_special",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/grunt_oriflamme/ranged_physical.png"
+								},
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/grunt_oriflamme/ranged.png"
+								}
+							],
+							"id": "ranged_physical",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/grunt_oriflamme/ranged_special.png"
+								},
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/grunt_oriflamme/ranged.png"
+								}
+							],
+							"id": "ranged_special",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "cast",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/grunt_oriflamme/cast.png"
+								}
+							],
+							"id": "cast",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "hurt",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/grunt_oriflamme/hurt.png"
+								}
+							],
+							"id": "hurt",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "dodge",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/grunt_oriflamme/dodge.png"
+								}
+							],
+							"id": "dodge",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "death",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/grunt_oriflamme/death.png"
+								}
+							],
+							"id": "death",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "crit_melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/grunt_oriflamme/crit_melee.png"
+								}
+							],
+							"id": "crit_melee",
+							"needed": true,
+							"tier": "extra"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "crit_ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/grunt_oriflamme/crit_ranged.png"
 								}
 							],
 							"id": "crit_ranged",
@@ -27692,7 +29240,7 @@ window.ART_DASHBOARD_DATA = {
 						"class": "bouncer",
 						"promotions": [
 							{
-								"art": "palette",
+								"art": "redraw",
 								"class": "bulwark"
 							},
 							{
@@ -31439,7 +32987,7 @@ window.ART_DASHBOARD_DATA = {
 							},
 							{
 								"art": "palette",
-								"class": ""
+								"class": "digger"
 							}
 						]
 					},
@@ -31453,7 +33001,7 @@ window.ART_DASHBOARD_DATA = {
 							},
 							{
 								"art": "palette",
-								"class": ""
+								"class": "inquisitor"
 							}
 						]
 					}
@@ -31977,6 +33525,264 @@ window.ART_DASHBOARD_DATA = {
 					]
 				},
 				{
+					"class": "digger",
+					"clips": {},
+					"id": "traveller_digger",
+					"requirements": [
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_digger/idle0.png"
+								},
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_digger/idle.png"
+								}
+							],
+							"id": "idle",
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_digger/idle0.png"
+								},
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_digger/idle.png"
+								}
+							],
+							"id": "idle_animation",
+							"min_frames": 2,
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/lineart_fullres/traveller_digger.png"
+								}
+							],
+							"id": "line_art",
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_digger/melee.png"
+								},
+								{
+									"clip": "melee_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_digger/melee_physical.png"
+								},
+								{
+									"clip": "melee_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_digger/melee_special.png"
+								}
+							],
+							"id": "melee",
+							"needed": true,
+							"tier": "yellow"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_digger/ranged.png"
+								},
+								{
+									"clip": "ranged_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_digger/ranged_physical.png"
+								},
+								{
+									"clip": "ranged_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_digger/ranged_special.png"
+								}
+							],
+							"id": "ranged",
+							"needed": true,
+							"tier": "yellow"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_digger/melee_physical.png"
+								},
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_digger/melee.png"
+								}
+							],
+							"id": "melee_physical",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_digger/melee_special.png"
+								},
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_digger/melee.png"
+								}
+							],
+							"id": "melee_special",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_digger/ranged_physical.png"
+								},
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_digger/ranged.png"
+								}
+							],
+							"id": "ranged_physical",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_digger/ranged_special.png"
+								},
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_digger/ranged.png"
+								}
+							],
+							"id": "ranged_special",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "cast",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_digger/cast.png"
+								}
+							],
+							"id": "cast",
+							"needed": false,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "hurt",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_digger/hurt.png"
+								}
+							],
+							"id": "hurt",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "dodge",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_digger/dodge.png"
+								}
+							],
+							"id": "dodge",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "death",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_digger/death.png"
+								}
+							],
+							"id": "death",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "crit_melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_digger/crit_melee.png"
+								}
+							],
+							"id": "crit_melee",
+							"needed": true,
+							"tier": "extra"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "crit_ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_digger/crit_ranged.png"
+								}
+							],
+							"id": "crit_ranged",
+							"needed": true,
+							"tier": "extra"
+						}
+					]
+				},
+				{
 					"class": "shade",
 					"clips": {},
 					"id": "traveller_shade",
@@ -32226,6 +34032,264 @@ window.ART_DASHBOARD_DATA = {
 									"convention": true,
 									"declared": false,
 									"path": "art/sprites/characters/traveller_shade/crit_ranged.png"
+								}
+							],
+							"id": "crit_ranged",
+							"needed": true,
+							"tier": "extra"
+						}
+					]
+				},
+				{
+					"class": "inquisitor",
+					"clips": {},
+					"id": "traveller_inquisitor",
+					"requirements": [
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_inquisitor/idle0.png"
+								},
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_inquisitor/idle.png"
+								}
+							],
+							"id": "idle",
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_inquisitor/idle0.png"
+								},
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_inquisitor/idle.png"
+								}
+							],
+							"id": "idle_animation",
+							"min_frames": 2,
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"convention": true,
+									"declared": false,
+									"path": "art/lineart_fullres/traveller_inquisitor.png"
+								}
+							],
+							"id": "line_art",
+							"needed": true,
+							"tier": "orange"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_inquisitor/melee.png"
+								},
+								{
+									"clip": "melee_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_inquisitor/melee_physical.png"
+								},
+								{
+									"clip": "melee_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_inquisitor/melee_special.png"
+								}
+							],
+							"id": "melee",
+							"needed": true,
+							"tier": "yellow"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_inquisitor/ranged.png"
+								},
+								{
+									"clip": "ranged_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_inquisitor/ranged_physical.png"
+								},
+								{
+									"clip": "ranged_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_inquisitor/ranged_special.png"
+								}
+							],
+							"id": "ranged",
+							"needed": true,
+							"tier": "yellow"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_inquisitor/melee_physical.png"
+								},
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_inquisitor/melee.png"
+								}
+							],
+							"id": "melee_physical",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "melee_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_inquisitor/melee_special.png"
+								},
+								{
+									"clip": "melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_inquisitor/melee.png"
+								}
+							],
+							"id": "melee_special",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged_physical",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_inquisitor/ranged_physical.png"
+								},
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_inquisitor/ranged.png"
+								}
+							],
+							"id": "ranged_physical",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "ranged_special",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_inquisitor/ranged_special.png"
+								},
+								{
+									"clip": "ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_inquisitor/ranged.png"
+								}
+							],
+							"id": "ranged_special",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "cast",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_inquisitor/cast.png"
+								}
+							],
+							"id": "cast",
+							"needed": false,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "hurt",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_inquisitor/hurt.png"
+								}
+							],
+							"id": "hurt",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "dodge",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_inquisitor/dodge.png"
+								}
+							],
+							"id": "dodge",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "death",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_inquisitor/death.png"
+								}
+							],
+							"id": "death",
+							"needed": true,
+							"tier": "green"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "crit_melee",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_inquisitor/crit_melee.png"
+								}
+							],
+							"id": "crit_melee",
+							"needed": true,
+							"tier": "extra"
+						},
+						{
+							"candidates": [
+								{
+									"clip": "crit_ranged",
+									"convention": true,
+									"declared": false,
+									"path": "art/sprites/characters/traveller_inquisitor/crit_ranged.png"
 								}
 							],
 							"id": "crit_ranged",
@@ -32635,6 +34699,11 @@ window.ART_DASHBOARD_DATA = {
 			"tier": 3
 		},
 		{
+			"id": "digger",
+			"name": "Digger",
+			"tier": 3
+		},
+		{
 			"id": "distiller",
 			"name": "Distiller",
 			"tier": 3
@@ -32700,6 +34769,11 @@ window.ART_DASHBOARD_DATA = {
 			"tier": 1
 		},
 		{
+			"id": "footpad",
+			"name": "Footpad",
+			"tier": 2
+		},
+		{
 			"id": "gemini",
 			"name": "Gemini",
 			"tier": 2
@@ -32757,6 +34831,11 @@ window.ART_DASHBOARD_DATA = {
 		{
 			"id": "infiltrator",
 			"name": "Infiltrator",
+			"tier": 3
+		},
+		{
+			"id": "inquisitor",
+			"name": "Inquisitor",
 			"tier": 3
 		},
 		{
@@ -32830,6 +34909,11 @@ window.ART_DASHBOARD_DATA = {
 			"tier": 3
 		},
 		{
+			"id": "maniac",
+			"name": "Maniac",
+			"tier": 3
+		},
+		{
 			"id": "marauder",
 			"name": "Marauder",
 			"tier": 3
@@ -32868,6 +34952,11 @@ window.ART_DASHBOARD_DATA = {
 			"id": "officer",
 			"name": "Officer",
 			"tier": 2
+		},
+		{
+			"id": "oriflamme",
+			"name": "Oriflamme",
+			"tier": 3
 		},
 		{
 			"id": "page",
@@ -32923,6 +35012,11 @@ window.ART_DASHBOARD_DATA = {
 			"id": "rake",
 			"name": "Rake",
 			"tier": 1
+		},
+		{
+			"id": "raubritter",
+			"name": "Raubritter",
+			"tier": 3
 		},
 		{
 			"id": "roitelet",
@@ -33072,6 +35166,11 @@ window.ART_DASHBOARD_DATA = {
 		{
 			"id": "warlock",
 			"name": "Warlock",
+			"tier": 3
+		},
+		{
+			"id": "whirlwind",
+			"name": "Whirlwind",
 			"tier": 3
 		}
 	],

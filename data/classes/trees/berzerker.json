@@ -19,11 +19,7 @@
 					"art": "palette"
 				},
 				{
-					"class": "",
-					"draft": {
-						"name": "Whirlwind",
-						"notes": "Spins both flails through everything around him; his athleticism. RQD likes the Air typing; the name reads a bit too Air, so it's open (may keep)."
-					},
+					"class": "whirlwind",
 					"types": [
 						"Monster",
 						"Air"
@@ -49,12 +45,11 @@
 					"art": "palette"
 				},
 				{
-					"class": "",
-					"draft": {
-						"name": "",
-						"notes": "The madness deepens. Name open."
-					},
-					"types": [],
+					"class": "maniac",
+					"types": [
+						"Monster",
+						"Occult"
+					],
 					"art": "palette"
 				}
 			]

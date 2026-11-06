@@ -5,11 +5,7 @@
 	],
 	"promotions": [
 		{
-			"class": "",
-			"draft": {
-				"name": "Footpad",
-				"notes": "Finesse: Backstab, Feint, Low Profile."
-			},
+			"class": "footpad",
 			"types": [
 				"Simple"
 			],
@@ -26,8 +22,8 @@
 				{
 					"class": "",
 					"draft": {
-						"name": "Cutthroat",
-						"notes": ""
+						"name": "Scoundrel",
+						"notes": "The killer end of the knife road. RQD loves the word; not sure it sounds tier 3."
 					},
 					"types": [
 						"Simple"
@@ -51,11 +47,7 @@
 					"art": "palette"
 				},
 				{
-					"class": "",
-					"draft": {
-						"name": "Robber Baron",
-						"notes": "Buffs the bandits around him: the one to kill first in an early pack."
-					},
+					"class": "raubritter",
 					"types": [
 						"Gentry"
 					],
