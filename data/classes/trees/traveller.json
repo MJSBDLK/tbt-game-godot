@@ -14,8 +14,8 @@
 				{
 					"class": "",
 					"draft": {
-						"name": "Destroyer of Walls",
-						"notes": "Demolishing. Placeholder name."
+						"name": "Demolitions",
+						"notes": "Demolishing walls with explosives. RQD leans Demolitions over Demolisher."
 					},
 					"types": [
 						"Heraldic",
@@ -24,11 +24,7 @@
 					"art": "palette"
 				},
 				{
-					"class": "",
-					"draft": {
-						"name": "Digger",
-						"notes": "Digging: he fights with the pickaxe, and may get digging moves. Placeholder name."
-					},
+					"class": "digger",
 					"types": [
 						"Simple"
 					],
@@ -52,11 +48,7 @@
 					"art": "palette"
 				},
 				{
-					"class": "",
-					"draft": {
-						"name": "",
-						"notes": "Employs the occult in their heraldry."
-					},
+					"class": "inquisitor",
 					"types": [
 						"Heraldic",
 						"Occult"
