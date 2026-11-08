@@ -10,7 +10,7 @@
 		"portrait": "res://art/lineart_fullres/thumps_portrait.tres"
 	},
 	"sprite": {
-		"sheetPath": "res://art/sprites/characters/thumps/idle.png",
+		"sheetPath": "res://art/sprites/characters/thumps/idle0.png",
 		"atlasPath": "",
 		"frameIndex": 0
 	},

@@ -11,7 +11,7 @@
 		"portrait": "res://art/lineart_fullres/orcpage_portrait.tres"
 	},
 	"sprite": {
-		"sheetPath": "res://art/sprites/characters/ogre_squire/idle.png",
+		"sheetPath": "res://art/sprites/characters/ogre_squire/idle0.png",
 		"atlasPath": "",
 		"frameIndex": 0
 	},

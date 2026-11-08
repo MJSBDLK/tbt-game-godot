@@ -11,7 +11,7 @@
 		"portrait": "res://art/lineart_fullres/elf_pirate_portrait.tres"
 	},
 	"sprite": {
-		"sheetPath": "res://art/sprites/characters/elf_pirate/idle.png",
+		"sheetPath": "res://art/sprites/characters/elf_pirate/idle0.png",
 		"atlasPath": "",
 		"frameIndex": 0
 	},

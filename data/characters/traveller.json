@@ -6,7 +6,7 @@
 	"currentClass": "Mercenary",
 	"specialization": "None",
 	"sprite": {
-		"sheetPath": "res://art/sprites/characters/traveller/idle.png",
+		"sheetPath": "res://art/sprites/characters/traveller/idle0.png",
 		"atlasPath": "",
 		"frameIndex": 0
 	},

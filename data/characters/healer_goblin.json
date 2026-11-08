@@ -10,7 +10,7 @@
 		"portrait": "res://art/lineart_fullres/healer_goblin_portrait.tres"
 	},
 	"sprite": {
-		"sheetPath": "res://art/sprites/characters/healer_goblin/idle.png",
+		"sheetPath": "res://art/sprites/characters/healer_goblin/idle0.png",
 		"atlasPath": "",
 		"frameIndex": 0
 	},

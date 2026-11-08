@@ -9,9 +9,17 @@
 		"portrait": "res://art/lineart_fullres/grunt_portrait.tres"
 	},
 	"sprite": {
-		"sheetPath": "res://art/sprites/characters/grunt/idle.png",
+		"sheetPath": "res://art/sprites/characters/grunt/idle0.png",
 		"atlasPath": "",
 		"frameIndex": 0
+	},
+	"animations": {
+		"melee": {
+			"path": "res://art/sprites/characters/grunt/melee.png",
+			"frames": 7,
+			"fps": 10,
+			"hit_frame": 3
+		}
 	},
 	"baseStats": {
 		"maxHP": 18,
