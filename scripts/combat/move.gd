@@ -45,8 +45,8 @@ extends Resource
 @export var element_type: Enums.ElementalType = Enums.ElementalType.NONE
 
 # Base hit chance before stat modifiers. Final hit % is computed in
-# DamageCalculator.hit_chance_pct using the RD formula
-# (accuracy + 1.5×skill − 1.5×agility + passive modifiers).
+# DamageCalculator.hit_chance_pct (accuracy + the skill/agility edge + passive
+# modifiers); its header holds the formula.
 # Default 90 matches Fire Emblem's "reliable basic weapon" baseline.
 @export var accuracy: int = 90
 

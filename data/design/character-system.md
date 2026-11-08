@@ -88,8 +88,8 @@ Character data is stored in JSON files for easy bulk editing and version control
 - **Strength**: Physical attack power (for Physical damage type moves)
 - **Special**: Magical/special attack power (for Special damage type moves)
 - **Skill**: Hit accuracy and critical hit chance
-- **Agility**: Speed/initiative and evasion chance  
-- **Athleticism**: Multiple attack chance and movement efficiency
+- **Agility**: Evasion chance and terrain movement cost (terrain part not built)
+- **Athleticism**: Multiple attack chance
 - **Defense**: Physical damage resistance
 - **Resistance**: Special/magical damage resistance
 

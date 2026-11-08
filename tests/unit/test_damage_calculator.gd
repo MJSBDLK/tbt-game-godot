@@ -50,6 +50,52 @@ func test_hit_chance_falls_back_to_move_accuracy_when_units_missing() -> void:
 
 
 # =============================================================================
+# skill_agility_edge — the stat term, and the direction-weighted agility edge
+# =============================================================================
+
+func test_skill_edge_adds_the_weighted_gap() -> void:
+	assert_almost_eq(DamageCalculator.skill_agility_edge(9, 5), 4 * DamageCalculator.SKILL_AGILITY_WEIGHT, 0.001)
+
+
+func test_agility_edge_is_symmetric_at_the_default_weight() -> void:
+	assert_almost_eq(DamageCalculator.skill_agility_edge(5, 9, 1.0), -4 * DamageCalculator.SKILL_AGILITY_WEIGHT, 0.001)
+
+
+func test_agility_edge_weight_scales_only_the_defenders_edge() -> void:
+	var gap_points: float = 4 * DamageCalculator.SKILL_AGILITY_WEIGHT
+	assert_almost_eq(DamageCalculator.skill_agility_edge(5, 9, 2.0), -2.0 * gap_points, 0.001,
+			"defender's edge is doubled")
+	assert_almost_eq(DamageCalculator.skill_agility_edge(9, 5, 2.0), gap_points, 0.001,
+			"attacker's edge is untouched")
+
+
+func test_even_matchup_stays_at_zero_for_any_weight() -> void:
+	for weight: float in [0.0, 1.0, 2.5]:
+		assert_almost_eq(DamageCalculator.skill_agility_edge(30, 30, weight), 0.0, 0.001,
+				"equal stats never move the hit rate (weight %s)" % weight)
+
+
+func _stat_unit(skill: int, agility: int) -> TestFakeUnit:
+	var unit := TestFakeUnit.new()
+	add_child_autofree(unit)
+	var data := CharacterData.new()
+	data.base_skill = skill
+	data.base_agility = agility
+	unit.character_data = data
+	return unit
+
+
+func test_hit_chance_applies_the_stat_edge_both_ways() -> void:
+	var move := Move.new()
+	move.attack_range = 1
+	move.accuracy = 80
+	assert_eq(DamageCalculator.hit_chance_pct(_stat_unit(9, 0), _stat_unit(0, 5), move),
+			roundi(80 + DamageCalculator.skill_agility_edge(9, 5)), "attacker's skill edge raises hit")
+	assert_eq(DamageCalculator.hit_chance_pct(_stat_unit(5, 0), _stat_unit(0, 9), move),
+			roundi(80 + DamageCalculator.skill_agility_edge(5, 9)), "defender's agility edge lowers hit")
+
+
+# =============================================================================
 # calculate_attack_count — null guard
 # =============================================================================
 

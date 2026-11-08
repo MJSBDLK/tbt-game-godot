@@ -85,9 +85,9 @@ Accuracy and critical hit chance. Tends to run higher than most stats.
 
 ---
 
-### Agility (Speed)
+### Agility
 
-Evasion and initiative. Moderate distribution.
+Evasion and terrain movement cost. Moderate distribution.
 
 | Tier | Growth % | Description |
 |------|----------|-------------|
@@ -106,7 +106,7 @@ Evasion and initiative. Moderate distribution.
 
 ### Athleticism
 
-Multi-attack chance and movement efficiency. (Custom stat - use Agility/Speed as baseline)
+Multi-attack chance. (Custom stat - use Agility as baseline)
 
 | Tier | Growth % | Description |
 |------|----------|-------------|
