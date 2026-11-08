@@ -524,6 +524,81 @@ unused `FOG` terrain status says "Conceals position").
   bushes, but never run the Spy rules. One such cheat, the impostor hiding in
   the player's own squad: future-ideas.md.
 
+## 9. What each level teaches
+
+**[DECIDED] Every level gives something** (RQD 2026-11-05): a new move, a new
+passive, or a StatUp, every level from 2 to 60. "That's the dopamine factory:
+every mission you get a handful of new toys to play/experiment with."
+
+**[DECIDED] Level 1 is a starting kit:** about 2 moves and 1 passive, varying
+by unit.
+
+**[DECIDED] Tier 1 alternates move and passive; every 6th level is a StatUp
+instead** (§7's pip, which takes that level's slot):
+
+- Moves: 2, 4, 7, 9, 11, 14, 16, 19
+- Passives: 3, 5, 8, 10, 13, 15, 17, 20
+- StatUps: 6, 12, 18
+
+By 20 that's 10 moves, 9 passives and 3 StatUps, kit included. Tiers 2 and 3
+aren't laid out yet.
+
+**[OPEN] The rhythm.** Alternating (above) is RQD's first cut; also on the
+table are move-move-passive (13 moves, 6 passives by 20) and a passive every
+5th level (14 and 5; clashes with the StatUp at 30 and 60). RQD sees merits in
+all three.
+
+**[DECIDED] Classes are authored as ranked lists, not levels:** the kit (2
+moves, 1 passive), then moves in learning order and passives in learning
+order. The rhythm is one global rule that deals the lists onto levels, so
+changing it touches no class. Lists run long enough for the hungriest rhythm
+(12 moves, 8 passives past the kit); what a rhythm leaves over is the
+second-pass extras below. A unit's override swaps an item in a list.
+
+**[DECIDED] A class teaches on a 20-level schedule**, one entry per level of
+its tier band, so a unit's 7 classes are 7 schedules. The class owns its
+schedule and a unit's tree can override entries (§2). What a class taught
+stays after the next promotion (§2, provisional).
+
+**[OPEN] What a schedule entry is** (RQD 2026-11-05, three ideas, wider
+consequences not yet thought through):
+- *Fixed:* each level names its move or passive, like Pokémon's learnsets.
+- *Draw one:* each level names only its kind (move, passive, StatUp) and the
+  unit learns a random unlearned one from the class's bank. Every playthrough
+  differs, and the player makes do: it rewards creative thinking.
+- *Pick one of 3–4:* the same draw, but the player chooses. More control
+  over the build.
+
+All three need the same per-class list of moves and passives; they differ in
+order and in who picks.
+
+**[DECIDED] Design order** (RQD 2026-11-05): author every schedule as if
+*fixed* first. A second pass then asks, per unit, "which moves and passives
+outside the schedule would fit this character?" Those extras are what the
+bank models draw from beyond the schedule.
+
+**[DECIDED] Moves and passives are shared, with wide and narrow
+distribution.** Shank is the model: an early move most bladed enemies learn.
+How wide a move is = how many schedules name it. The schedules are the only
+record (no "bladed" tag on units to keep in sync), so the class tree editor
+needs a "who learns this" view to check a move's spread.
+
+**[DECIDED] Bonk is the fallback, not a lesson.** Every unit has it, like
+Pokémon's Struggle, and no schedule lists it. May be renamed.
+
+**[DECIDED] Enemies field a random loadout** from everything their level has
+taught: a random 4 moves, and random passives up to their slot count. Two
+level-12 Bandits can play differently. Enemies are basic, tier 1 most of all:
+their schedules lean on basic moves and passives.
+
+**[RECOMMENDED] Passive slots: 1 through tier 1, a second at the first
+promotion (21).** The equip specs say "1 or 2 by class progression" and leave
+when to the schedule; this makes promotion the moment, and keeps tier-1
+enemies basic.
+
+Not built: no schedule data in `data/classes/` yet, and units spawn with the
+first 4 entries of their placeholder `basePoolMoves` at any level.
+
 ## 6. Open questions
 
 - **Promotion sets** — per base class, or shared pools? (§3; drives the 30–45

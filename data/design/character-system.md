@@ -59,7 +59,7 @@ Character data is stored in JSON files for easy bulk editing and version control
 - **Equipped Moves**: 4-slot system similar to Pokémon
   - Moves have limited uses per mission (PP-like system)
   - Function as weapons with elemental typing
-- **Equipped Passives**: 4-slot system for equipped abilities
+- **Equipped Passives**: 1–2 slots by tier ([class-and-promotion.md](class-and-promotion.md) §9)
   - Includes equipment represented as passive abilities (Night Vision Goggles, etc.)
   - Can be swapped between missions
 
@@ -122,7 +122,7 @@ Final Stat = Base Stat + Growth Gains + Allocated Stat Ups + Bond Bonuses + Pass
 
 ### Passive System *(Equipment as Passives)*
 - **Passive Pool**: All learnable passive abilities per character
-- **4-Slot Limitation**: Can only equip 4 passives simultaneously
+- **Slot Limitation**: 1–2 passives equipped at once (class-and-promotion.md §9)
 - **Equipment Representation**: "Night Vision Goggles" passive instead of inventory items
 - **Class-Based Access**: Each class provides unique passive library
 - **Retention on Reclass**: Keep learned passives when changing classes
@@ -144,16 +144,13 @@ Each class provides access to a unique "library" of learnable passives:
 **Mechanics:**
 - Characters **retain** all learned passives when reclassing
 - Characters **gain access** to new class passive pools upon reclassing
-- Only **4 passives can be slotted** at once, creating strategic choices
+- Only **1–2 passives can be slotted** at once, creating strategic choices
 - Encourages hybrid builds and makes reclassing strategically valuable
 
 ### Learning System
-- **Level-based Acquisition**: Moves/passives unlocked at specific levels
-- **Class-gated Content**: Some abilities require specific class access
-- **Balanced Rewards**: Each level grants either:
-  - New move access
-  - New passive access
-  - Allocation point for stats
+Every level from 2 on gives a move, a passive or a StatUp from the class's
+schedule:
+[class-and-promotion.md](class-and-promotion.md) §9.
 
 ### Specialization (Free-Form Stat Picks)
 - **Class Level 2**: Choose one stat at +10% and one stat at −10%
