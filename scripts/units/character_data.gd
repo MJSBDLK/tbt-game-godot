@@ -579,12 +579,18 @@ func can_accept_injury(slots: int) -> bool:
 	return injury_slots_used() + slots <= MAX_INJURY_SLOTS
 
 
-## Roll a chance check, modified by the unit's LUCK penalty (Curse).
-## A unit with -10% luck has every chance reduced by 0.10 (so a 50% chance becomes 40%).
-## Returns true on success.
-func roll_succeeds(chance: float) -> bool:
-	var modified: float = chance - (luck_penalty_pct / 100.0)
-	return GameRng.randf() < modified
+## A move's secondary-effect chance (status or crit) as this unit lands it.
+## Skill scales it by (1 + skill/100), so skill 50 turns 50% into 75%, capped
+## at 100%. Then the Curse luck penalty comes off, so a curse still bites a
+## sure thing. The combat preview shows this number; the roll uses it too.
+func secondary_chance(chance: float) -> float:
+	var skill_scale: float = maxf(0.0, 1.0 + skill / 100.0)
+	return clampf(minf(chance * skill_scale, 1.0) - luck_penalty_pct / 100.0, 0.0, 1.0)
+
+
+## Rolls a secondary effect at secondary_chance. Returns true when it lands.
+func roll_secondary(chance: float) -> bool:
+	return GameRng.randf() < secondary_chance(chance)
 
 
 ## Returns the unit's move distance after Broken Bone injury penalties.

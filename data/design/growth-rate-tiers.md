@@ -68,7 +68,7 @@ Magical/special attack power. High variance - many characters have 0%.
 
 ### Skill
 
-Accuracy and critical hit chance. Tends to run higher than most stats.
+Accuracy, and the chance a move lands its secondary effect (status or crit). Tends to run higher than most stats.
 
 | Tier | Growth % | Description |
 |------|----------|-------------|
