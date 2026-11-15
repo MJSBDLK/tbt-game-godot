@@ -176,11 +176,7 @@ func _update_attacker_section(attacker: Node, defender: Node, move: Move) -> voi
 	_set_hits_label(_attacker_hits_label, hit_count)
 	_attacker_hit_label.text = "%d%%" % DamageCalculator.hit_chance_pct(attacker, defender, move)
 
-	# Secondary chance — status effect proc chance from the move
-	if move.status_effect_chance > 0.0 and move.status_effect_type != Enums.StatusEffectType.NONE:
-		_attacker_secondary_label.text = "%d%%" % int(move.status_effect_chance * 100)
-	else:
-		_attacker_secondary_label.text = "--"
+	_attacker_secondary_label.text = _secondary_chance_text(attacker, move)
 
 	# Type effectiveness × STAB — the readable part of the damage scale.
 	var effectiveness := DamageCalculator.get_type_effectiveness(attacker, defender, move)
@@ -220,10 +216,7 @@ func _update_defender_section(attacker: Node, defender: Node, move: Move) -> voi
 		_set_hits_label(_defender_hits_label, counter_hits)
 		_defender_hit_label.text = "%d%%" % DamageCalculator.hit_chance_pct(defender, attacker, counter_move)
 
-		if counter_move.status_effect_chance > 0.0 and counter_move.status_effect_type != Enums.StatusEffectType.NONE:
-			_defender_secondary_label.text = "%d%%" % int(counter_move.status_effect_chance * 100)
-		else:
-			_defender_secondary_label.text = "--"
+		_defender_secondary_label.text = _secondary_chance_text(defender, counter_move)
 
 		var counter_effectiveness := DamageCalculator.get_type_effectiveness(
 			defender, attacker, counter_move)
@@ -359,6 +352,21 @@ const _MULTIPLIER_COLORS := {
 	"rsst2":  [Color(0.271, 0.796, 0.808), Color(0.000, 0.302, 0.337)],   # Cyan
 	"immune": [Color(0.271, 0.796, 0.808), Color(0.000, 0.302, 0.337)],   # Cyan
 }
+
+
+static func _has_status_secondary(move: Move) -> bool:
+	return move.status_effect_chance > 0.0 and move.status_effect_type != Enums.StatusEffectType.NONE
+
+
+## The status chance as the roll sees it: the move's chance scaled by this unit's
+## skill and cut by its curse (CharacterData.secondary_chance). "--" for no status.
+static func _secondary_chance_text(unit: Node, move: Move) -> String:
+	if not _has_status_secondary(move):
+		return "--"
+	var unit_data: CharacterData = unit.get("character_data") if unit != null else null
+	var chance: float = unit_data.secondary_chance(move.status_effect_chance) \
+			if unit_data != null else move.status_effect_chance
+	return "%d%%" % roundi(chance * 100.0)
 
 
 func _set_hits_label(label: Label, hit_count: int) -> void:
@@ -543,11 +551,8 @@ func _update_caster_section_for_heal(caster: Node, target: Node, move: Move, hea
 	# Heals are single-application, no type effectiveness. Status proc only shows
 	# if the move actually carries one (rare on heals).
 	_set_hits_label(_attacker_hits_label, 0)
-	if move.status_effect_chance > 0.0 and move.status_effect_type != Enums.StatusEffectType.NONE:
-		_attacker_secondary_label.get_parent().visible = true
-		_attacker_secondary_label.text = "%d%%" % int(move.status_effect_chance * 100)
-	else:
-		_attacker_secondary_label.get_parent().visible = false
+	_attacker_secondary_label.get_parent().visible = _has_status_secondary(move)
+	_attacker_secondary_label.text = _secondary_chance_text(caster, move)
 	_set_multiplier_label(_attacker_multiplier_label, 0.0)
 
 

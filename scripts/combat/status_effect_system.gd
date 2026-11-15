@@ -39,16 +39,17 @@ func apply_status_effect(caster: Node2D, target: Node2D, move: Move) -> bool:
 	if actual_target == null:
 		return false
 
-	# Roll chance — the caster is the actor, so use the caster's luck.
-	# A cursed caster has a lower probability of successfully landing the status.
+	# The caster is the actor: their skill scales the chance, their curse cuts it.
+	# Every self-targeted status is a buff today. A self-DEBUFF under 100% (a
+	# drawback) would get likelier with skill: exempt drawbacks when one exists.
 	var caster_data: Variant = caster.get("character_data") if caster != null else null
 	var success: bool = false
 	if caster_data != null:
-		success = caster_data.roll_succeeds(move.status_effect_chance)
+		success = caster_data.roll_secondary(move.status_effect_chance)
 	else:
 		success = GameRng.randf() < move.status_effect_chance
 	if not success:
-		DebugConfig.log_status("StatusEffectSystem: %s missed (chance %.2f, luck-adjusted)" % [
+		DebugConfig.log_status("StatusEffectSystem: %s missed (base chance %.2f)" % [
 			Enums.StatusEffectType.keys()[move.status_effect_type], move.status_effect_chance])
 		return false
 

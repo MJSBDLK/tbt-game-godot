@@ -7,8 +7,12 @@
 //
 // Flow: paint the last check from browser storage, load every candidate,
 // repaint, save. The window regaining focus re-checks, so alt-tabbing back
-// from Aseprite shows the export. Line art is 3024×4032 (≈48 MB decoded
-// each), so found line art is only re-read on a full reload; sprites every time.
+// from Aseprite shows the export; "Scan now" re-checks everything, for a
+// board on another screen. Line art is 3024×4032 (≈48 MB decoded each), so
+// found line art is only re-read on a full reload (or Scan now); sprites
+// every time. With art/sprites/characters granted (folders.js), each check
+// also reads the .aseprite files: a box whose tag is drawn but has no PNG
+// shows "export", and doesn't count until it's exported.
 //
 // Each character is a <details>: closed, one pip per box (so closed rows line
 // up like a grid); open, its boxes grouped by the color that needs them. New
@@ -21,8 +25,8 @@
 // box set. A variant box without its own art shows, dimmed, what the class it
 // promotes from shows.
 //
-// Notes need the File System Access API (Brave: brave://flags/#file-system-access-api).
-// The page is only ever granted tools/art_dashboard/notes/, and works without it.
+// Notes and the .aseprite scan need the File System Access API; the page is
+// only ever granted the two folders folders.js names, and works without them.
 "use strict";
 
 (function (global) {
@@ -32,6 +36,7 @@ const {
 	resolveBoxes, variantProgress, sortCharacters, pendingRenames, folderName, boxHint,
 	keyframeIndex, frameDurations, spriteGeometry, lineArtGeometry,
 } = global.ArtBoardLogic;
+const { rememberedFolder, connectFolder, hasFile, Sources } = global.ArtBoardFolders;
 // How a variant's art gets made: its tree slot's `art` (data/classes/README.md).
 const ART_KINDS = {
 	palette: "a palette swap of the clothes layer",
@@ -96,6 +101,7 @@ function loadCache() {
 		for (const [path, result] of Object.entries(cached.probes)) {
 			probes[path] = { ...result, url: REPOSITORY_ROOT + path + "?v=" + pageStamp };
 		}
+		Sources.clips = cached.sources || {};
 		return cached.checkedAt;
 	} catch (error) {
 		return null;
@@ -108,7 +114,7 @@ function saveCache() {
 		stored[path] = { exists: result.exists, width: result.width, height: result.height };
 	}
 	try {
-		global.localStorage.setItem(CACHE_KEY, JSON.stringify({ checkedAt: Date.now(), probes: stored }));
+		global.localStorage.setItem(CACHE_KEY, JSON.stringify({ checkedAt: Date.now(), probes: stored, sources: Sources.clips }));
 	} catch (error) {
 		// Storage off (private window): the board just paints after the check.
 	}
@@ -136,6 +142,7 @@ const STATE_WORDS = {
 	optional: "optional", "not-needed": "its moves never play it",
 	inherited: "missing, shows the class it promotes from",
 	placeholder: "placeholder, doesn't count",
+	unexported: "drawn in Aseprite, not exported yet",
 };
 // Path → why the file doesn't count yet (placeholders.js).
 let placeholderReasons = {};
@@ -193,7 +200,7 @@ function render(data, ranking) {
 	stopPlayback();
 	const characters = sortCharacters(data.characters, ranking);
 	const evaluations = new Map(characters.map((character) =>
-		[character.id, evaluateCharacter(character, probes, placeholderReasons)]));
+		[character.id, evaluateCharacter(character, probes, placeholderReasons, Sources.clips)]));
 	const columns = data.columns;
 	const next = characters.find((character) => ["red", "orange"].includes(evaluations.get(character.id).tier));
 	nextUpId = next ? next.id : null;
@@ -235,6 +242,8 @@ function renderNextUp(next, evaluations, ranking, columns) {
 		item.append(element("span", "need-chip", column.label), element("span", "need-how", boxHint(column, next.id)));
 		const placeholder = evaluation.placeholders[requirement.id];
 		if (placeholder) item.append(element("span", "need-placeholder", `Placeholder in the game now: ${placeholderReasons[placeholder.path]}`));
+		const unexported = evaluation.unexported[requirement.id];
+		if (unexported) item.append(element("span", "need-unexported", `Drawn: just export ${unexported.file.split("/").pop()}`));
 		list.append(item);
 	}
 	panel.append(list);
@@ -384,7 +393,8 @@ function renderCharacterSummary(character, evaluation, columns, ranking, nameCla
 	name.dataset.noteLabel = character.name;
 	summary.append(name, renderPips(character, evaluation, columns));
 
-	const needs = evaluation.missingForNext.map((requirement) => columnLabel(requirement.id, columns));
+	const needs = evaluation.missingForNext.map((requirement) => columnLabel(requirement.id, columns)
+		+ (evaluation.unexported[requirement.id] ? " (export)" : ""));
 	const nextTier = NEXT_TIER[evaluation.tier];
 	summary.append(element("span", `summary-needs tier-text-${nextTier || "green"}`,
 		nextTier ? `${TIER_LABELS[nextTier]}: ${needs.join(" · ")}` : "Done"));
@@ -399,7 +409,7 @@ function renderPips(character, evaluation, columns, inherited = {}) {
 		for (const column of columns.filter((candidate) => candidate.tier === group.tier)) {
 			const requirement = character.requirements.find((candidate) => candidate.id === column.id);
 			const state = boxState(requirement, evaluation.shown[column.id], inherited[column.id],
-				evaluation.placeholders[column.id]);
+				evaluation.placeholders[column.id], evaluation.unexported[column.id]);
 			const pip = element("span", `pip pip-${state} pip-tier-${group.tier}`);
 			pip.title = `${column.label}: ${STATE_WORDS[state]}`;
 			cluster.append(pip);
@@ -474,7 +484,8 @@ function renderVariants(character, evaluation, columns, classes) {
 		...variant, name: `${character.name} (${classNames.get(variant.class)})`,
 		classLabel: classNames.get(variant.class), isVariant: true,
 	}]));
-	const evaluations = new Map(character.variants.map((variant) => [variant.class, evaluateCharacter(variant, probes, placeholderReasons)]));
+	const evaluations = new Map(character.variants.map((variant) =>
+		[variant.class, evaluateCharacter(variant, probes, placeholderReasons, Sources.clips)]));
 
 	const summary = element("summary", "variants-summary");
 	summary.append(element("span", "chevron"), element("span", "variants-title", "Class variants"));
@@ -594,7 +605,8 @@ function renderCell(character, evaluation, column, columns, inherited = {}) {
 	const requirement = character.requirements.find((candidate) => candidate.id === column.id);
 	const fallback = inherited[column.id];
 	const placeholder = evaluation.placeholders[column.id];
-	const state = boxState(requirement, evaluation.shown[column.id], fallback, placeholder);
+	const unexported = evaluation.unexported[column.id];
+	const state = boxState(requirement, evaluation.shown[column.id], fallback, placeholder, unexported);
 	const shown = evaluation.shown[column.id] || placeholder;
 	const how = boxHint(column, character.id);
 	if (state === "not-needed") {
@@ -609,6 +621,15 @@ function renderCell(character, evaluation, column, columns, inherited = {}) {
 		cell.title = (state === "optional"
 			? `Optional: no color needs it yet. Without it the game shows ${column.fallback}.`
 			: `Missing. Until it's drawn the game shows ${column.fallback}.`) + `\nTo add it: ${how}.`;
+		return cell;
+	}
+	if (state === "unexported") {
+		const source = unexported.file.split("/").pop();
+		const frames = unexported.frames === 1 ? "1 frame" : `${unexported.frames} frames`;
+		cell.classList.add("cell-unexported");
+		cell.append(element("div", "cell-empty", frames), element("span", "badge badge-unexported", "export"));
+		cell.title = `Drawn, not exported: tag "${unexported.clip}" (${frames}) in ${source}.`
+			+ `\nThe game reads only the PNG, so it doesn't count yet. Export Tags as PNGs on ${source}.`;
 		return cell;
 	}
 	if (state === "inherited") {
@@ -703,35 +724,32 @@ function stopPlayback() {
 // File names and shape: notes/README.md. Never required.
 
 const Notes = {
-	supported: typeof global.showDirectoryPicker === "function",
+	supported: global.ArtBoardFolders.supported,
 	folder: null,
 	notes: new Map(),  // file name → note
 	editing: null,
 
 	async restore() {
 		if (!this.supported) return this.setStatus("unsupported");
-		const handle = await storedHandle();
+		const { handle, granted } = await rememberedFolder("notes", "readwrite");
 		if (!handle) return this.setStatus("off");
 		this.folder = handle;
-		if ((await handle.queryPermission({ mode: "readwrite" })) === "granted") return this.open();
+		if (granted) return this.open();
 		this.setStatus("allow");
 	},
 
 	async connect() {
 		try {
-			if (this.folder && (await this.folder.requestPermission({ mode: "readwrite" })) === "granted") {
-				return this.open();
-			}
-			const handle = await global.showDirectoryPicker({ id: "tbt-art-notes", mode: "readwrite" });
-			if (handle.name !== "notes" || !(await hasFile(handle, "README.md"))) {
-				global.alert("Pick the folder tools/art_dashboard/notes inside the game's repo.");
-				return;
-			}
+			const handle = await connectFolder("notes", this.folder, {
+				mode: "readwrite",
+				isRight: async (picked) => picked.name === "notes" && (await hasFile(picked, "README.md")),
+				wrongFolder: "Pick the folder tools/art_dashboard/notes inside the game's repo.",
+			});
+			if (!handle) return;
 			this.folder = handle;
-			await storeHandle(handle);
 			await this.open();
 		} catch (error) {
-			if (error.name !== "AbortError") global.alert(`Notes couldn't connect: ${error.message}`);
+			global.alert(`Notes couldn't connect: ${error.message}`);
 		}
 	},
 
@@ -824,45 +842,6 @@ function parseTarget(key) {
 	return { kind: "board" };
 }
 
-async function hasFile(folder, name) {
-	try {
-		await folder.getFileHandle(name);
-		return true;
-	} catch (error) {
-		return false;
-	}
-}
-
-// The notes folder handle survives reloads in IndexedDB; the browser still
-// asks once per session before the page may write again.
-function database() {
-	return new Promise((resolve, reject) => {
-		const request = global.indexedDB.open("tbt-art-board", 1);
-		request.onupgradeneeded = () => request.result.createObjectStore("handles");
-		request.onsuccess = () => resolve(request.result);
-		request.onerror = () => reject(request.error);
-	});
-}
-
-async function storedHandle() {
-	try {
-		const store = (await database()).transaction("handles").objectStore("handles");
-		return await new Promise((resolve) => {
-			const request = store.get("notes");
-			request.onsuccess = () => resolve(request.result || null);
-			request.onerror = () => resolve(null);
-		});
-	} catch (error) {
-		return null;
-	}
-}
-
-async function storeHandle(handle) {
-	const transaction = (await database()).transaction("handles", "readwrite");
-	transaction.objectStore("handles").put(handle, "notes");
-}
-
-
 // ------------------------------------------------------------------ start ----
 
 function formatTime(timestamp) {
@@ -891,12 +870,23 @@ async function start() {
 
 	const refresh = async (fullReload) => {
 		document.body.classList.add("checking");
-		const elapsed = await checkFiles(data, { fullReload });
+		const [elapsed, readSources] = await Promise.all([checkFiles(data, { fullReload }), Sources.read()]);
 		render(data, ranking);
 		saveCache();
 		document.body.classList.remove("checking");
-		status.textContent = `Checked ${formatTime(Date.now())} (${Math.round(elapsed)} ms)`;
+		const sourcesNote = readSources || !Sources.supported ? ""
+			: Sources.folder ? " · .aseprite files not re-read: Scan now" : " · Scan now once to see tags not exported yet";
+		status.textContent = `Checked ${formatTime(Date.now())} (${Math.round(elapsed)} ms)${sourcesNote}`;
 	};
+	const scanButton = document.getElementById("scan-button");
+	scanButton.title = "Re-checks every file now." + (Sources.supported
+		? " The first time, pick art/sprites/characters, so boxes show tags drawn in Aseprite but not exported yet."
+		: " Reading .aseprite files needs the File System Access API (Brave: brave://flags/#file-system-access-api).");
+	scanButton.addEventListener("click", async () => {
+		await Sources.connect();
+		await refresh(true);
+	});
+	await Sources.restore();
 	await refresh(true);
 	global.addEventListener("focus", () => refresh(false));
 

@@ -87,7 +87,7 @@ Character data is stored in JSON files for easy bulk editing and version control
 - **Max Health Points**: Character's total health pool
 - **Strength**: Physical attack power (for Physical damage type moves)
 - **Special**: Magical/special attack power (for Special damage type moves)
-- **Skill**: Hit accuracy and critical hit chance
+- **Skill**: Hit accuracy, and secondary-effect chance (status or crit): x(1 + skill/100)
 - **Agility**: Evasion chance and terrain movement cost (terrain part not built)
 - **Athleticism**: Multiple attack chance
 - **Defense**: Physical damage resistance

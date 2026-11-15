@@ -17,9 +17,11 @@ skill does the parts a page can't. How the page decides things:
 env -u LD_LIBRARY_PATH node tools/art_dashboard/check_on_disk.js
 ```
 
-Each character's tier and what its next tier needs, art that's drawn but not
-wired in ("new, not wired"), pending renames, and placeholder status: the
-page's own logic.
+Each character's tier and what its next tier needs, tags drawn in an
+.aseprite but not exported ("drawn, not exported"), art that's exported but
+not wired in ("new, not wired"), pending renames, and placeholder status: the
+page's own logic. "Drawn, not exported" needs Export Tags as PNGs on that
+file in the Godot editor before step 2 can wire anything.
 
 ## 2. Wire in new art (a "new" badge on the board)
 
