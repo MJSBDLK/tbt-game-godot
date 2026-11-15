@@ -26,6 +26,23 @@ can be Simple/Robo and the Ice Archer's mono Cold.
   words joined by `_` (`El Capitán` → `el_capitan`).
 - `tier`: 1 (base, levels 1-20), 2 (21-40) or 3 (41-60).
 - No typing here: that's each tree's (below).
+- `schedule` (optional): what the class teaches (class-and-promotion.md §9).
+  `kit` is the starting kit, about 2 moves and 1 passive; `moves` and
+  `passives` are the rest, in learning order. No levels here: one rhythm
+  deals the lists onto levels, so changing it touches no class.
+
+  ```json
+  "schedule": {
+  	"kit": {"moves": ["Shank", "Boot Knife"], "passives": ["Impetuous"]},
+  	"moves": ["Shiv", "Slash"],
+  	"passives": ["Sadist", "Salty"]
+  }
+  ```
+
+  Names are the move bank's and `data/passives.json`'s keys. A name in
+  neither is a design not built yet; its spec goes in
+  `data/design/moves-and-passives.md`. Nothing teaches a schedule in the game
+  yet; sessions write them with the `/brainstorm` skill.
 
 ## `trees/<unit>.json`: one unit's tree
 

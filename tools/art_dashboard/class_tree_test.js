@@ -156,6 +156,12 @@ test("typing is each unit's: two trees' Colossus differ, and the base has its ow
 		"a class file never carries typing");
 });
 
+test("saving a class keeps its schedule", () => {
+	const schedule = { kit: { moves: ["Shank", "Boot Knife"], passives: ["Impetuous"] }, moves: ["Slash"], passives: [] };
+	const saved = JSON.parse(trees.classText({ name: "Bandit", tier: 1, notes: "renamed", schedule }));
+	assert.deepEqual(saved.schedule, schedule);
+});
+
 test("moving a class to another tier empties the slots holding it at its old one", () => {
 	const ernesto = trees.newTree("soldier");
 	const robot = trees.newTree("commando");

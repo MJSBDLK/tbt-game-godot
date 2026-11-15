@@ -300,8 +300,12 @@ function treeText(tree) {
 		notes: tree.notes || "" }, null, "\t") + "\n";
 }
 
+// The editor never edits a schedule, but saving a class's name or notes must
+// keep it. Anything else (typing above all: that's each tree slot's) is dropped.
 function classText(entry) {
-	return JSON.stringify({ name: entry.name, tier: entry.tier, notes: entry.notes || "" }, null, "\t") + "\n";
+	const out = { name: entry.name, tier: entry.tier, notes: entry.notes || "" };
+	if (entry.schedule) out.schedule = entry.schedule;
+	return JSON.stringify(out, null, "\t") + "\n";
 }
 
 const logic = {
