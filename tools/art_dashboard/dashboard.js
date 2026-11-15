@@ -298,8 +298,9 @@ function renderBoxKey(columns) {
 
 // Every character's promotion tree, in board order: the ones with a
 // promotion drawn in full (click the name to see its variants), the rest as
-// a base class and a "?".
-function renderClassTrees(classes, characters) {
+// a base class and a "?". Then trees for units with no character yet, with
+// their notes: nothing to jump to, no art to track.
+function renderClassTrees(classes, characters, designs) {
 	const panel = document.getElementById("class-trees");
 	const trees = characters.map((character) => ({ character, tree: unitTree(classes, character) }))
 		.filter(({ tree }) => tree);
@@ -340,6 +341,19 @@ function renderClassTrees(classes, characters) {
 		(compact ? undesigned : drawn).append(treeList(each, compact));
 	}
 	body.append(drawn, element("h3", "class-trees-heading", "Not designed yet"), undesigned);
+
+	const unitless = element("div", "class-trees-drawn");
+	for (const design of designs) {
+		const tree = unitTree(classes, design);
+		if (!tree) continue;
+		const item = element("div", "class-trees-design");
+		const list = element("ul", "tree class-tree");
+		list.append(branch(tree));
+		item.append(list);
+		if (design.notes) item.append(element("p", "class-trees-notes", design.notes));
+		unitless.append(item);
+	}
+	if (unitless.children.length) body.append(element("h3", "class-trees-heading", "No unit yet"), unitless);
 }
 
 // Opens a character's row and its class variants, and scrolls to them.
@@ -858,7 +872,7 @@ async function start() {
 		return;
 	}
 	renderBoxKey(data.columns);
-	renderClassTrees(data.classes, sortCharacters(data.characters, ranking));
+	renderClassTrees(data.classes, sortCharacters(data.characters, ranking), data.designs || []);
 	const cachedAt = loadCache();
 	if (cachedAt) {
 		render(data, ranking);

@@ -26,7 +26,9 @@
 ##                 and none is "declared".
 ##
 ## `classes` is the class pool, data/classes/pool/ (ClassTrees): id, name, tier.
-## A tree edit in the class tree editor makes this file stale, like any other.
+## `designs` are trees with no character JSON yet: id, its base class's name,
+## the tree and its notes, so the board's Class trees panel can show them. A tree edit in the class tree editor makes this
+## file stale, like any other.
 ##
 ## Needs mirror UnitAnimationResolver: two reaches (1 tile = melee, 2+ =
 ## ranged), every attack can hit from 1 tile (targeting is distance <= range),
@@ -98,6 +100,7 @@ static func render(data: Dictionary) -> String:
 static func build_data() -> Dictionary:
 	var move_bank: Dictionary = read_json(MOVE_BANK_PATH)
 	var unit_trees := ClassTrees.trees()
+	var class_pool := ClassTrees.pool()
 	var characters: Array[Dictionary] = []
 	for path: String in character_files():
 		var character: Dictionary = read_json(path)
@@ -116,7 +119,21 @@ static func build_data() -> Dictionary:
 			if character_ids.has(variant.id):
 				push_error("Art dashboard: %s's %s variant shares its files with the character %s" % [
 						entry.id, variant["class"], variant.id])
-	return {"columns": columns, "classes": class_entries(ClassTrees.pool()), "characters": characters}
+	return {"columns": columns, "classes": class_entries(class_pool), "characters": characters,
+			"designs": design_entries(unit_trees, character_ids, class_pool)}
+
+
+## Trees whose unit has no character JSON yet, by id.
+static func design_entries(unit_trees: Dictionary, character_ids: Array, class_pool: Dictionary) -> Array[Dictionary]:
+	var ids := unit_trees.keys().filter(func(id: String) -> bool: return not character_ids.has(id))
+	ids.sort()
+	var entries: Array[Dictionary] = []
+	for id: String in ids:
+		var tree: Dictionary = unit_trees[id]
+		var base := str(tree.get("base", ""))
+		entries.append({"id": id, "name": str(class_pool.get(base, {}).get("name", id)),
+				"tree": tree_entry(tree, ""), "notes": str(tree.get("notes", ""))})
+	return entries
 
 
 ## Every pool class, by id.

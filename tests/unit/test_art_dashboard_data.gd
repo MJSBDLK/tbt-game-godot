@@ -212,6 +212,25 @@ func test_every_character_s_tree_starts_at_a_pool_class() -> void:
 		assert_has(class_ids, character.tree["class"], character.id)
 
 
+func test_a_tree_with_no_unit_is_a_design_named_after_its_base_class() -> void:
+	var tree := _tree()
+	tree["notes"] = "No unit yet."
+	var designs := Generator.design_entries({"ernesto": _tree(), "harold": tree}, ["ernesto"],
+			{"squire": {"name": "Squire", "tier": 1}})
+	assert_eq(designs.size(), 1, "a unit with a character JSON is no design")
+	assert_eq(designs[0].id, "harold")
+	assert_eq(designs[0].name, "Squire")
+	assert_eq(designs[0].tree, Generator.tree_entry(tree, ""))
+	assert_eq(designs[0].notes, "No unit yet.")
+
+
+func test_every_design_starts_at_a_pool_class() -> void:
+	var data := Generator.build_data()
+	var class_ids: Array = data.classes.map(func(entry: Dictionary) -> String: return entry.id)
+	for design: Dictionary in data.designs:
+		assert_has(class_ids, design.tree["class"], design.id)
+
+
 func test_no_variant_shares_its_files_with_a_character() -> void:
 	var characters: Array = Generator.build_data().characters
 	var character_ids: Array = characters.map(func(entry: Dictionary) -> String: return entry.id)
