@@ -33,6 +33,13 @@
 ## cliff at 2x/3x/4x the defender's ATH, so +40% ATH pays nothing at all until
 ## it tips past a threshold and then doubles your damage. A step that steep may
 ## quietly beat DEF/RES as the optimal dump once players find it.
+##
+## Watch SKL/AGI from the other side: they pay out in hit chance, not damage. A
+## point in STR or DEF moves damage dealt/taken roughly 5-7x as much as a point
+## in SKL or AGI — damage is what's left after DEF (a small number), while a
+## point of hit chance is out of ~85. If playtest shows SKL/AGI as trap picks,
+## the fix is a bigger payout per point for those two stats (a per-stat
+## PCT_PER_POINT), not reshaping the hit formula in DamageCalculator.
 class_name StatAllocation
 
 

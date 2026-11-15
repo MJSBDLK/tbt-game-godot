@@ -10,7 +10,7 @@
 		"portrait": "res://art/lineart_fullres/berzerker_portrait.tres"
 	},
 	"sprite": {
-		"sheetPath": "res://art/sprites/characters/berzerker/idle.png",
+		"sheetPath": "res://art/sprites/characters/berzerker/idle0.png",
 		"atlasPath": "",
 		"frameIndex": 0
 	},

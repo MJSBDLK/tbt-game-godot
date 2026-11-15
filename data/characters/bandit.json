@@ -9,9 +9,23 @@
 		"portrait": "res://art/lineart_fullres/bandit_portrait.tres"
 	},
 	"sprite": {
-		"sheetPath": "res://art/sprites/characters/bandit/idle.png",
+		"sheetPath": "res://art/sprites/characters/bandit/idle0.png",
 		"atlasPath": "",
 		"frameIndex": 0
+	},
+	"animations": {
+		"melee": {
+			"path": "res://art/sprites/characters/bandit/melee.png",
+			"frames": 9,
+			"fps": 10,
+			"hit_frame": 4
+		},
+		"ranged": {
+			"path": "res://art/sprites/characters/bandit/ranged.png",
+			"frames": 7,
+			"fps": 10,
+			"hit_frame": 5
+		}
 	},
 	"baseStats": {
 		"maxHP": 14,

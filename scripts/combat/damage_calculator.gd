@@ -203,7 +203,7 @@ static func get_stab_multiplier(attacker: Node2D, move: Move) -> float:
 ## Final hit chance (0-100), RD-style. Both panels (combat preview, move detail)
 ## and the combat resolver call this so a displayed Hit% always matches reality.
 ##
-## Formula: clamp(0, 100, move.accuracy + 1.5×attacker.skill − 1.5×defender.agility
+## Formula: clamp(0, 100, move.accuracy + skill_agility_edge(attacker.skill, defender.agility)
 ##                          + attacker accuracy passives − defender avoid passives)
 ##
 ## Passive accuracy/avoid modifiers are CombatEffect handlers (Reliable,
@@ -213,6 +213,26 @@ static func get_stab_multiplier(attacker: Node2D, move: Move) -> float:
 const RELIABLE_ACCURACY_BONUS: int = 50
 const LOW_PROFILE_AVOID_BONUS: int = 25
 const SKILL_AGILITY_WEIGHT: float = 1.5
+## Extra weight on a DEFENDER's edge (agility above the attacker's skill); 1.0 is
+## symmetric. Weighted by direction, not across the board: a flat agility weight
+## would drag every hit rate down as both stats grow with level, while this keeps
+## an even matchup at the move's own accuracy. The lever if agility proves weak.
+const AGILITY_EDGE_WEIGHT: float = 1.0
+
+
+## Hit-chance points from the attacker's skill against the defender's agility:
+## the gap × SKILL_AGILITY_WEIGHT, and × agility_edge_weight too when the defender
+## has the edge. Linear per point on purpose — a StatUp in either stat keeps its
+## value at every level.
+static func skill_agility_edge(skill: int, agility: int,
+		agility_edge_weight: float = AGILITY_EDGE_WEIGHT) -> float:
+	# A negative weight would turn a dodge edge into a hit bonus.
+	assert(agility_edge_weight >= 0.0, "agility_edge_weight must be >= 0, got %s" % agility_edge_weight)
+	var edge: float = (skill - agility) * SKILL_AGILITY_WEIGHT
+	if edge < 0.0:
+		edge *= agility_edge_weight
+	return edge
+
 
 static func hit_chance_pct(attacker: Node2D, defender: Node2D, move: Move) -> int:
 	if move == null:
@@ -225,15 +245,15 @@ static func hit_chance_pct(attacker: Node2D, defender: Node2D, move: Move) -> in
 	if attacker_data == null or defender_data == null:
 		return move.accuracy
 
-	var stat_contribution: float = (attacker_data.skill - defender_data.agility) * SKILL_AGILITY_WEIGHT
+	var stat_contribution: float = skill_agility_edge(attacker_data.skill, defender_data.agility)
 
 	var ctx := CombatHitContext.new()
 	ctx.attacker = attacker
 	ctx.defender = defender
 	ctx.move = move
 	# Dedicated avoid channel (aura-written, e.g. Glib) — separate from agility so
-	# it doesn't bleed into turn speed. Conditional per-hit avoid (Low Profile)
-	# still rides modify_accuracy below.
+	# it stays a flat dodge the stat term doesn't rescale. Conditional per-hit
+	# avoid (Low Profile) still rides modify_accuracy below.
 	ctx.accuracy = move.accuracy + stat_contribution - defender_data.passive_bonus_avoid
 
 	# Run passive accuracy/avoid modifiers. Both combatants' handlers participate;

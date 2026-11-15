@@ -176,7 +176,8 @@ var passive_bonus_resistance: int = 0
 # Dedicated avoid channel (NOT a base stat — no getter). A flat dodge modifier
 # subtracted from incoming hit chance in DamageCalculator.hit_chance_pct. Written
 # by stat-aura passives (Glib) and zeroed each recompute alongside the bonuses
-# above. Kept separate from agility so avoid doesn't bleed into turn speed / doubles.
+# above. Kept separate from agility so it stays a flat dodge the stat term
+# doesn't rescale.
 var passive_bonus_avoid: int = 0
 # True while a nearby Stellar ally is granting the Maximum effect. Set by the
 # Stellar aura each recompute (and zeroed alongside passive bonuses). Combined

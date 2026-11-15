@@ -104,6 +104,13 @@ Observations with nothing to do go in "Claude FYI" below.
   (8 warnings every headless run); `menu_stage_backdrop.gd:32-33` points at a
   missing `art/backgrounds/`. Also `scripts/editor/aseprite_tag_exporter.gd`
   is an unreferenced older copy of the tag-exporter plugin: delete it?
+- [ ] Build agility's terrain cost. RQD decided agility owns it; it was never
+  built in either repo. Movement today is terrain cost by unit type
+  (`TerrainDataManager.get_movement_cost`) against a fixed `move_distance`
+  minus injuries. Formula still open. A starting shape is Unity's
+  `Assets/Docs/Design/terrain-system.md` rule (-1 cost if Ath > Con, -2 if
+  Ath >= 2x Con, min 1) with agility in place of athleticism. Athleticism
+  keeps only multi-hit, which RQD calls strong already; find it other uses?
 - [ ] 
 
 # Claude FYI

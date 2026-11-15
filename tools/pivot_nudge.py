@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Apply pivot.y deltas to character idle.json sidecars.
+"""Apply pivot.y deltas to character idle sidecars (idle0.json, else idle.json).
 
 Usage:
     tools/pivot_nudge.py <char>=<delta> [...]
@@ -54,9 +54,13 @@ def apply_shift(char_name: str, dy: int, dx: int) -> bool:
     if not os.path.isdir(char_dir):
         print(f"  {char_name}: NO DIR at {char_dir}")
         return False
-    json_path = os.path.join(char_dir, "idle.json")
-    if not os.path.exists(json_path):
-        print(f"  {char_name}: NO idle.json")
+    # idle0 is Lawrence's numbered default loop; a plain idle predates it.
+    for sidecar_name in ("idle0.json", "idle.json"):
+        json_path = os.path.join(char_dir, sidecar_name)
+        if os.path.exists(json_path):
+            break
+    else:
+        print(f"  {char_name}: NO idle0.json or idle.json")
         return False
     with open(json_path) as f:
         data = json.load(f)

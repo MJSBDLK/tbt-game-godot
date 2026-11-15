@@ -8,7 +8,7 @@
 ## clump the sarcastic ones together and keep them away from the earnest crew.
 ##
 ## Uses the dedicated avoid channel (CharacterData.passive_bonus_avoid), kept apart
-## from agility so it's pure dodge with no turn-speed coupling. Emitter-writes to
+## from agility so it's a flat dodge the stat term doesn't rescale. Emitter-writes to
 ## OTHER units, which is why the aura recompute runs in two passes (see
 ## PassiveEffectsSystem.recompute_faction).
 ##

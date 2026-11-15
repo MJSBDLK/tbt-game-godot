@@ -6,9 +6,17 @@
 	"currentClass": "Noble",
 	"specialization": "None",
 	"sprite": {
-		"sheetPath": "res://art/sprites/characters/bugler_gentry/idle.png",
+		"sheetPath": "res://art/sprites/characters/bugler_gentry/idle0.png",
 		"atlasPath": "",
 		"frameIndex": 0
+	},
+	"animations": {
+		"cast": {
+			"path": "res://art/sprites/characters/bugler_gentry/bugle.png",
+			"frames": 7,
+			"fps": 10,
+			"hit_frame": 4
+		}
 	},
 	"baseStats": {
 		"maxHP": 16,

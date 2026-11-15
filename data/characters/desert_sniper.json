@@ -6,7 +6,7 @@
 	"currentClass": "Skulk",
 	"specialization": "None",
 	"sprite": {
-		"sheetPath": "res://art/sprites/characters/desert_sniper/idle.png",
+		"sheetPath": "res://art/sprites/characters/desert_sniper/idle0.png",
 		"atlasPath": "",
 		"frameIndex": 0
 	},
