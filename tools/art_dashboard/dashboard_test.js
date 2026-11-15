@@ -10,6 +10,7 @@ const vm = require("node:vm");
 const os = require("node:os");
 const zlib = require("node:zlib");
 const board = require("./board_logic.js");
+const asepriteTags = require("./aseprite_tags.js");
 const { topCornerAlphas } = require("./check_on_disk.js");
 
 const exists = (width, height) => ({ exists: true, width, height });
@@ -87,6 +88,90 @@ test("a placeholder shows on its box but never counts", () => {
 	assert.deepEqual(marked.missingForNext.map((entry) => entry.id), ["line_art"]);
 	assert.equal(marked.placeholders.line_art.path, "lineart/hero.png");
 	assert.equal(board.boxState(lineArt, marked.shown.line_art, null, marked.placeholders.line_art), "placeholder");
+});
+
+test("a tag drawn but not exported shows on its box but never counts", () => {
+	const idle = [candidate("art/sprites/characters/hero/idle0.png", true, true)];
+	const melee = requirement("melee", "yellow", true, [candidate("art/sprites/characters/hero/melee.png", false, true)]);
+	const hero = character([
+		requirement("idle", "orange", true, idle),
+		requirement("idle_animation", "orange", true, idle, { min_frames: 2 }),
+		melee,
+	]);
+	const sources = { "art/sprites/characters/hero.aseprite": { idle0: 1, melee: 9 } };
+	const drawn = board.evaluateCharacter(hero, {}, {}, sources);
+	assert.equal(drawn.tier, "red", "the game reads only PNGs");
+	assert.equal(drawn.unexported.idle.clip, "idle0");
+	assert.equal(drawn.unexported.idle_animation, null, "a 1-frame tag isn't an animation");
+	assert.deepEqual(drawn.unexported.melee, { candidate: melee.candidates[0],
+		file: "art/sprites/characters/hero.aseprite", clip: "melee", frames: 9 });
+	assert.equal(board.boxState(melee, null, null, null, drawn.unexported.melee), "unexported");
+	const exported = board.evaluateCharacter(hero, { "art/sprites/characters/hero/melee.png": exists(576, 64) }, {}, sources);
+	assert.equal(exported.unexported.melee, undefined, "an exported box is just shown");
+	assert.equal(board.evaluateCharacter(hero, {}).unexported.melee, null, "nothing read, nothing drawn");
+});
+
+test("a sprite's source is the .aseprite named after its folder", () => {
+	assert.deepEqual(board.asepriteSource("art/sprites/characters/ma'am/idle0.png"),
+		{ file: "art/sprites/characters/ma'am.aseprite", clip: "idle0" });
+	assert.equal(board.asepriteSource("art/lineart_fullres/maam.png"), null, "line art isn't exported");
+});
+
+// A minimal .aseprite: the header, then one frame holding a layer chunk to
+// skip and the tags chunk. `oldCount`: the chunk count only in the 16-bit field.
+function asepriteBytes(tags, { oldCount = false } = {}) {
+	const entries = tags.map(([name, from, to]) => {
+		const nameBytes = Buffer.from(name, "utf8");
+		const entry = Buffer.alloc(19 + nameBytes.length);
+		entry.writeUInt16LE(from, 0);
+		entry.writeUInt16LE(to, 2);
+		entry.writeUInt16LE(nameBytes.length, 17);
+		nameBytes.copy(entry, 19);
+		return entry;
+	});
+	const layer = Buffer.alloc(10);
+	layer.writeUInt32LE(layer.length, 0);
+	layer.writeUInt16LE(0x2004, 4);
+	const tagsChunk = Buffer.concat([Buffer.alloc(16), ...entries]);
+	tagsChunk.writeUInt32LE(tagsChunk.length, 0);
+	tagsChunk.writeUInt16LE(0x2018, 4);
+	tagsChunk.writeUInt16LE(tags.length, 6);
+	const frame = Buffer.concat([Buffer.alloc(16), layer, tagsChunk]);
+	frame.writeUInt32LE(frame.length, 0);
+	frame.writeUInt16LE(0xF1FA, 4);
+	if (oldCount) frame.writeUInt16LE(2, 6);
+	else frame.writeUInt32LE(2, 12);
+	const header = Buffer.alloc(128);
+	header.writeUInt32LE(header.length + frame.length, 0);
+	header.writeUInt16LE(0xA5E0, 4);
+	header.writeUInt16LE(1, 6);
+	return Buffer.concat([header, frame]);
+}
+
+test("tags come from the tags chunk, in old files and new", () => {
+	const expected = [{ name: "melee", from: 0, to: 8 }, { name: "Idle 0", from: 9, to: 12 }];
+	const tags = [["melee", 0, 8], ["Idle 0", 9, 12]];
+	assert.deepEqual(asepriteTags.asepriteTags(asepriteBytes(tags)), expected);
+	assert.deepEqual(asepriteTags.asepriteTags(asepriteBytes(tags, { oldCount: true })), expected);
+	assert.equal(asepriteTags.asepriteTags(Buffer.alloc(200)), null, "not an .aseprite file");
+});
+
+test("a tag exports under the exporter's name, and markers export nothing", () => {
+	const clips = asepriteTags.exportedClips(asepriteBytes([
+		["Melee Special", 0, 5], ["arch_a_1x1", 6, 6], ["Ma'am", 7, 7],
+		["hit", 2, 2], ["melee_hit", 3, 3], ["hit_ranged", 4, 4],
+	]));
+	assert.deepEqual(clips, { melee_special: 6, arch_a: 1, ma_am: 1 });
+});
+
+test("every character .aseprite on disk reads, with tags", () => {
+	const folder = path.join(__dirname, "..", "..", "art", "sprites", "characters");
+	const files = fs.readdirSync(folder).filter((name) => name.endsWith(".aseprite"));
+	assert.ok(files.length > 0);
+	for (const name of files) {
+		const clips = asepriteTags.exportedClips(fs.readFileSync(path.join(folder, name)));
+		assert.ok(clips && Object.keys(clips).length > 0, `${name} has tags the exporter would export`);
+	}
 });
 
 test("every placeholder names a file some box looks for", () => {

@@ -12,6 +12,7 @@
 	<h1 id="board-title" class="board-title" data-note-target="board" data-note-label="the whole board">Art board</h1>
 	<div id="summary" class="summary"></div>
 	<span id="status" class="status">Loading…</span>
+	<button id="scan-button" class="notes-button" type="button">Scan now</button>
 	<button id="notes-button" class="notes-button" type="button">Notes</button>
 	<a class="notes-button" href="class_trees.html" style="text-decoration: none">Class trees</a>
 </header>
@@ -21,6 +22,7 @@
 <div class="legend">
 	<span class="legend-item"><span class="legend-empty"></span> missing</span>
 	<span class="legend-item"><span class="cell-dash">—</span> its moves never play it</span>
+	<span class="legend-item"><span class="badge badge-unexported legend-badge">export</span> drawn in Aseprite, not exported yet</span>
 	<span class="legend-item"><span class="badge badge-new legend-badge">new</span> drawn, not in the game yet</span>
 	<span class="legend-item"><span class="badge badge-uses legend-badge">= Melee</span> another clip covers it</span>
 	<span class="legend-item"><span class="badge badge-placeholder legend-badge">placeholder</span> in the game for now, doesn't count</span>
@@ -66,6 +68,8 @@
 <script src="placeholders.js"></script>
 <script src="game_data.js"></script>
 <script src="board_logic.js"></script>
+<script src="aseprite_tags.js"></script>
+<script src="folders.js"></script>
 <script src="dashboard.js"></script>
 </body>
 </html>

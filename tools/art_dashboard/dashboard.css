@@ -15,6 +15,7 @@
 	--yellow: #e0c341;
 	--green: #5cb85c;
 	--new: #4a90d9;
+	--unexported: #a585e0;
 	--tree-line: #5f5f5f;
 		color-scheme: dark;
 }
@@ -111,6 +112,7 @@ code { font: 12px ui-monospace, monospace; }
 .next-up-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
 .need-how { color: var(--text-muted); }
 .need-placeholder { flex-basis: 100%; color: var(--red); font-size: 12px; }
+.need-unexported { flex-basis: 100%; color: var(--unexported); font-size: 12px; }
 .next-up-done { color: var(--green); font-weight: 600; }
 
 .legend {
@@ -245,6 +247,11 @@ code { font: 12px ui-monospace, monospace; }
 .pip-stand-in { background: var(--pip-color); opacity: 0.45; }
 .pip-missing { box-shadow: inset 0 0 0 1.5px var(--pip-color); }
 .pip-optional { box-shadow: inset 0 0 0 1px #5a5a5a; }
+/* Half full: drawn, but the game can't show it until it's exported. */
+.pip-unexported {
+	box-shadow: inset 0 0 0 1.5px var(--pip-color);
+	background: linear-gradient(to top, var(--pip-color) 50%, transparent 50%);
+}
 .pip-placeholder { box-shadow: inset 0 0 0 1.5px var(--pip-color); background: radial-gradient(circle, var(--red) 0 2px, transparent 2.5px); }
 .pip-inherited {
 	box-shadow: inset 0 0 0 1.5px var(--pip-color);
@@ -448,6 +455,16 @@ button.variant-card:hover { border-color: var(--text-muted); }
 .cell-stand-in .thumbnail { opacity: 0.4; }
 .cell-placeholder { outline: 2px dashed var(--red); outline-offset: -2px; }
 .cell-inherited .thumbnail { opacity: 0.3; }
+.cell-unexported { background: transparent; }
+.cell-unexported .cell-empty {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid var(--unexported);
+	background: color-mix(in srgb, var(--unexported) 15%, transparent);
+	color: var(--text-muted);
+	font-size: 11px;
+}
 
 .thumbnail {
 	background-repeat: no-repeat;
@@ -468,6 +485,7 @@ button.variant-card:hover { border-color: var(--text-muted); }
 }
 .badge-new { background: var(--new); }
 .badge-placeholder { background: var(--red); }
+.badge-unexported { background: var(--unexported); }
 .badge-uses {
 	left: 2px;
 	padding: 0 1px;

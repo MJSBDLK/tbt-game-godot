@@ -60,6 +60,13 @@ the same way as notes. Rules: `class_tree_logic.js`
   so far) is listed in `tools/art_dashboard/placeholders.js` with the reason.
   The box shows it with a red "placeholder" badge and the reason, and it
   doesn't count toward a color.
++ Drawn, not exported: a tag in the character's `.aseprite` with no PNG yet.
+  The box shows a purple "export" badge and a half-full pip, and doesn't count
+  until it's exported (the game reads only PNGs). The page can only read the
+  `.aseprite` files once "Scan now" is pointed at `art/sprites/characters`
+  (read-only, asked once per session); `aseprite_tags.js` reads the tags the
+  way the exporter does. "Scan now" also re-checks every file, for a board
+  left open on another screen; alt-tabbing back re-checks too.
 + Every checked box shows a keyframe: attacks and reactions their hit frame
   (the exporter's marker, else the middle frame), idle its first frame, line
   art its portrait crop. Frame count comes live from the strip's width ÷
