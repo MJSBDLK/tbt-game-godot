@@ -19,7 +19,7 @@ const CHOICES_PER_PROMOTION: int = 2
 const TOP_TIER: int = 3
 
 
-## Every class: id (its file name) → {name, tier, notes}.
+## Every class: id (its file name) → {name, tier, notes, schedule (optional)}.
 static func pool() -> Dictionary:
 	return _read_folder(DIRECTORY + "/pool")
 
@@ -55,6 +55,37 @@ static func _check_class(class_id: String, entry: Variant, found: PackedStringAr
 		found.append("class %s: tier %s isn't 1 to %d" % [class_id, entry.get("tier"), TOP_TIER])
 	if entry.has("types"):
 		found.append("class %s: typing is per unit, so it goes on each tree's slot, not the class" % class_id)
+	if entry.has("schedule"):
+		_check_schedule(class_id, entry["schedule"], found)
+
+
+## A class's schedule (README: `schedule`): the kit, then moves and passives in
+## learning order. Names needn't exist yet: one in no bank is a design not built.
+static func _check_schedule(class_id: String, schedule: Variant, found: PackedStringArray) -> void:
+	if not schedule is Dictionary:
+		found.append("class %s: schedule isn't a JSON object" % class_id)
+		return
+	for key: String in schedule:
+		if not key in ["kit", "moves", "passives"]:
+			found.append("class %s: schedule has an unknown key \"%s\"" % [class_id, key])
+	var kit: Variant = schedule.get("kit", {})
+	if not kit is Dictionary:
+		found.append("class %s: schedule kit isn't a JSON object" % class_id)
+		kit = {}
+	for kind: String in ["moves", "passives"]:
+		var learned: Array = []
+		for list_name: String in ["kit " + kind, kind]:
+			var names: Variant = (kit if list_name.begins_with("kit") else schedule).get(kind, [])
+			if not names is Array:
+				found.append("class %s: schedule %s isn't a list" % [class_id, list_name])
+				continue
+			for name: Variant in names:
+				if not name is String or str(name).strip_edges().is_empty():
+					found.append("class %s: schedule %s has a blank name" % [class_id, list_name])
+				elif learned.has(name):
+					found.append("class %s: schedule teaches %s twice" % [class_id, name])
+				else:
+					learned.append(name)
 
 
 ## A slot's types: at most two, spelled as in the character JSONs.

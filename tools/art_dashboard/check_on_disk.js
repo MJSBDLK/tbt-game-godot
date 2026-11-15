@@ -1,8 +1,9 @@
 // What the art board shows, from the terminal: node tools/art_dashboard/check_on_disk.js
 // Same logic as the page (board_logic.js), with fs standing in for image loads.
-// Prints each character's tier, art that's drawn but not wired in, class
-// variants that have any art of their own, renames, and whether each
-// placeholder (placeholders.js) is still what it was marked for.
+// Prints each character's tier, tags drawn in an .aseprite but not exported,
+// art that's exported but not wired in, class variants that have any art of
+// their own, renames, and whether each placeholder (placeholders.js) is
+// still what it was marked for.
 "use strict";
 
 const fs = require("node:fs");
@@ -10,6 +11,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 const zlib = require("node:zlib");
 const board = require("./board_logic.js");
+const { exportedClips } = require("./aseprite_tags.js");
 
 const repositoryRoot = path.join(__dirname, "..", "..");
 // Enough compressed data for a first scanline many times over, so a line-art
@@ -78,6 +80,27 @@ function firstRowCornerAlphas(rows, width, channels) {
 	return { left: row[channels - 1], right: row[row.length - 1] };
 }
 
+// .aseprite path → its exportedClips, for every file a sprite box comes from.
+function readSources(arts) {
+	const sources = {};
+	for (const art of arts) {
+		for (const requirement of art.requirements) {
+			for (const candidate of requirement.candidates) {
+				const source = board.asepriteSource(candidate.path);
+				if (!source || source.file in sources) continue;
+				const full = path.join(repositoryRoot, source.file);
+				sources[source.file] = (fs.existsSync(full) && exportedClips(fs.readFileSync(full))) || {};
+			}
+		}
+	}
+	return sources;
+}
+
+// "<file> tag <name>" once per tag: one tag can fill several boxes.
+function unexportedTags(evaluation) {
+	return new Set(Object.values(evaluation.unexported).filter(Boolean).map((entry) => `${entry.file} tag "${entry.clip}"`));
+}
+
 const isOpaque = (alphas) => alphas !== null && alphas.left === 255 && alphas.right === 255;
 
 function main() {
@@ -90,7 +113,9 @@ function main() {
 	const placeholders = sandbox.window.ART_DASHBOARD_PLACEHOLDERS || {};
 
 	const probes = {};
-	for (const art of data.characters.flatMap((character) => [character, ...character.variants])) {
+	const arts = data.characters.flatMap((character) => [character, ...character.variants]);
+	const sources = readSources(arts);
+	for (const art of arts) {
 		for (const requirement of art.requirements) {
 			for (const candidate of requirement.candidates) {
 				probes[candidate.path] = probe(candidate.path);
@@ -100,15 +125,17 @@ function main() {
 	}
 
 	for (const character of board.sortCharacters(data.characters, ranking)) {
-		const evaluation = board.evaluateCharacter(character, probes, placeholders);
+		const evaluation = board.evaluateCharacter(character, probes, placeholders, sources);
 		const missing = evaluation.missingForNext.map((requirement) => requirement.id).join(", ");
 		console.log(`${evaluation.tier.padEnd(7)}${character.id}${missing ? `  (next needs: ${missing})` : ""}`);
+		for (const tag of unexportedTags(evaluation)) console.log(`       drawn, not exported: ${tag}`);
 		// A plain clip standing in for its kind boxes would print once per box.
 		const unwired = new Set(Object.values(evaluation.shown).filter((shown) => shown && !shown.declared).map((shown) => shown.path));
 		for (const unwiredPath of unwired) console.log(`       new, not wired: ${unwiredPath}`);
 		// Nothing loads variants yet, so their art is tracked, never wired.
 		for (const variant of character.variants) {
-			const variantEvaluation = board.evaluateCharacter(variant, probes, placeholders);
+			const variantEvaluation = board.evaluateCharacter(variant, probes, placeholders, sources);
+			for (const tag of unexportedTags(variantEvaluation)) console.log(`       drawn, not exported: ${tag}`);
 			const progress = board.variantProgress(variant, variantEvaluation);
 			if (progress.drawn === 0) continue;
 			console.log(`       ${variant.class} variant: ${variantEvaluation.tier}, ${progress.drawn} of ${progress.total} boxes drawn`);

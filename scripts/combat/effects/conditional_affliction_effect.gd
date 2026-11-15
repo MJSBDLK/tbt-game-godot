@@ -31,7 +31,7 @@ func on_hit(ctx: CombatHitContext) -> void:
 
 	var chance: float = float(branch.get("chance", 1.0))
 	var caster_data: Variant = ctx.attacker.get("character_data") if ctx.attacker != null else null
-	var success: bool = caster_data.roll_succeeds(chance) if caster_data != null \
+	var success: bool = caster_data.roll_secondary(chance) if caster_data != null \
 			else GameRng.randf() < chance
 	if not success:
 		DebugConfig.log_status("ConditionalAffliction: %s missed on %s (chance %.2f)" % [

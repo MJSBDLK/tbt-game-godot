@@ -144,6 +144,36 @@ func test_a_bad_art_kind_is_caught() -> void:
 		"tree unit: base > 2 art photoshop isn't one of palette, palette_layer, redraw"]))
 
 
+func _scheduled_pool(schedule: Variant) -> Dictionary:
+	var pool := _pool()
+	pool.soldier["schedule"] = schedule
+	return pool
+
+
+func test_a_schedule_may_name_moves_not_built_yet() -> void:
+	var schedule := {kit = {moves = ["Shank", "Boot Knife"], passives = ["Impetuous"]},
+			moves = ["Not Built Yet"], passives = ["Sadist"]}
+	assert_eq(ClassTrees.problems_in(_scheduled_pool(schedule), {}).size(), 0)
+
+
+func test_a_schedule_teaching_something_twice_is_caught() -> void:
+	var schedule := {kit = {moves = ["Shank"]}, moves = ["Slash", "Shank"]}
+	assert_eq(ClassTrees.problems_in(_scheduled_pool(schedule), {}), PackedStringArray([
+		"class soldier: schedule teaches Shank twice"]))
+
+
+func test_a_move_and_a_passive_may_share_a_name() -> void:
+	assert_eq(ClassTrees.problems_in(_scheduled_pool({moves = ["Rally"], passives = ["Rally"]}), {}).size(), 0)
+
+
+func test_a_malformed_schedule_is_caught() -> void:
+	assert_eq(ClassTrees.problems_in(_scheduled_pool({moves = "Slash", levels = []}), {}), PackedStringArray([
+		"class soldier: schedule has an unknown key \"levels\"",
+		"class soldier: schedule moves isn't a list"]))
+	assert_eq(ClassTrees.problems_in(_scheduled_pool({passives = [""]}), {}), PackedStringArray([
+		"class soldier: schedule passives has a blank name"]))
+
+
 func test_the_editor_offers_every_elemental_type() -> void:
 	# The class tree editor (class_tree_logic.js) can't read the enum; its list is pinned to it here.
 	var source := FileAccess.get_file_as_string("res://tools/art_dashboard/class_tree_logic.js")

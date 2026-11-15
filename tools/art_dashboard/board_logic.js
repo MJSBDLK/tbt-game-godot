@@ -37,9 +37,12 @@ function isStandIn(requirement, candidate) {
 // What a box shows. "optional": an extra no color needs yet (crits).
 // "inherited": a variant's box showing the art of the class it promotes from.
 // "placeholder": in the game for now, but it doesn't count (placeholders.js).
-function boxState(requirement, shown, inherited, placeholder) {
+// "unexported": its tag is drawn in the .aseprite but no PNG exists yet, so
+// it doesn't count either: the game only reads PNGs.
+function boxState(requirement, shown, inherited, placeholder, unexported) {
 	if (shown) return isStandIn(requirement, shown) ? "stand-in" : "shown";
 	if (placeholder) return "placeholder";
+	if (unexported) return "unexported";
 	if (!requirement.needed) return "not-needed";
 	if (inherited) return "inherited";
 	return requirement.tier === "extra" ? "optional" : "missing";
@@ -47,14 +50,18 @@ function boxState(requirement, shown, inherited, placeholder) {
 
 // Tier = one below the lowest tier with an unmet, needed requirement.
 // "extra" requirements sit outside the ladder, so they never lower it.
-// `placeholders` (path → why) never count; they're kept to show on the box.
-function evaluateCharacter(character, probes, placeholders = {}) {
+// `placeholders` (path → why) and `sources` (unexported tags) never count;
+// they're kept to show on the box.
+function evaluateCharacter(character, probes, placeholders = {}, sources = {}) {
 	const shown = {};
 	const placeholderShown = {};
+	const unexported = {};
 	for (const requirement of character.requirements) {
 		const counted = requirement.candidates.filter((candidate) => !(candidate.path in placeholders));
 		shown[requirement.id] = shownCandidate({ ...requirement, candidates: counted }, probes);
-		if (!shown[requirement.id]) placeholderShown[requirement.id] = shownCandidate(requirement, probes);
+		if (shown[requirement.id]) continue;
+		placeholderShown[requirement.id] = shownCandidate(requirement, probes);
+		unexported[requirement.id] = unexportedCandidate(requirement, sources);
 	}
 	const unmet = character.requirements.filter((requirement) => requirement.needed && !shown[requirement.id]);
 	let tier = "green";
@@ -68,6 +75,7 @@ function evaluateCharacter(character, probes, placeholders = {}) {
 	return {
 		shown,
 		placeholders: placeholderShown,
+		unexported,
 		unmet,
 		tier,
 		missingForNext: nextTier ? unmet.filter((requirement) => requirement.tier === nextTier) : [],
@@ -153,6 +161,28 @@ function pendingRenames(characters, probes) {
 // Sprites are named by the exporter: folder = .aseprite file, file = tag.
 const folderName = (path) => path.split("/").slice(-2, -1)[0];
 const fileStem = (path) => path.split("/").pop().replace(/\.png$/, "");
+
+// Where the exporter gets a sprite PNG: <folder>.aseprite beside the folder,
+// the tag named after the file. null for files that aren't exported sprites.
+function asepriteSource(path) {
+	if (!path.startsWith("art/sprites/")) return null;
+	const parts = path.split("/");
+	const file = [...parts.slice(0, -2), `${folderName(path)}.aseprite`].join("/");
+	return { file, clip: fileStem(path) };
+}
+
+// A box with no PNG whose tag is drawn: {candidate, file, clip, frames}, or
+// null. `sources`: .aseprite path → its exportedClips (aseprite_tags.js).
+function unexportedCandidate(requirement, sources) {
+	const minimumFrames = requirement.min_frames || 1;
+	const drawn = [];
+	for (const candidate of requirement.candidates) {
+		const source = asepriteSource(candidate.path);
+		const frames = source && sources[source.file] ? sources[source.file][source.clip] : 0;
+		if (frames >= minimumFrames) drawn.push({ candidate, ...source, frames });
+	}
+	return drawn.find((entry) => entry.candidate.convention) || drawn[0] || null;
+}
 
 // So a renamed PNG would come back on the next export: rename at the source.
 function renameInstruction(from, to) {
@@ -243,7 +273,7 @@ function lineArtGeometry(probe, crop, path) {
 
 const logic = {
 	NEXT_TIER, TOP_TIER, frameCount, shownCandidate, isStandIn, boxState, evaluateCharacter, unitTree,
-	treeStatus, resolveBoxes, variantProgress, sortCharacters, pendingRenames, folderName,
+	treeStatus, resolveBoxes, variantProgress, sortCharacters, pendingRenames, folderName, asepriteSource,
 	renameInstruction, deliveryHint, boxHint, keyframeIndex, frameDurations, spriteGeometry, lineArtGeometry,
 };
 if (typeof module !== "undefined") module.exports = logic;

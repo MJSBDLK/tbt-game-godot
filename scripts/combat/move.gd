@@ -54,7 +54,8 @@ extends Resource
 @export var max_uses: int = 30
 var current_uses: int = 0
 
-# Status effect (data only, not executed until Phase 3)
+# Status effect. The chance is the move's own; the caster's skill scales it
+# when rolled (CharacterData.secondary_chance). Same for crit_chance below.
 @export var status_effect_type: Enums.StatusEffectType = Enums.StatusEffectType.NONE
 @export var status_effect_chance: float = 0.0
 # Number of stacks applied on a successful proc. 0 = use the effect's default_apply_stacks.
