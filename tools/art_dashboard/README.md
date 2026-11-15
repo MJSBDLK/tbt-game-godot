@@ -46,9 +46,10 @@ the same way as notes. Rules: `class_tree_logic.js`
   ("= Squire"). The trees are `data/classes/trees/<id>.json` (a character
   with none has nothing designed past its class); each slot's `art` says
   how that variant gets made. The board has a collapsible "Class trees"
-  panel (every character's tree, undesigned slots dashed) and, in each open
-  row, a collapsible copy of that character's tree. Click a class to see its
-  boxes.
+  panel (every character's tree, undesigned slots dashed, then trees for
+  units with no character yet, like Harold's Bugler, with their notes) and,
+  in each open row, a collapsible copy of that character's tree. Click a
+  class to see its boxes.
 + Characters are keyed by their JSON file name (`spaceman`, `maam`), never
   `characterId`. JSON files are never renamed: saves store their paths.
 + The board tracks the renames: any file whose declared path isn't the

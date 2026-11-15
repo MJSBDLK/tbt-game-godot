@@ -35393,5 +35393,83 @@ window.ART_DASHBOARD_DATA = {
 			"label": "Crit ranged",
 			"tier": "extra"
 		}
+	],
+	"designs": [
+		{
+			"id": "bugler",
+			"name": "Bugler",
+			"notes": "No unit yet: Harold, the named recruitable Bugler (Lawrence may veto); enemy buglers stay unnamed. Lawrence's bugler_gentry art is the Envoy and his bugler_chivalric the Banneret. Reasoning: data/design/class-and-promotion.md §8.",
+			"tree": {
+				"class": "bugler",
+				"promotions": [
+					{
+						"art": "palette",
+						"class": "herald",
+						"promotions": [
+							{
+								"art": "palette",
+								"class": "king_of_arms"
+							},
+							{
+								"art": "palette",
+								"class": "banneret"
+							}
+						]
+					},
+					{
+						"art": "palette",
+						"class": "envoy",
+						"promotions": [
+							{
+								"art": "palette",
+								"class": "ambassador"
+							},
+							{
+								"art": "palette",
+								"class": "spy"
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"id": "thief",
+			"name": "Thief",
+			"notes": "No unit yet: a design from Lawrence's line-art batch (art/lineart_fullres/assassin.png, finished, unwired; no idle sprite). The classes sound fun enough that the player should probably get them.",
+			"tree": {
+				"class": "thief",
+				"promotions": [
+					{
+						"art": "palette",
+						"class": "assassin",
+						"promotions": [
+							{
+								"art": "palette",
+								"class": "hitman"
+							},
+							{
+								"art": "palette",
+								"class": "fixer"
+							}
+						]
+					},
+					{
+						"art": "palette",
+						"class": "kleptomaniac",
+						"promotions": [
+							{
+								"art": "palette",
+								"class": "highwayman"
+							},
+							{
+								"art": "palette",
+								"class": "infiltrator"
+							}
+						]
+					}
+				]
+			}
+		}
 	]
 };

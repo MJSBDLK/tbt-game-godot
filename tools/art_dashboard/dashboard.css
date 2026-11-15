@@ -411,6 +411,7 @@ button.variant-card:hover { border-color: var(--text-muted); }
 	text-transform: uppercase;
 }
 .class-trees-undesigned { display: flex; flex-wrap: wrap; gap: 6px 26px; }
+.class-trees-notes { max-width: 60ch; margin: 6px 0 0; color: var(--text-muted); font-size: 12px; }
 .class-node {
 	display: flex;
 	flex: none;
