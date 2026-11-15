@@ -25,3 +25,7 @@ Shape:
 
 Claude reads these when it syncs the board and answers inside `replies`, so
 the answer shows up on the board. Delete a note once it's handled.
+
+`briefs/` isn't notes: it holds character briefs, RQD's free-form answers to
+`briefs/template.md`, one `<id>.md` per character. The `/brainstorm` skill
+reads them; nobody replies in them.
