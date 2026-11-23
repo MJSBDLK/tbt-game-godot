@@ -1999,6 +1999,146 @@ window.ART_DASHBOARD_DATA = {
 				"y": 738
 			},
 			"id": "berzerker",
+			"moveset": {
+				"moves": [
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "A belly-first body check that bounces the target away — into a wall, if one obliges. Stout foes stand their ground.",
+						"kit": true,
+						"name": "Bounce Out",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Twists an arm and holds on. Neither the target nor the user can move on their next turn.",
+						"kit": true,
+						"name": "Arm Twist",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "An overhead fist slam. Hits hard.",
+						"kit": false,
+						"name": "Klunk",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "cast",
+						"description": "Locks eyes with a foe. For two turns it can only aim its attacks at the user.",
+						"kit": false,
+						"name": "Staredown",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Throws the target over the user's shoulder, onto the far side.",
+						"kit": false,
+						"name": "Toss",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Elbows out. Hits every foe standing next to the user.",
+						"kit": false,
+						"name": "Elbows",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Leans on the target and takes its buff for the user.",
+						"kit": false,
+						"name": "Shake Down",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "A rising strike that knocks the target off balance and primes a follow-up.",
+						"kit": false,
+						"name": "Uppercut",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "A broad, heavy swing with a blunt weapon.",
+						"kit": false,
+						"name": "Club",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "cast",
+						"description": "Stands guard by an ally. Until the user's next turn, attacks on that ally hit the user instead, as long as the user stays beside them.",
+						"kit": false,
+						"name": "Cover",
+						"special": false
+					}
+				],
+				"passives": [
+					{
+						"built": true,
+						"description": "A foe that steps next to this unit has to stop there",
+						"kit": true,
+						"name": "Stonewall"
+					},
+					{
+						"built": true,
+						"description": "A foe that lands a melee hit on this unit bounces back a tile, unless it's stout enough to hold",
+						"kit": false,
+						"name": "Big Gut"
+					},
+					{
+						"built": true,
+						"description": "Ranged attacks hit this unit instead of units directly behind it",
+						"kit": false,
+						"name": "Protector"
+					},
+					{
+						"built": true,
+						"description": "From full HP, a hit that would drop this unit leaves it at 1 HP",
+						"kit": false,
+						"name": "Still Standing"
+					},
+					{
+						"built": true,
+						"description": "Never ends up more than 1 tile from where its turn began, walking or pushed",
+						"kit": false,
+						"name": "On Duty"
+					},
+					{
+						"built": true,
+						"description": "When this unit falls, foes next to it are Rooted for a turn",
+						"kit": false,
+						"name": "Dead Weight"
+					},
+					{
+						"built": true,
+						"description": "This unit counts as brave: challenged by Roar rather than rattled, and passed over by Shriek of the Damned. Courage without Chivalric's weaknesses — or its resistances.",
+						"kit": false,
+						"name": "Bravery"
+					},
+					{
+						"built": true,
+						"description": "Foes land one hit per attack on this unit, however fast they are",
+						"kit": false,
+						"name": "Thick Skin"
+					},
+					{
+						"built": true,
+						"description": "Landing a crit or dropping a foe Challenges every foe within 2 tiles for a turn",
+						"kit": false,
+						"name": "Gloat"
+					}
+				]
+			},
 			"name": "Berzerker",
 			"requirements": [
 				{
@@ -2095,7 +2235,7 @@ window.ART_DASHBOARD_DATA = {
 						}
 					],
 					"id": "ranged",
-					"needed": true,
+					"needed": false,
 					"tier": "yellow"
 				},
 				{
@@ -2152,7 +2292,7 @@ window.ART_DASHBOARD_DATA = {
 						}
 					],
 					"id": "ranged_physical",
-					"needed": true,
+					"needed": false,
 					"tier": "green"
 				},
 				{
@@ -2249,7 +2389,7 @@ window.ART_DASHBOARD_DATA = {
 						}
 					],
 					"id": "crit_ranged",
-					"needed": true,
+					"needed": false,
 					"tier": "extra"
 				}
 			],
@@ -2386,7 +2526,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged",
-							"needed": true,
+							"needed": false,
 							"tier": "yellow"
 						},
 						{
@@ -2443,7 +2583,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged_physical",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -2540,7 +2680,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "crit_ranged",
-							"needed": true,
+							"needed": false,
 							"tier": "extra"
 						}
 					]
@@ -2644,7 +2784,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged",
-							"needed": true,
+							"needed": false,
 							"tier": "yellow"
 						},
 						{
@@ -2701,7 +2841,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged_physical",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -2798,7 +2938,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "crit_ranged",
-							"needed": true,
+							"needed": false,
 							"tier": "extra"
 						}
 					]
@@ -2902,7 +3042,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged",
-							"needed": true,
+							"needed": false,
 							"tier": "yellow"
 						},
 						{
@@ -2959,7 +3099,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged_physical",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -3056,7 +3196,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "crit_ranged",
-							"needed": true,
+							"needed": false,
 							"tier": "extra"
 						}
 					]
@@ -3160,7 +3300,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged",
-							"needed": true,
+							"needed": false,
 							"tier": "yellow"
 						},
 						{
@@ -3217,7 +3357,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged_physical",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -3314,7 +3454,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "crit_ranged",
-							"needed": true,
+							"needed": false,
 							"tier": "extra"
 						}
 					]
@@ -3418,7 +3558,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged",
-							"needed": true,
+							"needed": false,
 							"tier": "yellow"
 						},
 						{
@@ -3475,7 +3615,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged_physical",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -3572,7 +3712,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "crit_ranged",
-							"needed": true,
+							"needed": false,
 							"tier": "extra"
 						}
 					]
@@ -3676,7 +3816,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged",
-							"needed": true,
+							"needed": false,
 							"tier": "yellow"
 						},
 						{
@@ -3733,7 +3873,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged_physical",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -3830,7 +3970,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "crit_ranged",
-							"needed": true,
+							"needed": false,
 							"tier": "extra"
 						}
 					]
@@ -9657,6 +9797,146 @@ window.ART_DASHBOARD_DATA = {
 				"y": 475
 			},
 			"id": "grasker",
+			"moveset": {
+				"moves": [
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "A belly-first body check that bounces the target away — into a wall, if one obliges. Stout foes stand their ground.",
+						"kit": true,
+						"name": "Bounce Out",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Twists an arm and holds on. Neither the target nor the user can move on their next turn.",
+						"kit": true,
+						"name": "Arm Twist",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "An overhead fist slam. Hits hard.",
+						"kit": false,
+						"name": "Klunk",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "cast",
+						"description": "Locks eyes with a foe. For two turns it can only aim its attacks at the user.",
+						"kit": false,
+						"name": "Staredown",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Throws the target over the user's shoulder, onto the far side.",
+						"kit": false,
+						"name": "Toss",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Elbows out. Hits every foe standing next to the user.",
+						"kit": false,
+						"name": "Elbows",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Leans on the target and takes its buff for the user.",
+						"kit": false,
+						"name": "Shake Down",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "A rising strike that knocks the target off balance and primes a follow-up.",
+						"kit": false,
+						"name": "Uppercut",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "A broad, heavy swing with a blunt weapon.",
+						"kit": false,
+						"name": "Club",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "cast",
+						"description": "Stands guard by an ally. Until the user's next turn, attacks on that ally hit the user instead, as long as the user stays beside them.",
+						"kit": false,
+						"name": "Cover",
+						"special": false
+					}
+				],
+				"passives": [
+					{
+						"built": true,
+						"description": "A foe that steps next to this unit has to stop there",
+						"kit": true,
+						"name": "Stonewall"
+					},
+					{
+						"built": true,
+						"description": "A foe that lands a melee hit on this unit bounces back a tile, unless it's stout enough to hold",
+						"kit": false,
+						"name": "Big Gut"
+					},
+					{
+						"built": true,
+						"description": "Ranged attacks hit this unit instead of units directly behind it",
+						"kit": false,
+						"name": "Protector"
+					},
+					{
+						"built": true,
+						"description": "From full HP, a hit that would drop this unit leaves it at 1 HP",
+						"kit": false,
+						"name": "Still Standing"
+					},
+					{
+						"built": true,
+						"description": "Never ends up more than 1 tile from where its turn began, walking or pushed",
+						"kit": false,
+						"name": "On Duty"
+					},
+					{
+						"built": true,
+						"description": "When this unit falls, foes next to it are Rooted for a turn",
+						"kit": false,
+						"name": "Dead Weight"
+					},
+					{
+						"built": true,
+						"description": "This unit counts as brave: challenged by Roar rather than rattled, and passed over by Shriek of the Damned. Courage without Chivalric's weaknesses — or its resistances.",
+						"kit": false,
+						"name": "Bravery"
+					},
+					{
+						"built": true,
+						"description": "Foes land one hit per attack on this unit, however fast they are",
+						"kit": false,
+						"name": "Thick Skin"
+					},
+					{
+						"built": true,
+						"description": "Landing a crit or dropping a foe Challenges every foe within 2 tiles for a turn",
+						"kit": false,
+						"name": "Gloat"
+					}
+				]
+			},
 			"name": "Grasker",
 			"requirements": [
 				{
@@ -10363,6 +10643,146 @@ window.ART_DASHBOARD_DATA = {
 				"y": 1263
 			},
 			"id": "grunt",
+			"moveset": {
+				"moves": [
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "A disciplined formation strike that emboldens the user.",
+						"kit": true,
+						"name": "March",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "ranged",
+						"description": "A poke from the far end of a pole. Reaches past arm's length.",
+						"kit": true,
+						"name": "Prod",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Everyone piles on. Marks the target so heraldic attacks hit it harder.",
+						"kit": false,
+						"name": "Swarm",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "A raking hook that can snag the target in place.",
+						"kit": false,
+						"name": "Hook Swipe",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "cast",
+						"description": "A firm hand and a steadying word. Grounds out lightning marks and settles rattled nerves.",
+						"kit": false,
+						"name": "Steady",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "An overhead fist slam. Hits hard.",
+						"kit": false,
+						"name": "Klunk",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "cast",
+						"description": "Puts a shoulder behind an ally. Raises their defense for a couple of turns.",
+						"kit": false,
+						"name": "Brace",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Leans into the target and shoves it back a step. Anyone sturdier than the user stands their ground.",
+						"kit": false,
+						"name": "Press",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "cast",
+						"description": "Drags an ally out of trouble: pulls them alongside, or backs up a step and hauls them along.",
+						"kit": false,
+						"name": "Haul",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "A fiery physical attack that may burn the target.",
+						"kit": false,
+						"name": "Flame Strike",
+						"special": false
+					}
+				],
+				"passives": [
+					{
+						"built": true,
+						"description": "This unit counts as brave: challenged by Roar rather than rattled, and passed over by Shriek of the Damned. Courage without Chivalric's weaknesses — or its resistances.",
+						"kit": true,
+						"name": "Bravery"
+					},
+					{
+						"built": true,
+						"description": "Ranged attacks hit this unit instead of units directly behind it",
+						"kit": false,
+						"name": "Protector"
+					},
+					{
+						"built": true,
+						"description": "+20% damage on first attack each turn, -10% for each attack after",
+						"kit": false,
+						"name": "Impetuous"
+					},
+					{
+						"built": true,
+						"description": "+2 defense while standing next to an ally",
+						"kit": false,
+						"name": "Close Ranks"
+					},
+					{
+						"built": true,
+						"description": "First attack each turn gains +20% accuracy. Enemy attacks gain +20% accuracy against this unit",
+						"kit": false,
+						"name": "Impulsive"
+					},
+					{
+						"built": true,
+						"description": "After a miss, the next attack deals 20% more damage but is 15% less accurate",
+						"kit": false,
+						"name": "Temper"
+					},
+					{
+						"built": true,
+						"description": "Recovers move usage by defeating enemies",
+						"kit": false,
+						"name": "Waste Not"
+					},
+					{
+						"built": true,
+						"description": "Debuffs land one stack lighter, so most wear off a turn sooner. A one-stack debuff still lands.",
+						"kit": false,
+						"name": "Hardy"
+					},
+					{
+						"built": true,
+						"description": "When an ally within 3 tiles falls, this unit goes after whoever did it",
+						"kit": false,
+						"name": "Grudge"
+					}
+				]
+			},
 			"name": "Grunt",
 			"requirements": [
 				{
@@ -10497,7 +10917,7 @@ window.ART_DASHBOARD_DATA = {
 						}
 					],
 					"id": "melee_special",
-					"needed": true,
+					"needed": false,
 					"tier": "green"
 				},
 				{
@@ -10535,7 +10955,7 @@ window.ART_DASHBOARD_DATA = {
 						}
 					],
 					"id": "ranged_special",
-					"needed": true,
+					"needed": false,
 					"tier": "green"
 				},
 				{
@@ -10788,7 +11208,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "melee_special",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -10826,7 +11246,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged_special",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -11046,7 +11466,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "melee_special",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -11084,7 +11504,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged_special",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -11304,7 +11724,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "melee_special",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -11342,7 +11762,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged_special",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -11562,7 +11982,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "melee_special",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -11600,7 +12020,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged_special",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -11820,7 +12240,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "melee_special",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -11858,7 +12278,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged_special",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -12078,7 +12498,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "melee_special",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -12116,7 +12536,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged_special",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -19862,6 +20282,178 @@ window.ART_DASHBOARD_DATA = {
 				"y": 525
 			},
 			"id": "napdawg",
+			"moveset": {
+				"moves": [
+					{
+						"built": false,
+						"clip": "ranged",
+						"description": "p5 r2 acc90, takes the target's buff for the user (Shake Down's steal). A flip of the fingers. Choice: don't buff anyone in his reach.",
+						"kit": true,
+						"name": "Extort",
+						"special": true
+					},
+					{
+						"built": false,
+						"clip": "cast",
+						"description": "Support r2, a foe and every foe next to it: Subversion 2 stacks, 8 uses. Choice: spread out or take it. (needs area preview when aiming)",
+						"kit": true,
+						"name": "Subversion",
+						"special": false
+					},
+					{
+						"built": false,
+						"clip": "melee",
+						"description": "p6 r1 acc90, ignores 50% of defense. A rapier: it gets through armor, so the user's strength barely matters.",
+						"kit": false,
+						"name": "Epée",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "ranged",
+						"description": "A flash of cold that may freeze the target solid.",
+						"kit": false,
+						"name": "Snap Freeze",
+						"special": true
+					},
+					{
+						"built": false,
+						"clip": "cast",
+						"description": "Support r2 ally (not self): gives the user's buff to the ally, stacks and all. Extort a foe's buff, Favor it to a champion. (needs give)",
+						"kit": false,
+						"name": "Favor",
+						"special": false
+					},
+					{
+						"built": false,
+						"clip": "melee",
+						"description": "p3 r1 acc90, Void 50%. Flicks the weapon away: one of the target's moves is locked.",
+						"kit": false,
+						"name": "Disarm",
+						"special": false
+					},
+					{
+						"built": false,
+						"clip": "cast",
+						"description": "Support r0 aoe2 foes: Rooted 1 stack, 8 uses. The ground rises around the user. Choice: stand beyond 2 tiles or come all the way in. (needs caster-free self-cast status)",
+						"kit": false,
+						"name": "Upheaval",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "A fiery physical attack that may burn the target.",
+						"kit": false,
+						"name": "Flame Strike",
+						"special": false
+					},
+					{
+						"built": false,
+						"clip": "cast",
+						"description": "Support r0 aoe2 allies: one picked at random loses 25% of its max HP, the rest are Rallied 3 stacks; 5 uses. The Roman punishment. (needs split payload)",
+						"kit": false,
+						"name": "Decimate",
+						"special": false
+					},
+					{
+						"built": false,
+						"clip": "cast",
+						"description": "Support r3 ally (not self): the user and the ally swap tiles, 8 uses. Finish him in one turn or he puts a man in his spot. (needs ranged swap)",
+						"kit": false,
+						"name": "Retreat",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "ranged",
+						"description": "A quick electric jolt. Reliable and cheap.",
+						"kit": false,
+						"name": "Zap",
+						"special": true
+					},
+					{
+						"built": true,
+						"clip": "ranged",
+						"description": "A draining curse that leaves the target more vulnerable to damage.",
+						"kit": false,
+						"name": "Wither",
+						"special": true
+					},
+					{
+						"built": false,
+						"clip": "melee",
+						"description": "p7, ignores 30% of defense.",
+						"kit": false,
+						"name": "Ice Pick",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "ranged",
+						"description": "A ranged burst of flame that may ignite the target.",
+						"kit": false,
+						"name": "Scorch",
+						"special": true
+					}
+				],
+				"passives": [
+					{
+						"built": false,
+						"description": "while an ally stands next to the owner, single-target attacks on it hit that ally instead (the one nearest the attacker). Area moves get through. Choice: peel its men off first, or bring an area move. Cover's redirect, read from the target's side.",
+						"kit": true,
+						"name": "Entourage"
+					},
+					{
+						"built": true,
+						"description": "Below half HP this unit moves 1 tile farther, but can't use support moves",
+						"kit": false,
+						"name": "Panic"
+					},
+					{
+						"built": false,
+						"description": "the owner's hits on a weakness (super effective) can't miss. Choice: read the type chart; wide coverage is what makes it pay.",
+						"kit": false,
+						"name": "Studied"
+					},
+					{
+						"built": false,
+						"description": "when a foe falls within 3 tiles of the owner, every foe within 2 tiles of it is SHOCKED for a turn. Shaken's mirror. Choice: pull wounded units away from it.",
+						"kit": false,
+						"name": "Sadist"
+					},
+					{
+						"built": false,
+						"description": "a debuff aimed at the owner lands on an ally next to it instead. Entourage's twin for statuses (needs a status redirect hook).",
+						"kit": false,
+						"name": "Blame"
+					},
+					{
+						"built": false,
+						"description": "after the owner misses, an ally next to it is SHOCKED for a turn. Fights Entourage: the men it hides behind are the ones it takes it out on.",
+						"kit": false,
+						"name": "Petulant"
+					},
+					{
+						"built": true,
+						"description": "Harder to target at range; ranged attacks have reduced accuracy",
+						"kit": false,
+						"name": "Low Profile"
+					},
+					{
+						"built": true,
+						"description": "Cannot use the same move twice in a row; picks randomly among remaining usable moves",
+						"kit": false,
+						"name": "Capricious"
+					},
+					{
+						"built": false,
+						"description": "allies within 2 tiles of the owner count as brave (CombatPredicates. is_brave): Roar challenges them instead of rattling them, Shriek passes them over. Narrow.",
+						"kit": false,
+						"name": "Dread"
+					}
+				]
+			},
 			"name": "Napdawg",
 			"requirements": [
 				{
@@ -20015,7 +20607,7 @@ window.ART_DASHBOARD_DATA = {
 						}
 					],
 					"id": "ranged_physical",
-					"needed": true,
+					"needed": false,
 					"tier": "green"
 				},
 				{
@@ -20306,7 +20898,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged_physical",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -20564,7 +21156,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged_physical",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -20822,7 +21414,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged_physical",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -21080,7 +21672,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged_physical",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -21338,7 +21930,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged_physical",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -21527,6 +22119,146 @@ window.ART_DASHBOARD_DATA = {
 				"y": 575
 			},
 			"id": "ogre",
+			"moveset": {
+				"moves": [
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Two swings of the anvil hammer. Each one can crit on its own.",
+						"kit": true,
+						"name": "Pound",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "ranged",
+						"description": "Throws the anvil hammer. Heavy, and hard to aim.",
+						"kit": true,
+						"name": "Hurl",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Three crude blows that crack armor. Each one may Subvert the target.",
+						"kit": false,
+						"name": "Maul",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "cast",
+						"description": "Touches a glowing stone to an ally, or to the user, and lifts what weighs on them: their debuff clears.",
+						"kit": false,
+						"name": "Lighten",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Throws the target over the user's shoulder, onto the far side.",
+						"kit": false,
+						"name": "Toss",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Flails at everything in reach: three blows, each at a random unit next to the user, friends included.",
+						"kit": false,
+						"name": "Tantrum",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "cast",
+						"description": "Touches a glowing stone to a foe, and it weighs them down: Gravity, three stacks.",
+						"kit": false,
+						"name": "Burden",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Twists an arm and holds on. Neither the target nor the user can move on their next turn.",
+						"kit": false,
+						"name": "Arm Twist",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "cast",
+						"description": "Picks up an ally next to the user and sets them down on the user's far side.",
+						"kit": false,
+						"name": "Lift",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Beats the target like a drum: three quick blows.",
+						"kit": false,
+						"name": "Pummel",
+						"special": false
+					}
+				],
+				"passives": [
+					{
+						"built": true,
+						"description": "With two or more foes next to this unit, its multi-hit moves land one more hit",
+						"kit": true,
+						"name": "Outburst"
+					},
+					{
+						"built": true,
+						"description": "After a miss, the next attack deals 20% more damage but is 15% less accurate",
+						"kit": false,
+						"name": "Temper"
+					},
+					{
+						"built": true,
+						"description": "Rough terrain costs 1 less to cross, never below 1",
+						"kit": false,
+						"name": "Pathfinder"
+					},
+					{
+						"built": true,
+						"description": "Hard to catch off guard: hits on this unit never crit",
+						"kit": false,
+						"name": "Wary"
+					},
+					{
+						"built": true,
+						"description": "Buffs on this unit land one stack heavier, so they last a turn longer",
+						"kit": false,
+						"name": "Grateful"
+					},
+					{
+						"built": true,
+						"description": "Debuffs land one stack lighter, so most wear off a turn sooner. A one-stack debuff still lands.",
+						"kit": false,
+						"name": "Hardy"
+					},
+					{
+						"built": true,
+						"description": "Below half HP this unit moves 1 tile farther, but can't use support moves",
+						"kit": false,
+						"name": "Panic"
+					},
+					{
+						"built": true,
+						"description": "Ranged attacks hit this unit instead of units directly behind it",
+						"kit": false,
+						"name": "Protector"
+					},
+					{
+						"built": true,
+						"description": "When a foe next to this unit walks away, this unit steps into the tile it left",
+						"kit": false,
+						"name": "Tag Along"
+					}
+				]
+			},
 			"name": "Ogre",
 			"requirements": [
 				{
@@ -21623,7 +22355,7 @@ window.ART_DASHBOARD_DATA = {
 						}
 					],
 					"id": "ranged",
-					"needed": false,
+					"needed": true,
 					"tier": "yellow"
 				},
 				{
@@ -21680,7 +22412,7 @@ window.ART_DASHBOARD_DATA = {
 						}
 					],
 					"id": "ranged_physical",
-					"needed": false,
+					"needed": true,
 					"tier": "green"
 				},
 				{
@@ -21777,7 +22509,7 @@ window.ART_DASHBOARD_DATA = {
 						}
 					],
 					"id": "crit_ranged",
-					"needed": false,
+					"needed": true,
 					"tier": "extra"
 				}
 			],
@@ -29808,6 +30540,146 @@ window.ART_DASHBOARD_DATA = {
 				"y": 660
 			},
 			"id": "squash",
+			"moveset": {
+				"moves": [
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "A belly-first body check that bounces the target away — into a wall, if one obliges. Stout foes stand their ground.",
+						"kit": true,
+						"name": "Bounce Out",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Twists an arm and holds on. Neither the target nor the user can move on their next turn.",
+						"kit": true,
+						"name": "Arm Twist",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "An overhead fist slam. Hits hard.",
+						"kit": false,
+						"name": "Klunk",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "cast",
+						"description": "Locks eyes with a foe. For two turns it can only aim its attacks at the user.",
+						"kit": false,
+						"name": "Staredown",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Throws the target over the user's shoulder, onto the far side.",
+						"kit": false,
+						"name": "Toss",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Elbows out. Hits every foe standing next to the user.",
+						"kit": false,
+						"name": "Elbows",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Leans on the target and takes its buff for the user.",
+						"kit": false,
+						"name": "Shake Down",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "A rising strike that knocks the target off balance and primes a follow-up.",
+						"kit": false,
+						"name": "Uppercut",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "A broad, heavy swing with a blunt weapon.",
+						"kit": false,
+						"name": "Club",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "cast",
+						"description": "Stands guard by an ally. Until the user's next turn, attacks on that ally hit the user instead, as long as the user stays beside them.",
+						"kit": false,
+						"name": "Cover",
+						"special": false
+					}
+				],
+				"passives": [
+					{
+						"built": true,
+						"description": "A foe that steps next to this unit has to stop there",
+						"kit": true,
+						"name": "Stonewall"
+					},
+					{
+						"built": true,
+						"description": "A foe that lands a melee hit on this unit bounces back a tile, unless it's stout enough to hold",
+						"kit": false,
+						"name": "Big Gut"
+					},
+					{
+						"built": true,
+						"description": "Ranged attacks hit this unit instead of units directly behind it",
+						"kit": false,
+						"name": "Protector"
+					},
+					{
+						"built": true,
+						"description": "From full HP, a hit that would drop this unit leaves it at 1 HP",
+						"kit": false,
+						"name": "Still Standing"
+					},
+					{
+						"built": true,
+						"description": "Never ends up more than 1 tile from where its turn began, walking or pushed",
+						"kit": false,
+						"name": "On Duty"
+					},
+					{
+						"built": true,
+						"description": "When this unit falls, foes next to it are Rooted for a turn",
+						"kit": false,
+						"name": "Dead Weight"
+					},
+					{
+						"built": true,
+						"description": "This unit counts as brave: challenged by Roar rather than rattled, and passed over by Shriek of the Damned. Courage without Chivalric's weaknesses — or its resistances.",
+						"kit": false,
+						"name": "Bravery"
+					},
+					{
+						"built": true,
+						"description": "Foes land one hit per attack on this unit, however fast they are",
+						"kit": false,
+						"name": "Thick Skin"
+					},
+					{
+						"built": true,
+						"description": "Landing a crit or dropping a foe Challenges every foe within 2 tiles for a turn",
+						"kit": false,
+						"name": "Gloat"
+					}
+				]
+			},
 			"name": "Squash",
 			"requirements": [
 				{
@@ -29904,7 +30776,7 @@ window.ART_DASHBOARD_DATA = {
 						}
 					],
 					"id": "ranged",
-					"needed": true,
+					"needed": false,
 					"tier": "yellow"
 				},
 				{
@@ -29961,7 +30833,7 @@ window.ART_DASHBOARD_DATA = {
 						}
 					],
 					"id": "ranged_physical",
-					"needed": true,
+					"needed": false,
 					"tier": "green"
 				},
 				{
@@ -29993,7 +30865,7 @@ window.ART_DASHBOARD_DATA = {
 						}
 					],
 					"id": "cast",
-					"needed": false,
+					"needed": true,
 					"tier": "green"
 				},
 				{
@@ -30058,7 +30930,7 @@ window.ART_DASHBOARD_DATA = {
 						}
 					],
 					"id": "crit_ranged",
-					"needed": true,
+					"needed": false,
 					"tier": "extra"
 				}
 			],
@@ -30195,7 +31067,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged",
-							"needed": true,
+							"needed": false,
 							"tier": "yellow"
 						},
 						{
@@ -30252,7 +31124,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged_physical",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -30284,7 +31156,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "cast",
-							"needed": false,
+							"needed": true,
 							"tier": "green"
 						},
 						{
@@ -30349,7 +31221,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "crit_ranged",
-							"needed": true,
+							"needed": false,
 							"tier": "extra"
 						}
 					]
@@ -30453,7 +31325,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged",
-							"needed": true,
+							"needed": false,
 							"tier": "yellow"
 						},
 						{
@@ -30510,7 +31382,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged_physical",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -30542,7 +31414,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "cast",
-							"needed": false,
+							"needed": true,
 							"tier": "green"
 						},
 						{
@@ -30607,7 +31479,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "crit_ranged",
-							"needed": true,
+							"needed": false,
 							"tier": "extra"
 						}
 					]
@@ -30711,7 +31583,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged",
-							"needed": true,
+							"needed": false,
 							"tier": "yellow"
 						},
 						{
@@ -30768,7 +31640,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged_physical",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -30800,7 +31672,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "cast",
-							"needed": false,
+							"needed": true,
 							"tier": "green"
 						},
 						{
@@ -30865,7 +31737,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "crit_ranged",
-							"needed": true,
+							"needed": false,
 							"tier": "extra"
 						}
 					]
@@ -30969,7 +31841,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged",
-							"needed": true,
+							"needed": false,
 							"tier": "yellow"
 						},
 						{
@@ -31026,7 +31898,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged_physical",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -31058,7 +31930,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "cast",
-							"needed": false,
+							"needed": true,
 							"tier": "green"
 						},
 						{
@@ -31123,7 +31995,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "crit_ranged",
-							"needed": true,
+							"needed": false,
 							"tier": "extra"
 						}
 					]
@@ -31227,7 +32099,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged",
-							"needed": true,
+							"needed": false,
 							"tier": "yellow"
 						},
 						{
@@ -31284,7 +32156,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged_physical",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -31316,7 +32188,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "cast",
-							"needed": false,
+							"needed": true,
 							"tier": "green"
 						},
 						{
@@ -31381,7 +32253,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "crit_ranged",
-							"needed": true,
+							"needed": false,
 							"tier": "extra"
 						}
 					]
@@ -31457,6 +32329,146 @@ window.ART_DASHBOARD_DATA = {
 				"y": 425
 			},
 			"id": "thumps",
+			"moveset": {
+				"moves": [
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Two swings of the anvil hammer. Each one can crit on its own.",
+						"kit": true,
+						"name": "Pound",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "ranged",
+						"description": "Throws the anvil hammer. Heavy, and hard to aim.",
+						"kit": true,
+						"name": "Hurl",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Three crude blows that crack armor. Each one may Subvert the target.",
+						"kit": false,
+						"name": "Maul",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "cast",
+						"description": "Touches a glowing stone to an ally, or to the user, and lifts what weighs on them: their debuff clears.",
+						"kit": false,
+						"name": "Lighten",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Throws the target over the user's shoulder, onto the far side.",
+						"kit": false,
+						"name": "Toss",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Flails at everything in reach: three blows, each at a random unit next to the user, friends included.",
+						"kit": false,
+						"name": "Tantrum",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "cast",
+						"description": "Touches a glowing stone to a foe, and it weighs them down: Gravity, three stacks.",
+						"kit": false,
+						"name": "Burden",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Twists an arm and holds on. Neither the target nor the user can move on their next turn.",
+						"kit": false,
+						"name": "Arm Twist",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "cast",
+						"description": "Picks up an ally next to the user and sets them down on the user's far side.",
+						"kit": false,
+						"name": "Lift",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Beats the target like a drum: three quick blows.",
+						"kit": false,
+						"name": "Pummel",
+						"special": false
+					}
+				],
+				"passives": [
+					{
+						"built": true,
+						"description": "With two or more foes next to this unit, its multi-hit moves land one more hit",
+						"kit": true,
+						"name": "Outburst"
+					},
+					{
+						"built": true,
+						"description": "After a miss, the next attack deals 20% more damage but is 15% less accurate",
+						"kit": false,
+						"name": "Temper"
+					},
+					{
+						"built": true,
+						"description": "Rough terrain costs 1 less to cross, never below 1",
+						"kit": false,
+						"name": "Pathfinder"
+					},
+					{
+						"built": true,
+						"description": "Hard to catch off guard: hits on this unit never crit",
+						"kit": false,
+						"name": "Wary"
+					},
+					{
+						"built": true,
+						"description": "Buffs on this unit land one stack heavier, so they last a turn longer",
+						"kit": false,
+						"name": "Grateful"
+					},
+					{
+						"built": true,
+						"description": "Debuffs land one stack lighter, so most wear off a turn sooner. A one-stack debuff still lands.",
+						"kit": false,
+						"name": "Hardy"
+					},
+					{
+						"built": true,
+						"description": "Below half HP this unit moves 1 tile farther, but can't use support moves",
+						"kit": false,
+						"name": "Panic"
+					},
+					{
+						"built": true,
+						"description": "Ranged attacks hit this unit instead of units directly behind it",
+						"kit": false,
+						"name": "Protector"
+					},
+					{
+						"built": true,
+						"description": "When a foe next to this unit walks away, this unit steps into the tile it left",
+						"kit": false,
+						"name": "Tag Along"
+					}
+				]
+			},
 			"name": "Thumps",
 			"requirements": [
 				{
@@ -31642,7 +32654,7 @@ window.ART_DASHBOARD_DATA = {
 						}
 					],
 					"id": "cast",
-					"needed": false,
+					"needed": true,
 					"tier": "green"
 				},
 				{
@@ -31933,7 +32945,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "cast",
-							"needed": false,
+							"needed": true,
 							"tier": "green"
 						},
 						{
@@ -32191,7 +33203,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "cast",
-							"needed": false,
+							"needed": true,
 							"tier": "green"
 						},
 						{
@@ -32449,7 +33461,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "cast",
-							"needed": false,
+							"needed": true,
 							"tier": "green"
 						},
 						{
@@ -32707,7 +33719,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "cast",
-							"needed": false,
+							"needed": true,
 							"tier": "green"
 						},
 						{
@@ -32965,7 +33977,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "cast",
-							"needed": false,
+							"needed": true,
 							"tier": "green"
 						},
 						{
@@ -33223,7 +34235,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "cast",
-							"needed": false,
+							"needed": true,
 							"tier": "green"
 						},
 						{
@@ -33642,6 +34654,146 @@ window.ART_DASHBOARD_DATA = {
 				}
 			},
 			"id": "traveller",
+			"moveset": {
+				"moves": [
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "A miner's pick, driven through the gaps. Ignores part of the target's defense.",
+						"kit": true,
+						"name": "Pick",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "ranged",
+						"description": "A hatchet, thrown end over end.",
+						"kit": true,
+						"name": "Hatchet",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "cast",
+						"description": "Patches up a wounded ally and stems any bleeding.",
+						"kit": false,
+						"name": "First Aid",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "A raking hook that can snag the target in place.",
+						"kit": false,
+						"name": "Hook Swipe",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "A lantern flashed in the face. May leave the target seeing spots.",
+						"kit": false,
+						"name": "Dazzle",
+						"special": true
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "An overhead fist slam. Hits hard.",
+						"kit": false,
+						"name": "Klunk",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Levers a pick under the target's guard and pries off whatever's propping them up.",
+						"kit": false,
+						"name": "Pry",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "cast",
+						"description": "Holds the lantern high. The user and allies alongside see their mark clearly.",
+						"kit": false,
+						"name": "Lantern",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "A fiery physical attack that may burn the target.",
+						"kit": false,
+						"name": "Flame Strike",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "cast",
+						"description": "Digs through the pack for something useful: a bandage, some padding, a moment's calm. You get what you find.",
+						"kit": false,
+						"name": "Rummage",
+						"special": false
+					}
+				],
+				"passives": [
+					{
+						"built": true,
+						"description": "Hard to catch off guard: hits on this unit never crit",
+						"kit": true,
+						"name": "Wary"
+					},
+					{
+						"built": true,
+						"description": "This unit counts as brave: challenged by Roar rather than rattled, and passed over by Shriek of the Damned. Courage without Chivalric's weaknesses — or its resistances.",
+						"kit": false,
+						"name": "Bravery"
+					},
+					{
+						"built": true,
+						"description": "Debuffs land one stack lighter, so most wear off a turn sooner. A one-stack debuff still lands.",
+						"kit": false,
+						"name": "Hardy"
+					},
+					{
+						"built": true,
+						"description": "+25% agility while no ally is within 2 tiles",
+						"kit": false,
+						"name": "Loner"
+					},
+					{
+						"built": true,
+						"description": "Recovers move usage by defeating enemies",
+						"kit": false,
+						"name": "Waste Not"
+					},
+					{
+						"built": true,
+						"description": "When an ally within 3 tiles falls, this unit is Shocked for a turn",
+						"kit": false,
+						"name": "Shaken"
+					},
+					{
+						"built": true,
+						"description": "Dropping a foe leaves this unit Fortified for a turn",
+						"kit": false,
+						"name": "Press On"
+					},
+					{
+						"built": true,
+						"description": "Rough terrain costs 1 less to cross, never below 1",
+						"kit": false,
+						"name": "Pathfinder"
+					},
+					{
+						"built": true,
+						"description": "Harder to target at range; ranged attacks have reduced accuracy",
+						"kit": false,
+						"name": "Low Profile"
+					}
+				]
+			},
 			"name": "Traveller",
 			"requirements": [
 				{
@@ -33814,7 +34966,7 @@ window.ART_DASHBOARD_DATA = {
 						}
 					],
 					"id": "ranged_special",
-					"needed": true,
+					"needed": false,
 					"tier": "green"
 				},
 				{
@@ -33827,7 +34979,7 @@ window.ART_DASHBOARD_DATA = {
 						}
 					],
 					"id": "cast",
-					"needed": false,
+					"needed": true,
 					"tier": "green"
 				},
 				{
@@ -34105,7 +35257,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged_special",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -34118,7 +35270,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "cast",
-							"needed": false,
+							"needed": true,
 							"tier": "green"
 						},
 						{
@@ -34363,7 +35515,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged_special",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -34376,7 +35528,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "cast",
-							"needed": false,
+							"needed": true,
 							"tier": "green"
 						},
 						{
@@ -34621,7 +35773,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged_special",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -34634,7 +35786,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "cast",
-							"needed": false,
+							"needed": true,
 							"tier": "green"
 						},
 						{
@@ -34879,7 +36031,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged_special",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -34892,7 +36044,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "cast",
-							"needed": false,
+							"needed": true,
 							"tier": "green"
 						},
 						{
@@ -35137,7 +36289,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "ranged_special",
-							"needed": true,
+							"needed": false,
 							"tier": "green"
 						},
 						{
@@ -35150,7 +36302,7 @@ window.ART_DASHBOARD_DATA = {
 								}
 							],
 							"id": "cast",
-							"needed": false,
+							"needed": true,
 							"tier": "green"
 						},
 						{
@@ -35250,6 +36402,146 @@ window.ART_DASHBOARD_DATA = {
 				"y": 614
 			},
 			"id": "wooly_beast",
+			"moveset": {
+				"moves": [
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Two swings of the anvil hammer. Each one can crit on its own.",
+						"kit": true,
+						"name": "Pound",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "ranged",
+						"description": "Throws the anvil hammer. Heavy, and hard to aim.",
+						"kit": true,
+						"name": "Hurl",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Three crude blows that crack armor. Each one may Subvert the target.",
+						"kit": false,
+						"name": "Maul",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "cast",
+						"description": "Touches a glowing stone to an ally, or to the user, and lifts what weighs on them: their debuff clears.",
+						"kit": false,
+						"name": "Lighten",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Throws the target over the user's shoulder, onto the far side.",
+						"kit": false,
+						"name": "Toss",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Flails at everything in reach: three blows, each at a random unit next to the user, friends included.",
+						"kit": false,
+						"name": "Tantrum",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "cast",
+						"description": "Touches a glowing stone to a foe, and it weighs them down: Gravity, three stacks.",
+						"kit": false,
+						"name": "Burden",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Twists an arm and holds on. Neither the target nor the user can move on their next turn.",
+						"kit": false,
+						"name": "Arm Twist",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "cast",
+						"description": "Picks up an ally next to the user and sets them down on the user's far side.",
+						"kit": false,
+						"name": "Lift",
+						"special": false
+					},
+					{
+						"built": true,
+						"clip": "melee",
+						"description": "Beats the target like a drum: three quick blows.",
+						"kit": false,
+						"name": "Pummel",
+						"special": false
+					}
+				],
+				"passives": [
+					{
+						"built": true,
+						"description": "With two or more foes next to this unit, its multi-hit moves land one more hit",
+						"kit": true,
+						"name": "Outburst"
+					},
+					{
+						"built": true,
+						"description": "After a miss, the next attack deals 20% more damage but is 15% less accurate",
+						"kit": false,
+						"name": "Temper"
+					},
+					{
+						"built": true,
+						"description": "Rough terrain costs 1 less to cross, never below 1",
+						"kit": false,
+						"name": "Pathfinder"
+					},
+					{
+						"built": true,
+						"description": "Hard to catch off guard: hits on this unit never crit",
+						"kit": false,
+						"name": "Wary"
+					},
+					{
+						"built": true,
+						"description": "Buffs on this unit land one stack heavier, so they last a turn longer",
+						"kit": false,
+						"name": "Grateful"
+					},
+					{
+						"built": true,
+						"description": "Debuffs land one stack lighter, so most wear off a turn sooner. A one-stack debuff still lands.",
+						"kit": false,
+						"name": "Hardy"
+					},
+					{
+						"built": true,
+						"description": "Below half HP this unit moves 1 tile farther, but can't use support moves",
+						"kit": false,
+						"name": "Panic"
+					},
+					{
+						"built": true,
+						"description": "Ranged attacks hit this unit instead of units directly behind it",
+						"kit": false,
+						"name": "Protector"
+					},
+					{
+						"built": true,
+						"description": "When a foe next to this unit walks away, this unit steps into the tile it left",
+						"kit": false,
+						"name": "Tag Along"
+					}
+				]
+			},
 			"name": "Wooly Beast",
 			"requirements": [
 				{
@@ -35384,7 +36676,7 @@ window.ART_DASHBOARD_DATA = {
 						}
 					],
 					"id": "melee_special",
-					"needed": true,
+					"needed": false,
 					"tier": "green"
 				},
 				{
@@ -35422,7 +36714,7 @@ window.ART_DASHBOARD_DATA = {
 						}
 					],
 					"id": "ranged_special",
-					"needed": true,
+					"needed": false,
 					"tier": "green"
 				},
 				{

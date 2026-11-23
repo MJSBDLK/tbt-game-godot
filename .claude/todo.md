@@ -187,7 +187,9 @@ Observations with nothing to do go in "Claude FYI" below.
 - [ ] Fighter's schedule is Squash's
 	Berzerker and Grasker start as Fighters and inherit it until per-unit
 	overrides exist (§9 promises them; no data format yet) or they get their
-	own base class.
+	own base class. The art board lists it on their rows and draws their
+	needs from it, so Berzerker stopped needing a ranged clip (Fighter has no
+	move that reaches 2 tiles). Same for Heavy below.
 - [ ] Heavy's schedule is Thumps'
 	Ogre and Wooly Beast start as Heavies. Ogre's notes want one swing that
 	one-shots, the opposite of a kit built on small hits. My pick: Thumps gets

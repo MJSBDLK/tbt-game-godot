@@ -15,8 +15,9 @@
 // shows "export", and doesn't count until it's exported.
 //
 // Each character is a <details>: closed, one pip per box (so closed rows line
-// up like a grid); open, its boxes grouped by the color that needs them. New
-// boxes go in game_data_generator.gd's COLUMNS and need no layout work here.
+// up like a grid); open, its boxes grouped by the color that needs them, and
+// its locked moveset (the class schedule), if it has one. New boxes go in
+// game_data_generator.gd's COLUMNS and need no layout work here.
 //
 // Class variants (the character redrawn for each class its tree promotes
 // into) sit outside the alpha counts. The trees are data/classes/, edited in
@@ -35,6 +36,7 @@ const {
 	NEXT_TIER, TOP_TIER, frameCount, boxState, evaluateCharacter, unitTree, treeStatus,
 	resolveBoxes, variantProgress, sortCharacters, pendingRenames, folderName, boxHint,
 	keyframeIndex, frameDurations, spriteGeometry, lineArtGeometry, needsHitMarker, asepriteSource,
+	movesetGroups, sharesMoveset,
 } = global.ArtBoardLogic;
 const { rememberedFolder, connectFolder, hasFile, Sources } = global.ArtBoardFolders;
 // How a variant's art gets made: its tree slot's `art` (data/classes/README.md).
@@ -377,7 +379,7 @@ function renderGrid(characters, evaluations, columns, ranking, classes) {
 		section.dataset.character = character.id;
 		section.open = isOpen(character.id);
 		section.append(renderCharacterSummary(character, evaluation, columns, ranking, nameCounts.get(character.name) > 1));
-		section.append(renderCharacterBody(character, evaluation, columns, classes));
+		section.append(renderCharacterBody(character, evaluation, columns, classes, characters));
 		grid.append(section);
 	}
 }
@@ -433,7 +435,7 @@ function renderPips(character, evaluation, columns, inherited = {}) {
 	return pips;
 }
 
-function renderCharacterBody(character, evaluation, columns, classes) {
+function renderCharacterBody(character, evaluation, columns, classes, characters) {
 	const body = element("div", "character-body");
 	body.append(...renderBoxGroups(character, evaluation, columns));
 	// Placeholder reasons in plain view, not just in tooltips.
@@ -445,9 +447,44 @@ function renderCharacterBody(character, evaluation, columns, classes) {
 			element("span", "", placeholderReasons[placeholder.path]));
 		body.append(note);
 	}
+	if (character.moveset) body.append(renderMoveset(character, columns, classes, characters));
 	const variants = renderVariants(character, evaluation, columns, classes);
 	if (variants) body.append(variants);
 	return body;
+}
+
+// The locked kit (its class's schedule), each move under the box it plays:
+// what the poses are for. The boxes' needs already follow it.
+function renderMoveset(character, columns, classes, characters) {
+	const section = element("section", "moveset");
+	section.append(element("h3", "box-group-title", "Moves"));
+	const className = (classes.find((entry) => entry.id === character.tree.class) || {}).name;
+	const designed = [...character.moveset.moves, ...character.moveset.passives].some((entry) => !entry.built);
+	let intro = `${className}'s schedule, in learning order. Bold: the starting kit.`
+		+ (designed ? " Dimmed: designed, not in the game yet." : "") + " Hover a name for what it does.";
+	const others = sharesMoveset(characters, character).map((other) => other.name);
+	if (others.length) intro += ` ${others.join(", ")} also start as ${className} and learn the same.`;
+	section.append(element("p", "moveset-intro", intro));
+	const list = element("dl", "moveset-list");
+	for (const group of movesetGroups(character.moveset)) {
+		list.append(element("dt", "", group.clip ? columnLabel(group.clip, columns) : "No clip yet"),
+			movesetNames(group.moves, group.clip === "ranged" ? "Plays melee up close. " : ""));
+	}
+	list.append(element("dt", "", "Passives"), movesetNames(character.moveset.passives, ""));
+	section.append(list);
+	return section;
+}
+
+function movesetNames(entries, note) {
+	const names = element("dd");
+	entries.forEach((entry, index) => {
+		if (index > 0) names.append(", ");
+		const name = element("span", `move${entry.kit ? " move-kit" : ""}${entry.built ? "" : " move-designed"}`, entry.name);
+		if (entry.special) name.append(element("span", "move-special", "spec"));
+		name.title = (entry.built ? "" : "Not in the game yet. ") + note + entry.description;
+		names.append(name);
+	});
+	return names;
 }
 
 // The boxes, grouped by the color that needs them. `inherited`: a variant's

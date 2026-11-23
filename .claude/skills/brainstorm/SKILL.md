@@ -74,6 +74,11 @@ back a cut idea. Each round is one updated table, not a new essay.
 - The class file's `schedule`: kit, then moves and passives in learning order.
 - Each new move or passive: a row in `moves-and-passives.md` under its
   element/kind, in the doc's row format. The schedule says who learns it.
+  The art board reads an unbuilt move's clip from that row (the heading's
+  kind, a leading `Support`, `rN`), so write them.
 - One line in the tree's `notes`: why the kit is what it is.
+- Regenerate the art board, which lists the kit and draws its needs from it:
+  `godot-4 --headless --path . -s tools/art_dashboard/game_data_generator.gd`.
 - Then `node --test tools/art_dashboard/class_tree_test.js` and GUT
-  `test_class_trees`. Building moves and handlers is separate work. Don't commit.
+  `test_class_trees` and `test_art_dashboard_data`. Building moves and
+  handlers is separate work. Don't commit.

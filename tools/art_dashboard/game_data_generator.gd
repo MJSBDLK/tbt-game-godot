@@ -18,6 +18,10 @@
 ##   class         the class it plays as today (currentClass, as a class id).
 ##   tree          its promotion tree from data/classes/trees/<id>.json, cut
 ##                 to each slot's class and art (tree_entry).
+##   moveset       only when the class it starts as (its tree's base) has a
+##                 locked schedule: moveset_entry. The schedule then decides
+##                 which boxes its moves need, in place of its JSON's
+##                 placeholder move pool.
 ##   variants      one per class its tree promotes into: the same character
 ##                 redrawn for that class, with its own full set of boxes
 ##                 under the file stem <id>_<class>. Moves don't change with
@@ -27,8 +31,8 @@
 ##
 ## `classes` is the class pool, data/classes/pool/ (ClassTrees): id, name, tier.
 ## `designs` are trees with no character JSON yet: id, its base class's name,
-## the tree and its notes, so the board's Class trees panel can show them. A tree edit in the class tree editor makes this
-## file stale, like any other.
+## the tree and its notes, so the board's Class trees panel can show them. A
+## tree or schedule edit makes this file stale, like any other.
 ##
 ## Needs mirror UnitAnimationResolver: two reaches (1 tile = melee, 2+ =
 ## ranged), every attack can hit from 1 tile (targeting is distance <= range),
@@ -39,6 +43,12 @@ extends SceneTree
 
 const CHARACTERS_DIRECTORY: String = "res://data/characters/"
 const MOVE_BANK_PATH: String = "res://data/moves/basic_move_bank.json"
+const PASSIVES_PATH: String = "res://data/passives.json"
+## A schedule can name designs the game doesn't have yet; their rows here say
+## what they do and, for a move, which clip it will play.
+const DESIGN_DOC_PATH: String = "res://data/design/moves-and-passives.md"
+## Read as text: the handler scripts need autoloads a headless -s run lacks.
+const PASSIVE_REGISTRY_PATH: String = "res://scripts/combat/passive_registry.gd"
 const OUTPUT_PATH: String = "res://tools/art_dashboard/game_data.js"
 const SPRITE_DIRECTORY: String = "res://art/sprites/characters/"
 const LINEART_DIRECTORY: String = "res://art/lineart_fullres/"
@@ -99,15 +109,23 @@ static func render(data: Dictionary) -> String:
 
 
 static func build_data() -> Dictionary:
-	var move_bank: Dictionary = read_json(MOVE_BANK_PATH)
+	var design := read_design_doc(FileAccess.get_file_as_string(DESIGN_DOC_PATH))
+	var moves: Dictionary = design.moves
+	moves.merge(read_json(MOVE_BANK_PATH), true)  # the bank wins over a design row
+	var passives := passive_catalog(read_json(PASSIVES_PATH), design.passives, coded_passives())
 	var unit_trees := ClassTrees.trees()
 	var class_pool := ClassTrees.pool()
+	var schedules: Dictionary = {}
+	for class_id: String in class_pool:
+		if class_pool[class_id].has("schedule"):
+			schedules[class_id] = moveset_entry(class_id, class_pool[class_id].schedule, moves, passives)
 	var characters: Array[Dictionary] = []
 	for path: String in character_files():
 		var character: Dictionary = read_json(path)
 		var character_id := path.get_file().get_basename()
 		if not character.is_empty():
-			characters.append(character_entry(character_id, character, move_bank, unit_trees.get(character_id, {})))
+			characters.append(character_entry(character_id, character, moves,
+					unit_trees.get(character_id, {}), schedules))
 	# `convention` tells the page where each box's file goes ({id} = character).
 	var columns: Array[Dictionary] = []
 	for column: Dictionary in COLUMNS:
@@ -191,30 +209,37 @@ static func tree_promotions(tree: Dictionary) -> Array[String]:
 	return found
 
 
+## `schedules`: class id → moveset_entry, for the classes that have one.
 static func character_entry(character_id: String, character: Dictionary, move_bank: Dictionary,
-		unit_tree: Dictionary = {}) -> Dictionary:
+		unit_tree: Dictionary = {}, schedules: Dictionary = {}) -> Dictionary:
 	var result := {
 		"id": character_id,
 		"name": str(character.get("characterName", character_id)),
 		"class": character_class_id(character),
 	}
 	result["tree"] = tree_entry(unit_tree, result["class"])
-	result.merge(art_entry(character_id, character, move_bank))
+	var move_names: Array = character.get("basePoolMoves", [])
+	var passive_names: Array = character.get("basePoolPassives", [])
+	var moveset: Dictionary = schedules.get(result.tree["class"], {})
+	if not moveset.is_empty():
+		result["moveset"] = moveset
+		move_names = moveset.moves.map(func(move: Dictionary) -> String: return move.name)
+		passive_names = moveset.passives.map(func(passive: Dictionary) -> String: return passive.name)
+	var kit := kit_for(move_names, passive_names, move_bank)
+	result.merge(art_entry(character_id, character, kit))
 	# Only the moves carry over: every file a variant has is its own.
-	var moves_only := {"basePoolMoves": character.get("basePoolMoves", []),
-			"basePoolPassives": character.get("basePoolPassives", [])}
 	var variants: Array[Dictionary] = []
 	for promotion: String in tree_promotions(result["tree"]):
 		var variant := {"class": promotion}
-		variant.merge(art_entry(character_id + "_" + promotion, moves_only, move_bank))
+		variant.merge(art_entry(character_id + "_" + promotion, {}, kit))
 		variants.append(variant)
 	result["variants"] = variants
 	return result
 
 
-## The boxes for one set of art (a character, or one of its class variants).
-static func art_entry(character_id: String, character: Dictionary, move_bank: Dictionary) -> Dictionary:
-	var kit := kit_for(character.get("basePoolMoves", []), character.get("basePoolPassives", []), move_bank)
+## The boxes for one set of art (a character, or one of its class variants);
+## `kit` (kit_for) says which clips its moves play.
+static func art_entry(character_id: String, character: Dictionary, kit: Dictionary) -> Dictionary:
 	var declared_clips: Dictionary = {}
 	var animations: Dictionary = character.get("animations", {})
 	for key: Variant in animations:
@@ -268,36 +293,146 @@ static func art_entry(character_id: String, character: Dictionary, move_bank: Di
 	return result
 
 
-## Which reaches, reach × kind pairs and casts the character's move pool uses.
+## Which reaches, reach × kind pairs and casts a set of moves uses.
 static func kit_for(move_names: Array, passive_names: Array, move_bank: Dictionary) -> Dictionary:
-	var extended_types: Array[String] = []
-	for passive_name: Variant in passive_names:
-		if RANGE_PASSIVES.has(passive_name):
-			extended_types.append(RANGE_PASSIVES[passive_name].damage_type)
+	var extended := extended_types(passive_names)
 	var reaches: Dictionary = {}
 	var pairs: Dictionary = {}
 	var casts := false
 	for move_name: Variant in move_names:
 		var move: Dictionary = move_bank.get(move_name, {})
 		if move.is_empty():
-			push_error("Art dashboard: move '%s' isn't in the move bank" % move_name)
+			push_error("Art dashboard: move '%s' is in neither the move bank nor %s" % [move_name, DESIGN_DOC_PATH])
 			continue
-		var damage_type := str(move.get("damageType", ""))
-		if damage_type == "Support":
-			casts = true
-			continue
-		var kind := "special" if damage_type == "Special" else "physical"
-		var attack_range := int(move.get("range", 1)) + (1 if extended_types.has(damage_type) else 0)
-		var style := str(move.get("animationStyle", "")).to_lower()
-		var move_reaches: Array[String] = ["melee"]
-		if style == "melee" or style == "ranged":
-			move_reaches = [style]
-		elif attack_range >= 2:
-			move_reaches = ["melee", "ranged"]
-		for reach: String in move_reaches:
-			reaches[reach] = true
-			pairs[reach + "_" + kind] = true
+		var kind := "special" if str(move.get("damageType", "")) == "Special" else "physical"
+		for clip: String in move_clips(move, extended):
+			if clip == "cast":
+				casts = true
+			else:
+				reaches[clip] = true
+				pairs[clip + "_" + kind] = true
 	return {"reaches": reaches, "pairs": pairs, "casts": casts}
+
+
+## The clips one move plays: cast for a Support move; else the reaches it
+## attacks from. [] for a move nothing describes.
+static func move_clips(move: Dictionary, extended: Array[String]) -> Array[String]:
+	if move.is_empty():
+		return []
+	var damage_type := str(move.get("damageType", ""))
+	if damage_type == "Support":
+		return ["cast"]
+	var style := str(move.get("animationStyle", "")).to_lower()
+	if style == "melee" or style == "ranged":
+		return [style]
+	var attack_range := int(move.get("range", 1)) + (1 if extended.has(damage_type) else 0)
+	if attack_range >= 2:
+		return ["melee", "ranged"]
+	return ["melee"]
+
+
+## The damage types whose range the passives extend (RANGE_PASSIVES).
+static func extended_types(passive_names: Array) -> Array[String]:
+	var types: Array[String] = []
+	for passive_name: Variant in passive_names:
+		if RANGE_PASSIVES.has(passive_name):
+			types.append(RANGE_PASSIVES[passive_name].damage_type)
+	return types
+
+
+## A class schedule (data/classes/README.md) as the board lists it: moves,
+## then passives, each in learning order with the kit first. A move's `clip`
+## is the box it plays (melee, ranged, cast; "" when nothing says); a range-2
+## move is "ranged" though it plays melee up close. `built`: the game has it.
+static func moveset_entry(class_id: String, schedule: Dictionary, moves: Dictionary,
+		passives: Dictionary) -> Dictionary:
+	var kit: Dictionary = schedule.get("kit", {})
+	var kit_moves: Array = kit.get("moves", [])
+	var kit_passives: Array = kit.get("passives", [])
+	var passive_names: Array = kit_passives + schedule.get("passives", [])
+	var extended := extended_types(passive_names)
+	var move_entries: Array[Dictionary] = []
+	for move_name: String in kit_moves + schedule.get("moves", []):
+		var move: Dictionary = moves.get(move_name, {})
+		if move.is_empty():
+			push_error("Art dashboard: %s's schedule teaches '%s', which is in neither the move bank nor %s" % [
+					class_id, move_name, DESIGN_DOC_PATH])
+		var clips := move_clips(move, extended)
+		move_entries.append({
+			"name": move_name, "kit": kit_moves.has(move_name),
+			"built": not move.is_empty() and not move.get("designed", false),
+			"clip": "" if clips.is_empty() else ("ranged" if clips.has("ranged") else clips[0]),
+			"special": str(move.get("damageType", "")) == "Special",
+			"description": str(move.get("description", "")),
+		})
+	var passive_entries: Array[Dictionary] = []
+	for passive_name: String in passive_names:
+		var passive: Dictionary = passives.get(passive_name, {})
+		if passive.is_empty():
+			push_error("Art dashboard: %s's schedule teaches the passive '%s', which is in neither %s nor %s" % [
+					class_id, passive_name, PASSIVES_PATH, DESIGN_DOC_PATH])
+		passive_entries.append({"name": passive_name, "kit": kit_passives.has(passive_name),
+				"built": passive.get("built", false), "description": str(passive.get("description", ""))})
+	return {"moves": move_entries, "passives": passive_entries}
+
+
+## The design doc's rows ("Reading a row" in DESIGN_DOC_PATH) as move-bank-
+## shaped moves marked `designed`, and passive name → description. A move
+## row's kind is its heading's (`### Gentry/Special`), or Support when the row
+## opens with it; its range is its `rN`, else 1. A row that's only a name
+## says nothing and is skipped; an indented line continues the row above.
+static func read_design_doc(text: String) -> Dictionary:
+	var rows: Array[Dictionary] = []
+	var row: Dictionary = {}  # the row an indented line would continue
+	var part := ""
+	var kind := ""
+	for line: String in text.split("\n"):
+		if line.begins_with("  ") and not row.is_empty() and not line.strip_edges().is_empty():
+			row.text += " " + line.strip_edges()
+			continue
+		row = {}
+		if line.begins_with("## "):
+			part = line.trim_prefix("## ").strip_edges()
+		elif line.begins_with("### "):
+			kind = line.get_slice("/", 1).strip_edges()
+		elif line.begins_with("+ ") and line.contains(" — "):
+			row = {"part": part, "kind": kind, "name": line.trim_prefix("+ ").get_slice(" — ", 0),
+					"text": line.substr(line.find(" — ") + 3)}
+			rows.append(row)
+	var range_pattern := RegEx.create_from_string("\\br(\\d+)\\b")
+	var moves: Dictionary = {}
+	var passives: Dictionary = {}
+	for entry: Dictionary in rows:
+		if entry.part == "Moves":
+			var found := range_pattern.search(entry.text)
+			moves[entry.name] = {"designed": true, "description": entry.text,
+					"damageType": "Support" if entry.text.begins_with("Support") else entry.kind,
+					"range": int(found.get_string(1)) if found else 1}
+		elif entry.part == "Passives":
+			passives[entry.name] = entry.text
+	return {"moves": moves, "passives": passives}
+
+
+## Every passive a schedule can name, by name: {description, built}. Built =
+## PassiveRegistry has a handler; passives.json's description wins over the
+## design doc's.
+static func passive_catalog(passive_data: Dictionary, designed: Dictionary, coded: Array[String]) -> Dictionary:
+	var catalog: Dictionary = {}
+	for passive_name: String in designed:
+		catalog[passive_name] = {"description": designed[passive_name], "built": coded.has(passive_name)}
+	for passive_name: String in passive_data:
+		catalog[passive_name] = {"description": str(passive_data[passive_name].get("description", "")),
+				"built": coded.has(passive_name)}
+	return catalog
+
+
+## The passive names PassiveRegistry registers a handler for.
+static func coded_passives() -> Array[String]:
+	var names: Array[String] = []
+	var source := FileAccess.get_file_as_string(PASSIVE_REGISTRY_PATH)
+	for found: RegExMatch in RegEx.create_from_string('_handlers\\["([^"]+)"\\] =').search_all(source):
+		names.append(found.get_string(1))
+	return names
 
 
 ## Tier and min_frames come from the box's COLUMNS entry: one home each.

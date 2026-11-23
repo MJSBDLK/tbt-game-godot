@@ -376,6 +376,25 @@ test("a clip that lands a hit asks for Lawrence's hit tag until it has one", () 
 	assert.equal(board.needsHitMarker(melee, null, undefined), false, "nothing drawn, nothing to mark");
 });
 
+test("a moveset lists its moves under the box each plays, in box order", () => {
+	const move = (name, clip) => ({ name, clip, kit: false, built: true, special: false, description: "" });
+	const moveset = { moves: [move("Hurl", "ranged"), move("Lift", "cast"), move("Pound", "melee"),
+		move("Extort", ""), move("Maul", "melee")], passives: [] };
+	const groups = board.movesetGroups(moveset);
+	assert.deepEqual(groups.map((group) => group.clip), ["melee", "ranged", "cast", ""], "nothing-says goes last");
+	assert.deepEqual(groups[0].moves.map((entry) => entry.name), ["Pound", "Maul"], "learning order inside a box");
+	assert.deepEqual(board.movesetGroups({ moves: [move("Pound", "melee")], passives: [] }).map((group) => group.clip),
+		["melee"], "a box no move plays isn't listed");
+});
+
+test("everyone who starts as a class shares its moveset", () => {
+	const unit = (id, base, moveset) => ({ id, tree: { class: base }, ...(moveset ? { moveset } : {}) });
+	const squash = unit("squash", "fighter", {});
+	const characters = [squash, unit("grasker", "fighter", {}), unit("thumps", "heavy", {}), unit("pica", "fighter")];
+	assert.deepEqual(board.sharesMoveset(characters, squash).map((other) => other.id), ["grasker"],
+		"not itself, not another class, not a character without the moveset");
+});
+
 test("line art uses the portrait crop only when it's on the same file", () => {
 	const crop = { atlas: "art/lineart_fullres/ernesto.png", x: 990, y: 400, width: 1000, height: 1000 };
 	const geometry = board.lineArtGeometry(exists(3024, 4032), crop, "art/lineart_fullres/ernesto.png");
