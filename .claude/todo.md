@@ -1,4 +1,13 @@
-**Reminder** We should be trying to get to alpha.
+# For Claude
+## Sample todo
+- [ ] Checkbox and a one-line title regarding what it's about
+	Indent, then an explanation as needed which includes all relevant information but *as concise as possible*
+	- [ ] Subtasks are intented
+		- [ ] Subtasks to the subtasks get another level of indentation
+			And so on...
+
+
+## **Reminder** We should be trying to get to alpha.
 + fix essential bugs
 + additional features need a good reason to be added at this point
 	- there will be time to add them later
@@ -6,7 +15,7 @@
 + done items move to [todo-archive.md](todo-archive.md): grep it, don't read it
 
 # Meeting Todo
-- [ ] Rebelle 7 needs to start working
+- [x] Rebelle 7 needs to start working
 - [ ] Victory screen mockup
 - [ ] Defeat screen animation
 - [ ] Next meeting with Lawrence: class variants as palette swaps (class
@@ -81,6 +90,8 @@
 - [ ] 
 
 # Resp
+
+
 
 # Claude
 Things Claude found while working on something else that need doing — not
