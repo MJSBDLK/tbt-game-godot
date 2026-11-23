@@ -76,7 +76,7 @@ enum StatusEffectType {
 	BUGLE,            # Take +1 damage from heraldic moves
 	BURN,             # DoT, lower attack
 	CHAIN_LIGHTNING,  # Marked for a delayed strike; splashes .5 to adjacent (ScheduledEffects)
-	CHALLENGED,       # AI targeting locks onto the challenger while they live (source_unit)
+	CHALLENGED,       # Single-target attacks can only go to the challenger (source_unit), either side
 	FREEZE,           # Immobilized, can't act
 	GRAVITY,          # -% agility
 	POISON,           # DoT, damage over time
@@ -85,6 +85,8 @@ enum StatusEffectType {
 	SUBVERSION,       # -% defense
 	VOID,             # Locks a random move per stack
 	VULNERABLE,       # -% resistance
+	# Appended, not filed under Buffs, so the values above never shift.
+	COVERED,          # Buff: attacks on this unit hit its bodyguard (source_unit) instead
 }
 
 enum TerrainStatus {
@@ -126,6 +128,7 @@ enum CharacterClass {
 	GRUNT,
 	KEENER,   # Occult wailer — a keener is a professional funeral mourner
 	BANDIT,
+	PRINCELING,  # A young or petty prince (Napdawg)
 	# Tier 2
 	JETPACK,
 	HARDCASE,
@@ -154,6 +157,7 @@ const CLASS_INFO: Dictionary = {
 	CharacterClass.GRUNT:       { "tier": 1, "display_name": "Grunt" },
 	CharacterClass.KEENER:      { "tier": 1, "display_name": "Keener" },
 	CharacterClass.BANDIT:      { "tier": 1, "display_name": "Bandit" },
+	CharacterClass.PRINCELING:  { "tier": 1, "display_name": "Princeling" },
 	CharacterClass.JETPACK:     { "tier": 2, "display_name": "Jetpack" },
 	CharacterClass.HARDCASE:    { "tier": 2, "display_name": "Hardcase" },
 	CharacterClass.KNIGHT:      { "tier": 2, "display_name": "Knight" },

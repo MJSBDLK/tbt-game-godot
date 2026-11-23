@@ -81,6 +81,11 @@ func apply_status_effect_by_name(caster: Node2D, target: Node2D, effect_type_nam
 
 	if stacks_to_apply <= 0:
 		stacks_to_apply = config.default_apply_stacks
+	if config.category == Enums.EffectCategory.DEBUFF and _lightens_debuffs(target):
+		stacks_to_apply = maxi(1, stacks_to_apply - 1)
+	# The cap still holds: the restack and the new effect below both clamp.
+	if config.category == Enums.EffectCategory.BUFF and _deepens_buffs(target):
+		stacks_to_apply += 1
 
 	# Check for an existing effect (same type → restack, same category → immunity check)
 	var existing_same_type: StatusEffect = null
@@ -144,6 +149,28 @@ func apply_status_effect_by_name(caster: Node2D, target: Node2D, effect_type_nam
 		effect_type_name, effect.stacks, target.get("unit_name")])
 	status_effect_applied.emit(target, effect_type_name)
 	return true
+
+
+## Hardy: a passive on the target that makes debuffs land a stack lighter.
+func _lightens_debuffs(target: Node2D) -> bool:
+	var data: Variant = target.get("character_data")
+	if data == null:
+		return false
+	for handler: CombatEffect in PassiveRegistry.get_handlers_for(data, target):
+		if handler.lightens_debuffs():
+			return true
+	return false
+
+
+## Grateful: a passive on the target that makes buffs land a stack heavier.
+func _deepens_buffs(target: Node2D) -> bool:
+	var data: Variant = target.get("character_data")
+	if data == null:
+		return false
+	for handler: CombatEffect in PassiveRegistry.get_handlers_for(data, target):
+		if handler.deepens_buffs():
+			return true
+	return false
 
 
 # =============================================================================

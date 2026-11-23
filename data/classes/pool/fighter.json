@@ -1,5 +1,36 @@
 {
 	"name": "Fighter",
 	"tier": 1,
-	"notes": ""
+	"notes": "",
+	"schedule": {
+		"kit": {
+			"moves": [
+				"Bounce Out",
+				"Arm Twist"
+			],
+			"passives": [
+				"Stonewall"
+			]
+		},
+		"moves": [
+			"Klunk",
+			"Staredown",
+			"Toss",
+			"Elbows",
+			"Shake Down",
+			"Uppercut",
+			"Club",
+			"Cover"
+		],
+		"passives": [
+			"Big Gut",
+			"Protector",
+			"Still Standing",
+			"On Duty",
+			"Dead Weight",
+			"Bravery",
+			"Thick Skin",
+			"Gloat"
+		]
+	}
 }

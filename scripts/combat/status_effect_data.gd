@@ -112,6 +112,19 @@ static func get_default_configs() -> Dictionary:
 	regen.icon_path = "res://art/sprites/ui/status_effect_icons_6x6_v2/regen_0000.png"
 	configs["REGEN"] = regen
 
+	# Cover's mark. source_unit is the bodyguard; MoveTargeting.resolve_actual_target
+	# sends single-target attacks to them while they stand next to this unit.
+	# 1 stack, cast on the bodyguard's turn: gone when that side's next turn starts.
+	var covered := StatusEffectData.new()
+	covered.effect_type = "COVERED"
+	covered.category = Enums.EffectCategory.BUFF
+	covered.abbrev_name = "Covered"
+	covered.description = "Attacks on this unit hit its bodyguard instead."
+	covered.max_stacks = 1
+	covered.default_apply_stacks = 1
+	covered.icon_path = "res://art/sprites/ui/status_effect_icons_6x6_v2/covered_0000.png"
+	configs["COVERED"] = covered
+
 	# =========================================================================
 	# DEBUFFS
 	# =========================================================================
@@ -262,7 +275,7 @@ static func get_default_configs() -> Dictionary:
 	challenged.effect_type = "CHALLENGED"
 	challenged.category = Enums.EffectCategory.DEBUFF
 	challenged.abbrev_name = "Chal."
-	challenged.description = "Draws aggro, must target challenger if nearby."
+	challenged.description = "Can only aim attacks at the challenger."
 	challenged.max_stacks = 3
 	challenged.default_apply_stacks = 3
 	challenged.icon_path = "res://art/sprites/ui/status_effect_icons_6x6_v2/challenged_0000.png"

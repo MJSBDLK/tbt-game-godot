@@ -318,6 +318,176 @@
 			}
 		}
 	},
+
+	"Elbows": {
+		"description": "Elbows out. Hits every foe standing next to the user.",
+		"abbrevName": "Elbows",
+		"range": 0,
+		"areaOfEffect": 1,
+		"basePower": 3,
+		"accuracy": 90,
+		"damageType": "Physical",
+		"elementType": "Simple",
+		"targetType": "Self",
+		"aoeAffects": "enemies"
+	},
+
+	"Arm Twist": {
+		"description": "Twists an arm and holds on. Neither the target nor the user can move on their next turn.",
+		"abbrevName": "Arm Twist",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 3,
+		"accuracy": 90,
+		"damageType": "Physical",
+		"elementType": "Simple",
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Rooted",
+			"chance": 1.0,
+			"stacks": 1
+		},
+		"onHit": {
+			"selfEffect": {
+				"effect": "Rooted",
+				"stacks": 1
+			}
+		}
+	},
+
+	"Toss": {
+		"description": "Throws the target over the user's shoulder, onto the far side.",
+		"abbrevName": "Toss",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 2,
+		"accuracy": 90,
+		"damageType": "Physical",
+		"elementType": "Simple",
+		"targetType": "Single",
+		"onHit": {
+			"displace": {
+				"distance": 2,
+				"vector": "toward_attacker",
+				"on_blocked": "fall_through"
+			}
+		}
+	},
+
+	"Shake Down": {
+		"description": "Leans on the target and takes its buff for the user.",
+		"abbrevName": "Shake Dn",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 4,
+		"accuracy": 90,
+		"damageType": "Physical",
+		"elementType": "Simple",
+		"targetType": "Single",
+		"onHit": {
+			"steal": ["Buff"]
+		}
+	},
+	"Prod": {
+		"description": "A poke from the far end of a pole. Reaches past arm's length.",
+		"abbrevName": "Prod",
+		"range": 2,
+		"areaOfEffect": 0,
+		"basePower": 3,
+		"accuracy": 85,
+		"damageType": "Physical",
+		"elementType": "Simple",
+		"targetType": "Single"
+	},
+	"Swarm": {
+		"description": "Everyone piles on. Marks the target so heraldic attacks hit it harder.",
+		"abbrevName": "Swarm",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 3,
+		"accuracy": 95,
+		"damageType": "Physical",
+		"elementType": "Heraldic",
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Bugle",
+			"chance": 0.5
+		}
+	},
+	"Press": {
+		"description": "Leans into the target and shoves it back a step. Anyone sturdier than the user stands their ground.",
+		"abbrevName": "Press",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 5,
+		"accuracy": 85,
+		"damageType": "Physical",
+		"elementType": "Heraldic",
+		"targetType": "Single",
+		"onHit": {
+			"displace": {
+				"distance": 1,
+				"vector": "away_from_attacker",
+				"save": {
+					"contest": "constitution",
+					"margin": 0
+				},
+				"on_blocked": "stop"
+			}
+		}
+	},
+	"Pick": {
+		"description": "A miner's pick, driven through the gaps. Ignores part of the target's defense.",
+		"abbrevName": "Pick",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 4,
+		"accuracy": 90,
+		"damageType": "Physical",
+		"elementType": "Simple",
+		"targetType": "Single",
+		"defensePierce": 0.3
+	},
+	"Hatchet": {
+		"description": "A hatchet, thrown end over end.",
+		"abbrevName": "Hatchet",
+		"range": 2,
+		"areaOfEffect": 0,
+		"basePower": 5,
+		"accuracy": 80,
+		"damageType": "Physical",
+		"elementType": "Simple",
+		"targetType": "Single"
+	},
+	"Dazzle": {
+		"description": "A lantern flashed in the face. May leave the target seeing spots.",
+		"abbrevName": "Dazzle",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 2,
+		"accuracy": 95,
+		"damageType": "Special",
+		"elementType": "Simple",
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Shocked",
+			"chance": 0.4
+		}
+	},
+	"Pry": {
+		"description": "Levers a pick under the target's guard and pries off whatever's propping them up.",
+		"abbrevName": "Pry",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 4,
+		"accuracy": 90,
+		"damageType": "Physical",
+		"elementType": "Simple",
+		"targetType": "Single",
+		"onHit": {
+			"cleanse": ["Buff"]
+		}
+	},
 	"Gravity Well": {
 		"description": "A localized gravity distortion. Hard to move through.",
 		"abbrevName": "Grv Well",
@@ -782,6 +952,113 @@
 		}
 	},
 
+	"Brace": {
+		"description": "Puts a shoulder behind an ally. Raises their defense for a couple of turns.",
+		"abbrevName": "Brace",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 0,
+		"accuracy": 100,
+		"damageType": "Support",
+		"elementType": "Simple",
+		"targetType": "AllyNotSelf",
+		"statusEffect": {
+			"effect": "Fortified",
+			"chance": 1.0,
+			"stacks": 2
+		}
+	},
+
+	"Staredown": {
+		"description": "Locks eyes with a foe. For two turns it can only aim its attacks at the user.",
+		"abbrevName": "Staredown",
+		"range": 2,
+		"areaOfEffect": 0,
+		"basePower": 0,
+		"accuracy": 100,
+		"usagesOffset": -22,
+		"damageType": "Support",
+		"elementType": "Simple",
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Challenged",
+			"chance": 1.0
+		}
+	},
+
+	"Cover": {
+		"description": "Stands guard by an ally. Until the user's next turn, attacks on that ally hit the user instead, as long as the user stays beside them.",
+		"abbrevName": "Cover",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 0,
+		"accuracy": 100,
+		"damageType": "Support",
+		"elementType": "Simple",
+		"targetType": "AllyNotSelf",
+		"statusEffect": {
+			"effect": "Covered",
+			"chance": 1.0,
+			"replaces": true
+		}
+	},
+
+	"Haul": {
+		"description": "Drags an ally out of trouble: pulls them alongside, or backs up a step and hauls them along.",
+		"abbrevName": "Haul",
+		"range": 2,
+		"areaOfEffect": 0,
+		"basePower": 0,
+		"accuracy": 100,
+		"damageType": "Support",
+		"elementType": "Simple",
+		"targetType": "AllyNotSelf",
+		"onHit": {
+			"displace": {
+				"distance": 1,
+				"vector": "toward_attacker",
+				"on_blocked": "push_chain"
+			}
+		}
+	},
+
+	"Lantern": {
+		"description": "Holds the lantern high. The user and allies alongside see their mark clearly.",
+		"abbrevName": "Lantern",
+		"range": 0,
+		"areaOfEffect": 1,
+		"basePower": 0,
+		"accuracy": 100,
+		"damageType": "Support",
+		"elementType": "Simple",
+		"targetType": "Self",
+		"aoeAffects": "allies",
+		"statusEffect": {
+			"effect": "Focused",
+			"chance": 1.0,
+			"stacks": 2
+		}
+	},
+
+	"Rummage": {
+		"description": "Digs through the pack for something useful: a bandage, some padding, a moment's calm. You get what you find.",
+		"abbrevName": "Rummage",
+		"range": 0,
+		"areaOfEffect": 0,
+		"basePower": 0,
+		"accuracy": 100,
+		"damageType": "Support",
+		"elementType": "Simple",
+		"targetType": "Self",
+		"onHit": {
+			"oneOf": [
+				{"healPct": 0.2},
+				{"effect": "Fortified", "stacks": 2},
+				{"effect": "Focused", "stacks": 2}
+			]
+		}
+	},
+
 	"Roar": {
 		"description": "A challenge bellowed across the field. Nearby foes are rattled — but the brave hear an invitation.",
 		"abbrevName": "Roar",
@@ -823,6 +1100,136 @@
 				"marker": "Chain_Lightning",
 				"stacks": 2,
 				"power": 6
+			}
+		}
+	},
+
+	"Pound": {
+		"description": "Two swings of the anvil hammer. Each one can crit on its own.",
+		"abbrevName": "Pound",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 6,
+		"accuracy": 85,
+		"hits": 2,
+		"damageType": "Physical",
+		"elementType": "Simple",
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Critical",
+			"chance": 0.1
+		}
+	},
+
+	"Hurl": {
+		"description": "Throws the anvil hammer. Heavy, and hard to aim.",
+		"abbrevName": "Hurl",
+		"range": 2,
+		"areaOfEffect": 0,
+		"basePower": 6,
+		"accuracy": 70,
+		"damageType": "Physical",
+		"elementType": "Simple",
+		"targetType": "Single"
+	},
+
+	"Maul": {
+		"description": "Three crude blows that crack armor. Each one may Subvert the target.",
+		"abbrevName": "Maul",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 6,
+		"accuracy": 80,
+		"hits": 3,
+		"damageType": "Physical",
+		"elementType": "Simple",
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Subversion",
+			"chance": 0.2
+		}
+	},
+
+	"Tantrum": {
+		"description": "Flails at everything in reach: three blows, each at a random unit next to the user, friends included.",
+		"abbrevName": "Tantrum",
+		"range": 0,
+		"areaOfEffect": 1,
+		"basePower": 9,
+		"accuracy": 85,
+		"hits": 3,
+		"randomTargets": true,
+		"damageType": "Physical",
+		"elementType": "Simple",
+		"targetType": "Self",
+		"aoeAffects": "all",
+		"animationClip": "tantrum"
+	},
+
+	"Pummel": {
+		"description": "Beats the target like a drum: three quick blows.",
+		"abbrevName": "Pummel",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 5,
+		"accuracy": 80,
+		"hits": 3,
+		"damageType": "Physical",
+		"elementType": "Heraldic",
+		"targetType": "Single"
+	},
+
+	"Lighten": {
+		"description": "Touches a glowing stone to an ally, or to the user, and lifts what weighs on them: their debuff clears.",
+		"abbrevName": "Lighten",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 0,
+		"accuracy": 100,
+		"usagesOffset": -22,
+		"damageType": "Support",
+		"elementType": "Simple",
+		"targetType": "Ally",
+		"onHit": {
+			"cleanse": [
+				"Debuff"
+			]
+		}
+	},
+
+	"Burden": {
+		"description": "Touches a glowing stone to a foe, and it weighs them down: Gravity, three stacks.",
+		"abbrevName": "Burden",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 0,
+		"accuracy": 100,
+		"usagesOffset": -22,
+		"damageType": "Support",
+		"elementType": "Simple",
+		"targetType": "Single",
+		"statusEffect": {
+			"effect": "Gravity",
+			"chance": 1.0,
+			"stacks": 3
+		}
+	},
+
+	"Lift": {
+		"description": "Picks up an ally next to the user and sets them down on the user's far side.",
+		"abbrevName": "Lift",
+		"range": 1,
+		"areaOfEffect": 0,
+		"basePower": 0,
+		"accuracy": 100,
+		"damageType": "Support",
+		"elementType": "Simple",
+		"targetType": "AllyNotSelf",
+		"onHit": {
+			"displace": {
+				"distance": 2,
+				"vector": "toward_attacker",
+				"on_blocked": "fall_through"
 			}
 		}
 	}

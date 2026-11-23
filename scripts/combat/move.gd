@@ -44,6 +44,16 @@ extends Resource
 @export var damage_type: Enums.DamageType = Enums.DamageType.PHYSICAL
 @export var element_type: Enums.ElementalType = Enums.ElementalType.NONE
 
+# Multi-hit (JSON: hits): one use swings this many times. Each hit rolls its
+# own accuracy, crit and secondary, and deals 1/hits of the move's damage
+# (DamageCalculator.calculate_damage), so the attack stat isn't counted once
+# per hit. Unit._execute_volley runs them. (Pound, Maul, Pummel, Tantrum.)
+@export var hits: int = 1
+
+# Self-cast AoE only (JSON: randomTargets): each hit lands on one random unit
+# in the area instead of every unit taking each hit. (Tantrum.)
+@export var random_targets: bool = false
+
 # Base hit chance before stat modifiers. Final hit % is computed in
 # DamageCalculator.hit_chance_pct (accuracy + the skill/agility edge + passive
 # modifiers); its header holds the formula.
@@ -105,7 +115,26 @@ var current_uses: int = 0
 
 # Status effects to remove from the target on hit (e.g. "BLEED" to cure a wound).
 # Names match Enums.StatusEffectType keys (case-insensitive — normalized in MoveData).
+# "BUFF" / "DEBUFF" remove whatever the target holds in that slot (Pry).
 @export var cleanse_effects: PackedStringArray = PackedStringArray()
+
+# Fraction of the target's defense (or resistance) this move ignores, 0..1.
+# Applied in DamageCalculator.calculate_damage. (Pick.)
+@export var defense_pierce_pct: float = 0.0
+
+# One payload picked at random per cast, applied to the target. Each entry is
+# {"heal_pct": float} (a share of max HP) or {"effect": "FORTIFIED", "stacks": int}.
+# Applied by OneOfEffect in the pipeline. (Rummage.)
+@export var random_payloads: Array[Dictionary] = []
+
+# A status the USER takes on hit, alongside the move's own secondary:
+# {"effect": "ROOTED", "stacks": 1}, or {} for none. First hit only, like
+# afflictions. Applied by SelfRiderEffect. (Arm Twist roots them both.)
+@export var self_rider: Dictionary = {}
+
+# Status slots ("BUFF" / "DEBUFF") whose contents move from the target to the
+# user on hit, stacks and all. Applied by StealEffect. (Shake Down.)
+@export var steal_slots: PackedStringArray = PackedStringArray()
 
 # Scheduled effect (Phase 4): something happens N turns AFTER this move hits.
 # Normalized by MoveData from JSON onHit.scheduled into:
@@ -199,14 +228,22 @@ func has_meaningful_effect_on(target: Unit) -> bool:
 			and not status_effect_self_target:
 		if _target_at_max_stacks_of(target, status_effect_type):
 			return false
+		# One buff and one debuff slot: a different status already in the slot
+		# blocks this one (StatusEffectSystem's apply rule) unless it replaces.
+		if not status_effect_replaces and _slot_held_by_another(target, status_effect_type):
+			return false
 
 	return true
 
 
+## `effect_name` may be a slot ("BUFF" / "DEBUFF"): anything in it counts (Lighten).
 func _target_has_status_effect(target: Unit, effect_name: String) -> bool:
 	var effects: Array = target.active_status_effects
 	var normalized := effect_name.to_upper()
+	var slot: Variant = CleanseEffect.SLOT_NAMES.get(normalized, null)
 	for effect: StatusEffect in effects:
+		if slot != null and effect.category == slot:
+			return true
 		if effect.effect_type_name.to_upper() == normalized:
 			return true
 	return false
@@ -222,6 +259,17 @@ func _target_at_max_stacks_of(target: Unit, effect_type: Enums.StatusEffectType)
 		if effect.effect_type_name.to_upper() == effect_name.to_upper():
 			return effect.stacks >= config.max_stacks
 	return false  # Target doesn't have the effect — applying it is meaningful
+
+
+func _slot_held_by_another(target: Unit, effect_type: Enums.StatusEffectType) -> bool:
+	var effect_name: String = Enums.StatusEffectType.keys()[effect_type]
+	var config: StatusEffectData = StatusEffectData.get_default_configs().get(effect_name, null)
+	if config == null:
+		return false
+	for effect: StatusEffect in target.active_status_effects:
+		if effect.category == config.category and effect.effect_type_name.to_upper() != effect_name:
+			return true
+	return false
 
 
 static var EMPTY: Move:

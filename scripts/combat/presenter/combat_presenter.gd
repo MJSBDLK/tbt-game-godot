@@ -124,6 +124,9 @@ static func scene_allowed(attacker: Node2D, defender: Node2D, move: Move) -> boo
 		return false
 	if move.targets_allies() or move.target_type == Enums.TargetType.SELF:
 		return false
+	# A support cast at a foe (Staredown) is a single application, not a fight.
+	if move.damage_type == Enums.DamageType.SUPPORT:
+		return false
 	match Settings.battle_animations:
 		Settings.BattleAnimations.MAP:
 			return false

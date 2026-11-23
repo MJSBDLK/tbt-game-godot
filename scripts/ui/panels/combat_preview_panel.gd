@@ -158,9 +158,9 @@ func _update_attacker_section(attacker: Node, defender: Node, move: Move) -> voi
 
 	_attacker_move_label.text = _truncate(move.abbrev_name)
 
-	# Damage per hit and hit count (from athleticism comparison)
+	# Damage per hit and hit count (speed swings × the move's own hits)
 	var damage_per_hit := DamageCalculator.calculate_damage(attacker, defender, move)
-	var hit_count := DamageCalculator.calculate_attack_count(attacker, defender)
+	var hit_count := DamageCalculator.hits_in_exchange(attacker, defender, move)
 	# Damage numbers use the SECONDARY text palette (yellow-cream font, purple
 	# glow). Set explicitly each time so a prior heal preview's green override
 	# doesn't leak into the next attack.
@@ -211,7 +211,7 @@ func _update_defender_section(attacker: Node, defender: Node, move: Move) -> voi
 		_set_damage_type_icon(_defender_move_damage_type_icon, counter_move.damage_type)
 
 		var counter_damage := DamageCalculator.calculate_damage(defender, attacker, counter_move)
-		var counter_hits := DamageCalculator.calculate_attack_count(defender, attacker)
+		var counter_hits := DamageCalculator.hits_in_exchange(defender, attacker, counter_move)
 		_defender_damage_label.text = str(counter_damage)
 		_set_hits_label(_defender_hits_label, counter_hits)
 		_defender_hit_label.text = "%d%%" % DamageCalculator.hit_chance_pct(defender, attacker, counter_move)
@@ -277,7 +277,7 @@ func _update_health_pips(attacker: Node, defender: Node, move: Move) -> void:
 	if can_counter:
 		var counter_move: Move = defender.get("assigned_move")
 		var counter_damage := DamageCalculator.calculate_damage(defender, attacker, counter_move)
-		var counter_hits := DamageCalculator.calculate_attack_count(defender, attacker)
+		var counter_hits := DamageCalculator.hits_in_exchange(defender, attacker, counter_move)
 		var attacker_projected := maxi(0, attacker_hp - counter_damage * counter_hits)
 		_top_health_pips.show_hp(attacker_projected, attacker_hp - attacker_projected, attacker_max_hp)
 	else:
@@ -285,7 +285,7 @@ func _update_health_pips(attacker: Node, defender: Node, move: Move) -> void:
 
 	# Defender HP — show incoming attack damage preview
 	var damage_per_hit := DamageCalculator.calculate_damage(attacker, defender, move)
-	var hit_count := DamageCalculator.calculate_attack_count(attacker, defender)
+	var hit_count := DamageCalculator.hits_in_exchange(attacker, defender, move)
 	var defender_projected := maxi(0, defender_hp - damage_per_hit * hit_count)
 
 	_bottom_health_pips.show_hp(defender_projected, defender_hp - defender_projected, defender_max_hp)

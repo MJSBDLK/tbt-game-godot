@@ -66,7 +66,8 @@ func tap(tile: Tile) -> TargetTap:
 ## What the forecast panel shows for `tile`: {kind, target, heal_amount}.
 ## ATTACK names the unit the shot will actually hit: a Protector between the
 ## attacker and the aimed-at enemy body-blocks, so it's the one previewed.
-## SUPPORT (an ally move that doesn't heal) has no preview yet.
+## SUPPORT (an ally move that doesn't heal, or a support cast at a foe like
+## Staredown: no damage, no counter) has no preview yet.
 func forecast_for(tile: Tile) -> Dictionary:
 	if not is_target_tile(tile):
 		return {kind = Forecast.NONE}
@@ -74,7 +75,7 @@ func forecast_for(tile: Tile) -> Dictionary:
 	if move.heals:
 		return {kind = Forecast.HEAL, target = target,
 				heal_amount = DamageCalculator.calculate_heal_amount(attacker, target, move)}
-	if move.targets_allies():
+	if move.targets_allies() or move.damage_type == Enums.DamageType.SUPPORT:
 		return {kind = Forecast.SUPPORT}
 	return {kind = Forecast.ATTACK,
 			target = MoveTargeting.resolve_actual_target(attacker, target, move)}

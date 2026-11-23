@@ -36,6 +36,14 @@ JSON field reference: the `MoveData` and `PassiveData` class headers.
 
 ## Rules
 
+- **North star: low complexity, high depth.** Each effect reads in one line;
+  the depth comes from how effects combine. Every turn should offer an
+  interesting choice. Plain number changes (+2 defense, +20% damage, a
+  Fortified stack) have their role, but we've leaned on them too hard. Prefer
+  effects that change what's worth doing: where to stand, who to hit first,
+  when to act. Press and Haul (position), Pry (strip a slot) and Grudge (who
+  takes the kill) are the shape. For a new move or passive, name the decision
+  it creates, for its owner or the opponent; "bigger numbers" needs a reason.
 - A move has ONE element. A "dual-typed" idea becomes that element plus the
   other type's status as its secondary, Scald style: Fire→Burn, Cold→Freeze,
   Electric→Shocked, Air→Hasted, Plant→Rooted, Occult→Vulnerable,
@@ -50,8 +58,6 @@ Each needs parser + combat support before the moves that want it can ship.
 - **Move priority** — attacks before the opponent unless theirs also has
   priority: the Cold priority move. Riposte is the inverse (always moves last).
 - **Lifesteal** — Siphon.
-- **Defense-pierce %** — Ice Pick, Epée, Plasma Cutter, Turret attack,
-  Monomolecular Edge. Early specs for Lance and Laser had it too.
 - **Splash %** around the target — Vortex.
 - **Pass-through** — on hit the attacker moves to the tile behind the target:
   Stampede, Razor Wing. The needs list also wanted "an attack which swaps the
@@ -65,6 +71,17 @@ Each needs parser + combat support before the moves that want it can ship.
   Sunflower's rain clause, Pod, Soar's ignore clause, and two immunity passives.
 - **Indirect damage** as a category — for the immunity passive.
 - **Free attack on approach** — Zone Control.
+- **Give** — `steal` in reverse: the user's buff slot moves to the target. Favor.
+- **Ranged swap** — the user and a unit up to N tiles away trade tiles
+  (Switcheroo's swap only reaches 1). Retreat.
+- **Split payload** — one unit in the area takes one effect, the rest another.
+  Decimate.
+- **Caster-free self-cast status** — a self-cast AoE whose flat status skips
+  the caster (today it lands on the caster too; Roar dodges it with a
+  conditional). Upheaval.
+- **Area preview when aiming** — a ranged move with an area marks every tile it
+  will touch. The engine already applies it (Unit._execute_area_applications).
+  Subversion.
 - One needs-list line was never finished: "attack which …". Kept so it isn't
   mistaken for a deletion.
 
@@ -148,8 +165,8 @@ Each needs parser + combat support before the moves that want it can ship.
 
 ### Gentry/Physical
 + Backstab — [shipped — Gentry/Physical p9 r1]
-+ Disarm
-+ Epée — p7, ignores 50% of defense.
++ Disarm — p3 r1 acc90, Void 50%. Flicks the weapon away: one of the target's moves is locked.
++ Epée — p6 r1 acc90, ignores 50% of defense. A rapier: it gets through armor, so the user's strength barely matters.
 + En Garde
 + Feint — [shipped — Gentry/Physical p4 r1, Focused 40% self]
 + Fisticuffs — p3
@@ -160,13 +177,17 @@ Each needs parser + combat support before the moves that want it can ship.
 
 ### Gentry/Special
 + Conspire
-+ Extort — p7
++ Extort — p5 r2 acc90, takes the target's buff for the user (Shake Down's steal). A flip of the fingers. Choice: don't buff anyone in his reach.
 + Leverage
 + Maneuver
 + Negotiate
 + Provoke
 + Scheme
-+ Subversion
++ Subversion — Support r2, a foe and every foe next to it: Subversion 2 stacks, 8 uses. Choice: spread out or take it. (needs area preview when aiming)
++ Favor — Support r2 ally (not self): gives the user's buff to the ally, stacks and all. Extort a foe's buff, Favor it to a champion. (needs give)
++ Upheaval — Support r0 aoe2 foes: Rooted 1 stack, 8 uses. The ground rises around the user. Choice: stand beyond 2 tiles or come all the way in. (needs caster-free self-cast status)
++ Decimate — Support r0 aoe2 allies: one picked at random loses 25% of its max HP, the rest are Rallied 3 stacks; 5 uses. The Roman punishment. (needs split payload)
++ Retreat — Support r3 ally (not self): the user and the ally swap tiles, 8 uses. Finish him in one turn or he puts a man in his spot. (needs ranged swap)
 + Focus — [shipped — Gentry/Support p0 r0, Critical 100% self] // A breath of concentration. Sharpens the user's next strike.
 
 ### Heraldic/Physical
@@ -175,15 +196,15 @@ Each needs parser + combat support before the moves that want it can ship.
 + March — [shipped — Heraldic/Physical p5 r1, Rallied 30% self]
 + Flank — p7 // +50% for side attack, +100% for backstab
 + Phalanx
-+ Press
-+ Swarm // Low damage, applies Bugle effect to single target
++ Press — [shipped — Heraldic/Physical p5 r1 acc85, shoves the target 1 tile unless its constitution matches the user's (margin 0)] // Leans in and shoves the line back a step. Bounce Out's margin 1 would let a Grunt move only a third of the roster.
++ Swarm — [shipped — Heraldic/Physical p3 r1 acc95, Bugle 50%] // Low damage; Bugle makes the target take +1 from every Heraldic hit (DamageCalculator.bugle_bonus).
 + Trample
 + Volley — [shipped — Heraldic/Physical p6 r3] // coordinated ranged attack
++ Pummel — [shipped — Heraldic/Physical p5 r1 acc80, 3 hits] // Bugle's +1 lands on every hit: Bugle a foe, then Pummel it.
 + Wedge
 
 ### Heraldic/Special
 + Bugle // applies Bugle in AoE
-+ Retreat
 + Sacrifice
 + Standard // Buffs nearby friendlies, increased buff for heraldic types
 + Battle Cry — [shipped — Heraldic/Support p0 r0, Rallied 100% self] // A rousing shout that bolsters the user's resolve.
@@ -265,12 +286,19 @@ Each needs parser + combat support before the moves that want it can ship.
 ### Simple/Physical
 + Bonk — [shipped — Simple/Physical p3 r1] // Default/basic attack with infinite uses
 + Dropkick — p11 // Heavy attack, applys one turn vulnerable to self
-+ Elbow
++ Elbows — [shipped — Simple/Physical p3 r0 aoe1 foes, self-cast: hits every foe next to the user, no counters] // Throws his elbows around when he's crowded.
++ Arm Twist — [shipped — Simple/Physical p3 r1 acc90, Rooted 100% on the target and 1 stack on the user (onHit `selfEffect`)] // Twists an arm and holds on; neither of them goes anywhere.
++ Toss — [shipped — Simple/Physical p2 r1 acc90, displace 2 toward the user, fall_through: lands on the user's far side, or nowhere] // Pulls one foe through the line, alone among the user's friends.
++ Shake Down — [shipped — Simple/Physical p4 r1 acc90, takes the target's buff for the user, stacks and all (onHit `steal`)] // Hired muscle collects.
 + Hook — design bank p7; the stub says p2 acc75, 30% Rooted on hit — the ogre's hook hand, any unit with a hook. → shipped as Hook Swipe ("a raking hook that can snag the target in place").
 + Klunk — [shipped — Simple/Physical p7 r1] // overhead fist slam
 + Slash
 + Stab
 + Throttle
++ Prod — [shipped — Simple/Physical p3 r2 acc85] // A poke from the far end of a pole: reach without power. Any spear or polearm unit.
++ Pick — [shipped — Simple/Physical p4 r1 acc90, ignores 30% of defense] // A miner's pick through the gaps. First user of `defensePierce`, which Ice Pick, Epée, Plasma Cutter, Turret attack and Monomolecular Edge can use now (early Lance and Laser specs had it too).
++ Hatchet — [shipped — Simple/Physical p5 r2 acc80] // Thrown end over end. Any unit with a throwing axe.
++ Pry — [shipped — Simple/Physical p4 r1 acc90, strips the target's buff (cleanse "Buff")] // A pick levered under the target's guard.
 + Uppercut — [shipped — Simple/Physical p5 r1, Critical 25% self]
 + Stampede — p5 acc70. If the tile behind the target is free the attacker moves there and the move auto-crits. For large bois who could plausibly trample things. (needs pass-through)
 + Clobber — p7 acc85. Simple, devastating. Brute-force units get it, but it's probably too powerful for early game.
@@ -279,6 +307,10 @@ Each needs parser + combat support before the moves that want it can ship.
 + Colossus Punch — [shipped — Simple/Physical p11 r1, Shocked 100%] // A massive wind-up haymaker. Often misses — but on impact, the blow rattles the target senseless.
 + Bounce Out — [shipped — Simple/Physical p4 r1, displace 2] // A belly-first body check that bounces the target away — into a wall, if one obliges. Stout foes stand their ground.
 + Megaton Punch — [shipped — Simple/Physical p50 r1] // A devastating blow. For testing only.
++ Pound — [shipped — Simple/Physical p6 r1 acc85, 2 hits, crit 10% each hit] // The anvil hammer, twice. Any hammer unit.
++ Hurl — [shipped — Simple/Physical p6 r2 acc70] // The hammer, thrown. Anything heavy thrown.
++ Maul — [shipped — Simple/Physical p6 r1 acc80, 3 hits, Subversion 20% each hit] // Crude blows that crack armor.
++ Tantrum — [shipped — Simple/Physical p9 r0 acc85 aoe1 all, 3 hits, each on a random unit next to the user (randomTargets), no counters, clip "tantrum"] // An outburst. Clear your friends off him first.
 
 ### Simple/Special
 + Covering Fire // enemies in AoE suffer accuracy penalty, chance for damage if they move
@@ -290,7 +322,17 @@ Each needs parser + combat support before the moves that want it can ship.
 + Sidearm — [shipped — Simple/Special p4 r3, Focused 30% self] // A practiced shot from a service pistol. Reliable at range.
 + First Aid — [shipped — Simple/Support p2 r1, heals, cleanses Bleed] // Patches up a wounded ally and stems any bleeding.
 + Steady — [shipped — Simple/Support p0 r1, cleanses Chain_Lightning/Shocked] // A firm hand and a steadying word. Grounds out lightning marks and settles rattled nerves.
++ Dazzle — [shipped — Simple/Special p2 r1 acc95, Shocked 40%] // A lantern flashed in the face.
++ Lantern — [shipped — Simple/Support p0 r0 aoe1 allies, Focused 2 stacks on the user and allies alongside] // Holds the lantern high.
++ Rummage — [shipped — Simple/Support p0 r0 self, one of: heal 20% max HP, Fortified 2, Focused 2 (onHit `oneOf`)] // You get what you find in the pack.
++ Brace — [shipped — Simple/Support p0 r1 ally (not self), Fortified 2 stacks] // A shoulder behind an ally. The first move that buffs someone else.
++ Haul — [shipped — Simple/Support p0 r2 ally (not self), pulls the ally 1 tile toward the user; an ally already alongside is dragged with them, both stepping 1 tile back (push_chain; jams if the user's back is blocked)] // Drags an ally out of trouble.
++ Staredown — [shipped — Simple/Support p0 r2 foe, Challenged 3 stacks (two bound turns), 8 uses like Roar] // A staredown is usually enough. Cast clip: the belly slap.
++ Cover — [shipped — Simple/Support p0 r1 ally (not self), Covered 1 stack (replaces the ally's buff): until the user's next turn, single-target attacks on that ally hit the user while they stand alongside] // Paid protection.
 + Roar — [shipped — Simple/Support p0 r0 aoe2] // A challenge bellowed across the field. Nearby foes are rattled — but the brave hear an invitation.
++ Lighten — [shipped — Simple/Support p0 r1 ally or self, clears the debuff slot (cleanse "Debuff"), 8 uses] // A glowing stone, touched to a friend. Cast clip: the stone.
++ Burden — [shipped — Simple/Support p0 r1 foe, Gravity 3 stacks, 8 uses] // A glowing stone that weighs a foe down. Takes the one debuff slot, so it fights Maul's Subversion.
++ Lift — [shipped — Simple/Support p0 r1 ally (not self), Toss's throw on a friend: 2 toward the user, fall_through] // Sets a friend down on the user's far side.
 
 ### Void/Physical
 + Blink
@@ -325,10 +367,64 @@ Each needs parser + combat support before the moves that want it can ship.
 
 ### Shipped (handler in PassiveRegistry)
 
-Anti-Gravity, Bellows, Bravery, Capricious, Competitive, Extendo, Flippant,
-Ghost, Glib, Impetuous, Impulsive, Jury Rig, Low Profile, Protector,
-Regenerator, Reliable, Stellar, Waste Not. Maximum is a stat-calc rule, not a
-handler. Descriptions live in data/passives.json.
+Anti-Gravity, Bellows, Big Gut, Bravery, Capricious, Close Ranks, Competitive,
+Dead Weight, Extendo, Flippant, Ghost, Glib, Gloat, Grateful, Grudge, Hardy,
+Impetuous, Impulsive, Jury Rig, Loner, Low Profile, On Duty, Outburst, Panic,
+Pathfinder, Press On, Protector, Regenerator, Reliable, Shaken, Stellar, Still
+Standing, Stonewall, Tag Along, Temper, Thick Skin, Wary, Waste Not. Maximum
+is a stat-calc rule, not a handler, and an endgame ability with very narrow
+distribution: keep it off early schedules. Descriptions live in
+data/passives.json.
+
++ Close Ranks — +2 defense while next to an ally (stat aura).
++ Temper — after a miss, the next swing +20% damage and -15 accuracy
+  (Unit.missed_last_swing).
++ Hardy — debuffs land one stack lighter, never below one: most wear off a turn
+  sooner. A tough-common-folk passive; spread it wide.
++ Grudge — when an ally within 3 tiles falls to a hit, takes CHALLENGED from the
+  killer so the AI goes after them. Enemy side only.
++ Wary — hits on the owner never crit; a banked crit stays banked.
++ Loner — +25% agility (of its own, rounded down, at least 1) while no ally is
+  within 2 tiles.
++ Shaken — when an ally within 3 tiles falls to a hit, SHOCKED 1 stack. Either side.
++ Press On — dropping a foe gives FORTIFIED 1 stack.
++ Pathfinder — terrain costing more than 1 costs 1 less, never below 1
+  (GridManager._scaled_tile_cost). Overlaps the open agility terrain-cost idea.
++ Stonewall — a foe that steps next to the owner stops there; one starting
+  there may walk away (zone of control in GridManager's range and paths).
+  Stops movement, deals nothing: Zone Control's free attack is the other idea.
++ Big Gut — a foe that lands a melee hit on the owner is bounced 1 tile back
+  (constitution save, margin 1, as Bounce Out). Once per exchange, after the
+  counters, so it never costs the owner a counter.
++ Still Standing — from full HP, a hit that would drop the owner leaves it at
+  1. Chip first, then the big hit; bonus hits count as chip.
++ On Duty — the flaw with a niche: the owner never ends up more than N tiles
+  from where its turn began, walking or by any push, pull or throw (it stops at
+  the line, no collision). Kiteable, but can't be dragged from a door or
+  knocked off a ledge. N = 1 (OnDutyPassive.LEASH_TILES); at 3 no single
+  displacement reaches the line and the niche vanishes.
++ Dead Weight — when the owner falls, by any cause, foes next to it are
+  ROOTED for a turn.
++ Thick Skin — foes land one hit per attack on the owner, whatever their
+  athleticism lead. A multi-hit move still lands all its hits: Thick Skin
+  stops speed, not the volley.
++ Gloat — when the owner crits or drops a foe, foes within 2 tiles take
+  CHALLENGED from it for a turn. Challenged binds player units too: a
+  challenged unit's single-target attacks can only go to the challenger.
++ Outburst — with 2+ foes next to the owner, its multi-hit moves land one more
+  hit (DamageCalculator.volley_hits). Crowding it feeds it.
++ Grateful — buffs land on the owner one stack heavier, up to the buff's cap,
+  so they last a turn longer. Hardy's mirror. Covered holds one stack, so
+  Cover gains nothing.
++ Panic — below half HP the owner moves 1 tile farther but can't use support
+  moves (they show locked). Read live, so it follows HP mid-turn.
++ Tag Along — when a foe that started its walk next to the owner ends it out
+  of reach, the owner steps into the tile it left. Committed walks only (not
+  shoves, not an undone move); not when Rooted or Frozen or the tile is taken.
+  Watch it in playtest: it may read as confusing.
++ Capricious — can't use the same move twice in a row. Wanted, not built: Void
+  can't lock its moves, the obscure upside of a flaw (it was going to switch
+  anyway).
 
 ### In data/passives.json, no handler yet
 
@@ -358,6 +454,25 @@ handler. Descriptions live in data/passives.json.
   turn, whereupon the passive is disabled for the rest of the fight
 + [Ernesto] ranged attacks hit everything between him and the target for
   reduced damage (including friendly units?)
+
+### Wanted — Princeling (Napdawg)
+
++ Entourage — while an ally stands next to the owner, single-target attacks
+  on it hit that ally instead (the one nearest the attacker). Area moves get
+  through. Choice: peel its men off first, or bring an area move. Cover's
+  redirect, read from the target's side.
++ Studied — the owner's hits on a weakness (super effective) can't miss.
+  Choice: read the type chart; wide coverage is what makes it pay.
++ Sadist — when a foe falls within 3 tiles of the owner, every foe within 2
+  tiles of it is SHOCKED for a turn. Shaken's mirror. Choice: pull wounded
+  units away from it.
++ Blame — a debuff aimed at the owner lands on an ally next to it instead.
+  Entourage's twin for statuses (needs a status redirect hook).
++ Petulant — after the owner misses, an ally next to it is SHOCKED for a turn.
+  Fights Entourage: the men it hides behind are the ones it takes it out on.
++ Dread — allies within 2 tiles of the owner count as brave (CombatPredicates.
+  is_brave): Roar challenges them instead of rattling them, Shriek passes them
+  over. Narrow.
 
 ### Wanted — Plant Healer tree (Lawrence's list)
 

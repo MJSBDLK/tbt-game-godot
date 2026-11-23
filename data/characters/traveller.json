@@ -10,6 +10,20 @@
 		"atlasPath": "",
 		"frameIndex": 0
 	},
+	"animations": {
+		"melee": {
+			"path": "res://art/sprites/characters/traveller/melee.png",
+			"frames": 9,
+			"fps": 10,
+			"hit_frame": 3
+		},
+		"ranged": {
+			"path": "res://art/sprites/characters/traveller/ranged.png",
+			"frames": 10,
+			"fps": 10,
+			"hit_frame": 5
+		}
+	},
 	"baseStats": {
 		"maxHP": 15,
 		"strength": 6,

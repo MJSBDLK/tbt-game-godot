@@ -2622,3 +2622,19 @@ add them back as bugs." Verbatim, under the todo.md section each sat in.
   setup → sideload on RQD's GrapheneOS phone, safe-area insets then; (4)
   playtest verdict on Marker vs Button → delete the loser. The mockup
   artifact is one round behind (no NOTICE / toggle row).
+
+# Archived 2026-11-22: Squash's kit, built
+
+- [x] Squash kit: build it (locked 2026-11-21, built 2026-11-22)
+	Fighter's schedule (fighter.json): Bounce Out, Arm Twist / Stonewall, then
+	Klunk, Staredown, Toss, Elbows, Shake Down, Uppercut, Club, Cover and Big
+	Gut, Protector, Still Standing, On Duty, Dead Weight, Bravery, Thick Skin,
+	Gloat. New engine pieces: onHit `selfEffect` (Arm Twist) and `steal`
+	(Shake Down); Support casts at a foe resolve as a single application
+	(Staredown); CHALLENGED binds player units through MoveTargeting.can_target;
+	COVERED + the Cover redirect in resolve_actual_target; zone of control and
+	the leash in GridManager (and every DisplacementSystem resolver); hooks
+	on_defeated, after_attacked, prevents_bonus_hits, exerts_zone_of_control,
+	leash_tiles. Open follow-ups stayed in todo.md "# Claude": On Duty's N,
+	Cover vs melee range, Elbows as the armed counter; the AI's support-move
+	gap grew by Staredown, Cover and Elbows.

@@ -1,5 +1,36 @@
 {
 	"name": "Grunt",
 	"tier": 1,
-	"notes": ""
+	"notes": "",
+	"schedule": {
+		"kit": {
+			"moves": [
+				"March",
+				"Prod"
+			],
+			"passives": [
+				"Bravery"
+			]
+		},
+		"moves": [
+			"Swarm",
+			"Hook Swipe",
+			"Steady",
+			"Klunk",
+			"Brace",
+			"Press",
+			"Haul",
+			"Flame Strike"
+		],
+		"passives": [
+			"Protector",
+			"Impetuous",
+			"Close Ranks",
+			"Impulsive",
+			"Temper",
+			"Waste Not",
+			"Hardy",
+			"Grudge"
+		]
+	}
 }

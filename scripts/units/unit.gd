@@ -31,6 +31,8 @@ signal combat_completed(attacker: Unit, defender: Unit)
 const MOVEMENT_SCALE: int = 2
 const MOVE_SPEED: float = 600.0  # Pixels per second
 const HIT_DELAY: float = 0.3  # Seconds between combat hits under FAST pacing (a presenter breath; skip → 0)
+const VOLLEY_HIT_GAP: float = 0.1  # Seconds between the hits of one multi-hit swing: a flurry, not a new exchange
+const REACTION_STEP_SECONDS: float = 0.15  # A Tag Along step's slide
 # A Bellows-boosted fire hit never lands soft: impact weight floors here so the
 # flash/shake/hitlag sell the boost (crits floor at 0.8 — this is the lesser
 # beat).
@@ -71,7 +73,10 @@ var max_movement_range: int:
 		# about to be consumed this turn.
 		if not can_move:
 			return 0
-		return character_data.get_effective_move_distance() * MOVEMENT_SCALE
+		var tiles: int = character_data.get_effective_move_distance()
+		for handler: CombatEffect in PassiveRegistry.get_handlers_for(character_data, self):
+			tiles += handler.extra_move_tiles(self)
+		return tiles * MOVEMENT_SCALE
 
 
 # =============================================================================
@@ -105,6 +110,13 @@ var scheduled_effects: Array[Dictionary] = []
 # count — only combats this unit starts). Drives Impetuous (+20% on the 1st, then
 # -10% per use after). Counts every move use, attack or support.
 var attacks_this_turn: int = 0
+# Did this unit's last swing (attack or counter) miss? Set and cleared per hit
+# roll in _execute_single_hit; Temper reads it. Not saved: a reload forgets it.
+var missed_last_swing: bool = false
+# The cell this unit stood on when its side's turn began: On Duty measures
+# how far a push can carry it from here (GridManager.displacement_allows).
+# null until On Duty's turn start or first query pins it. Not saved.
+var turn_start_cell: Variant = null
 
 # Enemies whose engagement already paid this unit survival XP, keyed by
 # attacker instance id (see _award_survival_xp). Per-battle by construction:
@@ -567,6 +579,20 @@ func move_to_tile(new_tile: Tile) -> void:
 	_update_z_index()
 
 
+## A reaction step (Tag Along): the tile is claimed at once and the sprite
+## slides after it. Not a walk: no movement_completed, no foot tracks, and
+## it costs the unit nothing on its own turn.
+func step_to(tile: Tile) -> void:
+	assert(tile != null and (tile.current_unit == null or tile.current_unit == self),
+			"step_to: '%s' can't step onto an occupied or missing tile" % unit_name)
+	_claim_tile_keep_position(tile)
+	_update_z_index()
+	if not is_inside_tree():
+		global_position = tile.global_position
+		return
+	create_tween().tween_property(self, "global_position", tile.global_position, REACTION_STEP_SECONDS)
+
+
 ## The occupancy half of move_to_tile: transfer tile registration without
 ## touching the sprite. The deferred walk stages through this so global_position
 ## (and z — the visual row hasn't changed) stay at the origin; everything else
@@ -914,13 +940,18 @@ func assign_move(move: Move) -> void:
 	assigned_move = move
 
 
-## Returns true if the given move slot index is locked by either a status effect (VOID)
-## or an active per-turn injury effect (Bends).
+## Returns true if the given move slot index is locked by a status effect (VOID),
+## an active per-turn injury effect (Bends), or a passive (Panic).
 func is_move_index_locked(index: int) -> bool:
 	if StatusEffectSystem.is_move_locked(self, index):
 		return true
 	if index in injury_locked_move_indices:
 		return true
+	if character_data != null and index >= 0 and index < character_data.equipped_moves.size():
+		var move: Move = character_data.equipped_moves[index]
+		for handler: CombatEffect in PassiveRegistry.get_handlers_for(character_data, self):
+			if handler.locks_move(self, move):
+				return true
 	return false
 
 
@@ -1036,11 +1067,12 @@ func _run_combat_sequence(defender: Unit, attacker_move: Move,
 	assert(_deferred_walk_path.is_empty(),
 			"combat with a staged walk pending — play_deferred_walk() must run first")
 
-	# Friendly casts: ally-targeting moves AND self-casts (Fortify, Roar) both
-	# resolve as a single application — no counter, no multi-hit, no corruption
-	# retarget, no Protector body-block.
+	# Friendly casts: ally-targeting moves, self-casts (Fortify, Roar) and
+	# support casts at a foe (Staredown) all resolve as a single application —
+	# no counter, no multi-hit, no corruption retarget, no Protector body-block.
 	var is_ally_move := attacker_move.targets_allies() \
-			or attacker_move.target_type == Enums.TargetType.SELF
+			or attacker_move.target_type == Enums.TargetType.SELF \
+			or attacker_move.damage_type == Enums.DamageType.SUPPORT
 
 	# Friendly fire (Corruption injury): the attacker has been "acting shifty."
 	# On a proc, retarget a random ally in range. If no ally is in range, the
@@ -1102,7 +1134,8 @@ func _run_combat_sequence(defender: Unit, attacker_move: Move,
 		# (chip greyed, tile invalid), so a cast that executed is a cast that
 		# mattered — and re-checking NOW would wrongly fail, since the buff has
 		# already landed and the target reads as "already buffed."
-		if not attacker_move.heals:
+		# A damaging self-AoE (Elbows) earns combat XP per victim instead.
+		if attacker_move.damage_type == Enums.DamageType.SUPPORT and not attacker_move.heals:
 			_award_support_xp(attacker_move)
 		await presenter.close()
 		await _flush_xp_feedback()
@@ -1161,6 +1194,10 @@ func _run_combat_sequence(defender: Unit, attacker_move: Move,
 ## has); true when the exchange ran to its natural end.
 func _run_offensive_exchange(defender: Unit, attacker_move: Move,
 		presenter: CombatPresenter) -> bool:
+	# A support swing never rolls to hit, so missed_last_swing (read below for
+	# after_attacked) would be stale.
+	assert(attacker_move.damage_type != Enums.DamageType.SUPPORT,
+			"'%s' is a support cast: it resolves as a single application" % attacker_move.move_name)
 	var attacker_hits := DamageCalculator.calculate_attack_count(self, defender)
 	# Only ELIGIBILITY (alive, usable damaging move) locks in up front. The
 	# range half is checked live before every counter, because displacement
@@ -1187,7 +1224,10 @@ func _run_offensive_exchange(defender: Unit, attacker_move: Move,
 	var defender_denial_shown := false
 
 	# === Hit 1: Attacker ===
-	await _execute_single_hit(defender, attacker_move, true, presenter)
+	# Every "hit" below is a volley: a multi-hit move's hits (Pound's two),
+	# one for everything else. Did any of the attacker's land? after_attacked
+	# passives (Big Gut) answer only a landed hit.
+	var landed_a_hit: bool = await _execute_volley(defender, attacker_move, true, presenter)
 	if defender.is_defeated():
 		await defender._handle_defeat(presenter)
 		return false
@@ -1201,7 +1241,7 @@ func _run_offensive_exchange(defender: Unit, attacker_move: Move,
 			defender.assigned_move.consume_use()
 			defender_counter_paid = true
 			await presenter.breath(HIT_DELAY)
-			await defender._execute_single_hit(self, defender.assigned_move, true, presenter)
+			await defender._execute_volley(self, defender.assigned_move, true, presenter)
 			if is_defeated():
 				await _handle_defeat(presenter)
 				return false
@@ -1221,7 +1261,8 @@ func _run_offensive_exchange(defender: Unit, attacker_move: Move,
 				await presenter.out_of_range(self)
 			break
 		await presenter.breath(HIT_DELAY)
-		await _execute_single_hit(defender, attacker_move, false, presenter)
+		var bonus_landed: bool = await _execute_volley(defender, attacker_move, false, presenter)
+		landed_a_hit = landed_a_hit or bonus_landed
 
 	if defender.is_defeated():
 		await defender._handle_defeat(presenter)
@@ -1244,10 +1285,13 @@ func _run_offensive_exchange(defender: Unit, attacker_move: Move,
 				defender.assigned_move.consume_use()
 				defender_counter_paid = true
 			await presenter.breath(HIT_DELAY)
-			await defender._execute_single_hit(self, defender.assigned_move, false, presenter)
+			await defender._execute_volley(self, defender.assigned_move, false, presenter)
 
 	if is_defeated():
 		await _handle_defeat(presenter)
+	elif landed_a_hit and not defender.is_defeated():
+		# After the counters, so a bounce (Big Gut) never denies the defender's own.
+		await PassiveEffectsSystem.notify_attacked(defender, self, attacker_move, presenter)
 	return true
 
 ## After combat, record what move `combatant` just used and (if they have a
@@ -1291,6 +1335,28 @@ func _capricious_post_combat_reroll(combatant: Unit) -> void:
 	combatant.assigned_move = data.equipped_moves[chosen]
 
 
+## One swing of `move` at `target`: DamageCalculator.volley_hits hits (Pound's
+## two, plus Outburst's), each with its own hit roll. `apply_status` holds for
+## every hit of the swing, so each rolls its own crit and secondary. Stops
+## early once the target falls or a hit's shove takes it out of reach.
+## Returns whether any hit landed.
+func _execute_volley(target: Unit, move: Move, apply_status: bool,
+		presenter: CombatPresenter) -> bool:
+	var hits := DamageCalculator.volley_hits(self, move)
+	assert(hits >= 1, "'%s' swings %d hits" % [move.move_name, hits])
+	var landed := false
+	for hit_index: int in range(hits):
+		if hit_index > 0:
+			if target.is_defeated() or is_defeated() \
+					or not DamageCalculator.is_within_attack_range(self, target, move):
+				break
+			await presenter.hold(VOLLEY_HIT_GAP)
+		await _execute_single_hit(target, move, apply_status, presenter)
+		# missed_last_swing is this unit's own roll, set by every hit.
+		landed = landed or not missed_last_swing
+	return landed
+
+
 ## Execute a single hit against a target. Calculates damage (or healing for
 ## support moves), optionally applies status effects, runs on-hit riders.
 ## Sequence: strike to contact → hitlag freeze → release + impact + damage
@@ -1314,6 +1380,7 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool,
 	# Move usage is NOT refunded on miss — RD style.
 	var hit_pct := DamageCalculator.hit_chance_pct(self, target, move)
 	if GameRng.randi() % 100 >= hit_pct:
+		missed_last_swing = true
 		await presenter.miss(self, target, move)
 		DebugConfig.log_combat("Miss: %s -> %s (hit %d%%)" % [unit_name, target.unit_name, hit_pct])
 		return
@@ -1333,6 +1400,8 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool,
 	ctx.damage = ctx.base_damage
 	CombatEffectPipeline.run_modify_damage(ctx, effects)
 	var damage := ctx.damage
+	# After modify_damage: Temper has already read the miss this swing answers.
+	missed_last_swing = false
 
 	var type_multiplier := DamageCalculator.get_type_effectiveness(self, target, move)
 	var effectiveness_text := TypeChart.get_effectiveness_text(type_multiplier)
@@ -1397,6 +1466,7 @@ func _execute_single_hit(target: Unit, move: Move, apply_status: bool,
 	# defeated the target. Handlers gate on the relevant unit (killer = attacker).
 	if target.is_defeated():
 		CombatEffectPipeline.run_on_kill(ctx, effects)
+		PassiveEffectsSystem.notify_defeated_by(target, self)
 
 ## Heal-side counterpart to _execute_single_hit. No hit flash, no screenshake,
 ## no displacement. Heal amount = caster.special + move.base_power. The
@@ -1463,12 +1533,31 @@ func _execute_area_applications(primary: Unit, move: Move, presenter: CombatPres
 	var epicenter: Tile = primary.current_tile if primary != null else current_tile
 	if epicenter == null:
 		return
+	if move.random_targets:
+		await _execute_random_area_hits(epicenter, move, presenter)
+		return
 	for victim: Unit in MoveTargeting.get_area_victims(self, epicenter, move):
 		if victim == primary:
 			continue
 		await _execute_single_hit(victim, move, true, presenter)
 		if victim.is_defeated():
 			await victim._handle_defeat(presenter)
+
+## Tantrum: each hit of the swing lands on one unit picked at random from
+## whoever still stands in the area, friends included when the move says
+## "all". Victims never counter.
+func _execute_random_area_hits(epicenter: Tile, move: Move, presenter: CombatPresenter) -> void:
+	for hit_index: int in range(DamageCalculator.volley_hits(self, move)):
+		var victims := MoveTargeting.get_area_victims(self, epicenter, move)
+		if victims.is_empty() or is_defeated():
+			return
+		if hit_index > 0:
+			await presenter.hold(VOLLEY_HIT_GAP)
+		var victim: Unit = victims[GameRng.randi() % victims.size()]
+		await _execute_single_hit(victim, move, true, presenter)
+		if victim.is_defeated():
+			await victim._handle_defeat(presenter)
+
 
 ## Does a SELF-cast of this move do anything to the caster themselves? Heals,
 ## flat statuses, cleanses, and displacement are self-directed on a self-cast;
@@ -1479,6 +1568,7 @@ func _self_cast_has_self_payload(move: Move) -> bool:
 	return move.heals \
 			or move.status_effect_type != Enums.StatusEffectType.NONE \
 			or not move.cleanse_effects.is_empty() \
+			or not move.random_payloads.is_empty() \
 			or move.displace_distance > 0
 
 
@@ -1499,6 +1589,9 @@ func _award_combat_xp(target: Unit, killed: bool) -> void:
 	if faction != Enums.UnitFaction.PLAYER:
 		return
 	if character_data == null or target == null or target.character_data == null:
+		return
+	# Hitting your own side (Tantrum, Corruption's misfire) teaches nothing.
+	if target.faction == faction:
 		return
 	var xp: int = CombatXpCalculator.compute_combat_xp(
 			character_data, target.character_data, killed)

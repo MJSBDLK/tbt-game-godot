@@ -14,17 +14,25 @@
 ##   aoeAffects    enemies | all                      default: enemies
 ##   basePower / damageType / elementType / accuracy  0 / Physical / None / 90
 ##                 damageType: Physical | Special | Support
+##   hits          swings per use, damage split between them  default: 1
+##   randomTargets self-cast AoE: each hit picks one unit in the area
 ##   usagesOffset  added to the PP tier derived from basePower
 ##                 (≤3→30, ≤7→15, ≤11→8, else 5), clamped 1..99
 ##   heal          true → heals (caster.special + basePower) instead of damaging
 ##   immune        predicate name; matching targets take nothing ("brave")
 ##   statusEffect  {effect, chance, stacks, replaces, target: target|self,
 ##                  conditional: {predicate, then: {...}, else: {...}}}
-##   onHit         {cleanse: [names], displace: {...}, scheduled: {...}}
+##   defensePierce share of defense/resistance ignored, 0..1  default: 0
+##   onHit         {cleanse: [names], displace: {...}, scheduled: {...}, oneOf: [...],
+##                  selfEffect: {...}, steal: [...]}
+##                 cleanse: status names, or "Buff" / "Debuff" for the whole slot
+##                 selfEffect: {effect, stacks} the user takes on hit (Arm Twist)
+##                 steal: "Buff" / "Debuff": that slot moves from target to user
 ##                 displace: {subject: target|self, shape, distance, vector,
 ##                            on_blocked: stop|bonus_damage|swap|fall_through,
 ##                            save: {contest, margin}}
 ##                 scheduled: {effect, delay, marker, stacks, + effect params}
+##                 oneOf: one picked per cast: {healPct} or {effect, stacks}
 ##   animationClip / animationStyle                   "" / auto
 class_name MoveData
 extends RefCounted
@@ -93,6 +101,11 @@ static func _parse_move_entry(move_name: String, data: Dictionary) -> Move:
 	move.animation_style = String(data.get("animationStyle", "auto")).to_lower()
 	move.animation_clip = String(data.get("animationClip", "")).to_lower()
 
+	move.defense_pierce_pct = clampf(float(data.get("defensePierce", 0.0)), 0.0, 1.0)
+	move.hits = int(data.get("hits", 1))
+	assert(move.hits >= 1, "MoveData: '%s' hits must be 1 or more" % move_name)
+	move.random_targets = bool(data.get("randomTargets", false))
+
 	# PP from power tier + optional offset
 	var base_pp := Move.calculate_max_uses_from_power(move.base_power)
 	var pp_offset: int = int(data.get("usagesOffset", 0))
@@ -153,6 +166,28 @@ static func _parse_move_entry(move_name: String, data: Dictionary) -> Move:
 			for entry: Variant in cleanse_data:
 				cleansed.append(String(entry).to_upper())
 			move.cleanse_effects = cleansed
+		var one_of_data: Variant = on_hit_data.get("oneOf", null)
+		if one_of_data is Array:
+			for entry: Variant in one_of_data:
+				assert(entry is Dictionary and (entry.has("healPct") or entry.has("effect")),
+						"MoveData: '%s' oneOf entries need healPct or effect" % move_name)
+				if entry.has("healPct"):
+					move.random_payloads.append({"heal_pct": float(entry["healPct"])})
+				else:
+					move.random_payloads.append({"effect": String(entry["effect"]).to_upper(),
+							"stacks": int(entry.get("stacks", 0))})
+		var self_effect_data: Variant = on_hit_data.get("selfEffect", null)
+		if self_effect_data is Dictionary:
+			assert(self_effect_data.has("effect"), "MoveData: '%s' selfEffect needs an effect" % move_name)
+			move.self_rider = {"effect": String(self_effect_data["effect"]).to_upper(),
+					"stacks": int(self_effect_data.get("stacks", 0))}
+		var steal_data: Variant = on_hit_data.get("steal", null)
+		if steal_data is Array:
+			for entry: Variant in steal_data:
+				var slot := String(entry).to_upper()
+				assert(CleanseEffect.SLOT_NAMES.has(slot),
+						"MoveData: '%s' steal takes \"Buff\" or \"Debuff\", not '%s'" % [move_name, entry])
+				move.steal_slots.append(slot)
 		var scheduled_data: Variant = on_hit_data.get("scheduled", null)
 		if scheduled_data is Dictionary:
 			# Everything that isn't schema plumbing rides through as a handler
@@ -198,6 +233,11 @@ static func _parse_move_entry(move_name: String, data: Dictionary) -> Move:
 			move.status_effect_replaces = bool(status_data.get("replaces", false))
 			move.status_effect_self_target = status_target == "self"
 
+	assert(not move.random_targets or (move.target_type == Enums.TargetType.SELF and move.area_of_effect > 0),
+			"MoveData: '%s' randomTargets needs a self-cast AoE to pick from" % move_name)
+	# The AoE pass gives each victim one hit; only randomTargets spends a swing's hits.
+	assert(move.hits == 1 or move.area_of_effect == 0 or move.random_targets,
+			"MoveData: '%s' is a multi-hit area move without randomTargets" % move_name)
 	return move
 
 

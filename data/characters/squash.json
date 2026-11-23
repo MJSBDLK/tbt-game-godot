@@ -15,28 +15,28 @@
 		"frameIndex": 0
 	},
 	"baseStats": {
-		"maxHP": 20,
+		"maxHP": 22,
 		"strength": 8,
 		"special": 2,
 		"skill": 4,
-		"agility": 4,
-		"athleticism": 6,
-		"defense": 4,
-		"resistance": 3
+		"agility": 2,
+		"athleticism": 4,
+		"defense": 6,
+		"resistance": 5
 	},
 	"growthRates": {
-		"hp": 75,
+		"hp": 85,
 		"strength": 60,
 		"special": 15,
 		"skill": 35,
-		"agility": 35,
-		"athleticism": 50,
-		"defense": 40,
-		"resistance": 25
+		"agility": 15,
+		"athleticism": 30,
+		"defense": 55,
+		"resistance": 45
 	},
 	"physicalAttributes": {
 		"moveDistance": 4,
-		"constitution": 5,
+		"constitution": 8,
 		"carry": 8
 	},
 	"level": 1,

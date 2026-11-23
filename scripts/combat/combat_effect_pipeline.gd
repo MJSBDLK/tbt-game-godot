@@ -48,6 +48,18 @@ static func gather(ctx: CombatHitContext) -> Array[CombatEffect]:
 	if not move.cleanse_effects.is_empty():
 		effects.append(CleanseEffect.new())
 
+	# One random payload per cast (Rummage). First hit only, like afflictions.
+	if not move.random_payloads.is_empty():
+		effects.append(OneOfEffect.new())
+
+	# The user's own rider (Arm Twist roots the user too). First hit only.
+	if not move.self_rider.is_empty():
+		effects.append(SelfRiderEffect.new())
+
+	# The target's status slot moves to the user (Shake Down). Every hit.
+	if not move.steal_slots.is_empty():
+		effects.append(StealEffect.new())
+
 	# On-hit displacement (heals don't displace; support applications MAY —
 	# that's how a Roar-knockback style shove would ride a support cast).
 	if not ctx.is_heal and move.displace_distance > 0:

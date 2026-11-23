@@ -124,17 +124,10 @@ func _find_best_target(in_reach_only: bool = false) -> Unit:
 	return best_target
 
 
-## The live challenger compelling this unit, or null. Reads the CHALLENGED
-## status' source_unit (stamped by StatusEffectSystem at apply time; re-pointed
-## on restack so the newest roar wins; restored from saves via grid cell).
+## The live challenger compelling this unit, or null (MoveTargeting owns the
+## rule, so player units answer a challenge the same way).
 func _active_challenger() -> Unit:
-	for effect: StatusEffect in _unit.active_status_effects:
-		if effect.effect_type_name != "CHALLENGED" or effect.stacks <= 0:
-			continue
-		var source := effect.source_unit as Unit
-		if source != null and is_instance_valid(source) and not source.is_defeated():
-			return source
-	return null
+	return MoveTargeting.active_challenger(_unit)
 
 
 func _evaluate_target(target: Unit) -> float:
@@ -166,7 +159,7 @@ func _evaluate_target(target: Unit) -> float:
 
 ## The move this unit would swing at `target` from where it stands, or null.
 ## Capricious swings only what it rolled. Everyone else takes the usable
-## damaging move with the best expected damage (damage × hit chance; slot order
+## damaging move with the best expected damage (damage × hits × hit chance; slot order
 ## breaks ties), so a support move in the top slot no longer benches the kit.
 ## can_target folds in effective range + Extendo's reach LoS, so the AI honors
 ## range passives and never "attacks through" a wall on a bonus tile.
@@ -184,6 +177,7 @@ func _pick_attack_move(target: Unit) -> Move:
 				or not MoveTargeting.can_target(_unit, target, move):
 			continue
 		var expected: float = DamageCalculator.calculate_damage(_unit, target, move) \
+				* DamageCalculator.volley_hits(_unit, move) \
 				* DamageCalculator.hit_chance_pct(_unit, target, move) / 100.0
 		if expected > best_expected:
 			best_expected = expected

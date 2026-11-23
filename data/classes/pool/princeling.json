@@ -1,0 +1,40 @@
+{
+	"name": "Princeling",
+	"tier": 1,
+	"notes": "A young or petty prince: small, crowned, spoiled. Hexes from behind his men and spends them freely (Entourage, Decimate).",
+	"schedule": {
+		"kit": {
+			"moves": [
+				"Extort",
+				"Subversion"
+			],
+			"passives": [
+				"Entourage"
+			]
+		},
+		"moves": [
+			"Epée",
+			"Snap Freeze",
+			"Favor",
+			"Disarm",
+			"Upheaval",
+			"Flame Strike",
+			"Decimate",
+			"Retreat",
+			"Zap",
+			"Wither",
+			"Ice Pick",
+			"Scorch"
+		],
+		"passives": [
+			"Panic",
+			"Studied",
+			"Sadist",
+			"Blame",
+			"Petulant",
+			"Low Profile",
+			"Capricious",
+			"Dread"
+		]
+	}
+}

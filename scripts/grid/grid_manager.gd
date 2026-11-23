@@ -14,10 +14,25 @@ const MOVEMENT_SCALE: int = 2
 
 ## Per-tile movement cost in the scaled integer space used by both the
 ## movement-range BFS and the path-cost accumulator. Pulling this through
-## one helper keeps the four call sites below in lockstep — forget to scale
-## one and units silently walk twice their `moveDistance`.
-func _scaled_tile_cost(tile: Tile, unit_type: String) -> int:
-	return roundi(tile.get_movement_cost_for_unit(unit_type) * MOVEMENT_SCALE)
+## one helper keeps the call sites below in lockstep — forget to scale
+## one and units silently walk twice their `moveDistance`. The mover's
+## passives can take the edge off rough ground (Pathfinder), never below 1.
+func _scaled_tile_cost(tile: Tile, unit_type: String, unit: Node2D) -> int:
+	var cost: float = tile.get_movement_cost_for_unit(unit_type)
+	if cost > 1.0:
+		var relief: float = _terrain_cost_relief(unit)
+		if relief > 0.0:
+			cost = maxf(1.0, cost - relief)
+	return roundi(cost * MOVEMENT_SCALE)
+
+
+func _terrain_cost_relief(unit: Node2D) -> float:
+	if unit == null:
+		return 0.0
+	var relief: float = 0.0
+	for handler: CombatEffect in PassiveRegistry.get_handlers_for(unit.get("character_data"), unit):
+		relief = maxf(relief, handler.terrain_cost_relief())
+	return relief
 
 signal grid_ready
 
@@ -168,7 +183,8 @@ func get_neighbors(tile: Tile) -> Array[Tile]:
 
 ## Calculate all tiles reachable by a unit within its movement range.
 ## Units can path through friendlies but cannot end on them.
-## Enemy units block pathing entirely.
+## Enemy units block pathing entirely. A foe's zone of control ends the walk
+## where it's entered, and the unit's leash caps how far it strays.
 func get_movement_range(unit: Node2D) -> Array[Tile]:
 	var valid_tiles: Array[Tile] = []
 	if unit == null:
@@ -182,6 +198,8 @@ func get_movement_range(unit: Node2D) -> Array[Tile]:
 		DebugConfig.log_error("GridManager: Unit has no current_tile for movement range")
 		return valid_tiles
 
+	var zone := get_zone_of_control(unit)
+	var leash := leash_tiles(unit)
 	var tile_costs: Dictionary = {}  # Dictionary<Tile, int>
 	var tiles_to_check: Array[Tile] = []
 
@@ -190,14 +208,18 @@ func get_movement_range(unit: Node2D) -> Array[Tile]:
 
 	while tiles_to_check.size() > 0:
 		var check_tile: Tile = tiles_to_check.pop_front()
+		if check_tile != current_tile and zone.has(check_tile):
+			continue
 		var current_cost: int = tile_costs[check_tile]
 		var neighbors := get_neighbors(check_tile)
 
 		for neighbor: Tile in neighbors:
 			if not neighbor.can_unit_move_to(unit_type):
 				continue
+			if leash >= 0 and _manhattan_distance(neighbor, current_tile) > leash:
+				continue
 
-			var move_cost := _scaled_tile_cost(neighbor, unit_type)
+			var move_cost := _scaled_tile_cost(neighbor, unit_type, unit)
 			var cost_to_neighbor := current_cost + move_cost
 
 			if cost_to_neighbor > max_movement:
@@ -238,7 +260,7 @@ func get_approach_cost_field(goal_tile: Tile, unit: Node2D) -> Dictionary:
 		for neighbor: Tile in get_neighbors(current):
 			if not neighbor.can_unit_move_to(unit_type):
 				continue
-			var cost_to_neighbor: int = current_cost + _scaled_tile_cost(neighbor, unit_type)
+			var cost_to_neighbor: int = current_cost + _scaled_tile_cost(neighbor, unit_type, unit)
 			if not route_costs.has(neighbor) or cost_to_neighbor < route_costs[neighbor]:
 				route_costs[neighbor] = cost_to_neighbor
 				frontier.append(neighbor)
@@ -273,6 +295,63 @@ func _tile_is_valid_endpoint(tile: Tile, start_tile: Tile) -> bool:
 	return tile.current_unit == null
 
 
+## Zone of control (Stonewall): the tiles next to a live foe of `mover` whose
+## passives exert one. A walk may end on such a tile but never pass through it;
+## only the tile the mover stands on is exempt, so it can step out of a zone.
+## Returns Dictionary<Tile, bool>.
+func get_zone_of_control(mover: Node2D) -> Dictionary:
+	var zone: Dictionary = {}
+	if mover == null:
+		return zone
+	var mover_faction: Variant = mover.get("faction")
+	for tile: Tile in _grid.values():
+		var occupant: Node2D = tile.current_unit
+		if occupant == null or occupant == mover or occupant.get("faction") == mover_faction:
+			continue
+		if occupant.has_method("is_defeated") and occupant.is_defeated():
+			continue
+		for handler: CombatEffect in PassiveRegistry.get_handlers_for(occupant.get("character_data"), occupant):
+			if handler.exerts_zone_of_control():
+				for neighbor: Tile in get_neighbors(tile):
+					zone[neighbor] = true
+				break
+	return zone
+
+
+## Leash (On Duty): how many tiles from where its turn began `unit` may end up,
+## or -1 for no limit. Walking measures from where the unit stands (it re-pins
+## at its own turn start, and threat zones read the next walk from there);
+## displacement measures from Unit.turn_start_cell (displacement_allows).
+func leash_tiles(unit: Node2D) -> int:
+	if unit == null:
+		return -1
+	var tightest := -1
+	for handler: CombatEffect in PassiveRegistry.get_handlers_for(unit.get("character_data"), unit):
+		var tiles := handler.leash_tiles()
+		if tiles >= 0 and (tightest < 0 or tiles < tightest):
+			tightest = tiles
+	return tightest
+
+
+## May a push, pull or throw carry `unit` onto `cell`? Only a leash says no:
+## the cell must sit within leash_tiles of where the unit's turn began. A unit
+## whose turn start was never pinned (displaced before its first turn, or after
+## a load) is pinned where it stands now, so a second shove can't go further.
+func displacement_allows(unit: Node2D, cell: Vector2i) -> bool:
+	var leash := leash_tiles(unit)
+	if leash < 0:
+		return true
+	var anchor: Variant = unit.get("turn_start_cell")
+	if anchor == null:
+		var tile: Tile = unit.get("current_tile")
+		if tile == null:
+			return true
+		anchor = Vector2i(tile.grid_x, tile.grid_y)
+		unit.set("turn_start_cell", anchor)
+	var anchor_cell: Vector2i = anchor
+	return absi(cell.x - anchor_cell.x) + absi(cell.y - anchor_cell.y) <= leash
+
+
 ## Calculate remaining movement range from last waypoint position.
 func get_remaining_movement_range(unit: Node2D) -> Array[Tile]:
 	var valid_tiles: Array[Tile] = []
@@ -288,14 +367,19 @@ func get_remaining_movement_range(unit: Node2D) -> Array[Tile]:
 	if remaining_movement <= 0:
 		return valid_tiles
 
-	var start_tile: Tile
+	var origin: Tile = unit.get("current_tile")
+	var start_tile: Tile = origin
 	if planned_waypoints.size() > 0:
 		start_tile = planned_waypoints[-1].get("tile")
-	else:
-		start_tile = unit.get("current_tile")
 
-	if start_tile == null:
+	if start_tile == null or origin == null:
 		return valid_tiles
+
+	# A waypoint inside a foe's zone of control ends the walk there.
+	var zone := get_zone_of_control(unit)
+	if start_tile != origin and zone.has(start_tile):
+		return valid_tiles
+	var leash := leash_tiles(unit)
 
 	var tile_costs: Dictionary = {}
 	var tiles_to_check: Array[Tile] = []
@@ -305,14 +389,18 @@ func get_remaining_movement_range(unit: Node2D) -> Array[Tile]:
 
 	while tiles_to_check.size() > 0:
 		var check_tile: Tile = tiles_to_check.pop_front()
+		if check_tile != origin and zone.has(check_tile):
+			continue
 		var current_cost: int = tile_costs[check_tile]
 		var neighbors := get_neighbors(check_tile)
 
 		for neighbor: Tile in neighbors:
 			if not neighbor.can_unit_move_to(unit_type):
 				continue
+			if leash >= 0 and _manhattan_distance(neighbor, origin) > leash:
+				continue
 
-			var cost_to_neighbor := current_cost + _scaled_tile_cost(neighbor, unit_type)
+			var cost_to_neighbor := current_cost + _scaled_tile_cost(neighbor, unit_type, unit)
 			if cost_to_neighbor > remaining_movement:
 				continue
 			if neighbor != start_tile and _tile_blocks_passage(neighbor, unit):
@@ -570,6 +658,16 @@ func find_path(start_tile: Tile, target_tile: Tile, unit: Node2D) -> Array[Tile]
 	if target_tile.current_unit != null and target_tile != start_tile:
 		return empty_path
 
+	# Same movement limits as the range BFS, so a highlighted tile always has a
+	# path and the path never cuts through what the range went around. The zone
+	# exemption and the leash centre are where the unit stands, not the segment's
+	# start (a waypoint).
+	var origin: Tile = unit.get("current_tile")
+	if origin == null:
+		origin = start_tile
+	var zone := get_zone_of_control(unit)
+	var leash := leash_tiles(unit)
+
 	var open_list: Array[PathNode] = []
 	var closed_set: Dictionary = {}  # Dictionary<Tile, bool>
 	var node_map: Dictionary = {}    # Dictionary<Tile, PathNode>
@@ -596,10 +694,14 @@ func find_path(start_tile: Tile, target_tile: Tile, unit: Node2D) -> Array[Tile]
 		# Found target
 		if current_node.tile == target_tile:
 			return _retrace_path(start_node, current_node)
+		if current_node.tile != origin and zone.has(current_node.tile):
+			continue
 
 		var neighbors := get_neighbors(current_node.tile)
 		for neighbor: Tile in neighbors:
 			if not neighbor.can_unit_move_to(unit_type) or closed_set.has(neighbor):
+				continue
+			if leash >= 0 and _manhattan_distance(neighbor, origin) > leash:
 				continue
 
 			# Route through _tile_blocks_passage so passives (Ghost) and any
@@ -611,7 +713,7 @@ func find_path(start_tile: Tile, target_tile: Tile, unit: Node2D) -> Array[Tile]
 			if neighbor != target_tile and _tile_blocks_passage(neighbor, unit):
 				continue
 
-			var new_cost := current_node.cost_from_start + _scaled_tile_cost(neighbor, unit_type)
+			var new_cost := current_node.cost_from_start + _scaled_tile_cost(neighbor, unit_type, unit)
 
 			var neighbor_node: PathNode
 			if not node_map.has(neighbor):
@@ -641,7 +743,7 @@ func calculate_path_cost(path: Array[Tile], unit: Node2D = null) -> int:
 	var total_cost := 0
 	var unit_type: String = _get_unit_type(unit)
 	for tile: Tile in path:
-		total_cost += _scaled_tile_cost(tile, unit_type)
+		total_cost += _scaled_tile_cost(tile, unit_type, unit)
 	return total_cost
 
 
