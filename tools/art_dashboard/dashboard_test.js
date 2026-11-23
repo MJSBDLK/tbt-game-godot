@@ -354,6 +354,28 @@ test("sprites scale by whole device pixels", () => {
 	assert.deepEqual([cropped.width, cropped.height], [42, 57], "art bounds + 2 px, tripled");
 });
 
+test("a frame too big for its box shows its middle, never its corner", () => {
+	const big = board.spriteGeometry(exists(256, 128), 1, null, 1);
+	assert.deepEqual([big.width, big.height], [64, 64], "a 128 px frame at 1:1 fills the 64 px box");
+	assert.deepEqual(big.position, [-(128 + 32), -32], "the middle 64 px of frame 1");
+	const summary = board.spriteGeometry(exists(96, 96), 0, null, 1, 36);
+	assert.deepEqual(summary.position, [-30, -30], "the middle 36 px of a 96 px frame");
+});
+
+test("a clip that lands a hit asks for Lawrence's hit tag until it has one", () => {
+	const melee = { id: "melee", contact: true };
+	const own = candidate("sprites/hero/melee.png", false, true, null, "melee");
+	assert.equal(board.needsHitMarker(melee, own, undefined), true, "no sidecar marker");
+	assert.equal(board.needsHitMarker(melee, own, { hit_frame: 3 }), true, "a frame picked by eye isn't his tag");
+	assert.equal(board.needsHitMarker(melee, own, { hit_frame: 3, hit_marker: true }), false);
+	const standIn = candidate("sprites/hero/melee.png", false, true, null, "melee");
+	assert.equal(board.needsHitMarker({ id: "melee_physical", contact: true }, standIn, undefined), false,
+		"flagged in its own box only");
+	assert.equal(board.needsHitMarker({ id: "hurt" }, candidate("sprites/hero/hurt.png", false, true, null, "hurt"), undefined),
+		false, "a hurt clip has no contact frame");
+	assert.equal(board.needsHitMarker(melee, null, undefined), false, "nothing drawn, nothing to mark");
+});
+
 test("line art uses the portrait crop only when it's on the same file", () => {
 	const crop = { atlas: "art/lineart_fullres/ernesto.png", x: 990, y: 400, width: 1000, height: 1000 };
 	const geometry = board.lineArtGeometry(exists(3024, 4032), crop, "art/lineart_fullres/ernesto.png");

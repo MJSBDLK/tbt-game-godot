@@ -26,7 +26,7 @@ local HUD = { w = 67, h = 24 }        -- HUD footprint from each top corner of t
 local PALETTE = "art/colors/SpacemanColorPalette_v1.41.gpl"
 local AZURE_2, GRAY_3 = 57, 168       -- GPL rows: ramp*11 + intensity (Azure=5, Gray=15)
 local LEFT_PUPPET = "art/sprites/characters/grunt/idle.png"   -- enemy side, mirrored
-local RIGHT_PUPPET = "art/sprites/characters/max/idle.png"    -- player side
+local RIGHT_PUPPET = "art/sprites/characters/spaceman/idle0.png"  -- player side
 local OUT = "art/backdrops/combat_test/combat_backdrop_template.aseprite"
 
 -- ---------------------------------------------------------------- helpers
@@ -109,7 +109,12 @@ for _, entry in ipairs({ { LEFT_PUPPET, LEFT_X, true }, { RIGHT_PUPPET, RIGHT_X,
     local puppet = app.open(entry[1])
     if puppet then
       local cel = puppet.layers[1]:cel(1)
-      if cel then standPuppet(refImg, cel.image, entry[2], entry[3]) end
+      if cel then
+        -- An idle export is a strip of square frames: stand the first.
+        local first = Image(puppet.height, puppet.height, puppet.colorMode)
+        first:drawImage(cel.image, cel.position)
+        standPuppet(refImg, first, entry[2], entry[3])
+      end
       puppet:close()
     end
   else

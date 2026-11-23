@@ -132,6 +132,12 @@ function main() {
 		// A plain clip standing in for its kind boxes would print once per box.
 		const unwired = new Set(Object.values(evaluation.shown).filter((shown) => shown && !shown.declared).map((shown) => shown.path));
 		for (const unwiredPath of unwired) console.log(`       new, not wired: ${unwiredPath}`);
+		for (const column of data.columns) {
+			const shown = evaluation.shown[column.id];
+			if (board.needsHitMarker(column, shown, shown && character.clips[shown.path])) {
+				console.log(`       needs a hit marker: ${shown.path}`);
+			}
+		}
 		// Nothing loads variants yet, so their art is tracked, never wired.
 		for (const variant of character.variants) {
 			const variantEvaluation = board.evaluateCharacter(variant, probes, placeholders, sources);

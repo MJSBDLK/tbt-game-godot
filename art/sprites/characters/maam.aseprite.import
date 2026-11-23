@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://dacdlskxrc82f"
+path="res://.godot/imported/maam.aseprite-dc9ec4cabecd3f48a8b4bdd43d881bfe.res"
+
+[deps]
+
+source_file="res://art/sprites/characters/maam.aseprite"
+dest_files=["res://.godot/imported/maam.aseprite-dc9ec4cabecd3f48a8b4bdd43d881bfe.res"]
+
+[params]
+

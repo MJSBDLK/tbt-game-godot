@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://cyemfqknsva6l"
+path="res://.godot/imported/thief.aseprite-809fc96bfcdd2385233455aed67a1d15.res"
+
+[deps]
+
+source_file="res://art/sprites/characters/thief.aseprite"
+dest_files=["res://.godot/imported/thief.aseprite-809fc96bfcdd2385233455aed67a1d15.res"]
+
+[params]
+

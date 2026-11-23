@@ -1654,6 +1654,22 @@ window.ART_DASHBOARD_DATA = {
 						"right": 54,
 						"top": 5
 					}
+				},
+				"art/sprites/characters/battle_chicken/idle0.png": {
+					"art_bounds": {
+						"bottom": 80,
+						"left": 45,
+						"right": 86,
+						"top": 37
+					},
+					"frame_durations_ms": [
+						700,
+						200,
+						200,
+						700,
+						200,
+						200
+					]
 				}
 			},
 			"id": "battle_chicken",
@@ -3831,6 +3847,21 @@ window.ART_DASHBOARD_DATA = {
 						"right": 46,
 						"top": 12
 					}
+				},
+				"art/sprites/characters/bugler_chivalric/idle0.png": {
+					"art_bounds": {
+						"bottom": 79,
+						"left": 52,
+						"right": 78,
+						"top": 44
+					},
+					"frame_durations_ms": [
+						500,
+						100,
+						500,
+						100,
+						100
+					]
 				}
 			},
 			"id": "bugler_chivalric",
@@ -4098,6 +4129,12 @@ window.ART_DASHBOARD_DATA = {
 			"class": "noble",
 			"clips": {
 				"art/sprites/characters/bugler_gentry/bugle.png": {
+					"art_bounds": {
+						"bottom": 47,
+						"left": 16,
+						"right": 42,
+						"top": 10
+					},
 					"fps": 10,
 					"frame_durations_ms": [
 						500,
@@ -4122,12 +4159,40 @@ window.ART_DASHBOARD_DATA = {
 					"art_bounds": {
 						"bottom": 47,
 						"left": 16,
-						"right": 48,
+						"right": 43,
 						"top": 10
 					},
 					"frame_durations_ms": [
 						350,
 						350,
+						350,
+						350
+					]
+				},
+				"art/sprites/characters/bugler_gentry/melee.png": {
+					"art_bounds": {
+						"bottom": 47,
+						"left": 16,
+						"right": 43,
+						"top": 10
+					},
+					"frame_durations_ms": [
+						350,
+						200,
+						350,
+						50,
+						350,
+						200
+					]
+				},
+				"art/sprites/characters/bugler_gentry/ranged.png": {
+					"art_bounds": {
+						"bottom": 47,
+						"left": 16,
+						"right": 43,
+						"top": 10
+					},
+					"frame_durations_ms": [
 						350,
 						350
 					]
@@ -4411,6 +4476,22 @@ window.ART_DASHBOARD_DATA = {
 						"right": 64,
 						"top": 16
 					}
+				},
+				"art/sprites/characters/desert_prince/idle0.png": {
+					"art_bounds": {
+						"bottom": 79,
+						"left": 48,
+						"right": 80,
+						"top": 31
+					},
+					"frame_durations_ms": [
+						300,
+						200,
+						200,
+						300,
+						200,
+						200
+					]
 				}
 			},
 			"id": "desert_prince",
@@ -4687,14 +4768,39 @@ window.ART_DASHBOARD_DATA = {
 				},
 				"art/sprites/characters/desert_sniper/idle0.png": {
 					"art_bounds": {
-						"bottom": 46,
-						"left": 20,
-						"right": 41,
-						"top": 5
+						"bottom": 78,
+						"left": 52,
+						"right": 73,
+						"top": 37
 					},
 					"frame_durations_ms": [
 						700,
 						700
+					]
+				},
+				"art/sprites/characters/desert_sniper/ranged.png": {
+					"art_bounds": {
+						"bottom": 78,
+						"left": 52,
+						"right": 73,
+						"top": 37
+					},
+					"frame_durations_ms": [
+						200,
+						200,
+						200,
+						200,
+						200,
+						200,
+						200,
+						200,
+						500,
+						100,
+						150,
+						100,
+						100,
+						100,
+						300
 					]
 				}
 			},
@@ -6895,18 +7001,24 @@ window.ART_DASHBOARD_DATA = {
 					]
 				},
 				"art/sprites/characters/ernesto/melee.png": {
+					"art_bounds": {
+						"bottom": 76,
+						"left": 50,
+						"right": 76,
+						"top": 25
+					},
 					"fps": 10,
 					"frame_durations_ms": [
+						200,
+						200,
+						200,
+						200,
+						200,
+						50,
 						100,
 						100,
-						100,
-						100,
-						100,
-						100,
-						100,
-						100,
-						100,
-						100
+						200,
+						200
 					],
 					"hit_frame": 5
 				},
@@ -6927,6 +7039,28 @@ window.ART_DASHBOARD_DATA = {
 						100
 					],
 					"hit_frame": 7
+				},
+				"art/sprites/characters/ernesto/ranged_physical.png": {
+					"art_bounds": {
+						"bottom": 76,
+						"left": 50,
+						"right": 76,
+						"top": 25
+					},
+					"frame_durations_ms": [
+						100,
+						150,
+						250,
+						300,
+						250,
+						50,
+						50,
+						50,
+						50,
+						250,
+						200,
+						200
+					]
 				}
 			},
 			"crop": {
@@ -8533,7 +8667,22 @@ window.ART_DASHBOARD_DATA = {
 		},
 		{
 			"class": "duelist",
-			"clips": {},
+			"clips": {
+				"art/sprites/characters/ex_gentry_swordsman/idle0.png": {
+					"art_bounds": {
+						"bottom": 78,
+						"left": 59,
+						"right": 76,
+						"top": 34
+					},
+					"frame_durations_ms": [
+						500,
+						100,
+						500,
+						100
+					]
+				}
+			},
 			"crop": {
 				"atlas": "art/lineart_fullres/ex_gentry_swordsman.png",
 				"height": 1210,
@@ -8841,6 +8990,40 @@ window.ART_DASHBOARD_DATA = {
 						"right": 48,
 						"top": 11
 					}
+				},
+				"art/sprites/characters/flamethrower_phoenix/idle0.png": {
+					"art_bounds": {
+						"bottom": 78,
+						"left": 45,
+						"right": 78,
+						"top": 41
+					},
+					"frame_durations_ms": [
+						500,
+						100,
+						500,
+						100
+					]
+				},
+				"art/sprites/characters/flamethrower_phoenix/ranged.png": {
+					"art_bounds": {
+						"bottom": 78,
+						"left": 45,
+						"right": 78,
+						"top": 41
+					},
+					"frame_durations_ms": [
+						100,
+						100,
+						100,
+						100,
+						100,
+						100,
+						100,
+						100,
+						100,
+						100
+					]
 				}
 			},
 			"crop": {
@@ -9142,7 +9325,20 @@ window.ART_DASHBOARD_DATA = {
 		},
 		{
 			"class": "noble",
-			"clips": {},
+			"clips": {
+				"art/sprites/characters/gentry_prince/idle0.png": {
+					"art_bounds": {
+						"bottom": 77,
+						"left": 57,
+						"right": 73,
+						"top": 35
+					},
+					"frame_durations_ms": [
+						600,
+						600
+					]
+				}
+			},
 			"crop": {
 				"atlas": "art/lineart_fullres/gentry_prince.png",
 				"height": 1704,
@@ -9425,7 +9621,25 @@ window.ART_DASHBOARD_DATA = {
 						100
 					]
 				},
+				"art/sprites/characters/grasker/idle0.png": {
+					"art_bounds": {
+						"bottom": 45,
+						"left": 22,
+						"right": 39,
+						"top": 11
+					},
+					"frame_durations_ms": [
+						600,
+						600
+					]
+				},
 				"art/sprites/characters/grasker/melee.png": {
+					"art_bounds": {
+						"bottom": 45,
+						"left": 19,
+						"right": 40,
+						"top": 11
+					},
 					"fps": 5,
 					"frame_durations_ms": [
 						200,
@@ -9742,6 +9956,20 @@ window.ART_DASHBOARD_DATA = {
 						"right": 45,
 						"top": 12
 					}
+				},
+				"art/sprites/characters/gravity_captain/idle0.png": {
+					"art_bounds": {
+						"bottom": 47,
+						"left": 18,
+						"right": 45,
+						"top": 12
+					},
+					"frame_durations_ms": [
+						500,
+						100,
+						500,
+						100
+					]
 				}
 			},
 			"crop": {
@@ -10044,6 +10272,23 @@ window.ART_DASHBOARD_DATA = {
 		{
 			"class": "grunt",
 			"clips": {
+				"art/sprites/characters/grunt/cast.png": {
+					"art_bounds": {
+						"bottom": 77,
+						"left": 51,
+						"right": 75,
+						"top": 39
+					},
+					"frame_durations_ms": [
+						100,
+						200,
+						200,
+						200,
+						50,
+						100,
+						100
+					]
+				},
 				"art/sprites/characters/grunt/idle.png": {
 					"art_bounds": {
 						"bottom": 45,
@@ -10054,22 +10299,25 @@ window.ART_DASHBOARD_DATA = {
 				},
 				"art/sprites/characters/grunt/idle0.png": {
 					"art_bounds": {
-						"bottom": 61,
-						"left": 35,
-						"right": 59,
-						"top": 23
+						"bottom": 77,
+						"left": 51,
+						"right": 75,
+						"top": 39
 					},
 					"frame_durations_ms": [
-						1000,
-						200,
-						200,
-						200,
-						50,
+						500,
 						100,
+						500,
 						100
 					]
 				},
 				"art/sprites/characters/grunt/melee.png": {
+					"art_bounds": {
+						"bottom": 77,
+						"left": 51,
+						"right": 75,
+						"top": 39
+					},
 					"fps": 10,
 					"frame_durations_ms": [
 						500,
@@ -10081,6 +10329,30 @@ window.ART_DASHBOARD_DATA = {
 						100
 					],
 					"hit_frame": 3
+				},
+				"art/sprites/characters/grunt/ranged.png": {
+					"art_bounds": {
+						"bottom": 77,
+						"left": 51,
+						"right": 75,
+						"top": 39
+					},
+					"frame_durations_ms": [
+						500,
+						100,
+						100,
+						100,
+						150,
+						100,
+						50,
+						50,
+						50,
+						50,
+						150,
+						200,
+						100,
+						100
+					]
 				}
 			},
 			"crop": {
@@ -11932,6 +12204,30 @@ window.ART_DASHBOARD_DATA = {
 		{
 			"class": "mage",
 			"clips": {
+				"art/sprites/characters/healer_goblin/cast.png": {
+					"art_bounds": {
+						"bottom": 63,
+						"left": 33,
+						"right": 60,
+						"top": 18
+					},
+					"frame_durations_ms": [
+						100,
+						100,
+						200,
+						300,
+						100,
+						200,
+						200,
+						200,
+						200,
+						200,
+						200,
+						200,
+						300,
+						100
+					]
+				},
 				"art/sprites/characters/healer_goblin/idle.png": {
 					"art_bounds": {
 						"bottom": 47,
@@ -11948,6 +12244,7 @@ window.ART_DASHBOARD_DATA = {
 						"top": 18
 					},
 					"frame_durations_ms": [
+						1000,
 						1000
 					]
 				}
@@ -13801,6 +14098,27 @@ window.ART_DASHBOARD_DATA = {
 		{
 			"class": "mage",
 			"clips": {
+				"art/sprites/characters/healer_plant/cast.png": {
+					"art_bounds": {
+						"bottom": 63,
+						"left": 34,
+						"right": 62,
+						"top": 18
+					},
+					"frame_durations_ms": [
+						100,
+						100,
+						100,
+						100,
+						100,
+						100,
+						100,
+						100,
+						100,
+						100,
+						100
+					]
+				},
 				"art/sprites/characters/healer_plant/idle.png": {
 					"art_bounds": {
 						"bottom": 47,
@@ -13820,6 +14138,65 @@ window.ART_DASHBOARD_DATA = {
 						300,
 						300,
 						300
+					]
+				},
+				"art/sprites/characters/healer_plant/idle0.png": {
+					"art_bounds": {
+						"bottom": 63,
+						"left": 35,
+						"right": 62,
+						"top": 18
+					},
+					"frame_durations_ms": [
+						300,
+						300,
+						300,
+						300,
+						300,
+						300,
+						300,
+						300,
+						300,
+						300,
+						300
+					]
+				},
+				"art/sprites/characters/healer_plant/ranged.png": {
+					"art_bounds": {
+						"bottom": 63,
+						"left": 34,
+						"right": 62,
+						"top": 18
+					},
+					"frame_durations_ms": [
+						100,
+						100,
+						100,
+						100,
+						100,
+						100,
+						75,
+						50,
+						50,
+						50,
+						50,
+						50,
+						50,
+						50,
+						50,
+						100,
+						100,
+						50,
+						50,
+						50,
+						50,
+						50,
+						50,
+						50,
+						50,
+						100,
+						100,
+						100
 					]
 				}
 			},
@@ -15672,6 +16049,37 @@ window.ART_DASHBOARD_DATA = {
 						"right": 63,
 						"top": 11
 					}
+				},
+				"art/sprites/characters/ice_archer/idle0.png": {
+					"art_bounds": {
+						"bottom": 63,
+						"left": 32,
+						"right": 63,
+						"top": 11
+					},
+					"frame_durations_ms": [
+						500,
+						100,
+						500,
+						100
+					]
+				},
+				"art/sprites/characters/ice_archer/ranged.png": {
+					"art_bounds": {
+						"bottom": 63,
+						"left": 32,
+						"right": 63,
+						"top": 11
+					},
+					"frame_durations_ms": [
+						100,
+						100,
+						150,
+						300,
+						50,
+						300,
+						100
+					]
 				}
 			},
 			"crop": {
@@ -16241,9 +16649,75 @@ window.ART_DASHBOARD_DATA = {
 						"top": 19
 					}
 				},
+				"art/sprites/characters/keener/idle0.png": {
+					"art_bounds": {
+						"bottom": 62,
+						"left": 37,
+						"right": 60,
+						"top": 19
+					},
+					"frame_durations_ms": [
+						200,
+						200,
+						200,
+						200,
+						200,
+						200
+					]
+				},
+				"art/sprites/characters/keener/melee.png": {
+					"art_bounds": {
+						"bottom": 62,
+						"left": 36,
+						"right": 59,
+						"top": 19
+					},
+					"frame_durations_ms": [
+						100,
+						150,
+						150,
+						100,
+						100,
+						100,
+						100,
+						100,
+						100,
+						100
+					]
+				},
 				"art/sprites/characters/keener/meleeside.png": {
 					"fps": 10,
 					"hit_frame": 5
+				},
+				"art/sprites/characters/keener/ranged.png": {
+					"art_bounds": {
+						"bottom": 62,
+						"left": 37,
+						"right": 60,
+						"top": 19
+					},
+					"frame_durations_ms": [
+						100,
+						100,
+						100,
+						100,
+						200,
+						200,
+						100,
+						100,
+						100,
+						100,
+						100,
+						60,
+						60,
+						60,
+						60,
+						60,
+						60,
+						60,
+						60,
+						100
+					]
 				},
 				"art/sprites/characters/keener/shootside.png": {
 					"fps": 10,
@@ -16599,6 +17073,19 @@ window.ART_DASHBOARD_DATA = {
 						"right": 46,
 						"top": 9
 					}
+				},
+				"art/sprites/characters/knight/idle0.png": {
+					"art_bounds": {
+						"bottom": 46,
+						"left": 17,
+						"right": 46,
+						"top": 9
+					},
+					"frame_durations_ms": [
+						500,
+						500,
+						100
+					]
 				}
 			},
 			"id": "knight",
@@ -17411,13 +17898,65 @@ window.ART_DASHBOARD_DATA = {
 		{
 			"class": "skulk",
 			"clips": {
-				"art/sprites/characters/ma'am/idle.png": {
+				"art/sprites/characters/maam/idle0.png": {
 					"art_bounds": {
 						"bottom": 45,
 						"left": 27,
 						"right": 38,
 						"top": 13
-					}
+					},
+					"frame_durations_ms": [
+						600,
+						600
+					]
+				},
+				"art/sprites/characters/maam/melee.png": {
+					"art_bounds": {
+						"bottom": 45,
+						"left": 27,
+						"right": 38,
+						"top": 13
+					},
+					"frame_durations_ms": [
+						600,
+						100,
+						100,
+						100,
+						150,
+						200,
+						150,
+						100,
+						100
+					]
+				},
+				"art/sprites/characters/maam/ranged.png": {
+					"art_bounds": {
+						"bottom": 45,
+						"left": 27,
+						"right": 38,
+						"top": 13
+					},
+					"frame_durations_ms": [
+						600,
+						100,
+						100,
+						100,
+						300,
+						50,
+						75,
+						75,
+						75,
+						150,
+						50,
+						75,
+						75,
+						75,
+						600,
+						100,
+						100,
+						150,
+						150
+					]
 				}
 			},
 			"crop": {
@@ -17433,14 +17972,8 @@ window.ART_DASHBOARD_DATA = {
 				{
 					"candidates": [
 						{
-							"convention": false,
-							"declared": true,
-							"path": "art/sprites/characters/ma'am/idle.png",
-							"rename_to": "art/sprites/characters/maam/idle0.png"
-						},
-						{
 							"convention": true,
-							"declared": false,
+							"declared": true,
 							"path": "art/sprites/characters/maam/idle0.png"
 						},
 						{
@@ -17456,14 +17989,8 @@ window.ART_DASHBOARD_DATA = {
 				{
 					"candidates": [
 						{
-							"convention": false,
-							"declared": true,
-							"path": "art/sprites/characters/ma'am/idle.png",
-							"rename_to": "art/sprites/characters/maam/idle0.png"
-						},
-						{
 							"convention": true,
-							"declared": false,
+							"declared": true,
 							"path": "art/sprites/characters/maam/idle0.png"
 						},
 						{
@@ -19030,6 +19557,24 @@ window.ART_DASHBOARD_DATA = {
 						"right": 51,
 						"top": 3
 					}
+				},
+				"art/sprites/characters/mystic/idle0.png": {
+					"art_bounds": {
+						"bottom": 58,
+						"left": 32,
+						"right": 63,
+						"top": 25
+					},
+					"frame_durations_ms": [
+						250,
+						200,
+						300,
+						300,
+						250,
+						200,
+						300,
+						300
+					]
 				}
 			},
 			"id": "mystic",
@@ -19296,13 +19841,17 @@ window.ART_DASHBOARD_DATA = {
 		{
 			"class": "princeling",
 			"clips": {
-				"art/sprites/characters/napdog/idle.png": {
+				"art/sprites/characters/napdawg/idle0.png": {
 					"art_bounds": {
 						"bottom": 42,
 						"left": 23,
 						"right": 41,
 						"top": 18
-					}
+					},
+					"frame_durations_ms": [
+						100,
+						100
+					]
 				}
 			},
 			"crop": {
@@ -19318,14 +19867,8 @@ window.ART_DASHBOARD_DATA = {
 				{
 					"candidates": [
 						{
-							"convention": false,
-							"declared": true,
-							"path": "art/sprites/characters/napdog/idle.png",
-							"rename_to": "art/sprites/characters/napdawg/idle0.png"
-						},
-						{
 							"convention": true,
-							"declared": false,
+							"declared": true,
 							"path": "art/sprites/characters/napdawg/idle0.png"
 						},
 						{
@@ -19341,14 +19884,8 @@ window.ART_DASHBOARD_DATA = {
 				{
 					"candidates": [
 						{
-							"convention": false,
-							"declared": true,
-							"path": "art/sprites/characters/napdog/idle.png",
-							"rename_to": "art/sprites/characters/napdawg/idle0.png"
-						},
-						{
 							"convention": true,
-							"declared": false,
+							"declared": true,
 							"path": "art/sprites/characters/napdawg/idle0.png"
 						},
 						{
@@ -20915,6 +21452,71 @@ window.ART_DASHBOARD_DATA = {
 						"right": 70,
 						"top": 18
 					}
+				},
+				"art/sprites/characters/ogre/idle0.png": {
+					"art_bounds": {
+						"bottom": 78,
+						"left": 45,
+						"right": 86,
+						"top": 34
+					},
+					"frame_durations_ms": [
+						700,
+						700
+					]
+				},
+				"art/sprites/characters/ogre/melee.png": {
+					"art_bounds": {
+						"bottom": 78,
+						"left": 45,
+						"right": 86,
+						"top": 34
+					},
+					"frame_durations_ms": [
+						200,
+						200,
+						200,
+						200,
+						200,
+						250,
+						250,
+						50,
+						50,
+						100,
+						100,
+						100,
+						100,
+						200,
+						200
+					]
+				},
+				"art/sprites/characters/ogre/ranged.png": {
+					"art_bounds": {
+						"bottom": 62,
+						"left": 29,
+						"right": 70,
+						"top": 18
+					},
+					"frame_durations_ms": [
+						100,
+						300,
+						300,
+						100,
+						100,
+						100,
+						100,
+						100,
+						100,
+						100,
+						100,
+						100,
+						100,
+						100,
+						100,
+						300,
+						200,
+						200
+					]
 				}
 			},
 			"crop": {
@@ -22836,6 +23438,38 @@ window.ART_DASHBOARD_DATA = {
 						"right": 44,
 						"top": 4
 					}
+				},
+				"art/sprites/characters/pierre/idle0.png": {
+					"art_bounds": {
+						"bottom": 46,
+						"left": 19,
+						"right": 44,
+						"top": 4
+					},
+					"frame_durations_ms": [
+						500,
+						100,
+						500,
+						100
+					]
+				},
+				"art/sprites/characters/pierre/ranged.png": {
+					"art_bounds": {
+						"bottom": 46,
+						"left": 19,
+						"right": 44,
+						"top": 4
+					},
+					"frame_durations_ms": [
+						100,
+						250,
+						100,
+						100,
+						250,
+						100,
+						100,
+						100
+					]
 				}
 			},
 			"crop": {
@@ -24436,6 +25070,18 @@ window.ART_DASHBOARD_DATA = {
 						"right": 43,
 						"top": 1
 					}
+				},
+				"art/sprites/characters/plant_cultist/idle0.png": {
+					"art_bounds": {
+						"bottom": 80,
+						"left": 51,
+						"right": 75,
+						"top": 33
+					},
+					"frame_durations_ms": [
+						600,
+						600
+					]
 				}
 			},
 			"id": "plant_cultist",
@@ -26287,6 +26933,26 @@ window.ART_DASHBOARD_DATA = {
 						"right": 48,
 						"top": 16
 					}
+				},
+				"art/sprites/characters/plant_urchin/idle0.png": {
+					"art_bounds": {
+						"bottom": 47,
+						"left": 16,
+						"right": 48,
+						"top": 16
+					},
+					"frame_durations_ms": [
+						100,
+						100,
+						100,
+						100,
+						100,
+						100,
+						100,
+						100,
+						100,
+						100
+					]
 				}
 			},
 			"id": "plant_urchin",
@@ -26560,6 +27226,49 @@ window.ART_DASHBOARD_DATA = {
 						"right": 47,
 						"top": 9
 					}
+				},
+				"art/sprites/characters/pyro/idle0.png": {
+					"art_bounds": {
+						"bottom": 62,
+						"left": 38,
+						"right": 64,
+						"top": 25
+					},
+					"frame_durations_ms": [
+						250,
+						250,
+						250,
+						250
+					]
+				},
+				"art/sprites/characters/pyro/melee.png": {
+					"art_bounds": {
+						"bottom": 62,
+						"left": 38,
+						"right": 63,
+						"top": 25
+					},
+					"frame_durations_ms": [
+						150,
+						150,
+						150,
+						150,
+						150,
+						150,
+						150,
+						150,
+						150,
+						150,
+						150,
+						150,
+						150,
+						200,
+						200,
+						150,
+						150,
+						150,
+						150
+					]
 				}
 			},
 			"id": "pyro",
@@ -26833,6 +27542,26 @@ window.ART_DASHBOARD_DATA = {
 						"right": 38,
 						"top": 11
 					}
+				},
+				"art/sprites/characters/robot/idle0.png": {
+					"art_bounds": {
+						"bottom": 46,
+						"left": 26,
+						"right": 38,
+						"top": 11
+					},
+					"frame_durations_ms": [
+						100,
+						100,
+						100,
+						100,
+						100,
+						100,
+						100,
+						100,
+						100,
+						100
+					]
 				}
 			},
 			"crop": {
@@ -27106,7 +27835,7 @@ window.ART_DASHBOARD_DATA = {
 		{
 			"class": "spaceman",
 			"clips": {
-				"art/sprites/characters/max/idle.png": {
+				"art/sprites/characters/spaceman/idle0.png": {
 					"art_bounds": {
 						"bottom": 61,
 						"left": 36,
@@ -27114,10 +27843,17 @@ window.ART_DASHBOARD_DATA = {
 						"top": 30
 					},
 					"frame_durations_ms": [
-						100
+						500,
+						500
 					]
 				},
-				"art/sprites/characters/max/meleeside.png": {
+				"art/sprites/characters/spaceman/meleeside.png": {
+					"art_bounds": {
+						"bottom": 61,
+						"left": 36,
+						"right": 60,
+						"top": 30
+					},
 					"fps": 5,
 					"frame_durations_ms": [
 						200,
@@ -27131,7 +27867,13 @@ window.ART_DASHBOARD_DATA = {
 					],
 					"hit_frame": 4
 				},
-				"art/sprites/characters/max/shootside.png": {
+				"art/sprites/characters/spaceman/shootside.png": {
+					"art_bounds": {
+						"bottom": 61,
+						"left": 36,
+						"right": 60,
+						"top": 30
+					},
 					"fps": 5,
 					"frame_durations_ms": [
 						200,
@@ -27159,14 +27901,8 @@ window.ART_DASHBOARD_DATA = {
 				{
 					"candidates": [
 						{
-							"convention": false,
-							"declared": true,
-							"path": "art/sprites/characters/max/idle.png",
-							"rename_to": "art/sprites/characters/spaceman/idle0.png"
-						},
-						{
 							"convention": true,
-							"declared": false,
+							"declared": true,
 							"path": "art/sprites/characters/spaceman/idle0.png"
 						},
 						{
@@ -27182,14 +27918,8 @@ window.ART_DASHBOARD_DATA = {
 				{
 					"candidates": [
 						{
-							"convention": false,
-							"declared": true,
-							"path": "art/sprites/characters/max/idle.png",
-							"rename_to": "art/sprites/characters/spaceman/idle0.png"
-						},
-						{
 							"convention": true,
-							"declared": false,
+							"declared": true,
 							"path": "art/sprites/characters/spaceman/idle0.png"
 						},
 						{
@@ -27221,7 +27951,7 @@ window.ART_DASHBOARD_DATA = {
 							"clip": "melee",
 							"convention": false,
 							"declared": true,
-							"path": "art/sprites/characters/max/meleeside.png",
+							"path": "art/sprites/characters/spaceman/meleeside.png",
 							"rename_to": "art/sprites/characters/spaceman/melee.png"
 						},
 						{
@@ -27253,7 +27983,7 @@ window.ART_DASHBOARD_DATA = {
 							"clip": "ranged",
 							"convention": false,
 							"declared": true,
-							"path": "art/sprites/characters/max/shootside.png",
+							"path": "art/sprites/characters/spaceman/shootside.png",
 							"rename_to": "art/sprites/characters/spaceman/ranged.png"
 						},
 						{
@@ -27291,7 +28021,7 @@ window.ART_DASHBOARD_DATA = {
 							"clip": "melee",
 							"convention": false,
 							"declared": true,
-							"path": "art/sprites/characters/max/meleeside.png",
+							"path": "art/sprites/characters/spaceman/meleeside.png",
 							"rename_to": "art/sprites/characters/spaceman/melee.png"
 						},
 						{
@@ -27317,7 +28047,7 @@ window.ART_DASHBOARD_DATA = {
 							"clip": "melee",
 							"convention": false,
 							"declared": true,
-							"path": "art/sprites/characters/max/meleeside.png",
+							"path": "art/sprites/characters/spaceman/meleeside.png",
 							"rename_to": "art/sprites/characters/spaceman/melee.png"
 						},
 						{
@@ -27343,7 +28073,7 @@ window.ART_DASHBOARD_DATA = {
 							"clip": "ranged",
 							"convention": false,
 							"declared": true,
-							"path": "art/sprites/characters/max/shootside.png",
+							"path": "art/sprites/characters/spaceman/shootside.png",
 							"rename_to": "art/sprites/characters/spaceman/ranged.png"
 						},
 						{
@@ -27369,7 +28099,7 @@ window.ART_DASHBOARD_DATA = {
 							"clip": "ranged",
 							"convention": false,
 							"declared": true,
-							"path": "art/sprites/characters/max/shootside.png",
+							"path": "art/sprites/characters/spaceman/shootside.png",
 							"rename_to": "art/sprites/characters/spaceman/ranged.png"
 						},
 						{
@@ -30701,7 +31431,8 @@ window.ART_DASHBOARD_DATA = {
 						200,
 						150
 					],
-					"hit_frame": 9
+					"hit_frame": 9,
+					"hit_marker": true
 				},
 				"art/sprites/characters/thumps/ranged.png": {
 					"fps": 10,
@@ -32566,7 +33297,21 @@ window.ART_DASHBOARD_DATA = {
 		},
 		{
 			"class": "engineer",
-			"clips": {},
+			"clips": {
+				"art/sprites/characters/tipsy_goblin/idle0.png": {
+					"art_bounds": {
+						"bottom": 62,
+						"left": 39,
+						"right": 58,
+						"top": 34
+					},
+					"frame_durations_ms": [
+						400,
+						500,
+						100
+					]
+				}
+			},
 			"crop": {
 				"atlas": "art/lineart_fullres/tipsy_goblin.png",
 				"height": 1311,
@@ -34479,7 +35224,24 @@ window.ART_DASHBOARD_DATA = {
 		},
 		{
 			"class": "heavy",
-			"clips": {},
+			"clips": {
+				"art/sprites/characters/wooly_beast/idle0.png": {
+					"art_bounds": {
+						"bottom": 79,
+						"left": 48,
+						"right": 79,
+						"top": 33
+					},
+					"frame_durations_ms": [
+						700,
+						700,
+						200,
+						300,
+						200,
+						700
+					]
+				}
+			},
 			"crop": {
 				"atlas": "art/lineart_fullres/wooly_beast.png",
 				"height": 1353,
@@ -35380,6 +36142,7 @@ window.ART_DASHBOARD_DATA = {
 			"tier": "orange"
 		},
 		{
+			"contact": true,
 			"convention": "art/sprites/characters/{id}/melee.png",
 			"fallback": "its ranged clip, else a nudge",
 			"id": "melee",
@@ -35387,6 +36150,7 @@ window.ART_DASHBOARD_DATA = {
 			"tier": "yellow"
 		},
 		{
+			"contact": true,
 			"convention": "art/sprites/characters/{id}/ranged.png",
 			"fallback": "its melee clip, else a nudge",
 			"id": "ranged",
@@ -35394,6 +36158,7 @@ window.ART_DASHBOARD_DATA = {
 			"tier": "yellow"
 		},
 		{
+			"contact": true,
 			"convention": "art/sprites/characters/{id}/melee_physical.png",
 			"fallback": "the plain melee clip",
 			"id": "melee_physical",
@@ -35401,6 +36166,7 @@ window.ART_DASHBOARD_DATA = {
 			"tier": "green"
 		},
 		{
+			"contact": true,
 			"convention": "art/sprites/characters/{id}/melee_special.png",
 			"fallback": "the plain melee clip",
 			"id": "melee_special",
@@ -35408,6 +36174,7 @@ window.ART_DASHBOARD_DATA = {
 			"tier": "green"
 		},
 		{
+			"contact": true,
 			"convention": "art/sprites/characters/{id}/ranged_physical.png",
 			"fallback": "the plain ranged clip",
 			"id": "ranged_physical",
@@ -35415,6 +36182,7 @@ window.ART_DASHBOARD_DATA = {
 			"tier": "green"
 		},
 		{
+			"contact": true,
 			"convention": "art/sprites/characters/{id}/ranged_special.png",
 			"fallback": "the plain ranged clip",
 			"id": "ranged_special",
@@ -35422,6 +36190,7 @@ window.ART_DASHBOARD_DATA = {
 			"tier": "green"
 		},
 		{
+			"contact": true,
 			"convention": "art/sprites/characters/{id}/cast.png",
 			"fallback": "its melee clip, then ranged",
 			"id": "cast",
@@ -35450,6 +36219,7 @@ window.ART_DASHBOARD_DATA = {
 			"tier": "green"
 		},
 		{
+			"contact": true,
 			"convention": "art/sprites/characters/{id}/crit_melee.png",
 			"fallback": "the normal clip: nothing plays crits yet",
 			"id": "crit_melee",
@@ -35457,6 +36227,7 @@ window.ART_DASHBOARD_DATA = {
 			"tier": "extra"
 		},
 		{
+			"contact": true,
 			"convention": "art/sprites/characters/{id}/crit_ranged.png",
 			"fallback": "the normal clip: nothing plays crits yet",
 			"id": "crit_ranged",

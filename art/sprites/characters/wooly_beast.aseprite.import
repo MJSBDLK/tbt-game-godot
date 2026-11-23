@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://cmf6nwhb3hev6"
+path="res://.godot/imported/wooly_beast.aseprite-e7ab49054597437a4e442ac70f3cfd0e.res"
+
+[deps]
+
+source_file="res://art/sprites/characters/wooly_beast.aseprite"
+dest_files=["res://.godot/imported/wooly_beast.aseprite-e7ab49054597437a4e442ac70f3cfd0e.res"]
+
+[params]
+
