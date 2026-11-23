@@ -290,11 +290,26 @@ function lineArtGeometry(probe, crop, path) {
 	};
 }
 
+// A locked moveset's moves by the box each plays, in box order. "" is a move
+// nothing describes yet; it goes last.
+const MOVESET_CLIPS = ["melee", "ranged", "cast", ""];
+function movesetGroups(moveset) {
+	return MOVESET_CLIPS
+		.map((clip) => ({ clip, moves: moveset.moves.filter((move) => move.clip === clip) }))
+		.filter((group) => group.moves.length > 0);
+}
+
+// The schedule is the class's, so everyone who starts as that class learns it.
+function sharesMoveset(characters, character) {
+	return characters.filter((other) => other.id !== character.id && other.moveset
+		&& other.tree.class === character.tree.class);
+}
+
 const logic = {
 	NEXT_TIER, TOP_TIER, frameCount, shownCandidate, isStandIn, boxState, evaluateCharacter, unitTree,
 	treeStatus, resolveBoxes, variantProgress, sortCharacters, pendingRenames, folderName, asepriteSource,
 	renameInstruction, deliveryHint, boxHint, keyframeIndex, frameDurations, spriteGeometry, lineArtGeometry,
-	needsHitMarker,
+	needsHitMarker, movesetGroups, sharesMoveset,
 };
 if (typeof module !== "undefined") module.exports = logic;
 else global.ArtBoardLogic = logic;

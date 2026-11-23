@@ -58,6 +58,89 @@ func test_range_passives_table_covers_every_range_passive() -> void:
 			assert_has(listed, path, "%s adds range: list it in RANGE_PASSIVES" % file_name)
 
 
+func test_design_doc_rows_give_a_move_s_kind_range_and_description() -> void:
+	var design := Generator.read_design_doc("\n".join([
+		"## Moves", "### Gentry/Physical",
+		"+ Epée — p6 r1 acc90, a rapier.",
+		"+ Flourish",
+		"+ Ice Pick — p7, ignores defense.",
+		"### Gentry/Special",
+		"+ Extort — p5 r2 acc90, a flip of the fingers.",
+		"+ Favor — Support r2 ally: gives",
+		"  the user's buff away.",
+		"## Passives", "### Wanted",
+		"+ Studied — hits on a weakness",
+		"  can't miss.",
+	]))
+	assert_eq(design.moves.keys(), ["Epée", "Ice Pick", "Extort", "Favor"], "a bare name says nothing")
+	assert_eq(design.moves["Epée"].damageType, "Physical", "the heading's kind")
+	assert_eq(design.moves["Ice Pick"].range, 1, "no rN: range 1")
+	assert_eq(design.moves["Extort"].damageType, "Special")
+	assert_eq(design.moves["Extort"].range, 2)
+	assert_eq(design.moves["Favor"].damageType, "Support", "the row opens with Support")
+	assert_eq(design.moves["Favor"].description, "Support r2 ally: gives the user's buff away.", "an indented line continues")
+	assert_true(design.moves["Favor"].designed)
+	assert_eq(design.passives, {"Studied": "hits on a weakness can't miss."})
+
+
+func test_a_moveset_lists_the_kit_first_with_the_box_each_move_plays() -> void:
+	var moves := MOVE_BANK.duplicate()
+	moves["Wish"] = {"damageType": "Special", "range": 1, "designed": true, "description": "a wish"}
+	var passives := {"Extendo": {"description": "longer reach", "built": true}}
+	var schedule := {"kit": {"moves": ["Zap", "Jab"], "passives": ["Extendo"]}, "moves": ["Mend", "Lob", "Wish"],
+			"passives": ["Daydream"]}
+	var moveset := Generator.moveset_entry("dreamer", schedule, moves, passives)
+	assert_push_error("Daydream")
+	var clips := {}
+	for move: Dictionary in moveset.moves:
+		clips[move.name] = move.clip
+	assert_eq(clips, {"Zap": "ranged", "Jab": "ranged", "Mend": "cast", "Lob": "melee", "Wish": "melee"},
+			"the kit first; Extendo takes Jab to 2 tiles; a melee tag holds Lob")
+	assert_eq(moveset.moves.map(func(move: Dictionary) -> bool: return move.kit), [true, true, false, false, false])
+	assert_false(moveset.moves[4].built, "Wish is only designed")
+	assert_true(moveset.moves[4].special)
+	assert_eq(moveset.passives[0], {"name": "Extendo", "kit": true, "built": true, "description": "longer reach"})
+	assert_false(moveset.passives[1].built, "nothing knows Daydream")
+
+
+## The schedule is what the unit will learn, so it decides the boxes; the
+## JSON's placeholder pool stops counting.
+func test_a_locked_moveset_decides_the_needs() -> void:
+	var character := {"currentClass": "Squire", "basePoolMoves": ["Zap"]}
+	var schedules := {"squire": Generator.moveset_entry("squire",
+			{"kit": {"moves": ["Jab", "Mend"], "passives": []}, "moves": [], "passives": []}, MOVE_BANK, {})}
+	var entry := Generator.character_entry("nobody", character, MOVE_BANK, _tree(), schedules)
+	assert_eq(entry.moveset, schedules.squire)
+	assert_true(_requirement(entry, "cast").needed, "Mend is in the schedule")
+	assert_false(_requirement(entry, "ranged").needed, "Zap is only in the placeholder pool")
+	assert_false(_requirement(entry.variants[0], "ranged").needed, "a variant learns the same")
+	var unscheduled := Generator.character_entry("nobody", character, MOVE_BANK, _tree())
+	assert_false(unscheduled.has("moveset"))
+	assert_true(_requirement(unscheduled, "ranged").needed, "no schedule: the pool decides")
+
+
+func test_every_scheduled_move_plays_a_box_and_every_passive_says_what_it_does() -> void:
+	var with_moveset := 0
+	for character: Dictionary in Generator.build_data().characters:
+		if not character.has("moveset"):
+			continue
+		with_moveset += 1
+		for move: Dictionary in character.moveset.moves:
+			assert_ne(move.clip, "", "%s's %s: no bank entry or design-doc row says its kind" % [character.id, move.name])
+		for passive: Dictionary in character.moveset.passives:
+			assert_ne(passive.description, "", "%s's %s" % [character.id, passive.name])
+	assert_gt(with_moveset, 0, "some class has a schedule")
+
+
+## The generator reads PassiveRegistry's source because its handlers can't
+## load headless; the real registry has to agree.
+func test_coded_passives_are_the_registry_s() -> void:
+	var coded := Generator.coded_passives()
+	assert_gt(coded.size(), 10)
+	for passive_name: String in Generator.read_json(Generator.PASSIVES_PATH):
+		assert_eq(coded.has(passive_name), PassiveRegistry.get_handler(passive_name) != null, passive_name)
+
+
 func test_placeholder_sprite_is_no_idle() -> void:
 	var entry := Generator.character_entry("nobody",
 			{"sprite": {"sheetPath": Generator.PLACEHOLDER_SPRITE}}, MOVE_BANK)

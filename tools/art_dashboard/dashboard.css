@@ -295,6 +295,17 @@ code { font: 12px ui-monospace, monospace; }
 .placeholder-note { flex-basis: 100%; margin: 0; color: var(--text-muted); font-size: 12px; }
 .placeholder-note strong { color: var(--red); }
 
+/* A locked kit, each move under the box it plays. */
+.moveset { flex-basis: 100%; }
+.moveset-intro { margin: 0 0 4px; color: var(--text-muted); font-size: 12px; }
+.moveset-list { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 0; }
+.moveset-list dt { color: var(--text-muted); font-size: 12px; line-height: 18px; }
+.moveset-list dd { margin: 0; }
+.move { cursor: help; }
+.move-kit { font-weight: 700; }
+.move-designed { opacity: 0.55; font-style: italic; }
+.move-special { margin-left: 3px; color: var(--text-muted); font-size: 10px; text-transform: uppercase; }
+
 /* ---- trees: tiers run left to right, a line from each class to what it
    promotes into. Each child draws its own stub and its piece of the spine,
    so any number of children joins up. ---- */
