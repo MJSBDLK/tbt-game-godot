@@ -82,5 +82,85 @@
 	"Bravery": {
 		"abbrevName": "Bravery",
 		"description": "This unit counts as brave: challenged by Roar rather than rattled, and passed over by Shriek of the Damned. Courage without Chivalric's weaknesses — or its resistances."
+	},
+	"Close Ranks": {
+		"abbrevName": "Ranks",
+		"description": "+2 defense while standing next to an ally"
+	},
+	"Temper": {
+		"abbrevName": "Temper",
+		"description": "After a miss, the next attack deals 20% more damage but is 15% less accurate"
+	},
+	"Hardy": {
+		"abbrevName": "Hardy",
+		"description": "Debuffs land one stack lighter, so most wear off a turn sooner. A one-stack debuff still lands."
+	},
+	"Grudge": {
+		"abbrevName": "Grudge",
+		"description": "When an ally within 3 tiles falls, this unit goes after whoever did it"
+	},
+	"Wary": {
+		"abbrevName": "Wary",
+		"description": "Hard to catch off guard: hits on this unit never crit"
+	},
+	"Loner": {
+		"abbrevName": "Loner",
+		"description": "+25% agility while no ally is within 2 tiles"
+	},
+	"Shaken": {
+		"abbrevName": "Shaken",
+		"description": "When an ally within 3 tiles falls, this unit is Shocked for a turn"
+	},
+	"Press On": {
+		"abbrevName": "Press On",
+		"description": "Dropping a foe leaves this unit Fortified for a turn"
+	},
+	"Pathfinder": {
+		"abbrevName": "Pathfind",
+		"description": "Rough terrain costs 1 less to cross, never below 1"
+	},
+	"Stonewall": {
+		"abbrevName": "Stonewall",
+		"description": "A foe that steps next to this unit has to stop there"
+	},
+	"Big Gut": {
+		"abbrevName": "Big Gut",
+		"description": "A foe that lands a melee hit on this unit bounces back a tile, unless it's stout enough to hold"
+	},
+	"Still Standing": {
+		"abbrevName": "Standing",
+		"description": "From full HP, a hit that would drop this unit leaves it at 1 HP"
+	},
+	"On Duty": {
+		"abbrevName": "On Duty",
+		"description": "Never ends up more than 1 tile from where its turn began, walking or pushed"
+	},
+	"Dead Weight": {
+		"abbrevName": "Dead Wt",
+		"description": "When this unit falls, foes next to it are Rooted for a turn"
+	},
+	"Thick Skin": {
+		"abbrevName": "Thick Skn",
+		"description": "Foes land one hit per attack on this unit, however fast they are"
+	},
+	"Gloat": {
+		"abbrevName": "Gloat",
+		"description": "Landing a crit or dropping a foe Challenges every foe within 2 tiles for a turn"
+	},
+	"Outburst": {
+		"abbrevName": "Outburst",
+		"description": "With two or more foes next to this unit, its multi-hit moves land one more hit"
+	},
+	"Grateful": {
+		"abbrevName": "Grateful",
+		"description": "Buffs on this unit land one stack heavier, so they last a turn longer"
+	},
+	"Panic": {
+		"abbrevName": "Panic",
+		"description": "Below half HP this unit moves 1 tile farther, but can't use support moves"
+	},
+	"Tag Along": {
+		"abbrevName": "Tag Along",
+		"description": "When a foe next to this unit walks away, this unit steps into the tile it left"
 	}
 }

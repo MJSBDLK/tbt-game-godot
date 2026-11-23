@@ -111,12 +111,111 @@ Observations with nothing to do go in "Claude FYI" below.
   `Assets/Docs/Design/terrain-system.md` rule (-1 cost if Ath > Con, -2 if
   Ath >= 2x Con, min 1) with agility in place of athleticism. Athleticism
   keeps only multi-hit, which RQD calls strong already; find it other uses?
+- [ ] Grunt kit: nothing teaches schedules yet
+	In-game Grunts still spawn with grunt.json's placeholder pool (Bonk, Klunk,
+	Flame Strike, Shock; Impetuous, Reliable, Protector, Reckless). Swapping it
+	for the schedule shifts ~12 tests that load grunt.json as a dummy (Reliable
+	makes their hits land).
+- [ ] Grunt kit: a cast clip for Lawrence
+	Steady, Brace and Haul fall back to the melee thrust, so he stabs the ally
+	he's helping. The pose question in notes/briefs/grunt.md is still blank.
+- [ ] Grunt: spear or bill?
+	Hook Swipe (level 4) only fits a bill; a spear wants something else there.
+- [ ] Traveller kit: he isn't a Peasant in the game yet
+	The schedule lives on peasant.json (the tree's base), but traveller.json
+	says `currentClass: Mercenary` and Peasant has no `Enums.CharacterClass`
+	entry. Fix both when schedules start being taught (the Grunt item above).
+- [ ] Traveller kit: a cast clip for Lawrence
+	Melee and ranged are wired (hit frames 3 and 5, picked by eye). No cast
+	clip yet, so First Aid, Lantern and Rummage play the melee swing; the
+	knapsack pose in notes/briefs/traveller.md would cover all three.
+- [ ] Thumps: his hammer lands twice in one swing
+	Lawrence marked `hit` at melee frames 6 and 9; a clip has one contact
+	frame, so damage lands on the second slam (the exporter keeps the last
+	marker). Pound now hits twice, which answers it: let a multi-hit move's
+	hits land on the clip's markers in one swing (exporter writes every `hit`,
+	ClipPlayer plays to contact N). Until then each hit replays the whole
+	swing, about 1.5 s to contact, so a 3-hit Maul or Pummel runs ~5 s.
+- [ ] Tag exporter: re-export keeps stale art_bounds
+	It merges into the old sidecar, so when Thumps' canvas grew 64 -> 128
+	his idle0 kept the 64-canvas bounds (feet would have sat above center;
+	re-measured by hand). Re-measure art_bounds from frame 0 whenever the
+	sidecar has them. Same merge turns their ints into floats (63.0).
+- [ ] Tag exporter: `sound:` tags export as clips
+	Thumps' `sound:hammer` came out as sound_hammer.png (deleted). Treat
+	colon tags as events, not clips, as discussed with the sound-tag answer.
+- [ ] Traveller: stats don't match the brief
+	His numbers are nearly the Bandit's. The brief says skill low (he has 6 /
+	55%), agility medium-low (7 / 65%, the best growth he has), resistance
+	medium (3 / 25%). Retune, or update the brief?
+- [ ] On Duty's line is 1 tile until you pick
+	Squash's kit is built; this is the one open number. N lives in
+	OnDutyPassive.LEASH_TILES (test_on_duty_passive's layouts assume 1).
+	Displacement measures from where his turn began; walking measures from
+	where he stands, which is the same cell on his own turn.
+- [ ] Cover against melee: the bodyguard is always 2 tiles from the attacker
+	No cell is next to both the covered ally and a melee foe, so a melee hit
+	that Cover redirects lands on a bodyguard 2 tiles away. The attacker's
+	bonus hits then fail the range check ("out of range" callout) and a melee
+	bodyguard can't counter. Ranged hits behave normally. Keep that (Cover
+	also blunts fast attackers), or carry the whole exchange to the bodyguard?
+- [ ] Elbows becomes Squash's counter move after he uses it
+	Choosing a move to attack also arms it as the counter. Elbows has range 0,
+	so after an Elbows turn he never counters until the player arms another
+	move. Support casts already work this way (Roar, Staredown). Options:
+	Elbows counters by hitting everyone adjacent, arming skips range-0 moves,
+	or leave it.
+- [ ] Fighter's schedule is Squash's
+	Berzerker and Grasker start as Fighters and inherit it until per-unit
+	overrides exist (§9 promises them; no data format yet) or they get their
+	own base class.
+- [ ] Heavy's schedule is Thumps'
+	Ogre and Wooly Beast start as Heavies. Ogre's notes want one swing that
+	one-shots, the opposite of a kit built on small hits. My pick: Thumps gets
+	his own tier-1 class (name yours) and Heavy keeps big single hits.
+- [ ] Thumps: stats don't match the brief
+	They're the numbers Squash had before his retune. Brief vs file: skill
+	"extremely low" (4 / 35%, 5th lowest of 36; Ogre is 2 / 15%), resistance
+	"average" (3 / 25%, tied for the roster's lowest; median 4), and a
+	"heavyweight" at constitution 5 (Squash 8, Ogre 10). Suggest 2 / 20%,
+	4 / 35%, 8. The rest match.
+- [ ] Thumps kit: clips for Lawrence
+	No cast clip: Lighten and Burden want the glowing stone between finger
+	and thumb, with the glow on its own layer so code can tint it per move.
+	Lift wants its own pose (it plays the stone touch until then). Tantrum
+	names a `tantrum` clip (falls back to the melee swing meanwhile).
+- [ ] Tag Along: playtest it for confusion
+	You flagged it might confuse players. A cheap aid if it does: when a
+	planned move leaves his side, the preview draws his step (a ghost arrow
+	on him). He calls "TAG ALONG" when he steps.
+- [ ] Napdawg kit: locked, not built
+	Princeling's schedule (data/classes/pool/princeling.json). Data only:
+	Extort, Epée, Disarm, Ice Pick. Small: Subversion (works now; the aim
+	shows no area), Upheaval (its Rooted lands on him too), Favor (steal in
+	reverse), Studied, Sadist, Petulant, Dread, Capricious's Void immunity.
+	Bigger: Entourage (Cover's redirect from the target's side), Blame (a
+	status redirect), Decimate (one victim, the rest buffed), Retreat (a
+	ranged swap). Say go and I'll build them.
+- [ ] Napdawg kit: clips for Lawrence
+	He has an idle and nothing else. The brief names two poses: the finger
+	flip (ranged: Extort, Snap Freeze) and lifting the earth (cast: every
+	support move). The rapier thrust (melee: Epée, Disarm, Flame Strike) has
+	no pose yet.
 - [ ] 
 
 # Claude FYI
 Observations with no action item: worth knowing, nothing to do. No
 checkboxes. RQD deletes an entry once read; if one grows an action, it moves
 up to # Claude.
+- Thick Skin lets a volley through: it stops speed's bonus swings, not a
+  multi-hit move's own hits. Squash isn't a hard counter to Thumps.
+- Hitting your own side pays no XP now (Tantrum on a friend). Corruption's
+  misfire used to pay it; that stopped too.
+- Grateful can't stretch Cover: Covered holds one stack, so the extra stack
+  has nowhere to go (I said otherwise while brainstorming).
+- Thumps still spawns with his placeholder pool (Megaton Punch and friends),
+  like the Grunt: nothing teaches schedules yet. So does Napdawg (Backstab,
+  Feint, Sidearm, Volley).
 
 # BUGZ
 - [ ] There's no visual feedback on the map for the Protector passive. Let's talk about this one because it will be easy to confuse the player.
@@ -214,6 +313,17 @@ up to # Claude.
 - [ ] In spite of the above, default difficulty is substantially too high - this is fine for now because I've done minimal tuning of the difficulty, but we should discuss how to tune this without simply overleveling the player. The game should *feel* like an even playing field, or even slightly oppressive - we want to keep the player in that zone of proximal development, and never feel like they're coasting. Force them to learn, but make the on-raamp really gradual. Shouldn't feel like a tutorial either, though.
   - [ ] We should discuss dynamic difficulty scaling, as well. This would be especially easy to implement near-imperceptibly in our game
 - [ ] Note on AI in general - this needs a complete rework. I want the AI to be smart. We're not there yet - I want to get the systems in a good place first. But this is a high priority task, when the time comes.
+	Moving up the list, right after a solid set of class kits (more moves = more material for the AI work).
+	- [ ] Cast support moves
+		EnemyAI._pick_attack_move skips every Support move, so buffs, cleanses
+		and shoves on allies do nothing on enemies (the Grunt's Steady, Brace
+		and Haul; a Grunt that draws all three fields one attack plus Bonk).
+		Squash adds Staredown and Cover, and Elbows: a self-cast fails
+		can_target against a foe, so the AI never picks it either. Thumps adds
+		Lighten, Burden and Lift, and Tantrum (a self-cast, like Elbows); his
+		Grateful needs allies that cast. Napdawg is the one it hurts most: half
+		his tier-1 moves are support casts, and the brief's "fearsome support
+		kit" is all in them.
 - [ ] Victory screen popping up needs more dopamine - discuss
   (Mockup session, HTML first.)
 - [ ] Mix the audio so every bus sounds right at 80% — the default for all
@@ -489,11 +599,12 @@ Nothing here is code-blocked; all have placeholders shipping today.
   these land.
 - [ ] **Range icons**: range 1, range 2, range 1-2, range 2-3, range 3+.
   *(Any others needed here?)*
-- [ ] **Buff icons**: Rallied, Fortified, Hasted, Focused, Regen — plus the
-  long-missing **Bellows**. (Fortified / Hasted / Regen have PLACEHOLDERS as
-  of 2026-09-10 — `tools/art/placeholder_status_icon.gd`, same-name
+- [ ] **Buff icons**: Rallied, Fortified, Hasted, Focused, Regen, Covered — plus
+  the long-missing **Bellows**. (Fortified / Hasted / Regen / Covered have
+  PLACEHOLDERS — `tools/art/placeholder_status_icon.gd`, same-name
   replacement; the missing-art resource error is gone but the art is still
-  Lawrence's.)
+  Lawrence's. Covered is Cover's: "attacks on this unit hit its bodyguard";
+  the placeholder is an umbrella.)
 - [ ] A **broken-link / denied glyph** to sit beside the OUT OF RANGE callout, so
   the meaning isn't carried entirely by 5px type.
 - [ ] **Monster** and **Beast** type icons (both types shipped 2026-07-06; missing

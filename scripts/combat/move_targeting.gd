@@ -119,10 +119,53 @@ static func can_target(attacker: Unit, target: Unit, move: Move) -> bool:
 	if distance > move.attack_range:
 		if not is_reach_clear(attacker.current_tile, target.current_tile, GridManager.get_unit_type(attacker)):
 			return false
+	# CHALLENGED: a single-target move at a foe may only go to the challenger,
+	# player side and AI alike. Area and self moves are free.
+	if move.target_type == Enums.TargetType.SINGLE and not move.targets_allies():
+		var challenger := active_challenger(attacker)
+		if challenger != null and target != challenger:
+			return false
 	return true
 
 
-## The unit an attack actually lands on. If a ranged offensive shot from
+## The live unit `unit` has been challenged by (CHALLENGED's source_unit,
+## stamped at apply time, re-pointed when a new challenger restacks it), or null
+## once the status runs out or the challenger falls.
+static func active_challenger(unit: Unit) -> Unit:
+	if unit == null:
+		return null
+	for effect: StatusEffect in unit.active_status_effects:
+		if effect.effect_type_name != "CHALLENGED" or effect.stacks <= 0:
+			continue
+		var source := effect.source_unit as Unit
+		if source != null and is_instance_valid(source) and not source.is_defeated():
+			return source
+	return null
+
+
+## Cover's bodyguard for `unit`: the COVERED status' source, while they live,
+## stand on the unit's side, and stay next to it. Pushed away, they cover nothing.
+static func covering_bodyguard(unit: Unit) -> Unit:
+	if unit == null or unit.current_tile == null:
+		return null
+	for effect: StatusEffect in unit.active_status_effects:
+		if effect.effect_type_name != "COVERED" or effect.stacks <= 0:
+			continue
+		var bodyguard := effect.source_unit as Unit
+		if bodyguard == null or not is_instance_valid(bodyguard) or bodyguard.is_defeated():
+			continue
+		if bodyguard == unit or bodyguard.faction != unit.faction or bodyguard.current_tile == null:
+			continue
+		var distance := absi(bodyguard.current_tile.grid_x - unit.current_tile.grid_x) \
+				+ absi(bodyguard.current_tile.grid_y - unit.current_tile.grid_y)
+		if distance == 1:
+			return bodyguard
+	return null
+
+
+## The unit an attack actually lands on. A COVERED target's bodyguard (Cover)
+## takes any single-target attack while standing next to it. Otherwise, if a
+## ranged offensive shot from
 ## `attacker` at `intended` passes over an ally of `intended` that body-blocks
 ## (Protector), the NEAREST such bodyguard takes the hit instead. Returns
 ## `intended` unchanged for ally-targeting/non-single moves, off-axis shots, or
@@ -139,6 +182,11 @@ static func resolve_actual_target(attacker: Unit, intended: Unit, move: Move) ->
 		return intended
 	if attacker.current_tile == null or intended.current_tile == null:
 		return intended
+	# Cover: a bodyguard standing next to the target takes the hit, melee or
+	# ranged, before any Protector on the line gets a say.
+	var bodyguard := covering_bodyguard(intended)
+	if bodyguard != null and bodyguard != attacker:
+		return bodyguard
 
 	var from := Vector2i(attacker.current_tile.grid_x, attacker.current_tile.grid_y)
 	var to := Vector2i(intended.current_tile.grid_x, intended.current_tile.grid_y)

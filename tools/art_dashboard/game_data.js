@@ -19294,7 +19294,7 @@ window.ART_DASHBOARD_DATA = {
 			"variants": []
 		},
 		{
-			"class": "noble",
+			"class": "princeling",
 			"clips": {
 				"art/sprites/characters/napdog/idle.png": {
 					"art_bounds": {
@@ -19580,7 +19580,7 @@ window.ART_DASHBOARD_DATA = {
 				}
 			],
 			"tree": {
-				"class": "noble",
+				"class": "princeling",
 				"promotions": [
 					{
 						"art": "palette",
@@ -30671,10 +30671,10 @@ window.ART_DASHBOARD_DATA = {
 				},
 				"art/sprites/characters/thumps/idle0.png": {
 					"art_bounds": {
-						"bottom": 47,
-						"left": 16,
-						"right": 48,
-						"top": 6
+						"bottom": 79,
+						"left": 48,
+						"right": 80,
+						"top": 38
 					},
 					"frame_durations_ms": [
 						300,
@@ -30682,6 +30682,40 @@ window.ART_DASHBOARD_DATA = {
 						300,
 						300
 					]
+				},
+				"art/sprites/characters/thumps/melee.png": {
+					"fps": 10,
+					"frame_durations_ms": [
+						500,
+						150,
+						150,
+						150,
+						150,
+						150,
+						50,
+						50,
+						150,
+						50,
+						100,
+						100,
+						200,
+						150
+					],
+					"hit_frame": 9
+				},
+				"art/sprites/characters/thumps/ranged.png": {
+					"fps": 10,
+					"frame_durations_ms": [
+						500,
+						200,
+						150,
+						150,
+						100,
+						100,
+						200,
+						200
+					],
+					"hit_frame": 5
 				}
 			},
 			"crop": {
@@ -30746,7 +30780,7 @@ window.ART_DASHBOARD_DATA = {
 						{
 							"clip": "melee",
 							"convention": true,
-							"declared": false,
+							"declared": true,
 							"path": "art/sprites/characters/thumps/melee.png"
 						},
 						{
@@ -30771,7 +30805,7 @@ window.ART_DASHBOARD_DATA = {
 						{
 							"clip": "ranged",
 							"convention": true,
-							"declared": false,
+							"declared": true,
 							"path": "art/sprites/characters/thumps/ranged.png"
 						},
 						{
@@ -30802,7 +30836,7 @@ window.ART_DASHBOARD_DATA = {
 						{
 							"clip": "melee",
 							"convention": true,
-							"declared": false,
+							"declared": true,
 							"path": "art/sprites/characters/thumps/melee.png"
 						}
 					],
@@ -30821,7 +30855,7 @@ window.ART_DASHBOARD_DATA = {
 						{
 							"clip": "melee",
 							"convention": true,
-							"declared": false,
+							"declared": true,
 							"path": "art/sprites/characters/thumps/melee.png"
 						}
 					],
@@ -30840,7 +30874,7 @@ window.ART_DASHBOARD_DATA = {
 						{
 							"clip": "ranged",
 							"convention": true,
-							"declared": false,
+							"declared": true,
 							"path": "art/sprites/characters/thumps/ranged.png"
 						}
 					],
@@ -30859,7 +30893,7 @@ window.ART_DASHBOARD_DATA = {
 						{
 							"clip": "ranged",
 							"convention": true,
-							"declared": false,
+							"declared": true,
 							"path": "art/sprites/characters/thumps/ranged.png"
 						}
 					],
@@ -32829,6 +32863,37 @@ window.ART_DASHBOARD_DATA = {
 						450,
 						300
 					]
+				},
+				"art/sprites/characters/traveller/melee.png": {
+					"fps": 10,
+					"frame_durations_ms": [
+						500,
+						150,
+						150,
+						50,
+						150,
+						150,
+						150,
+						150,
+						150
+					],
+					"hit_frame": 3
+				},
+				"art/sprites/characters/traveller/ranged.png": {
+					"fps": 10,
+					"frame_durations_ms": [
+						500,
+						150,
+						150,
+						150,
+						150,
+						75,
+						150,
+						150,
+						150,
+						150
+					],
+					"hit_frame": 5
 				}
 			},
 			"id": "traveller",
@@ -32886,7 +32951,7 @@ window.ART_DASHBOARD_DATA = {
 						{
 							"clip": "melee",
 							"convention": true,
-							"declared": false,
+							"declared": true,
 							"path": "art/sprites/characters/traveller/melee.png"
 						},
 						{
@@ -32911,7 +32976,7 @@ window.ART_DASHBOARD_DATA = {
 						{
 							"clip": "ranged",
 							"convention": true,
-							"declared": false,
+							"declared": true,
 							"path": "art/sprites/characters/traveller/ranged.png"
 						},
 						{
@@ -32942,7 +33007,7 @@ window.ART_DASHBOARD_DATA = {
 						{
 							"clip": "melee",
 							"convention": true,
-							"declared": false,
+							"declared": true,
 							"path": "art/sprites/characters/traveller/melee.png"
 						}
 					],
@@ -32961,7 +33026,7 @@ window.ART_DASHBOARD_DATA = {
 						{
 							"clip": "melee",
 							"convention": true,
-							"declared": false,
+							"declared": true,
 							"path": "art/sprites/characters/traveller/melee.png"
 						}
 					],
@@ -32980,7 +33045,7 @@ window.ART_DASHBOARD_DATA = {
 						{
 							"clip": "ranged",
 							"convention": true,
-							"declared": false,
+							"declared": true,
 							"path": "art/sprites/characters/traveller/ranged.png"
 						}
 					],
@@ -32999,7 +33064,7 @@ window.ART_DASHBOARD_DATA = {
 						{
 							"clip": "ranged",
 							"convention": true,
-							"declared": false,
+							"declared": true,
 							"path": "art/sprites/characters/traveller/ranged.png"
 						}
 					],
@@ -35104,6 +35169,11 @@ window.ART_DASHBOARD_DATA = {
 			"id": "plague_doc",
 			"name": "Plague Doc",
 			"tier": 3
+		},
+		{
+			"id": "princeling",
+			"name": "Princeling",
+			"tier": 1
 		},
 		{
 			"id": "privateer",

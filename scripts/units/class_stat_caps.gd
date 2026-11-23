@@ -111,6 +111,9 @@ const BY_CLASS: Dictionary = {
 	Enums.CharacterClass.BANDIT:
 		{"max_hp": 46, "strength": 21, "special": 9, "skill": 12,
 		 "agility": 14, "athleticism": 16, "defense": 14, "resistance": 8},
+	Enums.CharacterClass.PRINCELING:
+		{"max_hp": 36, "strength": 9, "special": 20, "skill": 19,
+		 "agility": 13, "athleticism": 11, "defense": 10, "resistance": 20},
 
 	# --- Tier 2 -------------------------------------------------------------
 	# First promotion. Roughly one tier of growth above tier 1, and the

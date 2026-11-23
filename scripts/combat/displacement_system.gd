@@ -71,10 +71,16 @@
 ##                 cell is enterable; a member that can't advance jams the
 ##                 whole train.
 ##
+## LEASH (On Duty): every step asks GridManager.displacement_allows, which caps
+## how far a leashed unit can be carried from where its turn began. A linear
+## subject stops short of the line (no slam, no collision), a swap partner that
+## would cross it turns the swap into a stop, a train jams, a rotator stops.
+##
 ## RESOLUTION MODEL: build_plan() is PURE — it walks a virtual occupancy
 ## overlay and returns a DisplacePlan (per-unit step-aligned tile paths,
-## collisions, resisted subjects) without touching the board; that's what the
-## unit tests drive. resolve() then batch-commits OCCUPANCY (clear every
+## collisions, resisted subjects) without touching the board (the leash may pin
+## a never-pinned turn start where the unit stands); that's what the unit tests
+## drive. resolve() then batch-commits OCCUPANCY (clear every
 ## mover's registration, THEN re-register at the destinations — ordering-safe
 ## for swaps and rotations, where sequential move_to_tile calls would clobber
 ## each other; the nodes stay where they stand), hands the SLIDE to the
@@ -354,6 +360,9 @@ static func _resolve_linear(subject: Node2D, caster: Node2D, target: Node2D,
 	var traveled := 0
 	while traveled < distance:
 		var next := cell + direction
+		# On Duty's line: the subject stops short of it, no slam, no collision.
+		if not GridManager.displacement_allows(subject, next):
+			break
 		var next_tile: Tile = GridManager.get_tile(next.x, next.y) as Tile
 		if next_tile == null or not next_tile.can_unit_move_to(GridManager.get_unit_type(subject)):
 			# Wall or map edge. Every policy stops here; bonus_damage slams.
@@ -413,7 +422,8 @@ static func _resolve_swap(subject: Node2D, occupant: Node2D, path: Array[Tile],
 		occupant_tile: Tile, contact_cell: Vector2i, overlay: Dictionary,
 		plan: DisplacePlan, start: Vector2i) -> void:
 	var contact_tile: Tile = GridManager.get_tile(contact_cell.x, contact_cell.y) as Tile
-	if contact_tile == null or not contact_tile.can_unit_move_to(GridManager.get_unit_type(occupant)):
+	if contact_tile == null or not contact_tile.can_unit_move_to(GridManager.get_unit_type(occupant)) \
+			or not GridManager.displacement_allows(occupant, contact_cell):
 		if not path.is_empty():
 			_add_mover(plan, subject, path, 0, overlay, start)
 		return
@@ -466,6 +476,11 @@ static func _resolve_push_chain(subject: Node2D, direction: Vector2i,
 			var member_next: Vector2i = positions[i] + direction
 			var member_tile: Tile = GridManager.get_tile(member_next.x, member_next.y) as Tile
 			if member_tile == null or not member_tile.can_unit_move_to(GridManager.get_unit_type(units[i])):
+				jammed = true
+				break
+		# A member at On Duty's line holds the whole train, front included.
+		for i: int in range(units.size()):
+			if not GridManager.displacement_allows(units[i], positions[i] + direction):
 				jammed = true
 				break
 		if jammed:
@@ -559,7 +574,8 @@ static func _resolve_rotation(subjects: Array[Node2D], move: Move,
 		for subject: Node2D in proposals:
 			var cell: Vector2i = proposals[subject]
 			var tile: Tile = GridManager.get_tile(cell.x, cell.y) as Tile
-			valid[subject] = tile != null and tile.can_unit_move_to(GridManager.get_unit_type(subject))
+			valid[subject] = tile != null and tile.can_unit_move_to(GridManager.get_unit_type(subject)) \
+					and GridManager.displacement_allows(subject, cell)
 
 		var changed := true
 		while changed:

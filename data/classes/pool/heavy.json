@@ -1,5 +1,36 @@
 {
 	"name": "Heavy",
 	"tier": 1,
-	"notes": ""
+	"notes": "",
+	"schedule": {
+		"kit": {
+			"moves": [
+				"Pound",
+				"Hurl"
+			],
+			"passives": [
+				"Outburst"
+			]
+		},
+		"moves": [
+			"Maul",
+			"Lighten",
+			"Toss",
+			"Tantrum",
+			"Burden",
+			"Arm Twist",
+			"Lift",
+			"Pummel"
+		],
+		"passives": [
+			"Temper",
+			"Pathfinder",
+			"Wary",
+			"Grateful",
+			"Hardy",
+			"Panic",
+			"Protector",
+			"Tag Along"
+		]
+	}
 }

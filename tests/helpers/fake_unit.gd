@@ -20,6 +20,7 @@ var can_act: bool = true
 var can_move: bool = true
 var pending_crit: bool = false
 var attacks_this_turn: int = 0
+var missed_last_swing: bool = false
 
 
 ## Mirrors Unit.is_defeated() — MoveTargeting.is_valid_target reads it.

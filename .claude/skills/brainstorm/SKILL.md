@@ -50,6 +50,8 @@ in §9 (tiers 2-3: list order only, their rhythm isn't laid out).
   for passives. Mark `(needs X)` for a mechanic the engine lacks.
 - From the brief: the answer it grew from ("misses, gets salty"). Nothing
   backs it: cut it or say why it stays.
+- The north star (Rules): name the choice each passive and secondary creates.
+  A kit that's mostly number changes is the wrong shape; rework before showing it.
 - Reuse before inventing. Say whether a new move should spread wide (Shank:
   most bladed enemies) or stay narrow.
 - Enemies field a random 4 of what they've learned (§9), so each move has to

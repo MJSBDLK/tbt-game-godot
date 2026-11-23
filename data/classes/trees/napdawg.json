@@ -1,5 +1,5 @@
 {
-	"base": "noble",
+	"base": "princeling",
 	"base_types": [
 		"Gentry"
 	],
@@ -39,5 +39,5 @@
 			]
 		}
 	],
-	"notes": "Tiny, scheming, cruel. A genuine tyrant, Caligula-type: doesn't understand the importance of reciprocity and kindness."
+	"notes": "Tiny, scheming, cruel. A genuine tyrant, Caligula-type: doesn't understand the importance of reciprocity and kindness. Tyrant of Great Tottering. Kit (Princeling): low stats, a fearsome support kit; his damage is spells, and the rapier pierces rather than hits hard; his men take his hits and his debuffs (Entourage, Blame) and pay for his boons (Decimate); hurt him and the scheming stops (Panic)."
 }

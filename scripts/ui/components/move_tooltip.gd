@@ -138,6 +138,10 @@ static func _build_card(move: Move) -> PanelContainer:
 	# 2026-07-19: basic schemes carry new-player value; the card is the lesson).
 	column.add_child(_make_label(_targeting_text(move),
 			GameColors.TEXT_SECONDARY, GameColors.TEXT_SECONDARY_GLOW))
+	# A multi-hit move splits PWR between its hits.
+	if move.hits > 1:
+		column.add_child(_make_label("%d HITS" % move.hits,
+				GameColors.TEXT_SECONDARY, GameColors.TEXT_SECONDARY_GLOW))
 
 	# Secondary effect ("30% BURN"), only when the move has one.
 	if move.status_effect_type != Enums.StatusEffectType.NONE:

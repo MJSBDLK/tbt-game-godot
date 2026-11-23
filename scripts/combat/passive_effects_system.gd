@@ -14,7 +14,10 @@
 ##   • TurnManager.player_phase_started — covers buff/debuff turn ticks,
 ##     respawns, anything that mutates roster state between turns.
 ##   • Unit.movement_completed — positions changed; recompute.
-##   • Unit.unit_defeated — one fewer ally; recompute.
+##   • Unit.unit_defeated — one fewer ally; recompute (after the fallen's own
+##     on_defeated passives, notify_fallen).
+##   • Unit.path_traversed — a committed walk; foes it left behind react
+##     (notify_walked: Tag Along), then recompute.
 ##
 ## Registered as autoload "PassiveEffectsSystem" in project.godot. Wires up
 ## per-unit signals via TurnManager.initialize_battle (which fires before
@@ -59,6 +62,8 @@ func _connect_unit_signals(unit: Unit) -> void:
 		unit.movement_completed.connect(_on_unit_movement_completed)
 	if not unit.unit_defeated.is_connected(_on_unit_defeated):
 		unit.unit_defeated.connect(_on_unit_defeated)
+	if not unit.path_traversed.is_connected(notify_walked):
+		unit.path_traversed.connect(notify_walked)
 
 
 # =============================================================================
@@ -73,7 +78,8 @@ func _on_unit_movement_completed(_unit: Unit) -> void:
 	recompute_all()
 
 
-func _on_unit_defeated(_unit: Unit) -> void:
+func _on_unit_defeated(unit: Unit) -> void:
+	notify_fallen(unit)
 	recompute_all()
 
 
@@ -114,6 +120,75 @@ func recompute_faction(units: Array[Unit]) -> void:
 		for unit: Unit in units:
 			if _is_live(unit):
 				status_system.recalculate_stat_modifiers(unit)
+
+
+## A hit by `killer` just defeated `fallen`: every live unit on the fallen's side
+## gets its passives' on_ally_defeated (Grudge). Called by Unit._execute_single_hit
+## while the fallen still holds its tile, so handlers can measure distance to it.
+func notify_defeated_by(fallen: Unit, killer: Unit) -> void:
+	assert(fallen != null and fallen.is_defeated(), "notify_defeated_by: the fallen unit must be defeated")
+	for unit: Unit in _every_unit():
+		if unit == fallen or not _is_live(unit) or unit.faction != fallen.faction:
+			continue
+		for handler: CombatEffect in PassiveRegistry.get_handlers_for(unit.character_data, unit):
+			handler.on_ally_defeated(unit, fallen, killer)
+
+
+## `unit` just fell, by any cause: its own passives get on_defeated (Dead Weight).
+## Runs on Unit.unit_defeated, which take_damage emits before _handle_defeat
+## clears the tile.
+func notify_fallen(unit: Unit) -> void:
+	if unit == null or unit.character_data == null:
+		return
+	assert(unit.is_defeated(), "notify_fallen: %s is still standing" % unit.unit_name)
+	for handler: CombatEffect in PassiveRegistry.get_handlers_for(unit.character_data, unit):
+		handler.on_defeated(unit)
+
+
+## `attacker` landed at least one hit on `defender` this exchange, the counters
+## are done and both still stand: the defender's passives get after_attacked
+## (Big Gut). Called once per exchange by Unit._run_offensive_exchange.
+func notify_attacked(defender: Unit, attacker: Unit, move: Move, presenter: CombatPresenter) -> void:
+	assert(defender != null and attacker != null, "notify_attacked: both combatants required")
+	assert(not defender.is_defeated() and not attacker.is_defeated(),
+			"notify_attacked: only an exchange both survived gets an answer")
+	for handler: CombatEffect in PassiveRegistry.get_handlers_for(defender.character_data, defender):
+		@warning_ignore("redundant_await")
+		await handler.after_attacked(defender, attacker, move, presenter)
+
+
+## `mover` committed a walk that started on `tiles[0]` (Unit.path_traversed,
+## fired by set_acted): every live foe that stood next to that start and
+## isn't next to the mover now gets on_foe_walked_away (Tag Along). Positions
+## may change, so auras recompute after.
+func notify_walked(mover: Unit, tiles: Array) -> void:
+	if mover == null or mover.is_defeated() or mover.current_tile == null or tiles.size() < 2:
+		return
+	var left_tile: Tile = tiles[0]
+	assert(left_tile != null, "notify_walked: the walk has no start tile")
+	for unit: Unit in _every_unit():
+		if not _is_live(unit) or unit.faction == mover.faction or unit.current_tile == null:
+			continue
+		if _tile_distance(unit.current_tile, left_tile) != 1 \
+				or _tile_distance(unit.current_tile, mover.current_tile) <= 1:
+			continue
+		for handler: CombatEffect in PassiveRegistry.get_handlers_for(unit.character_data, unit):
+			handler.on_foe_walked_away(unit, mover, left_tile)
+	recompute_all()
+
+
+## Both sides' units as TurnManager tracks them; empty outside a battle.
+func _every_unit() -> Array[Unit]:
+	var everyone: Array[Unit] = []
+	var turn_manager: Node = get_node_or_null("/root/TurnManager")
+	if turn_manager != null:
+		everyone.append_array(turn_manager.get_player_units())
+		everyone.append_array(turn_manager.get_enemy_units())
+	return everyone
+
+
+static func _tile_distance(from: Tile, to: Tile) -> int:
+	return absi(from.grid_x - to.grid_x) + absi(from.grid_y - to.grid_y)
 
 
 func _is_live(unit: Unit) -> bool:

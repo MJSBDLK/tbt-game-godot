@@ -23,6 +23,35 @@
 ##   Redirect    — intercepts_attack, from MoveTargeting.resolve_actual_target
 ##                 (a unit between attacker and target body-blocks the hit). The
 ##                 resolver does the geometry/faction pre-filter. (Protector.)
+##   Statuses    — lightens_debuffs / deepens_buffs, from StatusEffectSystem.
+##                 apply_status_effect_by_name (debuffs land a stack lighter,
+##                 buffs a stack heavier, on the owner). (Hardy, Grateful.)
+##   Crits       — prevents_crits, from CritEffect.modify_damage on the defender. (Wary.)
+##   Terrain     — terrain_cost_relief, from GridManager._scaled_tile_cost, which
+##                 every movement range, route and path cost goes through. (Pathfinder.)
+##   Ally falls  — on_ally_defeated, from PassiveEffectsSystem.notify_defeated_by,
+##                 which Unit._execute_single_hit calls after a killing hit; runs
+##                 for every live unit on the fallen's side. (Grudge.)
+##   Own fall    — on_defeated, from PassiveEffectsSystem on Unit.unit_defeated:
+##                 any cause of death, while the fallen still holds its tile.
+##                 (Dead Weight.)
+##   Exchange    — after_attacked, from PassiveEffectsSystem.notify_attacked, once
+##                 per exchange after the counters, when the attacker landed a hit
+##                 and both still stand. Awaitable. (Big Gut.)
+##   Hit count   — prevents_bonus_hits, from DamageCalculator.calculate_attack_count
+##                 on the defender's passives. (Thick Skin.) extra_volley_hits,
+##                 from DamageCalculator.volley_hits on the attacker's, for a
+##                 multi-hit move. (Outburst.)
+##   Movement    — exerts_zone_of_control (Stonewall) and leash_tiles (On Duty),
+##                 from GridManager's movement range and pathfinding; leash_tiles
+##                 also from GridManager.displacement_allows, which every
+##                 DisplacementSystem resolver asks. extra_move_tiles, from
+##                 Unit.max_movement_range. (Panic.)
+##   Move slots  — locks_move, from Unit.is_move_index_locked: the menu greys
+##                 the move with the lock scrim and nothing can use it. (Panic.)
+##   Foe walks   — on_foe_walked_away, from PassiveEffectsSystem.notify_walked on
+##                 Unit.path_traversed (a committed walk): a foe that started next
+##                 to the owner ended its walk out of reach. (Tag Along.)
 ##
 ## OWNER RULE: per-hit, gather() pools the move's effects AND both combatants'
 ## passive handlers (deduped by identity), so a passive handler can't assume it's
@@ -106,6 +135,94 @@ func randomizes_move() -> bool:
 ## CombatPredicates.is_brave — never check this directly. (Bravery.)
 func grants_bravery() -> bool:
 	return false
+
+
+## Crits: can hits on this passive's owner never crit? Queried by CritEffect on the
+## DEFENDER's passives; a banked crit stays banked for the next target. (Wary.)
+func prevents_crits() -> bool:
+	return false
+
+
+## Pathfinding: tiles off this many from any terrain cost above 1 (never below 1).
+## Queried by GridManager._scaled_tile_cost on the mover's passives. (Pathfinder.)
+func terrain_cost_relief() -> float:
+	return 0.0
+
+
+## Statuses: do debuffs land on this passive's owner one stack lighter (never
+## below one)? Queried by StatusEffectSystem.apply_status_effect_by_name on the
+## target's passives. (Hardy.)
+func lightens_debuffs() -> bool:
+	return false
+
+
+## Statuses: do buffs land on this passive's owner one stack heavier (up to the
+## buff's cap)? Queried with lightens_debuffs. (Grateful.)
+func deepens_buffs() -> bool:
+	return false
+
+
+## Ally falls: `fallen`, on `unit`'s side, was just defeated by `killer`'s hit.
+## Dispatched per live ally of the fallen by PassiveEffectsSystem.notify_defeated_by.
+## Kills by DoT, scheduled strikes and collisions have no killer and don't fire.
+## (Grudge.)
+func on_ally_defeated(_unit: Unit, _fallen: Unit, _killer: Unit) -> void:
+	pass
+
+
+## Own fall: `unit`, this passive's owner, was just defeated by any cause. It
+## still holds its tile, so handlers can look at its neighbors. (Dead Weight.)
+func on_defeated(_unit: Unit) -> void:
+	pass
+
+
+## Exchange over: `attacker` landed at least one hit on `unit` (this passive's
+## owner) with `move`, the counters are done, and both still stand. May be a
+## coroutine; the dispatcher awaits it. (Big Gut.)
+func after_attacked(_unit: Unit, _attacker: Unit, _move: Move, _presenter: CombatPresenter) -> void:
+	pass
+
+
+## Hit count: do foes get only one hit on this passive's owner per attack,
+## whatever their athleticism lead? (Thick Skin.)
+func prevents_bonus_hits() -> bool:
+	return false
+
+
+## Hit count: extra hits `attacker` (this passive's owner) lands with `move`,
+## a multi-hit move, this swing. (Outburst.)
+func extra_volley_hits(_attacker: Node2D, _move: Move) -> int:
+	return 0
+
+
+## Movement: extra tiles `unit` (this passive's owner) may walk this turn,
+## read live, so it follows HP. (Panic.)
+func extra_move_tiles(_unit: Unit) -> int:
+	return 0
+
+
+## Move slots: is `move` unusable for `unit` (this passive's owner) right now?
+## (Panic.)
+func locks_move(_unit: Unit, _move: Move) -> bool:
+	return false
+
+
+## Foe walks: `foe` started its committed walk on `left_tile`, next to `unit`
+## (this passive's owner), and ended it out of reach. (Tag Along.)
+func on_foe_walked_away(_unit: Unit, _foe: Unit, _left_tile: Tile) -> void:
+	pass
+
+
+## Movement: does a foe that steps next to this passive's owner have to stop
+## there? (Stonewall.)
+func exerts_zone_of_control() -> bool:
+	return false
+
+
+## Movement: how many tiles from where its turn began the owner may end up,
+## walking or displaced. -1 = no limit. (On Duty.)
+func leash_tiles() -> int:
+	return -1
 
 
 ## Targeting: extra attack range (additive) this passive grants its owner for the

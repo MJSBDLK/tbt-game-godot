@@ -47,8 +47,8 @@ func _place(unit: Unit, x: int) -> void:
 
 
 ## Attacker at (0,0), enemies at (1,0) and (2,0), nothing at (3,0); a range-2
-## move, so both enemies are targets.
-func _start_targeting() -> void:
+## move (`move`, or a plain attack), so both enemies are targets.
+func _start_targeting(move: Move = null) -> void:
 	for x: int in range(0, 4):
 		var tile := Tile.new()
 		var sprite := Sprite2D.new()
@@ -62,11 +62,12 @@ func _start_targeting() -> void:
 	_place(attacker, 0)
 	_place(_unit(Enums.UnitFaction.ENEMY), 1)
 	_place(_unit(Enums.UnitFaction.ENEMY), 2)
-	var move := Move.new()
-	move.damage_type = Enums.DamageType.PHYSICAL
-	move.base_power = 10
-	move.attack_range = 2
-	move.target_type = Enums.TargetType.SINGLE
+	if move == null:
+		move = Move.new()
+		move.damage_type = Enums.DamageType.PHYSICAL
+		move.base_power = 10
+		move.attack_range = 2
+		move.target_type = Enums.TargetType.SINGLE
 	InputManager.start_attack_targeting(attacker, move)
 
 
@@ -121,3 +122,9 @@ func test_the_forecast_names_who_the_swing_hits() -> void:
 	assert_eq(forecast.target, near.current_unit, "no Protector in the way: the aimed-at enemy")
 	assert_eq(InputManager._targeting.forecast_for(GridManager.get_tile(3, 0)).kind,
 			AttackTargeting.Forecast.NONE, "nobody to hit there")
+
+
+func test_a_staredown_forecasts_no_fight() -> void:
+	_start_targeting(MoveData.get_move("Staredown"))
+	assert_eq(InputManager._targeting.forecast_for(GridManager.get_tile(1, 0)).kind,
+			AttackTargeting.Forecast.SUPPORT, "no damage and no counter to forecast")

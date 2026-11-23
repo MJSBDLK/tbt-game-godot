@@ -6,12 +6,11 @@
 ##   attack_stat  = strength (physical) or special (special move)
 ##   defense_stat = defense (physical) or resistance (special)
 ##   base_damage  = (attack_stat + move.base_power) - defense_stat
-##   final_damage = max(1, round(base_damage * type_multiplier * other_multipliers))
+##   final_damage = max(1, round(base_damage * type_multiplier * other_multipliers / move.hits))
+##   (a multi-hit move's hits share one hit's damage; Bugle adds after, per hit)
 ##
-## The previous Unity-ported formula multiplied `move.base_power * attack_stat / 5`,
-## which caused damage to compound super-linearly with stat growth (Ogre-untouchable
-## + Backhand-overpowered symptoms). Additive scaling keeps high-stat units strong
-## without making them dominant.
+## Additive on purpose: a multiplicative formula compounds with stat growth, and
+## high-stat units turn untouchable.
 class_name DamageCalculator
 extends RefCounted
 
@@ -28,6 +27,9 @@ const CRIT_MULTIPLIER: float = 2.0
 const STAB_MULTIPLIER: float = 1.2
 # Bellows: each stack on the ATTACKER adds this to fire damage (4 stacks = x2).
 const BELLOWS_BONUS_PER_STACK: float = 0.25
+# Bugle: a DEFENDER carrying it takes this much more from each Heraldic hit.
+# In the calculator, like Bellows, so the preview and the AI see it too.
+const BUGLE_BONUS_DAMAGE: int = 1
 
 
 # =============================================================================
@@ -150,17 +152,38 @@ static func calculate_damage(attacker: Node2D, defender: Node2D, move: Move) -> 
 			terrain_multiplier_for(defender, &"get_defense_multiplier_for_unit")
 					* terrain_multiplier_for(defender, style_defense_getter),
 			defender_data.has_equipped_passive("Reckless"))
-	var effective_defense := roundi(defense_stat * defense_terrain)
+	# Defense-pierce (Pick): the move ignores a share of the defending stat.
+	var effective_defense := roundi(defense_stat * defense_terrain * (1.0 - move.defense_pierce_pct))
 
 	# Additive RD-style formula: stat + might - def. Stat growth still matters
 	# but doesn't compound with weapon power, so high-level units don't snowball.
 	var base_damage: int = (attack_stat + move.base_power) - effective_defense
-	var final_damage := maxi(1, roundi(base_damage * type_multiplier * stab_multiplier * bellows_scale * attack_terrain))
+	# A multi-hit move splits one hit's damage between its hits: the formula
+	# counts the attack stat once, so unsplit hits would multiply it. Bugle's
+	# flat +1 lands after the split, on every hit.
+	var final_damage := maxi(1, roundi(base_damage * type_multiplier * stab_multiplier * bellows_scale * attack_terrain
+			/ float(move.hits)))
+	var bugle := bugle_bonus(defender, move)
+	final_damage += bugle
 
-	DebugConfig.log_combat("DamageCalc: atk=%d + power=%d - def=%d(x%.2f) = %d * type=%.2f * stab=%.2f * bellows=%.2f * atkterrain=%.2f -> %d" % [
-		attack_stat, move.base_power, defense_stat, defense_terrain, base_damage, type_multiplier, stab_multiplier, bellows_scale, attack_terrain, final_damage])
+	DebugConfig.log_combat("DamageCalc: atk=%d + power=%d - def=%d(x%.2f) = %d * type=%.2f * stab=%.2f * bellows=%.2f * atkterrain=%.2f / hits=%d + bugle=%d -> %d" % [
+		attack_stat, move.base_power, defense_stat, defense_terrain, base_damage, type_multiplier, stab_multiplier, bellows_scale, attack_terrain, move.hits, bugle, final_damage])
 
 	return final_damage
+
+
+## Bugle: a marked unit takes BUGLE_BONUS_DAMAGE more from every Heraldic hit,
+## flat, after the multipliers. Stacks are its duration, not its size.
+static func bugle_bonus(defender: Node2D, move: Move) -> int:
+	if move.element_type != Enums.ElementalType.HERALDIC:
+		return 0
+	var effects: Variant = defender.get("active_status_effects")
+	if effects == null:
+		return 0
+	for effect: StatusEffect in effects:
+		if effect.effect_type_name == "BUGLE" and effect.stacks > 0:
+			return BUGLE_BONUS_DAMAGE
+	return 0
 
 
 ## STAB for one attacker/move pairing: STAB_MULTIPLIER when the move's element
@@ -286,12 +309,34 @@ static func _accuracy_handlers(attacker: Node2D, defender: Node2D) -> Array[Comb
 	return handlers
 
 
+## Hits in one swing of `move`: its own count (Move.hits), plus what the
+## attacker's passives add to a multi-hit move (Outburst). The exchange runs
+## calculate_attack_count swings of this many hits each.
+static func volley_hits(attacker: Node2D, move: Move) -> int:
+	if move == null:
+		return 1
+	var hits: int = move.hits
+	if attacker == null or move.hits <= 1:
+		return hits
+	for handler: CombatEffect in PassiveRegistry.get_handlers_for(attacker.get("character_data"), attacker):
+		hits += handler.extra_volley_hits(attacker, move)
+	return hits
+
+
+## Every hit `attacker` lands on `defender` with `move` in one exchange, if
+## nobody falls first: the speed swings times each swing's hits. What the
+## forecast's "xN" and the AI's damage estimate count.
+static func hits_in_exchange(attacker: Node2D, defender: Node2D, move: Move) -> int:
+	return calculate_attack_count(attacker, defender) * volley_hits(attacker, move)
+
+
 ## Calculate number of attacks based on athleticism ratio.
-## 4× → 4 hits, 3× → 3 hits, 2× → 2 hits, else 1. Framed as a "Brave"-weapon-style
+## 4× → 4 hits, 3× → 3 hits, 2× → 2 hits, else 1; always 1 against a defender
+## whose passives prevent bonus hits (Thick Skin). Framed as a "Brave"-weapon-style
 ## power spike: early-game stat spreads rarely reach 2×, so multi-hit is naturally
 ## rare; it becomes a meaningful payoff for investing into a runaway athleticism
-## lead later on. (Considered switching to Radiant Dawn's binary +4 threshold but
-## decided the ratio cliffs are the desired design — see [damage-audit-2026-06-02.md].)
+## lead later on. The ratio cliffs are deliberate, not a flat +N threshold
+## (damage-audit-2026-06-02.md).
 static func calculate_attack_count(attacker: Node2D, defender: Node2D) -> int:
 	if attacker == null or defender == null:
 		return 1
@@ -300,6 +345,9 @@ static func calculate_attack_count(attacker: Node2D, defender: Node2D) -> int:
 	var defender_data: CharacterData = defender.get("character_data")
 	if attacker_data == null or defender_data == null:
 		return 1
+	for handler: CombatEffect in PassiveRegistry.get_handlers_for(defender_data, defender):
+		if handler.prevents_bonus_hits():
+			return 1
 
 	var attacker_athleticism := maxi(1, attacker_data.athleticism)
 	var defender_athleticism := maxi(1, defender_data.athleticism)

@@ -42,6 +42,14 @@ const MAPS: Dictionary = {
 		"  gd  ",
 		"      ",
 	],
+	"covered": [
+		"  hg  ",
+		" hggd ",
+		"hggggd",
+		"  s   ",
+		"  s   ",
+		" ss   ",
+	],
 	"regen": [
 		"  hG  ",
 		"  GG  ",

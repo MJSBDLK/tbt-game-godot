@@ -2,7 +2,7 @@
 	"characterName": "Napdawg",
 	"primaryType": "Gentry",
 	"secondaryType": "None",
-	"currentClass": "Noble",
+	"currentClass": "Princeling",
 	"specialization": "None",
 	"portraitPath": "res://art/portraits/napdawg_portrait.png",
 	"lineartPath": "res://art/lineart_fullres/napdawg.png",
@@ -16,26 +16,26 @@
 	},
 	"baseStats": {
 		"maxHP": 14,
-		"strength": 4,
-		"special": 4,
+		"strength": 2,
+		"special": 6,
 		"skill": 7,
-		"agility": 9,
-		"athleticism": 6,
+		"agility": 3,
+		"athleticism": 3,
 		"defense": 2,
-		"resistance": 3
+		"resistance": 6
 	},
 	"growthRates": {
 		"hp": 40,
-		"strength": 30,
-		"special": 30,
-		"skill": 55,
-		"agility": 65,
-		"athleticism": 45,
+		"strength": 15,
+		"special": 55,
+		"skill": 60,
+		"agility": 25,
+		"athleticism": 25,
 		"defense": 20,
-		"resistance": 25
+		"resistance": 50
 	},
 	"physicalAttributes": {
-		"moveDistance": 5,
+		"moveDistance": 4,
 		"constitution": 3,
 		"carry": 5
 	},

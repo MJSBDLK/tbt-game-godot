@@ -1,5 +1,36 @@
 {
 	"name": "Peasant",
 	"tier": 1,
-	"notes": ""
+	"notes": "",
+	"schedule": {
+		"kit": {
+			"moves": [
+				"Pick",
+				"Hatchet"
+			],
+			"passives": [
+				"Wary"
+			]
+		},
+		"moves": [
+			"First Aid",
+			"Hook Swipe",
+			"Dazzle",
+			"Klunk",
+			"Pry",
+			"Lantern",
+			"Flame Strike",
+			"Rummage"
+		],
+		"passives": [
+			"Bravery",
+			"Hardy",
+			"Loner",
+			"Waste Not",
+			"Shaken",
+			"Press On",
+			"Pathfinder",
+			"Low Profile"
+		]
+	}
 }

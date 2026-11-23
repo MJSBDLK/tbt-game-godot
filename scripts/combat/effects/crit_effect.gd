@@ -20,6 +20,11 @@ func modify_damage(ctx: CombatHitContext) -> void:
 	var attacker: Node2D = ctx.attacker
 	var should_crit: bool = false
 
+	# Wary: nothing catches this defender off guard. A banked crit isn't spent
+	# here; it waits for a target that can be crit.
+	if _defender_prevents_crits(ctx.defender):
+		return
+
 	# A banked crit fires on the next DAMAGING hit, then clears. Gating on
 	# base_power > 0 keeps a zero-power move from wasting the banked crit.
 	if attacker != null and bool(attacker.get("pending_crit")) and ctx.move.base_power > 0:
@@ -44,6 +49,15 @@ func on_hit(ctx: CombatHitContext) -> void:
 		return
 	if ctx.attacker != null and _roll_crit(ctx.attacker, ctx.move.crit_chance):
 		ctx.attacker.set("pending_crit", true)
+
+
+static func _defender_prevents_crits(defender: Node2D) -> bool:
+	if defender == null:
+		return false
+	for handler: CombatEffect in PassiveRegistry.get_handlers_for(defender.get("character_data"), defender):
+		if handler.prevents_crits():
+			return true
+	return false
 
 
 ## A crit is a secondary effect like any status: the attacker's skill and curse

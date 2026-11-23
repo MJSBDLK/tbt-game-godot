@@ -17,9 +17,17 @@ One file per character, named after its JSON file (bandit.md). The
 > Who gets it: themselves, an ally, a foe, everyone nearby?
 > What's the one pose that sells it?
 
-## Traits
-> Each strength, then one or two flaws (ideally two), one line each:
-> `strength: flaw, flaw`
+## Stats
+> High, average or low; a word on why if it's not obvious.
+> HP (how much they can take):
+> Strength (physical damage):
+> Special (special damage):
+> Skill (accuracy):
+> Agility (dodging):
+> Athleticism (out-speed a foe to hit twice):
+> Defense (cuts physical damage taken):
+> Resistance (cuts special damage taken):
+> Anything else they're good or bad at:
 
 ## How do they react when they...
 > Pick two or three: land a big hit / miss / get hurt / drop a foe / lose an
@@ -30,6 +38,9 @@ One file per character, named after its JSON file (bandit.md). The
 ## How do they move?
 > Heavy, quick, sloppy, stiff, proud? How do they take a hit, and how do they
 > go down?
+
+## Additional Details
+> Anything else worth knowing: upbringing, what they know, where they've been.
 
 ## Like
 > Optional: a character, animal or person that captures them.
