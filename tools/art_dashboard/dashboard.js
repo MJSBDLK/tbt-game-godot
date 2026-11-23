@@ -34,7 +34,7 @@
 const {
 	NEXT_TIER, TOP_TIER, frameCount, boxState, evaluateCharacter, unitTree, treeStatus,
 	resolveBoxes, variantProgress, sortCharacters, pendingRenames, folderName, boxHint,
-	keyframeIndex, frameDurations, spriteGeometry, lineArtGeometry,
+	keyframeIndex, frameDurations, spriteGeometry, lineArtGeometry, needsHitMarker, asepriteSource,
 } = global.ArtBoardLogic;
 const { rememberedFolder, connectFolder, hasFile, Sources } = global.ArtBoardFolders;
 // How a variant's art gets made: its tree slot's `art` (data/classes/README.md).
@@ -671,6 +671,10 @@ function renderCell(character, evaluation, column, columns, inherited = {}) {
 		// Nothing loads variants yet, so there's nothing to wire them into.
 		cell.append(element("span", "badge badge-new", "new"));
 		notes.push("Drawn, not in the game yet: Claude wires it in.");
+	}
+	if (needsHitMarker(column, shown, character.clips[shown.path])) {
+		cell.append(element("span", "badge badge-hit", "hit?"));
+		notes.push(`No hit marker: the hit lands on the middle frame for now. Tag the contact frame "hit" in ${asepriteSource(shown.path).file.split("/").pop()}, then Export Tags as PNGs.`);
 	}
 	cell.title = [shown.path, ...notes].join("\n");
 	return cell;

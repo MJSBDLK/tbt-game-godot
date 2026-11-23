@@ -89,6 +89,10 @@
 - [ ] If Lawrence includes a glow layer in any sprite, we should apply our (new) glow shader
 - [ ] 
 
+# New
+- [ ] If no idle sprite, use line art as backup in art board
+
+
 # Resp
 
 
@@ -147,14 +151,18 @@ Observations with nothing to do go in "Claude FYI" below.
 	hits land on the clip's markers in one swing (exporter writes every `hit`,
 	ClipPlayer plays to contact N). Until then each hit replays the whole
 	swing, about 1.5 s to contact, so a 3-hit Maul or Pummel runs ~5 s.
-- [ ] Tag exporter: re-export keeps stale art_bounds
-	It merges into the old sidecar, so when Thumps' canvas grew 64 -> 128
-	his idle0 kept the 64-canvas bounds (feet would have sat above center;
-	re-measured by hand). Re-measure art_bounds from frame 0 whenever the
-	sidecar has them. Same merge turns their ints into floats (63.0).
+- [ ] Desert Prince and Mystic: their drawn shadows are left out
+	Both .aseprite files have a `shadow` layer. The exporter treated them as
+	props (cropped, non-square frames, a separate idle0_shadow.png), which
+	the board and the game can't read. Unit exports now skip a shadow layer
+	and UnitShadow casts the usual one at runtime. If Lawrence drew those
+	shadows on purpose (a hover gap?), the game needs a "use my drawn
+	shadow" path for units; until then his shadow layer does nothing.
 - [ ] Tag exporter: `sound:` tags export as clips
 	Thumps' `sound:hammer` came out as sound_hammer.png (deleted). Treat
 	colon tags as events, not clips, as discussed with the sound-tag answer.
+	Ogre's `screen_shake` (one frame, ranged frame 3) did the same (deleted):
+	a one-frame tag inside a clip is an event too, colon or not.
 - [ ] Traveller: stats don't match the brief
 	His numbers are nearly the Bandit's. The brief says skill low (he has 6 /
 	55%), agility medium-low (7 / 65%, the best growth he has), resistance

@@ -12,6 +12,12 @@ const SLICES_CHUNK_TYPE := 0x2022
 # content bbox when no explicit `footprint` slice is present.
 const TILE_SIZE_PX := 32
 
+# A unit's .aseprite lives here. Its strips are whole-canvas frames, which the
+# game and the art board read as square (SpriteSidecar.idle_frame_rect), so a
+# unit never takes the shadow-aware crop: UnitShadow casts its shadow at
+# runtime, and a drawn `shadow` layer is left out of the export.
+const UNIT_SPRITES_DIRECTORY := "res://art/sprites/characters/"
+
 # Shadow-layer detection tolerances. A layer is treated as a shadow when
 # every non-transparent pixel matches pure-black at ~40% alpha. Lawrence's
 # current convention emits exactly RGB(0,0,0) / A=102, but allow small
@@ -110,19 +116,22 @@ func _export_file(aseprite_file_path: String, lowercase_names: bool) -> void:
 	# (if any) by suffix convention or content-signature scan. Files with a
 	# shadow layer skip the trim/aligned dance below and run dedicated
 	# Passes C/D instead, so main and shadow strips align frame-for-frame.
-	# Backdrop (`bg`) and guide (`ref`) layers are left out of every pass.
+	# Backdrop (`bg`) and guide (`ref`) layers are left out of every pass, and
+	# so is a unit's `shadow` layer (UNIT_SPRITES_DIRECTORY).
+	var is_unit_sprite := aseprite_file_path.begins_with(UNIT_SPRITES_DIRECTORY)
 	var layer_names := _parse_layers(global_source)
 	var left_out_arguments := PackedStringArray()
 	var art_layer_names: Array[String] = []
 	for layer_name in layer_names:
-		if _is_backdrop_layer(layer_name) or _is_guide_layer(layer_name):
+		if _is_backdrop_layer(layer_name) or _is_guide_layer(layer_name) \
+				or (is_unit_sprite and _is_shadow_layer_by_name(layer_name)):
 			left_out_arguments.append_array(["--ignore-layer", layer_name])
 		else:
 			art_layer_names.append(layer_name)
 	if not left_out_arguments.is_empty():
 		print("  Left out: %s" % " ".join(left_out_arguments))
 	var shadow_layer_name := ""
-	if not art_layer_names.is_empty():
+	if not art_layer_names.is_empty() and not is_unit_sprite:
 		shadow_layer_name = _detect_shadow_layer(art_layer_names, global_source, aseprite_command)
 	var has_shadow_layer := shadow_layer_name != ""
 	if has_shadow_layer:
@@ -382,11 +391,10 @@ func _export_file(aseprite_file_path: String, lowercase_names: bool) -> void:
 				print("  Strip: %s (%d frames, %dx%d)" % [output_name, stitched_count, canvas_w_no_shadow * frames_in_tag, canvas_h_no_shadow])
 
 		# Emit sidecar JSON next to the PNG. Contains per-frame durations
-		# (always) and pivot (when a pivot slice exists). MERGES into any
-		# existing sidecar so hand-authored / bootstrap-script fields
-		# (e.g. art_bounds for healthbar positioning) survive re-export.
-		# Durations are sliced to the tag's frame range so each clip's
-		# sidecar holds only its own timings.
+		# (always), pivot (when a pivot slice exists) and, for a unit, frame
+		# 0's art_bounds. MERGES into any existing sidecar so fields other
+		# tools write survive re-export. Durations are sliced to the tag's
+		# frame range so each clip's sidecar holds only its own timings.
 		var sidecar_path := global_output + output_name + ".json"
 		var sidecar_data: Dictionary = {}
 		if FileAccess.file_exists(sidecar_path):
@@ -417,6 +425,17 @@ func _export_file(aseprite_file_path: String, lowercase_names: bool) -> void:
 			sidecar_data["footprint"] = [footprint_for_tag.x, footprint_for_tag.y]
 		if shadow_emitted:
 			sidecar_data["shadow_path"] = output_name + "_shadow.png"
+		if is_unit_sprite:
+			# Measured every export: a stale box (the canvas grew) floats the unit.
+			var strip_image := Image.load_from_file(output_path)
+			if strip_image.get_width() != strip_image.get_height() * frames_in_tag:
+				printerr("  Warning: '%s' is %dx%d, not %d square frames" % [
+					output_name, strip_image.get_width(), strip_image.get_height(), frames_in_tag])
+			var art_bounds := _frame_art_bounds(strip_image)
+			if art_bounds.is_empty():
+				sidecar_data.erase("art_bounds")
+			else:
+				sidecar_data["art_bounds"] = art_bounds
 		var sidecar_file := FileAccess.open(sidecar_path, FileAccess.WRITE)
 		if sidecar_file == null:
 			printerr("  Failed to open sidecar for write: %s (FileAccess error %d)" % [sidecar_path, FileAccess.get_open_error()])
@@ -1130,6 +1149,18 @@ static func _content_bbox(img: Image) -> Rect2i:
 	if max_x < 0:
 		return Rect2i()
 	return Rect2i(min_x, min_y, max_x - min_x + 1, max_y - min_y + 1)
+
+
+## The art in a strip's first (square) frame: {left, top, right, bottom} in
+## frame pixels, right and bottom one past the last opaque pixel. A unit reads
+## it from its idle's sidecar (health bar top, cast-shadow feet); the art board
+## crops to it. {} for an empty frame.
+static func _frame_art_bounds(strip: Image) -> Dictionary:
+	var frame_size := strip.get_height()
+	var box := _content_bbox(strip.get_region(Rect2i(0, 0, frame_size, frame_size)))
+	if box.size.x <= 0:
+		return {}
+	return {"left": box.position.x, "top": box.position.y, "right": box.end.x, "bottom": box.end.y}
 
 
 ## Compute the smallest axis-aligned rect that (a) contains `bbox`, (b) has

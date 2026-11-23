@@ -12,19 +12,19 @@
 	},
 	"serviceRecord": "Asset [[Max Stellar's legal name — undecided]], operating as STELLAR, M. Recent acquisition; zero verified engagements. Enthusiasm metrics exceed competence projections by a margin the underwriters found amusing. Recommend deployment in low-liability sectors until attrition data accumulates.",
 	"sprite": {
-		"sheetPath": "res://art/sprites/characters/max/idle.png",
+		"sheetPath": "res://art/sprites/characters/spaceman/idle0.png",
 		"atlasPath": "",
 		"frameIndex": 0
 	},
 	"animations": {
 		"melee": {
-			"path": "res://art/sprites/characters/max/meleeside.png",
+			"path": "res://art/sprites/characters/spaceman/meleeside.png",
 			"frames": 8,
 			"fps": 5,
 			"hit_frame": 4
 		},
 		"ranged": {
-			"path": "res://art/sprites/characters/max/shootside.png",
+			"path": "res://art/sprites/characters/spaceman/shootside.png",
 			"frames": 8,
 			"fps": 5,
 			"hit_frame": 4

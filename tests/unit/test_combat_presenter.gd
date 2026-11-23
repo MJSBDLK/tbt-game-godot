@@ -257,7 +257,7 @@ func test_skip_changes_timing_only_never_order() -> void:
 func test_clip_playback_reads_sidecar_durations_and_clip_hit_frame() -> void:
 	var clip := { "frames": 8, "fps": 5, "hit_frame": 4 }
 	var playback := ClipPlayer.resolve_playback(
-			"res://art/sprites/characters/max/meleeside.png", clip, 8)
+			"res://art/sprites/characters/spaceman/meleeside.png", clip, 8)
 	var durations: Array[float] = playback["durations_s"]
 	assert_eq(durations.size(), 8)
 	assert_almost_eq(durations[0], 0.2, 0.0001, "sidecar says 200 ms per frame")

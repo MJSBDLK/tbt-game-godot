@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://b8i6i4vvbnq5p"
+path="res://.godot/imported/tipsy_goblin.aseprite-ee51e6fa8cc03cd59bb59fba000a6aba.res"
+
+[deps]
+
+source_file="res://art/sprites/characters/tipsy_goblin.aseprite"
+dest_files=["res://.godot/imported/tipsy_goblin.aseprite-ee51e6fa8cc03cd59bb59fba000a6aba.res"]
+
+[params]
+

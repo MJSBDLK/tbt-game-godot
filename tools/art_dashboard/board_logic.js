@@ -228,7 +228,9 @@ function frameDurations(timing, frames) {
 }
 
 // Background geometry for one frame of a strip at whole-device-pixel scale.
-// `bounds` (the idle's art_bounds) crops to the figure so it reads bigger.
+// `bounds` (the idle's art_bounds) crops to the figure so it reads bigger. A
+// crop too big for the box even at one device pixel per pixel keeps its
+// middle: a big canvas shows the figure at its centre, never a corner.
 function spriteGeometry(probe, frameIndex, bounds, deviceRatio, size = THUMBNAIL_SIZE) {
 	const frameSize = probe.height;
 	const padding = 2;
@@ -238,10 +240,13 @@ function spriteGeometry(probe, frameIndex, bounds, deviceRatio, size = THUMBNAIL
 			right: Math.min(frameSize, bounds.right + padding), bottom: Math.min(frameSize, bounds.bottom + padding),
 		}
 		: { left: 0, top: 0, right: frameSize, bottom: frameSize };
+	const deviceScale = Math.max(1, Math.floor((size * deviceRatio) / Math.max(crop.right - crop.left, crop.bottom - crop.top)));
+	const scale = deviceScale / deviceRatio;
+	const fits = Math.floor((size * deviceRatio) / deviceScale);
+	[crop.left, crop.right] = keepMiddle(crop.left, crop.right, fits);
+	[crop.top, crop.bottom] = keepMiddle(crop.top, crop.bottom, fits);
 	const cropWidth = crop.right - crop.left;
 	const cropHeight = crop.bottom - crop.top;
-	const deviceScale = Math.max(1, Math.floor((size * deviceRatio) / Math.max(cropWidth, cropHeight)));
-	const scale = deviceScale / deviceRatio;
 	return {
 		width: cropWidth * scale,
 		height: cropHeight * scale,
@@ -249,6 +254,20 @@ function spriteGeometry(probe, frameIndex, bounds, deviceRatio, size = THUMBNAIL
 		position: [-(frameIndex * frameSize + crop.left) * scale, -crop.top * scale],
 		frameStep: frameSize * scale,
 	};
+}
+
+// The middle `length` of [start, end), or the span itself when it's no longer.
+function keepMiddle(start, end, length) {
+	if (end - start <= length) return [start, end];
+	const from = Math.floor((start + end - length) / 2);
+	return [from, from + length];
+}
+
+// A clip in its own contact box (column.contact: melee, ranged, cast...)
+// with no `hit` tag from Lawrence: the game strikes on its middle frame
+// until he marks the contact. A stand-in is flagged in its own box only.
+function needsHitMarker(column, shown, timing) {
+	return Boolean(column.contact && shown && shown.clip === column.id && !(timing && timing.hit_marker));
 }
 
 // Line art: the portrait crop when it's on this file, else the top of the art.
@@ -275,6 +294,7 @@ const logic = {
 	NEXT_TIER, TOP_TIER, frameCount, shownCandidate, isStandIn, boxState, evaluateCharacter, unitTree,
 	treeStatus, resolveBoxes, variantProgress, sortCharacters, pendingRenames, folderName, asepriteSource,
 	renameInstruction, deliveryHint, boxHint, keyframeIndex, frameDurations, spriteGeometry, lineArtGeometry,
+	needsHitMarker,
 };
 if (typeof module !== "undefined") module.exports = logic;
 else global.ArtBoardLogic = logic;

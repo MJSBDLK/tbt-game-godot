@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://dy8f6sclmk6v2"
+path="res://.godot/imported/napdawg.aseprite-01648b0b572d74fa9adab4546438aa2f.res"
+
+[deps]
+
+source_file="res://art/sprites/characters/napdawg.aseprite"
+dest_files=["res://.godot/imported/napdawg.aseprite-01648b0b572d74fa9adab4546438aa2f.res"]
+
+[params]
+

@@ -127,6 +127,21 @@ func test_content_bbox_tight_to_opaque_pixels() -> void:
 	assert_eq(bbox.size, Vector2i(5, 5))  # 2..6 = 5 wide, 3..7 = 5 tall
 
 
+func test_frame_art_bounds_reads_only_the_first_frame() -> void:
+	var strip := _make_image_filled(16, 8, Color(0, 0, 0, 0))  # two 8x8 frames
+	strip.set_pixel(2, 3, Color8(255, 0, 0, 255))
+	strip.set_pixel(5, 6, Color8(255, 0, 0, 255))
+	strip.set_pixel(15, 0, Color8(255, 0, 0, 255))  # frame 1: not counted
+	assert_eq(ContextMenu._frame_art_bounds(strip), {"left": 2, "top": 3, "right": 6, "bottom": 7},
+			"right and bottom sit one past the last opaque pixel")
+
+
+func test_frame_art_bounds_of_an_empty_frame_is_empty() -> void:
+	var strip := _make_image_filled(16, 8, Color(0, 0, 0, 0))
+	strip.set_pixel(12, 4, Color8(255, 0, 0, 255))
+	assert_eq(ContextMenu._frame_art_bounds(strip), {})
+
+
 # =============================================================================
 # Bbox padding around pivot
 # =============================================================================

@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://bhcl0xrq23nae"
+path="res://.godot/imported/gentry_prince.aseprite-e633667c2b59cb0fe500e6880ba71c2a.res"
+
+[deps]
+
+source_file="res://art/sprites/characters/gentry_prince.aseprite"
+dest_files=["res://.godot/imported/gentry_prince.aseprite-e633667c2b59cb0fe500e6880ba71c2a.res"]
+
+[params]
+

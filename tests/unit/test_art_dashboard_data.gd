@@ -281,7 +281,39 @@ func test_every_strip_splits_into_square_frames() -> void:
 				checked += 1
 				assert_eq(size.x % size.y, 0, "%s is %dx%d: frames must be square" % [
 						candidate.path, size.x, size.y])
+				# Narrow frames can still divide evenly (six 32x96 = 192x96), so
+				# count them against the sidecar's one duration per frame.
+				var sidecar := Generator.read_json(("res://" + candidate.path).trim_suffix(".png") + ".json", false)
+				var durations: Array = sidecar.get("frame_durations_ms", [])
+				if not durations.is_empty():
+					assert_eq(size.x, size.y * durations.size(), "%s is %dx%d for %d frames: frames must be square" % [
+							candidate.path, size.x, size.y, durations.size()])
 	assert_gt(checked, 0, "found strips to check")
+
+
+func test_contact_boxes_are_the_clips_that_land_a_hit() -> void:
+	var contact: Array[String] = []
+	for column: Dictionary in Generator.COLUMNS:
+		if column.get("contact", false):
+			contact.append(column.id)
+	assert_eq(contact, ["melee", "ranged", "melee_physical", "melee_special", "ranged_physical",
+			"ranged_special", "cast", "crit_melee", "crit_ranged"])
+
+
+func test_only_lawrence_s_hit_tag_counts_as_a_hit_marker() -> void:
+	var folder := "user://art_dashboard_hit_marker_test/"
+	DirAccess.make_dir_recursive_absolute(folder)
+	var marked := FileAccess.open(folder + "marked.json", FileAccess.WRITE)
+	marked.store_string(JSON.stringify({"hit_frame": 2}))
+	marked.close()
+	var guessed_path := folder + "guessed.png"
+	var guessed := Generator.clip_timing(guessed_path, {"melee": {"path": guessed_path, "hit_frame": 4}})
+	assert_true(Generator.clip_timing(folder + "marked.png", {}).get("hit_marker", false),
+			"the sidecar's hit_frame comes from his tag")
+	assert_eq(guessed.get("hit_frame"), 4, "a hit frame picked by eye still plays")
+	assert_false(guessed.get("hit_marker", false), "but it isn't his marker, so the board still asks")
+	DirAccess.remove_absolute(folder + "marked.json")
+	DirAccess.remove_absolute(folder)
 
 
 ## Width and height from the PNG header, big-endian, no import needed.
