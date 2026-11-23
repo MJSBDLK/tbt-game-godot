@@ -4,7 +4,7 @@
 --                          data, so it exports even while hidden)
 --   floor/NN_<name>.png  ← every other visible layer, one file each, numbered
 --                          bottom first so the game stacks them in order
--- Never exported: hidden layers, "reference ..." layers, and anything named
+-- Never exported: hidden layers, "ref" and "reference ..." layers, and anything named
 -- "do not export" or "GUIDES". A floor layer named after a map piece
 -- ("crater_left", "shelltree") or a terrain ("sand_orange", "water") shows
 -- only when that scenery is near the fight: see CombatBackdrop.
@@ -26,7 +26,8 @@ local function isSky(name)
 end
 local function neverExported(name)
   local lower = name:lower()
-  return lower:sub(1, 9) == "reference" or lower:find("do not export") ~= nil
+  return lower == "ref" or lower:sub(1, 4) == "ref " or lower:sub(1, 9) == "reference"
+      or lower:find("do not export") ~= nil
       or lower:find("guides") ~= nil
 end
 local function isFloor(layer, visible)

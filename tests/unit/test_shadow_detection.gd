@@ -96,6 +96,17 @@ func test_backdrop_layer_is_bg_and_its_copies() -> void:
 	assert_false(ContextMenu._is_backdrop_layer("character"))
 
 
+func test_guide_layer_is_ref_and_the_backdrop_names() -> void:
+	assert_true(ContextMenu._is_guide_layer("ref"), "Lawrence's proportions/colors guide")
+	assert_true(ContextMenu._is_guide_layer("Ref Copy"))
+	assert_true(ContextMenu._is_guide_layer("reference puppets — do not export"))
+	assert_true(ContextMenu._is_guide_layer("mockup, do not export"))
+	assert_true(ContextMenu._is_guide_layer("GUIDES"))
+	assert_false(ContextMenu._is_guide_layer("refill"), "only ref itself, or ref + space")
+	assert_false(ContextMenu._is_guide_layer("body"))
+	assert_false(ContextMenu._is_guide_layer("shadow"))
+
+
 # =============================================================================
 # Content bbox
 # =============================================================================

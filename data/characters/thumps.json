@@ -14,6 +14,20 @@
 		"atlasPath": "",
 		"frameIndex": 0
 	},
+	"animations": {
+		"melee": {
+			"path": "res://art/sprites/characters/thumps/melee.png",
+			"frames": 14,
+			"fps": 10,
+			"hit_frame": 9
+		},
+		"ranged": {
+			"path": "res://art/sprites/characters/thumps/ranged.png",
+			"frames": 8,
+			"fps": 10,
+			"hit_frame": 5
+		}
+	},
 	"baseStats": {
 		"maxHP": 20,
 		"strength": 8,
