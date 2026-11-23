@@ -212,7 +212,8 @@ code { font: 12px ui-monospace, monospace; }
 	transition: transform 0.12s;
 }
 .character[open] > .character-summary .chevron,
-.variants[open] > .variants-summary .chevron { transform: rotate(90deg); }
+.variants[open] > .variants-summary .chevron,
+.moveset[open] > .moveset-summary .chevron { transform: rotate(90deg); }
 
 .grid-rank { color: var(--text-muted); text-align: right; font-variant-numeric: tabular-nums; }
 
@@ -295,9 +296,11 @@ code { font: 12px ui-monospace, monospace; }
 .placeholder-note { flex-basis: 100%; margin: 0; color: var(--text-muted); font-size: 12px; }
 .placeholder-note strong { color: var(--red); }
 
-/* A locked kit, each move under the box it plays. */
+/* A locked kit, each move under the box it plays. Its summary is drawn like
+   the class variants' below. */
 .moveset { flex-basis: 100%; }
-.moveset-intro { margin: 0 0 4px; color: var(--text-muted); font-size: 12px; }
+.moveset-title { font-size: 11px; font-weight: 700; text-transform: uppercase; }
+.moveset-intro { margin: 6px 0 4px; color: var(--text-muted); font-size: 12px; }
 .moveset-list { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 0; }
 .moveset-list dt { color: var(--text-muted); font-size: 12px; line-height: 18px; }
 .moveset-list dd { margin: 0; }
@@ -352,7 +355,7 @@ code { font: 12px ui-monospace, monospace; }
 
 /* A character's class variants, inside its open row. */
 .variants { flex-basis: 100%; --branch-gap: 28px; --node-width: 220px; }
-.variants-summary {
+.variants-summary, .moveset-summary {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
@@ -364,7 +367,7 @@ code { font: 12px ui-monospace, monospace; }
 	list-style: none;
 	cursor: pointer;
 }
-.variants-summary::-webkit-details-marker { display: none; }
+.variants-summary::-webkit-details-marker, .moveset-summary::-webkit-details-marker { display: none; }
 .variants-title { font-size: 11px; font-weight: 700; text-transform: uppercase; }
 .variants-none { font-style: italic; }
 .variant-chip { display: inline-flex; align-items: center; gap: 4px; color: var(--text); }
