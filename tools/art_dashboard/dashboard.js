@@ -16,7 +16,7 @@
 //
 // Each character is a <details>: closed, one pip per box (so closed rows line
 // up like a grid); open, its boxes grouped by the color that needs them, and
-// its locked moveset (the class schedule), if it has one. New boxes go in
+// its locked moveset (the class schedule) collapsed, if it has one. New boxes go in
 // game_data_generator.gd's COLUMNS and need no layout work here.
 //
 // Class variants (the character redrawn for each class its tree promotes
@@ -192,6 +192,28 @@ function saveVariantView() {
 			JSON.stringify({ open: [...variantView.open], selected: variantView.selected }));
 	} catch (error) {
 		// Storage off: the trees just don't survive a reload.
+	}
+}
+
+// Moves lists the viewer opened (by character); every list starts closed.
+const MOVESETS_KEY = "tbt-art-board-movesets:" + global.location.pathname;
+const openMovesets = loadMovesets();
+
+function loadMovesets() {
+	try {
+		const stored = JSON.parse(global.localStorage.getItem(MOVESETS_KEY) || "null");
+		if (Array.isArray(stored)) return new Set(stored);
+	} catch (error) {
+		// Storage off: every list starts closed.
+	}
+	return new Set();
+}
+
+function saveMovesets() {
+	try {
+		global.localStorage.setItem(MOVESETS_KEY, JSON.stringify([...openMovesets]));
+	} catch (error) {
+		// Storage off: open lists just don't survive a reload.
 	}
 }
 
@@ -454,13 +476,20 @@ function renderCharacterBody(character, evaluation, columns, classes, characters
 }
 
 // The locked kit (its class's schedule), each move under the box it plays:
-// what the poses are for. The boxes' needs already follow it.
+// what the poses are for. The boxes' needs already follow it. Collapsed by
+// default: the boxes are what a visit is for.
 function renderMoveset(character, columns, classes, characters) {
-	const section = element("section", "moveset");
-	section.append(element("h3", "box-group-title", "Moves"));
+	const { moves, passives } = character.moveset;
+	const section = element("details", "moveset");
+	section.dataset.character = character.id;
+	section.open = openMovesets.has(character.id);
 	const className = (classes.find((entry) => entry.id === character.tree.class) || {}).name;
-	const designed = [...character.moveset.moves, ...character.moveset.passives].some((entry) => !entry.built);
-	let intro = `${className}'s schedule, in learning order. Bold: the starting kit.`
+	const summary = element("summary", "moveset-summary");
+	summary.append(element("span", "chevron"), element("span", "moveset-title", "Moves"),
+		element("span", "", `${className}'s schedule: ${moves.length} moves, ${passives.length} passives`));
+	section.append(summary);
+	const designed = [...moves, ...passives].some((entry) => !entry.built);
+	let intro = "In learning order. Bold: the starting kit."
 		+ (designed ? " Dimmed: designed, not in the game yet." : "") + " Hover a name for what it does.";
 	const others = sharesMoveset(characters, character).map((other) => other.name);
 	if (others.length) intro += ` ${others.join(", ")} also start as ${className} and learn the same.`;
@@ -960,6 +989,11 @@ async function start() {
 		if (section.matches && section.matches("details.variants")) {
 			variantView.open[section.open ? "add" : "delete"](section.dataset.character);
 			saveVariantView();
+			return;
+		}
+		if (section.matches && section.matches("details.moveset")) {
+			openMovesets[section.open ? "add" : "delete"](section.dataset.character);
+			saveMovesets();
 			return;
 		}
 		if (!section.matches || !section.matches("details.character")) return;
